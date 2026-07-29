@@ -1075,3 +1075,39 @@ as primary ownership; P7-LEGACY-REMOVAL re-verifies only.
 - P7-DOCS-001 → depends_on updated to P7-LEGACY-REMOVAL
 - P7-FINAL → depends_on updated to P7-LEGACY-REMOVAL (transitively through P7-LEGACY-002, P7-DOCS-001)
 - New tasks: P7-RELOCATE-I18N-001 through P7-RELOCATE-INFRA-001, P7-LEGACY-REMOVAL
+
+### ADR-P7-LEGACY-DECOMPOSITION-AMENDMENT: order leaf relocation by outbound readiness
+
+**Context.** First-step source verification for `P7-RELOCATE-LEAF-001` confirmed
+that all three families have zero inbound imports, but exposed material outbound
+coupling omitted by the original inbound-density ordering. Search directly imports
+User/Problem/Forum/Solution entities and mappers. Monitoring directly imports Queue
+inspector, constants, and DTOs. Moving either family now would require a forbidden
+backend-app → backend-legacy dependency, duplicate same-FQN types, or premature
+extraction of its outbound owners. Reconciliation has no business-module outbound
+imports and remains independently relocatable.
+
+**Decision.** Supersede `P7-RELOCATE-LEAF-001` with three dependency-correct tasks:
+
+- `P7-RELOCATE-RECONCILIATION-001` is ready immediately and moves 5 source files
+  plus its integration test to backend-admin.
+- `P7-RELOCATE-SEARCH-001` depends on `P7-RELOCATE-CORE-001`, after user/problem/
+  forum/solution implementations are app-owned (`CORE` already follows `APP`).
+- `P7-RELOCATE-MONITORING-001` depends on `P7-RELOCATE-INFRA-001`, after Queue is
+  app-owned.
+
+`P7-LEGACY-REMOVAL` depends on all three replacement tasks. No source scope is
+dropped; only execution order changes.
+
+**Alternatives considered.** Copy Queue and business mapper/entity types into
+backend-app now — rejected because it creates duplicate sources of truth. Add a
+backend-app dependency on backend-legacy — rejected because it violates the service
+shell boundary and blocks final legacy removal. Create new domain reactors for these
+leaf modules — rejected because the destination-shape rule reserves reactors for
+fan-out domains and does not eliminate their concrete outbound dependencies.
+
+**Consequences.** Reconciliation proceeds now. Search and monitoring become ready
+automatically after their real outbound owners relocate. The final removal gate
+retains complete coverage without temporary layering violations.
+
+**Reconciliation correction.** Implementation probing found a deeper outbound boundary not visible in Java imports: `OwnerReconciler` issues direct SQL against Auth, App, and Admin-owned tables. Relocating it immediately to backend-admin would require cross-owner database grants, violating the schema-isolation invariant. `P7-RELOCATE-RECONCILIATION-001` therefore depends on `P7-RELOCATE-INFRA-001` (transitively after Auth/Admin/App/Core) and must replace direct cross-owner SQL with owner RPC/read ports or an explicitly approved operational boundary before legacy removal. The attempted direct-JDBC relocation was not retained.

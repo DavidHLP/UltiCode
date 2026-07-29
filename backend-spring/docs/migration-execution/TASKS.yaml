@@ -7512,20 +7512,84 @@
   title: Relocate remaining leaf families (monitoring/reconciliation/search) from backend-legacy to backend-app/admin
   source:
   - ADR-P7-LEGACY-DECOMPOSITION
-  status: pending
+  status: superseded
   depends_on:
   - P7-RELOCATE-I18N-001
   acceptance_criteria:
-  - monitoring (9 src) + search (12 src) relocated to backend-app as App-owned infrastructure
-  - reconciliation (5 src) relocated to backend-admin as Admin-owned infrastructure
-  - Legacy copies removed; full reactor verify BUILD SUCCESS
+  - Superseded by dependency-correct P7-RELOCATE-RECONCILIATION-001, P7-RELOCATE-SEARCH-001, and P7-RELOCATE-MONITORING-001
   validation:
+  - See replacement tasks
+  rollback: revert task decomposition
+  evidence:
+  - note: 'First-step source verification found that zero inbound dependencies did not make all three families independently relocatable: search imports user/problem/forum/solution concrete mappers/entities, and monitoring imports queue inspector/constants/DTOs. Split the task and sequence each family after its outbound owners; reconciliation remains ready now.'
+    ts: '2026-07-30T01:40:00+00:00'
+  commits: []
+  notes: 'Superseded because the original task was ordered only by inbound density and ignored outbound dependencies.'
+  updated_at: '2026-07-30T01:40:00+00:00'
+- id: P7-RELOCATE-RECONCILIATION-001
+  phase: 7
+  area: ARCH
+  title: Relocate reconciliation infrastructure from backend-legacy to backend-admin
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-INFRA-001
+  acceptance_criteria:
+  - All 5 reconciliation source files and OwnerReconcilerIT relocated to backend-admin
+  - Cross-owner scans use owner RPC/read ports or an explicitly approved operational boundary; backend-admin receives no cross-owner table grants
+  - Legacy reconciliation copy removed
+  - OwnerReconcilerIT and full reactor tests pass
+  validation:
+  - ./mvnw -f backend-spring/pom.xml -pl backend-admin -am test -B
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: revert relocation commit
   evidence: []
   commits: []
-  notes: 'All three have 0 inbound deps. File counts TBD-verify-on-first-step.'
-  updated_at: '2026-07-30T00:50:00+00:00'
+  notes: 'Deferred until all owner families relocate. OwnerReconciler has no Java outbound imports but directly queries Auth/App/Admin tables; moving it now would violate the no-cross-owner-DB-grant invariant. Redesign as owner RPC/read-port aggregation before relocation.'
+  updated_at: '2026-07-30T01:40:00+00:00'
+- id: P7-RELOCATE-SEARCH-001
+  phase: 7
+  area: ARCH
+  title: Relocate search infrastructure from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-CORE-001
+  acceptance_criteria:
+  - All 12 search source files and projection test relocated to backend-app
+  - Search sources consume app-owned user/problem/forum/solution implementations without backend-legacy dependency
+  - Legacy search copy removed; full reactor tests pass
+  validation:
+  - ./mvnw -f backend-spring/pom.xml -pl backend-app -am test -B
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: 'Deferred until P7-RELOCATE-CORE-001 because current search sources import concrete user/problem/forum/solution mappers and entities.'
+  updated_at: '2026-07-30T01:40:00+00:00'
+- id: P7-RELOCATE-MONITORING-001
+  phase: 7
+  area: ARCH
+  title: Relocate monitoring infrastructure from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-INFRA-001
+  acceptance_criteria:
+  - All 9 monitoring source files and 2 tests relocated to backend-app
+  - Monitoring consumes app-owned queue inspector/types without backend-legacy dependency
+  - Legacy monitoring copy removed; full reactor tests pass
+  validation:
+  - ./mvnw -f backend-spring/pom.xml -pl backend-app -am test -B
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: 'Deferred until P7-RELOCATE-INFRA-001 because DefaultMonitoringInspector imports queue inspector/constants/DTOs.'
+  updated_at: '2026-07-30T01:40:00+00:00'
 - id: P7-RELOCATE-AUTH-001
   phase: 7
   area: ARCH
@@ -7633,7 +7697,9 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
   status: pending
   depends_on:
-  - P7-RELOCATE-LEAF-001
+  - P7-RELOCATE-RECONCILIATION-001
+  - P7-RELOCATE-SEARCH-001
+  - P7-RELOCATE-MONITORING-001
   - P7-RELOCATE-AUTH-001
   - P7-RELOCATE-ADMIN-001
   - P7-RELOCATE-APP-001

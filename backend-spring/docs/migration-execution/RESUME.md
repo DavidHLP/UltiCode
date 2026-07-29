@@ -1,9 +1,11 @@
 # Migration Resume
 
-Current Phase: Phase 4 (P3-GATE closed)
-Current Task: P4-CUTOVER-005 (pending) — WS multi-instance broadcast bridge (blocked: needs Redis Pub/Sub infra) — Judge/WS families cutover
+Current Phase: Phase 4
+Current Task: P4-GATE (in_progress) — Phase 4 gate validation (requires live stack/RPC trace/fault-injection evidence)
 
 Last Verified Commit:
+- 81c1756 feat(user): add DEFAULT 'USER' migration and enforce via ArchUnit (P2-DISC-005)
+- f3bbebf / 3c1246b feat(cutover): implement WS multi-instance broadcast bridge + allowlist security fix (P4-CUTOVER-005)
 - 4c195f7 feat(cutover): implement ContentModeration Provider + Forum/Solution routing (P4-CUTOVER-004)
 - 608e341 feat(cutover): implement Notification admin + batch rejudge Dubbo providers (P4-CUTOVER-003)
 - 574cda3 feat(cutover): implement Contest/Submission Dubbo providers + routing (P4-CUTOVER-002)
@@ -28,6 +30,8 @@ Completed:
 - P3-GATE: Phase 3 gate CLOSED. verify 1863/0, ArchUnit 8/8, zero write violations. Found+fixed one production-startup regression (AuditOutboxMapper placed outside @MapperScan path → full-context NoSuchBeanDefinitionException; b9c66db). IT report: 65 pass / 13 fail, all 13 environment-only (Testcontainers Redis AUTH mismatch, sandbox namespace/seccomp fixtures).
 - P4-RPC-001: completed backend-app-api Dubbo provider surface per §4.3 — added ContestAdministrationService (5 lifecycle methods) and SubmissionAdministrationService (rejudge). Contract design decisions recorded in ADR-P4-RPC-001.
 - Total tasks completed in TASKS.yaml: Phase 3 fully done; P4-RPC-001 done, P4-RPC-002 ready.
+- P4-CUTOVER-005: WS multi-instance broadcast bridge implemented via WebSocketBroadcastBridge + Redis Pub/Sub relay + closed WebSocketPayloadKind allowlist; 54/54 WS tests PASS including malicious gadget payload drop regressions.
+- P2-DISC-005: Added Flyway migration V20260729103000__Add_Default_User_Role.sql for users.role DEFAULT 'USER', dropped placeholder write in UserManagementServiceImpl, enforced via ArchUnit rule p2_disc_005_forbid_direct_user_role_setter_calls (9/9 ArchUnit rules green).
 
 Blocked:
 - None (code-health). Two environment/test-fixture follow-ups recorded (not gate blockers): (1) Testcontainers Redis AUTH config mismatch; (2) sandbox ITs need seccomp-profile.json fixture + privileged runtime.
@@ -42,10 +46,9 @@ Current Work:
 - Next: P4-CUTOVER-003 (Judge/WS families cutover) is ready.
 
 Last Validation:
-- ./mvnw verify -B full backend-spring reactor: PASS (1863 tests run, 0 failures, 0 errors, 4 skipped).
-- ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B: 8/8 green, freeze store refrozen empty (da138919).
-- ./mvnw -pl backend-api/backend-app-api verify -B: 18 tests, 0 failures (ContractShapeTest extended for 8 new types).
-- ./mvnw verify -B full reactor: 1863 tests, 0 failures, 0 errors, 4 skipped.
+- ./mvnw verify -B full backend-spring reactor: PASS (1921 tests run, 0 failures, 0 errors, 4 skipped).
+- ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B: 9/9 green.
+- ./mvnw -pl backend-legacy test -Dtest='*WebSocket*' -B: 54/54 green.
 
 Dirty Worktree:
 - No. Code committed per task (51af2a0 / b9c66db); docs updates pending this commit.

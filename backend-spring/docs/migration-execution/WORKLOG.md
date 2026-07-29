@@ -735,3 +735,22 @@ this session.
     (HIDE/RESTORE/UNDELETE) need admin-service methods that do not exist yet.
   - Commit: 4c195f7. Full reactor: 1912 tests, 0 failures.
 - **Next**: P4-CUTOVER-005 (WS multi-instance broadcast bridge) — blocked on Redis Pub/Sub infra.
+
+## 2026-07-29 P4-CUTOVER-005 — WS multi-instance broadcast bridge
+
+- **P4-CUTOVER-005**: implemented Redis Pub/Sub WebSocket broadcast bridge for multi-instance deployments.
+  - `WebSocketBroadcastBridge`: wraps `SimpMessagingTemplate` and `StringRedisTemplate`. Dual-path controlled by `app.websocket.broadcast.enabled` (default `false`). When `false`, calls local `messagingTemplate` directly. When `true`, publishes to Redis Pub/Sub channel `ulticode:ws:broadcast`.
+  - `WebSocketPayloadKind`: closed-string allowlist enum for all 6 WebSocket payload types (`NOTIFICATION`, `BADGE_EARNED`, `ANNOUNCEMENT`, `RANKING_UPDATE`, `SUBMISSION_RESULT`, `CONTEST_STATUS`). Prevents deserialization sink attacks by resolving wire strings only through the static enum map.
+  - `WebSocketBroadcastListener`: receives Redis Pub/Sub message, resolves payload target class via `WebSocketPayloadKind` allowlist, deserializes, and relays to local STOMP `messagingTemplate`. Drops unknown/null `kind` without deserializing body.
+  - `WebSocketBroadcastConfig`: Spring configuration for `RedisMessageListenerContainer`, conditioned on `app.websocket.broadcast.enabled=true`.
+  - Updated all 6 producer components (`WebSocketBadgePushAdapter`, `WebSocketContestAnnouncementPushAdapter`, `WebSocketContestStatusPushAdapter`, `WebSocketNotificationPushAdapter`, `WebSocketSubmissionResultPushAdapter`, `WebSocketContestRankingFlusher`) to use `WebSocketBroadcastBridge`.
+  - Tests: 54/54 WS tests PASS including `WebSocketMultiInstanceBroadcastTest` (2-instance bridge relay simulation) and `WebSocketBroadcastListenerTest` malicious gadget payload drop regressions (`onMessage_unknownKind_isDropped`).
+  - Commits: f3bbebf (impl) + 3c1246b (security allowlist fix). Full reactor: 1921 tests, 0 failures.
+
+## 2026-07-29 P2-DISC-005 — Add DEFAULT 'USER' to users.role column
+
+- **P2-DISC-005**: added Flyway migration `V20260729103000__Add_Default_User_Role.sql` to explicitly set `NOT NULL DEFAULT 'USER'` on `users.role`.
+  - Removed `user.setRole("USER")` placeholder write from `UserManagementServiceImpl.createUser`.
+  - Added ArchUnit rule `p2_disc_005_forbid_direct_user_role_setter_calls` in `OwnerBoundaryArchTest` to forbid direct `User::setRole` calls outside `com.ulticode.modules.auth..` and `com.ulticode.modules.user..`.
+  - Updated `archunit_store/stored.rules` (9/9 ArchUnit rules green).
+  - Commit: 81c1756.

@@ -1,7 +1,7 @@
-package com.ulticode.modules.i18n.service;
+package com.ulticode.app.i18n.service;
 
-import com.ulticode.modules.i18n.constants.I18nConstants;
-import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
+import com.ulticode.app.i18n.constants.I18nConstants;
+import com.ulticode.app.i18n.dto.BulkUpsertDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -10,9 +10,7 @@ import java.util.Map;
  * Translation catalog service.
  *
  * <p>Owns validated lookup and administrative writes for the translation
- * catalog. The generic reflection mapper and Accept-Language parser that
- * previously shared this interface had no production callers and were
- * removed; entity-type, locale, and translatable-field validation live here
+ * catalog. Entity-type, locale, and translatable-field validation live here
  * so the catalog is self-protecting regardless of the caller.
  */
 public interface I18nService {

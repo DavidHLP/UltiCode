@@ -58,6 +58,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- P7-RELOCATE-I18N-001: validation for i18n DTOs (@NotBlank, @Valid) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
 
 		<!-- P7-MIGRATE-PROBLEM-001: data layer for problem domain migration -->
 		<dependency>

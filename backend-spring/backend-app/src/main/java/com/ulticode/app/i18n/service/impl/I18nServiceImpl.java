@@ -1,15 +1,16 @@
-package com.ulticode.modules.i18n.service.impl;
+package com.ulticode.app.i18n.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.app.i18n.constants.I18nConstants;
+import com.ulticode.app.i18n.dto.BulkUpsertDTO;
+import com.ulticode.app.i18n.entity.Translation;
+import com.ulticode.app.i18n.mapper.TranslationMapper;
+import com.ulticode.app.i18n.service.I18nService;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.i18n.constants.I18nConstants;
-import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
-import com.ulticode.modules.i18n.entity.Translation;
-import com.ulticode.modules.i18n.mapper.TranslationMapper;
-import com.ulticode.modules.i18n.service.I18nService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
  * Implementation of {@link I18nService}.
  */
 @Slf4j
+@ConditionalOnBean(TranslationMapper.class)
 @Service
 @RequiredArgsConstructor
 public class I18nServiceImpl implements I18nService {
@@ -45,7 +47,7 @@ public class I18nServiceImpl implements I18nService {
                 .collect(Collectors.toMap(
                         Translation::getFieldName,
                         Translation::getContent,
-                        (existing, replacement) -> replacement // In case of duplicates, use the last one
+                        (existing, replacement) -> replacement
                 ));
     }
 
@@ -65,8 +67,8 @@ public class I18nServiceImpl implements I18nService {
             I18nConstants.TranslatableEntity entityType = requireEntityType(item.getEntityType());
             requireLocale(item.getLocale());
             if (!I18nConstants.isTranslatableField(entityType, item.getFieldName())) {
-                throw new BusinessException(ErrorCode.I18N_INVALID_FIELD_NAME,
-                        ErrorCode.I18N_INVALID_FIELD_NAME.getMessage() + ": " + item.getFieldName());
+                throw new BusinessException(BaseErrorCode.VALIDATION_FAILED,
+                        "Invalid field name for entity type: " + item.getFieldName());
             }
         }
 
@@ -74,11 +76,9 @@ public class I18nServiceImpl implements I18nService {
         int updated = 0;
         int skipped = 0;
 
-        // Group translations by entity type for batch querying
         Map<String, List<BulkUpsertDTO.TranslationItem>> byEntityType = translations.stream()
                 .collect(Collectors.groupingBy(BulkUpsertDTO.TranslationItem::getEntityType));
 
-        // Maps to hold items that need to be created vs updated
         List<Translation> toCreate = new ArrayList<>();
         List<Translation> toUpdate = new ArrayList<>();
 
@@ -86,7 +86,6 @@ public class I18nServiceImpl implements I18nService {
             String entityType = entry.getKey();
             List<BulkUpsertDTO.TranslationItem> items = entry.getValue();
 
-            // Collect all unique (entityId, fieldName, locale) combinations for batch query
             Set<String> entityIds = items.stream()
                     .map(BulkUpsertDTO.TranslationItem::getEntityId)
                     .collect(Collectors.toSet());
@@ -95,7 +94,6 @@ public class I18nServiceImpl implements I18nService {
                     .map(BulkUpsertDTO.TranslationItem::getLocale)
                     .collect(Collectors.toSet());
 
-            // Batch fetch existing translations for this entity type
             LambdaQueryWrapper<Translation> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(Translation::getEntityType, entityType)
                     .in(Translation::getEntityId, entityIds)
@@ -103,7 +101,6 @@ public class I18nServiceImpl implements I18nService {
 
             List<Translation> existingTranslations = translationMapper.selectList(queryWrapper);
 
-            // Create lookup key: "entityId:fieldName:locale"
             Map<String, Translation> existingMap = existingTranslations.stream()
                     .collect(Collectors.toMap(
                             t -> t.getEntityId() + ":" + t.getFieldName() + ":" + t.getLocale(),
@@ -111,7 +108,6 @@ public class I18nServiceImpl implements I18nService {
                             (a, b) -> a
                     ));
 
-            // Process each item
             for (BulkUpsertDTO.TranslationItem item : items) {
                 String key = item.getEntityId() + ":" + item.getFieldName() + ":" + item.getLocale();
                 Translation existing = existingMap.get(key);
@@ -120,14 +116,12 @@ public class I18nServiceImpl implements I18nService {
                     if (skipDuplicates) {
                         skipped++;
                     } else {
-                        // Mark for update
                         existing.setContent(item.getContent());
                         existing.setUpdatedBy(actorId);
                         toUpdate.add(existing);
                         updated++;
                     }
                 } else {
-                    // Create new translation
                     Translation newTranslation = new Translation();
                     newTranslation.setEntityType(item.getEntityType());
                     newTranslation.setEntityId(item.getEntityId());
@@ -142,12 +136,10 @@ public class I18nServiceImpl implements I18nService {
             }
         }
 
-        // Batch insert new translations
         for (Translation translation : toCreate) {
             translationMapper.insert(translation);
         }
 
-        // Batch update existing translations
         for (Translation translation : toUpdate) {
             translationMapper.updateById(translation);
         }
@@ -161,32 +153,23 @@ public class I18nServiceImpl implements I18nService {
         return result;
     }
 
-    /**
-     * Parse and validate the entity type, throwing a {@link BusinessException}
-     * with the {@link ErrorCode#I18N_INVALID_ENTITY_TYPE} code on failure.
-     */
     private static I18nConstants.TranslatableEntity requireEntityType(String entityType) {
         if (entityType == null) {
-            throw new BusinessException(ErrorCode.I18N_INVALID_ENTITY_TYPE,
-                    ErrorCode.I18N_INVALID_ENTITY_TYPE.getMessage() + ": null");
+            throw new BusinessException(BaseErrorCode.VALIDATION_FAILED,
+                    "Invalid entity type: null");
         }
         try {
             return I18nConstants.TranslatableEntity.valueOf(entityType);
         } catch (IllegalArgumentException e) {
-            throw new BusinessException(ErrorCode.I18N_INVALID_ENTITY_TYPE,
-                    ErrorCode.I18N_INVALID_ENTITY_TYPE.getMessage() + ": " + entityType);
+            throw new BusinessException(BaseErrorCode.VALIDATION_FAILED,
+                    "Invalid entity type: " + entityType);
         }
     }
 
-    /**
-     * Validate the locale against {@link I18nConstants#isSupportedLocale},
-     * throwing a {@link BusinessException} with the
-     * {@link ErrorCode#I18N_INVALID_LOCALE} code on failure.
-     */
     private static void requireLocale(String locale) {
         if (!I18nConstants.isSupportedLocale(locale)) {
-            throw new BusinessException(ErrorCode.I18N_INVALID_LOCALE,
-                    ErrorCode.I18N_INVALID_LOCALE.getMessage() + ": " + locale);
+            throw new BusinessException(BaseErrorCode.VALIDATION_FAILED,
+                    "Invalid locale: " + locale);
         }
     }
 }

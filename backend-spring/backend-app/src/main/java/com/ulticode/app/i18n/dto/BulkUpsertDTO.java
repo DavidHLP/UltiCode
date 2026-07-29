@@ -1,4 +1,4 @@
-package com.ulticode.modules.i18n.dto;
+package com.ulticode.app.i18n.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;

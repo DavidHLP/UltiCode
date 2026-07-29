@@ -1,7 +1,7 @@
-package com.ulticode.modules.i18n.mapper;
+package com.ulticode.app.i18n.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ulticode.modules.i18n.entity.Translation;
+import com.ulticode.app.i18n.entity.Translation;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

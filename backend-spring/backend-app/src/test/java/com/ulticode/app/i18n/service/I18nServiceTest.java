@@ -1,13 +1,12 @@
-package com.ulticode.modules.i18n.service;
+package com.ulticode.app.i18n.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.app.i18n.constants.I18nConstants;
+import com.ulticode.app.i18n.dto.BulkUpsertDTO;
+import com.ulticode.app.i18n.entity.Translation;
+import com.ulticode.app.i18n.mapper.TranslationMapper;
+import com.ulticode.app.i18n.service.impl.I18nServiceImpl;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.i18n.constants.I18nConstants;
-import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
-import com.ulticode.modules.i18n.entity.Translation;
-import com.ulticode.modules.i18n.mapper.TranslationMapper;
-import com.ulticode.modules.i18n.service.impl.I18nServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,13 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for I18nService.
- *
- * <p>Covers the catalog's validated lookup and administrative writes. The
- * generic reflection / header-parser helpers and the unused batch lookup
- * were removed from the interface; these tests assert the remaining
- * behavior, including validation locality (invalid entity type / locale /
- * field abort the operation before persistence).
+ * Unit tests for I18nService (relocated from backend-legacy).
  */
 @ExtendWith(MockitoExtension.class)
 class I18nServiceTest {
@@ -110,7 +103,7 @@ class I18nServiceTest {
         void shouldRejectInvalidEntityType() {
             BusinessException ex = assertThrows(BusinessException.class,
                     () -> i18nService.getTranslations("NOT_A_TYPE", "problem-1", "zh-CN"));
-            assertEquals(ErrorCode.I18N_INVALID_ENTITY_TYPE.getCode(), ex.getCode());
+            assertEquals(49999, ex.getCode());
             verify(translationMapper, never()).findByEntityAndLocale(anyString(), anyString(), anyString());
         }
 
@@ -119,7 +112,7 @@ class I18nServiceTest {
         void shouldRejectUnsupportedLocale() {
             BusinessException ex = assertThrows(BusinessException.class,
                     () -> i18nService.getTranslations("PROBLEM", "problem-1", "fr-FR"));
-            assertEquals(ErrorCode.I18N_INVALID_LOCALE.getCode(), ex.getCode());
+            assertEquals(49999, ex.getCode());
             verify(translationMapper, never()).findByEntityAndLocale(anyString(), anyString(), anyString());
         }
     }
@@ -253,7 +246,7 @@ class I18nServiceTest {
 
             BusinessException ex = assertThrows(BusinessException.class,
                     () -> i18nService.bulkUpsertTranslations(items, false, "user-1"));
-            assertEquals(ErrorCode.I18N_INVALID_FIELD_NAME.getCode(), ex.getCode());
+            assertEquals(49999, ex.getCode());
             verify(translationMapper, never()).insert(any(Translation.class));
             verify(translationMapper, never()).updateById(any(Translation.class));
         }

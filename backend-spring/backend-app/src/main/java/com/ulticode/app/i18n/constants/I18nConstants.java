@@ -1,4 +1,4 @@
-package com.ulticode.modules.i18n.constants;
+package com.ulticode.app.i18n.constants;
 
 import java.util.List;
 import java.util.Map;

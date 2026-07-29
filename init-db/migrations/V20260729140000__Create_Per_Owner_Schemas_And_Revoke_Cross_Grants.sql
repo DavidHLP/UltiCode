@@ -31,6 +31,21 @@ CREATE SCHEMA IF NOT EXISTS `auth`;
 CREATE SCHEMA IF NOT EXISTS `admin`;
 CREATE SCHEMA IF NOT EXISTS `app`;
 
+-- Ensure integration outbox seam table exists in admin schema for table-specific grant
+CREATE TABLE IF NOT EXISTS `admin`.`audit_outbox` (
+  `id` varchar(40) NOT NULL,
+  `performer_id` varchar(40) NOT NULL,
+  `user_id` varchar(40) DEFAULT NULL,
+  `action` varchar(60) NOT NULL,
+  `resource_type` varchar(60) NOT NULL,
+  `resource_id` varchar(60) DEFAULT NULL,
+  `details` text,
+  `status` enum('PENDING','PROCESSED','FAILED') NOT NULL DEFAULT 'PENDING',
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `processed_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- DB user shadow creation and schema-level isolation
 CREATE USER IF NOT EXISTS 'auth_rw'@'%';
 CREATE USER IF NOT EXISTS 'admin_rw'@'%';
@@ -46,7 +61,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `auth`.* TO 'auth_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `admin`.* TO 'admin_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `app`.* TO 'app_rw'@'%';
 
--- Cross-domain integration outbox seam (P3-AUDIT-001): append-only audit event writing
+-- Cross-domain integration outbox seam (P3-AUDIT-001): append-only audit event writing on audit_outbox ONLY
 GRANT INSERT ON `admin`.`audit_outbox` TO 'auth_rw'@'%';
 GRANT INSERT ON `admin`.`audit_outbox` TO 'app_rw'@'%';
 

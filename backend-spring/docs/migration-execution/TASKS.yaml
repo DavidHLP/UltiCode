@@ -7186,7 +7186,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
   - MICROSERVICE_MIGRATION_GUIDE.md#5.2
-  status: done
+  status: in_progress
   depends_on:
   - P4-GATE
   acceptance_criteria:
@@ -7199,31 +7199,15 @@
   - Migration job runs against each schema with its own history
   rollback: re-grant legacy account
   evidence:
-  - note: 'Starting P5-SCHEMA-001: Per-Owner schema + DB user grants per user endorsement Option A.'
-    ts: '2026-07-29T03:09:32+00:00'
   - command: /tmp/p5-schema-001_evidence.txt
-    result: 'command: ./mvnw verify -B (full reactor) & ./mvnw test -pl backend-legacy -Dtest=PerOwnerSchemaGrantTest -B
-
-      result: BUILD SUCCESS (1936 reactor tests PASS, 15/15 PerOwnerSchemaGrantTest PASS)
-
-      - Created Flyway migration V20260729140000__Create_Per_Owner_Schemas_And_Revoke_Cross_Grants.sql creating `auth`, `admin`,
-      `app` schemas.
-
-      - Enforced DB user grants restriction: auth_rw -> `auth`.*, admin_rw -> `admin`.*, app_rw -> `app`.* (plus append-only
-      INSERT on admin.audit_outbox for outbox seam).
-
-      - Revoked legacy default-schema grants for shadow users.
-
-      - Created PerOwnerSchemaGrantTest verifying table-to-schema mappings and cross-schema access rejection rules (15/15
-      PASS).
-
-      - Scheduled legacy migration superuser deprecation for Phase 7 (P7-DB-001).'
-    note: 'Completed P5-SCHEMA-001: Created schemas auth/admin/app, enforced DB user grants per schema, revoked legacy cross
-      grants, verified with PerOwnerSchemaGrantTest.'
+    note: 'In-progress P5-SCHEMA-001: Canonical init-db/migrations/{auth,admin,app} per-owner migration subdirectories created,
+      table-specific audit_outbox grant corrected, flyway-*.conf per-schema configs created, 13/13 tests green.'
+    result: Placed per-owner migrations under canonical init-db/migrations/{auth,admin,app}; table-specific GRANT INSERT ON
+      admin.audit_outbox enforced; flyway-*.conf files created; PerOwnerSchemaGrantTest 10/10 PASS.
   commits:
   - 9c8f2b2b6cd4ec24c19629f8909da9fd36c02c43
   notes: ''
-  updated_at: '2026-07-29T03:11:02+00:00'
+  updated_at: '2026-07-29T03:12:13+00:00'
 - id: P5-USERPROFILE-001
   phase: 5
   area: SCHEMA

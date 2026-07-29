@@ -38,8 +38,12 @@ fi
 cd "$ROOT_DIR/init-db"
 
 run_flyway() {
+  local config_file="flyway.conf"
+  if [[ -n "${MIGRATION_SCHEMA:-}" && -f "flyway-${MIGRATION_SCHEMA}.conf" ]]; then
+    config_file="flyway-${MIGRATION_SCHEMA}.conf"
+  fi
   mvn "flyway:$1" \
-    -Dflyway.configFiles=flyway.conf \
+    -Dflyway.configFiles="$config_file" \
     --no-transfer-progress \
     -B
 }

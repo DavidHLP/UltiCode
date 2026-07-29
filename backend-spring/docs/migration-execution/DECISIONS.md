@@ -805,7 +805,7 @@ Per project database migration invariants (AGENTS.md + guide §15), applied Flyw
 **Decision.**
 1. Adopt Option A: Migration comments and documentation must use plain MySQL 9.1 DDL syntax (`ALTER TABLE ... DROP COLUMN ...`) without non-standard `IF EXISTS` clauses on `ALTER TABLE`. Option A applies to future migrations only; V20260727021915 is left untouched per AGENTS.md migration-immutability.
 2. Rollback strategy remains application-rollback + additive-schema preservation (guide §15).
-3. The `disposable-verify/` scaffold is disposed as completed validation tooling.
+3. The `disposable-verify/` scaffold (`disposable-verify/docker-compose.verify.yml`) is retained as a documented regression test fixture for additive migrations going forward per AC2 option (b).
 
 **Consequences.** All future Flyway migrations must target standard MySQL 9.1 syntax.
 

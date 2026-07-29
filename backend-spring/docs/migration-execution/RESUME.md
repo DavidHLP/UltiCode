@@ -37,7 +37,7 @@ Completed:
 - P2-DISC-005: Added Flyway migration V20260729103000__Add_Default_User_Role.sql for users.role DEFAULT 'USER', dropped placeholder write in UserManagementServiceImpl, enforced via ArchUnit rule p2_disc_005_forbid_direct_user_role_setter_calls (9/9 ArchUnit rules green).
 - P2-DISC-006: PermissionService interface shrunk to read-only queries; legacy assignPermission/revokePermission methods and unused write helpers removed; enforced via ArchUnit rule p2_disc_006_forbid_direct_user_permission_mapper_imports (9/9 ArchUnit rules green).
 - P3-OWNER-001 & P3-OWNER-001-G: Completed integration validation and final review for owner write boundary; all subtasks A-G verified and closed.
-- P2-DISC-004: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability (future migrations use plain DDL syntax; V20260727021915 immutable per AGENTS.md); disposed of disposable-verify/ directory.
+- P2-DISC-004: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability (future migrations use plain DDL syntax; V20260727021915 immutable per AGENTS.md); retained disposable-verify/ as documented regression test fixture per AC2 option (b).
 - P4-GATE: Phase 4 Gate CLOSED with ADR-P4-GATE-AUDIT documenting code-level verification (three services, single-hop RPC, timeout/retry policies, 0 shared Mapper jars, contract tests) vs ops-level live deployment scope.
 
 Blocked:

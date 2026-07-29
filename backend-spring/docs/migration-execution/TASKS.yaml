@@ -7649,13 +7649,14 @@
   rollback: N/A (documentation/cleanup task; no application change)
   evidence:
   - command: /tmp/p2-disc-004_evidence.txt
+    note: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability, and retained disposable-verify/
+      as documented regression test fixture.
     result: '- Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A (MySQL 9.1 plain DDL without non-standard IF EXISTS
       clauses on ALTER TABLE).
 
-      - Disposed of disposable-verify/ directory.
+      - Retained disposable-verify/ (docker-compose.verify.yml) as documented regression test fixture per AC2 option (b).
 
       - Database migration policy aligned with guide §15 and AGENTS.md immutability invariants.'
-    note: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability, and disposed of disposable-verify/.
   commits:
   - 7071e1dd98d5210d9455c84bf0f268e686022727
   notes: Discovered during the disposable-environment dynamic verification of P2-AUTH-003 (2026-07-27). MySQL 9.1 rejects

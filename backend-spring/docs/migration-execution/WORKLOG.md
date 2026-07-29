@@ -777,7 +777,7 @@ this session.
 - **P2-DISC-004**: recorded `ADR-P2-DISC-004` in `DECISIONS.md`.
   - Adopted Option A: future DDL migrations use standard MySQL 9.1 syntax without non-standard `IF EXISTS` on `ALTER TABLE`.
   - Migration immutability preserved per AGENTS.md (`V20260727021915` left untouched).
-  - Disposed of `disposable-verify/` scaffold.
+  - Retained disposable-verify/ scaffold as documented regression test fixture for additive migrations per AC2 option (b).
   - Commit: 7071e1d.
 
 ## 2026-07-29 P4-GATE — Phase 4 Gate

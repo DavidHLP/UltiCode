@@ -8011,7 +8011,7 @@
   source:
   - ADR-P7-MIGRATION-SCOPE
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: pending
+  status: in_progress
   depends_on:
   - P7-MIGRATE-CONTEST-001
   acceptance_criteria:
@@ -8021,10 +8021,13 @@
   validation:
   - ./mvnw verify -B
   rollback: Feature flag off
-  evidence: []
+  evidence:
+  - note: 'P7-MIGRATE-CONTEST-001 complete. Starting P7-MIGRATE-SUBMISSION-001: Submission administration Dubbo Provider and
+      write-side domain extraction.'
+    ts: '2026-07-29T08:28:42+00:00'
   commits: []
   notes: Includes rejudge/batch-rejudge flow. Judge queue integration is complex.
-  updated_at: '2026-07-29T05:39:25+00:00'
+  updated_at: '2026-07-29T08:28:42+00:00'
 - id: P7-MIGRATE-NOTIFICATION-001
   phase: 7
   area: ARCH

@@ -7220,7 +7220,8 @@
       - Scheduled legacy migration superuser deprecation for Phase 7 (P7-DB-001).'
     note: 'Completed P5-SCHEMA-001: Created schemas auth/admin/app, enforced DB user grants per schema, revoked legacy cross
       grants, verified with PerOwnerSchemaGrantTest.'
-  commits: []
+  commits:
+  - 9c8f2b2b6cd4ec24c19629f8909da9fd36c02c43
   notes: ''
   updated_at: '2026-07-29T03:11:02+00:00'
 - id: P5-USERPROFILE-001

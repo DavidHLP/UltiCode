@@ -7441,10 +7441,11 @@
 - id: P7-LEGACY-001
   phase: 7
   area: ARCH
-  title: Remove `backend-legacy` module
+  title: Remove `backend-legacy` module (superseded — decomposed)
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: pending
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: superseded
   depends_on:
   - P6-GATE
   acceptance_criteria:
@@ -7464,9 +7465,189 @@
   - note: Reclassified from blocked to pending per ADR-P7-MIGRATION-SCOPE. Not external blocker — defined migration work (5
       Provider + service chains, est. 30-80 files per family) requiring dedicated sprint.
     ts: '2026-07-29T05:22:22+00:00'
+  - note: 'Superseded per ADR-P7-LEGACY-DECOMPOSITION: decomposed into per-family relocation tasks P7-RELOCATE-I18N-001, P7-RELOCATE-LEAF-001,
+      P7-RELOCATE-AUTH-001, P7-RELOCATE-ADMIN-001, P7-RELOCATE-APP-001, P7-RELOCATE-CORE-001, P7-RELOCATE-INFRA-001, and gated
+      final P7-LEGACY-REMOVAL. 5 P7-MIGRATE-* Provider+domain-service extractions already complete. AC #3 (Gateway no longer
+      references Legacy) re-targeted to P7-DOCS-001 with P7-LEGACY-REMOVAL as re-verification only.'
+    ts: '2026-07-30T00:50:00+00:00'
   commits: []
-  notes: ''
-  updated_at: '2026-07-29T05:22:22+00:00'
+  notes: 'Superseded by per-family relocation chain. See ADR-P7-LEGACY-DECOMPOSITION.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+
+# ── P7-LEGACY-001 decomposition: per-family relocation chain ──────────────
+# Destination-shape rule: leaf infrastructure relocates directly into the
+# destination service shell (auth/admin/app); only fan-out modules that will
+# become their own services earn a backend-*-domain reactor. This mirrors the
+# proven P7-MIGRATE-PROBLEM-001..MODERATION-001 Strangler Fig pattern.
+- id: P7-RELOCATE-I18N-001
+  phase: 7
+  area: ARCH
+  title: Relocate i18n leaf family (0 inbound deps) from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: ready
+  depends_on:
+  - P6-GATE
+  acceptance_criteria:
+  - All files under backend-legacy/.../modules/i18n/ (8 src + 1 test) relocated into backend-app as com.ulticode.app.i18n.* sub-package
+  - No new backend-i18n-domain reactor module created — i18n is leaf infrastructure under App
+  - Legacy copy removed; backend-legacy no longer contains modules/i18n/
+  - I18nServiceTest passes under backend-app; full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml -pl backend-app -am test -B
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: '8 src files (controller/service/impl/mapper/entity/dto/constants) + 1 test. 0 inbound deps confirmed. translations table is App-owned per TABLE_OWNERS.md.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-LEAF-001
+  phase: 7
+  area: ARCH
+  title: Relocate remaining leaf families (monitoring/reconciliation/search) from backend-legacy to backend-app/admin
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-I18N-001
+  acceptance_criteria:
+  - monitoring (9 src) + search (12 src) relocated to backend-app as App-owned infrastructure
+  - reconciliation (5 src) relocated to backend-admin as Admin-owned infrastructure
+  - Legacy copies removed; full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: 'All three have 0 inbound deps. File counts TBD-verify-on-first-step.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-AUTH-001
+  phase: 7
+  area: ARCH
+  title: Wire backend-auth to its own implementations and retire legacy auth/permission/websocket duplicates
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-I18N-001
+  acceptance_criteria:
+  - backend-auth already owns RefreshTokenService, JwtTokenProvider, OAuthService, AuthController, PermissionService, CsrfService via Strangler Fig
+  - Legacy auth (25 src) + permission (8 src) + refreshtoken (3 src) duplicate copies retired after confirming no remaining legacy callers
+  - websocket (41 src) ownership boundary verified per TABLE_OWNERS.md before placement — WS broadcast/notification infrastructure likely belongs to backend-app not backend-auth
+  - Full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert retirement commit
+  evidence: []
+  commits: []
+  notes: 'backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-ADMIN-001
+  phase: 7
+  area: ARCH
+  title: Relocate Admin-owned families (admin/backup) from backend-legacy to backend-admin
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-AUTH-001
+  acceptance_criteria:
+  - admin (213 src) + backup (18 src) relocated to backend-admin or confirmed via port interfaces
+  - Full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: 'Admin module has 22 inbound deps — widest cross-cutting family. File counts TBD-verify-on-first-step.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-APP-001
+  phase: 7
+  area: ARCH
+  title: Relocate App-owned business families (user/subscription/follow/vote/bookmark) from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-ADMIN-001
+  acceptance_criteria:
+  - user (27 src) + subscription (13 src) + follow (13 src) + vote (10 src) + bookmark (22 src) relocated to backend-app
+  - Full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: 'user module has 55 inbound deps — highest cross-cutting dependency. File counts TBD-verify-on-first-step.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-CORE-001
+  phase: 7
+  area: ARCH
+  title: Relocate App-owned core OJ families (problem/contest/submission/forum/solution) from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-APP-001
+  acceptance_criteria:
+  - problem (62 src) + contest (76 src) + submission (101 src) + forum (42 src) + solution (29 src) full business code relocated to backend-app
+  - Domain service + Provider already extracted in P7-MIGRATE-*; this task relocates remaining controllers/services/mappers/entities
+  - Full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: '5 P7-MIGRATE-* Provider+domain extractions already complete. This is the full code relocation. File counts TBD-verify-on-first-step.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-INFRA-001
+  phase: 7
+  area: ARCH
+  title: Relocate App-owned infrastructure families (queue/email/achievement/edgeoperations/event/notification/moderation) from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-CORE-001
+  acceptance_criteria:
+  - queue (38 src) + email (21 src) + achievement (26 src) + edgeoperations (8 src) + event (9 src) + notification (38 src) + moderation (41 src) relocated to backend-app
+  - Full reactor verify BUILD SUCCESS
+  validation:
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence: []
+  commits: []
+  notes: 'websocket broadcast infra (41 src) may belong here instead of AUTH. File counts TBD-verify-on-first-step.'
+  updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-LEGACY-REMOVAL
+  phase: 7
+  area: ARCH
+  title: Remove backend-legacy module from reactor pom
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-RELOCATE-LEAF-001
+  - P7-RELOCATE-AUTH-001
+  - P7-RELOCATE-ADMIN-001
+  - P7-RELOCATE-APP-001
+  - P7-RELOCATE-CORE-001
+  - P7-RELOCATE-INFRA-001
+  acceptance_criteria:
+  - backend-legacy module deleted from reactor pom
+  - All routes / services previously in Legacy either removed or relocated
+  - Gateway routes inventory shows no Legacy references (re-verification; primary in P7-DOCS-001)
+  validation:
+  - ./mvnw verify -B
+  - Gateway routes inventory shows no Legacy references
+  - ./scripts/dev/test.sh full + integration PASS
+  rollback: re-add backend-legacy branch and pin last version
+  evidence: []
+  commits: []
+  notes: 'Gated final task. Depends on all P7-RELOCATE-* tasks. AC #3 (Gateway) re-targeted to P7-DOCS-001; this task is re-verification only.'
+  updated_at: '2026-07-30T00:50:00+00:00'
 - id: P7-LEGACY-002
   phase: 7
   area: ARCH

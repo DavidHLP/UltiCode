@@ -7933,10 +7933,15 @@
       write chain shared by legacy+app; read projections/controllers/cross-owner adapters remain legacy. Next slice: create
       reactor module and extract canonical administration write service.'
     ts: '2026-07-29T06:36:35+00:00'
+  - note: 'P7-MIGRATE-PROBLEM-001 step 3a done: established canonical backend-problem-domain reactor seam, dependency-managed
+      in root and consumed by backend-app + backend-legacy. Focused compile and full ./mvnw verify -B both BUILD SUCCESS across
+      8 modules. Commit: 0a1eda9. Next: extract aggregate/detail/version administration write chain into this module, then
+      relocate Provider.'
+    ts: '2026-07-29T06:39:31+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T06:36:35+00:00'
+  updated_at: '2026-07-29T06:39:31+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

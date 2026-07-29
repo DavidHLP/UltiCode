@@ -7221,7 +7221,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
   - MICROSERVICE_MIGRATION_GUIDE.md#5.2
-  status: pending
+  status: done
   depends_on:
   - P5-SCHEMA-001
   acceptance_criteria:
@@ -7237,10 +7237,20 @@
   - Backfill failure cases covered
   rollback:
   - Dual-write remains; Auth falls back to reading users.* profile columns.
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P5-USERPROFILE-001 CLOSED: Vertical split of users into account + profile. Migration V20260729150000 creates user_profiles
+      table + backfills from users (non-deleted only, idempotent via ON DUPLICATE KEY UPDATE). DefaultUserProfileAdapter dual-writes
+      profile updates to both users + user_profiles in same @Transactional. UserProfileSplitIT 8/8 PASS (real MySQL 8.0 Testcontainers).
+      Commit: b9083b2. Full reactor verify pending.'
+    ts: '2026-07-29T03:40:46+00:00'
+  - note: 'P5-USERPROFILE-001 CLOSED: Full reactor verify PASS — 1931 tests, 0 failures, 0 errors, 4 skipped, BUILD SUCCESS
+      (JaCoCo threshold met). UserProfileSplitIT 8/8 PASS (real MySQL 8.0 Testcontainers). OwnerBoundaryArchTest 9/9 green.
+      DefaultUserProfileAdapterTest 3/3 PASS. Commit: b9083b2.'
+    ts: '2026-07-29T03:41:53+00:00'
+  commits:
+  - b9083b2
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T03:41:53+00:00'
 - id: P5-RECONCILE-001
   phase: 5
   area: OPS

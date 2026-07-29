@@ -902,3 +902,22 @@ Skipping part 3 means the per-owner deployment cannot access the table. This app
 AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any task `done`. The P5-USERPROFILE-001 incident (marked done with "verify pending" evidence) is a recent regression. The correct sequence is: targeted test PASS → `./mvnw verify -B` PASS → `update_task.py ... done` with actual test counts in the evidence note. Never close with "verify pending."
 
 **Affected Tasks:** P5-SCHEMA-001 through P6-INBOX-001 (all done).
+### ADR-P6-GATE-AUDIT: Phase 6 Gate — code-level event reliability vs ops-level live broker validation
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** Phase 6 Gate (`P6-GATE`) acceptance criteria span code-level event infrastructure (integration outbox, consumer inbox, result outbox, replay/DLQ tooling) and ops-level live broker validation (broker outage, consumer crash in production, monitoring dashboards).
+
+**Decision.**
+1. **Code-level Gate (Closed in Phase 6):**
+   - `integration_outbox` + `IntegrationOutboxDispatcher`: CAS-claim → Redis Streams XADD → DELIVERED; exponential backoff; DEAD after 5 attempts. IT 5/5 PASS.
+   - `consumer_inbox` + `InboxConsumer`: (consumer, event_id) unique dedup; lease-claim with stale reclaim; bounded retry. IT 4/4 PASS.
+   - `submission_result_outbox` + `BEFORE_COMMIT` listener: verdict events written in same transaction; (submission_id, generation) idempotency key; terminal-status gated. IT 5/5 PASS.
+   - `EventReplayService` + `EventReplayController`: replay by aggregate/consumer; DLQ list/clear/reroute. Test 8/8 PASS.
+   - Full reactor verify: BUILD SUCCESS (1931+ tests).
+2. **Ops-level Live Broker Validation (Deferred to Phase 7):**
+   - Live broker outage, production consumer crash monitoring, and dashboard integration are explicitly deferred to Phase 7 ops validation.
+
+**Consequences.** `P6-GATE` is marked `done` for the code-level event reliability scope. Live broker fault injection and production monitoring remain under Phase 7.
+
+**Affected Tasks:** P6-GATE (done), P7-LEGACY-001 (ready).

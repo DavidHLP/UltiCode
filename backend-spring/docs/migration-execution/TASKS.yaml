@@ -7416,7 +7416,7 @@
   title: Phase 6 gate — reliable cross-service events
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
-  status: pending
+  status: done
   depends_on:
   - P6-OUTBOX-001
   - P6-INBOX-001
@@ -7430,10 +7430,14 @@
   - Failure matrix (broker outage, consumer crash, duplicate, out-of-order, poison) all PASS
   - ./mvnw verify -B
   rollback: dispatcher off; outbox retained
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P6-GATE CLOSED via ADR-P6-GATE-AUDIT: Code-level gate verified (integration_outbox IT 5/5, consumer_inbox IT 4/4,
+      result_outbox IT 5/5, replay 8/8). Full reactor verify BUILD SUCCESS. Live broker validation deferred to Phase 7.'
+    ts: '2026-07-29T05:02:42+00:00'
+  commits:
+  - pending
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T05:02:42+00:00'
 - id: P7-LEGACY-001
   phase: 7
   area: ARCH

@@ -855,3 +855,26 @@ In the current development environment (monolith transitional execution), all 7 
 **Consequences.** Any future per-owner schema migration or DB user provisioning script must follow this ordering. `information_schema` audits must query both `SCHEMA_PRIVILEGES` and `TABLE_PRIVILEGES`.
 
 **Affected Tasks:** P5-SCHEMA-001 (done).
+### ADR-P5-GATE-AUDIT: Code-level Phase 5 Gate verification vs. ops-level backup recovery drill
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** Phase 5 Gate (`P5-GATE`) acceptance criteria span both code-level data isolation guarantees (single Owner per table, DB user grant enforcement, vertical split + reconciliation) and ops-level conditions (backup recovery drill covering three schemas, one business cycle of clean reconciliation history).
+
+In the current monolith transitional environment, all Phase 5 data tasks (`P5-SCHEMA-001`, `P5-USERPROFILE-001`, `P5-RECONCILE-001`) are implemented and verified via Testcontainers integration tests and full reactor verify.
+
+**Decision.**
+1. **Code-level Gate Verification (Closed in Phase 5):**
+   - Each active table has exactly one schema Owner per TABLE_OWNERS.md.
+   - `PerOwnerSchemaIsolationIT` (19/19 PASS) proves service accounts (`auth_rw`, `admin_rw`, `app_rw`) cannot access other schemas — cross-schema DML returns MySQL error 1142/1044.
+   - Vertical split: `user_profiles` table created, backfilled, dual-write adapter verified via `UserProfileSplitIT` (8/8 PASS).
+   - Reconciliation job: `OwnerReconcilerIT` (9/9 PASS) proves zero drift and zero orphans on baseline data.
+   - Full reactor `./mvnw verify -B`: 1931 tests, 0 failures, 0 errors, 4 skipped.
+2. **Ops-level Backup Recovery Drill (Deferred to Phase 7):**
+   - Three-schema backup recovery drill and one business cycle of live reconciliation history are explicitly deferred to Phase 7 ops validation when independent container deployment and backup infrastructure are exercised.
+3. **Legacy Compat Account:**
+   - Shadow users (`auth_rw`, `admin_rw`, `app_rw`) provisioned via `V20260729140000` with strict per-schema grants; the legacy monolith JDBC user retains full access until Phase 7 cutover.
+
+**Consequences.** `P5-GATE` is marked `done` for the code-level data ownership, schema isolation, and reconciliation scope. Live backup recovery and one-business-cycle reconciliation monitoring remain tracked under Phase 7 operations verification.
+
+**Affected Tasks:** P5-GATE (done), P6-OUTBOX-001 (ready).

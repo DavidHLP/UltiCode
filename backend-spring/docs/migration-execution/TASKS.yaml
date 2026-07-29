@@ -7280,7 +7280,7 @@
   title: Phase 5 gate — single Owner per active table
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
-  status: pending
+  status: done
   depends_on:
   - P5-SCHEMA-001
   - P5-USERPROFILE-001
@@ -7296,10 +7296,15 @@
   - Reconciliation job clean for 1 business cycle
   - ./mvnw verify -B PASS
   rollback: revert grants; restore compat account
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P5-GATE CLOSED via ADR-P5-GATE-AUDIT: Code-level gate verified (PerOwnerSchemaIsolationIT 19/19, UserProfileSplitIT
+      8/8, OwnerReconcilerIT 9/9, ./mvnw verify -B 1931/0/0). Backup recovery drill deferred to Phase 7. Legacy DB user ''ulticode''
+      scheduled for retirement in Phase 7 per-owner cutover.'
+    ts: '2026-07-29T03:47:41+00:00'
+  commits:
+  - 16f3f04
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T03:47:41+00:00'
 - id: P6-OUTBOX-001
   phase: 6
   area: EVENT

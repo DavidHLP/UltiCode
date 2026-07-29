@@ -991,3 +991,19 @@ AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any
 - This pattern repeats for each domain family (Contest, Submission, Notification, Moderation).
 
 **Affected Tasks:** P7-MIGRATE-PROBLEM-001 (in_progress, port extraction + infra done, shared module pending).
+
+#### ADR-P7-PROBLEM-MIGRATION-STRATEGY amendment: canonical write-side extraction
+
+**Date:** 2026-07-29  **Status:** Accepted (supersedes the full-package shared-module shape above)
+
+**Context.** A verified prototype copied the full Problem package into `backend-app` and reached a full-reactor `BUILD SUCCESS`, but only by duplicating `ErrorCode`, `UuidGenerator`, and `CurrentUserProvider` under identical FQNs and by narrowing a second copy of `ProblemServiceImpl`. The prototype was not committed and was precisely removed. It demonstrated that the Provider write path needs only the Problem aggregate, detail satellites, version history, and their mappers; controllers, projections, analytics, notes, and adapters owned by Solution/Submission/ProblemList are not part of the RPC write boundary.
+
+**Decision.** Create a canonical reactor module `backend-problem-domain` for the Problem administration **write side**, not a copy of all 63 legacy files. It owns the aggregate/entity, create/update DTOs, owned mappers, detail write port, version-write service, and a narrow `ProblemAdministrationDomainService`. Both `backend-legacy` and `backend-app` consume that one implementation during cutover. Legacy read controllers/projections and cross-owner adapters stay in `backend-legacy` until their owning domain migrations. The domain command methods receive actor identity explicitly from the Provider/local adapter; they do not depend on a duplicated `CurrentUserProvider`. UUID generation is an owned port in the new module with service-local adapters. Domain failures use `AppErrorCode`/`BusinessException`, avoiding a duplicate legacy `ErrorCode`.
+
+**Consequences.**
+- No identical-FQN fork between service JARs.
+- No second `ProblemServiceImpl`; legacy's broad read facade remains transitional while the canonical administration write service is shared.
+- The backend-app Provider can relocate independently and preserve create/update/publish transaction behavior.
+- Final removal rewires remaining legacy write callers to the canonical service before deleting the broad legacy implementation.
+
+**Affected Tasks:** P7-MIGRATE-PROBLEM-001 (in_progress). First implementation slice: create `backend-problem-domain`, extract the write chain, and prove both consumer modules compile before relocating the Provider.

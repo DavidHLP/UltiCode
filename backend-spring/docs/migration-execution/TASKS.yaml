@@ -7927,10 +7927,16 @@
       SUCCESS. Commit: dc35632. Next: physical file relocation of problem module (63 files) — blocked by 28 cross-module imports
       in legacy that need dual-write or Dubbo consumer adaptation.'
     ts: '2026-07-29T06:17:23+00:00'
+  - note: 'Re-plan after verified prototype: full-package copy reached full-reactor BUILD SUCCESS but required identical-FQN
+      forks (ErrorCode/UuidGenerator/CurrentUserProvider) and a second narrowed ProblemServiceImpl; prototype was not committed
+      and was precisely removed. ADR amended to canonical backend-problem-domain write-side extraction: aggregate/detail/version
+      write chain shared by legacy+app; read projections/controllers/cross-owner adapters remain legacy. Next slice: create
+      reactor module and extract canonical administration write service.'
+    ts: '2026-07-29T06:36:35+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T06:17:23+00:00'
+  updated_at: '2026-07-29T06:36:35+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

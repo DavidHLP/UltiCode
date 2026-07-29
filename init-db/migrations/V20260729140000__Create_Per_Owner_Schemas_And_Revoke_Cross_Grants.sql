@@ -56,6 +56,12 @@ REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'auth_rw'@'%';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'admin_rw'@'%';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'app_rw'@'%';
 
+-- USAGE ON *.* allows shadow users to establish JDBC connections to the catalog
+-- (USAGE grants zero table access; schema isolation is enforced by per-schema DML grants below)
+GRANT USAGE ON *.* TO 'auth_rw'@'%';
+GRANT USAGE ON *.* TO 'admin_rw'@'%';
+GRANT USAGE ON *.* TO 'app_rw'@'%';
+
 -- Strict per-schema grants
 GRANT SELECT, INSERT, UPDATE, DELETE ON `auth`.* TO 'auth_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `admin`.* TO 'admin_rw'@'%';

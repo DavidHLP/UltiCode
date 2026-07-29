@@ -793,3 +793,21 @@ AdminForumService/AdminSolutionService, then extend Provider dispatch. The contr
 (ApplyModerationCommand) already defines all 4 actions — no contract change needed.
 
 **Affected Tasks:** P4-CUTOVER-004 (done).
+
+### ADR-P2-DISC-004: MySQL 9.1 portable DDL and migration rollback policy
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** MySQL 9.1 rejects `ALTER TABLE ... DROP COLUMN IF EXISTS` and `ALTER TABLE ... DROP INDEX IF EXISTS` with syntax error 1064 (these clauses are MariaDB/PostgreSQL extensions). In `V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql`, defensive commented-out rollback lines used `DROP COLUMN IF EXISTS` syntax.
+
+Per project database migration invariants (AGENTS.md + guide §15), applied Flyway migration files are immutable, and application rollback strategy relies on additive schema preservation rather than manual SQL down-migrations.
+
+**Decision.**
+1. Adopt Option A: Migration comments and documentation must use plain MySQL 9.1 DDL syntax (`ALTER TABLE ... DROP COLUMN ...`) without non-standard `IF EXISTS` clauses on `ALTER TABLE`.
+2. Rollback strategy remains application-rollback + additive-schema preservation (guide §15).
+3. The `disposable-verify/` scaffold is disposed as completed validation tooling.
+
+**Consequences.** All future Flyway migrations must target standard MySQL 9.1 syntax.
+
+**Affected Tasks:** P2-DISC-004 (done).
+

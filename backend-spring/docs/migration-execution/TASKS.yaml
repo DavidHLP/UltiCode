@@ -6314,7 +6314,7 @@
   title: Define owner-owned application API in App modules
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-  status: pending
+  status: done
   depends_on:
   - P2-GATE
   acceptance_criteria:
@@ -6325,14 +6325,30 @@
   - ArchUnit test forbids Admin -> {Problem,Contest,Submission,Forum,Solution} mapper/entity imports
   - ./mvnw verify -B
   rollback: revert API seam; restore direct Admin writes
-  evidence: []
+  evidence:
+  - note: P3-OWNER-001 parent in_progress as subtask G closes out integration validation
+    ts: '2026-07-29T02:35:47+00:00'
+  - command: /tmp/p3-owner-001-g_evidence.txt
+    result: 'command: ./mvnw verify -B (full reactor) & ./mvnw test -pl backend-legacy -B
+
+      result: BUILD SUCCESS (1921 tests run, 0 failures, 0 errors, 4 skipped across full reactor)
+
+      - P3-OWNER-001 subtasks A-F verified and closed: ProblemOwnerPort, ContestOwnerPort, SubmissionOwnerPort, ForumOwnerPort,
+      SolutionOwnerPort, OwnerBoundaryArchTest
+
+      - Every Admin service writing to foreign mappers routes through owner ports
+
+      - Transaction boundaries (@Transactional on port impls) preserved
+
+      - ArchUnit rule p3_owner_001_f_admin_must_not_call_foreign_mapper_writes enforces zero write violations'
+    note: 'Completed P3-OWNER-001: All subtasks A-G completed and verified.'
   commits: []
   notes: 'Decomposed into 7 subtasks for incremental delivery: P3-OWNER-001-A Problem ownership, P3-OWNER-001-B Contest ownership,
     P3-OWNER-001-C Submission ownership, P3-OWNER-001-D Forum ownership, P3-OWNER-001-E Solution ownership, P3-OWNER-001-F
     Architecture enforcement (ArchUnit), P3-OWNER-001-G Integration validation + final review. Each subtask is its own TASKS
     entry; the parent P3-OWNER-001 is marked done when all 7 are done. ArchUnit rules in -F forbid Admin -> {Problem,Contest,Submission,Forum,
     Solution} mapper WRITE methods (read access through projections is preserved per ADR-0011).'
-  updated_at: '2026-07-27T22:30:00+08:00'
+  updated_at: '2026-07-29T02:37:22+00:00'
 - id: P3-OWNER-001-A
   phase: 3
   area: OWNER
@@ -6599,7 +6615,7 @@
   title: Integration validation + final review for owner write boundary
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001-F
   acceptance_criteria:
@@ -6614,11 +6630,27 @@
   - ./mvnw verify -B
   - Focused CR per the migration plan section 13.
   rollback: Revert each subtask in reverse order; ports stay additive so partial rollback is possible.
-  evidence: []
+  evidence:
+  - note: Starting P3-OWNER-001-G integration validation and final review for owner write boundary
+    ts: '2026-07-29T02:35:44+00:00'
+  - command: /tmp/p3-owner-001-g_evidence.txt
+    result: 'command: ./mvnw verify -B (full reactor) & ./mvnw test -pl backend-legacy -B
+
+      result: BUILD SUCCESS (1921 tests run, 0 failures, 0 errors, 4 skipped across full reactor)
+
+      - P3-OWNER-001 subtasks A-F verified and closed: ProblemOwnerPort, ContestOwnerPort, SubmissionOwnerPort, ForumOwnerPort,
+      SolutionOwnerPort, OwnerBoundaryArchTest
+
+      - Every Admin service writing to foreign mappers routes through owner ports
+
+      - Transaction boundaries (@Transactional on port impls) preserved
+
+      - ArchUnit rule p3_owner_001_f_admin_must_not_call_foreign_mapper_writes enforces zero write violations'
+    note: Completed P3-OWNER-001-G integration validation and final review for owner write boundary.
   commits: []
   notes: This is the parent close-out; once -G is done, P3-OWNER-001 is also marked done (the parent tracks the union of the
     subtask evidence).
-  updated_at: '2026-07-27T22:30:00+08:00'
+  updated_at: '2026-07-29T02:37:19+00:00'
 - id: P3-OWNER-002
   phase: 3
   area: ARCH
@@ -7550,7 +7582,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#15
   - init-db/migrations/V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-003
   acceptance_criteria:
@@ -7566,7 +7598,15 @@
   - Run disposable-verify against MySQL 9.1 with the new rollback form and confirm execution without syntax error
   - Re-run P2-AUTH-003 acceptance as regression
   rollback: N/A (documentation/cleanup task; no application change)
-  evidence: []
+  evidence:
+  - command: /tmp/p2-disc-004_evidence.txt
+    result: '- Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A (MySQL 9.1 plain DDL without non-standard IF EXISTS
+      clauses on ALTER TABLE).
+
+      - Disposed of disposable-verify/ directory.
+
+      - Database migration policy aligned with guide §15 and AGENTS.md immutability invariants.'
+    note: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability, and disposed of disposable-verify/.
   commits:
   - f7861177c
   notes: Discovered during the disposable-environment dynamic verification of P2-AUTH-003 (2026-07-27). MySQL 9.1 rejects
@@ -7575,7 +7615,7 @@
     / lossless property is independently verified (15/5/1 row counts preserved through plain DROP); the SQL IF-EXISTS path
     was a documented defensive measure, not the project's primary rollback strategy (which is application rollback + additive
     schema retained, per guide §15).
-  updated_at: '2026-07-27T20:50:00+08:00'
+  updated_at: '2026-07-29T02:37:43+00:00'
 - id: P2-SEC-HYGIENE-001
   phase: 2
   area: SEC

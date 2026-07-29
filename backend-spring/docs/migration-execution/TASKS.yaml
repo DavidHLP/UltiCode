@@ -7147,10 +7147,38 @@
       with feature-flagged dual-path routing.'
     note: 'Phase 4 Gate closed: all 7 cutover subtasks complete, single-hop RPC enforced, contract shape tests verified, 1921
       reactor tests passing.'
+  - note: 'Reopening P4-GATE to in_progress per audit advisory: live stack, failure injection matrix, and N-1 runtime compatibility
+      require ADR documentation or live environment execution.'
+    ts: '2026-07-29T02:39:40+00:00'
+  - command: /tmp/p4-gate_evidence.txt
+    result: 'command: ./mvnw verify -B (full reactor)
+
+      result: BUILD SUCCESS (1921 tests run, 0 failures, 0 errors, 4 skipped)
+
+      - ADR-P4-GATE-AUDIT recorded in DECISIONS.md explicitly splitting code-level gate verification vs ops-level live container
+      validation.
+
+      - Three services (`backend-auth`, `backend-admin`, `backend-app`) modularized with independent application shells and
+      Dubbo provider implementations.
+
+      - Single-hop RPC invariant enforced via SingleHopArchTest (0 multi-hop Dubbo calls).
+
+      - RPC policies configured with timeout=3000ms, retry=0 for write operations.
+
+      - Zero shared Mapper jars across contract modules.
+
+      - ContractShapeTest covers forward/backward compatibility for all Dubbo DTOs/Commands.
+
+      - All Phase 4 cutover families (Problem, Contest, Submission, Notification, ContentModeration, WS broadcast) implemented
+      with feature-flagged dual-path routing.
+
+      - Independent multi-container startup, live fault-injection matrix, and live N-1 runtime compatibility checks deferred
+      to Phase 7 ops validation per ADR-P4-GATE-AUDIT.'
+    note: P4-GATE closed with ADR-P4-GATE-AUDIT documenting code-level verification vs ops-level live deployment scope.
   commits:
   - c8f40b6ca2079de65e9718174812e6181e18aeb3
   notes: ''
-  updated_at: '2026-07-29T02:38:46+00:00'
+  updated_at: '2026-07-29T02:40:02+00:00'
 - id: P5-SCHEMA-001
   phase: 5
   area: SCHEMA

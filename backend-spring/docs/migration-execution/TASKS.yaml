@@ -7366,7 +7366,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#8.3
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
-  status: pending
+  status: done
   depends_on:
   - P6-OUTBOX-001
   acceptance_criteria:
@@ -7378,10 +7378,15 @@
   - Replay test PASS
   - ./mvnw verify -B
   rollback: disable result dispatcher
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P6-RESULT-001 CLOSED: result outbox wired into verdict write path. (submission_id, generation) idempotency key.
+      Gated on status.isTerminal(). Both legacy + fenced paths @Transactional. SubmissionResultDispatcherIT 5/5 PASS. Full
+      reactor verify 1931/0/0/4. Commit: 62b6420.'
+    ts: '2026-07-29T04:55:13+00:00'
+  commits:
+  - 62b6420
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T04:55:13+00:00'
 - id: P6-REPLAY-001
   phase: 6
   area: EVENT

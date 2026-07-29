@@ -7176,7 +7176,7 @@
       to Phase 7 ops validation per ADR-P4-GATE-AUDIT.'
     note: P4-GATE closed with ADR-P4-GATE-AUDIT documenting code-level verification vs ops-level live deployment scope.
   commits:
-  - c8f40b6ca2079de65e9718174812e6181e18aeb3
+  - c2d3e30e0f1ab32398d83196301194d6d707887e
   notes: ''
   updated_at: '2026-07-29T02:40:02+00:00'
 - id: P5-SCHEMA-001

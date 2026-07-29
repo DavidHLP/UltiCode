@@ -7656,7 +7656,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
   status: pending
   depends_on:
-  - P7-LEGACY-001
+  - P7-LEGACY-REMOVAL
   acceptance_criteria:
   - No duplicate JWT signing utility
   - No Contract interfaces without consumers (e.g. backend-admin-api unless justified)
@@ -7699,7 +7699,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
   status: pending
   depends_on:
-  - P7-LEGACY-001
+  - P7-LEGACY-REMOVAL
   acceptance_criteria:
   - scripts/dev/ updated to start three services
   - Compose base/prod configs publish no infrastructure ports
@@ -7721,7 +7721,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#19
   status: pending
   depends_on:
-  - P7-LEGACY-001
+  - P7-LEGACY-REMOVAL
   - P7-LEGACY-002
   - P7-DB-001
   - P7-DOCS-001

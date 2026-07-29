@@ -1017,3 +1017,61 @@ AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any
 - Legacy Adapters: `com.ulticode.modules.problem.adapter.{LegacyProblemWriteAdapter,LegacyProblemDetailAdapter,LegacyProblemVersionAdapter}`
 
 This ensures a single, unified package hierarchy across `backend-problem-domain`, `backend-legacy`, and `backend-app`.
+
+### ADR-P7-LEGACY-DECOMPOSITION: P7-LEGACY-001 decomposition into per-family relocation chain
+
+**Context.** P7-LEGACY-001 is a monolithic project gate whose acceptance criteria
+are binary: "backend-legacy module deleted from reactor pom" and "all routes /
+services previously in Legacy either removed or relocated." The legacy module
+contains 1020 source files across 28 business modules with 228 test files.
+Five P7-MIGRATE-* tasks (Problem, Contest, Submission, Notification, Moderation)
+already completed the Dubbo Provider relocation and canonical write-side domain
+service extraction using the Strangler Fig pattern. The remaining 1020 files are
+controllers, service implementations, mappers, entities, DTOs, projections, port
+adapters, and configuration — the full business code body.
+
+**Decision.** Decompose P7-LEGACY-001 into a per-family relocation chain sequenced
+by inbound-dependency density (lowest first), plus a gated final removal task:
+
+- `P7-RELOCATE-I18N-001` — i18n (8 src, 0 inbound) → backend-app
+- `P7-RELOCATE-LEAF-001` — monitoring (9 src) + search (12 src) → backend-app; reconciliation (5 src) → backend-admin
+- `P7-RELOCATE-AUTH-001` — auth (25 src) + permission (8 src) + refreshtoken (3 src) + websocket (41 src) → backend-auth (retire Strangler Fig duplicates)
+- `P7-RELOCATE-ADMIN-001` — admin (213 src) + backup (18 src) → backend-admin
+- `P7-RELOCATE-APP-001` — user (27 src) + subscription (13 src) + follow (13 src) + vote (10 src) + bookmark (22 src) → backend-app
+- `P7-RELOCATE-CORE-001` — problem (62 src) + contest (76 src) + submission (101 src) + forum (42 src) + solution (29 src) → backend-app
+- `P7-RELOCATE-INFRA-001` — queue (38 src) + email (21 src) + achievement (26 src) + edgeoperations (8 src) + event (9 src) + notification (38 src) + moderation (41 src) → backend-app
+- `P7-LEGACY-REMOVAL` — remove backend-legacy from reactor pom (gated on all above)
+
+Destination-shape rule: leaf infrastructure relocates directly into the destination
+service shell (auth/admin/app) as a sub-package; only fan-out modules that will
+become their own services earn a `backend-*-domain` reactor. This mirrors the
+proven P7-MIGRATE-PROBLEM-001..MODERATION-001 Strangler Fig pattern.
+
+AC #3 ("Gateway no longer references Legacy upstream") is re-targeted to P7-DOCS-001
+as primary ownership; P7-LEGACY-REMOVAL re-verifies only.
+
+**Alternatives considered.**
+1. Single big-bang removal — rejected: 1020 files cannot be relocated in one atomic
+   commit without massive regression risk and unreviewable diff.
+2. Per-module granularity (28 tasks) — rejected: creates 28+ Sprint tasks with
+   excessive overhead; grouping by target Owner + dependency density produces 7
+   tractable families plus 1 removal gate.
+3. Keep P7-LEGACY-001 monolithic and mark blocked — rejected: P6-GATE is done, so
+   the DAG marks it Ready; the monolithic AC prevents incremental progress.
+
+**Consequences.**
+- Each leaf task verifies independently before the next task begins.
+- The final P7-LEGACY-REMOVAL is a one-line pom change with a green reactor.
+- File counts per family are estimates to be verified on first step of each task.
+- websocket (41 src) ownership boundary must be verified per TABLE_OWNERS.md
+  before placement — WS broadcast/notification infrastructure likely belongs to
+  backend-app, not backend-auth.
+- refreshtoken (3 src) is protected by V20260606130000 security gate; hash-only
+  storage path must not be touched.
+
+**Affected Tasks.**
+- P7-LEGACY-001 → superseded
+- P7-LEGACY-002 → depends_on updated to P7-LEGACY-REMOVAL
+- P7-DOCS-001 → depends_on updated to P7-LEGACY-REMOVAL
+- P7-FINAL → depends_on updated to P7-LEGACY-REMOVAL (transitively through P7-LEGACY-002, P7-DOCS-001)
+- New tasks: P7-RELOCATE-I18N-001 through P7-RELOCATE-INFRA-001, P7-LEGACY-REMOVAL

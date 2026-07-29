@@ -7600,10 +7600,14 @@
   depends_on:
   - P7-RELOCATE-I18N-001
   acceptance_criteria:
-  - backend-auth already owns RefreshTokenService, JwtTokenProvider, OAuthService, AuthController, PermissionService, CsrfService via Strangler Fig
+  - backend-auth owns RefreshTokenService, JwtTokenProvider, OAuthService, AuthController, PermissionService, and CsrfService via Strangler Fig
+  - backend-auth implements AccountAdministrationService, AuthorizationSnapshotService, and IdentityQueryService providers from backend-auth-api
+  - Remaining legacy admin/moderation/user callers use backend-auth contracts or narrow local consumer ports; no backend-auth to backend-legacy dependency
   - Legacy auth (25 src) + permission (8 src) + refreshtoken (3 src) duplicate copies retired after confirming no remaining legacy callers
   - Full reactor verify BUILD SUCCESS
   validation:
+  - Provider and consumer adapter unit tests for all three backend-auth-api services
+  - Refresh-token hash-only issue/rotate/revoke tests
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: revert retirement commit
   evidence:

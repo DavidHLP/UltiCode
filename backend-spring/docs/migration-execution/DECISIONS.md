@@ -1119,3 +1119,11 @@ retains complete coverage without temporary layering violations.
 **Decision.** Remove websocket from `P7-RELOCATE-AUTH-001` and create `P7-RELOCATE-WEBSOCKET-001` targeting backend-app after `P7-RELOCATE-INFRA-001`. Preserve the security invariant that WebSocket authentication accepts only the `access_token` cookie, using backend-app offline JWT verification rather than an Auth-owned transport implementation.
 
 **Consequences.** Auth retirement can proceed without dragging App live-delivery infrastructure into backend-auth. WebSocket relocation occurs only after its concrete App dependencies and push ports are destination-owned. `P7-LEGACY-REMOVAL` now depends on the explicit WebSocket task.
+
+### ADR-P7-AUTH-RETIREMENT-CUTOVER: implement contract providers before deleting legacy twins
+
+**Context.** `backend-auth` contains the canonical HTTP services and persistence implementations, and `backend-auth-api` already declares `AccountAdministrationService`, `AuthorizationSnapshotService`, and `IdentityQueryService`. Source verification found that backend-auth currently exports only `AuthRpcHealthProvider`; none of the three business contracts has a provider. Legacy auth has six external referencing files and permission has five across Admin, Moderation, User, and WebSocket. Deleting duplicate packages now would therefore break callers despite the canonical code existing.
+
+**Decision.** `P7-RELOCATE-AUTH-001` first implements the three backend-auth-api providers and narrow legacy consumer adapters/ports, then retires legacy auth/permission/refreshtoken only after every concrete inbound reference is gone. Refresh-token behavior remains hash-only and atomic under `V20260606130000`. WebSocket is handled separately by `P7-RELOCATE-WEBSOCKET-001`.
+
+**Consequences.** The task is a real Strangler cutover, not file deletion. Provider/consumer tests become required evidence. No temporary backend-auth dependency on backend-legacy is permitted.

@@ -8025,9 +8025,13 @@
   - note: 'P7-MIGRATE-CONTEST-001 complete. Starting P7-MIGRATE-SUBMISSION-001: Submission administration Dubbo Provider and
       write-side domain extraction.'
     ts: '2026-07-29T08:28:42+00:00'
+  - note: 'P7-MIGRATE-SUBMISSION-001 step 1: established canonical backend-submission-domain reactor module. Moved Submission
+      aggregate and enums (CaseScope, SubmissionStatus, JudgingResult) into backend-submission-domain under com.ulticode.modules.submission.*.
+      Compile BUILD SUCCESS. Commit: 8b1559e. Next: extract SubmissionAdministrationDomainService and ports.'
+    ts: '2026-07-29T08:29:25+00:00'
   commits: []
   notes: Includes rejudge/batch-rejudge flow. Judge queue integration is complex.
-  updated_at: '2026-07-29T08:28:42+00:00'
+  updated_at: '2026-07-29T08:29:25+00:00'
 - id: P7-MIGRATE-NOTIFICATION-001
   phase: 7
   area: ARCH

@@ -7501,7 +7501,8 @@
   evidence:
   - note: 'P7-RELOCATE-I18N-001 complete: relocated all 8 i18n source files + 1 test from backend-legacy/modules/i18n to backend-app/app/i18n. Controller also relocated to backend-app (first REST endpoint). Error codes migrated from legacy ErrorCode.I18N_* (140001/140002/140003) to BaseErrorCode.VALIDATION_FAILED (49999). @RateLimit deferred to P7-RELOCATE-AUTH-001 (backend-app lacks RateLimit AOP). I18nServiceImpl guarded with @ConditionalOnBean(TranslationMapper.class). BackendAppApplicationTest updated with @MockBean I18nService. Full reactor 14 modules BUILD SUCCESS (0 failures).'
     ts: '2026-07-30T01:28:00+00:00'
-  commits: []
+  commits:
+  - 3668992
   notes: '8 src files (controller/service/impl/mapper/entity/dto/constants) + 1 test relocated. Error code behavioral change: I18N_* (140001/140002/140003) → VALIDATION_FAILED (49999). @RateLimit deferred. translations table is App-owned per TABLE_OWNERS.md.'
   updated_at: '2026-07-30T01:28:00+00:00'
 - id: P7-RELOCATE-LEAF-001

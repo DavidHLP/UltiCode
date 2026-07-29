@@ -7896,3 +7896,112 @@
     by 701a5c7cd (commit message confirms) so today''s tree is safe; this task adds the prevention layer for next-session
     hygiene.'
   updated_at: '2026-07-27T11:05:00+08:00'
+- id: P7-MIGRATE-PROBLEM-001
+  phase: 7
+  area: ARCH
+  title: Migrate Problem domain family from legacy to backend-app
+  source:
+  - ADR-P7-MIGRATION-SCOPE
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P6-GATE
+  acceptance_criteria:
+  - ProblemAdministrationProvider relocated to backend-app module
+  - ProblemService + mapper/entity/DTO chain relocated or equivalent in backend-app
+  - backend-app can serve Problem admin RPC independently of backend-legacy
+  - Equivalent integration tests in backend-app module
+  - Gateway routes for Problem admin point to backend-app
+  validation:
+  - ./mvnw verify -B
+  - 'Dubbo RPC smoke test: create/update/publish problem via backend-app'
+  rollback: Feature flag remains off; legacy ProblemService still serves requests
+  evidence: []
+  commits: []
+  notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
+    ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
+  updated_at: '2026-07-29T05:39:25+00:00'
+- id: P7-MIGRATE-CONTEST-001
+  phase: 7
+  area: ARCH
+  title: Migrate Contest domain family from legacy to backend-app
+  source:
+  - ADR-P7-MIGRATION-SCOPE
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-MIGRATE-PROBLEM-001
+  acceptance_criteria:
+  - ContestAdministrationProvider relocated to backend-app
+  - AdminContestMutationService chain relocated or equivalent
+  - Equivalent integration tests in backend-app
+  validation:
+  - ./mvnw verify -B
+  rollback: Feature flag off; legacy mutation service still serves
+  evidence: []
+  commits: []
+  notes: AdminContestMutationService has WebSocket push side-effects and owner-port writes.
+  updated_at: '2026-07-29T05:39:25+00:00'
+- id: P7-MIGRATE-SUBMISSION-001
+  phase: 7
+  area: ARCH
+  title: Migrate Submission domain family from legacy to backend-app
+  source:
+  - ADR-P7-MIGRATION-SCOPE
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-MIGRATE-CONTEST-001
+  acceptance_criteria:
+  - SubmissionAdministrationProvider relocated to backend-app
+  - AdminSubmissionService chain relocated or equivalent
+  - Equivalent integration tests in backend-app
+  validation:
+  - ./mvnw verify -B
+  rollback: Feature flag off
+  evidence: []
+  commits: []
+  notes: Includes rejudge/batch-rejudge flow. Judge queue integration is complex.
+  updated_at: '2026-07-29T05:39:25+00:00'
+- id: P7-MIGRATE-NOTIFICATION-001
+  phase: 7
+  area: ARCH
+  title: Migrate Notification domain family from legacy to backend-app
+  source:
+  - ADR-P7-MIGRATION-SCOPE
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-MIGRATE-SUBMISSION-001
+  acceptance_criteria:
+  - NotificationAdministrationProvider relocated to backend-app
+  - AdminNotificationService chain relocated or equivalent
+  - Equivalent integration tests in backend-app
+  validation:
+  - ./mvnw verify -B
+  rollback: Feature flag off
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-29T05:39:25+00:00'
+- id: P7-MIGRATE-MODERATION-001
+  phase: 7
+  area: ARCH
+  title: Migrate ContentModeration domain family from legacy to backend-app
+  source:
+  - ADR-P7-MIGRATION-SCOPE
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-MIGRATE-NOTIFICATION-001
+  acceptance_criteria:
+  - ContentModerationProvider relocated to backend-app
+  - AdminForumService + AdminSolutionService chains relocated or equivalent
+  - Equivalent integration tests in backend-app
+  validation:
+  - ./mvnw verify -B
+  rollback: Feature flag off
+  evidence: []
+  commits: []
+  notes: Two service dependencies (forum + solution) — widest single-provider scope.
+  updated_at: '2026-07-29T05:39:25+00:00'

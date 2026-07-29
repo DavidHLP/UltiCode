@@ -7444,7 +7444,7 @@
   title: Remove `backend-legacy` module
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: blocked
+  status: pending
   depends_on:
   - P6-GATE
   acceptance_criteria:
@@ -7461,9 +7461,12 @@
       only have Dubbo Provider implementations — not full business code. Removing backend-legacy requires complete business
       logic migration to service modules first. This is a real scope dependency, not a code fix.'
     ts: '2026-07-29T05:03:12+00:00'
+  - note: Reclassified from blocked to pending per ADR-P7-MIGRATION-SCOPE. Not external blocker — defined migration work (5
+      Provider + service chains, est. 30-80 files per family) requiring dedicated sprint.
+    ts: '2026-07-29T05:22:22+00:00'
   commits: []
   notes: ''
-  updated_at: '2026-07-29T05:03:12+00:00'
+  updated_at: '2026-07-29T05:22:22+00:00'
 - id: P7-LEGACY-002
   phase: 7
   area: ARCH

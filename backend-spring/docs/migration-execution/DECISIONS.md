@@ -921,3 +921,40 @@ AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any
 **Consequences.** `P6-GATE` is marked `done` for the code-level event reliability scope. Live broker fault injection and production monitoring remain under Phase 7.
 
 **Affected Tasks:** P6-GATE (done), P7-LEGACY-001 (ready).
+### ADR-P7-MIGRATION-SCOPE: Phase 7 legacy removal scope assessment
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** P7-LEGACY-001 requires deleting `backend-legacy` from the reactor. A thorough investigation was conducted to determine whether service shells (`backend-auth`, `backend-admin`, `backend-app`) contain enough business logic to survive legacy removal.
+
+**Investigation findings.**
+
+1. **Service shell contents:**
+   - `backend-auth`: 63 Java files — complete auth domain (JWT, OAuth, CSRF, roles/permissions, refresh tokens, sessions). This module is self-sufficient.
+   - `backend-admin`: 6 Java files — placeholder controller, health provider, security config only. Zero business logic.
+   - `backend-app`: 6 Java files — placeholder controller, health provider, security config only. Zero business logic.
+
+2. **Dubbo contract layer (P4-CUTOVER artifacts):**
+   - 5 contract interfaces defined in `backend-app-api`: `ProblemAdministrationService`, `ContestAdministrationService`, `SubmissionAdministrationService`, `NotificationAdministrationService`, `ContentModerationService`.
+   - 5 `@DubboService` Provider implementations live in `backend-legacy` under `com.ulticode.app.dubbo.provider.*` — registered with `group="backend-app"` but physically running in the legacy JVM.
+   - 5 `@DubboReference` consumers (CutoverService) in `backend-legacy` under `com.ulticode.modules.admin.service.*` — feature-flagged fallback to local beans.
+   - This forms a self-contained cutover loop: legacy produces and consumes its own Dubbo services via in-JVM calls.
+
+3. **Provider dependency depth:**
+   - Each Provider delegates to 1-2 legacy internal services (`ProblemService`, `AdminContestMutationService`, `AdminNotificationService`, `AdminSubmissionService`, `AdminForumService`, `AdminSolutionService`).
+   - These services depend on mapper/entity/DTO chains within `backend-legacy`'s 32 domain modules (1032 Java files total).
+   - Estimated migration scope: 30-80 files per domain family (Provider + service + mapper + entity + DTO + controller relocation).
+
+4. **Maven dependency graph:** Service shells do NOT depend on `backend-legacy` (pom.xml is clean). Legacy removal is Maven-safe but would leave admin/app shells with no business routes.
+
+5. **Backfill drift (V20260729150000) — false alarm:** The `WHERE is_deleted = 0` clause is intentional and tested. `UserProfileSplitIT` explicitly asserts soft-deleted users are excluded from backfill. No corrective migration needed.
+
+**Decision.**
+1. P7-LEGACY-001 is **in-scope but not executable in a single session**. It requires a dedicated migration sprint to relocate 5 Provider + service chains (est. 30-80 files per family) from `backend-legacy` to `backend-app`, with equivalent test coverage in the target module.
+2. P7-LEGACY-001 status: **pending** (not blocked by external dependency — the work is defined and feasible, just large).
+3. P7-DB-001 (contract migration to drop profile columns) remains **blocked** — legitimate ops-level blocker requiring one full business cycle of dual-write validation before schema contraction.
+4. `backend-auth` serves as the proven migration template: it was extracted first and is self-sufficient.
+
+**Consequences.** Phase 7 cannot close until the Provider + service migration is executed. This ADR serves as the scope anchor for planning that work. The recommended decomposition is one domain family at a time (Problem → Contest → Submission → Notification → ContentModeration), each with full test parity before the next.
+
+**Affected Tasks:** P7-LEGACY-001 (pending, in-scope), P7-LEGACY-002 (pending, depends on P7-LEGACY-001), P7-DB-001 (blocked, ops-level).

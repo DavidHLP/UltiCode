@@ -8029,9 +8029,14 @@
       aggregate and enums (CaseScope, SubmissionStatus, JudgingResult) into backend-submission-domain under com.ulticode.modules.submission.*.
       Compile BUILD SUCCESS. Commit: 8b1559e. Next: extract SubmissionAdministrationDomainService and ports.'
     ts: '2026-07-29T08:29:25+00:00'
+  - note: 'P7-MIGRATE-SUBMISSION-001 step 2: extracted SubmissionAdministrationDomainService, SubmissionAdministrationDomainServiceImpl,
+      SubmissionWritePort into backend-submission-domain. Domain unit tests (SubmissionAdministrationDomainServiceTest: 3
+      tests) BUILD SUCCESS. Commit: d31bc4e. Next: relocate SubmissionAdministrationProvider to backend-app and wire legacy
+      delegation.'
+    ts: '2026-07-29T08:30:01+00:00'
   commits: []
   notes: Includes rejudge/batch-rejudge flow. Judge queue integration is complex.
-  updated_at: '2026-07-29T08:29:25+00:00'
+  updated_at: '2026-07-29T08:30:01+00:00'
 - id: P7-MIGRATE-NOTIFICATION-001
   phase: 7
   area: ARCH

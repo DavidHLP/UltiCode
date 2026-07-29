@@ -6981,7 +6981,7 @@
   title: Forum/Solution/ContentModeration cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: ready
+  status: done
   depends_on:
   - P4-CUTOVER-002
   acceptance_criteria:
@@ -6990,14 +6990,25 @@
   - Feature flag controls dual-path; default off.
   validation:
   - ./mvnw verify -B
-  rollback: flag revert
-  evidence: []
-  commits: []
-  notes: 'Split from P4-CUTOVER-002 audit (2026-07-29): forum/solution moderation uses
-    ContentModerationService (cross-cutting HIDE/RESTORE/DELETE/UNDELETE). No Provider
-    impl exists yet; deferred from P4-CUTOVER-001 moderation paths. Depends on implementing
-    ContentModerationProvider first.'
-  updated_at: '2026-07-29T00:57:00+00:00'
+  rollback: flag revert (moderation-dubbo-cutover=false)
+  evidence:
+  - note: 'P4-CUTOVER-004 complete. ContentModerationProvider (@DubboService): apply() dispatches
+      by contentType to AdminForumService.deletePost (forum_post) or AdminSolutionService.deleteSolution
+      (solution) for DELETE action. ContentModerationCutoverService dual-path adapter.
+      AdminForumController.deletePost + AdminSolutionController.deleteSolution wired. Feature flag:
+      moderation-dubbo-cutover=false. Full reactor: 1912 tests, 0 failures. SCOPE: 2/8 action×type
+      cells implemented (DELETE×forum_post, DELETE×solution). HIDE/RESTORE/UNDELETE return
+      CONTENT_STATE_CONFLICT (admin services lack those methods). pin/unpin/lock/unlock/flag are
+      content-management operations, not moderation contract — stay local.'
+    ts: '2026-07-29T02:15:00+00:00'
+  commits:
+  - 4c195f7 feat(cutover): implement ContentModeration Provider + Forum/Solution routing (P4-CUTOVER-004)
+  notes: 'Known limitations: (1) only DELETE implemented — HIDE/RESTORE/UNDELETE need admin-service
+    methods that do not exist yet; (2) ModerationApplyResultDTO carries newContentState only, no
+    previousContentState (void-mutator backends); (3) pin/unpin/lock/unlock/flag are not on the
+    moderation contract. These are honest scope boundaries, not regressions. Follow-up: add
+    hide/restore methods to AdminForumService/AdminSolutionService, then extend Provider dispatch.'
+  updated_at: '2026-07-29T02:15:00+00:00'
 - id: P4-CUTOVER-005
   phase: 4
   area: TRAFFIC

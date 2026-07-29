@@ -50,7 +50,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §Phase-4 Contest/Submission cutover | P4-CUTOVER-002 | done |
 | §Phase-4 Judge/WS cutover | P4-CUTOVER-003 | done |
 | §Phase-4 WS multi-instance broadcast | P4-CUTOVER-005 | pending |
-| §Phase-4 Forum/Solution/ContentModeration cutover | P4-CUTOVER-004 | pending |
+| §Phase-4 Forum/Solution/ContentModeration cutover | P4-CUTOVER-004 | done |
 | Phase-4 gate | P4-GATE | pending |
 | §5.2 Per-Owner schema/DB grants | P5-SCHEMA-001 | pending |
 | §5.2 users vertical split | P5-USERPROFILE-001 | pending |

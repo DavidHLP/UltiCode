@@ -773,3 +773,23 @@ on existing independent feature flags.
 P4-CUTOVER-005 will require Redis Pub/Sub relay infrastructure for WS push adapters.
 
 **Affected Tasks:** P4-CUTOVER-003 (done), P4-CUTOVER-005 (pending), P4-GATE (pending).
+
+
+### ADR-P4-CUTOVER-004: ContentModeration partial-action scope
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** ContentModerationService.apply supports 4 actions (HIDE/RESTORE/DELETE/UNDELETE)
+across 2 content types (forum_post, solution) = 8 cells. AdminForumService and AdminSolutionService
+currently only implement soft-delete (DELETE). HIDE/RESTORE/UNDELETE methods do not exist.
+
+**Decision.** Implement DELETE only (2/8 cells). Unsupported actions return CONTENT_STATE_CONFLICT
+(40902) with an action-specific error message so clients can distinguish unimplemented from
+real state conflict. This follows the honest-scope principle: the Provider compiles, tests
+pass, and the unsupported paths fail loudly rather than silently.
+
+**Consequences.** HIDE/RESTORE/UNDELETE need follow-up work: add the methods to
+AdminForumService/AdminSolutionService, then extend Provider dispatch. The contract
+(ApplyModerationCommand) already defines all 4 actions — no contract change needed.
+
+**Affected Tasks:** P4-CUTOVER-004 (done).

@@ -720,3 +720,18 @@ this session.
     through Dubbo. WS multi-instance deferred to P4-CUTOVER-005.
   - Commit: 608e341. Full reactor: 1905 tests, 0 failures.
 - **Next**: P4-CUTOVER-004 (Forum/Solution/ContentModeration cutover) is ready.
+
+## 2026-07-29 P4-CUTOVER-004 — ContentModeration Provider + Forum/Solution routing
+
+- **P4-CUTOVER-004**: implemented ContentModerationService Dubbo Provider and
+  Forum/Solution moderation cutover.
+  - `ContentModerationProvider` (@DubboService): apply() dispatches by contentType
+    to AdminForumService.deletePost (forum_post) or AdminSolutionService.deleteSolution
+    (solution) for DELETE action. Unsupported actions return CONTENT_STATE_CONFLICT.
+  - `ContentModerationCutoverService`: dual-path adapter.
+  - AdminForumController.deletePost + AdminSolutionController.deleteSolution wired.
+  - Feature flag: moderation-dubbo-cutover=false.
+  - SCOPE: 2/8 action×type cells (DELETE×forum_post, DELETE×solution). 6 cells
+    (HIDE/RESTORE/UNDELETE) need admin-service methods that do not exist yet.
+  - Commit: 4c195f7. Full reactor: 1912 tests, 0 failures.
+- **Next**: P4-CUTOVER-005 (WS multi-instance broadcast bridge) — blocked on Redis Pub/Sub infra.

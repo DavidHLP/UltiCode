@@ -1,9 +1,10 @@
 # Migration Resume
 
 Current Phase: Phase 4 (P3-GATE closed)
-Current Task: P4-CUTOVER-004 (ready) — Forum/Solution/ContentModeration cutover — Judge/WS families cutover
+Current Task: P4-CUTOVER-005 (pending) — WS multi-instance broadcast bridge (blocked: needs Redis Pub/Sub infra) — Judge/WS families cutover
 
 Last Verified Commit:
+- 4c195f7 feat(cutover): implement ContentModeration Provider + Forum/Solution routing (P4-CUTOVER-004)
 - 608e341 feat(cutover): implement Notification admin + batch rejudge Dubbo providers (P4-CUTOVER-003)
 - 574cda3 feat(cutover): implement Contest/Submission Dubbo providers + routing (P4-CUTOVER-002)
 - 3db1fcc feat(cutover): implement Problem Dubbo provider + feature-flagged routing (P4-CUTOVER-001)

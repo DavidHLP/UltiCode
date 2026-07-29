@@ -7609,6 +7609,10 @@
   evidence:
   - note: 'Started source-verified retirement audit after dependency-correct leaf replan; auditing auth/permission/refreshtoken inbound callers and websocket ownership before deletion.'
     ts: '2026-07-30T01:56:00+00:00'
+  - note: 'Refresh-token audit confirms both legacy and backend-auth implementations preserve V20260606130000 hash-only storage: raw token is SHA-256 hashed before persistence; rotation uses revokeIfActive plus insert. Remaining concrete inbound imports are confined to legacy auth; WebSocket references are documentation-only.'
+    ts: '2026-07-30T02:06:00+00:00'
+  - note: 'Direct caller audit found auth has 6 external referencing files and permission has 5. Backend-auth-api defines AccountAdministrationService, AuthorizationSnapshotService, and IdentityQueryService, but backend-auth currently exposes only AuthRpcHealthProvider; business contract providers are not yet implemented. Immediate duplicate deletion is therefore unsafe pending consumer/provider cutover.'
+    ts: '2026-07-30T02:06:00+00:00'
   commits: []
   notes: 'backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage. websocket removed from scope after verified App-domain dependency audit.'
   updated_at: '2026-07-30T01:56:00+00:00'

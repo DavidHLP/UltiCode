@@ -6189,7 +6189,7 @@
     note: Added Flyway migration for users.role DEFAULT 'USER', dropped placeholder write in UserManagementServiceImpl, and
       enforced via ArchUnit.
   commits:
-  - df35f0cf1
+  - 81c17564822ad949d159cc453fbab1219ff336ee
   notes: Discovered during the P2-RBAC-001 refactor of UserManagementServiceImpl. The "USER" default is the only remaining
     direct write to users.role from the legacy; it is a system invariant (NOT NULL with no DEFAULT in the canonical schema),
     not an admin action. Once the column DEFAULT is in place, the legacy can drop the placeholder write and the owner-only

@@ -1111,3 +1111,11 @@ automatically after their real outbound owners relocate. The final removal gate
 retains complete coverage without temporary layering violations.
 
 **Reconciliation correction.** Implementation probing found a deeper outbound boundary not visible in Java imports: `OwnerReconciler` issues direct SQL against Auth, App, and Admin-owned tables. Relocating it immediately to backend-admin would require cross-owner database grants, violating the schema-isolation invariant. `P7-RELOCATE-RECONCILIATION-001` therefore depends on `P7-RELOCATE-INFRA-001` (transitively after Auth/Admin/App/Core) and must replace direct cross-owner SQL with owner RPC/read ports or an explicitly approved operational boundary before legacy removal. The attempted direct-JDBC relocation was not retained.
+
+### ADR-P7-WEBSOCKET-OWNERSHIP: place live WebSocket infrastructure in backend-app
+
+**Context.** The original decomposition grouped websocket with Auth based on its handshake authentication code. Source-level dependency and caller verification shows that authentication is only one edge. The module owns live contest rooms, ranking flush, submission-result delivery, notification and badge delivery, broadcast transport, and session management. Its outbound ports/types belong to contest, queue, achievement, notification, user projection, and admin announcement; 16 inbound caller/port files span those same App/Admin families.
+
+**Decision.** Remove websocket from `P7-RELOCATE-AUTH-001` and create `P7-RELOCATE-WEBSOCKET-001` targeting backend-app after `P7-RELOCATE-INFRA-001`. Preserve the security invariant that WebSocket authentication accepts only the `access_token` cookie, using backend-app offline JWT verification rather than an Auth-owned transport implementation.
+
+**Consequences.** Auth retirement can proceed without dragging App live-delivery infrastructure into backend-auth. WebSocket relocation occurs only after its concrete App dependencies and push ports are destination-owned. `P7-LEGACY-REMOVAL` now depends on the explicit WebSocket task.

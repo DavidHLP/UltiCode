@@ -7593,7 +7593,7 @@
 - id: P7-RELOCATE-AUTH-001
   phase: 7
   area: ARCH
-  title: Wire backend-auth to its own implementations and retire legacy auth/permission/websocket duplicates
+  title: Wire backend-auth to its own implementations and retire legacy auth/permission/refreshtoken duplicates
   source:
   - ADR-P7-LEGACY-DECOMPOSITION
   status: in_progress
@@ -7602,7 +7602,6 @@
   acceptance_criteria:
   - backend-auth already owns RefreshTokenService, JwtTokenProvider, OAuthService, AuthController, PermissionService, CsrfService via Strangler Fig
   - Legacy auth (25 src) + permission (8 src) + refreshtoken (3 src) duplicate copies retired after confirming no remaining legacy callers
-  - websocket (41 src) ownership boundary verified per TABLE_OWNERS.md before placement — WS broadcast/notification infrastructure likely belongs to backend-app not backend-auth
   - Full reactor verify BUILD SUCCESS
   validation:
   - ./mvnw -f backend-spring/pom.xml test -B
@@ -7611,7 +7610,7 @@
   - note: 'Started source-verified retirement audit after dependency-correct leaf replan; auditing auth/permission/refreshtoken inbound callers and websocket ownership before deletion.'
     ts: '2026-07-30T01:56:00+00:00'
   commits: []
-  notes: 'backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage.'
+  notes: 'backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage. websocket removed from scope after verified App-domain dependency audit.'
   updated_at: '2026-07-30T01:56:00+00:00'
 - id: P7-RELOCATE-ADMIN-001
   phase: 7
@@ -7690,6 +7689,30 @@
   commits: []
   notes: 'websocket broadcast infra (41 src) may belong here instead of AUTH. File counts TBD-verify-on-first-step.'
   updated_at: '2026-07-30T00:50:00+00:00'
+- id: P7-RELOCATE-WEBSOCKET-001
+  phase: 7
+  area: ARCH
+  title: Relocate WebSocket broadcast and notification infrastructure from backend-legacy to backend-app
+  source:
+  - ADR-P7-LEGACY-DECOMPOSITION
+  status: pending
+  depends_on:
+  - P7-RELOCATE-INFRA-001
+  acceptance_criteria:
+  - All 41 WebSocket source files and relevant tests relocated to backend-app
+  - Authentication uses backend-app offline JWT verification and access_token cookie only
+  - Contest, queue, achievement, notification, and admin push ports resolve without backend-legacy dependency
+  - Legacy WebSocket copy removed; full reactor and WebSocket security tests pass
+  validation:
+  - ./mvnw -f backend-spring/pom.xml -pl backend-app -am test -B
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert relocation commit
+  evidence:
+  - note: 'Source audit found WebSocket is App-owned live contest/notification infrastructure, not Auth-owned: outbound dependencies include contest ranking/status/subscription, queue submission results, achievement badges, notification push, user projection, and admin announcement ports. It has 16 inbound caller/port files across those App/Admin families.'
+    ts: '2026-07-30T02:00:00+00:00'
+  commits: []
+  notes: 'Runs after P7-RELOCATE-INFRA-001 so its concrete App dependencies and push ports are destination-owned.'
+  updated_at: '2026-07-30T02:00:00+00:00'
 - id: P7-LEGACY-REMOVAL
   phase: 7
   area: ARCH
@@ -7702,6 +7725,7 @@
   - P7-RELOCATE-RECONCILIATION-001
   - P7-RELOCATE-SEARCH-001
   - P7-RELOCATE-MONITORING-001
+  - P7-RELOCATE-WEBSOCKET-001
   - P7-RELOCATE-AUTH-001
   - P7-RELOCATE-ADMIN-001
   - P7-RELOCATE-APP-001

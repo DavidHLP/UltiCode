@@ -6,7 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
+import com.ulticode.modules.problem.port.ProblemInteractionQueryPort;
+import com.ulticode.modules.problem.port.ProblemSolutionQueryPort;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
@@ -18,9 +19,7 @@ import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.submission.port.ProblemSubmissionStatsPort;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -79,13 +78,11 @@ class DefaultProblemProjectionTest {
     @Mock
     private ProblemSubmissionStatsPort problemSubmissionStats;
     @Mock
-    private SolutionMapper solutionMapper;
+    private ProblemSolutionQueryPort solutionQueryPort;
     @Mock
-    private EdgeOperationInspector edgeOperationsService;
-    @Mock
+    private ProblemInteractionQueryPort interactionQueryPort;
     
     private CurrentUserProvider currentUserProvider;
-    private EdgeOperationMapper edgeOperationMapper;
 
     private DefaultProblemProjection projection;
 
@@ -95,8 +92,8 @@ class DefaultProblemProjectionTest {
         projection = new DefaultProblemProjection(
                 problemMapper, problemDetailMapper, problemExampleMapper,
                 problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
-                problemSubmissionStats, solutionMapper, edgeOperationsService,
-                edgeOperationMapper, new ObjectMapper(), currentUserProvider,
+                problemSubmissionStats, solutionQueryPort, interactionQueryPort,
+                new ObjectMapper(), currentUserProvider,
                 new com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport());
     }
 

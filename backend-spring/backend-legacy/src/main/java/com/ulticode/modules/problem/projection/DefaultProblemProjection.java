@@ -9,7 +9,8 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
+import com.ulticode.modules.problem.port.ProblemInteractionQueryPort;
+import com.ulticode.modules.problem.port.ProblemSolutionQueryPort;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;
 import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
@@ -26,12 +27,8 @@ import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.submission.port.JudgingLanguageSupport;
 import com.ulticode.modules.submission.port.ProblemSubmissionStatsPort;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,9 +64,8 @@ public class DefaultProblemProjection implements ProblemProjection {
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ProblemSubmissionStatsPort problemSubmissionStats;
-    private final SolutionMapper solutionMapper;
-    private final EdgeOperationInspector edgeOperationInspector;
-    private final EdgeOperationMapper edgeOperationMapper;
+    private final ProblemSolutionQueryPort solutionQueryPort;
+    private final ProblemInteractionQueryPort interactionQueryPort;
     private final ObjectMapper objectMapper;
     private final CurrentUserProvider currentUserProvider;
     private final JudgingLanguageSupport languageSupport;
@@ -348,9 +344,7 @@ public class DefaultProblemProjection implements ProblemProjection {
         long submissionCount = problemSubmissionStats.countByProblemId(problem.getId());
         response.setSubmissionCount(submissionCount);
 
-        Long solutionCount = solutionMapper.selectCount(
-                new LambdaQueryWrapper<Solution>()
-                        .eq(Solution::getProblemId, problem.getId()));
+        long solutionCount = solutionQueryPort.countSolutionsByProblemId(problem.getId());
         response.setSolutionCount(solutionCount);
 
         // Tags
@@ -434,14 +428,8 @@ public class DefaultProblemProjection implements ProblemProjection {
         interactions.setLikes(detail.getLikes() != null ? detail.getLikes() : 0);
         interactions.setDislikes(detail.getDislikes() != null ? detail.getDislikes() : 0);
 
-        // Query edge-operations for real favorites count
-        try {
-            var edgeOps = edgeOperationInspector.getInteractions(null, String.valueOf(problemId), EdgeOperationTargetType.PROBLEM);
-            interactions.setFavorites((int) edgeOps.getFavorites());
-        } catch (Exception e) {
-            log.warn("Failed to query edge-operations favorites for problem {}", problemId);
-            interactions.setFavorites(0);
-        }
+        // Query edge-operations for real favorites count (via port)
+        interactions.setFavorites(interactionQueryPort.countFavorites(problemId));
 
         String userId = currentUserProvider.getCurrentUserId();
         if (userId != null) {
@@ -450,17 +438,11 @@ public class DefaultProblemProjection implements ProblemProjection {
             // with both LIKE and DISLIKE rows sees whichever they toggled last.
             // Replaces the previous JSON-column single-viewer hack (problem_details.interactions
             // held one viewer for everyone, so it never reflected the actual requester).
-            try {
-                String reaction = edgeOperationMapper.findViewerReaction(
-                        userId, String.valueOf(problemId), EdgeOperationTargetType.PROBLEM.name());
-                if (reaction != null) {
-                    ProblemDetailPublicVO.ViewerData viewer = new ProblemDetailPublicVO.ViewerData();
-                    viewer.setReaction(reaction.toLowerCase());
-                    interactions.setViewer(viewer);
-                }
-            } catch (Exception e) {
-                log.warn("Failed to query viewer reaction for problem {} user {}: {}",
-                        problemId, userId, e.getMessage());
+            String reaction = interactionQueryPort.findViewerReaction(userId, problemId);
+            if (reaction != null) {
+                ProblemDetailPublicVO.ViewerData viewer = new ProblemDetailPublicVO.ViewerData();
+                viewer.setReaction(reaction.toLowerCase());
+                interactions.setViewer(viewer);
             }
         }
         return interactions;

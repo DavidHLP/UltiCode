@@ -7596,7 +7596,7 @@
   title: Wire backend-auth to its own implementations and retire legacy auth/permission/websocket duplicates
   source:
   - ADR-P7-LEGACY-DECOMPOSITION
-  status: pending
+  status: in_progress
   depends_on:
   - P7-RELOCATE-I18N-001
   acceptance_criteria:
@@ -7607,10 +7607,12 @@
   validation:
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: revert retirement commit
-  evidence: []
+  evidence:
+  - note: 'Started source-verified retirement audit after dependency-correct leaf replan; auditing auth/permission/refreshtoken inbound callers and websocket ownership before deletion.'
+    ts: '2026-07-30T01:56:00+00:00'
   commits: []
   notes: 'backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage.'
-  updated_at: '2026-07-30T00:50:00+00:00'
+  updated_at: '2026-07-30T01:56:00+00:00'
 - id: P7-RELOCATE-ADMIN-001
   phase: 7
   area: ARCH

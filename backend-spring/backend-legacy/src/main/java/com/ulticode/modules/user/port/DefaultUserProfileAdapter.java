@@ -7,7 +7,9 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.entity.UserProfile;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.user.mapper.UserProfileMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -26,6 +28,12 @@ import java.nio.file.Paths;
  *
  * <p>Owns profile attribute mutations (name, avatar, bio, company, github, location,
  * twitter, website, preferredLanguage).
+ *
+ * <p>P5-USERPROFILE-001: Dual-write expand phase. Profile updates are written to both
+ * the legacy {@code users} table (account + profile columns, backward compat) and the
+ * new {@code user_profiles} table (profile columns only). The shadow compare IT verifies
+ * both tables stay in sync. A future contract migration will remove profile columns from
+ * {@code users} once the dual-write window is validated.
  */
 @Slf4j
 @Service
@@ -33,6 +41,7 @@ import java.nio.file.Paths;
 public class DefaultUserProfileAdapter implements UserProfilePort {
 
     private final UserMapper userMapper;
+    private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
 
     @Override
@@ -47,8 +56,6 @@ public class DefaultUserProfileAdapter implements UserProfilePort {
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-
-
 
         // Update fields from DTO (only non-null profile fields)
         if (updateDTO.getName() != null) {
@@ -81,6 +88,9 @@ public class DefaultUserProfileAdapter implements UserProfilePort {
         }
 
         userMapper.updateById(user);
+
+        // P5-USERPROFILE-001: dual-write to user_profiles table
+        syncProfileTable(userId, updateDTO);
 
         log.info("User profile updated: {}", userId);
         return toVO(user);
@@ -147,6 +157,65 @@ public class DefaultUserProfileAdapter implements UserProfilePort {
         user.setId(userId);
         user.setAvatar(avatarUrl);
         userMapper.updateById(user);
+
+        // P5-USERPROFILE-001: dual-write avatar to user_profiles table
+        UserProfile profile = userProfileMapper.selectById(userId);
+        if (profile == null) {
+            profile = new UserProfile();
+            profile.setAccountId(userId);
+            profile.setAvatar(avatarUrl);
+            userProfileMapper.insert(profile);
+        } else {
+            profile.setAvatar(avatarUrl);
+            userProfileMapper.updateById(profile);
+        }
+    }
+
+    /**
+     * P5-USERPROFILE-001: Sync profile fields from the DTO to the {@code user_profiles} table.
+     * Inserts a new row if none exists, or updates non-null fields otherwise.
+     */
+    private void syncProfileTable(String userId, UpdateUserDTO updateDTO) {
+        UserProfile existing = userProfileMapper.selectById(userId);
+        boolean isNew = existing == null;
+        if (isNew) {
+            existing = new UserProfile();
+            existing.setAccountId(userId);
+        }
+
+        if (updateDTO.getName() != null) {
+            existing.setName(updateDTO.getName());
+        }
+        if (updateDTO.getAvatar() != null) {
+            existing.setAvatar(updateDTO.getAvatar());
+        }
+        if (updateDTO.getBio() != null) {
+            existing.setBio(updateDTO.getBio());
+        }
+        if (updateDTO.getCompany() != null) {
+            existing.setCompany(updateDTO.getCompany());
+        }
+        if (updateDTO.getGithub() != null) {
+            existing.setGithub(updateDTO.getGithub());
+        }
+        if (updateDTO.getLocation() != null) {
+            existing.setLocation(updateDTO.getLocation());
+        }
+        if (updateDTO.getTwitter() != null) {
+            existing.setTwitter(updateDTO.getTwitter());
+        }
+        if (updateDTO.getWebsite() != null) {
+            existing.setWebsite(updateDTO.getWebsite());
+        }
+        if (updateDTO.getPreferredLanguage() != null) {
+            existing.setPreferredLanguage(updateDTO.getPreferredLanguage());
+        }
+
+        if (isNew) {
+            userProfileMapper.insert(existing);
+        } else {
+            userProfileMapper.updateById(existing);
+        }
     }
 
     private UserVO toVO(User user) {

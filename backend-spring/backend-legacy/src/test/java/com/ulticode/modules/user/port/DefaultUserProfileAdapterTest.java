@@ -1,13 +1,14 @@
 package com.ulticode.modules.user.port;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.entity.UserProfile;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.user.mapper.UserProfileMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class DefaultUserProfileAdapterTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private UserProfileMapper userProfileMapper;
 
     @Mock
     private UuidGenerator uuidGenerator;
@@ -55,6 +59,7 @@ class DefaultUserProfileAdapterTest {
 
         when(userMapper.selectById("user-1")).thenReturn(testUser);
         when(userMapper.updateById(any(User.class))).thenReturn(1);
+        when(userProfileMapper.selectById("user-1")).thenReturn(null);
 
         UserVO vo = profileAdapter.updateProfile("user-1", dto);
 
@@ -62,6 +67,8 @@ class DefaultUserProfileAdapterTest {
         assertEquals("New Name", vo.getName());
         assertEquals("New Bio", vo.getBio());
         verify(userMapper).updateById(testUser);
+        // P5-USERPROFILE-001: verify dual-write to user_profiles
+        verify(userProfileMapper).insert(any(UserProfile.class));
     }
 
     @Test
@@ -82,7 +89,11 @@ class DefaultUserProfileAdapterTest {
     @Test
     @DisplayName("should update avatar URL directly")
     void shouldUpdateAvatarUrl() {
+        when(userProfileMapper.selectById("user-1")).thenReturn(null);
+
         profileAdapter.updateAvatarUrl("user-1", "/uploads/avatars/new.png");
+
         verify(userMapper).updateById(any(User.class));
+        verify(userProfileMapper).insert(any(UserProfile.class));
     }
 }

@@ -21,6 +21,10 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-contest-domain</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-submission-domain</artifactId>
+		</dependency>
 		<!--
 		  P1-INFRA-002: backend-common holds the dependency-free atoms
 		  (Result, PageResult, PaginationRequest, TraceIdUtil, TimeSource,

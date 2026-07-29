@@ -7943,10 +7943,16 @@
       consume the shared classes through the reactor module. Focused compile BUILD SUCCESS; ProblemServiceImplTest + ProblemAdministrationProviderTest:
       13 tests, 0 failures/errors. Commit: cc1b642. Next: extract canonical administration mapper/service ports and implementation.'
     ts: '2026-07-29T07:33:49+00:00'
+  - note: 'P7-MIGRATE-PROBLEM-001 step 3c: extracted canonical ProblemAdministrationDomainService and ProblemAdministrationDomainServiceImpl
+      under com.ulticode.modules.problem.service.* in backend-problem-domain. Defined domain ports (ProblemWritePort, ProblemDetailDomainPort,
+      ProblemVersionPort). Legacy ProblemServiceImpl rewired to delegate write operations to the canonical service with explicit
+      actorId. Unit tests (ProblemAdministrationDomainServiceTest + ProblemServiceImplTest: 18 tests) and full reactor verify
+      (10 modules) BUILD SUCCESS. Commit: 9cca739. Next: relocate ProblemAdministrationProvider to backend-app.'
+    ts: '2026-07-29T08:03:30+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T07:33:49+00:00'
+  updated_at: '2026-07-29T08:03:30+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

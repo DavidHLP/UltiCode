@@ -8,13 +8,13 @@ import com.ulticode.app.api.command.UpdateContestCommand;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestAdministrationService;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
+import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.service.ContestAdministrationDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -24,28 +24,21 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 /**
- * P4-CUTOVER-002: Dubbo Provider implementation of
- * {@link ContestAdministrationService}.
+ * Dubbo Provider implementation of {@link ContestAdministrationService} in {@code backend-app}.
  *
- * <p>Delegates to {@link AdminContestMutationService} for the full contest
- * lifecycle flow (including owner-port writes, WebSocket push side-effects,
- * etc.). The Provider adapts the RPC contract to the internal domain calls.
- *
- * <p>Per &sect;6.2 the Provider opens its own local transaction (via the
- * mutation service's {@code @Transactional} methods) and never chains
- * another RPC (&sect;6.5 single-hop).
+ * <p>Delegates to {@link ContestAdministrationDomainService} for canonical write-side domain logic.
  */
 @Slf4j
 @DubboService(group = "backend-app", version = "1.0.0")
 @RequiredArgsConstructor
 public class ContestAdministrationProvider implements ContestAdministrationService {
 
-    private final AdminContestMutationService mutationService;
+    private final ContestAdministrationDomainService domainService;
 
     @Override
     public RpcResult<ContestAdminViewDTO> createContest(CreateContestCommand command) {
         log.info("ContestAdministrationProvider.createContest slug={} commandId={} actor={}",
-                command.slug(), command.commandId(), command.actor().actorId());
+                command.slug(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
             CreateContestDTO dto = new CreateContestDTO();
             dto.setSlug(command.slug());
@@ -56,20 +49,20 @@ public class ContestAdministrationProvider implements ContestAdministrationServi
             dto.setStartTime(LocalDateTime.ofInstant(
                     Instant.ofEpochMilli(command.startEpochMs()), ZoneOffset.UTC));
             dto.setDuration(command.durationMinutes());
-            AdminContestVO vo = mutationService.createContest(dto, command.creatorAccountId());
-            return RpcResult.success(toAdminView(vo), command.trace().traceId());
+            Contest entity = domainService.createContest(dto, command.creatorAccountId());
+            return RpcResult.success(toAdminView(entity), command.trace() != null ? command.trace().traceId() : null);
         } catch (BusinessException e) {
-            return toFailure(e, command.trace().traceId());
+            return toFailure(e, command.trace() != null ? command.trace().traceId() : null);
         } catch (Exception e) {
             log.error("ContestAdministrationProvider.createContest unexpected error", e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace() != null ? command.trace().traceId() : null);
         }
     }
 
     @Override
     public RpcResult<ContestAdminViewDTO> updateContest(UpdateContestCommand command) {
         log.info("ContestAdministrationProvider.updateContest id={} commandId={} actor={}",
-                command.contestId(), command.commandId(), command.actor().actorId());
+                command.contestId(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
             UpdateContestDTO dto = new UpdateContestDTO();
             dto.setTitle(command.title());
@@ -78,78 +71,81 @@ public class ContestAdministrationProvider implements ContestAdministrationServi
                         Instant.ofEpochMilli(command.startEpochMs()), ZoneOffset.UTC));
             }
             dto.setDuration(command.durationMinutes());
-            AdminContestVO vo = mutationService.updateContest(command.contestId(), dto);
-            return RpcResult.success(toAdminView(vo), command.trace().traceId());
+            String actorId = command.actor() != null ? command.actor().actorId() : null;
+            Contest entity = domainService.updateContest(command.contestId(), dto, actorId);
+            return RpcResult.success(toAdminView(entity), command.trace() != null ? command.trace().traceId() : null);
         } catch (BusinessException e) {
-            return toFailure(e, command.trace().traceId());
+            return toFailure(e, command.trace() != null ? command.trace().traceId() : null);
         } catch (Exception e) {
             log.error("ContestAdministrationProvider.updateContest unexpected error id={}",
                     command.contestId(), e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace() != null ? command.trace().traceId() : null);
         }
     }
 
     @Override
     public RpcResult<Void> deleteContest(DeleteContestCommand command) {
         log.info("ContestAdministrationProvider.deleteContest id={} commandId={} actor={}",
-                command.contestId(), command.commandId(), command.actor().actorId());
+                command.contestId(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
-            mutationService.deleteContest(command.contestId());
-            return RpcResult.success(command.trace().traceId());
+            String actorId = command.actor() != null ? command.actor().actorId() : null;
+            domainService.deleteContest(command.contestId(), actorId);
+            return RpcResult.success(command.trace() != null ? command.trace().traceId() : null);
         } catch (BusinessException e) {
-            return toFailure(e, command.trace().traceId());
+            return toFailure(e, command.trace() != null ? command.trace().traceId() : null);
         } catch (Exception e) {
             log.error("ContestAdministrationProvider.deleteContest unexpected error id={}",
                     command.contestId(), e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace() != null ? command.trace().traceId() : null);
         }
     }
 
     @Override
     public RpcResult<ContestAdminViewDTO> startContest(StartContestCommand command) {
         log.info("ContestAdministrationProvider.startContest id={} commandId={} actor={}",
-                command.contestId(), command.commandId(), command.actor().actorId());
+                command.contestId(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
-            AdminContestVO vo = mutationService.startContest(command.contestId());
-            return RpcResult.success(toAdminView(vo), command.trace().traceId());
+            String actorId = command.actor() != null ? command.actor().actorId() : null;
+            Contest entity = domainService.startContest(command.contestId(), actorId);
+            return RpcResult.success(toAdminView(entity), command.trace() != null ? command.trace().traceId() : null);
         } catch (BusinessException e) {
-            return toFailure(e, command.trace().traceId());
+            return toFailure(e, command.trace() != null ? command.trace().traceId() : null);
         } catch (Exception e) {
             log.error("ContestAdministrationProvider.startContest unexpected error id={}",
                     command.contestId(), e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace() != null ? command.trace().traceId() : null);
         }
     }
 
     @Override
     public RpcResult<ContestAdminViewDTO> endContest(EndContestCommand command) {
         log.info("ContestAdministrationProvider.endContest id={} commandId={} actor={}",
-                command.contestId(), command.commandId(), command.actor().actorId());
+                command.contestId(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
-            AdminContestVO vo = mutationService.endContest(command.contestId());
-            return RpcResult.success(toAdminView(vo), command.trace().traceId());
+            String actorId = command.actor() != null ? command.actor().actorId() : null;
+            Contest entity = domainService.endContest(command.contestId(), actorId);
+            return RpcResult.success(toAdminView(entity), command.trace() != null ? command.trace().traceId() : null);
         } catch (BusinessException e) {
-            return toFailure(e, command.trace().traceId());
+            return toFailure(e, command.trace() != null ? command.trace().traceId() : null);
         } catch (Exception e) {
             log.error("ContestAdministrationProvider.endContest unexpected error id={}",
                     command.contestId(), e);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace() != null ? command.trace().traceId() : null);
         }
     }
 
     // ── helpers ────────────────────────────────────────────────
 
-    private static ContestAdminViewDTO toAdminView(AdminContestVO vo) {
-        return new ContestAdminViewDTO(vo.getId(), vo.getTitle(), vo.getStatus());
+    private static ContestAdminViewDTO toAdminView(Contest entity) {
+        return new ContestAdminViewDTO(entity.getId(), entity.getTitle(), entity.getStatus());
     }
 
     private static <T> RpcResult<T> toFailure(BusinessException e, String traceId) {
-        int code = e.getErrorCode().code();
+        int code = e.getErrorCode() != null ? e.getErrorCode().code() : -1;
         AppErrorCode mapped;
-        if (code == ErrorCode.CONTEST_NOT_FOUND.code()
-                || code == ErrorCode.PROBLEM_NOT_FOUND.code()) {
+        if (code == BaseErrorCode.NOT_FOUND.code() || code == 70001) {
             mapped = AppErrorCode.CONTENT_NOT_FOUND;
-        } else if (code == ErrorCode.CONFLICT.code()) {
+        } else if (code == BaseErrorCode.CONFLICT.code() || code == 40900) {
             mapped = AppErrorCode.CONTENT_STATE_CONFLICT;
         } else {
             mapped = AppErrorCode.UNEXPECTED_APP_STATE;

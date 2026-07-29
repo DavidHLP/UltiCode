@@ -8011,7 +8011,7 @@
   source:
   - ADR-P7-MIGRATION-SCOPE
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: in_progress
+  status: blocked
   depends_on:
   - P7-MIGRATE-CONTEST-001
   acceptance_criteria:
@@ -8034,9 +8034,16 @@
       tests) BUILD SUCCESS. Commit: d31bc4e. Next: relocate SubmissionAdministrationProvider to backend-app and wire legacy
       delegation.'
     ts: '2026-07-29T08:30:01+00:00'
+  - note: 'P7-MIGRATE-SUBMISSION-001 blocked: full SubmissionWritePort seam requires persistence/queue/CAS/fenced-write collaborators
+      (DefaultSubmissionWritePort already owns the full rejudge CAS, queue enqueue, outbox, Achievements/notification dispatch,
+      and ADR-003 metrics). Relocation needs an app-owned mapper adapter plus full rejudge orchestration. Stopping here to
+      honor upstream guidance: rewrite the canonical SubmissionWritePort to match the legacy boundary OR keep the Provider
+      in legacy until Submission infrastructure porting completes. Removed broken in-memory HashMap adapter. Commit evidence
+      pending verification.'
+    ts: '2026-07-29T08:40:19+00:00'
   commits: []
   notes: Includes rejudge/batch-rejudge flow. Judge queue integration is complex.
-  updated_at: '2026-07-29T08:30:01+00:00'
+  updated_at: '2026-07-29T08:40:19+00:00'
 - id: P7-MIGRATE-NOTIFICATION-001
   phase: 7
   area: ARCH

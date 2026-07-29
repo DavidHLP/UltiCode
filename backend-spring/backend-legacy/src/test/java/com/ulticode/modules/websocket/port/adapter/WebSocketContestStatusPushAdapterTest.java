@@ -10,7 +10,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 
 import java.time.Instant;
 
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class WebSocketContestStatusPushAdapterTest {
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private WebSocketBroadcastBridge broadcastBridge;
 
     @InjectMocks
     private WebSocketContestStatusPushAdapter adapter;
@@ -41,7 +41,7 @@ class WebSocketContestStatusPushAdapterTest {
         adapter.emitStatus("c-1", ContestStatus.RUNNING, start, null, null);
 
         ArgumentCaptor<ContestStatusEvent> eventCaptor = ArgumentCaptor.forClass(ContestStatusEvent.class);
-        verify(messagingTemplate).convertAndSend(
+        verify(broadcastBridge).send(
                 eq(WebSocketUtils.getContestRoomName("c-1") + "/status"),
                 eventCaptor.capture());
         ContestStatusEvent event = eventCaptor.getValue();
@@ -57,7 +57,7 @@ class WebSocketContestStatusPushAdapterTest {
         adapter.emitStatus("c-1", ContestStatus.FINISHED, null, end, "Contest over");
 
         ArgumentCaptor<ContestStatusEvent> eventCaptor = ArgumentCaptor.forClass(ContestStatusEvent.class);
-        verify(messagingTemplate).convertAndSend(
+        verify(broadcastBridge).send(
                 eq(WebSocketUtils.getContestRoomName("c-1") + "/status"),
                 eventCaptor.capture());
         assertThat(eventCaptor.getValue().status()).isEqualTo(ContestStatusEvent.ContestStatus.ENDED);
@@ -67,28 +67,28 @@ class WebSocketContestStatusPushAdapterTest {
     @DisplayName("DRAFT is silently skipped")
     void draft_silentlySkipped() {
         adapter.emitStatus("c-1", ContestStatus.DRAFT, null, null, null);
-        verifyNoInteractions(messagingTemplate);
+        verifyNoInteractions(broadcastBridge);
     }
 
     @Test
     @DisplayName("UPCOMING is silently skipped")
     void upcoming_silentlySkipped() {
         adapter.emitStatus("c-1", ContestStatus.UPCOMING, null, null, null);
-        verifyNoInteractions(messagingTemplate);
+        verifyNoInteractions(broadcastBridge);
     }
 
     @Test
     @DisplayName("CANCELLED is silently skipped")
     void cancelled_silentlySkipped() {
         adapter.emitStatus("c-1", ContestStatus.CANCELLED, null, null, null);
-        verifyNoInteractions(messagingTemplate);
+        verifyNoInteractions(broadcastBridge);
     }
 
     @Test
     @DisplayName("null status is silently skipped")
     void nullStatus_silentlySkipped() {
         adapter.emitStatus("c-1", null, null, null, null);
-        verifyNoInteractions(messagingTemplate);
+        verifyNoInteractions(broadcastBridge);
     }
 
     private static String eq(String value) {

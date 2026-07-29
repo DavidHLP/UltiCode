@@ -5,7 +5,7 @@ import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,16 +20,16 @@ public class WebSocketContestAnnouncementPushAdapter implements ContestAnnouncem
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketContestAnnouncementPushAdapter.class);
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final WebSocketBroadcastBridge broadcastBridge;
 
-    public WebSocketContestAnnouncementPushAdapter(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public WebSocketContestAnnouncementPushAdapter(WebSocketBroadcastBridge broadcastBridge) {
+        this.broadcastBridge = broadcastBridge;
     }
 
     @Override
     public void emitAnnouncement(String contestId, AnnouncementPayload announcement) {
         String destination = WebSocketUtils.getContestRoomName(contestId) + "/announcement";
-        messagingTemplate.convertAndSend(destination, announcement);
+        broadcastBridge.send(destination, announcement);
         log.info("Announcement sent to contest {}: {}", contestId, announcement.title());
     }
 }

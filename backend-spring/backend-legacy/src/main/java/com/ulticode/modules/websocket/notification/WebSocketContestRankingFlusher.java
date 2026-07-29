@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import java.util.stream.Collectors;
 
 /**
@@ -53,7 +54,7 @@ public class WebSocketContestRankingFlusher {
     /** Live-ranking cap passed to the read port each flush tick. */
     private static final int LIVE_RANKING_FETCH_LIMIT = 200;
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final WebSocketBroadcastBridge broadcastBridge;
     private final WebSocketProperties properties;
     private final ContestLiveRankingReadPort liveRankingReadPort;
     private final TimeSource timeSource;
@@ -64,11 +65,11 @@ public class WebSocketContestRankingFlusher {
     /** Pending ranking updates that need to be pushed. */
     private final Map<String, Boolean> pendingRankingUpdates = new ConcurrentHashMap<>();
 
-    public WebSocketContestRankingFlusher(SimpMessagingTemplate messagingTemplate,
+    public WebSocketContestRankingFlusher(WebSocketBroadcastBridge broadcastBridge,
                                           WebSocketProperties properties,
                                           ContestLiveRankingReadPort liveRankingReadPort,
                                           TimeSource timeSource) {
-        this.messagingTemplate = messagingTemplate;
+        this.broadcastBridge = broadcastBridge;
         this.properties = properties;
         this.liveRankingReadPort = liveRankingReadPort;
         this.timeSource = timeSource;
@@ -125,7 +126,7 @@ public class WebSocketContestRankingFlusher {
         }
         RankingUpdatePayload payload = RankingUpdatePayload.of(contestId, rankings);
         String destination = WebSocketUtils.getContestRoomName(contestId) + "/ranking";
-        messagingTemplate.convertAndSend(destination, payload);
+        broadcastBridge.send(destination, payload);
         log.debug("Emitted {} to {}", WebSocketConstants.EVENT_RANKING_UPDATE, destination);
     }
 

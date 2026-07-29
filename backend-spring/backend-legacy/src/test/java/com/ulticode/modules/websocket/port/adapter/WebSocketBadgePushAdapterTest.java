@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 class WebSocketBadgePushAdapterTest {
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private WebSocketBroadcastBridge broadcastBridge;
 
     @InjectMocks
     private WebSocketBadgePushAdapter adapter;
@@ -35,8 +35,8 @@ class WebSocketBadgePushAdapterTest {
         BadgeEarnedPayload payload = BadgeEarnedPayload.bronze(
                 "b-1", "First Solve", "Solved your first problem", "/icons/first.png", "u-1");
         adapter.pushBadgeEarned("u-1", payload);
-        verify(messagingTemplate).convertAndSendToUser(
+        verify(broadcastBridge).sendToUser(
                 "u-1", WebSocketConstants.USER_QUEUE_NOTIFICATION, payload);
-        verifyNoMoreInteractions(messagingTemplate);
+        verifyNoMoreInteractions(broadcastBridge);
     }
 }

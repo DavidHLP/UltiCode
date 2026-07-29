@@ -6,7 +6,7 @@ import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -25,10 +25,10 @@ public class WebSocketContestStatusPushAdapter implements ContestStatusPushPort 
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketContestStatusPushAdapter.class);
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final WebSocketBroadcastBridge broadcastBridge;
 
-    public WebSocketContestStatusPushAdapter(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public WebSocketContestStatusPushAdapter(WebSocketBroadcastBridge broadcastBridge) {
+        this.broadcastBridge = broadcastBridge;
     }
 
     @Override
@@ -41,7 +41,7 @@ public class WebSocketContestStatusPushAdapter implements ContestStatusPushPort 
         }
         ContestStatusEvent event = new ContestStatusEvent(contestId, wire, startedAt, endsAt, message);
         String destination = WebSocketUtils.getContestRoomName(contestId) + "/status";
-        messagingTemplate.convertAndSend(destination, event);
+        broadcastBridge.send(destination, event);
         log.info("Contest {} status changed to: {}", contestId, wire);
     }
 

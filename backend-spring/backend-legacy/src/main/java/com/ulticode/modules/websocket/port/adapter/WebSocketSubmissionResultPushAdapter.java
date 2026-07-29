@@ -3,7 +3,7 @@ package com.ulticode.modules.websocket.port.adapter;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,15 +16,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class WebSocketSubmissionResultPushAdapter implements SubmissionResultPushPort {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final WebSocketBroadcastBridge broadcastBridge;
 
-    public WebSocketSubmissionResultPushAdapter(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public WebSocketSubmissionResultPushAdapter(WebSocketBroadcastBridge broadcastBridge) {
+        this.broadcastBridge = broadcastBridge;
     }
 
     @Override
     public void emitSubmissionResult(String userId, SubmissionResultPayload payload) {
-        messagingTemplate.convertAndSendToUser(
+        broadcastBridge.sendToUser(
                 userId, WebSocketConstants.USER_QUEUE_SUBMISSION, payload);
     }
 }

@@ -3,7 +3,7 @@ package com.ulticode.modules.websocket.port.adapter;
 import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,15 +16,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class WebSocketBadgePushAdapter implements BadgePushPort {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final WebSocketBroadcastBridge broadcastBridge;
 
-    public WebSocketBadgePushAdapter(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public WebSocketBadgePushAdapter(WebSocketBroadcastBridge broadcastBridge) {
+        this.broadcastBridge = broadcastBridge;
     }
 
     @Override
     public void pushBadgeEarned(String userId, BadgeEarnedPayload payload) {
-        messagingTemplate.convertAndSendToUser(
+        broadcastBridge.sendToUser(
                 userId, WebSocketConstants.USER_QUEUE_NOTIFICATION, payload);
     }
 }

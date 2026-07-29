@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 class WebSocketNotificationPushAdapterTest {
 
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private WebSocketBroadcastBridge broadcastBridge;
 
     @InjectMocks
     private WebSocketNotificationPushAdapter adapter;
@@ -33,8 +33,8 @@ class WebSocketNotificationPushAdapterTest {
     void pushToUser_sendsToUserQueueNotification() {
         NotificationPayload payload = NotificationPayload.system("n-1", "Title", "Body");
         adapter.pushToUser("u-1", payload);
-        verify(messagingTemplate).convertAndSendToUser(
+        verify(broadcastBridge).sendToUser(
                 "u-1", WebSocketConstants.USER_QUEUE_NOTIFICATION, payload);
-        verifyNoMoreInteractions(messagingTemplate);
+        verifyNoMoreInteractions(broadcastBridge);
     }
 }

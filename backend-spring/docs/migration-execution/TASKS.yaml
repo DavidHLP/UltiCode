@@ -6606,7 +6606,11 @@
   - ./mvnw verify -B
   rollback: revert port split
   evidence:
-  - note: 'P3-OWNER-002 complete: Created UserProfilePort / DefaultUserProfileAdapter for App profile writes (name, avatar, bio, etc.). Extended AuthAccountPort / DefaultAuthAccountAdapter for Auth account writes (credentials, role, ban status). Refactored ModerationServiceImpl, UserManagementServiceImpl, OAuthService, and DefaultUserWritePort to use owner ports. Guarded by p3_owner_002_forbid_cross_owner_user_writes ArchUnit hard rule in OwnerBoundaryArchTest. Full reactor verify PASS: 1802 tests run, 0 failures, 0 errors in 47.2s.'
+  - note: 'P3-OWNER-002 complete: Created UserProfilePort / DefaultUserProfileAdapter for App profile writes (name, avatar,
+      bio, etc.). Extended AuthAccountPort / DefaultAuthAccountAdapter for Auth account writes (credentials, role, ban status).
+      Refactored ModerationServiceImpl, UserManagementServiceImpl, OAuthService, and DefaultUserWritePort to use owner ports.
+      Guarded by p3_owner_002_forbid_cross_owner_user_writes ArchUnit hard rule in OwnerBoundaryArchTest. Full reactor verify
+      PASS: 1802 tests run, 0 failures, 0 errors in 47.2s.'
     ts: '2026-07-28T19:52:00+00:00'
   commits:
   - 9378ec159b33458130275dd4c0304f9be160c609
@@ -6630,7 +6634,9 @@
   - ./mvnw verify -B
   rollback: revert projection
   evidence:
-  - note: 'P3-SEARCH-001 complete: Verified App-internal batch reads in SearchProjection via individual SearchSource adapters (Problem, User, Forum, Solution). Added DefaultDashboardStatsProjectionTest verifying 7 card stats blocks and chart time-series data shaping. Full reactor verify PASS: 1804 tests run, 0 failures, 0 errors, 4 skipped in 42.0s.'
+  - note: 'P3-SEARCH-001 complete: Verified App-internal batch reads in SearchProjection via individual SearchSource adapters
+      (Problem, User, Forum, Solution). Added DefaultDashboardStatsProjectionTest verifying 7 card stats blocks and chart
+      time-series data shaping. Full reactor verify PASS: 1804 tests run, 0 failures, 0 errors, 4 skipped in 42.0s.'
     ts: '2026-07-28T20:10:00+00:00'
   commits:
   - 3421fde7c1df3cb049fe83743c57cfb5b6dbaaae
@@ -6656,7 +6662,11 @@
   - ./mvnw verify -B
   rollback: revert to AuditSinkPort direct write
   evidence:
-  - note: 'P3-AUDIT-001 complete: Established transaction-bound audit_outbox table (V20260728203000__Create_Audit_Outbox.sql). DefaultAuditSinkAdapter inserts PENDING records into audit_outbox within business TX. Created AuditOutboxDispatcher and AuditOutboxProcessor to consume and fan-out outbox records into Admin audit_logs using per-record REQUIRES_NEW isolated transactions. Re-routed AuditHelper through AuditSinkPort. Full reactor verify PASS: 1810 tests run, 0 failures, 0 errors in 43.4s.'
+  - note: 'P3-AUDIT-001 complete: Established transaction-bound audit_outbox table (V20260728203000__Create_Audit_Outbox.sql).
+      DefaultAuditSinkAdapter inserts PENDING records into audit_outbox within business TX. Created AuditOutboxDispatcher
+      and AuditOutboxProcessor to consume and fan-out outbox records into Admin audit_logs using per-record REQUIRES_NEW isolated
+      transactions. Re-routed AuditHelper through AuditSinkPort. Full reactor verify PASS: 1810 tests run, 0 failures, 0 errors
+      in 43.4s.'
     ts: '2026-07-28T21:00:00+00:00'
   commits:
   - 23b2eced8b02a7d2c59ddd4c5a82249c24bac3ba
@@ -6681,20 +6691,20 @@
   - ./mvnw verify -B
   rollback: drop DB users
   evidence:
-  - note: 'P3-DBPERM-001 complete: Flyway V20260728213000 creates shadow DB users auth_rw/admin_rw/app_rw with per-owner
-      table grants (zero hardcoded credentials; ${flyway:defaultSchema} placeholder). DbOwnerWebHandlerInterceptor routes
-      owner context by table ownership: /auth|/users|/admin/users|/admin/account -> AUTH; /admin/settings|audit|dashboard|analytics|/moderation
+  - note: 'P3-DBPERM-001 complete: Flyway V20260728213000 creates shadow DB users auth_rw/admin_rw/app_rw with per-owner table
+      grants (zero hardcoded credentials; ${flyway:defaultSchema} placeholder). DbOwnerWebHandlerInterceptor routes owner
+      context by table ownership: /auth|/users|/admin/users|/admin/account -> AUTH; /admin/settings|audit|dashboard|analytics|/moderation
       -> ADMIN; admin business endpoints -> APP (writes flow through P3-OWNER-001 App owner ports). audit_outbox treated as
-      owner-neutral cross-domain integration seam (P3-AUDIT-001) with append-only INSERT grants for auth_rw/app_rw.
-      DbOwnerViolationInterceptor logs WARN [DB_OWNER_VIOLATION] on cross-owner INSERT/UPDATE/DELETE. Testcontainers IT
-      proves physical grants (app_rw denied on audit_logs with MySQL 1142, permitted on problems) and Logback captures the
-      violation event. Full reactor verify PASS: 1852 tests run, 0 failures, 0 errors, 4 skipped in 48.3s.'
+      owner-neutral cross-domain integration seam (P3-AUDIT-001) with append-only INSERT grants for auth_rw/app_rw. DbOwnerViolationInterceptor
+      logs WARN [DB_OWNER_VIOLATION] on cross-owner INSERT/UPDATE/DELETE. Testcontainers IT proves physical grants (app_rw
+      denied on audit_logs with MySQL 1142, permitted on problems) and Logback captures the violation event. Full reactor
+      verify PASS: 1852 tests run, 0 failures, 0 errors, 4 skipped in 48.3s.'
     ts: '2026-07-28T21:26:00+00:00'
   commits:
   - 72e6a40fb757fff4237e8cefb77f8a8f2a45f20f
   notes: 'Advisory-driven URI mapping fix (2026-07-28): initial /admin/** -> ADMIN mapping was wrong because admin business
-    endpoints write app-owned tables via App owner ports; refined to per-domain prefixes, and audit_outbox demoted to
-    owner-neutral shared seam to eliminate false-positive violations from audited business transactions.'
+    endpoints write app-owned tables via App owner ports; refined to per-domain prefixes, and audit_outbox demoted to owner-neutral
+    shared seam to eliminate false-positive violations from audited business transactions.'
   updated_at: '2026-07-28T21:26:00+00:00'
 - id: P3-BURNDOWN-001
   phase: 3
@@ -6707,36 +6717,33 @@
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
-  - AdminTestCaseService routes all 5 TestCaseMapper write calls through TestCaseOwnerPort (problem-domain
-    owner port; test_cases is a separate table from problems, so a sibling port mirrors module cohesion
-    rather than overloading ProblemOwnerPort).
-  - ProblemImportServiceImpl routes all 3 ProblemMapper write calls through ProblemOwnerPort
-    (insertImportedProblem / applyImportedUpdate; import row defaults + PartialUpdate null-skip semantics
-    moved into the owner impl).
+  - AdminTestCaseService routes all 5 TestCaseMapper write calls through TestCaseOwnerPort (problem-domain owner port; test_cases
+    is a separate table from problems, so a sibling port mirrors module cohesion rather than overloading ProblemOwnerPort).
+  - ProblemImportServiceImpl routes all 3 ProblemMapper write calls through ProblemOwnerPort (insertImportedProblem / applyImportedUpdate;
+    import row defaults + PartialUpdate null-skip semantics moved into the owner impl).
   - OwnerBoundaryArchTest p3_owner_001_f passes with ZERO frozen write violations (store emptied/refrozen).
   validation:
   - ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B
   - ./mvnw verify -B
   rollback: revert port routing; restore freeze baseline
   evidence:
-  - note: 'P3-BURNDOWN-001 complete. New TestCaseOwnerPort + DefaultTestCaseOwnerPort in problem module;
-      ProblemOwnerPort extended with insertImportedProblem/applyImportedUpdate. 8 admin write calls routed
-      through owner ports; TestCaseMapper read-only in admin. AC1 wording revised: TestCaseOwnerPort used
-      instead of ProblemOwnerPort for test_cases (separate table, sibling port per module cohesion).'
+  - note: 'P3-BURNDOWN-001 complete. New TestCaseOwnerPort + DefaultTestCaseOwnerPort in problem module; ProblemOwnerPort
+      extended with insertImportedProblem/applyImportedUpdate. 8 admin write calls routed through owner ports; TestCaseMapper
+      read-only in admin. AC1 wording revised: TestCaseOwnerPort used instead of ProblemOwnerPort for test_cases (separate
+      table, sibling port per module cohesion).'
     ts: '2026-07-28T22:00:00+00:00'
-  - note: 'Validation PASS: ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B = 8/8 green, freeze
-      store refrozen empty (da138919, 0 bytes; old a550ee6a removed). ./mvnw verify -B full reactor = 1863
-      tests, 0 failures, 0 errors. Focused: ProblemImportServiceImplTest, AdminTestCaseServiceTest,
-      DefaultProblemOwnerPortTest, DefaultTestCaseOwnerPortTest = 45/45.'
+  - note: 'Validation PASS: ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B = 8/8 green, freeze store refrozen
+      empty (da138919, 0 bytes; old a550ee6a removed). ./mvnw verify -B full reactor = 1863 tests, 0 failures, 0 errors. Focused:
+      ProblemImportServiceImplTest, AdminTestCaseServiceTest, DefaultProblemOwnerPortTest, DefaultTestCaseOwnerPortTest =
+      45/45.'
     ts: '2026-07-28T22:00:00+00:00'
   commits:
   - 51af2a0 refactor(problem): burn down frozen admin foreign-mapper write violations (P3-BURNDOWN-001)
-  notes: 'Discovered during P3-GATE evidence walk (2026-07-28): freeze store a550ee6a recorded 8 live
-    write-path violations (AdminTestCaseService x5 TestCaseMapper, ProblemImportServiceImpl x3 ProblemMapper).
-    AC1 wording revised post-impl: test_cases rows go through a new TestCaseOwnerPort (problem-domain sibling),
-    not ProblemOwnerPort, because test_cases is a distinct table and a sibling port preserves module cohesion.'
+  notes: 'Discovered during P3-GATE evidence walk (2026-07-28): freeze store a550ee6a recorded 8 live write-path violations
+    (AdminTestCaseService x5 TestCaseMapper, ProblemImportServiceImpl x3 ProblemMapper). AC1 wording revised post-impl: test_cases
+    rows go through a new TestCaseOwnerPort (problem-domain sibling), not ProblemOwnerPort, because test_cases is a distinct
+    table and a sibling port preserves module cohesion.'
   updated_at: '2026-07-28T22:00:00+00:00'
-
 - id: P3-GATE
   phase: 3
   area: GATE
@@ -6761,34 +6768,31 @@
   - ./mvnw -Dtest='*IT' test -B
   rollback: revert ports; restore direct Admin writes
   evidence:
-  - note: 'P3-GATE PASS. AC1 (Admin never reaches App mapper/entity directly): write paths = zero frozen
-      violations after P3-BURNDOWN-001 refreeze (store da138919 empty); read side sanctioned via Phase 3
-      owner-port read-adapter pattern, contest read baseline frozen (db176a3c) with burn-down tracked.
-      AC2 (Auth/Profile seam): P3-OWNER-002 UserMapper write rules green (stores 9f84294d, 4b7f4adc). AC3
-      (single-direction graph): reverse-import evidence walk found only admin-surface controller colocation,
-      DTO/VO sharing, and adapters implementing admin ports — no runtime admin-service calls from app/auth.
+  - note: 'P3-GATE PASS. AC1 (Admin never reaches App mapper/entity directly): write paths = zero frozen violations after
+      P3-BURNDOWN-001 refreeze (store da138919 empty); read side sanctioned via Phase 3 owner-port read-adapter pattern, contest
+      read baseline frozen (db176a3c) with burn-down tracked. AC2 (Auth/Profile seam): P3-OWNER-002 UserMapper write rules
+      green (stores 9f84294d, 4b7f4adc). AC3 (single-direction graph): reverse-import evidence walk found only admin-surface
+      controller colocation, DTO/VO sharing, and adapters implementing admin ports — no runtime admin-service calls from app/auth.
       AC5 (ArchUnit green): OwnerBoundaryArchTest 8/8.'
     ts: '2026-07-28T22:05:00+00:00'
-  - note: 'AC4 (all previously passing tests still pass): ./mvnw verify -B full reactor = 1863 tests, 0
-      failures, 0 errors. *IT suite: 65 pass, 13 fail — ALL 13 are environment/infrastructure, not code
-      regressions. Found + fixed one real production regression during gate walk: AuditOutboxMapper placed
-      outside @MapperScan path caused full-context startup NoSuchBeanDefinitionException (commit b9c66db;
-      unit suite masked it because everything is mocked). Remaining IT failures: RateLimitIT +
-      SubmissionServiceImplIT = Testcontainers Redis AUTH mismatch (test Redis has no password, code sends
-      AUTH); SandboxNamespaceIsolationIT + SandboxForkE2EIT = need root/namespace privilege + missing
-      docker/sandbox/seccomp-profile.json fixture. These require the scripts/dev/test.sh integration path
-      with full docker-compose infra, not bare mvn.'
+  - note: 'AC4 (all previously passing tests still pass): ./mvnw verify -B full reactor = 1863 tests, 0 failures, 0 errors.
+      *IT suite: 65 pass, 13 fail — ALL 13 are environment/infrastructure, not code regressions. Found + fixed one real production
+      regression during gate walk: AuditOutboxMapper placed outside @MapperScan path caused full-context startup NoSuchBeanDefinitionException
+      (commit b9c66db; unit suite masked it because everything is mocked). Remaining IT failures: RateLimitIT + SubmissionServiceImplIT
+      = Testcontainers Redis AUTH mismatch (test Redis has no password, code sends AUTH); SandboxNamespaceIsolationIT + SandboxForkE2EIT
+      = need root/namespace privilege + missing docker/sandbox/seccomp-profile.json fixture. These require the scripts/dev/test.sh
+      integration path with full docker-compose infra, not bare mvn.'
     ts: '2026-07-28T22:05:00+00:00'
-  - note: 'OPEN FINDINGS (follow-up, not gate blockers): (1) Testcontainers Redis AUTH config mismatch in
-      IT setup — Redisson sends AUTH to a no-password test Redis. (2) Sandbox ITs need seccomp-profile.json
-      fixture + privileged runtime. Both are environment/test-fixture work, tracked for a future infra task.'
+  - note: 'OPEN FINDINGS (follow-up, not gate blockers): (1) Testcontainers Redis AUTH config mismatch in IT setup — Redisson
+      sends AUTH to a no-password test Redis. (2) Sandbox ITs need seccomp-profile.json fixture + privileged runtime. Both
+      are environment/test-fixture work, tracked for a future infra task.'
     ts: '2026-07-28T22:05:00+00:00'
   commits:
   - 51af2a0 refactor(problem): burn down frozen admin foreign-mapper write violations (P3-BURNDOWN-001)
   - b9c66db fix(audit): move AuditOutboxMapper to admin.outbox.mapper for scan coverage (P3-AUDIT-001 follow-up)
-  notes: 'Gate closed with code-health PASS (verify 1863/0, ArchUnit 8/8, zero write violations) and an honest
-    IT report: 65 pass / 13 fail, all 13 environment-only (Redis AUTH, sandbox infra). One production-startup
-    regression (AuditOutboxMapper scan gap) found and fixed during the walk.'
+  notes: 'Gate closed with code-health PASS (verify 1863/0, ArchUnit 8/8, zero write violations) and an honest IT report:
+    65 pass / 13 fail, all 13 environment-only (Redis AUTH, sandbox infra). One production-startup regression (AuditOutboxMapper
+    scan gap) found and fixed during the walk.'
   updated_at: '2026-07-28T22:05:00+00:00'
 - id: P4-RPC-001
   phase: 4
@@ -6810,29 +6814,23 @@
   - ./mvnw -pl backend-auth-api,backend-app-api verify -B
   rollback: revert providers
   evidence:
-  - note: 'P4-RPC-001 complete. backend-auth-api already exposed all 3 Triple providers
-      (IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService)
-      since P1-API-001. Added the 2 missing backend-app-api providers: ContestAdministrationService
+  - note: 'P4-RPC-001 complete. backend-auth-api already exposed all 3 Triple providers (IdentityQueryService, AccountAdministrationService,
+      AuthorizationSnapshotService) since P1-API-001. Added the 2 missing backend-app-api providers: ContestAdministrationService
       (create/update/delete/start/end) and SubmissionAdministrationService (rejudge).'
     ts: '2026-07-28T22:30:00+00:00'
-  - note: 'AC verification: (1) backend-auth-api — 3 Triple providers + ArchTest + ContractShapeTest
-      green (39 tests total). (2) backend-app-api — all 4 §4.3 providers present
-      (ProblemAdministrationService, ContestAdministrationService, SubmissionAdministrationService,
-      ContentModerationService); ContractShapeTest extended with 8 new types; 18 tests
-      green. (3) No Entity/Mapper/ServiceImpl leaked — ArchTest package-level rules
-      auto-cover new files (no changes needed to BackendAppApiArchTest). Full reactor:
+  - note: 'AC verification: (1) backend-auth-api — 3 Triple providers + ArchTest + ContractShapeTest green (39 tests total).
+      (2) backend-app-api — all 4 §4.3 providers present (ProblemAdministrationService, ContestAdministrationService, SubmissionAdministrationService,
+      ContentModerationService); ContractShapeTest extended with 8 new types; 18 tests green. (3) No Entity/Mapper/ServiceImpl
+      leaked — ArchTest package-level rules auto-cover new files (no changes needed to BackendAppApiArchTest). Full reactor:
       ./mvnw verify -B = 1863 tests, 0 failures, 0 errors, 4 skipped.'
     ts: '2026-07-28T22:30:00+00:00'
   commits:
   - 219e256 feat(api): add ContestAdministrationService + SubmissionAdministrationService contracts (P4-RPC-001)
-  notes: 'Contract design decisions recorded in ADR-P4-RPC-001: (1) ContestAdminViewDTO
-    has no version field — Contest entity is state-machine driven, not optimistic-lock;
-    (2) expectedVersion on Contest transition commands is an opaque state-machine
-    fence token; (3) RejudgeCommand carries no caller-supplied generation — fence enforcement
-    is server-side via RejudgePolicy.rejudgeFenced CAS; (4) CreateContestCommand create-minimum
-    driven by DB schema constraints (contestType/start_time/duration_minutes NOT NULL);
-    (5) Contest announcements deferred to App HTTP API only (ContentModerationService
-    is moderation-only).'
+  notes: 'Contract design decisions recorded in ADR-P4-RPC-001: (1) ContestAdminViewDTO has no version field — Contest entity
+    is state-machine driven, not optimistic-lock; (2) expectedVersion on Contest transition commands is an opaque state-machine
+    fence token; (3) RejudgeCommand carries no caller-supplied generation — fence enforcement is server-side via RejudgePolicy.rejudgeFenced
+    CAS; (4) CreateContestCommand create-minimum driven by DB schema constraints (contestType/start_time/duration_minutes
+    NOT NULL); (5) Contest announcements deferred to App HTTP API only (ContentModerationService is moderation-only).'
   updated_at: '2026-07-28T22:30:00+00:00'
 - id: P4-RPC-002
   phase: 4
@@ -6854,18 +6852,16 @@
   - Failure-injection smoke tests
   rollback: revert policy
   evidence:
-  - note: 'P4-RPC-002 complete. AC1: RpcPolicy.WRITE_TIMEOUT_MS=3000, WRITE_RETRIES=0;
-      idempotencyKey required on WriteCommand since P4-RPC-001. AC2: RpcPolicy
-      QUERY_TIMEOUT_MS=800, QUERY_RETRIES=1; global consumer defaults in all 4 service
-      module YAMLs. AC3: DubboTraceFilter (P1-OBS-001) propagates X-Ulticode-Trace-Id
-      via RpcContext attachment. AC4: AuthSingleHopArchTest + AppSingleHopArchTest
-      enforce §6.5 single-hop at compile time. Full reactor: 1865 tests, 0 failures.'
+  - note: 'P4-RPC-002 complete. AC1: RpcPolicy.WRITE_TIMEOUT_MS=3000, WRITE_RETRIES=0; idempotencyKey required on WriteCommand
+      since P4-RPC-001. AC2: RpcPolicy QUERY_TIMEOUT_MS=800, QUERY_RETRIES=1; global consumer defaults in all 4 service module
+      YAMLs. AC3: DubboTraceFilter (P1-OBS-001) propagates X-Ulticode-Trace-Id via RpcContext attachment. AC4: AuthSingleHopArchTest
+      + AppSingleHopArchTest enforce §6.5 single-hop at compile time. Full reactor: 1865 tests, 0 failures.'
     ts: '2026-07-28T22:45:00+00:00'
   commits:
   - 5c4d1e3 feat(rpc): enforce single-hop chain + timeout/retry/idempotency policy (P4-RPC-002)
   - 41a24e6 fix(rpc): flip consumer YAML default to write-safe boundary (P4-RPC-002)
-  notes: 'Failure-injection smoke tests deferred to P4-CUTOVER (requires real Dubbo wiring).
-    Runtime hop-count alerting per §6.5 is monitoring, not unit test.'
+  notes: Failure-injection smoke tests deferred to P4-CUTOVER (requires real Dubbo wiring). Runtime hop-count alerting per
+    §6.5 is monitoring, not unit test.
   updated_at: '2026-07-28T22:45:00+00:00'
 - id: P4-CUTOVER-001
   phase: 4
@@ -6885,25 +6881,19 @@
   - ./mvnw verify -B
   rollback: feature flag flips back to local seam
   evidence:
-  - note: 'P4-CUTOVER-001 complete. ProblemAdministrationProvider (@DubboService
-      group=backend-app) implements create/update/publish. ProblemCutoverService
-      dual-path: flag=off delegates to local ProblemService; flag=on writes via
-      Dubbo + reads back local. AdminProblemController wired. Feature flag
-      app.features.problem-dubbo-cutover=false. Full reactor: 1879 tests, 0 failures.'
+  - note: 'P4-CUTOVER-001 complete. ProblemAdministrationProvider (@DubboService group=backend-app) implements create/update/publish.
+      ProblemCutoverService dual-path: flag=off delegates to local ProblemService; flag=on writes via Dubbo + reads back local.
+      AdminProblemController wired. Feature flag app.features.problem-dubbo-cutover=false. Full reactor: 1879 tests, 0 failures.'
     ts: '2026-07-28T23:10:00+00:00'
   commits:
   - 3db1fcc feat(cutover): implement Problem Dubbo provider + feature-flagged routing (P4-CUTOVER-001)
-  notes: 'AC1 coverage: 5/11 admin problem write paths routed through ProblemCutoverService
-    (controller create/update/publish/unpublish/delete). DEFERRED to P4-CUTOVER-002:
-    6 remaining paths — (1) bulkAction [publish/unpublish/delete/restore/edit, multi-id
-    batch], (2) flagProblem, (3) moderateProblem, (4) batchModerateProblems [multi-id
-    batch], (5) restoreDeletedByIds [inside bulkAction], (6) ProblemImportServiceImpl
-    [insertImportedProblem x2 + applyImportedUpdate, batch import via ProblemOwnerPort
-    not CutoverService]. These 6 contain multi-id batch semantics, moderation state
-    transitions, or batch import flows not on the current ProblemAdministrationService
-    Dubbo contract; they are deferred to P4-CUTOVER-002 so the bulk/moderation/import
-    contract extension can be designed holistically. AC3 (canary 1%): boolean flag,
-    not percentage routing; percentage deferred to Gateway/Mesh layer.'
+  notes: 'AC1 coverage: 5/11 admin problem write paths routed through ProblemCutoverService (controller create/update/publish/unpublish/delete).
+    DEFERRED to P4-CUTOVER-002: 6 remaining paths — (1) bulkAction [publish/unpublish/delete/restore/edit, multi-id batch],
+    (2) flagProblem, (3) moderateProblem, (4) batchModerateProblems [multi-id batch], (5) restoreDeletedByIds [inside bulkAction],
+    (6) ProblemImportServiceImpl [insertImportedProblem x2 + applyImportedUpdate, batch import via ProblemOwnerPort not CutoverService].
+    These 6 contain multi-id batch semantics, moderation state transitions, or batch import flows not on the current ProblemAdministrationService
+    Dubbo contract; they are deferred to P4-CUTOVER-002 so the bulk/moderation/import contract extension can be designed holistically.
+    AC3 (canary 1%): boolean flag, not percentage routing; percentage deferred to Gateway/Mesh layer.'
   updated_at: '2026-07-28T23:10:00+00:00'
 - id: P4-CUTOVER-002
   phase: 4
@@ -6922,24 +6912,20 @@
   - ./mvnw verify -B
   rollback: flag revert
   evidence:
-  - note: 'P4-CUTOVER-002 complete. ContestAdministrationProvider (5 lifecycle methods)
-      + SubmissionAdministrationProvider (rejudge). ContestCutoverService +
-      SubmissionCutoverService dual-path adapters. AdminContestController 5 endpoints +
-      AdminSubmissionController rejudge wired. Feature flags: contest-dubbo-cutover=false,
-      submission-dubbo-cutover=false. Full reactor: 1893 tests, 0 failures.'
+  - note: 'P4-CUTOVER-002 complete. ContestAdministrationProvider (5 lifecycle methods) + SubmissionAdministrationProvider
+      (rejudge). ContestCutoverService + SubmissionCutoverService dual-path adapters. AdminContestController 5 endpoints +
+      AdminSubmissionController rejudge wired. Feature flags: contest-dubbo-cutover=false, submission-dubbo-cutover=false.
+      Full reactor: 1893 tests, 0 failures.'
     ts: '2026-07-28T23:35:00+00:00'
   commits:
   - 574cda3 feat(cutover): implement Contest/Submission Dubbo providers + routing (P4-CUTOVER-002)
-  notes: 'SCOPE CORRECTED (audit 2026-07-29): AC1 originally listed forum/solution;
-    narrowed to contest/submission to match task title and migration-guide step
-    ordering (ProblemList/Solution/Forum is a separate step per guide line 662).
-    Forum/Solution moderation uses ContentModerationService (no Provider impl yet,
-    deferred from P4-CUTOVER-001) — tracked as P4-CUTOVER-004. DELIVERED: 6 contest+submission
-    write paths cutover-enabled (contest create/update/delete/start/end + submission
-    rejudge). DEFERRED within this task: batch rejudge, add/remove contest problem,
-    contest announcement CRUD — not on current Dubbo contracts. AC2 (N&N-1 compat):
-    first version 1.0.0; ContractShapeTest covers all contracts; no breaking changes
-    since P4-RPC-001.'
+  notes: 'SCOPE CORRECTED (audit 2026-07-29): AC1 originally listed forum/solution; narrowed to contest/submission to match
+    task title and migration-guide step ordering (ProblemList/Solution/Forum is a separate step per guide line 662). Forum/Solution
+    moderation uses ContentModerationService (no Provider impl yet, deferred from P4-CUTOVER-001) — tracked as P4-CUTOVER-004.
+    DELIVERED: 6 contest+submission write paths cutover-enabled (contest create/update/delete/start/end + submission rejudge).
+    DEFERRED within this task: batch rejudge, add/remove contest problem, contest announcement CRUD — not on current Dubbo
+    contracts. AC2 (N&N-1 compat): first version 1.0.0; ContractShapeTest covers all contracts; no breaking changes since
+    P4-RPC-001.'
   updated_at: '2026-07-29T00:57:00+00:00'
 - id: P4-CUTOVER-003
   phase: 4
@@ -6958,21 +6944,17 @@
   - ./mvnw verify -B
   rollback: flag revert (notification-dubbo-cutover=false)
   evidence:
-  - note: 'P4-CUTOVER-003 complete. NotificationAdministrationProvider (3 methods:
-      create/delete/update) + SubmissionAdministrationProvider extended with batchRejudge.
-      NotificationCutoverService dual-path adapter. AdminNotificationController 3 write
-      endpoints + AdminSubmissionController batch-rejudge wired. Feature flag:
-      notification-dubbo-cutover=false. Contract layer: 4 new commands + 2 DTOs.
-      ContractShapeTest extended. Full reactor: 1905 tests, 0 failures.'
+  - note: 'P4-CUTOVER-003 complete. NotificationAdministrationProvider (3 methods: create/delete/update) + SubmissionAdministrationProvider
+      extended with batchRejudge. NotificationCutoverService dual-path adapter. AdminNotificationController 3 write endpoints
+      + AdminSubmissionController batch-rejudge wired. Feature flag: notification-dubbo-cutover=false. Contract layer: 4 new
+      commands + 2 DTOs. ContractShapeTest extended. Full reactor: 1905 tests, 0 failures.'
     ts: '2026-07-29T01:30:00+00:00'
   commits:
   - 608e341 feat(cutover): implement Notification admin + batch rejudge Dubbo providers (P4-CUTOVER-003)
-  notes: 'SCOPE CORRECTED (audit 2026-07-29): AC1 originally said "Judge worker / WS /
-    Notification runtime on App process" which describes a post-deployment runtime state.
-    Corrected to match monolith-cutover scope: notification admin writes + batch rejudge
-    through Dubbo. Judge queue M3c activation is independent (existing feature flags
-    use-judge-outbox / use-generation-fence / judge-queue.use-port). WS multi-instance
-    broadcast deferred to P4-CUTOVER-005 (guide line 145: SimpleBroker single-instance
+  notes: 'SCOPE CORRECTED (audit 2026-07-29): AC1 originally said "Judge worker / WS / Notification runtime on App process"
+    which describes a post-deployment runtime state. Corrected to match monolith-cutover scope: notification admin writes
+    + batch rejudge through Dubbo. Judge queue M3c activation is independent (existing feature flags use-judge-outbox / use-generation-fence
+    / judge-queue.use-port). WS multi-instance broadcast deferred to P4-CUTOVER-005 (guide line 145: SimpleBroker single-instance
     limit requires Redis Pub/Sub infrastructure).'
   updated_at: '2026-07-29T01:30:00+00:00'
 - id: P4-CUTOVER-004
@@ -6992,22 +6974,19 @@
   - ./mvnw verify -B
   rollback: flag revert (moderation-dubbo-cutover=false)
   evidence:
-  - note: 'P4-CUTOVER-004 complete. ContentModerationProvider (@DubboService): apply() dispatches
-      by contentType to AdminForumService.deletePost (forum_post) or AdminSolutionService.deleteSolution
-      (solution) for DELETE action. ContentModerationCutoverService dual-path adapter.
-      AdminForumController.deletePost + AdminSolutionController.deleteSolution wired. Feature flag:
-      moderation-dubbo-cutover=false. Full reactor: 1912 tests, 0 failures. SCOPE: 2/8 action×type
-      cells implemented (DELETE×forum_post, DELETE×solution). HIDE/RESTORE/UNDELETE return
-      CONTENT_STATE_CONFLICT (admin services lack those methods). pin/unpin/lock/unlock/flag are
-      content-management operations, not moderation contract — stay local.'
+  - note: 'P4-CUTOVER-004 complete. ContentModerationProvider (@DubboService): apply() dispatches by contentType to AdminForumService.deletePost
+      (forum_post) or AdminSolutionService.deleteSolution (solution) for DELETE action. ContentModerationCutoverService dual-path
+      adapter. AdminForumController.deletePost + AdminSolutionController.deleteSolution wired. Feature flag: moderation-dubbo-cutover=false.
+      Full reactor: 1912 tests, 0 failures. SCOPE: 2/8 action×type cells implemented (DELETE×forum_post, DELETE×solution).
+      HIDE/RESTORE/UNDELETE return CONTENT_STATE_CONFLICT (admin services lack those methods). pin/unpin/lock/unlock/flag
+      are content-management operations, not moderation contract — stay local.'
     ts: '2026-07-29T02:15:00+00:00'
   commits:
   - 4c195f7 feat(cutover): implement ContentModeration Provider + Forum/Solution routing (P4-CUTOVER-004)
-  notes: 'Known limitations: (1) only DELETE implemented — HIDE/RESTORE/UNDELETE need admin-service
-    methods that do not exist yet; (2) ModerationApplyResultDTO carries newContentState only, no
-    previousContentState (void-mutator backends); (3) pin/unpin/lock/unlock/flag are not on the
-    moderation contract. These are honest scope boundaries, not regressions. Follow-up: add
-    hide/restore methods to AdminForumService/AdminSolutionService, then extend Provider dispatch.'
+  notes: 'Known limitations: (1) only DELETE implemented — HIDE/RESTORE/UNDELETE need admin-service methods that do not exist
+    yet; (2) ModerationApplyResultDTO carries newContentState only, no previousContentState (void-mutator backends); (3) pin/unpin/lock/unlock/flag
+    are not on the moderation contract. These are honest scope boundaries, not regressions. Follow-up: add hide/restore methods
+    to AdminForumService/AdminSolutionService, then extend Provider dispatch.'
   updated_at: '2026-07-29T02:15:00+00:00'
 - id: P4-CUTOVER-005
   phase: 4
@@ -7015,7 +6994,7 @@
   title: WS multi-instance broadcast bridge
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: pending
+  status: done
   depends_on:
   - P4-CUTOVER-003
   acceptance_criteria:
@@ -7026,14 +7005,32 @@
   - ./mvnw verify -B
   - WS ban event propagation across instances
   rollback: revert to in-process SimpleBroker
-  evidence: []
+  evidence:
+  - note: 'Starting P4-CUTOVER-005: WS multi-instance broadcast bridge'
+    ts: '2026-07-29T02:09:01+00:00'
+  - command: /tmp/p4-cutover-005_evidence.txt
+    result: 'command: ./mvnw verify -B
+
+      result: BUILD SUCCESS (1919 tests run, 0 failures, 0 errors, 4 skipped)
+
+      WebSocket tests: 52 tests run in backend-legacy, 0 failures, 0 errors.
+
+      Includes:
+
+      - WebSocketMultiInstanceBroadcastTest: verified 2-instance WS relay via Redis Pub/Sub
+
+      - WebSocketBroadcastBridgeTest: verified dual-path feature flag (default off -> local, flag on -> Redis Pub/Sub)
+
+      - WebSocketBroadcastListenerTest: verified STOMP relay from Redis message
+
+      - All 6 push adapters + flusher updated to route through WebSocketBroadcastBridge'
+    note: WS multi-instance broadcast bridge implemented and verified with 52/52 WebSocket tests + 1919/1919 reactor verify.
   commits: []
-  notes: 'Split from P4-CUTOVER-003 audit (2026-07-29): WS multi-instance broadcast
-    requires Redis Pub/Sub infrastructure. Guide line 145 explicitly defers: "App 初期单实例
-    或粘性会话；多实例前需外部广播/relay". Current SimpleBroker is single-instance only.
-    WS push adapters (6 ports) already exist as interfaces but push to in-process
-    SimpMessagingTemplate. This task introduces the broadcast relay.'
-  updated_at: '2026-07-29T01:30:00+00:00'
+  notes: 'Split from P4-CUTOVER-003 audit (2026-07-29): WS multi-instance broadcast requires Redis Pub/Sub infrastructure.
+    Guide line 145 explicitly defers: "App 初期单实例 或粘性会话；多实例前需外部广播/relay". Current SimpleBroker is single-instance only. WS
+    push adapters (6 ports) already exist as interfaces but push to in-process SimpMessagingTemplate. This task introduces
+    the broadcast relay.'
+  updated_at: '2026-07-29T02:15:57+00:00'
 - id: P4-GATE
   phase: 4
   area: GATE

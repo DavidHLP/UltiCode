@@ -113,11 +113,9 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setUsername(dto.getUsername());
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
-        // P2-RBAC-001: the system-default role "USER" remains a local
-        // write because users.role is NOT NULL with no DEFAULT. If the
-        // admin picks a non-USER role at create time, the explicit
+        // P2-DISC-005: users.role carries column DEFAULT 'USER' (V20260729103000).
+        // If the admin picks a non-USER role at create time, the explicit
         // choice is forwarded to backend-auth after the local insert.
-        user.setRole("USER");
         user.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
         user.setIsBanned(false);
         user.setJoinedAt(LocalDateTime.now(clock));

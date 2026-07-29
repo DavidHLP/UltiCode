@@ -183,4 +183,14 @@ public class OwnerBoundaryArchTest {
                     )
         ).because("P3-OWNER-002: Only user port adapters (UserProfilePort) and auth account adapters (AuthAccountPort) "
                 + "may call WRITE methods on UserMapper. Foreign modules (admin, moderation, etc.) must use owner ports.");
+    /* ===== P2-DISC-005: forbid direct User::setRole calls outside auth/user owner ports ===== */
+
+    @ArchTest
+    static final ArchRule p2_disc_005_forbid_direct_user_role_setter_calls =
+        FreezingArchRule.freeze(
+            ArchRuleDefinition.noClasses()
+                    .that().resideOutsideOfPackages("com.ulticode.modules.auth..", "com.ulticode.modules.user..")
+                    .should().callMethod(com.ulticode.modules.user.entity.User.class, "setRole", String.class)
+        ).because("P2-DISC-005: Only Auth account adapters and User provisioning ports may write to User::setRole. "
+                + "Admin and other foreign modules must route role changes through backend-auth RoleAdministrationService.");
 }

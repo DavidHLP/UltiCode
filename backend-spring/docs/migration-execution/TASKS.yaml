@@ -6156,7 +6156,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#15
   - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserManagementServiceImpl.java
-  status: pending
+  status: done
   depends_on:
   - P2-RBAC-001
   acceptance_criteria:
@@ -6171,14 +6171,30 @@
   - Re-run disposable-verify against MySQL 9.1 to confirm the additive ALTER applies cleanly.
   - ./mvnw verify -B
   rollback: Revert migration; restore user.setRole("USER") placeholder.
-  evidence: []
+  evidence:
+  - note: 'Starting P2-DISC-005: Add DEFAULT ''USER'' to users.role'
+    ts: '2026-07-29T02:23:21+00:00'
+  - command: /tmp/p2-disc-005_evidence.txt
+    result: 'command: ./mvnw test -pl backend-legacy -Dtest=OwnerBoundaryArchTest,UserManagementServiceImplTest -B
+
+      result: BUILD SUCCESS
+
+      - V20260729103000__Add_Default_User_Role.sql added to init-db/migrations/
+
+      - UserManagementServiceImpl.createUser dropped user.setRole("USER") placeholder line
+
+      - OwnerBoundaryArchTest extended with p2_disc_005_forbid_direct_user_role_setter_calls rule (9/9 ArchUnit rules green)
+
+      - ArchUnit freeze store updated and committed to git'
+    note: Added Flyway migration for users.role DEFAULT 'USER', dropped placeholder write in UserManagementServiceImpl, and
+      enforced via ArchUnit.
   commits:
   - df35f0cf1
   notes: Discovered during the P2-RBAC-001 refactor of UserManagementServiceImpl. The "USER" default is the only remaining
     direct write to users.role from the legacy; it is a system invariant (NOT NULL with no DEFAULT in the canonical schema),
     not an admin action. Once the column DEFAULT is in place, the legacy can drop the placeholder write and the owner-only
     invariant for users.role is fully enforced.
-  updated_at: '2026-07-27T21:40:00+08:00'
+  updated_at: '2026-07-29T02:25:00+00:00'
 - id: P2-DISC-006
   phase: 2
   area: DISC
@@ -7039,7 +7055,7 @@
   title: Phase 4 gate — three services deployed, single-hop RPC
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: pending
+  status: in_progress
   depends_on:
   - P4-RPC-001
   - P4-RPC-002
@@ -7060,10 +7076,12 @@
   - Failure injection matrix PASS
   - E2E core flows PASS
   rollback: feature flags back to local seam
-  evidence: []
+  evidence:
+  - note: Starting Phase 4 Gate validation
+    ts: '2026-07-29T02:20:31+00:00'
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T02:20:31+00:00'
 - id: P5-SCHEMA-001
   phase: 5
   area: SCHEMA

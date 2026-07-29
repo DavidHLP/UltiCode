@@ -7257,7 +7257,7 @@
   title: Reconciliation jobs + cross-owner orphan detection
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
-  status: pending
+  status: done
   depends_on:
   - P5-USERPROFILE-001
   acceptance_criteria:
@@ -7266,10 +7266,14 @@
   validation:
   - Reconciliation test reports zero drift on baseline data
   rollback: N/A
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P5-RECONCILE-001 CLOSED: Nightly reconciliation job + cross-owner orphan scanner. OwnerReconcilerIT 9/9 PASS (real
+      MySQL 8.0 Testcontainers). Full reactor verify 1931/0/0/4 skipped. Commit: 355be61.'
+    ts: '2026-07-29T03:46:48+00:00'
+  commits:
+  - 355be61
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T03:46:48+00:00'
 - id: P5-GATE
   phase: 5
   area: GATE

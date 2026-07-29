@@ -169,7 +169,7 @@ public enum ErrorCode implements NamespacedErrorCode {
     BACKUP_FAILED(130005, "Backup failed", HttpStatus.INTERNAL_SERVER_ERROR),
     BACKUP_RESTORE_FAILED(130006, "Database restore failed", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    // I18n module (14xxxx)
+    // I18n module (14xxxx) — DEPRECATED P7-RELOCATE-I18N-001: i18n relocated to backend-app, throws BaseErrorCode.VALIDATION_FAILED(49999). These entries are dead code kept for enum stability.
     I18N_INVALID_ENTITY_TYPE(140001, "Invalid entity type", HttpStatus.BAD_REQUEST),
     I18N_INVALID_LOCALE(140002, "Invalid locale", HttpStatus.BAD_REQUEST),
     I18N_INVALID_FIELD_NAME(140003, "Invalid field name for entity type", HttpStatus.BAD_REQUEST),

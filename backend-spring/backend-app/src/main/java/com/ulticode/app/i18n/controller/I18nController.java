@@ -6,9 +6,9 @@ import com.ulticode.app.i18n.service.I18nService;
 import com.ulticode.common.response.Result;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.web.bind.annotation.*;;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Set;
@@ -22,8 +22,14 @@ import java.util.Set;
  *
  * <p>P7-RELOCATE-I18N-001: relocated from backend-legacy to backend-app
  * alongside the service/entity/mapper/dto/constants.
+ *
+ * <p>Security note: @Profile("!prod") gates this endpoint until the
+ * RateLimit AOP infrastructure is migrated (P7-RELOCATE-AUTH-001) and
+ * JWT resource-server enforcement is wired. In prod, i18n writes remain
+ * served by the legacy controller in backend-legacy (which has @RateLimit
+ * and full security config) until P7-LEGACY-REMOVAL completes the cutover.
  */
-@ConditionalOnBean(I18nService.class)
+@Profile("!prod")
 @RestController
 @RequestMapping("/i18n")
 @RequiredArgsConstructor
@@ -53,8 +59,8 @@ public class I18nController {
      *
      * <p>Note: @RateLimit(key = "i18n:bulk-upsert", limit = 30, period = 60)
      * deferred — backend-app does not yet have the RateLimit AOP infrastructure.
-     * Tracked as follow-up for P7-RELOCATE-AUTH-001 when security infrastructure
-     * is migrated.
+     * The endpoint is gated by @Profile("!prod") and @PreAuthorize as
+     * compensating controls until P7-RELOCATE-AUTH-001.
      *
      * @param dto the bulk upsert DTO
      * @return the result with counts

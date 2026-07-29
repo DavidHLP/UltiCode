@@ -709,3 +709,36 @@ Affected Tasks
 **Consequences.** Provider implementations in P4-CUTOVER-001/002 must: (a) apply state-machine validation, not version-column locking, for Contest transitions; (b) delegate rejudge to `RejudgePolicy` without expecting a caller generation; (c) apply DB defaults for `scoring_mode` when the CreateContestCommand field is null.
 
 **Affected Tasks:** P4-RPC-001 (done), P4-CUTOVER-001, P4-CUTOVER-002.
+
+
+### ADR-P4-CUTOVER-002-AUDIT: Scope split — forum/solution deferred to P4-CUTOVER-004
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** P4-CUTOVER-002 AC1 originally read "Admin contest/submission/forum/solution
+management routed through Dubbo." The task title is "Contest/Submission family cutover."
+During completion audit, AdminForumController and AdminSolutionController were confirmed
+to exist but are NOT routed through Dubbo. Forum/Solution moderation writes go through
+ContentModerationService — a cross-cutting HIDE/RESTORE/DELETE/UNDELETE contract that has
+no Provider implementation yet (deferred from P4-CUTOVER-001 moderation paths).
+
+The migration guide (line 662) recommends ProblemList/Solution/Forum as a separate
+cutover step, ordered before Contest/Submission.
+
+**Decision.** (1) Correct AC1 to "Admin contest/submission management routed through
+Dubbo" to match the task title. P4-CUTOVER-002 stays done for its Contest/Submission
+scope — the delivery is complete and verified (1893/0). (2) Create P4-CUTOVER-004
+(Forum/Solution/ContentModeration cutover, pending) to track the deferred forum/solution
+work. P4-CUTOVER-004 depends on implementing ContentModerationProvider first.
+
+**Alternatives considered.** (1) Keep P4-CUTOVER-002 in_progress until forum/solution
+are done — rejected because forum/solution has a hard dependency (ContentModerationProvider)
+that cannot be resolved within this task, and the Contest/Submission delivery is independently
+complete. (2) Leave AC1 unchanged and mark task done anyway — rejected as dishonest
+closure per audit principle.
+
+**Consequences.** P4-GATE now depends on P4-CUTOVER-004 in addition to P4-CUTOVER-002/003.
+P4-CUTOVER-004 will require: ContentModerationProvider impl, AdminForumController +
+AdminSolutionController moderation route wiring, feature flag.
+
+**Affected Tasks:** P4-CUTOVER-002 (done), P4-CUTOVER-004 (pending), P4-GATE (pending).

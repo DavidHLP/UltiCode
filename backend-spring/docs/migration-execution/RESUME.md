@@ -36,6 +36,7 @@ Current Work:
 - P4-RPC-002: enforced single-hop RPC chain prevention (ArchUnit) + centralized timeout/retry/idempotency policy (RpcPolicy) + consumer defaults in all service YAMLs.
 - P4-CUTOVER-001: ProblemAdministrationProvider + ProblemCutoverService (feature-flagged dual-path; bulk/moderation paths deferred to CUTOVER-002).
 - P4-CUTOVER-002: ContestAdministrationProvider + SubmissionAdministrationProvider + dual-path adapters.
+- P4-CUTOVER-004 (Forum/Solution/ContentModeration cutover) created from P4-CUTOVER-002 audit — pending, depends on ContentModerationProvider impl.
 - Next: P4-CUTOVER-003 (Judge/WS families cutover) is ready.
 
 Last Validation:

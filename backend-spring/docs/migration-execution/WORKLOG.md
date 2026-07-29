@@ -692,3 +692,15 @@ this session.
   - Deferred: batch rejudge, add/remove problem, announcement CRUD.
   - Commit: 574cda3. Full reactor: 1893 tests, 0 failures.
 - **Next**: P4-CUTOVER-003 (Judge/WS families cutover) is ready.
+
+## 2026-07-29 P4-CUTOVER-002 Completion Audit (close-development-task)
+
+- **Audit finding**: AC1 originally listed forum/solution but task title scopes to
+  Contest/Submission. Forum/Solution moderation uses ContentModerationService (no
+  Provider impl yet, deferred from P4-CUTOVER-001).
+- **Resolution**: AC1 corrected to match titled scope. P4-CUTOVER-004 created to
+  track Forum/Solution/ContentModeration cutover (pending, depends on
+  ContentModerationProvider implementation).
+- **Re-verified**: ./mvnw verify -B → 1893 tests, 0 failures, 0 errors, 4 skipped.
+  BUILD SUCCESS.
+- **P4-CUTOVER-002 remains done** for its titled scope (Contest/Submission).

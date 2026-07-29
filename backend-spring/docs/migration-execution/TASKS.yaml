@@ -6915,7 +6915,7 @@
   depends_on:
   - P4-CUTOVER-001
   acceptance_criteria:
-  - Admin contest/submission/forum/solution management routed through Dubbo.
+  - Admin contest/submission management routed through Dubbo.
   - N&N-1 Provider version compatibility test passes.
   validation:
   - Smoke run
@@ -6930,12 +6930,17 @@
     ts: '2026-07-28T23:35:00+00:00'
   commits:
   - 574cda3 feat(cutover): implement Contest/Submission Dubbo providers + routing (P4-CUTOVER-002)
-  notes: 'AC1 coverage: 6/8 contest+submission write paths cutover-enabled (contest
-    create/update/delete/start/end + submission rejudge). DEFERRED: batch rejudge,
-    add/remove contest problem, contest announcement CRUD — not on current Dubbo
-    contracts. AC2 (N&N-1 compat): contracts use version=1.0.0; no breaking changes
+  notes: 'SCOPE CORRECTED (audit 2026-07-29): AC1 originally listed forum/solution;
+    narrowed to contest/submission to match task title and migration-guide step
+    ordering (ProblemList/Solution/Forum is a separate step per guide line 662).
+    Forum/Solution moderation uses ContentModerationService (no Provider impl yet,
+    deferred from P4-CUTOVER-001) — tracked as P4-CUTOVER-004. DELIVERED: 6 contest+submission
+    write paths cutover-enabled (contest create/update/delete/start/end + submission
+    rejudge). DEFERRED within this task: batch rejudge, add/remove contest problem,
+    contest announcement CRUD — not on current Dubbo contracts. AC2 (N&N-1 compat):
+    first version 1.0.0; ContractShapeTest covers all contracts; no breaking changes
     since P4-RPC-001.'
-  updated_at: '2026-07-28T23:35:00+00:00'
+  updated_at: '2026-07-29T00:57:00+00:00'
 - id: P4-CUTOVER-003
   phase: 4
   area: TRAFFIC
@@ -6957,6 +6962,29 @@
   commits: []
   notes: ''
   updated_at: ''
+- id: P4-CUTOVER-004
+  phase: 4
+  area: TRAFFIC
+  title: Forum/Solution/ContentModeration cutover
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  status: pending
+  depends_on:
+  - P4-CUTOVER-002
+  acceptance_criteria:
+  - ContentModerationService Provider implemented (@DubboService group=backend-app).
+  - AdminForumController + AdminSolutionController moderation writes routed through Dubbo.
+  - Feature flag controls dual-path; default off.
+  validation:
+  - ./mvnw verify -B
+  rollback: flag revert
+  evidence: []
+  commits: []
+  notes: 'Split from P4-CUTOVER-002 audit (2026-07-29): forum/solution moderation uses
+    ContentModerationService (cross-cutting HIDE/RESTORE/DELETE/UNDELETE). No Provider
+    impl exists yet; deferred from P4-CUTOVER-001 moderation paths. Depends on implementing
+    ContentModerationProvider first.'
+  updated_at: '2026-07-29T00:57:00+00:00'
 - id: P4-GATE
   phase: 4
   area: GATE
@@ -6970,6 +6998,7 @@
   - P4-CUTOVER-001
   - P4-CUTOVER-002
   - P4-CUTOVER-003
+  - P4-CUTOVER-004
   acceptance_criteria:
   - Three services deployed independently
   - Sync calls single-hop; no Controller->DubboA->DubboB chain

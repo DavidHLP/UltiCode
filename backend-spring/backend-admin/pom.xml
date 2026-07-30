@@ -17,6 +17,10 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-common</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-admin-api</artifactId>
+		</dependency>
 
 		<!-- Spring Boot Starters -->
 		<dependency>
@@ -81,6 +85,23 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+
+		<!-- P7-RELOCATE-ADMIN-001: persistence for admin service. -->
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+			<version>${mybatis-plus.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-jsqlparser</artifactId>
+			<version>${mybatis-plus.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 
 		<!-- Test dependencies -->

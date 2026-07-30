@@ -14,5 +14,6 @@
 	<modules>
 		<module>backend-auth-api</module>
 		<module>backend-app-api</module>
+		<module>backend-admin-api</module>
 	</modules>
 </project>

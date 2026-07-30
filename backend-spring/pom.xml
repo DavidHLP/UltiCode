@@ -67,6 +67,11 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
+				<artifactId>backend-admin-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission-domain</artifactId>
 				<version>${project.version}</version>
 			</dependency>

@@ -7838,7 +7838,7 @@
   area: ARCH
   title: Retire legacy auth, permission, and refreshtoken twins after contract cutover
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: pending
+  status: done
   depends_on: [P7-RETIRE-AUTH-001, P7-RETIRE-PERMISSION-001, P7-RETIRE-REFRESHTOKEN-001]
   acceptance_criteria:
   - All three retirement sub-tasks are done
@@ -7850,10 +7850,14 @@
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: revert retirement commits and disable consumer cutover flags
   evidence:
-  - note: 'Split into three atomic sub-tasks after discovering permission has 4-file concrete-import refactor across admin/user/auth modules. Auth 32-file slice committed independently.'
-  commits: []
-  notes: 'Parent task; atomic scope split applied 2026-07-30.'
-  updated_at: '2026-07-30T13:30:00+00:00'
+  - note: 'All three sub-tasks done: P7-RETIRE-AUTH-001 (5987732), P7-RETIRE-PERMISSION-001 (1ad1b4f), P7-RETIRE-REFRESHTOKEN-001 (5efdb5c).'
+  - note: 'JwtUtils is used only by DefaultWebSocketAuthenticator (WebSocket shim); P7-RELOCATE-WEBSOCKET-001 will remove it.'
+  - note: 'Zero residual concrete imports of deleted auth/permission/refreshtoken classes. Retained seams: AuthAccountPort, AuthCutoverService, DefaultAuthAccountAdapter, JwtUtils (WebSocket shim).'
+  - note: 'Full reactor ./mvnw -f backend-spring/pom.xml test -B: BUILD SUCCESS, all modules pass.'
+  commits:
+  - 5987732
+  - 1ad1b4f
+  - 5efdb5c
 - id: P7-RETIRE-AUTH-001
   phase: 7
   area: ARCH

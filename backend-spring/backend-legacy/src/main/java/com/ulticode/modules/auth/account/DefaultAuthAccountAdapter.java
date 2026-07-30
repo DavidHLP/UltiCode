@@ -79,6 +79,16 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public void updateActiveStatus(String userId, boolean isActive) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return;
+        }
+        user.setIsActive(isActive);
+        userMapper.updateById(user);
+    }
+
+    @Override
     public void deleteAccount(String userId) {
         userMapper.deleteById(userId);
     }

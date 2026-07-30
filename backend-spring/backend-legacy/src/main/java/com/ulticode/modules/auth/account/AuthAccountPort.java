@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Authentication-side account persistence seam (P3-OWNER-002).
- *
- * <p>Consumer-owned port that hides the {@code User} entity (and any
- * underlying mapper / table layout) from the authentication modules.
+ * Port interface for authentication-related account persistence operations.
+ * Allows switching between database and mock/in-memory implementations.
  */
 public interface AuthAccountPort {
 
@@ -27,9 +25,13 @@ public interface AuthAccountPort {
 
     void updateBanStatus(String userId, boolean isBanned, String bannedReason);
 
+    void updateActiveStatus(String userId, boolean isActive);
+
     void deleteAccount(String userId);
 
     void updateAccountCredentials(String userId, String username, String email, String role);
+
+    record PasswordResetRecord(String userId, String tokenHash, long expiresAtEpochMs) {}
 
     Optional<PasswordResetRecord> findPasswordReset(String userId);
 
@@ -37,9 +39,7 @@ public interface AuthAccountPort {
 
     void clearPasswordReset(String userId);
 
-    List<User> findUsersWithActivePasswordReset(long nowEpochMs);
-
     Optional<User> findByOAuthEmail(String email);
 
-    record PasswordResetRecord(String userId, String token, long expiresAtEpochMs) {}
+    List<User> findUsersWithActivePasswordReset(long nowEpochMs);
 }

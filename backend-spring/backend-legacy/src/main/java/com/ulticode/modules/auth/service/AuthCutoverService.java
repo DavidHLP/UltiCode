@@ -11,6 +11,7 @@ import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.auth.account.DefaultAuthAccountAdapter;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
@@ -30,7 +31,7 @@ import java.util.Set;
  * P7-AUTH-CONSUMER-CUTOVER-001: Feature-flagged consumer routing adapter for auth operations.
  *
  * <p>When {@code app.features.auth-dubbo-cutover=false} (default), delegates directly to
- * local legacy services/mappers. When {@code true}, routes identity, snapshot, and administrative
+ * local legacy services/mappers/adapters. When {@code true}, routes identity, snapshot, and administrative
  * mutations through Dubbo RPC providers in {@code backend-auth}.
  */
 @Slf4j
@@ -41,11 +42,12 @@ public class AuthCutoverService {
     private final UserMapper userMapper;
     private final DefaultAuthAccountAdapter defaultAuthAccountAdapter;
     private final PermissionService permissionService;
+    private final BackendAuthRoleAdminClient backendAuthRoleAdminClient;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private IdentityQueryService identityQueryService;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private AuthorizationSnapshotService authorizationSnapshotService;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
@@ -122,9 +124,13 @@ public class AuthCutoverService {
                 case BAN -> targetBanned = true;
                 case UNBAN -> targetBanned = false;
             }
-            if (defaultAuthAccountAdapter != null) {
+
+            if (command.action() == ChangeAccountStateCommand.AccountStateAction.BAN || command.action() == ChangeAccountStateCommand.AccountStateAction.UNBAN) {
                 defaultAuthAccountAdapter.updateBanStatus(command.accountId(), targetBanned, command.rationale());
+            } else {
+                defaultAuthAccountAdapter.updateActiveStatus(command.accountId(), targetActive);
             }
+
             return new AccountStateDTO(command.accountId(), targetActive, targetBanned, 0L);
         }
 
@@ -144,10 +150,19 @@ public class AuthCutoverService {
             if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
             }
-            if (defaultAuthAccountAdapter != null) {
-                defaultAuthAccountAdapter.updateAccountCredentials(command.accountId(), null, null, command.role());
+            defaultAuthAccountAdapter.updateAccountCredentials(command.accountId(), null, null, command.role());
+
+            if (command.permissions() != null && !command.permissions().isEmpty() && backendAuthRoleAdminClient != null) {
+                for (String perm : command.permissions()) {
+                    String[] parts = perm.split(":", 2);
+                    if (parts.length == 2) {
+                        backendAuthRoleAdminClient.grantPermission(command.accountId(), parts[0], parts[1], null);
+                    }
+                }
             }
-            Set<String> perms = command.permissions() != null ? command.permissions() : Collections.emptySet();
+
+            List<String> permStrings = permissionService != null ? permissionService.getUserPermissionStrings(command.accountId()) : Collections.emptyList();
+            Set<String> perms = (permStrings == null) ? Collections.emptySet() : new HashSet<>(permStrings);
             return new AuthorizationSnapshotDTO(command.accountId(), command.role(), perms, 0L);
         }
 

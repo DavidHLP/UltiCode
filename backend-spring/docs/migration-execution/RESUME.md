@@ -7,7 +7,8 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 ## Active / Next Task
 
 - Active parent `P7-RELOCATE-AUTH-001` was superseded by five atomic cutover tasks.
-- Next ready task: `P7-AUTH-PERSISTENCE-001`.
+- Next ready task: `P7-AUTH-IDEMPOTENCY-SCHEMA-001`.
+- Completed: `P7-AUTH-PERSISTENCE-001` (commit e3d7fa5).
 - Goal: replace the backend-auth in-memory account fallback with authoritative MySQL account/version persistence and bulk permission reads before implementing RPC providers.
 
 ## Last Verified Context
@@ -26,6 +27,7 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - `2ea544c` auth contract cutover required before retirement
 - `e634187` canonical auth duplicate map
 - `0c4a504` atomic auth cutover execution plan
+- `e3d7fa5` feat(auth): implement authoritative account and permission persistence seams
 
 ## Worktree / Delivery
 

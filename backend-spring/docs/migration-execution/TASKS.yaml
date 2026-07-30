@@ -7677,7 +7677,7 @@
   area: ARCH
   title: Implement backend-auth identity and authorization snapshot Dubbo providers
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#4.1]
-  status: ready
+  status: done
   depends_on: [P7-AUTH-PERSISTENCE-001]
   acceptance_criteria:
   - IdentityQueryService and AuthorizationSnapshotService have backend-auth @DubboService providers
@@ -7688,7 +7688,9 @@
   - Provider unit tests for success, unknown, blank, null/empty batch, dedupe, and partial batch
   - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
   rollback: remove providers; no consumers cut over yet
-  evidence: []
+  evidence:
+  - note: 'P7-AUTH-QUERY-PROVIDERS-001 complete: Implemented UserIdentityQueryProvider and AuthorizationSnapshotQueryProvider exposing IdentityQueryService and AuthorizationSnapshotService Dubbo interfaces (@DubboService version 1.0.0). Delegated directly to AuthAccountPort and PermissionService, including batch N+1 avoidance and null-safe result normalization. Unit tests 8/8 PASS.'
+    ts: '2026-07-30T12:52:00+00:00'
   commits: []
   notes: ''
   updated_at: '2026-07-30T02:20:00+00:00'
@@ -7697,7 +7699,7 @@
   area: ARCH
   title: Implement version-fenced account administration Dubbo provider
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
-  status: pending
+  status: ready
   depends_on: [P7-AUTH-PERSISTENCE-001, P7-AUTH-IDEMPOTENCY-SCHEMA-001]
   acceptance_criteria:
   - AccountAdministrationService changeState and changeAuthorization execute transactionally in backend-auth

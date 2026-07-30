@@ -181,3 +181,22 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
    - Phase 7: pending
 
 Audit checkpoint at 2026-07-27T22:05:00+08:00 by Recovery (post-P2-GATE per-acceptance-criterion walk).
+
+## P7 Auth Retirement Atomic Coverage
+
+| Requirement | Task | Required evidence |
+|---|---|---|
+| Authoritative account/version persistence | `P7-AUTH-PERSISTENCE-001` | MySQL find/batch/CAS IT; production adapter selection test |
+| Explicit bulk permission aggregation | `P7-AUTH-PERSISTENCE-001` | Mapper/service test proving bounded query count and exact permission set |
+| Durable command receipt schema | `P7-AUTH-IDEMPOTENCY-SCHEMA-001` | fresh MySQL migration and duplicate-key uniqueness IT |
+| Identity query provider | `P7-AUTH-QUERY-PROVIDERS-001` | single/batch/unknown/dedupe/partial provider tests |
+| Authorization snapshot provider | `P7-AUTH-QUERY-PROVIDERS-001` | role + direct permissions + `authz_version` provider tests |
+| Version-fenced account lifecycle writes | `P7-AUTH-ADMIN-PROVIDER-001` | MySQL CAS/conflict/rollback IT |
+| Durable command replay | `P7-AUTH-ADMIN-PROVIDER-001` | replay IT proving one write and stable original outcome |
+| Actor/trace propagation | `P7-AUTH-ADMIN-PROVIDER-001` | provider validation and receipt/audit correlation assertions |
+| Legacy Admin/Moderation/User cutover | `P7-AUTH-CONSUMER-CUTOVER-001` | local/RPC flag-path tests; timeout/retry assertions |
+| Remove 24 auth + 8 permission + 3 refresh twins | `P7-AUTH-RETIRE-001` | grep/ArchUnit zero-import evidence and full reactor PASS |
+| Preserve refresh hash-only storage | `P7-AUTH-RETIRE-001` | issue/rotate/revoke security tests against `token_hash` only |
+| Remove WebSocket-specific `JwtUtils` | `P7-RELOCATE-WEBSOCKET-001` | WebSocket cookie-only authentication tests in backend-app |
+
+Coverage status: all audited P7 auth-retirement requirements are mapped; no item is intentionally deferred without an owning task.

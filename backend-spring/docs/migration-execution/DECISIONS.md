@@ -1127,3 +1127,21 @@ retains complete coverage without temporary layering violations.
 **Decision.** `P7-RELOCATE-AUTH-001` first implements the three backend-auth-api providers and narrow legacy consumer adapters/ports, then retires legacy auth/permission/refreshtoken only after every concrete inbound reference is gone. Refresh-token behavior remains hash-only and atomic under `V20260606130000`. WebSocket is handled separately by `P7-RELOCATE-WEBSOCKET-001`.
 
 **Consequences.** The task is a real Strangler cutover, not file deletion. Provider/consumer tests become required evidence. No temporary backend-auth dependency on backend-legacy is permitted.
+
+### ADR-P7-AUTH-ATOMIC-CUTOVER-DAG: persistence before providers before consumers
+
+**Context.** The broad auth retirement task combined five independently reviewable risks. `backend-auth-api` already defines three RPC contracts, but backend-auth has no business providers. Its `AuthAccountPort` is backed only by an in-memory component, omits `users.authz_version`, has no batch account read, and cannot perform atomic expected-version writes. Permission reads also lack the bulk aggregation required to avoid N+1 snapshots. Implementing providers directly on this fallback would fabricate authoritative state and make contract tests pass against behavior that cannot work in production.
+
+**Decision.** Supersede `P7-RELOCATE-AUTH-001` with this ordered DAG:
+
+1. `P7-AUTH-PERSISTENCE-001` — authoritative MySQL account/version and bulk permission seams; explicit property selects memory only in tests.
+2. `P7-AUTH-QUERY-PROVIDERS-001` — identity and authorization snapshot providers.
+3. `P7-AUTH-ADMIN-PROVIDER-001` — transactional, durable-idempotent, version-fenced account administration provider.
+4. `P7-AUTH-CONSUMER-CUTOVER-001` — feature-flagged legacy Admin/Moderation/User consumer cutover.
+5. `P7-AUTH-RETIRE-001` — delete canonical twins after imports reach zero; leave `JwtUtils` only until the separately owned WebSocket relocation.
+
+**Persistence and concurrency.** `users.authz_version` is the authoritative fence. State/role/permission writes use `WHERE authz_version = expectedVersion`, increment exactly once per successful command, and return a conflict when no row matches. Authorization mutation and direct permission replacement share one backend-auth transaction. Durable command receipts are stored in a new auth-owned additive Flyway migration keyed by service/operation/idempotency key; replay returns the recorded result without a second write.
+
+**Compatibility and rollback.** Providers are deployed before consumers. Consumer writes use retries=0 and explicit idempotency metadata; query consumers use the established query retry policy. Feature flags keep the local legacy path as rollback until consumer validation passes. Applied migrations are never edited. Duplicate deletion happens only after grep/ArchUnit evidence proves no remaining concrete imports.
+
+**Consequences.** Provider work cannot begin on the in-memory fallback. Each atomic task receives focused review and validation evidence. The Phase 7 removal gate depends on `P7-AUTH-RETIRE-001`; WebSocket owns final `JwtUtils` removal.

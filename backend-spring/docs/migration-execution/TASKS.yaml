@@ -7596,10 +7596,11 @@
   title: Wire backend-auth to its own implementations and retire legacy auth/permission/refreshtoken duplicates
   source:
   - ADR-P7-LEGACY-DECOMPOSITION
-  status: in_progress
+  status: superseded
   depends_on:
   - P7-RELOCATE-I18N-001
   acceptance_criteria:
+  - Superseded by P7-AUTH-PERSISTENCE-001 through P7-AUTH-RETIRE-001 for atomic implementation/review/validation
   - backend-auth owns RefreshTokenService, JwtTokenProvider, OAuthService, AuthController, PermissionService, and CsrfService via Strangler Fig
   - backend-auth implements AccountAdministrationService, AuthorizationSnapshotService, and IdentityQueryService providers from backend-auth-api
   - Remaining legacy admin/moderation/user callers use backend-auth contracts or narrow local consumer ports; no backend-auth to backend-legacy dependency
@@ -7620,8 +7621,135 @@
   - note: 'Completed duplicate map: 24 of 25 legacy auth files have canonical backend-auth counterparts; legacy JwtUtils is the sole non-1:1 type and must be replaced by JwtTokenProvider semantics. All 8 legacy permission files have canonical counterparts. No extracted service module imports legacy auth/permission; remaining callers are confined to backend-legacy Admin/Moderation/User/WebSocket and must be cut over before deletion.'
     ts: '2026-07-30T02:10:00+00:00'
   commits: []
-  notes: 'backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage. websocket removed from scope after verified App-domain dependency audit.'
+  notes: 'Superseded into dependency-correct atomic cutover tasks. backend-auth has 66 files already; legacy auth twins are intentional Strangler Fig duplicates. refreshtoken protected by V20260606130000 security gate — do not touch hash-only storage. websocket removed from scope after verified App-domain dependency audit.'
   updated_at: '2026-07-30T01:56:00+00:00'
+- id: P7-AUTH-PERSISTENCE-001
+  phase: 7
+  area: ARCH
+  title: Replace backend-auth in-memory account fallback with versioned MySQL persistence
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
+  status: ready
+  depends_on: [P7-RELOCATE-I18N-001]
+  acceptance_criteria:
+  - AuthAccountRecord and AuthAccountPort expose authz_version and batch reads required by RPC contracts
+  - Production selects a MyBatis account adapter; in-memory storage is enabled only by an explicit test property
+  - Lifecycle and authorization updates use atomic WHERE authz_version = expectedVersion and increment the version
+  - Permission aggregation has explicit bulk reads and no N+1 query path
+  - No backend-auth dependency on backend-legacy
+  validation:
+  - Focused adapter unit tests including stale-version and same-value behavior
+  - MySQL integration test for find/batch/CAS updates
+  - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
+  rollback: revert persistence adapter; retain legacy traffic path
+  evidence: []
+  commits: []
+  notes: 'First executable slice. users.authz_version already exists in additive migrations; no schema edit is required for account versioning.'
+  updated_at: '2026-07-30T02:20:00+00:00'
+- id: P7-AUTH-IDEMPOTENCY-SCHEMA-001
+  phase: 7
+  area: SCHEMA
+  title: Add auth-owned durable command receipt schema for RPC idempotency
+  source: [ADR-P7-AUTH-ATOMIC-CUTOVER-DAG, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
+  status: pending
+  depends_on: [P7-AUTH-PERSISTENCE-001]
+  acceptance_criteria:
+  - A new timestamped canonical Flyway migration creates an auth-owned command receipt table
+  - Unique service/operation/idempotency-key constraint prevents duplicate command application across replicas
+  - Receipt stores request fingerprint, terminal result/error payload, actor/trace correlation, and timestamps without secrets
+  - Migration is additive, backward compatible, and covered by real MySQL migration/uniqueness verification
+  validation:
+  - Fresh Flyway migration against MySQL
+  - Duplicate-key concurrency/uniqueness integration test
+  - docker compose migration verification entry point
+  rollback: application rollback leaves the additive unused table in place
+  evidence: []
+  commits: []
+  notes: 'Named prerequisite for P7-AUTH-ADMIN-PROVIDER-001; never edit an applied migration.'
+  updated_at: '2026-07-30T02:22:00+00:00'
+- id: P7-AUTH-QUERY-PROVIDERS-001
+  phase: 7
+  area: ARCH
+  title: Implement backend-auth identity and authorization snapshot Dubbo providers
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#4.1]
+  status: pending
+  depends_on: [P7-AUTH-PERSISTENCE-001]
+  acceptance_criteria:
+  - IdentityQueryService and AuthorizationSnapshotService have backend-auth @DubboService providers
+  - Single reads reject blank IDs and return ACCOUNT_NOT_FOUND for unknown accounts
+  - Batch reads deduplicate IDs, return empty success for null/empty input, and omit unknown accounts
+  - Snapshots combine authoritative role, direct permissions, and authz_version without N+1 queries
+  validation:
+  - Provider unit tests for success, unknown, blank, null/empty batch, dedupe, and partial batch
+  - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
+  rollback: remove providers; no consumers cut over yet
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-30T02:20:00+00:00'
+- id: P7-AUTH-ADMIN-PROVIDER-001
+  phase: 7
+  area: ARCH
+  title: Implement version-fenced account administration Dubbo provider
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
+  status: pending
+  depends_on: [P7-AUTH-PERSISTENCE-001, P7-AUTH-IDEMPOTENCY-SCHEMA-001]
+  acceptance_criteria:
+  - AccountAdministrationService changeState and changeAuthorization execute transactionally in backend-auth
+  - expectedVersion is enforced against users.authz_version and stale writes map to AUTHORIZATION_VERSION_CONFLICT
+  - Command idempotency is durable; replay returns the original outcome without double-applying writes
+  - Actor delegation and trace metadata are validated and retained for audit/outbox correlation
+  - Role and direct-permission changes commit atomically with one authz_version increment
+  validation:
+  - Unit tests for every action, missing account, stale version, replay, and transaction rollback
+  - MySQL integration tests for CAS and idempotent replay
+  - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
+  rollback: keep providers unused and route consumers to legacy
+  evidence: []
+  commits: []
+  notes: 'Durable idempotency requires a new additive auth-owned command receipt migration; never edit an applied migration.'
+  updated_at: '2026-07-30T02:20:00+00:00'
+- id: P7-AUTH-CONSUMER-CUTOVER-001
+  phase: 7
+  area: ARCH
+  title: Cut legacy Admin, Moderation, and User auth callers over to backend-auth contracts
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
+  status: pending
+  depends_on: [P7-AUTH-QUERY-PROVIDERS-001, P7-AUTH-ADMIN-PROVIDER-001]
+  acceptance_criteria:
+  - Admin, Moderation, and User callers use narrow local ports backed by backend-auth-api Dubbo consumers
+  - Query consumers use query timeout/retry policy; writes use retries=0 and explicit idempotency metadata
+  - No non-auth package imports legacy auth/permission concrete types except WebSocket JwtUtils pending its relocation
+  - Feature-flagged rollback retains the legacy path until validation passes
+  validation:
+  - Consumer adapter and cutover routing unit tests for local and RPC paths
+  - grep/ArchUnit proves only the documented WebSocket JwtUtils exception remains
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: turn cutover flags off; providers remain deployed but unused
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-30T02:20:00+00:00'
+- id: P7-AUTH-RETIRE-001
+  phase: 7
+  area: ARCH
+  title: Retire legacy auth, permission, and refreshtoken twins after contract cutover
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
+  status: pending
+  depends_on: [P7-AUTH-CONSUMER-CUTOVER-001]
+  acceptance_criteria:
+  - 24 canonical auth duplicates, all 8 permission duplicates, and all 3 refreshtoken duplicates are removed
+  - JwtUtils remains only as a documented WebSocket compatibility shim and is removed by P7-RELOCATE-WEBSOCKET-001
+  - Hash-only refresh issue/rotate/revoke behavior remains covered in backend-auth
+  - Full reactor passes with no legacy auth/permission/refreshtoken concrete imports
+  validation:
+  - Refresh-token security tests
+  - grep/ArchUnit duplicate and dependency checks
+  - ./mvnw -f backend-spring/pom.xml test -B
+  rollback: revert retirement commit and disable consumer cutover flags
+  evidence: []
+  commits: []
+  notes: 'JwtUtils is excluded because WebSocket is App-owned and moves later; no other legacy auth code may remain.'
+  updated_at: '2026-07-30T02:20:00+00:00'
 - id: P7-RELOCATE-ADMIN-001
   phase: 7
   area: ARCH
@@ -7630,7 +7758,7 @@
   - ADR-P7-LEGACY-DECOMPOSITION
   status: pending
   depends_on:
-  - P7-RELOCATE-AUTH-001
+  - P7-AUTH-RETIRE-001
   acceptance_criteria:
   - admin (213 src) + backup (18 src) relocated to backend-admin or confirmed via port interfaces
   - Full reactor verify BUILD SUCCESS
@@ -7736,7 +7864,7 @@
   - P7-RELOCATE-SEARCH-001
   - P7-RELOCATE-MONITORING-001
   - P7-RELOCATE-WEBSOCKET-001
-  - P7-RELOCATE-AUTH-001
+  - P7-AUTH-RETIRE-001
   - P7-RELOCATE-ADMIN-001
   - P7-RELOCATE-APP-001
   - P7-RELOCATE-CORE-001

@@ -35,6 +35,8 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - `0815da7` feat(auth): add durable command receipt migration for RPC idempotency
 - `29bc310` feat(auth): implement identity and authorization snapshot query Dubbo providers
 - `93a99b7` feat(auth): implement account administration Dubbo provider with transactional engine and durable idempotency
+- `7c6b98c` feat(auth): complete request-scoped idempotency key derivation and caller wiring in AuthCutoverService
+- `686e391` test(auth): add target permission preservation and request-scoped idempotency key stability tests for AuthCutoverService caller
 - `d6a9be4` feat(auth): complete feature-flagged consumer routing adapter AuthCutoverService and wire callers
 - `4dd2792` feat(auth): implement feature-flagged consumer routing adapter AuthCutoverService
 

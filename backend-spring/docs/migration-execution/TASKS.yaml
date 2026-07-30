@@ -7929,7 +7929,7 @@
   - note: 'Strategy per ADR-P7-ADMIN-RPC-BOUNDARY: backend-admin implements Dubbo providers AND in-process port/adapter implementations for existing com.ulticode.modules.admin.port.* interfaces. Consumers keep local bindings until they migrate to backend-app.'
   - note: 'File distribution: dto 93, service 49, port 17, projection 16, controller 15, policy 4, outbox 4, mapper 3, analytics 3, store 2, entity 2, bootstrap 2, config 1, client 1, bulk 1. backup: service 4, port 3, entity 3, dto 3, projection 2, scheduler 1, mapper 1, controller 1.'
   commits: []
-  notes: 'Admin module has 22 inbound deps — widest cross-cutting family. File counts verified: admin 213 src + backup 18 src. Strategy per ADR-P7-ADMIN-RPC-BOUNDARY: backend-admin provides Dubbo providers + in-process port/adapter implementations; consumers switch to @DubboReference only when they migrate to backend-app.'
+  notes: 'Admin module has 22 inbound deps — widest cross-cutting family. File counts verified: admin 213 src + backup 18 src. Strategy per ADR-P7-ADMIN-RPC-BOUNDARY: backend-admin provides Dubbo providers + in-process port/adapter implementations; consumers switch to @DubboReference only when they migrate to backend-app. Vertical-slice implementation blocked on backend-admin DB onboarding (P7-RELOCATE-INFRA-001 prerequisite); see AdminNotificationService Provider-deferral javadoc (commit fde8d73).'
   updated_at: '2026-07-31T00:00:00+00:00'
 - id: P7-RELOCATE-APP-001
   phase: 7

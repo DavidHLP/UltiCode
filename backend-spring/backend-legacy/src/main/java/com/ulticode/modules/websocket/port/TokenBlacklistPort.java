@@ -15,8 +15,8 @@ package com.ulticode.modules.websocket.port;
  * {@code blacklistToken(ttl)}, {@code removeFromBlacklist}). A repo-wide
  * audit ({@code grep blacklistToken|removeFromBlacklist}) found zero
  * production callers &mdash; runtime token revocation is owned by
- * {@link com.ulticode.modules.refreshtoken.service.RefreshTokenService}
- * (DB-backed hash-only storage; see modules/refreshtoken/service/RefreshTokenService
+ * {@code com.ulticode.auth.refreshtoken.service.RefreshTokenService}
+ * (DB-backed hash-only storage; see backend-auth refreshtoken module
  * and V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql). The write
  * methods were speculative dead code; they are not ported. If a future
  * admin instant-revoke feature needs to populate a Redis blacklist, it

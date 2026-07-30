@@ -32,13 +32,10 @@ import org.mockito.quality.Strictness;
 /**
  * Unit tests for {@link RefreshTokenService}.
  *
- * <p>Mirrors backend-legacy's
- * {@code com.ulticode.modules.refreshtoken.service.RefreshTokenServiceTest}
- * with the package and exception types adapted for backend-auth. The
- * Strangler Fig contract requires both copies to pass; the tests
- * intentionally cover the four cases that protect against the most
- * expensive security regressions (replay, expiry, access-token
- * confusion, hash-only storage).
+ * <p>Canonical tests for the backend-auth refresh-token service.
+ * The legacy twin was retired in P7-RETIRE-REFRESHTOKEN-001.
+ * The four test cases intentionally cover the most expensive security
+ * regressions: replay, expiry, access-token confusion, hash-only storage.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

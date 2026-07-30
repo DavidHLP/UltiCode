@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
  *       Redis keys &mdash; the key is the hex SHA-256 of the token. This
  *       limits the value of a Redis dump to an attacker and keeps key length
  *       uniform. Mirrors the hash-only storage discipline already used by
- *       {@code RefreshTokenService} for refresh tokens (see
- *       modules/refreshtoken/service/RefreshTokenService.java + the migration
+ *       {@code com.ulticode.auth.refreshtoken.service.RefreshTokenService} for refresh tokens
+ *       (see backend-auth refreshtoken module + the migration
  *       V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql).</li>
  *   <li><strong>Key-prefix convention.</strong> Every key is namespaced as
  *       {@code blacklist:token:<sha256>} so the keyspace is self-describing
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
  * {@code com.ulticode.common.service.TokenBlacklistService} also exposed
  * {@code blacklistToken(...)} and {@code removeFromBlacklist(...)}; a repo-wide
  * audit found zero callers (runtime revocation is owned by
- * {@link com.ulticode.modules.refreshtoken.service.RefreshTokenService}).
+ * {@code com.ulticode.auth.refreshtoken.service.RefreshTokenService}).
  * Those write methods were dead code and are deliberately not ported &mdash;
  * see {@link TokenBlacklistPort}'s class Javadoc for the rationale and the
  * path for a future admin instant-revoke feature to add its own writer port.

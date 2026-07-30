@@ -22,10 +22,9 @@ import java.time.LocalDateTime;
  * Refresh Token service.
  * Manages refresh token creation, validation, and rotation.
  *
- * <p>Private copy inside backend-auth of backend-legacy's
- * {@code com.ulticode.modules.refreshtoken.service.RefreshTokenService}.
- * The Strangler Fig contract keeps backend-legacy's copy unchanged
- * until Phase 4 cutover. The only intentional differences are:
+ * <p>Canonical copy owned by backend-auth. The legacy twin at
+ * {@code com.ulticode.modules.refreshtoken.service.RefreshTokenService}
+ * was retired in P7-RETIRE-REFRESHTOKEN-001. The only intentional differences are:
  *
  * <ul>
  *   <li>Throws {@link AuthBusinessException} (which carries a

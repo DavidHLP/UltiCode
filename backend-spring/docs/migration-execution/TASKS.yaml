@@ -7914,6 +7914,7 @@
   title: Relocate Admin-owned families (admin/backup) from backend-legacy to backend-admin
   source:
   - ADR-P7-LEGACY-DECOMPOSITION
+  - ADR-P7-ADMIN-RPC-BOUNDARY
   status: pending
   depends_on:
   - P7-AUTH-RETIRE-001
@@ -7923,10 +7924,13 @@
   validation:
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: revert relocation commit
-  evidence: []
+  evidence:
+  - note: 'Context Packet verified: admin 213 src + backup 18 src. backend-admin is 8-file minimal shell with no MyBatis/DB deps. 14 external files across 8 modules (auth/contest/moderation/notification/problem/submission/user/websocket) import admin classes.'
+  - note: 'Strategy per ADR-P7-ADMIN-RPC-BOUNDARY: backend-admin implements Dubbo providers AND in-process port/adapter implementations for existing com.ulticode.modules.admin.port.* interfaces. Consumers keep local bindings until they migrate to backend-app.'
+  - note: 'File distribution: dto 93, service 49, port 17, projection 16, controller 15, policy 4, outbox 4, mapper 3, analytics 3, store 2, entity 2, bootstrap 2, config 1, client 1, bulk 1. backup: service 4, port 3, entity 3, dto 3, projection 2, scheduler 1, mapper 1, controller 1.'
   commits: []
-  notes: 'Admin module has 22 inbound deps — widest cross-cutting family. File counts TBD-verify-on-first-step.'
-  updated_at: '2026-07-30T00:50:00+00:00'
+  notes: 'Admin module has 22 inbound deps — widest cross-cutting family. File counts verified: admin 213 src + backup 18 src. Strategy per ADR-P7-ADMIN-RPC-BOUNDARY: backend-admin provides Dubbo providers + in-process port/adapter implementations; consumers switch to @DubboReference only when they migrate to backend-app.'
+  updated_at: '2026-07-31T00:00:00+00:00'
 - id: P7-RELOCATE-APP-001
   phase: 7
   area: ARCH

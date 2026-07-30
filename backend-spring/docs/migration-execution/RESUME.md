@@ -15,6 +15,8 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - Completed: `P7-RETIRE-PERMISSION-001` (commit 1ad1b4f) — legacy permission module retired via Dubbo RPC cutover.
 - Completed: `P7-RETIRE-REFRESHTOKEN-001` (commit 5efdb5c) — legacy refresh token module retired.
 - Completed: `P7-AUTH-RETIRE-001` (commits 5987732, 1ad1b4f, 5efdb5c) — legacy auth, permission, refreshtoken twins retired.
+- Active: `P7-RELOCATE-ADMIN-001` — Context Packet verified. Admin 213 src + backup 18 src, 14 external files across 8 modules.
+- Strategy boundary (ADR-P7-ADMIN-RPC-BOUNDARY): backend-admin implements Dubbo providers AND in-process port/adapter implementations for existing com.ulticode.modules.admin.port.* interfaces. Consumers keep local bindings until they migrate to backend-app, then switch to @DubboReference. P7-LEGACY-REMOVAL deletes legacy port interfaces only after inbound bindings reach zero.
 - Completed: `P7-AUTH-CONSUMER-CUTOVER-001` (commit 4dd2792).
 - Completed: `P7-AUTH-ADMIN-PROVIDER-001` (commit 93a99b7).
 - Completed: `P7-AUTH-QUERY-PROVIDERS-001` (commit 29bc310).

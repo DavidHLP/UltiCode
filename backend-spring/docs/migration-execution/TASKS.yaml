@@ -7782,7 +7782,7 @@
   area: SECURITY
   title: Establish Result-shaped backend-auth Web exception mapping
   source: [ADR-P7-WEB-SECURITY-RATE-LIMIT]
-  status: ready
+  status: done
   depends_on: [P7-WEB-SECURITY-INFRA-001]
   acceptance_criteria:
   - backend-auth maps AuthBusinessException and common BusinessException to the established Result envelope and intended HTTP status
@@ -7794,16 +7794,23 @@
   - HTTP 429/code 42900/message/Retry-After regression
   - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
   rollback: remove the backend-auth exception adapter before enabling endpoint rate limits
-  evidence: []
-  commits: []
+  evidence:
+  - command: ./mvnw -pl backend-auth -am -Dtest=AuthWebExceptionHandlerTest -Dsurefire.failIfNoSpecifiedTests=false test -B -q
+    result: 'PASS: Spring MVC resolves both exception types; HTTP 429/code 42900/Retry-After; all auth code/status pairs'
+  - command: ./mvnw -pl backend-auth -am test -B -q
+    result: 'PASS: backend-auth affected reactor'
+  - command: git diff --check
+    result: PASS
+  commits:
+  - dc61f0e
   notes: 'Required because backend-auth currently has no ControllerAdvice/ExceptionHandler and cannot rely on legacy GlobalExceptionHandler.'
-  updated_at: '2026-07-30T08:45:00+00:00'
+  updated_at: '2026-07-30T09:30:00+00:00'
 - id: P7-AUTH-RATE-LIMIT-001
   phase: 7
   area: SECURITY
   title: Restore backend-auth endpoint rate-limit behavior
   source: [ADR-P7-WEB-SECURITY-RATE-LIMIT]
-  status: pending
+  status: ready
   depends_on: [P7-WEB-SECURITY-INFRA-001, P7-AUTH-WEB-ERRORS-001]
   acceptance_criteria:
   - backend-auth AuthController enforces login 10/60, register 5/60, and refresh 20/60 through the canonical RateLimit interface
@@ -7818,7 +7825,7 @@
   evidence: []
   commits: []
   notes: 'Behavior-compatibility prerequisite for P7-AUTH-RETIRE-001, not a deferred follow-up.'
-  updated_at: '2026-07-30T06:30:00+00:00'
+  updated_at: '2026-07-30T09:30:00+00:00'
 - id: P7-AUTH-RETIRE-001
   phase: 7
   area: ARCH

@@ -13,6 +13,7 @@ import com.ulticode.auth.permission.service.PermissionService;
 import com.ulticode.auth.security.csrf.CsrfService;
 import com.ulticode.auth.service.AuthService;
 import com.ulticode.common.response.Result;
+import com.ulticode.websecurity.annotation.RateLimit;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,18 +44,21 @@ public class AuthController {
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     @PostMapping("/login")
+    @RateLimit(limit = 10, period = 60, key = "auth:login:ip:{ip}")
     public Result<LoginResponse> login(@Valid @RequestBody LoginDTO loginDTO, HttpServletResponse response) {
         LoginResponse loginResponse = authService.login(loginDTO, response);
         return Result.success(loginResponse);
     }
 
     @PostMapping("/register")
+    @RateLimit(limit = 5, period = 60, key = "auth:register:ip:{ip}")
     public Result<LoginResponse> register(@Valid @RequestBody RegisterDTO registerDTO, HttpServletResponse response) {
         LoginResponse loginResponse = authService.register(registerDTO, response);
         return Result.success(loginResponse);
     }
 
     @PostMapping("/refresh")
+    @RateLimit(limit = 20, period = 60, key = "auth:refresh:ip:{ip}")
     public Result<LoginResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = extractRefreshToken(request);
         LoginResponse loginResponse = authService.refresh(refreshToken, response);

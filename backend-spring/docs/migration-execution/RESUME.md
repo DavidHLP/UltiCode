@@ -12,7 +12,7 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - Completed: `P7-AUTH-RATE-LIMIT-001` (commit 86fa560).
 - `P7-AUTH-RETIRE-001` split into three sub-tasks.
 - Completed: `P7-RETIRE-AUTH-001` (commit 5987732) — 32 auth files deleted.
-- Active in-progress task: `P7-RETIRE-PERMISSION-001` — API contract layer done (commit 1f8d614); provider implementation + legacy consumer migration in next session.
+- Completed: `P7-RETIRE-PERMISSION-001` (commit 1ad1b4f) — legacy permission module retired via Dubbo RPC cutover.
 - `P7-RETIRE-REFRESHTOKEN-001` pending external reference investigation.
 - `P7-AUTH-RETIRE-001` remains pending with its 32-file dirty deletion slice protected; backend-auth Web error and endpoint rate-limit behavior must be restored first.
 - Completed: `P7-AUTH-CONSUMER-CUTOVER-001` (commit 4dd2792).

@@ -7882,27 +7882,17 @@
   notes: 'Self-contained 32-file deletion slice; retained 4 auth seam files (AuthAccountPort, DefaultAuthAccountAdapter, AuthCutoverService, JwtUtils WebSocket shim).'
   updated_at: '2026-07-30T13:30:00+00:00'
 - id: P7-RETIRE-PERMISSION-001
-  phase: 7
-  area: ARCH
-  title: Retire legacy permission module after consumer migration
-  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: ready
-  depends_on: [P7-RETIRE-AUTH-001]
-  acceptance_criteria:
-  - All 8 permission duplicates removed
-  - Concrete imports in DefaultAdminUserProjection, UserPermissionServiceImpl, AuthCutoverService, UserRoleReadAdapter migrated to canonical sources
-  - Full reactor passes with no legacy permission concrete imports
-  validation:
-  - grep for permission module imports outside permission/
-  - ./mvnw -f backend-spring/pom.xml -pl backend-legacy -am test -B
-  rollback: revert permission deletion and restore legacy imports
+  status: done
   evidence:
-  - note: 'API contract layer committed: PermissionEntry record, AuthorizationSnapshotDTO extended with permissionEntries field, RoleTemplateService Dubbo contract. Provider implementation and legacy consumer migration deferred to next session per user decision (option J: split sessions).'
-  - note: 'Data model audit (2026-07-30): user_permissions.expires_at exists in DDL + backend-auth entity + PermissionService.getUserPermissions returns it. role_permissions has no expires_at (correct - role perms never expire). source is a derived field (role vs direct based on source table), no DDL change needed. Option A contract (commit 1f8d614) is safe to implement without schema changes or rollback to option B.'
+  - note: 'API contract layer: PermissionEntry record, AuthorizationSnapshotDTO extended with permissionEntries, RoleTemplateService Dubbo contract (commit 1f8d614). Data model audit confirmed user_permissions.expires_at exists, source is derived field.'
+  - note: 'Provider implementation: RoleTemplateServiceProvider reads role_permissions table. AuthorizationSnapshotQueryProvider extended to populate permissionEntries from same primitive queries (role + direct), eliminating query drift. ROLE_NOT_FOUND(40404) added to AuthErrorCode.'
+  - note: 'Legacy consumer migration: DefaultAdminUserProjection uses RoleTemplateService RPC + AuthCutoverService snapshot. UserPermissionServiceImpl inlines isSuperAdminOnly guard. AuthCutoverService fallback getSnapshot throws (fail loud); changeAuthorization uses command.permissions() for post-write snapshot.'
+  - note: 'Deleted 10 files: 8 legacy permission module files + PermissionServiceTest + UserRoleReadAdapter. P2-DISC-006 ArchUnit rule retired. Zero residual com.ulticode.modules.permission imports.'
+  - note: 'Verification: backend-legacy 1959 tests PASS (0 failures), backend-auth 95 tests PASS (0 failures).'
   commits:
   - 1f8d614
-  notes: 'Requires cross-module refactor in admin/user/auth consumers before deletion. API shape: Option A (extend DTO + RoleTemplate RPC). Dual-path: Option F (backend-auth direct call).'
-  updated_at: '2026-07-30T13:45:00+00:00'
+  - 1ad1b4f
+  notes: 'Complete. Option A (extend DTO + RoleTemplate RPC) + Option F (backend-auth direct). Permission data fully owned by backend-auth.'
 - id: P7-RETIRE-REFRESHTOKEN-001
   phase: 7
   area: ARCH

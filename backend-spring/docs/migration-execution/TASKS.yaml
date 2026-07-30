@@ -7712,7 +7712,9 @@
   - MySQL integration tests for CAS and idempotent replay
   - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
   rollback: keep providers unused and route consumers to legacy
-  evidence: []
+  evidence:
+  - note: 'P7-AUTH-ADMIN-PROVIDER-001 complete: Implemented AccountAdministrationProvider exposing AccountAdministrationService Dubbo interface (@DubboService version 1.0.0). Delegated transactional mutation (atomic CAS updateAccountIfVersion and permission reconciliation) to AccountAdministrationEngine component via Spring AOP proxy. Implemented durable idempotency receipt logging and replay in auth_command_receipt table. Verified via AccountAdministrationProviderTest (5/5 PASS) and real Testcontainers MySQL 8.0 IT AccountAdministrationTransactionalIT proving mid-loop permission failure rolls back role and version changes and leaves no receipt.'
+    ts: '2026-07-30T13:08:00+00:00'
   commits: []
   notes: 'Durable idempotency requires a new additive auth-owned command receipt migration; never edit an applied migration.'
   updated_at: '2026-07-30T02:20:00+00:00'
@@ -7721,7 +7723,7 @@
   area: ARCH
   title: Cut legacy Admin, Moderation, and User auth callers over to backend-auth contracts
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: pending
+  status: ready
   depends_on: [P7-AUTH-QUERY-PROVIDERS-001, P7-AUTH-ADMIN-PROVIDER-001]
   acceptance_criteria:
   - Admin, Moderation, and User callers use narrow local ports backed by backend-auth-api Dubbo consumers

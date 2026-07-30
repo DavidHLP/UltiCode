@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.dto.ClearCacheResponseVO;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
@@ -207,7 +207,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
         if (isAllDefaults(vo)) {
             log.warn("Rejected PATCH /admin/settings/features with all defaults; "
                     + "this is almost always a frontend bug, not a real intent.");
-            throw new BusinessException(ErrorCode.SETTING_INVALID_VALUE,
+            throw new BusinessException(AdminErrorCode.SETTING_INVALID_VALUE,
                     "Refusing to disable all 8 feature flags in a single PATCH; "
                             + "this is treated as an accidental empty request. "
                             + "If you really want to take the platform offline, "

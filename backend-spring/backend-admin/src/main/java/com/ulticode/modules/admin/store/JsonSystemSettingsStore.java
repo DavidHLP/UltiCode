@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.store;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.entity.SystemSetting;
 import com.ulticode.modules.admin.mapper.SystemSettingMapper;
 import lombok.RequiredArgsConstructor;
@@ -86,7 +86,7 @@ public class JsonSystemSettingsStore implements SystemSettingsStore {
             mapper.insertOrUpdate(row);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize setting key={}", key, e);
-            throw new BusinessException(ErrorCode.SETTING_PERSISTENCE_FAILED);
+            throw new BusinessException(AdminErrorCode.SETTING_PERSISTENCE_FAILED);
         }
     }
 

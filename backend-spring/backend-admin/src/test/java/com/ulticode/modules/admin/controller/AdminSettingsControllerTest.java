@@ -1,8 +1,9 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.common.config.CorsProperties;
-import com.ulticode.common.config.MapperConfig;
+import com.ulticode.admin.config.MapperConfig;
+import com.ulticode.admin.security.AdminSecurityConfig;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
 import com.ulticode.modules.admin.dto.settings.FeatureTogglesVO;
@@ -12,10 +13,6 @@ import com.ulticode.modules.admin.dto.settings.MaintenanceModeVO;
 import com.ulticode.modules.admin.dto.settings.RateLimitSettingsVO;
 import com.ulticode.modules.admin.dto.settings.UploadSettingsVO;
 import com.ulticode.modules.admin.service.SystemSettingsService;
-import com.ulticode.security.AuthenticationEntryPointImpl;
-import com.ulticode.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,9 +21,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
@@ -39,7 +37,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for AdminSettingsController.
@@ -57,8 +54,10 @@ import com.ulticode.common.auth.CurrentUserProvider;
                 classes = MapperConfig.class
         )
 )
+@Import(AdminSecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminSettingsController")
+@WithMockUser(roles = "ADMIN")
 class AdminSettingsControllerTest {
 
     @Autowired
@@ -72,13 +71,6 @@ class AdminSettingsControllerTest {
     @MockBean
     private CurrentUserProvider currentUserProvider;
 
-    // SecurityConfig dependencies (excluded by @WebMvcTest)
-    @MockBean private JwtTokenProvider jwtTokenProvider;
-    @MockBean private JwtProperties jwtProperties;
-    @MockBean private JwtAuthenticationFilter jwtAuthenticationFilter;
-    @MockBean private AuthenticationEntryPointImpl authenticationEntryPoint;
-    @MockBean private CorsProperties corsProperties;
-    @MockBean private StringRedisTemplate stringRedisTemplate;
 
     // ===== fixtures =====
 
@@ -301,7 +293,7 @@ class AdminSettingsControllerTest {
         void featuresAllDefaultsRejected() throws Exception {
             when(service.updateFeatureToggles(any()))
                     .thenThrow(new com.ulticode.common.exception.BusinessException(
-                            com.ulticode.common.exception.ErrorCode.SETTING_INVALID_VALUE,
+                            com.ulticode.admin.error.AdminErrorCode.SETTING_INVALID_VALUE,
                             "Refusing to disable all 8 feature flags"));
 
             mockMvc.perform(patch("/admin/settings/features")
@@ -344,5 +336,13 @@ class AdminSettingsControllerTest {
                         .content(body))
                 .andExpect(status().isOk());
         verify(service).updateRateLimitSettings(any(RateLimitSettingsVO.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("non-admin role is forbidden by method security")
+    void nonAdminRoleIsForbidden() throws Exception {
+        mockMvc.perform(get("/admin/settings"))
+                .andExpect(status().isForbidden());
     }
 }

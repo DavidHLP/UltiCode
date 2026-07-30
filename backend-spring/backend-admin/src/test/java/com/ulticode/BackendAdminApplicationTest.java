@@ -14,7 +14,20 @@ import org.springframework.http.ResponseEntity;
 /**
  * P1-INFRA-005: verify the admin service shell boots and exposes health.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {
+                "spring.autoconfigure.exclude="
+                        + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
+                        + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
+                        + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
+                        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration",
+                "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
+                "spring.datasource.url=jdbc:mysql://localhost:1/unused?connectTimeout=100",
+                "spring.datasource.username=unused",
+                "spring.datasource.password=",
+                "management.health.db.enabled=false"
+        })
 class BackendAdminApplicationTest {
 
     @LocalServerPort

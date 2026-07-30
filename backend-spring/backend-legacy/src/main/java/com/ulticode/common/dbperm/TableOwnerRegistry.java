@@ -6,7 +6,7 @@ import java.util.Set;
 
 /**
  * Registry mapping database table names to their designated TableOwner (P3-DBPERM-001).
- * Aligned with docs/migration-execution/TABLE_OWNERS.md.
+ * Aligned with .auto-flow/TABLE_OWNERS.md.
  */
 public final class TableOwnerRegistry {
 

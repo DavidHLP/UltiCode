@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.store;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.dto.settings.FeatureTogglesVO;
 import com.ulticode.modules.admin.dto.settings.GeneralSettingsVO;
 import com.ulticode.modules.admin.entity.SystemSetting;
@@ -244,7 +244,7 @@ class JsonSystemSettingsStoreTest {
 
             assertThatThrownBy(() -> store.save("general", bad))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining(ErrorCode.SETTING_PERSISTENCE_FAILED.getMessage());
+                    .hasMessageContaining(AdminErrorCode.SETTING_PERSISTENCE_FAILED.getMessage());
         }
     }
 

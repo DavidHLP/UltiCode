@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.dto;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -20,12 +22,36 @@ import java.util.Set;
  * {@link Set#copyOf(java.util.Collection)} snapshot at construction
  * time so subsequent caller mutations cannot leak into the response
  * after the wire has serialised it.
+ *
+ * <p>{@link #permissionEntries()} carries the same permissions in a
+ * structured form with {@code source} ({@code "role"} or
+ * {@code "direct"}) and {@code expiresAt} metadata. This is the form
+ * the admin user-detail projection needs to render expiry/source in
+ * the UI. Callers that only need the flat action:resource set can
+ * ignore this field and use {@link #permissions()}.
+ *
+ * <p>When {@code permissionEntries} is {@code null} or empty (legacy
+ * providers), only the flat {@link #permissions()} set is populated.
  */
 public record AuthorizationSnapshotDTO(
         String accountId,
         String role,
         Set<String> permissions,
-        long version) {
+        long version,
+        List<PermissionEntry> permissionEntries) {
+
+    /**
+     * Convenience constructor for callers that do not have structured
+     * permission entries (flat-set only). Equivalent to passing
+     * {@code null} for {@code permissionEntries}.
+     */
+    public AuthorizationSnapshotDTO(
+            String accountId,
+            String role,
+            Set<String> permissions,
+            long version) {
+        this(accountId, role, permissions, version, null);
+    }
 
     public AuthorizationSnapshotDTO {
         if (accountId == null || accountId.isBlank()) {
@@ -45,5 +71,10 @@ public record AuthorizationSnapshotDTO(
             }
         }
         permissions = Set.copyOf(permissions);
+        if (permissionEntries != null) {
+            permissionEntries = List.copyOf(permissionEntries);
+        } else {
+            permissionEntries = List.of();
+        }
     }
 }

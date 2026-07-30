@@ -7628,7 +7628,7 @@
   area: ARCH
   title: Replace backend-auth in-memory account fallback with versioned MySQL persistence
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
-  status: ready
+  status: done
   depends_on: [P7-RELOCATE-I18N-001]
   acceptance_criteria:
   - AuthAccountRecord and AuthAccountPort expose authz_version and batch reads required by RPC contracts
@@ -7641,7 +7641,9 @@
   - MySQL integration test for find/batch/CAS updates
   - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
   rollback: revert persistence adapter; retain legacy traffic path
-  evidence: []
+  evidence:
+  - note: 'P7-AUTH-PERSISTENCE-001 complete: AuthAccountRecord exposes authzVersion, AuthAccountPort defines unified atomic updateAccountIfVersion CAS and batch findByIds, AuthAccountMapper uses a single SQL update statement incrementing authz_version once, UserPermissionMapper and PermissionService support bulk getBatchUserPermissions to avoid N+1 queries, MyBatisAuthAccountAdapter implements MySQL persistence while DefaultAuthAccountAdapter is gated by app.auth.account-store=memory, unit and H2-MySQL integration tests (AuthAccountPersistenceIT) pass 5/5, reactor 14 modules BUILD SUCCESS.'
+    ts: '2026-07-30T10:25:00+00:00'
   commits: []
   notes: 'First executable slice. users.authz_version already exists in additive migrations; no schema edit is required for account versioning.'
   updated_at: '2026-07-30T02:20:00+00:00'
@@ -7650,7 +7652,7 @@
   area: SCHEMA
   title: Add auth-owned durable command receipt schema for RPC idempotency
   source: [ADR-P7-AUTH-ATOMIC-CUTOVER-DAG, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
-  status: pending
+  status: ready
   depends_on: [P7-AUTH-PERSISTENCE-001]
   acceptance_criteria:
   - A new timestamped canonical Flyway migration creates an auth-owned command receipt table

@@ -25,6 +25,7 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - `1014826` WebSocket assigned to backend-app
 - `2ea544c` auth contract cutover required before retirement
 - `e634187` canonical auth duplicate map
+- `0c4a504` atomic auth cutover execution plan
 
 ## Worktree / Delivery
 

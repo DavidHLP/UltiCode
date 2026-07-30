@@ -1,17 +1,22 @@
 package com.ulticode.auth.account;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * In-memory fallback adapter for {@link AuthAccountPort} inside backend-auth shell.
+ * Active only when {@code app.auth.account-store=memory}.
  */
 @Component
+@ConditionalOnProperty(name = "app.auth.account-store", havingValue = "memory")
 public class DefaultAuthAccountAdapter implements AuthAccountPort {
 
     private final Map<String, AuthAccountRecord> accountsById = new ConcurrentHashMap<>();
@@ -44,6 +49,19 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public List<AuthAccountRecord> findByIds(Set<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .map(accountsById::get)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    @Override
     public AuthAccountRecord create(AuthAccountRecord record) {
         accountsById.put(record.id(), record);
         accountsByUsername.put(record.username(), record);
@@ -65,13 +83,32 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
             AuthAccountRecord updated = new AuthAccountRecord(
                     existing.id(), existing.username(), existing.email(), hashedPassword,
                     existing.role(), existing.isActive(), existing.isBanned(),
-                    existing.bannedUntil(), existing.joinedAt()
+                    existing.bannedUntil(), existing.joinedAt(), existing.authzVersion()
             );
-            accountsById.put(userId, updated);
-            accountsByUsername.put(existing.username(), updated);
-            if (existing.email() != null) {
-                accountsByEmail.put(existing.email(), updated);
-            }
+            replace(existing, updated);
+        }
+    }
+
+    @Override
+    public synchronized boolean updateAccountIfVersion(String userId, boolean active, boolean banned,
+                                                        String role, long expectedVersion) {
+        AuthAccountRecord existing = accountsById.get(userId);
+        if (existing == null || existing.authzVersion() != expectedVersion) {
+            return false;
+        }
+        AuthAccountRecord updated = new AuthAccountRecord(
+                existing.id(), existing.username(), existing.email(), existing.password(),
+                role, active, banned, existing.bannedUntil(), existing.joinedAt(), expectedVersion + 1
+        );
+        replace(existing, updated);
+        return true;
+    }
+
+    private void replace(AuthAccountRecord existing, AuthAccountRecord updated) {
+        accountsById.put(existing.id(), updated);
+        accountsByUsername.put(existing.username(), updated);
+        if (existing.email() != null && !existing.email().isBlank()) {
+            accountsByEmail.put(existing.email(), updated);
         }
     }
 

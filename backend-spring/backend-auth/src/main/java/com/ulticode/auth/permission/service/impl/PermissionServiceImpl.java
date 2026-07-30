@@ -20,10 +20,13 @@ import org.springframework.util.StringUtils;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Permission service implementation inside backend-auth.
@@ -56,6 +59,32 @@ public class PermissionServiceImpl implements PermissionService {
                                 .or()
                                 .gt(UserPermission::getExpiresAt, now))
         );
+    }
+
+    @Override
+    public Map<String, List<UserPermission>> getBatchUserPermissions(Set<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        Set<String> clean = userIds.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .collect(Collectors.toSet());
+        if (clean.isEmpty()) {
+            return Map.of();
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<UserPermission> allPerms = userPermissionMapper.selectActivePermissionsByUserIds(clean, now);
+        Map<String, List<UserPermission>> result = new HashMap<>();
+        for (String id : clean) {
+            result.put(id, new ArrayList<>());
+        }
+        for (UserPermission p : allPerms) {
+            if (p.getUserId() != null && result.containsKey(p.getUserId())) {
+                result.get(p.getUserId()).add(p);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -118,32 +147,31 @@ public class PermissionServiceImpl implements PermissionService {
             return existing;
         }
 
-        UserPermission newPerm = new UserPermission();
-        newPerm.setId(uuidGenerator.newId());
-        newPerm.setUserId(normUserId);
-        newPerm.setAction(normAction);
-        newPerm.setResource(normResource);
-        newPerm.setGrantedBy(currentAdminId());
-        newPerm.setGrantedAt(LocalDateTime.now(clock));
-        newPerm.setExpiresAt(expiresAt);
+        String actorId = currentUserProvider.getCurrentUserId();
+        String grantedBy = StringUtils.hasText(actorId) ? actorId : SYSTEM_GRANTOR;
 
-        userPermissionMapper.insert(newPerm);
-        return newPerm;
+        UserPermission perm = new UserPermission();
+        perm.setId(uuidGenerator.newId());
+        perm.setUserId(normUserId);
+        perm.setAction(normAction);
+        perm.setResource(normResource);
+        perm.setGrantedBy(grantedBy);
+        perm.setGrantedAt(LocalDateTime.now(clock));
+        perm.setExpiresAt(expiresAt);
+
+        userPermissionMapper.insert(perm);
+        return perm;
     }
 
     @Override
     public boolean revokePermission(String userId, String action, String resource) {
         validatePermissionArgs(userId, action, resource);
 
-        String normUserId = userId.trim();
-        String normAction = action.trim().toUpperCase();
-        String normResource = resource.trim().toUpperCase();
-
         int rows = userPermissionMapper.delete(
                 new LambdaQueryWrapper<UserPermission>()
-                        .eq(UserPermission::getUserId, normUserId)
-                        .eq(UserPermission::getAction, normAction)
-                        .eq(UserPermission::getResource, normResource)
+                        .eq(UserPermission::getUserId, userId.trim())
+                        .eq(UserPermission::getAction, action.trim().toUpperCase())
+                        .eq(UserPermission::getResource, resource.trim().toUpperCase())
         );
 
         return rows > 0;
@@ -153,19 +181,19 @@ public class PermissionServiceImpl implements PermissionService {
         if (!StringUtils.hasText(userId)) {
             throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "userId cannot be blank");
         }
-        if (!vocabulary.isAllowedAction(action)) {
-            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "Invalid action: " + action);
+        if (!StringUtils.hasText(action)) {
+            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "action cannot be blank");
         }
-        if (!vocabulary.isAllowedResource(resource)) {
-            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "Invalid resource: " + resource);
+        if (!StringUtils.hasText(resource)) {
+            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "resource cannot be blank");
         }
-    }
 
-    private String currentAdminId() {
-        String currentId = currentUserProvider.getCurrentUserId();
-        if (StringUtils.hasText(currentId)) {
-            return currentId;
+        if (!vocabulary.isAllowedAction(action.trim())) {
+            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "Unknown permission action: " + action);
         }
-        return SYSTEM_GRANTOR;
+
+        if (!vocabulary.isAllowedResource(resource.trim())) {
+            throw new AuthBusinessException(BaseErrorCode.VALIDATION_FAILED, "Unknown permission resource: " + resource);
+        }
     }
 }

@@ -7,7 +7,9 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 ## Active / Next Task
 
 - Active parent `P7-RELOCATE-AUTH-001` was superseded by five atomic cutover tasks.
-- Next ready task: `P7-AUTH-RETIRE-001`.
+- Completed: `P7-WEB-SECURITY-INFRA-001` (commit f2af7e1).
+- Active ready task: `P7-AUTH-WEB-ERRORS-001`.
+- `P7-AUTH-RETIRE-001` remains pending with its 32-file dirty deletion slice protected; backend-auth Web error and endpoint rate-limit behavior must be restored first.
 - Completed: `P7-AUTH-CONSUMER-CUTOVER-001` (commit 4dd2792).
 - Completed: `P7-AUTH-ADMIN-PROVIDER-001` (commit 93a99b7).
 - Completed: `P7-AUTH-QUERY-PROVIDERS-001` (commit 29bc310).
@@ -16,6 +18,10 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - Goal: replace the backend-auth in-memory account fallback with authoritative MySQL account/version persistence and bulk permission reads before implementing RPC providers.
 
 ## Last Verified Context
+
+- `backend-web-security` is the canonical rate-limit module; module tests (20), Redis IT (5), OwnerBoundaryArchTest (10), and affected legacy/auth reactor pass.
+- backend-auth still has no Web exception adapter; HTTP 429/code 42900/Retry-After mapping is the active prerequisite.
+- backend-auth AuthController still needs login 10/60, register 5/60, and refresh 20/60 endpoint wiring in `P7-AUTH-RATE-LIMIT-001`.
 
 - Legacy auth duplicate map: 24/25 have canonical backend-auth counterparts; `JwtUtils` is the WebSocket-specific exception.
 - Legacy permission duplicate map: 8/8 have canonical counterparts.

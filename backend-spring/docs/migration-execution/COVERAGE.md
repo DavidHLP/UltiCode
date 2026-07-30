@@ -195,6 +195,9 @@ Audit checkpoint at 2026-07-27T22:05:00+08:00 by Recovery (post-P2-GATE per-acce
 | Durable command replay | `P7-AUTH-ADMIN-PROVIDER-001` | replay IT proving one write and stable original outcome |
 | Actor/trace propagation | `P7-AUTH-ADMIN-PROVIDER-001` | provider validation and receipt/audit correlation assertions |
 | Legacy Admin/Moderation/User cutover | `P7-AUTH-CONSUMER-CUTOVER-001` | local/RPC flag-path tests; timeout/retry assertions |
+| Canonical Spring rate-limit infrastructure without backend-common pollution | `P7-WEB-SECURITY-INFRA-001` | reactor/module tests, Testcontainers Redis IT, owner-boundary checks |
+| Result-shaped backend-auth error mapping including HTTP 429 | `P7-AUTH-WEB-ERRORS-001` | exception-adapter tests proving code/status/message/Retry-After |
+| Preserve login/register/refresh limits after controller cutover | `P7-AUTH-RATE-LIMIT-001` | real proxied endpoint threshold tests and AuthService non-invocation |
 | Remove 24 auth + 8 permission + 3 refresh twins | `P7-AUTH-RETIRE-001` | grep/ArchUnit zero-import evidence and full reactor PASS |
 | Preserve refresh hash-only storage | `P7-AUTH-RETIRE-001` | issue/rotate/revoke security tests against `token_hash` only |
 | Remove WebSocket-specific `JwtUtils` | `P7-RELOCATE-WEBSOCKET-001` | WebSocket cookie-only authentication tests in backend-app |

@@ -7699,7 +7699,7 @@
   area: ARCH
   title: Implement version-fenced account administration Dubbo provider
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
-  status: ready
+  status: done
   depends_on: [P7-AUTH-PERSISTENCE-001, P7-AUTH-IDEMPOTENCY-SCHEMA-001]
   acceptance_criteria:
   - AccountAdministrationService changeState and changeAuthorization execute transactionally in backend-auth
@@ -7741,13 +7741,91 @@
   commits: []
   notes: ''
   updated_at: '2026-07-30T02:20:00+00:00'
+- id: P7-WEB-SECURITY-INFRA-001
+  phase: 7
+  area: ARCH
+  title: Extract canonical rate-limit Web infrastructure module
+  source: [ADR-P7-WEB-SECURITY-RATE-LIMIT]
+  status: done
+  updated_at: '2026-07-30T08:45:00+00:00'
+  depends_on: []
+  acceptance_criteria:
+  - A dedicated backend-web-security reactor module owns the canonical RateLimit annotation, AOP advice, limiter port/adapters, Redis Lua implementation, client-IP resolution, and Spring configuration
+  - backend-common remains dependency-free; backend-web-security declares the required Spring AOP/Web/Data Redis and Jakarta Servlet compile dependencies but no service-shell dependency
+  - The existing legacy CurrentUserProvider interface becomes the canonical identity/role-check seam; backend-auth deletes its duplicate interface and both shells keep their Spring Security adapters
+  - The module declares neither EnableWebSecurity nor a default SecurityFilterChain; each shell remains the sole owner of its filter chain
+  - Moved Servlet sources use jakarta.servlet and compile on Spring Boot 3.2/Security 6
+  - The isolated Testcontainers Redis IT verifies user/IP buckets, HTTP 429, code 42900, dynamic retry seconds, and Retry-After
+  - Parent reactor, owner-boundary checks, supported test entry points, and module documentation recognize the new module
+  validation:
+  - ./mvnw -f backend-spring/pom.xml -pl backend-web-security -am test -B
+  - ./mvnw -f backend-spring/pom.xml -pl backend-legacy,backend-auth -am test -B
+  - Owner-boundary and dependency-direction ArchUnit checks
+  rollback: restore rate-limit implementation to backend-legacy and remove the new reactor module before endpoint cutover
+  evidence:
+  - command: ./mvnw -pl backend-web-security -am test -B
+    result: 'PASS: 20 module tests, including unit and WebSecurityArchitectureTest coverage'
+  - command: ./mvnw -pl backend-web-security -am -Dtest=RateLimitIT -Dsurefire.failIfNoSpecifiedTests=false test -B
+    result: 'PASS: 5 Testcontainers Redis tests; user/IP buckets, HTTP 429, code 42900, dynamic retry, Retry-After'
+  - command: ./mvnw -pl backend-legacy -am -Dtest=OwnerBoundaryArchTest -Dsurefire.failIfNoSpecifiedTests=false test -B
+    result: 'PASS: 10 ArchUnit tests; frozen baseline reduced by 3 constructor-only violations without reset'
+  - command: ./mvnw -pl backend-legacy,backend-auth -am test -B -q
+    result: 'PASS: affected reactor exited 0'
+  - command: git diff --check
+    result: PASS
+  commits:
+  - f2af7e12f1ca6d42f4ccc758ec0c1a55b73d995d
+  notes: 'Independent review unit. Shell adapters own SecurityContextHolder and spring-security-core; the shared module owns only the pure CurrentUserProvider seam. AuditAspect, BanCheckAspect, and DefaultAuditRecorder require separate owner investigation.'
+  updated_at: '2026-07-30T08:45:00+00:00'
+- id: P7-AUTH-WEB-ERRORS-001
+  phase: 7
+  area: SECURITY
+  title: Establish Result-shaped backend-auth Web exception mapping
+  source: [ADR-P7-WEB-SECURITY-RATE-LIMIT]
+  status: ready
+  depends_on: [P7-WEB-SECURITY-INFRA-001]
+  acceptance_criteria:
+  - backend-auth maps AuthBusinessException and common BusinessException to the established Result envelope and intended HTTP status
+  - BaseErrorCode.TOO_MANY_REQUESTS maps to HTTP 429 and code 42900 rather than the current BaseErrorCode fallback status
+  - Rate-limit responses include a validated Retry-After header derived from retry-after seconds
+  - Existing auth error numeric codes and statuses remain compatible
+  validation:
+  - Focused backend-auth exception-adapter tests for auth and common errors
+  - HTTP 429/code 42900/message/Retry-After regression
+  - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
+  rollback: remove the backend-auth exception adapter before enabling endpoint rate limits
+  evidence: []
+  commits: []
+  notes: 'Required because backend-auth currently has no ControllerAdvice/ExceptionHandler and cannot rely on legacy GlobalExceptionHandler.'
+  updated_at: '2026-07-30T08:45:00+00:00'
+- id: P7-AUTH-RATE-LIMIT-001
+  phase: 7
+  area: SECURITY
+  title: Restore backend-auth endpoint rate-limit behavior
+  source: [ADR-P7-WEB-SECURITY-RATE-LIMIT]
+  status: pending
+  depends_on: [P7-WEB-SECURITY-INFRA-001, P7-AUTH-WEB-ERRORS-001]
+  acceptance_criteria:
+  - backend-auth AuthController enforces login 10/60, register 5/60, and refresh 20/60 through the canonical RateLimit interface
+  - Real proxied endpoint tests prove N+1 returns HTTP 429/code 42900 with dynamic retry seconds and Retry-After
+  - Rejected requests do not invoke AuthService and public endpoint/security behavior remains compatible
+  - backend-auth has no dependency on backend-legacy and no duplicate rate-limit or CurrentUserProvider implementation
+  validation:
+  - Proxied AuthController endpoint regression with exact thresholds and AuthService invocation counts
+  - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
+  - Dependency and duplicate-import audit
+  rollback: remove endpoint annotations and keep legacy controller retirement disabled
+  evidence: []
+  commits: []
+  notes: 'Behavior-compatibility prerequisite for P7-AUTH-RETIRE-001, not a deferred follow-up.'
+  updated_at: '2026-07-30T06:30:00+00:00'
 - id: P7-AUTH-RETIRE-001
   phase: 7
   area: ARCH
   title: Retire legacy auth, permission, and refreshtoken twins after contract cutover
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: ready
-  depends_on: [P7-AUTH-CONSUMER-CUTOVER-001]
+  status: pending
+  depends_on: [P7-AUTH-CONSUMER-CUTOVER-001, P7-AUTH-RATE-LIMIT-001]
   acceptance_criteria:
   - 24 canonical auth duplicates, all 8 permission duplicates, and all 3 refreshtoken duplicates are removed
   - JwtUtils remains only as a documented WebSocket compatibility shim and is removed by P7-RELOCATE-WEBSOCKET-001
@@ -7758,10 +7836,12 @@
   - grep/ArchUnit duplicate and dependency checks
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: revert retirement commit and disable consumer cutover flags
-  evidence: []
+  evidence:
+  - note: 'Retirement deletion slice started and legacy reactor passed, but planning returned the task to pending after discovering backend-auth login/register/refresh had lost legacy rate-limit behavior. Completion now depends on P7-AUTH-RATE-LIMIT-001.'
+    ts: '2026-07-30T06:30:00+00:00'
   commits: []
-  notes: 'JwtUtils is excluded because WebSocket is App-owned and moves later; no other legacy auth code may remain.'
-  updated_at: '2026-07-30T02:20:00+00:00'
+  notes: 'JwtUtils remains for WebSocket. Existing dirty deletion work is protected while prerequisite tasks execute.'
+  updated_at: '2026-07-30T06:30:00+00:00'
 - id: P7-RELOCATE-ADMIN-001
   phase: 7
   area: ARCH

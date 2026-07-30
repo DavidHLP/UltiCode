@@ -1145,3 +1145,16 @@ retains complete coverage without temporary layering violations.
 **Compatibility and rollback.** Providers are deployed before consumers. Consumer writes use retries=0 and explicit idempotency metadata; query consumers use the established query retry policy. Feature flags keep the local legacy path as rollback until consumer validation passes. Applied migrations are never edited. Duplicate deletion happens only after grep/ArchUnit evidence proves no remaining concrete imports.
 
 **Consequences.** Provider work cannot begin on the in-memory fallback. Each atomic task receives focused review and validation evidence. The Phase 7 removal gate depends on `P7-AUTH-RETIRE-001`; WebSocket owns final `JwtUtils` removal.
+
+
+## ADR-P7-WEB-SECURITY-RATE-LIMIT — Extract canonical Web rate-limit infrastructure before auth retirement
+
+**Context.** Legacy AuthController enforced login 10/60, register 5/60, and refresh 20/60; backend-auth has no rate-limit annotations or Web exception adapter. The isolated Redis IT proves legacy AOP/Lua only. `backend-common` is dependency-free. ClientIpResolver already uses `jakarta.servlet`. The legacy CurrentUserProvider has five methods while backend-auth duplicates only getCurrentUserId.
+
+**Decision.** Create `backend-web-security` as an independent reactor module. It owns rate-limit annotation, aspect, limiter port/adapters, client-IP resolver, and Spring configuration; it depends on backend-common and required external Spring AOP/Web/Data Redis/Jakarta libraries, and on no service shell. It declares neither EnableWebSecurity nor a SecurityFilterChain. Move the existing five-method legacy CurrentUserProvider interface into this module as canonical; each shell keeps its own Spring Security adapter, so SecurityContextHolder and spring-security-core remain shell concerns. Do not move AuditAspect, BanCheckAspect, or DefaultAuditRecorder without separate owner/seam investigation. Add backend-auth Result-shaped exception mapping before endpoint annotations.
+
+**Alternatives.** backend-common was rejected because Spring runtime violates its contract. Copying into backend-auth was rejected as parallel implementation. Moving all legacy aspects together was rejected because rate limiting, authorization, and audit persistence do not yet share one verified interface. A default shared SecurityFilterChain was rejected because each shell must remain sole owner of its chain. Stub-only verification was rejected because it cannot prove backend-auth wiring.
+
+**Consequences.** Three sequential prerequisites are introduced. `P7-AUTH-RETIRE-001` returns to pending while dirty deletion work remains protected. Completion requires infrastructure Redis coverage, exception-contract coverage, and real proxied backend-auth endpoint coverage.
+
+**Affected tasks.** `P7-WEB-SECURITY-INFRA-001`, `P7-AUTH-WEB-ERRORS-001`, `P7-AUTH-RATE-LIMIT-001`, `P7-AUTH-RETIRE-001`.

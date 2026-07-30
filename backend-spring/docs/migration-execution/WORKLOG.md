@@ -796,3 +796,13 @@ this session.
   - Created `PerOwnerSchemaIsolationIT` proving per-owner grant isolation against real MySQL 8.0 Testcontainers (19/19 PASS): owned-schema DML succeeds, cross-schema DML returns MySQL error 1142/1044, `audit_outbox` append-only INSERT verified for auth_rw and app_rw, `information_schema` SCHEMA_PRIVILEGES + TABLE_PRIVILEGES verify exact grant sets.
   - Migration `V20260729140000` updated with `GRANT USAGE ON *.*` (after `REVOKE ALL`) so shadow users can establish JDBC connections.
   - Commit: 438f150 (schema framework + migration), b1b2fdb (IT + GRANT USAGE fix), 525d2a0 (TASKS.yaml closure).
+
+
+## 2026-07-30 P7-WEB-SECURITY-INFRA-001 — canonical rate-limit module
+
+- Extracted `backend-web-security` with canonical annotation, AOP advice, limiter port/adapters, Redis Lua implementation, client-IP resolver, stable `com.ulticode.common.auth.CurrentUserProvider` contract, and explicit Boot auto-configuration.
+- Kept `SecurityContextHolder` adapters and filter chains in backend-auth/backend-legacy; removed duplicate backend-auth identity interface and legacy rate-limit implementations.
+- Added module boundary ArchUnit coverage and moved unit/Redis integration coverage into the canonical module. Burned down three constructor-only frozen violations without resetting the ArchUnit store.
+- Validation PASS: module tests 20/0; Testcontainers Redis RateLimitIT 5/0; OwnerBoundaryArchTest 10/0; affected backend-legacy/backend-auth reactor exit 0; `git diff --check` clean.
+- Code commit: `f2af7e12f1ca6d42f4ccc758ec0c1a55b73d995d`.
+- Protected `P7-AUTH-RETIRE-001` 32-file deletion slice remains unstaged. Next ready task: `P7-AUTH-WEB-ERRORS-001`.

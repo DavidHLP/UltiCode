@@ -1,14 +1,15 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
+import com.ulticode.auth.api.dto.PermissionEntry;
+import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.modules.permission.entity.RolePermission;
-import com.ulticode.modules.permission.entity.UserPermission;
-import com.ulticode.modules.permission.mapper.RolePermissionMapper;
-import com.ulticode.modules.permission.service.PermissionService;
+import com.ulticode.modules.auth.service.AuthCutoverService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -19,8 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,14 +35,10 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link DefaultAdminUserProjection} &mdash; the read-side deep
- * module lifted out of UserManagementServiceImpl per ADR-0011 Stage 2.
+ * module for the admin user surface.
  *
- * <p>Covers the read paths that previously lived on
- * {@code UserManagementServiceImplTest}: {@code getUsers} (list path skips
- * stats / permissions enrichment to stay N+1-safe), {@code getUserById}
- * (stats + permissions enrichment, expired-permission filtering, USER_NOT_FOUND
- * contract). These cases were migrated verbatim when the read cluster moved
- * behind the projection seam.
+ * <p>After P7-RETIRE-PERMISSION-001, permissions are read via Dubbo RPC
+ * ({@link RoleTemplateService}) and {@link AuthCutoverService#getSnapshot}.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DefaultAdminUserProjection")
@@ -44,8 +46,8 @@ class AdminUserProjectionTest {
 
     @Mock private UserMapper userMapper;
     @Mock private AdminUserStatsReadPort userStatsReadPort;
-    @Mock private PermissionService permissionService;
-    @Mock private RolePermissionMapper rolePermissionMapper;
+    @Mock private AuthCutoverService authCutoverService;
+    @Mock private RoleTemplateService roleTemplateService;
 
     private DefaultAdminUserProjection projection;
 
@@ -71,8 +73,9 @@ class AdminUserProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminUserProjection(
-                userMapper, userStatsReadPort, permissionService, rolePermissionMapper,
-                java.time.Clock.systemDefaultZone());
+                userMapper, userStatsReadPort, authCutoverService);
+        // Inject Dubbo field manually (no Spring context in unit test)
+        ReflectionTestUtils.setField(projection, "roleTemplateService", roleTemplateService);
     }
 
     @Nested
@@ -90,7 +93,7 @@ class AdminUserProjectionTest {
 
             projection.getUsers(new AdminUserQueryDTO());
 
-            verifyNoInteractions(userStatsReadPort, rolePermissionMapper, permissionService);
+            verifyNoInteractions(userStatsReadPort, authCutoverService, roleTemplateService);
         }
     }
 
@@ -104,8 +107,10 @@ class AdminUserProjectionTest {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
             stubStats("user-123", 10L, 5L, 3L, 7);
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
+            when(roleTemplateService.getRoleTemplate("ADMIN"))
+                    .thenReturn(RpcResult.success(List.of(), "t-test"));
+            when(authCutoverService.getSnapshot("user-123"))
+                    .thenReturn(snapshotWithEntries(List.of()));
 
             AdminUserVO result = projection.getUserById("user-123");
 
@@ -120,13 +125,13 @@ class AdminUserProjectionTest {
         @Test
         @DisplayName("defaults stats to zero when port returns zero")
         void portZero_defaultsToZero() {
-            // null→0 降级由 AdminUserStatsReadAdapter 拥有 (adapter 测试覆盖);
-            // Projection 只看到非 null 基本类型,这里验证 port 返回 0 时 VO 也为 0。
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
             stubStats("user-123", 0L, 0L, 0L, 0);
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
+            when(roleTemplateService.getRoleTemplate("ADMIN"))
+                    .thenReturn(RpcResult.success(List.of(), "t-test"));
+            when(authCutoverService.getSnapshot("user-123"))
+                    .thenReturn(snapshotWithEntries(List.of()));
 
             AdminUserVO result = projection.getUserById("user-123");
 
@@ -145,65 +150,55 @@ class AdminUserProjectionTest {
             when(userMapper.selectById("user-123")).thenReturn(user);
             stubStats("user-123", 0L, 0L, 0L, 0);
 
-            RolePermission rolePerm = new RolePermission();
-            rolePerm.setAction("read");
-            rolePerm.setResource("users");
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of(rolePerm));
+            PermissionEntry roleEntry = new PermissionEntry("READ", "USER", "role", null);
+            when(roleTemplateService.getRoleTemplate("ADMIN"))
+                    .thenReturn(RpcResult.success(List.of(roleEntry), "t-test"));
 
-            UserPermission directPerm = new UserPermission();
-            directPerm.setAction("write");
-            directPerm.setResource("problems");
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of(directPerm));
+            PermissionEntry directEntry = new PermissionEntry("DELETE", "PROBLEM", "direct", null);
+            when(authCutoverService.getSnapshot("user-123"))
+                    .thenReturn(snapshotWithEntries(List.of(directEntry)));
 
             AdminUserVO result = projection.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getPermissions()).hasSize(2);
-            assertThat(result.getPermissions().get(0).getSource()).isEqualTo("role");
-            assertThat(result.getPermissions().get(0).getAction()).isEqualTo("read");
-            assertThat(result.getPermissions().get(1).getSource()).isEqualTo("direct");
-            assertThat(result.getPermissions().get(1).getAction()).isEqualTo("write");
+            assertThat(result.getPermissions())
+                    .anySatisfy(p -> {
+                        assertThat(p.getSource()).isEqualTo("role");
+                        assertThat(p.getAction()).isEqualTo("READ");
+                    })
+                    .anySatisfy(p -> {
+                        assertThat(p.getSource()).isEqualTo("direct");
+                        assertThat(p.getAction()).isEqualTo("DELETE");
+                    });
         }
 
         @Test
-        @DisplayName("MEDIUM-3: filters out expired direct permissions from VO")
+        @DisplayName("filters out expired direct permissions from VO")
         void filtersExpiredPermissions() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
             stubStats("user-123", 0L, 0L, 0L, 0);
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
+            when(roleTemplateService.getRoleTemplate("ADMIN"))
+                    .thenReturn(RpcResult.success(List.of(), "t-test"));
 
-            UserPermission expired = new UserPermission();
-            expired.setAction("CREATE");
-            expired.setResource("PROBLEM");
-            expired.setExpiresAt(java.time.LocalDateTime.now().minusMinutes(1));
+            OffsetDateTime expired = LocalDateTime.now().minusMinutes(1).atOffset(ZoneOffset.UTC);
+            OffsetDateTime active = LocalDateTime.now().plusHours(1).atOffset(ZoneOffset.UTC);
 
-            UserPermission active = new UserPermission();
-            active.setAction("READ");
-            active.setResource("USER");
-            active.setExpiresAt(java.time.LocalDateTime.now().plusHours(1));
+            PermissionEntry expiredEntry = new PermissionEntry("CREATE", "PROBLEM", "direct", expired);
+            PermissionEntry activeEntry = new PermissionEntry("READ", "USER", "direct", active);
+            PermissionEntry permanentEntry = new PermissionEntry("UPDATE", "SOLUTION", "direct", null);
 
-            UserPermission permanent = new UserPermission();
-            permanent.setAction("UPDATE");
-            permanent.setResource("SOLUTION");
-            // null expiresAt = 永久
-
-            when(permissionService.getUserPermissions("user-123"))
-                .thenReturn(List.of(expired, active, permanent));
+            when(authCutoverService.getSnapshot("user-123"))
+                    .thenReturn(snapshotWithEntries(List.of(expiredEntry, activeEntry, permanentEntry)));
 
             AdminUserVO result = projection.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getPermissions()).hasSize(2);
-            // 过期权限被过滤,顺序由 source 决定
             assertThat(result.getPermissions())
                 .extracting("action")
                 .containsExactlyInAnyOrder("READ", "UPDATE");
-            // 同时验证 expiresAt 被正确传递(非 null 字段)
-            assertThat(result.getPermissions())
-                .filteredOn(p -> "READ".equals(p.getAction()))
-                .extracting("expiresAt")
-                .containsExactly((Object) active.getExpiresAt());
         }
 
         @Test
@@ -218,5 +213,9 @@ class AdminUserProjectionTest {
                         assertThat(be.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
                     });
         }
+    }
+
+    private AuthorizationSnapshotDTO snapshotWithEntries(List<PermissionEntry> entries) {
+        return new AuthorizationSnapshotDTO("user-123", "ADMIN", Set.of(), 0L, entries);
     }
 }

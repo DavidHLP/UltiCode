@@ -15,7 +15,6 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.modules.auth.service.AuthCutoverService;
-import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -67,10 +66,9 @@ class UserPermissionServiceImplTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneId.systemDefault());
-        PermissionVocabulary vocabulary = new PermissionVocabulary();
         userPermissionService = new UserPermissionServiceImpl(
                 userMapper, backendAuthRoleAdminClient, authCutoverService,
-                adminUserProjection, clock, vocabulary, currentUserProvider);
+                adminUserProjection, clock, currentUserProvider);
     }
 
     @AfterEach

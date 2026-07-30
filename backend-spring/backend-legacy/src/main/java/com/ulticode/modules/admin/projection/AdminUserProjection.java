@@ -9,8 +9,8 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
  * owns every entity-to-VO projection rule, paginated list-query builder, and
  * cross-module enrichment (submission/solution stats via
  * {@link com.ulticode.modules.admin.port.AdminUserStatsReadPort}; role + direct
- * permissions via {@link com.ulticode.modules.permission.mapper.RolePermissionMapper}
- * and {@link com.ulticode.modules.permission.service.PermissionService}) for
+ * permissions via Dubbo RPC {@link com.ulticode.auth.api.service.RoleTemplateService}
+ * and {@link com.ulticode.modules.auth.service.AuthCutoverService}) for
  * the admin user surface.
  *
  * <p>This is the same shallow cluster lifted out of

@@ -2,26 +2,28 @@ package com.ulticode.modules.admin.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.auth.api.dto.PermissionEntry;
+import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.modules.permission.entity.RolePermission;
-import com.ulticode.modules.permission.entity.UserPermission;
-import com.ulticode.modules.permission.mapper.RolePermissionMapper;
-import com.ulticode.modules.permission.service.PermissionService;
+import com.ulticode.modules.auth.service.AuthCutoverService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,10 +39,13 @@ import java.util.stream.Collectors;
  * write) and {@link com.ulticode.modules.admin.service.UserPermissionService}
  * (after a grant / revoke) to compose the post-mutation VO.
  *
- * <p>Cross-module entity imports ({@link User}, {@link RolePermission},
- * {@link UserPermission}) and their mappers live here and only here &mdash;
- * the admin user services no longer import them after the ADR-0011 Stage 2
- * extraction.
+ * <p><b>Permission source migration (P7-RETIRE-PERMISSION-001):</b>
+ * Role-template permissions are now fetched via Dubbo RPC
+ * ({@link RoleTemplateService}); direct user permissions are read from the
+ * authorization snapshot's {@code permissionEntries} via
+ * {@link AuthCutoverService#getSnapshot}. The legacy
+ * {@code RolePermissionMapper}, {@code PermissionService}, and their entity
+ * types are no longer imported here.
  *
  * <p><b>List vs. detail asymmetry (intentional):</b> the list path
  * ({@link #getUsers}) deliberately omits stats / permissions enrichment to
@@ -56,9 +61,10 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     private final UserMapper userMapper;
     private final AdminUserStatsReadPort userStatsReadPort;
-    private final PermissionService permissionService;
-    private final RolePermissionMapper rolePermissionMapper;
-    private final Clock clock;
+    private final AuthCutoverService authCutoverService;
+
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    private RoleTemplateService roleTemplateService;
 
     // ------------------------------------------------------------------
     // Paginated list read (query build + entity->VO shaping, NO enrichment)
@@ -183,15 +189,20 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     /**
      * 处理 role 权限。role 权限不带过期时间。
+     * 通过 Dubbo RPC 查询 backend-auth 的 RoleTemplateService。
      */
     private void populateRolePermissions(List<AdminUserVO.PermissionInfo> sink, String role) {
-        List<RolePermission> rolePerms = rolePermissionMapper.selectList(
-            new LambdaQueryWrapper<RolePermission>()
-                .eq(RolePermission::getRole, role));
-        for (RolePermission rp : rolePerms) {
+        if (roleTemplateService == null) {
+            return;
+        }
+        RpcResult<List<PermissionEntry>> result = roleTemplateService.getRoleTemplate(role);
+        if (result == null || !result.success() || result.data() == null) {
+            return;
+        }
+        for (PermissionEntry entry : result.data()) {
             AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-            info.setAction(rp.getAction());
-            info.setResource(rp.getResource());
+            info.setAction(entry.action());
+            info.setResource(entry.resource());
             info.setSource("role");
             info.setExpiresAt(null);
             sink.add(info);
@@ -200,19 +211,36 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     /**
      * 处理 user 直接权限。过滤已过期项，避免 UI 显示无效授权。
+     * 通过 AuthCutoverService 获取 authorization snapshot 的 permissionEntries。
      */
     private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
-        List<UserPermission> userPerms = permissionService.getUserPermissions(userId);
-        LocalDateTime now = LocalDateTime.now(clock);
-        for (UserPermission up : userPerms) {
-            if (up.getExpiresAt() != null && !up.getExpiresAt().isAfter(now)) {
+        if (authCutoverService == null) {
+            return;
+        }
+        com.ulticode.auth.api.dto.AuthorizationSnapshotDTO snapshot;
+        try {
+            snapshot = authCutoverService.getSnapshot(userId);
+        } catch (Exception e) {
+            log.warn("Failed to fetch authorization snapshot for user {}: {}", userId, e.getMessage());
+            return;
+        }
+        if (snapshot == null || snapshot.permissionEntries() == null) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (PermissionEntry entry : snapshot.permissionEntries()) {
+            if (!"direct".equals(entry.source())) {
+                continue;
+            }
+            OffsetDateTime expiresAt = entry.expiresAt();
+            if (expiresAt != null && !expiresAt.toLocalDateTime().isAfter(now)) {
                 continue;
             }
             AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-            info.setAction(up.getAction());
-            info.setResource(up.getResource());
+            info.setAction(entry.action());
+            info.setResource(entry.resource());
             info.setSource("direct");
-            info.setExpiresAt(up.getExpiresAt());
+            info.setExpiresAt(expiresAt != null ? expiresAt.toLocalDateTime() : null);
             sink.add(info);
         }
     }

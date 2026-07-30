@@ -13,7 +13,6 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.auth.account.DefaultAuthAccountAdapter;
-import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +40,6 @@ public class AuthCutoverService {
 
     private final UserMapper userMapper;
     private final DefaultAuthAccountAdapter defaultAuthAccountAdapter;
-    private final PermissionService permissionService;
     private final BackendAuthRoleAdminClient backendAuthRoleAdminClient;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
@@ -90,14 +88,12 @@ public class AuthCutoverService {
             if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
                 throw new BusinessException(ErrorCode.USER_NOT_FOUND);
             }
-            List<String> permStrings = permissionService != null ? permissionService.getUserPermissionStrings(user.getId()) : Collections.emptyList();
-            Set<String> perms = (permStrings == null) ? Collections.emptySet() : new HashSet<>(permStrings);
-            return new AuthorizationSnapshotDTO(
-                    user.getId(),
-                    user.getRole(),
-                    perms,
-                    0L
-            );
+            // Legacy permission service retired (P7-RETIRE-PERMISSION-001).
+            // Permission data is owned by backend-auth; without Dubbo cutover
+            // enabled, the snapshot cannot be read. Fail loud rather than
+            // silently returning empty permissions that bypass authorization.
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR,
+                    "Authorization snapshot read requires backend-auth Dubbo cutover to be enabled");
         }
 
         RpcResult<AuthorizationSnapshotDTO> result = authorizationSnapshotService.getSnapshot(accountId);
@@ -160,10 +156,13 @@ public class AuthCutoverService {
                     }
                 }
             }
-
-            List<String> permStrings = permissionService != null ? permissionService.getUserPermissionStrings(command.accountId()) : Collections.emptyList();
-            Set<String> perms = (permStrings == null) ? Collections.emptySet() : new HashSet<>(permStrings);
-            return new AuthorizationSnapshotDTO(command.accountId(), command.role(), perms, 0L);
+            // Legacy permission service retired (P7-RETIRE-PERMISSION-001).
+            // The caller already computed the target permission set
+            // (command.permissions()); use it directly as the post-write
+            // snapshot rather than reading back from a retired service.
+            Set<String> postWritePerms = command.permissions() != null
+                    ? new HashSet<>(command.permissions()) : Collections.emptySet();
+            return new AuthorizationSnapshotDTO(command.accountId(), command.role(), postWritePerms, 0L);
         }
 
         RpcResult<AuthorizationSnapshotDTO> result = accountAdministrationService.changeAuthorization(command);

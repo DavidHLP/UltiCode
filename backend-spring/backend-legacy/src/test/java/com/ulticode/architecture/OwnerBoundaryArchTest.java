@@ -193,14 +193,6 @@ public class OwnerBoundaryArchTest {
                     .should().callMethod(com.ulticode.modules.user.entity.User.class, "setRole", String.class)
         ).because("P2-DISC-005: Only Auth account adapters and User provisioning ports may write to User::setRole. "
                 + "Admin and other foreign modules must route role changes through backend-auth RoleAdministrationService.");
-    /* ===== P2-DISC-006: forbid direct UserPermissionMapper imports outside permission module ===== */
-
-    @ArchTest
-    static final ArchRule p2_disc_006_forbid_direct_user_permission_mapper_imports =
-        FreezingArchRule.freeze(
-            ArchRuleDefinition.noClasses()
-                    .that().resideOutsideOfPackage("com.ulticode.modules.permission..")
-                    .should().dependOnClassesThat().haveFullyQualifiedName("com.ulticode.modules.permission.mapper.UserPermissionMapper")
-        ).because("P2-DISC-006: Only PermissionService in com.ulticode.modules.permission may query UserPermissionMapper. "
-                + "Foreign modules must use PermissionService or backend-auth RPC.");
+    /* P2-DISC-006 retired: legacy permission module deleted in P7-RETIRE-PERMISSION-001.
+       UserPermissionMapper no longer exists; the boundary rule is moot. */
 }

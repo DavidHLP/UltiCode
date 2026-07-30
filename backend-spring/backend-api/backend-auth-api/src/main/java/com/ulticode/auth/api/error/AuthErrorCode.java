@@ -30,6 +30,9 @@ public enum AuthErrorCode implements NamespacedErrorCode {
     /** Authorization snapshot optimistic-lock conflict (expected version stale). */
     AUTHORIZATION_VERSION_CONFLICT(40903, "Authorization version conflict"),
 
+    /** Addressed role does not exist on the auth provider. */
+    ROLE_NOT_FOUND(40404, "Role not found"),
+
     /** Generic unexpected auth state; provider logged the underlying cause. */
     UNEXPECTED_AUTH_STATE(50001, "Unexpected auth state");
 

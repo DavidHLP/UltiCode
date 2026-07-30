@@ -16,7 +16,6 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.modules.auth.service.AuthCutoverService;
-import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +44,6 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     private final AuthCutoverService authCutoverService;
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
-    private final PermissionVocabulary vocabulary;
     private final CurrentUserProvider currentUserProvider;
 
     @Override
@@ -154,7 +152,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     }
 
     private void requireSuperAdminForManagePermissionsSystem(String action, String resource) {
-        if (!vocabulary.isSuperAdminOnly(action, resource)) {
+        if (!("MANAGE_PERMISSIONS".equals(action) && "SYSTEM".equals(resource))) {
             return;
         }
         if (!currentUserProvider.hasRole("SUPER_ADMIN")) {

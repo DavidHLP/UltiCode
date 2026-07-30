@@ -32,8 +32,7 @@ public interface RoleTemplateService {
      *         (each with {@code source = "role"},
      *         {@code expiresAt = null}); an empty list if the role has
      *         no template permissions. Failure codes:
-     *         {@code AUTH_ROLE_NOT_FOUND} (40404) when the role does
-     *         not exist.
+     *         {@code ROLE_NOT_FOUND} (40404) when the role does
      */
     RpcResult<List<PermissionEntry>> getRoleTemplate(String role);
 }

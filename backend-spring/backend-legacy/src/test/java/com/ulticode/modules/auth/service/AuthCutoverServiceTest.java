@@ -16,7 +16,6 @@ import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.auth.account.DefaultAuthAccountAdapter;
-import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +39,6 @@ class AuthCutoverServiceTest {
 
     private UserMapper userMapper;
     private DefaultAuthAccountAdapter defaultAuthAccountAdapter;
-    private PermissionService permissionService;
     private BackendAuthRoleAdminClient backendAuthRoleAdminClient;
     private IdentityQueryService identityQueryService;
     private AuthorizationSnapshotService authorizationSnapshotService;
@@ -55,13 +53,12 @@ class AuthCutoverServiceTest {
     void setUp() {
         userMapper = mock(UserMapper.class);
         defaultAuthAccountAdapter = mock(DefaultAuthAccountAdapter.class);
-        permissionService = mock(PermissionService.class);
         backendAuthRoleAdminClient = mock(BackendAuthRoleAdminClient.class);
         identityQueryService = mock(IdentityQueryService.class);
         authorizationSnapshotService = mock(AuthorizationSnapshotService.class);
         accountAdministrationService = mock(AccountAdministrationService.class);
 
-        cutoverService = new AuthCutoverService(userMapper, defaultAuthAccountAdapter, permissionService, backendAuthRoleAdminClient);
+        cutoverService = new AuthCutoverService(userMapper, defaultAuthAccountAdapter, backendAuthRoleAdminClient);
 
         ReflectionTestUtils.setField(cutoverService, "identityQueryService", identityQueryService);
         ReflectionTestUtils.setField(cutoverService, "authorizationSnapshotService", authorizationSnapshotService);
@@ -93,8 +90,8 @@ class AuthCutoverServiceTest {
     }
 
     @Test
-    @DisplayName("getSnapshot delegates to local UserMapper & PermissionService when dubboEnabled is false")
-    void getSnapshotLocalPath() {
+    @DisplayName("getSnapshot throws when dubboEnabled is false (permission data requires backend-auth)")
+    void getSnapshotLocalPathThrows() {
         ReflectionTestUtils.setField(cutoverService, "dubboEnabled", false);
 
         User user = new User();
@@ -102,17 +99,15 @@ class AuthCutoverServiceTest {
         user.setRole("ADMIN");
         user.setIsDeleted(0);
         when(userMapper.selectById("user-1")).thenReturn(user);
-        when(permissionService.getUserPermissionStrings("user-1")).thenReturn(List.of("READ:PROBLEM", "WRITE:PROBLEM"));
 
-        AuthorizationSnapshotDTO snapshot = cutoverService.getSnapshot("user-1");
-
-        assertThat(snapshot.accountId()).isEqualTo("user-1");
-        assertThat(snapshot.role()).isEqualTo("ADMIN");
-        assertThat(snapshot.permissions()).containsExactlyInAnyOrder("READ:PROBLEM", "WRITE:PROBLEM");
+        assertThatThrownBy(() -> cutoverService.getSnapshot("user-1"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    BusinessException be = (BusinessException) ex;
+                    assertThat(be.getErrorCode()).isEqualTo(ErrorCode.UNKNOWN_ERROR);
+                });
         verify(authorizationSnapshotService, never()).getSnapshot(anyString());
     }
-
-    @Test
     @DisplayName("changeState BAN delegates to defaultAuthAccountAdapter when dubboEnabled is false")
     void changeStateBanLocalPath() {
         ReflectionTestUtils.setField(cutoverService, "dubboEnabled", false);
@@ -170,8 +165,6 @@ class AuthCutoverServiceTest {
         user.setRole("USER");
         user.setIsDeleted(0);
         when(userMapper.selectById("user-1")).thenReturn(user);
-        when(permissionService.getUserPermissionStrings("user-1")).thenReturn(List.of("READ:PROBLEM"));
-
         ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
                 "cmd-2", IdMetadata.mint(), actor, trace, "user-1", 0L,
                 "ADMIN", Set.of("READ:PROBLEM"), "grant admin"
@@ -181,6 +174,8 @@ class AuthCutoverServiceTest {
 
         assertThat(snapshot.accountId()).isEqualTo("user-1");
         assertThat(snapshot.role()).isEqualTo("ADMIN");
+        // Post-write snapshot permissions come directly from command.permissions()
+        assertThat(snapshot.permissions()).containsExactly("READ:PROBLEM");
         verify(defaultAuthAccountAdapter).updateAccountCredentials("user-1", null, null, "ADMIN");
     }
 }

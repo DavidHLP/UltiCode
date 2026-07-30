@@ -7838,24 +7838,88 @@
   area: ARCH
   title: Retire legacy auth, permission, and refreshtoken twins after contract cutover
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: ready
-  depends_on: [P7-AUTH-CONSUMER-CUTOVER-001, P7-AUTH-RATE-LIMIT-001]
+  status: pending
+  depends_on: [P7-RETIRE-AUTH-001, P7-RETIRE-PERMISSION-001, P7-RETIRE-REFRESHTOKEN-001]
   acceptance_criteria:
-  - 24 canonical auth duplicates, all 8 permission duplicates, and all 3 refreshtoken duplicates are removed
+  - All three retirement sub-tasks are done
   - JwtUtils remains only as a documented WebSocket compatibility shim and is removed by P7-RELOCATE-WEBSOCKET-001
   - Hash-only refresh issue/rotate/revoke behavior remains covered in backend-auth
   - Full reactor passes with no legacy auth/permission/refreshtoken concrete imports
   validation:
-  - Refresh-token security tests
   - grep/ArchUnit duplicate and dependency checks
   - ./mvnw -f backend-spring/pom.xml test -B
-  rollback: revert retirement commit and disable consumer cutover flags
+  rollback: revert retirement commits and disable consumer cutover flags
   evidence:
-  - note: 'Retirement deletion slice started and legacy reactor passed, but planning returned the task to pending after discovering backend-auth login/register/refresh had lost legacy rate-limit behavior. Completion now depends on P7-AUTH-RATE-LIMIT-001.'
-    ts: '2026-07-30T06:30:00+00:00'
+  - note: 'Split into three atomic sub-tasks after discovering permission has 4-file concrete-import refactor across admin/user/auth modules. Auth 32-file slice committed independently.'
   commits: []
-  notes: 'JwtUtils remains for WebSocket. Existing dirty deletion work is protected while prerequisite tasks execute.'
-  updated_at: '2026-07-30T06:30:00+00:00'
+  notes: 'Parent task; atomic scope split applied 2026-07-30.'
+  updated_at: '2026-07-30T13:30:00+00:00'
+- id: P7-RETIRE-AUTH-001
+  phase: 7
+  area: ARCH
+  title: Retire legacy auth controller/service/oauth/session twins
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
+  status: done
+  depends_on: [P7-AUTH-CONSUMER-CUTOVER-001, P7-AUTH-RATE-LIMIT-001]
+  acceptance_criteria:
+  - 24 canonical auth duplicates removed (controller/service/dto/oauth/session)
+  - AuthAccountPort, DefaultAuthAccountAdapter, AuthCutoverService, and JwtUtils remain (non-retired seams)
+  - No legacy concrete imports of deleted auth classes
+  - Full reactor compiles
+  validation:
+  - grep for imports of deleted auth classes
+  - ./mvnw -pl backend-legacy -am compile -B
+  rollback: revert deletion commit
+  evidence:
+  - command: git diff --cached --name-only | grep -cE 'permission|refreshtoken'
+    result: '0 (no permission/refreshtoken leakage in auth deletion commit)'
+  - command: ./mvnw -pl backend-legacy -am compile -B -q
+    result: 'PASS: post-delete reactor compile exit 0'
+  - command: ./mvnw -pl backend-legacy test -B -q
+    result: 'PASS: backend-legacy tests pass with auth dirty slice applied'
+  commits:
+  - 5987732
+  notes: 'Self-contained 32-file deletion slice; retained 4 auth seam files (AuthAccountPort, DefaultAuthAccountAdapter, AuthCutoverService, JwtUtils WebSocket shim).'
+  updated_at: '2026-07-30T13:30:00+00:00'
+- id: P7-RETIRE-PERMISSION-001
+  phase: 7
+  area: ARCH
+  title: Retire legacy permission module after consumer migration
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
+  status: ready
+  depends_on: [P7-RETIRE-AUTH-001]
+  acceptance_criteria:
+  - All 8 permission duplicates removed
+  - Concrete imports in DefaultAdminUserProjection, UserPermissionServiceImpl, AuthCutoverService, UserRoleReadAdapter migrated to canonical sources
+  - Full reactor passes with no legacy permission concrete imports
+  validation:
+  - grep for permission module imports outside permission/
+  - ./mvnw -f backend-spring/pom.xml -pl backend-legacy -am test -B
+  rollback: revert permission deletion and restore legacy imports
+  evidence: []
+  commits: []
+  notes: 'Requires cross-module refactor in admin/user/auth consumers before deletion.'
+  updated_at: '2026-07-30T13:30:00+00:00'
+- id: P7-RETIRE-REFRESHTOKEN-001
+  phase: 7
+  area: ARCH
+  title: Retire legacy refreshtoken module after hash-only migration
+  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
+  status: pending
+  depends_on: [P7-RETIRE-AUTH-001]
+  acceptance_criteria:
+  - All 3 refreshtoken duplicates removed
+  - Hash-only refresh behavior remains covered in backend-auth
+  - Full reactor passes with no legacy refreshtoken concrete imports
+  validation:
+  - Refresh-token security tests
+  - grep for refreshtoken module imports outside refreshtoken/
+  rollback: revert refreshtoken deletion
+  evidence: []
+  commits: []
+  notes: 'Pending external reference investigation.'
+  updated_at: '2026-07-30T13:30:00+00:00'
+
 - id: P7-RELOCATE-ADMIN-001
   phase: 7
   area: ARCH

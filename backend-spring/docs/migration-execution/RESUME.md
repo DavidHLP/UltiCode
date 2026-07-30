@@ -10,7 +10,10 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - Completed: `P7-WEB-SECURITY-INFRA-001` (commit f2af7e1).
 - Completed: `P7-AUTH-WEB-ERRORS-001` (commit dc61f0e).
 - Completed: `P7-AUTH-RATE-LIMIT-001` (commit 86fa560).
-- Active ready task: `P7-AUTH-RETIRE-001` — 32-file deletion slice previously blocked on rate-limit behavior now unblocked.
+- `P7-AUTH-RETIRE-001` split into three sub-tasks.
+- Completed: `P7-RETIRE-AUTH-001` (commit 5987732) — 32 auth files deleted.
+- Active ready task: `P7-RETIRE-PERMISSION-001` — 8 permission files require cross-module consumer migration.
+- `P7-RETIRE-REFRESHTOKEN-001` pending external reference investigation.
 - `P7-AUTH-RETIRE-001` remains pending with its 32-file dirty deletion slice protected; backend-auth Web error and endpoint rate-limit behavior must be restored first.
 - Completed: `P7-AUTH-CONSUMER-CUTOVER-001` (commit 4dd2792).
 - Completed: `P7-AUTH-ADMIN-PROVIDER-001` (commit 93a99b7).

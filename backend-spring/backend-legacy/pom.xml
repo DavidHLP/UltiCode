@@ -57,6 +57,10 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-app-api</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-auth-api</artifactId>
+		</dependency>
 
 		<!-- Spring Boot Starters -->
 		<dependency>

@@ -17,6 +17,16 @@ import com.ulticode.common.response.PageResult;
  * the local {@code com.ulticode.modules.admin.service.AdminNotificationService}
  * port until they migrate to backend-app, at which point they switch to
  * {@code @DubboReference} on this interface.
+ *
+ * <p><b>Provider implementation deferred to P7-RELOCATE-INFRA-001.</b>
+ * The legacy {@code AdminNotificationServiceImpl} and its projection
+ * ({@code DefaultAdminNotificationProjection}) read the {@code notification}
+ * table via {@code Notification} entity + {@code NotificationMapper}, which
+ * are owned by the notification module. Until that entity relocates to
+ * backend-admin or backend-app (P7-RELOCATE-INFRA-001), a Provider here cannot
+ * satisfy this contract without introducing a cross-module entity import that
+ * violates the admin ownership boundary. The contract layer is complete and
+ * locked by {@code BackendAdminApiContractShapeTest}.
  */
 public interface AdminNotificationService {
 

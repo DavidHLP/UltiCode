@@ -7,7 +7,8 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 ## Active / Next Task
 
 - Active parent `P7-RELOCATE-AUTH-001` was superseded by five atomic cutover tasks.
-- Next ready task: `P7-AUTH-CONSUMER-CUTOVER-001`.
+- Next ready task: `P7-AUTH-RETIRE-001`.
+- Completed: `P7-AUTH-CONSUMER-CUTOVER-001` (commit 4dd2792).
 - Completed: `P7-AUTH-ADMIN-PROVIDER-001` (commit 93a99b7).
 - Completed: `P7-AUTH-QUERY-PROVIDERS-001` (commit 29bc310).
 - Completed: `P7-AUTH-IDEMPOTENCY-SCHEMA-001` (commit 0815da7).
@@ -34,6 +35,7 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - `0815da7` feat(auth): add durable command receipt migration for RPC idempotency
 - `29bc310` feat(auth): implement identity and authorization snapshot query Dubbo providers
 - `93a99b7` feat(auth): implement account administration Dubbo provider with transactional engine and durable idempotency
+- `4dd2792` feat(auth): implement feature-flagged consumer routing adapter AuthCutoverService
 
 ## Worktree / Delivery
 

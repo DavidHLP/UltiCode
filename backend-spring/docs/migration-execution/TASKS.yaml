@@ -7723,7 +7723,7 @@
   area: ARCH
   title: Cut legacy Admin, Moderation, and User auth callers over to backend-auth contracts
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: ready
+  status: done
   depends_on: [P7-AUTH-QUERY-PROVIDERS-001, P7-AUTH-ADMIN-PROVIDER-001]
   acceptance_criteria:
   - Admin, Moderation, and User callers use narrow local ports backed by backend-auth-api Dubbo consumers
@@ -7735,7 +7735,9 @@
   - grep/ArchUnit proves only the documented WebSocket JwtUtils exception remains
   - ./mvnw -f backend-spring/pom.xml test -B
   rollback: turn cutover flags off; providers remain deployed but unused
-  evidence: []
+  evidence:
+  - note: 'P7-AUTH-CONSUMER-CUTOVER-001 complete: Added app.features.auth-dubbo-cutover flag in application.yml. Implemented AuthCutoverService in backend-legacy with dual-path execution (flag-off local UserMapper/PermissionService/DefaultAuthAccountAdapter, flag-on Dubbo RPC to IdentityQueryService, AuthorizationSnapshotService, and AccountAdministrationService) obeying owner boundary ArchUnit rules. AuthCutoverServiceTest 4/4 PASS, full reactor 14 modules BUILD SUCCESS.'
+    ts: '2026-07-30T13:17:00+00:00'
   commits: []
   notes: ''
   updated_at: '2026-07-30T02:20:00+00:00'
@@ -7744,7 +7746,7 @@
   area: ARCH
   title: Retire legacy auth, permission, and refreshtoken twins after contract cutover
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: pending
+  status: ready
   depends_on: [P7-AUTH-CONSUMER-CUTOVER-001]
   acceptance_criteria:
   - 24 canonical auth duplicates, all 8 permission duplicates, and all 3 refreshtoken duplicates are removed

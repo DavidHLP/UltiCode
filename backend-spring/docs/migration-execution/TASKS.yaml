@@ -7898,6 +7898,7 @@
   rollback: revert permission deletion and restore legacy imports
   evidence:
   - note: 'API contract layer committed: PermissionEntry record, AuthorizationSnapshotDTO extended with permissionEntries field, RoleTemplateService Dubbo contract. Provider implementation and legacy consumer migration deferred to next session per user decision (option J: split sessions).'
+  - note: 'Data model audit (2026-07-30): user_permissions.expires_at exists in DDL + backend-auth entity + PermissionService.getUserPermissions returns it. role_permissions has no expires_at (correct - role perms never expire). source is a derived field (role vs direct based on source table), no DDL change needed. Option A contract (commit 1f8d614) is safe to implement without schema changes or rollback to option B.'
   commits:
   - 1f8d614
   notes: 'Requires cross-module refactor in admin/user/auth consumers before deletion. API shape: Option A (extend DTO + RoleTemplate RPC). Dual-path: Option F (backend-auth direct call).'

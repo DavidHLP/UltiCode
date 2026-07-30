@@ -7838,7 +7838,7 @@
   area: ARCH
   title: Retire legacy auth, permission, and refreshtoken twins after contract cutover
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: pending
+  status: ready
   depends_on: [P7-AUTH-CONSUMER-CUTOVER-001, P7-AUTH-RATE-LIMIT-001]
   acceptance_criteria:
   - 24 canonical auth duplicates, all 8 permission duplicates, and all 3 refreshtoken duplicates are removed

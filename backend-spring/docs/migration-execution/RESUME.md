@@ -29,6 +29,7 @@ Phase 7 — retire `backend-legacy` through dependency-correct family relocation
 - backend-auth AuthController now enforces login 10/60, register 5/60, and refresh 20/60 through the canonical RateLimit interface.
 
 - Legacy auth duplicate map: 24/25 have canonical backend-auth counterparts; `JwtUtils` is the WebSocket-specific exception.
+- Retained auth seams (by design, do NOT delete): `AuthAccountPort`, `AuthCutoverService`, `DefaultAuthAccountAdapter`, `JwtUtils` (WebSocket shim, removed by P7-RELOCATE-WEBSOCKET-001).
 - Legacy permission duplicate map: 8/8 have canonical counterparts.
 - `backend-auth-api` declares three business services, but backend-auth currently exports only `AuthRpcHealthProvider`.
 - `users.authz_version` exists in additive migrations, but `AuthAccountRecord`/`AuthAccountPort` do not expose it.

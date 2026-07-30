@@ -7810,7 +7810,7 @@
   area: SECURITY
   title: Restore backend-auth endpoint rate-limit behavior
   source: [ADR-P7-WEB-SECURITY-RATE-LIMIT]
-  status: ready
+  status: done
   depends_on: [P7-WEB-SECURITY-INFRA-001, P7-AUTH-WEB-ERRORS-001]
   acceptance_criteria:
   - backend-auth AuthController enforces login 10/60, register 5/60, and refresh 20/60 through the canonical RateLimit interface
@@ -7822,10 +7822,17 @@
   - ./mvnw -f backend-spring/pom.xml -pl backend-auth -am test -B
   - Dependency and duplicate-import audit
   rollback: remove endpoint annotations and keep legacy controller retirement disabled
-  evidence: []
-  commits: []
+  evidence:
+  - command: ./mvnw -pl backend-auth -am -Dtest=AuthControllerRateLimitTest -Dsurefire.failIfNoSpecifiedTests=false test -B -q
+    result: 'PASS: 4 proxied endpoint tests; login 10/60, register 5/60, refresh 20/60; N+1 returns 429/code 42900/positive Retry-After; rejected requests skip AuthService'
+  - command: ./mvnw -pl backend-auth -am test -B -q
+    result: 'PASS: backend-auth full reactor'
+  - command: git diff --check
+    result: PASS
+  commits:
+  - 86fa560
   notes: 'Behavior-compatibility prerequisite for P7-AUTH-RETIRE-001, not a deferred follow-up.'
-  updated_at: '2026-07-30T09:30:00+00:00'
+  updated_at: '2026-07-30T13:15:00+00:00'
 - id: P7-AUTH-RETIRE-001
   phase: 7
   area: ARCH

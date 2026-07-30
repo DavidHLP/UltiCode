@@ -152,7 +152,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     }
 
     private void requireSuperAdminForManagePermissionsSystem(String action, String resource) {
-        if (!("MANAGE_PERMISSIONS".equals(action) && "SYSTEM".equals(resource))) {
+        if (!"MANAGE_PERMISSIONS".equalsIgnoreCase(action) || !"SYSTEM".equalsIgnoreCase(resource)) {
             return;
         }
         if (!currentUserProvider.hasRole("SUPER_ADMIN")) {

@@ -199,4 +199,52 @@ class UserPermissionServiceImplTest {
         assertThat(cmds.get(0).idempotency().idempotencyKey()).isEqualTo(cmds.get(1).idempotency().idempotencyKey());
         assertThat(cmds.get(0).idempotency().idempotencyKey()).contains("t-1700000000000");
     }
+    @Test
+    @DisplayName("MANAGE_PERMISSIONS:SYSTEM grant by non-SUPER_ADMIN throws FORBIDDEN")
+    void managePermissionsSystemByAdminThrows() {
+        User u = createValidUser();
+        u.setRole("ADMIN");
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(false);
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "MANAGE_PERMISSIONS", "SYSTEM", null))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    BusinessException be = (BusinessException) ex;
+                    assertThat(be.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+                });
+    }
+
+    @Test
+    @DisplayName("MANAGE_PERMISSIONS:SYSTEM grant by SUPER_ADMIN is allowed")
+    void managePermissionsSystemBySuperAdminAllowed() {
+        User u = createValidUser();
+        u.setRole("SUPER_ADMIN");
+        when(userMapper.selectById("user-123")).thenReturn(u);
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
+        AdminUserVO vo = new AdminUserVO();
+        vo.setId("user-123");
+        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
+
+        AdminUserVO result = userPermissionService.assignUserPermission(
+                "user-123", "MANAGE_PERMISSIONS", "SYSTEM", null);
+
+        assertThat(result).isNotNull();
+        verify(authCutoverService).changeAuthorization(any(ChangeAuthorizationCommand.class));
+    }
+
+    @Test
+    @DisplayName("guard is case-insensitive: lowercase manage_permissions:system still blocked for non-SUPER_ADMIN")
+    void managePermissionsSystemCaseInsensitive() {
+        User u = createValidUser();
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(false);
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "manage_permissions", "system", null))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    BusinessException be = (BusinessException) ex;
+                    assertThat(be.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+                });
+    }
 }

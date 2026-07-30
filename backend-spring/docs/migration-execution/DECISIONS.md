@@ -1158,3 +1158,13 @@ retains complete coverage without temporary layering violations.
 **Consequences.** Three sequential prerequisites are introduced. `P7-AUTH-RETIRE-001` returns to pending while dirty deletion work remains protected. Completion requires infrastructure Redis coverage, exception-contract coverage, and real proxied backend-auth endpoint coverage.
 
 **Affected tasks.** `P7-WEB-SECURITY-INFRA-001`, `P7-AUTH-WEB-ERRORS-001`, `P7-AUTH-RATE-LIMIT-001`, `P7-AUTH-RETIRE-001`.
+
+### ADR-P7-ADMIN-RPC-BOUNDARY: admin consumers always cross process boundary via Dubbo
+
+**Context.** P7-RELOCATE-ADMIN-001 relocates admin (213 src) + backup (18 src) to backend-admin as an independent service. Source verification found 14 external files across 8 modules (auth/contest/moderation/notification/problem/submission/user/websocket) import admin classes. All these consumers will eventually migrate to backend-app (P7-RELOCATE-APP-001/CORE-001/INFRA-001) or backend-auth. Therefore admin and its consumers are always in separate processes.
+
+**Decision.** Following the cutover pattern of ADR-P7-AUTH-RETIREMENT-CUTOVER, backend-admin implements Dubbo providers for externally-consumed admin services (for future backend-app consumers) while also providing in-process port/adapter implementations in backend-legacy (for current backend-legacy consumers). Consumers in backend-legacy continue using local Spring injection of port interfaces until they migrate to backend-app, at which point they switch to @DubboReference. No forced @DubboReference migration is imposed on backend-legacy consumers during P7-RELOCATE-ADMIN-001.
+
+**Consequences.** backend-admin-api module declares Dubbo contracts for all externally-consumed admin services. The 10 existing port interfaces stay in backend-legacy as consumer-side bindings; backend-admin provides in-process adapter implementations for them throughout P7-RELOCATE-ADMIN-001 and the subsequent consumer relocations. `P7-LEGACY-REMOVAL` deletes these port interfaces only after verifying zero remaining concrete inbound references, mirroring the auth retirement gate.
+
+**Affected tasks.** `P7-RELOCATE-ADMIN-001`, `P7-RELOCATE-APP-001`, `P7-RELOCATE-CORE-001`, `P7-RELOCATE-INFRA-001`, `P7-LEGACY-REMOVAL`.

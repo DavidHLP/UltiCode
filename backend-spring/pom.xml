@@ -25,6 +25,7 @@
 		<module>backend-moderation-domain</module>
 		<module>backend-auth</module>
 		<module>backend-admin</module>
+		<module>backend-web-security</module>
 		<module>backend-app</module>
 		<module>backend-legacy</module>
 	</modules>
@@ -107,6 +108,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-legacy</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-web-security</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

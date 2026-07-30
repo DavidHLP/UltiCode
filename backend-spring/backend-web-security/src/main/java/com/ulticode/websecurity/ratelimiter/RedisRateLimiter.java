@@ -1,9 +1,8 @@
-package com.ulticode.common.ratelimiter;
+package com.ulticode.websecurity.ratelimiter;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -24,12 +23,10 @@ import java.util.concurrent.TimeUnit;
  * refreshes the TTL on every request, which means the effective window
  * is "sliding since last activity" rather than "fixed since first
  * request in window". This is the original behavior preserved by the
- * refactor — changing the algorithm is out of scope for the
- * deep-module extraction.
+ * deep-module extraction — changing the algorithm is out of scope.
  *
  * <p>The {@code "rate-limit:"} key prefix lives here, not in the aspect.
  */
-@Component
 @RequiredArgsConstructor
 public class RedisRateLimiter implements RateLimiter {
 

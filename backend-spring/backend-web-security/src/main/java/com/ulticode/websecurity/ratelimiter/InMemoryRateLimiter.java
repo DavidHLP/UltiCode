@@ -1,4 +1,4 @@
-package com.ulticode.common.ratelimiter;
+package com.ulticode.websecurity.ratelimiter;
 
 import com.ulticode.common.time.TimeSource;
 import com.ulticode.common.time.TimeSourceHolder;
@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p><strong>Not a {@code @Component}.</strong> Production wiring uses
  * {@link RedisRateLimiter}; this class exists so unit tests of the
- * {@link com.ulticode.common.aspect.RateLimitAspect} can exercise the
+ * {@link com.ulticode.websecurity.aspect.RateLimitAspect} can exercise the
  * rate-check path without Redis or Testcontainers. Tests construct it
  * directly ({@code new InMemoryRateLimiter()}) or inject it via Mock.
  *
@@ -19,14 +19,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * current count and the epoch-millis at which it expires. Synchronized
  * (coarse) — sufficient for tests, where throughput is not a concern.
  * Lazy eviction on access — expired buckets are replaced, never
- * actively reaped, so the map may grow in long-running tests; callers
- * that care should construct a fresh instance per test.
+ * actively reaped.
  *
  * <p>Time source: the wall clock is read through the {@link TimeSource}
  * seam so tests can pin a deterministic {@code now} and assert on the
  * bucket's expiry without sleeping. Defaults to
- * {@link TimeSourceHolder#get()} when no source is injected; tests that
- * need determinism should construct with a {@code FakeTimeSource}.
+ * {@link TimeSourceHolder#get()} when no source is injected.
  */
 public class InMemoryRateLimiter implements RateLimiter {
 

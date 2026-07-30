@@ -1,6 +1,6 @@
 package com.ulticode.modules.solution.controller;
 
-import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;

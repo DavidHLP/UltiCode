@@ -1,5 +1,7 @@
 package com.ulticode.common.util;
 
+import com.ulticode.websecurity.util.ClientIpResolver;
+
 import com.ulticode.common.audit.AuditSinkPort;
 import com.ulticode.common.auth.CurrentUserProvider;
 import jakarta.servlet.http.HttpServletRequest;

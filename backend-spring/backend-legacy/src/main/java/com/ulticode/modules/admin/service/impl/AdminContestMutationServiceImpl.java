@@ -26,6 +26,7 @@ import com.ulticode.modules.contest.port.ContestOwnerPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,9 +80,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminContestMutationServiceImpl implements AdminContestMutationService {
 
-    private final ContestMapper contestMapper;
-    private final ContestProblemMapper contestProblemMapper;
-    private final ContestAnnouncementMapper contestAnnouncementMapper;
+    @Autowired
+    private ContestMapper contestMapper;
+    @Autowired
+    private ContestProblemMapper contestProblemMapper;
+    @Autowired
+    private ContestAnnouncementMapper contestAnnouncementMapper;
     private final ContestAnnouncementPushPort contestAnnouncementPushPort;
     private final AdminContestReadPort contestReadPort;
     private final Clock clock;

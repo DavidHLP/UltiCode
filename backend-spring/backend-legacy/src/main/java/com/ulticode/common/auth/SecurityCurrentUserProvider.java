@@ -1,5 +1,7 @@
 package com.ulticode.common.auth;
 
+import com.ulticode.common.auth.CurrentUserProvider;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;

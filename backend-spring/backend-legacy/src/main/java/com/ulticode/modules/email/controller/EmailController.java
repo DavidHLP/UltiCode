@@ -1,6 +1,6 @@
 package com.ulticode.modules.email.controller;
 
-import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.email.dto.*;

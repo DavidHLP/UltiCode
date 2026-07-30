@@ -1,36 +1,33 @@
-package com.ulticode.common.aspect;
+package com.ulticode.websecurity.aspect;
 
-import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.ratelimiter.AcquisitionVerdict;
-import com.ulticode.common.ratelimiter.RateLimiter;
-import com.ulticode.common.util.ClientIpResolver;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.websecurity.ratelimiter.AcquisitionVerdict;
+import com.ulticode.websecurity.ratelimiter.RateLimiter;
+import com.ulticode.websecurity.util.ClientIpResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 
 /**
- * 限流切面
- * <p>Owns request-context key generation (placeholder substitution +
- * user/IP detection). The actual rate check — Redis Lua script, key
- * prefix, counter logic — is delegated to the {@link RateLimiter} port.
- * See {@code /tmp/architecture-review-1783420414.html} candidate 5.
+ * AOP advice for {@link RateLimit} — owns request-context key generation
+ * (placeholder substitution + user/IP detection). The actual rate check —
+ * Redis Lua script, key prefix, counter logic — is delegated to the
+ * {@link RateLimiter} port.
  *
- * <p>Two adapters justify the seam: {@link com.ulticode.common.ratelimiter.RedisRateLimiter}
- * in prod, {@link com.ulticode.common.ratelimiter.InMemoryRateLimiter} in
- * tests. The aspect is now unit-testable without Redis.
+ * <p>Two adapters justify the seam: {@link com.ulticode.websecurity.ratelimiter.RedisRateLimiter}
+ * in prod, {@link com.ulticode.websecurity.ratelimiter.InMemoryRateLimiter} in
+ * tests. The aspect is unit-testable without Redis.
  */
 @Slf4j
 @Aspect
-@Component
 @RequiredArgsConstructor
 public class RateLimitAspect {
 
@@ -38,7 +35,7 @@ public class RateLimitAspect {
     private final ClientIpResolver clientIpResolver;
     private final CurrentUserProvider currentUserProvider;
 
-    @Around("@annotation(com.ulticode.common.annotation.RateLimit)")
+    @Around("@annotation(com.ulticode.websecurity.annotation.RateLimit)")
     public Object enforceRateLimit(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
@@ -49,7 +46,7 @@ public class RateLimitAspect {
         AcquisitionVerdict verdict = rateLimiter.tryAcquire(key, rateLimit.limit(), rateLimit.period());
         if (!verdict.allowed()) {
             log.warn("Rate limit exceeded for key: {}, retryAfter: {}s", key, verdict.retryAfterSeconds());
-            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS,
+            throw new BusinessException(BaseErrorCode.TOO_MANY_REQUESTS,
                     "Rate limit exceeded. Please try again in " + verdict.retryAfterSeconds() + " seconds.");
         }
 
@@ -95,7 +92,7 @@ public class RateLimitAspect {
         if (template == null || !template.contains("{")) {
             return template;
         }
-        java.lang.reflect.Parameter[] params = ((org.aspectj.lang.reflect.MethodSignature)
+        java.lang.reflect.Parameter[] params = ((MethodSignature)
                 joinPoint.getSignature()).getMethod().getParameters();
         Object[] args = joinPoint.getArgs();
         StringBuilder out = new StringBuilder(template.length());
@@ -123,20 +120,14 @@ public class RateLimitAspect {
 
     private String lookupParam(java.lang.reflect.Parameter[] params, Object[] args, String name) {
         if (params == null || args == null) return null;
-        // R8.2 review fix: Java's default compile flag does NOT
-        // preserve parameter names — params[i].getName() returns
-        // "arg0", "arg1" etc. Instead, we look up the @PathVariable /
-        // @RequestParam annotation's `name` attribute (and fall back
-        // to the @PathVariable's `value` for older Spring idioms).
+        // Look up by @PathVariable / @RequestParam annotation name (and value for older Spring idioms).
         for (int i = 0; i < params.length; i++) {
             if (i >= args.length) break;
-            org.springframework.web.bind.annotation.PathVariable pv =
-                params[i].getAnnotation(org.springframework.web.bind.annotation.PathVariable.class);
+            var pv = params[i].getAnnotation(org.springframework.web.bind.annotation.PathVariable.class);
             if (pv != null && name.equals(pv.name().isEmpty() ? pv.value() : pv.name())) {
                 return String.valueOf(args[i]);
             }
-            org.springframework.web.bind.annotation.RequestParam rp =
-                params[i].getAnnotation(org.springframework.web.bind.annotation.RequestParam.class);
+            var rp = params[i].getAnnotation(org.springframework.web.bind.annotation.RequestParam.class);
             if (rp != null && name.equals(rp.name().isEmpty() ? rp.value() : rp.name())) {
                 return String.valueOf(args[i]);
             }

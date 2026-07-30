@@ -98,9 +98,12 @@ class AdminContestMutationServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AdminContestMutationServiceImpl(
-                contestMapper, contestProblemMapper, contestAnnouncementMapper,
                 contestAnnouncementPushPort, contestReadPort, clock,
                 adminContestProjection, currentUserProvider, contestOwnerPort);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "contestMapper", contestMapper);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "contestProblemMapper", contestProblemMapper);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "contestAnnouncementMapper", contestAnnouncementMapper);
         when(currentUserProvider.getCurrentUserId()).thenReturn(ADMIN_USER_ID);
     }
 

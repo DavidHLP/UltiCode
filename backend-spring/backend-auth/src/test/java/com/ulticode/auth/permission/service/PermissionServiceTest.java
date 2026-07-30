@@ -9,7 +9,7 @@ import com.ulticode.auth.permission.mapper.RolePermissionMapper;
 import com.ulticode.auth.permission.mapper.UserPermissionMapper;
 import com.ulticode.auth.permission.port.UserRoleReadPort;
 import com.ulticode.auth.permission.service.impl.PermissionServiceImpl;
-import com.ulticode.auth.security.CurrentUserProvider;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.auth.util.FixedUuidGenerator;
 import com.ulticode.common.error.BaseErrorCode;
 import org.junit.jupiter.api.BeforeEach;

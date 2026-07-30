@@ -24,7 +24,7 @@ package com.ulticode.common.system;
  * Two adapters justify the seam per the architecture glossary: a
  * {@link JvmSystemProbe} for production and a test-only
  * {@code FakeSystemProbe} constructed in the unit tests. Mirrors the
- * {@link com.ulticode.common.ratelimiter.RateLimiter} pattern
+ * {@link com.ulticode.websecurity.ratelimiter.RateLimiter} pattern
  * (RedisRateLimiter + InMemoryRateLimiter).
  *
  * <p>Callers: {@code monitoring} module (resource usage, health probes).

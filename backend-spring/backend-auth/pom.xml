@@ -24,6 +24,11 @@
 			<artifactId>backend-auth-api</artifactId>
 		</dependency>
 
+		<!-- P7-WEB-SECURITY-INFRA-001: canonical rate-limit deep module. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-web-security</artifactId>
+		</dependency>
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

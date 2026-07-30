@@ -9,7 +9,7 @@ import java.util.Map;
  * <p>Owns the audit-emission policy that used to live in
  * {@code com.ulticode.common.util.AuditHelper} (deprecated shim): performer
  * resolution from {@link com.ulticode.common.auth.CurrentUserProvider},
- * client IP from {@link com.ulticode.common.util.ClientIpResolver}, user-agent
+ * client IP from {@link com.ulticode.websecurity.util.ClientIpResolver}, user-agent
  * capture from the current request, and final dispatch to
  * {@link AuditSinkPort}. Callers crossing this seam get identical metadata
  * capture to {@code @Audited} methods without needing a Spring proxy.

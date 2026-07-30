@@ -1,4 +1,4 @@
-package com.ulticode.common.util;
+package com.ulticode.websecurity.util;
 
 import org.mockito.Mock;
 import jakarta.servlet.http.HttpServletRequest;

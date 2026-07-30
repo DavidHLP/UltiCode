@@ -3,7 +3,7 @@ package com.ulticode.common.aspect;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditSinkPort;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.common.util.ClientIpResolver;
+import com.ulticode.websecurity.util.ClientIpResolver;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.CodeSignature;
 import org.junit.jupiter.api.Test;

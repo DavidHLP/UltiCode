@@ -1,6 +1,6 @@
 package com.ulticode.modules.contest.controller;
 
-import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.service.ScoringRuleService;

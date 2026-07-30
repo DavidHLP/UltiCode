@@ -45,6 +45,12 @@
 			<artifactId>backend-common</artifactId>
 		</dependency>
 
+		<!-- P7-WEB-SECURITY-INFRA-001: canonical rate-limit deep module. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-web-security</artifactId>
+		</dependency>
+
 		<!--
 		  P4-CUTOVER-001: provider-owned Dubbo contract module for App.
 		  backend-legacy implements the Provider (ProblemAdministrationProvider)

@@ -1,4 +1,4 @@
-package com.ulticode.common.ratelimiter;
+package com.ulticode.websecurity.ratelimiter;
 
 import com.ulticode.common.time.FakeTimeSource;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.ulticode</groupId>
+		<artifactId>ulticode-backend</artifactId>
+		<version>1.0.0</version>
+	</parent>
+	<artifactId>backend-web-security</artifactId>
+	<properties>
+		<argLine></argLine>
+	</properties>
+	<name>UltiCode Backend (web-security infrastructure — rate-limit deep module)</name>
+	<description>
+		P7-WEB-SECURITY-INFRA-001: canonical RateLimit annotation, AOP advice,
+		limiter port/adapters, Redis Lua implementation, client-IP resolution, and
+		Spring configuration. This module is the shared deep module; each service
+		shell (backend-legacy, backend-auth) retains its own Spring Security
+		filter-chain and SecurityContextHolder adapter.
+	</description>
+
+	<dependencies>
+		<!--
+		  P1-INFRA-002: dependency-free shared atoms (Result, PageResult,
+		  ErrorCode, BusinessException, TimeSource/TimeSourceHolder, trace/id
+		  metadata). No service-shell dependency.
+		-->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-common</artifactId>
+		</dependency>
+
+		<!-- Spring AOP for @Aspect / @Around advice -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+
+		<!-- Spring Web: needed for @RestController resolution on test classpath -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Spring Data Redis: required by RedisRateLimiter -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
+		<!-- Lombok -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- Test dependencies -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.2.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>1.21.4</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.redis</groupId>
+			<artifactId>testcontainers-redis</artifactId>
+			<version>2.2.4</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+</project>

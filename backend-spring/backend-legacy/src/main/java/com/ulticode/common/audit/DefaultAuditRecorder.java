@@ -1,7 +1,7 @@
 package com.ulticode.common.audit;
 
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.common.util.ClientIpResolver;
+import com.ulticode.websecurity.util.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

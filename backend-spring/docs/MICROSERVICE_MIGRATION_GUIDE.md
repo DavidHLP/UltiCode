@@ -704,6 +704,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 backend-spring/
 ├── pom.xml                         # packaging=pom，dependency/plugin management
 ├── backend-common/                 # Result/PageResult、最小错误/trace/id 工具
+├── backend-web-security/           # Spring Web 限流基础设施；不拥有 SecurityFilterChain
 ├── backend-api/
 │   ├── pom.xml
 │   ├── backend-auth-api/           # provider-owned Auth Dubbo contracts/DTO

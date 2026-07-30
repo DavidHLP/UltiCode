@@ -3,13 +3,19 @@ package com.ulticode.common.auth;
 /**
  * Port for accessing the current authenticated user's identity and roles.
  *
- * <p>Replaces the old static {@code SecurityUtil} coupling (and the
- * {@code SecurityContextHolder.getContext().getAuthentication()} leaks that
- * survived the 2026-07-08 review). Production code now depends on this
- * interface, making the security context injectable and mockable in tests.
+ * <p>Replaces the old static {@code SecurityUtil} coupling. Production code
+ * depends on this interface, making the security context injectable and
+ * mockable in tests.
  *
- * <p>Adapters: {@link SecurityCurrentUserProvider} (prod, wraps SecurityContextHolder),
- * any test double (inject in {@code @BeforeEach}).
+ * <p>Adapters:
+ * <ul>
+ *   <li>{@link SecurityCurrentUserProvider} (prod, wraps SecurityContextHolder)</li>
+ *   <li>any test double (inject via {@code @MockBean} or direct construction)</li>
+ * </ul>
+ *
+ * <p>This interface owns the canonical five-method seam. Shell adapters that
+ * read {@code SecurityContextHolder} are retained in their respective shells
+ * ({@code backend-legacy}, {@code backend-auth}) and implement this interface.
  */
 public interface CurrentUserProvider {
 

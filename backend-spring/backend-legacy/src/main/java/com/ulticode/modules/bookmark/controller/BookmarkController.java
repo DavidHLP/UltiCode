@@ -1,6 +1,6 @@
 package com.ulticode.modules.bookmark.controller;
 
-import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.bookmark.dto.*;

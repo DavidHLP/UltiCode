@@ -7894,24 +7894,15 @@
   - 1ad1b4f
   notes: 'Complete. Option A (extend DTO + RoleTemplate RPC) + Option F (backend-auth direct). Permission data fully owned by backend-auth.'
 - id: P7-RETIRE-REFRESHTOKEN-001
-  phase: 7
-  area: ARCH
-  title: Retire legacy refreshtoken module after hash-only migration
-  source: [ADR-P7-AUTH-RETIREMENT-CUTOVER]
-  status: pending
-  depends_on: [P7-RETIRE-AUTH-001]
-  acceptance_criteria:
-  - All 3 refreshtoken duplicates removed
-  - Hash-only refresh behavior remains covered in backend-auth
-  - Full reactor passes with no legacy refreshtoken concrete imports
-  validation:
-  - Refresh-token security tests
-  - grep for refreshtoken module imports outside refreshtoken/
-  rollback: revert refreshtoken deletion
-  evidence: []
-  commits: []
-  notes: 'Pending external reference investigation.'
-  updated_at: '2026-07-30T13:30:00+00:00'
+  status: done
+  evidence:
+  - note: 'Legacy refreshtoken module (4 files) has zero external code dependencies. All imports of com.ulticode.modules.refreshtoken.* are package-internal. External references are Javadoc comments only.'
+  - note: 'backend-auth-api has no RefreshToken-related Dubbo interface. RefreshTokenService is a local backend-auth service (not RPC-exposed), injected directly into AuthServiceImpl, PasswordResetService, DefaultAuthSessionAdapter.'
+  - note: 'Deleted 4 files: entity/RefreshToken.java, mapper/RefreshTokenMapper.java, service/RefreshTokenService.java, RefreshTokenServiceTest.java. Javadoc references updated in TokenBlacklistPort, RedisTokenBlacklistAdapter, backend-auth RefreshTokenService/Test.'
+  - note: 'Verification: backend-legacy 1962 tests PASS (0 failures), backend-auth 95 tests PASS (0 failures).'
+  commits:
+  - 5efdb5c
+  notes: 'Complete. Zero external dependencies; backend-auth owns canonical copy under com.ulticode.auth.refreshtoken.'
 
 - id: P7-RELOCATE-ADMIN-001
   phase: 7

@@ -10,6 +10,7 @@ import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
@@ -25,9 +26,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -87,9 +93,33 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         if (authCutoverService != null) {
             String actorId = currentUserProvider != null ? currentUserProvider.getCurrentUserId() : "admin";
             ActorDelegation actor = new ActorDelegation("ADMIN", actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
+
+            // Compute target full replacement permission set
+            Set<String> targetPermissions = new HashSet<>();
+            if (beforeVo != null && beforeVo.getPermissions() != null) {
+                targetPermissions = beforeVo.getPermissions().stream()
+                        .map(p -> p.getAction() + ":" + p.getResource())
+                        .collect(Collectors.toSet());
+            }
+
+            String targetPermStr = action + ":" + resource;
+            if (isRevoke) {
+                targetPermissions.remove(targetPermStr);
+            } else {
+                targetPermissions.add(targetPermStr);
+            }
+
+            // Bind idempotency key to current request/trace identity so retries share key but distinct operations over time do not collide
+            String traceId = TraceIdUtil.current();
+            if (traceId == null || traceId.isBlank()) {
+                traceId = "t-" + UUID.randomUUID().toString();
+            }
+            String stableKey = "auth-perm-" + traceId + "-" + id + "-" + action + "-" + resource;
+            String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
+
             ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), actor, TraceMetadata.EMPTY,
-                    id, 0L, user.getRole(), java.util.Set.of(action + ":" + resource), "permission change"
+                    commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(traceId, null, null, null),
+                    id, 0L, user.getRole(), targetPermissions, isRevoke ? "revoke permission" : "grant permission"
             );
             authCutoverService.changeAuthorization(command);
         } else if (isRevoke) {

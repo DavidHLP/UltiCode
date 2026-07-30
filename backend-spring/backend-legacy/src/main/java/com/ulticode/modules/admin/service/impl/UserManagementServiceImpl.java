@@ -13,6 +13,7 @@ import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
@@ -92,8 +93,14 @@ public class UserManagementServiceImpl implements UserManagementService {
             try {
                 if (authCutoverService != null) {
                     ActorDelegation actor = new ActorDelegation("ADMIN", "admin", "admin", "admin user create");
+                    String reqId = TraceIdUtil.current();
+                    if (reqId == null || reqId.isBlank()) {
+                        reqId = "t-" + UUID.randomUUID().toString();
+                    }
+                    String stableKey = "auth-role-create-" + reqId + "-" + user.getId();
+                    String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
                     ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                            UUID.randomUUID().toString(), IdMetadata.mint(), actor, TraceMetadata.EMPTY,
+                            commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(reqId, null, null, null),
                             user.getId(), 0L, dto.getRole(), Collections.emptySet(), "create user role"
                     );
                     authCutoverService.changeAuthorization(command);
@@ -158,8 +165,14 @@ public class UserManagementServiceImpl implements UserManagementService {
             try {
                 if (authCutoverService != null) {
                     ActorDelegation actor = new ActorDelegation("ADMIN", "admin", "admin", "admin user update");
+                    String reqId = TraceIdUtil.current();
+                    if (reqId == null || reqId.isBlank()) {
+                        reqId = "t-" + UUID.randomUUID().toString();
+                    }
+                    String stableKey = "auth-role-update-" + reqId + "-" + id;
+                    String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
                     ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                            UUID.randomUUID().toString(), IdMetadata.mint(), actor, TraceMetadata.EMPTY,
+                            commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(reqId, null, null, null),
                             id, 0L, dto.getRole(), Collections.emptySet(), "update user role"
                     );
                     authCutoverService.changeAuthorization(command);
@@ -243,8 +256,14 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         if (authCutoverService != null) {
             ActorDelegation actor = new ActorDelegation("ADMIN", "admin", "admin", "ban user");
+            String reqId = TraceIdUtil.current();
+            if (reqId == null || reqId.isBlank()) {
+                reqId = "t-" + UUID.randomUUID().toString();
+            }
+            String stableKey = "auth-ban-" + reqId + "-" + id;
+            String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
             ChangeAccountStateCommand command = new ChangeAccountStateCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), actor, TraceMetadata.EMPTY,
+                    commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(reqId, null, null, null),
                     id, 0L, ChangeAccountStateCommand.AccountStateAction.BAN, reason
             );
             authCutoverService.changeState(command);
@@ -271,8 +290,14 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         if (authCutoverService != null) {
             ActorDelegation actor = new ActorDelegation("ADMIN", "admin", "admin", "unban user");
+            String reqId = TraceIdUtil.current();
+            if (reqId == null || reqId.isBlank()) {
+                reqId = "t-" + UUID.randomUUID().toString();
+            }
+            String stableKey = "auth-unban-" + reqId + "-" + id;
+            String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
             ChangeAccountStateCommand command = new ChangeAccountStateCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), actor, TraceMetadata.EMPTY,
+                    commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(reqId, null, null, null),
                     id, 0L, ChangeAccountStateCommand.AccountStateAction.UNBAN, "unban"
             );
             authCutoverService.changeState(command);

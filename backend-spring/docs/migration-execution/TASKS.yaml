@@ -7653,7 +7653,7 @@
   area: SCHEMA
   title: Add auth-owned durable command receipt schema for RPC idempotency
   source: [ADR-P7-AUTH-ATOMIC-CUTOVER-DAG, MICROSERVICE_MIGRATION_GUIDE.md#6.2]
-  status: ready
+  status: done
   depends_on: [P7-AUTH-PERSISTENCE-001]
   acceptance_criteria:
   - A new timestamped canonical Flyway migration creates an auth-owned command receipt table
@@ -7665,8 +7665,11 @@
   - Duplicate-key concurrency/uniqueness integration test
   - docker compose migration verification entry point
   rollback: application rollback leaves the additive unused table in place
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P7-AUTH-IDEMPOTENCY-SCHEMA-001 complete: Added canonical Flyway migration V20260730120000__Create_Auth_Command_Receipt.sql and per-owner schema copy creating auth_command_receipt table with unique constraint on (service, operation, idempotency_key). Verified against real Testcontainers MySQL 8.0 container using exact migration file DDL in AuthCommandReceiptSchemaIT (2/2 PASS).'
+    ts: '2026-07-30T12:16:00+00:00'
+  commits:
+  - 0815da7
   notes: 'Named prerequisite for P7-AUTH-ADMIN-PROVIDER-001; never edit an applied migration.'
   updated_at: '2026-07-30T02:22:00+00:00'
 - id: P7-AUTH-QUERY-PROVIDERS-001
@@ -7674,7 +7677,7 @@
   area: ARCH
   title: Implement backend-auth identity and authorization snapshot Dubbo providers
   source: [ADR-P7-AUTH-RETIREMENT-CUTOVER, MICROSERVICE_MIGRATION_GUIDE.md#4.1]
-  status: pending
+  status: ready
   depends_on: [P7-AUTH-PERSISTENCE-001]
   acceptance_criteria:
   - IdentityQueryService and AuthorizationSnapshotService have backend-auth @DubboService providers

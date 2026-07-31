@@ -94,6 +94,11 @@
 			<version>${dubbo.version}</version>
 		</dependency>
 
+		<!-- P7-ADMIN-BACKUP-IDENTITY-001: Backup reads user identity via auth provider. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-auth-api</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>

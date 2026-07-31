@@ -16,6 +16,8 @@ import com.ulticode.app.api.command.StartContestCommand;
 import com.ulticode.app.api.command.UpdateContestCommand;
 import com.ulticode.app.api.command.UpdateNotificationCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
+import com.ulticode.app.api.command.UpdateProfileCommand;
+import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.command.WriteCommand;
 import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.app.api.dto.ContentLifecycleState;
@@ -23,12 +25,14 @@ import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
+import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestAdministrationService;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.app.api.service.NotificationAdministrationService;
 import com.ulticode.app.api.service.ProblemAdministrationService;
+import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.rpc.RpcResult;
@@ -108,6 +112,9 @@ class BackendAppApiContractShapeTest {
                 "com.ulticode.app.api.service.ContestAdministrationService",
                 "com.ulticode.app.api.service.SubmissionAdministrationService",
                 "com.ulticode.app.api.service.NotificationAdministrationService",
+                "com.ulticode.app.api.command.UploadAvatarCommand",
+                "com.ulticode.app.api.dto.ProfileWriteResult",
+                "com.ulticode.app.api.service.ProfileWriteService",
                 "com.ulticode.app.api.error.AppErrorCode");
         Set<String> missing = new HashSet<>();
         ClassLoader cl = getClass().getClassLoader();
@@ -159,7 +166,10 @@ class BackendAppApiContractShapeTest {
                 BatchRejudgeCommand.class,
                 CreateNotificationCommand.class,
                 UpdateNotificationCommand.class,
-                DeleteNotificationCommand.class);
+                DeleteNotificationCommand.class,
+                UpdateProfileCommand.class,
+                UploadAvatarCommand.class,
+                ProfileWriteResult.class);
         Set<String> violations = new HashSet<>();
         for (Class<?> type : scanned) {
             for (Field field : type.getDeclaredFields()) {
@@ -329,7 +339,29 @@ class BackendAppApiContractShapeTest {
                         IdMetadata.mint(),
                         adminActor,
                         TraceMetadata.EMPTY,
-                        uuid));
+                        uuid),
+                new UpdateProfileCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        "Jane Doe",
+                        null,
+                        "Software engineer",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null),
+                new UploadAvatarCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        "/avatars/" + uuid + ".png"));
         for (WriteCommand cmd : samples) {
             assertThat(cmd.commandId())
                     .as("commandId must be a non-blank UUID String")

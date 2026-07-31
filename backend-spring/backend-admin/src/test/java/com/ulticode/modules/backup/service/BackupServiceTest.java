@@ -383,4 +383,53 @@ class BackupServiceTest {
             assertThrows(BusinessException.class, () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
         }
     }
+    @Nested
+    @DisplayName("Path Traversal Validation Tests")
+    class PathTraversalTests {
+
+        @Test
+        @DisplayName("should reject backup filename containing parent path segment")
+        void shouldRejectFilenameWithParentPath() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("../etc/passwd");
+            backup.setStatus(BackupStatus.COMPLETED);
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> backupService.getBackupFile(BACKUP_ID));
+            assertTrue(ex.getMessage().contains("Invalid backup filename"));
+        }
+
+        @Test
+        @DisplayName("should reject backup filename containing forward slash")
+        void shouldRejectFilenameWithForwardSlash() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("sub/dir.sql");
+            backup.setStatus(BackupStatus.COMPLETED);
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> backupService.deleteBackup(BACKUP_ID));
+            assertTrue(ex.getMessage().contains("Invalid backup filename"));
+        }
+
+        @Test
+        @DisplayName("should reject backup filename containing backslash")
+        void shouldRejectFilenameWithBackslash() {
+            Backup backup = new Backup();
+            backup.setId(BACKUP_ID);
+            backup.setFilename("sub\\dir.sql");
+            backup.setStatus(BackupStatus.COMPLETED);
+
+            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
+
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> backupService.restoreBackup(BACKUP_ID, USER_ID));
+            assertTrue(ex.getMessage().contains("Invalid backup filename"));
+        }
+    }
 }

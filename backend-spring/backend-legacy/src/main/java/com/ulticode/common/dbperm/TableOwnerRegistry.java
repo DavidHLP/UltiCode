@@ -39,13 +39,13 @@ public final class TableOwnerRegistry {
             "system_settings",
             "moderation_queue",
             "moderation_actions",
-            "user_warnings"
+            "user_warnings",
+            "backups"
         );
         for (String table : adminTables) {
             TABLE_OWNER_MAP.put(table, TableOwner.ADMIN);
         }
 
-        // App tables
         Set<String> appTables = Set.of(
             "problems",
             "problem_details",
@@ -72,8 +72,7 @@ public final class TableOwnerRegistry {
             "notification_delivery_ledger",
             "achievements",
             "bookmarks",
-            "votes",
-            "backups"
+            "votes"
         );
         for (String table : appTables) {
             TABLE_OWNER_MAP.put(table, TableOwner.APP);

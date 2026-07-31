@@ -1,7 +1,6 @@
 package com.ulticode.modules.backup.service;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
@@ -76,9 +75,6 @@ class BackupServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(backupService, "backupDir", tempDir.toString());
-        // Reflectively set UuidGenerator (it's constructor-injected via Lombok
-        // but @InjectMocks would not auto-inject a non-mock field; create one here).
-        ReflectionTestUtils.setField(backupService, "uuidGenerator", new FixedUuidGenerator());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     }

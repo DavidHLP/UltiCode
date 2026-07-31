@@ -12,16 +12,17 @@ import org.springframework.web.servlet.HandlerInterceptor;
  *
  * <p>The owner context reflects the <em>domain that owns the tables the endpoint writes</em>,
  * not the audience of the endpoint. Admin business endpoints (problems, contests, submissions,
- * solutions, forum, comments, notifications, tags, backups, ...) delegate mutations through the
+ * solutions, forum, comments, notifications, tags, ...) delegate mutations through the
  * App owner ports established in P3-OWNER-001, so they execute under {@link TableOwner#APP};
- * only governance endpoints whose target tables are admin-owned run under {@link TableOwner#ADMIN}.
+ * governance endpoints and Backup execute under {@link TableOwner#ADMIN}.
  *
  * <ul>
  *   <li>{@code /auth/**}, {@code /users/**}, {@code /admin/users/**}, {@code /admin/account/**}
  *       &rarr; {@link TableOwner#AUTH} (users aggregate incl. credentials/roles/permissions)</li>
  *   <li>{@code /admin/settings/**}, {@code /admin/audit/**}, {@code /admin/dashboard/**},
- *       {@code /admin/analytics/**}, {@code /moderation/**} &rarr; {@link TableOwner#ADMIN}
- *       (system_settings, audit_logs, moderation_queue/moderation_actions/user_warnings)</li>
+ *       {@code /admin/analytics/**}, {@code /moderation/**}, {@code /admin/backups/**}
+ *       &rarr; {@link TableOwner#ADMIN}
+ *       (system_settings, audit_logs, moderation_queue/moderation_actions/user_warnings/backups)</li>
  *   <li>All other routes (incl. admin business endpoints such as {@code /admin/problems/**})
  *       &rarr; {@link TableOwner#APP}</li>
  * </ul>
@@ -33,9 +34,9 @@ public class DbOwnerWebHandlerInterceptor implements HandlerInterceptor {
     private static final String[] AUTH_PREFIXES = {
         "/auth", "/users", "/admin/users", "/admin/account"
     };
-
     private static final String[] ADMIN_PREFIXES = {
-        "/admin/settings", "/admin/audit", "/admin/dashboard", "/admin/analytics", "/moderation"
+        "/admin/settings", "/admin/audit", "/admin/dashboard", "/admin/analytics",
+        "/admin/backups", "/moderation"
     };
 
     @Value("${app.db-owner.guard.enabled:true}")

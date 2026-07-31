@@ -1,7 +1,7 @@
 package com.ulticode.modules.backup.port.adapter;
 
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -145,7 +145,7 @@ public class MysqldumpBackupProcessAdapter implements BackupProcessPort {
             }
         } catch (Exception e) {
             log.error("Failed to parse datasource URL: {}", url, e);
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR,
+            throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                     "Failed to parse database connection configuration");
         }
         return info;

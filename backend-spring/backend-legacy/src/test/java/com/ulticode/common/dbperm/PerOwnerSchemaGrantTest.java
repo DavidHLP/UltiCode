@@ -33,7 +33,7 @@ class PerOwnerSchemaGrantTest {
 
     private static final Set<String> ADMIN_SCHEMA_TABLES = Set.of(
         "audit_logs", "system_settings", "moderation_queue",
-        "moderation_actions", "user_warnings"
+        "moderation_actions", "user_warnings", "backups"
     );
 
     private static final Set<String> APP_SCHEMA_TABLES = Set.of(
@@ -43,7 +43,7 @@ class PerOwnerSchemaGrantTest {
         "submissions", "submission_test_details", "judge_outbox", "solutions",
         "solution_comments", "solution_topics", "forum_posts", "forum_comments",
         "forum_communities", "notifications", "notification_delivery_ledger",
-        "achievements", "bookmarks", "votes", "backups"
+        "achievements", "bookmarks", "votes"
     );
 
     private DbOwnerViolationInterceptor interceptor;

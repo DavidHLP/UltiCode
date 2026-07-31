@@ -1,8 +1,7 @@
 package com.ulticode.modules.backup.service.impl;
 
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
@@ -53,7 +52,6 @@ public class BackupServiceImpl implements BackupService {
 
     private final BackupMapper backupMapper;
     private final Clock clock;
-    private final UuidGenerator uuidGenerator;
     private final BackupProcessPort backupProcessPort;
     private final BackupReadProjection backupReadProjection;
     private final BackupExecutionService backupExecutionService;
@@ -98,17 +96,17 @@ public class BackupServiceImpl implements BackupService {
     public File getBackupFile(String id) {
         Backup backup = backupMapper.selectById(id);
         if (backup == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup not found");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
         }
         if (backup.getStatus() != BackupStatus.COMPLETED) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Backup is not completed yet");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Backup is not completed yet");
         }
 
         Path filePath = validateBackupFilePath(backup.getFilename());
         File file = filePath.toFile();
 
         if (!file.exists()) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup file not found");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup file not found");
         }
 
         return file;
@@ -118,15 +116,15 @@ public class BackupServiceImpl implements BackupService {
     public BackupVO restoreBackup(String id, String userId) {
         Backup backup = backupMapper.selectById(id);
         if (backup == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup not found");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
         }
         if (backup.getStatus() != BackupStatus.COMPLETED) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Cannot restore from a non-completed backup");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Cannot restore from a non-completed backup");
         }
 
         Path filePath = validateBackupFilePath(backup.getFilename());
         if (!Files.exists(filePath)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup file not found");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup file not found");
         }
 
         log.warn("Starting database restore from backup: {} by user: {}", id, userId);
@@ -144,7 +142,7 @@ public class BackupServiceImpl implements BackupService {
             backupMapper.updateById(backup);
             return backupReadProjection.toVO(backup);
         }
-        throw new BusinessException(ErrorCode.UNKNOWN_ERROR,
+        throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
                 "Database restore failed. Check server logs for details.");
     }
 
@@ -152,7 +150,7 @@ public class BackupServiceImpl implements BackupService {
     public void deleteBackup(String id) {
         Backup backup = backupMapper.selectById(id);
         if (backup == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup not found");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
         }
 
         // Delete the file from disk
@@ -186,7 +184,7 @@ public class BackupServiceImpl implements BackupService {
                 Files.createDirectories(path);
                 log.info("Created backup directory: {}", backupDir);
             } catch (IOException e) {
-                throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to create backup directory: " + e.getMessage());
+                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Failed to create backup directory: " + e.getMessage());
             }
         }
     }
@@ -196,12 +194,12 @@ public class BackupServiceImpl implements BackupService {
      */
     private Path validateBackupFilePath(String filename) {
         if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid backup filename");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid backup filename");
         }
         Path backupRoot = Paths.get(backupDir).normalize();
         Path filePath = Paths.get(backupDir, filename).normalize();
         if (!filePath.startsWith(backupRoot)) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Backup path traversal detected");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Backup path traversal detected");
         }
         return filePath;
     }

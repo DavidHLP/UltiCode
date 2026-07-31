@@ -24,7 +24,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /** Maps backend-admin business failures to the shared HTTP result envelope. */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(basePackages = {"com.ulticode.admin", "com.ulticode.modules.admin"})
+@RestControllerAdvice(basePackages = {
+        "com.ulticode.admin",
+        "com.ulticode.modules.admin",
+        "com.ulticode.modules.backup"
+})
 public class AdminWebExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)

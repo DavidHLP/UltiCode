@@ -48,9 +48,9 @@ class DbOwnerWebHandlerInterceptorTest {
         "/admin/settings", "/admin/settings/rate-limit",
         "/admin/audit", "/admin/audit/logs",
         "/admin/dashboard", "/admin/analytics",
-        "/moderation", "/moderation/queue", "/moderation/queue/q-1/apply"
+        "/admin/backups", "/moderation", "/moderation/queue", "/moderation/queue/q-1/apply"
     })
-    @DisplayName("ADMIN context: governance routes over admin-owned tables")
+    @DisplayName("ADMIN context: governance and Backup routes over admin-owned tables")
     void resolveOwner_adminRoutes(String uri) {
         assertThat(DbOwnerWebHandlerInterceptor.resolveOwner(uri)).isEqualTo(TableOwner.ADMIN);
     }
@@ -63,9 +63,9 @@ class DbOwnerWebHandlerInterceptorTest {
         "/admin/submissions", "/admin/submissions/rejudge",
         "/admin/solutions", "/admin/forum", "/admin/comments",
         "/admin/notifications", "/admin/tags", "/admin/problem-lists",
-        "/admin/backups", "/admin/subscriptions"
+        "/admin/subscriptions"
     })
-    @DisplayName("APP context: public routes and admin business endpoints writing app-owned tables via owner ports")
+    @DisplayName("APP context: public routes and app-owned admin business endpoints")
     void resolveOwner_appRoutes(String uri) {
         assertThat(DbOwnerWebHandlerInterceptor.resolveOwner(uri)).isEqualTo(TableOwner.APP);
     }

@@ -195,10 +195,6 @@ code-execution:
         timeout-seconds: 3
         memory: 64m
 
-# Backup Configuration
-backup:
-  dir: ${BACKUP_DIR:/tmp/backups}
-
 # Email Configuration
 spring.mail:
   host: ${SMTP_HOST:localhost}

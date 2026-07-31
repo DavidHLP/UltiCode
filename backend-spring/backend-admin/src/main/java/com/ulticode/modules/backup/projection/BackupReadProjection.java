@@ -41,7 +41,7 @@ import java.util.List;
  * </ul>
  *
  * <p>All methods are pure reads; none mutate backup state. The single-item
- * read throws {@link com.ulticode.common.exception.ErrorCode#NOT_FOUND} to
+ * read throws {@link com.ulticode.common.error.BaseErrorCode#NOT_FOUND} to
  * preserve the access contract observed by the controller and by any caller
  * that used to call {@code BackupServiceImpl#getBackupById}.
  *
@@ -74,7 +74,7 @@ public interface BackupReadProjection {
      * @param id the backup id
      * @return the backup VO with {@code createdByName}; never {@code null}
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#NOT_FOUND}
+     *         {@link com.ulticode.common.error.BaseErrorCode#NOT_FOUND}
      *         ("Backup not found") when the backup does not exist
      */
     BackupVO getById(String id);

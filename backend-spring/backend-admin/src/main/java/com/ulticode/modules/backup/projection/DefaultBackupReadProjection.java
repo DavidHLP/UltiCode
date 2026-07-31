@@ -3,7 +3,7 @@ package com.ulticode.modules.backup.projection;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
@@ -82,7 +82,7 @@ public class DefaultBackupReadProjection implements BackupReadProjection {
     public BackupVO getById(String id) {
         Backup backup = backupMapper.selectById(id);
         if (backup == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup not found");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Backup not found");
         }
         Map<String, String> usernames = userLookupPort.findUsernamesByIds(
                 List.of(backup.getCreatedBy()));

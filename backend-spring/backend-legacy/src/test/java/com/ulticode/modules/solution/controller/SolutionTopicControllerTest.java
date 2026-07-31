@@ -1,5 +1,6 @@
 package com.ulticode.modules.solution.controller;
 
+import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.modules.solution.dto.SolutionTopicVO;
 import com.ulticode.modules.solution.service.SolutionTopicService;
@@ -15,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -31,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 classes = MapperConfig.class
         )
 )
+@ContextConfiguration(classes = UlticodeBackendApplication.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("SolutionTopicController")
 class SolutionTopicControllerTest {

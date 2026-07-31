@@ -5,6 +5,7 @@ import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.TraceIdUtil;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -93,6 +94,24 @@ public class AdminWebExceptionHandler {
     private HttpStatus httpStatus(NamespacedErrorCode errorCode) {
         if (errorCode instanceof AdminErrorCode adminErrorCode) {
             return adminErrorCode.getHttpStatus();
+        }
+        /*
+         * Legacy backend-legacy ErrorCode carries its own HTTP mapping via
+         * getHttpStatus().  Reflect on it so backend-admin stays free of a
+         * compile-time dependency on the legacy module.
+         */
+        try {
+            java.lang.reflect.Method m = errorCode.getClass().getMethod("getHttpStatus");
+            Object value = m.invoke(errorCode);
+            if (value instanceof HttpStatus httpStatus) {
+                return httpStatus;
+            }
+        } catch (InvocationTargetException ite) {
+            throw new IllegalStateException(
+                "Legacy ErrorCode.getHttpStatus() threw for " + errorCode.getClass().getSimpleName(),
+                ite.getCause());
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+            // not a legacy ErrorCode – fall through
         }
         if (!(errorCode instanceof BaseErrorCode baseErrorCode)) {
             return HttpStatus.INTERNAL_SERVER_ERROR;

@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.config.CorsProperties;
 import com.ulticode.common.config.MapperConfig;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,6 +48,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 classes = MapperConfig.class
         )
 )
+// Disambiguate from BackendAdminApplication on the test classpath (P7-ADMIN-BULK-001)
+@ContextConfiguration(classes = UlticodeBackendApplication.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminAccountController")
 class AdminAccountControllerTest {

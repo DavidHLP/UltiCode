@@ -1,6 +1,7 @@
 package com.ulticode.modules.contest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
@@ -22,6 +23,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -48,6 +50,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
                 classes = MapperConfig.class
         )
 )
+@ContextConfiguration(classes = UlticodeBackendApplication.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminContestController")
 class ContestControllerTest {

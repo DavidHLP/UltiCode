@@ -372,11 +372,11 @@ Judge Worker 和 Realtime 初期是 `backend-app` 内的独立 package/profile�
 | `virtual_contest_sessions` | 仅 migration；活动态已在 participants | App（R 候选） | App | 核历史数据后合并/R |
 | `email_templates` | email | App/Notification | Admin、Auth（不共享业务模板） | App I；Admin C/Q；Auth 自有安全模板 |
 | `email_logs` | email intake | App/Notification | Admin | App I；Admin Q |
-| **`backups`（代码侧 schema drift）** | Backup Entity/Mapper/Service 真实 CRUD，但 migration 无 CREATE | Admin/Ops | Admin | 先新增 canonical migration，再 I |
+| **`backups`（canonical migration 已补齐）** | Backup Entity/Mapper/Service CRUD，canonical migration `V20260724162738__Create_Backups_Table.sql` 已定义 CREATE TABLE | Admin/Ops | Admin | I（owner 已迁移至 backend-admin） |
 
 ### 5.1 当前 schema 风险必须先处理
 
-- `Backup.java:16` 映射 `backups`，Backup Service 执行 CRUD；`init-db/migrations/` 没有 `CREATE TABLE backups`，且 CI 配置不允许 ORM 自动建表。迁移 Phase 0 必须新增后续 migration，不能修改已应用 migration。
+- `Backup.java:16` 映射 `backups`，Backup Service 执行 CRUD；canonical migration `V20260724162738__Create_Backups_Table.sql` 已定义 `CREATE TABLE backups`（enum 状态/类型 + JSON metadata + 索引），schema drift 已收敛。不再需要新增 migration。
 - 基线 migration 的 `problem_notes` 只有 `id/problem_id/user_id/content/updated_at`；后续 `CREATE TABLE IF NOT EXISTS` 期望 `create_time/update_time`、`varchar(36) user_id`、`MEDIUMTEXT content` 和两个 FK，但因表已存在而完全不生效。当前 `ProblemNote` Entity 映射 `create_time/update_time`。新的 ALTER migration 应保留项目通用的 `varchar(40) user_id`，从 `updated_at` 回填时间列，先扫描孤儿引用再增加 FK；`content` 只做兼容性扩宽，不能缩窄现有 ID 类型。
 - migration-only 表不能根据“源码未调用”直接 DROP；先查询生产行数、最近写入和保留要求，再归档/退役。
 - 物理 FK 很少，跨域逻辑引用很多。拆库前需以主键 checksum、孤儿引用扫描和应用级 reconciliation 替代“数据库会帮忙发现”。
@@ -620,7 +620,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 - **Goal**：冻结事实基线、修复阻塞拆分的 schema/security/inconsistency 风险，不改变服务拓扑。
 - **Code Changes**：建立 table owner manifest、跨模块依赖/ArchUnit 规则；让 OAuth callback 校验 cookie state 后原子消费 Redis state，并建立 provider identity；统一 HTTP/WS validator，CONNECT 校验 active/ban，SEND/SUBSCRIBE 在 principal/session 缺失时 fail closed；补有效 permission expiry；完成 judge outbox/fence/stream 切换计划。
-- **Database Changes**：新增 migration 创建 `backups`、ALTER 收敛 `problem_notes`；盘点 migration-only 表；不修改 applied migration。
+- **Database Changes**：canonical migration `V20260724162738` 已创建 `backups`（schema drift 已收敛）；ALTER 收敛 `problem_notes`；盘点 migration-only 表；不修改 applied migration。
 - **Compatibility Strategy**：HTTP/DB contract 不变；新安全字段和索引 additive；feature flag 保留旧 judge 路径直至 canary。
 - **Validation**：`./mvnw verify -B`、`./mvnw -Dtest='*IT' test -B`；OAuth login-CSRF、refresh 并发、WS ban/expiry、fresh schema migration、legacy table 数据报告。
 - **Rollback**：应用回退但保留 additive schema；judge flag 回旧路径；安全修复不以降低安全为回退方式。
@@ -854,7 +854,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - [ ] 记录所有跨模块 Mapper/ServiceImpl/Entity import，并按 Owner API 替换。
 - [ ] 区分 package 双向依赖和真实 Bean 循环；启动测试验证容器。
 - [ ] 对 migration-only 表查询行数、最近写入、保留策略。
-- [ ] 为 `backups`、`problem_notes` 新增后续 canonical migration。
+- [x] 为 `backups` 新增 canonical migration（`V20260724162738__Create_Backups_Table.sql` 已完成）；`problem_notes` 仍需 ALTER 收敛。
 - [ ] 修复 OAuth state cookie binding、provider identity/email verification。
 - [ ] 统一 HTTP/WS JWT validator，WS SEND/SUBSCRIBE fail closed。
 - [ ] 修复 effective permission expiry，明确 role-only 当前语义。

@@ -18,6 +18,10 @@ spring:
 
 backup:
   dir: ${BACKUP_DIR:/tmp/backups}
+  process:
+    timeout-seconds: ${BACKUP_PROCESS_TIMEOUT_SECONDS:1800}
+    mysqldump-path: ${BACKUP_PROCESS_MYSQLDUMP_PATH:mysqldump}
+    mysql-path: ${BACKUP_PROCESS_MYSQL_PATH:mysql}
 
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml

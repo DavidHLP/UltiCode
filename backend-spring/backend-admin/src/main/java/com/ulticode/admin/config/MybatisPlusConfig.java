@@ -1,6 +1,9 @@
 package com.ulticode.admin.config;
 
+import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import java.time.LocalDateTime;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.context.annotation.Bean;
@@ -18,15 +21,21 @@ import org.springframework.context.annotation.Configuration;
  * {@code NOT NULL DEFAULT CURRENT_TIMESTAMP(...)} rejects the insert
  * (e.g. {@code backups.created_at}).
  *
- * <p>Kept narrow: the admin service shell currently only needs the
- * auto-fill parity. Pagination / optimistic-locking / cross-owner
- * interceptors are intentionally registered in
- * {@code backend-legacy}'s {@code MybatisPlusConfig} until phase 7 retires
- * that module; ports of those concerns will land here as their owning
- * feature families migrate.
+ * <p>The pagination interceptor is owned here as well because the admin
+ * Backup read projection calls {@code selectPage}; without it the service
+ * shell would not enforce the public page/limit contract. Optimistic-locking
+ * and cross-owner interceptors remain with their current owners until the
+ * corresponding feature families migrate.
  */
 @Configuration
 public class MybatisPlusConfig {
+
+    @Bean
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+        return interceptor;
+    }
 
     @Bean
     public MetaObjectHandler metaObjectHandler() {

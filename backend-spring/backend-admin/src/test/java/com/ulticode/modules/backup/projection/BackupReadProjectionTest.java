@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -59,7 +60,7 @@ class BackupReadProjectionTest {
 
         @BeforeEach
         void setUp() {
-            when(userLookupPort.findUsernamesByIds(any())).thenReturn(Collections.emptyMap());
+            lenient().when(userLookupPort.findUsernamesByIds(any())).thenReturn(Collections.emptyMap());
         }
 
         @Test
@@ -96,6 +97,39 @@ class BackupReadProjectionTest {
             assertEquals(BACKUP_ID, vo.getId());
             assertEquals("admin", vo.getCreatedByName());
             verify(backupMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
+        }
+
+        @Test
+        @DisplayName("should default null page and limit without throwing")
+        void shouldDefaultNullPageAndLimit() {
+            BackupQueryDTO query = new BackupQueryDTO();
+            query.setPage(null);
+            query.setLimit(null);
+            Page<Backup> mockPage = new Page<>(1, 20);
+            mockPage.setRecords(Collections.emptyList());
+            mockPage.setTotal(0);
+            when(backupMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
+                    .thenReturn(mockPage);
+
+            projection.listBackups(query);
+
+            ArgumentCaptor<Page<Backup>> pageCaptor = ArgumentCaptor.forClass(Page.class);
+            verify(backupMapper).selectPage(pageCaptor.capture(), any(LambdaQueryWrapper.class));
+            assertEquals(1, pageCaptor.getValue().getCurrent());
+            assertEquals(20, pageCaptor.getValue().getSize());
+        }
+
+        @Test
+        @DisplayName("should reject invalid page and limit values for internal callers")
+        void shouldRejectInvalidPageAndLimit() {
+            BackupQueryDTO invalidPage = new BackupQueryDTO();
+            invalidPage.setPage(0);
+            assertThrows(IllegalArgumentException.class, () -> projection.listBackups(invalidPage));
+
+            BackupQueryDTO invalidLimit = new BackupQueryDTO();
+            invalidLimit.setLimit(101);
+            assertThrows(IllegalArgumentException.class, () -> projection.listBackups(invalidLimit));
+            verifyNoInteractions(backupMapper);
         }
 
         @Test

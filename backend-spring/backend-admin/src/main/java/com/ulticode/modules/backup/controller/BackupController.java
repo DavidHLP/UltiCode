@@ -60,7 +60,7 @@ public class BackupController {
     @Operation(summary = "获取备份列表")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<BackupVO>> getBackups(BackupQueryDTO query) {
+    public Result<PageResult<BackupVO>> getBackups(@Valid @ModelAttribute BackupQueryDTO query) {
         return Result.success(backupReadProjection.listBackups(query));
     }
 

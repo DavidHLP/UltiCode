@@ -3,10 +3,14 @@ package com.ulticode.modules.backup;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.mapper.BackupMapper;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +24,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.MountableFile;
 
 /**
  * Live MySQL CRUD round-trip integration test for the relocated backups slice.
@@ -45,7 +50,22 @@ class BackupRepositoryIT {
             .withDatabaseName("ulticode_admin_test")
             .withUsername("test")
             .withPassword("test")
-            .withInitScript("db/migration/V20260724162738__Create_Backups_Table.sql");
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath(canonicalMigrationPath().toString()),
+                    "/docker-entrypoint-initdb.d/V20260724162738__Create_Backups_Table.sql");
+
+    private static Path canonicalMigrationPath() {
+        Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
+        while (current != null) {
+            Path candidate = current.resolve("init-db/migrations/V20260724162738__Create_Backups_Table.sql");
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Canonical backups migration not found from user.dir="
+                + System.getProperty("user.dir"));
+    }
 
     @DynamicPropertySource
     static void configureDatasource(DynamicPropertyRegistry registry) {
@@ -68,8 +88,8 @@ class BackupRepositoryIT {
         backup.setType(BackupType.FULL);
         backup.setStatus(BackupStatus.PENDING);
         backup.setCreatedBy("admin-it-user");
-        // com.ulticode.admin.config.MybatisPlusConfig; the IT does NOT set it
-        // explicitly so the auto-fill is exercised.
+        // The MetaObjectHandler in com.ulticode.admin.config.MybatisPlusConfig
+        // auto-fills createdAt; the IT intentionally leaves it unset.
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("trigger", "it-test");
         metadata.put("host", "test-container");
@@ -123,6 +143,36 @@ class BackupRepositoryIT {
             int deleted = backupMapper.deleteById(id);
             assertThat(deleted).isEqualTo(1);
             assertThat(backupMapper.selectById(id)).isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("selectPage applies LIMIT/OFFSET and returns the total row count")
+    void selectPageAppliesPagination() {
+        String creator = UUID.randomUUID().toString();
+        List<String> ids = new ArrayList<>();
+        try {
+            for (int index = 0; index < 3; index++) {
+                Backup backup = new Backup();
+                backup.setFilename(creator + "_" + index + ".sql");
+                backup.setType(BackupType.FULL);
+                backup.setStatus(BackupStatus.PENDING);
+                backup.setCreatedBy(creator);
+                assertThat(backupMapper.insert(backup)).isEqualTo(1);
+                ids.add(backup.getId());
+            }
+
+            LambdaQueryWrapper<Backup> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Backup::getCreatedBy, creator)
+                    .orderByDesc(Backup::getCreatedAt);
+            Page<Backup> result = backupMapper.selectPage(new Page<>(2, 1), wrapper);
+
+            assertThat(result.getTotal()).isEqualTo(3);
+            assertThat(result.getCurrent()).isEqualTo(2);
+            assertThat(result.getSize()).isEqualTo(1);
+            assertThat(result.getRecords()).hasSize(1);
+        } finally {
+            ids.forEach(backupMapper::deleteById);
         }
     }
 

@@ -42,30 +42,37 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultBackupReadProjection implements BackupReadProjection {
 
+    private static final int DEFAULT_PAGE = 1;
+    private static final int DEFAULT_LIMIT = 20;
+    private static final int MAX_LIMIT = 100;
+
     private final BackupMapper backupMapper;
     private final UserLookupPort userLookupPort;
 
     @Override
     public PageResult<BackupVO> listBackups(BackupQueryDTO query) {
+        BackupQueryDTO effectiveQuery = query == null ? new BackupQueryDTO() : query;
+        int page = normalizePage(effectiveQuery.getPage());
+        int limit = normalizeLimit(effectiveQuery.getLimit());
         LambdaQueryWrapper<Backup> wrapper = new LambdaQueryWrapper<>();
 
-        if (query.getType() != null) {
-            wrapper.eq(Backup::getType, query.getType());
+        if (effectiveQuery.getType() != null) {
+            wrapper.eq(Backup::getType, effectiveQuery.getType());
         }
-        if (query.getStatus() != null) {
-            wrapper.eq(Backup::getStatus, query.getStatus());
+        if (effectiveQuery.getStatus() != null) {
+            wrapper.eq(Backup::getStatus, effectiveQuery.getStatus());
         }
-        if (query.getStartDate() != null) {
-            wrapper.ge(Backup::getCreatedAt, query.getStartDate());
+        if (effectiveQuery.getStartDate() != null) {
+            wrapper.ge(Backup::getCreatedAt, effectiveQuery.getStartDate());
         }
-        if (query.getEndDate() != null) {
-            wrapper.le(Backup::getCreatedAt, query.getEndDate());
+        if (effectiveQuery.getEndDate() != null) {
+            wrapper.le(Backup::getCreatedAt, effectiveQuery.getEndDate());
         }
 
         wrapper.orderByDesc(Backup::getCreatedAt);
 
-        Page<Backup> page = new Page<>(query.getPage(), query.getLimit());
-        Page<Backup> result = backupMapper.selectPage(page, wrapper);
+        Page<Backup> pageResult = new Page<>(page, limit);
+        Page<Backup> result = backupMapper.selectPage(pageResult, wrapper);
 
         List<Backup> records = result.getRecords();
         Map<String, String> usernames = userLookupPort.findUsernamesByIds(
@@ -75,7 +82,27 @@ public class DefaultBackupReadProjection implements BackupReadProjection {
                 .map(backup -> toVOWithUsername(backup, usernames))
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
+        return PageResult.of(voList, result.getTotal(), page, limit);
+    }
+
+    private int normalizePage(Integer page) {
+        if (page == null) {
+            return DEFAULT_PAGE;
+        }
+        if (page < DEFAULT_PAGE) {
+            throw new IllegalArgumentException("page must be >= 1");
+        }
+        return page;
+    }
+
+    private int normalizeLimit(Integer limit) {
+        if (limit == null) {
+            return DEFAULT_LIMIT;
+        }
+        if (limit < 1 || limit > MAX_LIMIT) {
+            throw new IllegalArgumentException("limit must be between 1 and 100");
+        }
+        return limit;
     }
 
     @Override

@@ -25,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -70,7 +72,9 @@ class BackupControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(backupController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(backupController)
+                .setValidator(new LocalValidatorFactoryBean())
+                .build();
         objectMapper = new ObjectMapper();
     }
 
@@ -126,6 +130,17 @@ class BackupControllerTest {
                     .andExpect(jsonPath("$.data.total").value(1))
                     .andExpect(jsonPath("$.data.items[0].id").value(BACKUP_ID));
             verify(backupReadProjection).listBackups(any(BackupQueryDTO.class));
+        }
+
+        @Test
+        @DisplayName("GET /admin/backups rejects invalid pagination")
+        void getBackupsRejectsInvalidPagination() throws Exception {
+            mockMvc.perform(get("/admin/backups").param("page", "0"))
+                    .andExpect(status().isBadRequest());
+            mockMvc.perform(get("/admin/backups").param("limit", "101"))
+                    .andExpect(status().isBadRequest());
+
+            verifyNoInteractions(backupReadProjection);
         }
 
         @Test

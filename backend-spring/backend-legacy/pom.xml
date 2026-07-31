@@ -68,12 +68,6 @@
 			<artifactId>backend-auth-api</artifactId>
 		</dependency>
 
-		<!-- P7-ADMIN-BULK-001: AdminBulkExecutor relocated to backend-admin. -->
-		<dependency>
-			<groupId>com.ulticode</groupId>
-			<artifactId>backend-admin</artifactId>
-		</dependency>
-
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -322,6 +316,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<classifier>exec</classifier>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>

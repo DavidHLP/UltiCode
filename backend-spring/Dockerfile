@@ -29,7 +29,7 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy built JAR
-COPY --from=builder /app/backend-legacy/target/app.jar ./app.jar
+COPY --from=builder /app/backend-legacy/target/app-exec.jar ./app.jar
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

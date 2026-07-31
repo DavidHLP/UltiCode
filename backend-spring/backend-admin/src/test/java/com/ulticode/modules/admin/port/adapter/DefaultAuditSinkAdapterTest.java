@@ -10,6 +10,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +28,7 @@ class DefaultAuditSinkAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new DefaultAuditSinkAdapter(auditOutboxMapper);
+        adapter = new DefaultAuditSinkAdapter(auditOutboxMapper, Clock.fixed(Instant.now(), ZoneId.of("UTC")));
     }
 
     @Test

@@ -88,7 +88,7 @@ class BackupRepositoryIT {
         backup.setType(BackupType.FULL);
         backup.setStatus(BackupStatus.PENDING);
         backup.setCreatedBy("admin-it-user");
-        // The MetaObjectHandler in com.ulticode.admin.config.MybatisPlusConfig
+        // The MetaObjectHandler in com.ulticode.common.config.MybatisPlusConfig
         // auto-fills createdAt; the IT intentionally leaves it unset.
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("trigger", "it-test");

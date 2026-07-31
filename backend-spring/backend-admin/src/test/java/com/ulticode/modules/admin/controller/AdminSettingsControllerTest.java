@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.admin.config.MapperConfig;
+import com.ulticode.common.config.MapperConfig;
 import com.ulticode.admin.security.AdminSecurityConfig;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
@@ -21,10 +21,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
@@ -56,6 +57,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @Import(AdminSecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
+// Disambiguate from BackendAdminApplication on the test classpath (P7-RELOCATE-ADMIN-001)
+@ContextConfiguration(classes = com.ulticode.UlticodeBackendApplication.class)
 @DisplayName("AdminSettingsController")
 @WithMockUser(roles = "ADMIN")
 class AdminSettingsControllerTest {
@@ -70,6 +73,10 @@ class AdminSettingsControllerTest {
     private SystemSettingsService service;
     @MockBean
     private CurrentUserProvider currentUserProvider;
+    @MockBean
+    private com.ulticode.security.jwt.JwtTokenProvider jwtTokenProvider;
+    @MockBean
+    private com.ulticode.security.jwt.JwtProperties jwtProperties;
 
 
     // ===== fixtures =====

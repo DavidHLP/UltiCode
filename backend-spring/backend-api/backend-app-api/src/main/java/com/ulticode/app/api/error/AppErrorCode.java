@@ -25,6 +25,9 @@ public enum AppErrorCode implements NamespacedErrorCode {
     /** Content is already published / closed and cannot accept the requested state change. */
     CONTENT_STATE_CONFLICT(40902, "Content state conflict"),
 
+    /** Same idempotency key reused with a different request payload (fingerprint mismatch). */
+    IDEMPOTENCY_KEY_CONFLICT(40903, "Idempotency key conflict"),
+
     /** Generic unexpected app state; provider logged the underlying cause. */
     UNEXPECTED_APP_STATE(50001, "Unexpected app state");
 

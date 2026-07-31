@@ -21,7 +21,9 @@ import org.springframework.http.ResponseEntity;
                         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
                         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
                         + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
-                        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration",
+                        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
+                        + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
+                        + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration",
                 "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
                 "spring.datasource.url=jdbc:mysql://localhost:1/unused?connectTimeout=100",
                 "spring.datasource.username=unused",

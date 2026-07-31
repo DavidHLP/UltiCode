@@ -26,7 +26,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
-        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration")
+        + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
+        + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
+        + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
 @Testcontainers
 class AuditSinkTransactionIT {
 

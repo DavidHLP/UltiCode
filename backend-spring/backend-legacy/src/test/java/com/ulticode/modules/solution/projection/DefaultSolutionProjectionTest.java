@@ -15,8 +15,7 @@ import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.port.AchievementBadgeReadPort;
 import com.ulticode.modules.solution.port.ProblemTagReadPort;
 import com.ulticode.modules.solution.port.SolutionVoteReadPort;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.projection.UserReadProjection;
+import com.ulticode.modules.solution.port.SolutionUserReadPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,7 +56,7 @@ class DefaultSolutionProjectionTest {
     @Mock
     private SolutionCommentMapper solutionCommentMapper;
     @Mock
-    private UserReadProjection userReadProjection;
+    private SolutionUserReadPort userReadPort;
     @Mock
     private SolutionVoteReadPort voteReadPort;
     @Mock
@@ -84,11 +83,8 @@ class DefaultSolutionProjectionTest {
         solution.setTitle("t");
         solution.setTags("dp,array");
 
-        User author = new User();
-        author.setId(USER_ID);
-        author.setName("Alice");
-        author.setAvatar("a.png");
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(author));
+        var author = new SolutionUserReadPort.UserSummary(USER_ID, "Alice", "a.png");
+        when(userReadPort.findById(USER_ID)).thenReturn(author);
 
         when(voteReadPort.countLikes(eq(SOLUTION_ID))).thenReturn(3L);
         when(voteReadPort.countDislikes(eq(SOLUTION_ID))).thenReturn(1L);
@@ -121,7 +117,7 @@ class DefaultSolutionProjectionTest {
 
         projection.toVO(solution);
 
-        verify(userReadProjection).findById(USER_ID);
+        verify(userReadPort).findById(USER_ID);
     }
 
     @Test
@@ -210,7 +206,7 @@ class DefaultSolutionProjectionTest {
         page.setTotal(2L);
         when(solutionMapper.selectPage(any(), any(Wrapper.class))).thenReturn(page);
 
-        when(userReadProjection.findAllById(any())).thenReturn(Map.of(
+        when(userReadPort.findAllById(any())).thenReturn(Map.of(
                 "u1", user("u1", "Alice"),
                 "u2", user("u2", "Bob")));
         when(voteReadPort.countLikesByTargets(any())).thenReturn(Map.of());
@@ -219,7 +215,7 @@ class DefaultSolutionProjectionTest {
 
         PageResult<SolutionListItemVO> result = projection.findByProblemId(PROBLEM_ID, 1, 20);
 
-        verify(userReadProjection).findAllById(any());
+        verify(userReadPort).findAllById(any());
         assertEquals(2, result.getItems().size());
         assertEquals("Alice", result.getItems().get(0).getAuthor().getName());
         assertEquals("Bob", result.getItems().get(1).getAuthor().getName());
@@ -242,11 +238,7 @@ class DefaultSolutionProjectionTest {
         assertEquals(1, vo.getUserVote());
     }
 
-    private static User user(String id, String name) {
-        User u = new User();
-        u.setId(id);
-        u.setName(name);
-        u.setAvatar("avatar-" + id + ".png");
-        return u;
+    private static SolutionUserReadPort.UserSummary user(String id, String name) {
+        return new SolutionUserReadPort.UserSummary(id, name, "avatar-" + id + ".png");
     }
 }

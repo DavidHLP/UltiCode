@@ -20,8 +20,7 @@ import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.port.AchievementBadgeReadPort;
 import com.ulticode.modules.solution.port.ProblemTagReadPort;
 import com.ulticode.modules.solution.port.SolutionVoteReadPort;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.projection.UserReadProjection;
+import com.ulticode.modules.solution.port.SolutionUserReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -42,7 +41,7 @@ import java.util.stream.Collectors;
  * cross-module mapper is imported here.
  *
  * <p>Performance note: author lookups on a list page use
- * {@link UserReadProjection#findAllById} (one batched SELECT) instead of
+ * {@link SolutionUserReadPort#findAllById} (one batched SELECT) instead of
  * the previous per-row {@code userMapper.selectById} N+1.
  *
  * @author ulticode
@@ -56,7 +55,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
     private final SolutionMapper solutionMapper;
     private final SolutionCommentMapper solutionCommentMapper;
-    private final UserReadProjection userReadProjection;
+    private final SolutionUserReadPort userReadPort;
     private final SolutionVoteReadPort voteReadPort;
     private final ProblemTagReadPort problemTagReadPort;
     private final AchievementBadgeReadPort achievementBadgeReadPort;
@@ -97,10 +96,10 @@ public class DefaultSolutionProjection implements SolutionProjection {
         vo.setIsFlagged(comment.getIsFlagged());
 
         if (comment.getUserId() != null) {
-            User author = userReadProjection.findById(comment.getUserId()).orElse(null);
+            var author = userReadPort.findById(comment.getUserId());
             if (author != null) {
-                vo.setAuthorUsername(author.getName() != null ? author.getName() : author.getUsername());
-                vo.setAuthorAvatar(author.getAvatar());
+                vo.setAuthorUsername(author.displayName());
+                vo.setAuthorAvatar(author.avatar());
             }
         }
 
@@ -128,7 +127,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
         List<String> userIds = records.stream().map(Solution::getUserId).distinct().toList();
 
         // Batch author fetch — one round-trip, kills the per-row N+1.
-        Map<String, User> userMap = userReadProjection.findAllById(userIds);
+        Map<String, SolutionUserReadPort.UserSummary> userMap = userReadPort.findAllById(userIds);
 
         // Batch vote counts via the consumer-owned port.
         Map<String, Long> likesMap = voteReadPort.countLikesByTargets(solutionIds);
@@ -183,7 +182,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
     private SolutionListItemVO toListItemVO(
             Solution solution,
-            Map<String, User> userMap,
+            Map<String, SolutionUserReadPort.UserSummary> userMap,
             Map<String, Long> likesMap,
             Map<String, Long> dislikesMap,
             Map<String, Long> commentCounts,
@@ -202,12 +201,12 @@ public class DefaultSolutionProjection implements SolutionProjection {
         vo.setPublishedAt(solution.getPublishedAt());
         vo.setIsPinned(solution.getIsPinned());
 
-        User author = userMap.get(solution.getUserId());
+        var author = userMap.get(solution.getUserId());
         if (author != null) {
             SolutionListItemVO.AuthorInfo authorInfo = new SolutionListItemVO.AuthorInfo();
-            authorInfo.setId(author.getId());
-            authorInfo.setName(author.getName() != null ? author.getName() : author.getUsername());
-            authorInfo.setAvatar(author.getAvatar());
+            authorInfo.setId(author.id());
+            authorInfo.setName(author.displayName());
+            authorInfo.setAvatar(author.avatar());
             vo.setAuthor(authorInfo);
         }
 
@@ -250,10 +249,10 @@ public class DefaultSolutionProjection implements SolutionProjection {
         BeanUtils.copyProperties(solution, vo);
         vo.setTags(parseTags(solution.getTags()));
 
-        User author = userReadProjection.findById(solution.getUserId()).orElse(null);
+        var author = userReadPort.findById(solution.getUserId());
         if (author != null) {
-            vo.setAuthorName(author.getName() != null ? author.getName() : author.getUsername());
-            vo.setAuthorAvatar(author.getAvatar());
+            vo.setAuthorName(author.displayName());
+            vo.setAuthorAvatar(author.avatar());
         }
 
         String solutionId = solution.getId();

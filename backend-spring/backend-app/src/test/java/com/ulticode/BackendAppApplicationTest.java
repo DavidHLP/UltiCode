@@ -7,6 +7,7 @@ import com.ulticode.app.api.service.BookmarkReadPort;
 import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
+import com.ulticode.app.security.AppTestSecurityConfig;
 import com.ulticode.modules.bookmark.projection.BookmarkProjection;
 import com.ulticode.modules.bookmark.service.BookmarkService;
 import com.ulticode.modules.follow.inspector.FollowInspector;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -27,6 +29,7 @@ import org.springframework.http.ResponseEntity;
  * P1-INFRA-005: verify the app service shell boots and exposes health.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(AppTestSecurityConfig.class)
 class BackendAppApplicationTest {
 
     @LocalServerPort

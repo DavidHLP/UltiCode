@@ -7,6 +7,8 @@ import com.ulticode.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,6 +25,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 /**
  * Spring Security configuration.
  * Configures JWT-based stateless authentication.
+ *
+ * <p>Marked {@link Order @Order(Ordered.HIGHEST_PRECEDENCE)} so this chain — the only
+ * one with JWT authentication, CSRF, CORS, and full authorization rules — is always
+ * evaluated first in the monolith context, regardless of bean registration order.
+ * This prevents the service-shell {@code SecurityFilterChain} beans
+ * (admin/app) from shadowing this chain via first-match semantics.
  */
 @Configuration
 @EnableWebSecurity
@@ -43,6 +51,7 @@ public class SecurityConfig {
      * @throws Exception if configuration fails
      */
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CsrfService csrfService) throws Exception {
         http
                 // Enable CORS (must be before other security rules)

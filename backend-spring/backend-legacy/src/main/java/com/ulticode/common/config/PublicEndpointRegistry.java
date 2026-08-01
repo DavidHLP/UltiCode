@@ -56,7 +56,9 @@ public class PublicEndpointRegistry {
             "/actuator/info",
             // Prometheus: publicly readable by design for in-cluster scraper.
             // MUST be gated by network policy / nginx allow-deny / management port.
-            "/actuator/prometheus"
+            "/actuator/prometheus",
+            // App service-shell health endpoint (container readiness probe).
+            "/api/v1/app/health"
     };
 
     private static final String[] PUBLIC_GET_ENDPOINTS = {
@@ -65,7 +67,11 @@ public class PublicEndpointRegistry {
             "/problems/slug/**",
             "/problems/*/adjacent",
             "/api/problems/*/solutions",
-            "/edge-operations/**"
+            "/edge-operations/**",
+            // i18n translations and locales are needed before login (UI bootstrap).
+            // The bulk-upsert POST endpoint is gated by @PreAuthorize independently.
+            "/i18n/translations",
+            "/i18n/locales"
     };
 
     private static final String PUBLIC_SAMPLE_RUN_PATTERN = "/problems/*/submissions/run";

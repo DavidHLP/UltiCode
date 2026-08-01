@@ -1,5 +1,7 @@
 package com.ulticode.modules.moderation.port;
 
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.forum.port.ForumCommentOwnerPort;
 import com.ulticode.modules.forum.port.ForumOwnerPort;
 import com.ulticode.modules.problem.port.ProblemOwnerPort;
@@ -16,10 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -201,6 +205,46 @@ class DefaultContentModerationAdapterTest {
         void unknownType() {
             adapter.updateFlagStatus("unknown", "x", true, "r");
             verifyNoInteractions(forumOwnerPort, solutionOwnerPort, problemOwnerPort);
+        }
+
+        @Test
+        @DisplayName("forum_post flag silently no-ops when post already deleted")
+        void flagForumPost_whenPostDeleted_silentlyNoOps() {
+            doThrow(new BusinessException(ErrorCode.NOT_FOUND))
+                    .when(forumOwnerPort).flagPost(eq("p1"), eq("r"), any(LocalDateTime.class));
+
+            assertThatCode(() -> adapter.updateFlagStatus("forum_post", "p1", true, "r"))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("forum_post unflag silently no-ops when post already deleted")
+        void unflagForumPost_whenPostDeleted_silentlyNoOps() {
+            doThrow(new BusinessException(ErrorCode.NOT_FOUND))
+                    .when(forumOwnerPort).unflagPost("p1");
+
+            assertThatCode(() -> adapter.updateFlagStatus("forum_post", "p1", false, null))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("solution flag silently no-ops when solution already deleted")
+        void flagSolution_whenSolutionDeleted_silentlyNoOps() {
+            doThrow(new BusinessException(ErrorCode.SOLUTION_NOT_FOUND))
+                    .when(solutionOwnerPort).flagSolution(eq("s1"), eq("r"), any(LocalDateTime.class));
+
+            assertThatCode(() -> adapter.updateFlagStatus("solution", "s1", true, "r"))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("solution unflag silently no-ops when solution already deleted")
+        void unflagSolution_whenSolutionDeleted_silentlyNoOps() {
+            doThrow(new BusinessException(ErrorCode.SOLUTION_NOT_FOUND))
+                    .when(solutionOwnerPort).unflagSolution("s1");
+
+            assertThatCode(() -> adapter.updateFlagStatus("solution", "s1", false, null))
+                    .doesNotThrowAnyException();
         }
     }
 }

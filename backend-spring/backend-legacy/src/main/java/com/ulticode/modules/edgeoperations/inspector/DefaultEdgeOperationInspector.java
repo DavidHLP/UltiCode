@@ -1,9 +1,6 @@
 package com.ulticode.modules.edgeoperations.inspector;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ulticode.modules.bookmark.entity.Bookmark;
-import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
-import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
+import com.ulticode.app.api.service.BookmarkReadPort;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
@@ -40,7 +37,7 @@ import org.springframework.stereotype.Service;
 public class DefaultEdgeOperationInspector implements EdgeOperationInspector {
 
     private final VoteService voteService;
-    private final BookmarkMapper bookmarkMapper;
+    private final BookmarkReadPort bookmarkReadPort;
 
     @Override
     public EdgeOperationResponseVO getInteractions(String userId, String targetId,
@@ -63,16 +60,9 @@ public class DefaultEdgeOperationInspector implements EdgeOperationInspector {
 
     @Override
     public long getFavoritesCount(String targetId, EdgeOperationTargetType targetType) {
-        if (!BookmarkType.leafTypeNames().contains(targetType.getValue())) {
-            // Non-leaf types (POST / COMMENT / PROBLEM_LIST) are not stored in
-            // the bookmarks table; skip the round-trip and return 0. The set is
-            // sourced from BookmarkType.leafTypeNames() so adding a new leaf
-            // type to the bookmark module is automatically picked up here.
-            return 0L;
-        }
-        QueryWrapper<Bookmark> wrapper = new QueryWrapper<>();
-        wrapper.eq("target_id", targetId)
-                .eq("target_type", targetType.getValue());
-        return bookmarkMapper.selectCount(wrapper);
+        // Leaf-type filtering and DB round-trip are owned by BookmarkReadPort
+        // (P7-APP-BOOKMARK-001). Non-leaf types short-circuit to 0 inside the
+        // port implementation without crossing the bookmark module boundary.
+        return bookmarkReadPort.countFavoritesByTarget(targetType.getValue(), targetId);
     }
 }

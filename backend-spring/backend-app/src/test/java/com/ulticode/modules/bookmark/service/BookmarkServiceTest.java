@@ -1,7 +1,8 @@
 package com.ulticode.modules.bookmark.service;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.BookmarkErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.bookmark.dto.AddBookmarkDTO;
 import com.ulticode.modules.bookmark.dto.CreateFolderDTO;
 import com.ulticode.modules.bookmark.dto.QuickFavoriteDTO;
@@ -181,7 +182,7 @@ class BookmarkServiceTest {
             assertThatThrownBy(() -> service.removeBookmarkByTarget(
                     USER_ID, FOLDER_ID, BookmarkType.PROBLEM, TARGET_ID))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("code").isEqualTo(ErrorCode.NOT_FOUND.getCode());
+                    .extracting("code").isEqualTo(BaseErrorCode.NOT_FOUND.code());
         }
 
         @Test
@@ -470,7 +471,7 @@ class BookmarkServiceTest {
             assertThatThrownBy(() -> service.deleteFolder(USER_ID, FOLDER_ID))
                     .isInstanceOf(BusinessException.class)
                     .extracting("code")
-                    .isEqualTo(ErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT.getCode());
+                    .isEqualTo(BookmarkErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT.getCode());
             verify(folderMapper, never()).deleteById(anyString());
         }
     }

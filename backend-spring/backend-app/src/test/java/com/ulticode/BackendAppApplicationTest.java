@@ -2,8 +2,11 @@ package com.ulticode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.ulticode.app.api.service.BookmarkReadPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
+import com.ulticode.modules.bookmark.projection.BookmarkProjection;
+import com.ulticode.modules.bookmark.service.BookmarkService;
 import com.ulticode.modules.subscription.service.SubscriptionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,8 +25,11 @@ import org.springframework.http.ResponseEntity;
  * MybatisAutoConfiguration is excluded (no real TranslationMapper bean).
  *
  * <p>P7-APP-SUBSCRIPTION-001: @MockBean SubscriptionService and
- * SubscriptionReadPort so the context loads without a datasource
- * (no real SubscriptionMapper bean).
+ * SubscriptionReadPort so the context loads without a datasource.
+ *
+ * <p>P7-APP-BOOKMARK-001: @MockBean BookmarkService, BookmarkReadPort,
+ * and BookmarkProjection so the context loads without a datasource
+ * (no real BookmarkMapper/BookmarkFolderMapper bean).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BackendAppApplicationTest {
@@ -42,6 +48,15 @@ class BackendAppApplicationTest {
 
     @MockBean
     private SubscriptionReadPort subscriptionReadPort;
+
+    @MockBean
+    private BookmarkService bookmarkService;
+
+    @MockBean
+    private BookmarkReadPort bookmarkReadPort;
+
+    @MockBean
+    private BookmarkProjection bookmarkProjection;
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")

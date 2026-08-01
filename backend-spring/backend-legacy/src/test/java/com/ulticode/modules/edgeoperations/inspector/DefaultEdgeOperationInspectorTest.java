@@ -1,7 +1,6 @@
 package com.ulticode.modules.edgeoperations.inspector;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
+import com.ulticode.app.api.service.BookmarkReadPort;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
@@ -16,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +42,7 @@ class DefaultEdgeOperationInspectorTest {
     private VoteService voteService;
 
     @Mock
-    private BookmarkMapper bookmarkMapper;
+    private BookmarkReadPort bookmarkReadPort;
 
     private DefaultEdgeOperationInspector inspector;
 
@@ -52,7 +52,7 @@ class DefaultEdgeOperationInspectorTest {
 
     @BeforeEach
     void setUp() {
-        inspector = new DefaultEdgeOperationInspector(voteService, bookmarkMapper);
+        inspector = new DefaultEdgeOperationInspector(voteService, bookmarkReadPort);
     }
 
     // ------------------------------------------------------------------
@@ -69,7 +69,7 @@ class DefaultEdgeOperationInspectorTest {
             VoteResultVO voteResult = new VoteResultVO(
                     TARGET_ID, TARGET_TYPE.getValue(), 20L, 5L, 1);
             when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(8L);
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(8L);
 
             EdgeOperationResponseVO result = inspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE);
 
@@ -79,22 +79,22 @@ class DefaultEdgeOperationInspectorTest {
             assertThat(result.getFavorites()).isEqualTo(8L);
             assertThat(result.getViewer().getVote()).isEqualTo(1);
 
-            verify(bookmarkMapper).selectCount(any(QueryWrapper.class));
+            verify(bookmarkReadPort).countFavoritesByTarget(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("returns 0 favorites for non-leaf target types and skips the bookmark query")
+        @DisplayName("returns 0 favorites for non-leaf target types (port filters internally)")
         void getInteractions_nonLeafType_returnsZeroFavoritesAndSkipsBookmark() {
             EdgeOperationTargetType postType = EdgeOperationTargetType.POST;
             VoteResultVO voteResult = new VoteResultVO(
                     TARGET_ID, postType.getValue(), 10L, 2L, -1);
             when(voteService.getVoteStatus(USER_ID, TARGET_ID, postType)).thenReturn(voteResult);
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(0L);
 
             EdgeOperationResponseVO result = inspector.getInteractions(USER_ID, TARGET_ID, postType);
 
-            assertThat(result.getFavorites()).isZero(); // POST has no bookmark coverage
+            assertThat(result.getFavorites()).isZero();
             assertThat(result.getViewer().getVote()).isEqualTo(-1);
-            verify(bookmarkMapper, never()).selectCount(any(QueryWrapper.class));
         }
 
         @Test
@@ -104,12 +104,12 @@ class DefaultEdgeOperationInspectorTest {
             VoteResultVO voteResult = new VoteResultVO(
                     TARGET_ID, forumPostType.getValue(), 3L, 0L, 0);
             when(voteService.getVoteStatus(USER_ID, TARGET_ID, forumPostType)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(7L);
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(7L);
 
             EdgeOperationResponseVO result = inspector.getInteractions(USER_ID, TARGET_ID, forumPostType);
 
             assertThat(result.getFavorites()).isEqualTo(7L);
-            verify(bookmarkMapper).selectCount(any(QueryWrapper.class));
+            verify(bookmarkReadPort).countFavoritesByTarget(anyString(), anyString());
         }
 
         @Test
@@ -118,7 +118,7 @@ class DefaultEdgeOperationInspectorTest {
             VoteResultVO voteResult = new VoteResultVO(
                     TARGET_ID, TARGET_TYPE.getValue(), 20L, 5L, 0);
             when(voteService.getVoteStatus(null, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(3L);
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(3L);
 
             EdgeOperationResponseVO result = inspector.getInteractions(null, TARGET_ID, TARGET_TYPE);
 
@@ -133,7 +133,7 @@ class DefaultEdgeOperationInspectorTest {
             VoteResultVO voteResult = new VoteResultVO(
                     TARGET_ID, TARGET_TYPE.getValue(), 20L, 5L, 0);
             when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(0L);
 
             EdgeOperationResponseVO result = inspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE);
 
@@ -152,30 +152,33 @@ class DefaultEdgeOperationInspectorTest {
         @Test
         @DisplayName("returns the bookmark mapper count for leaf target types")
         void getFavoritesCount_leafType_returnsBookmarkCount() {
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(42L);
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(42L);
 
             long count = inspector.getFavoritesCount(TARGET_ID, TARGET_TYPE);
 
             assertThat(count).isEqualTo(42L);
-            verify(bookmarkMapper).selectCount(any(QueryWrapper.class));
+            verify(bookmarkReadPort).countFavoritesByTarget(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("returns 0 and skips the mapper for non-leaf target types")
+        @DisplayName("returns 0 for non-leaf target types (port filters internally)")
         void getFavoritesCount_nonLeafType_returnsZeroAndSkipsMapper() {
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(0L);
+
             long count = inspector.getFavoritesCount(TARGET_ID, EdgeOperationTargetType.POST);
 
             assertThat(count).isZero();
-            verify(bookmarkMapper, never()).selectCount(any(QueryWrapper.class));
         }
 
         @Test
-        @DisplayName("returns 0 and skips the mapper for COMMENT target type")
+        @DisplayName("returns 0 for COMMENT target type (port filters internally)")
         void getFavoritesCount_commentType_returnsZero() {
+            when(bookmarkReadPort.countFavoritesByTarget(anyString(), anyString())).thenReturn(0L);
+
             long count = inspector.getFavoritesCount(TARGET_ID, EdgeOperationTargetType.COMMENT);
 
             assertThat(count).isZero();
-            verify(bookmarkMapper, never()).selectCount(any(QueryWrapper.class));
         }
+
     }
 }

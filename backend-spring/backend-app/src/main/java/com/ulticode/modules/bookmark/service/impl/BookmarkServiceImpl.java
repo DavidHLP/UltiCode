@@ -2,7 +2,8 @@ package com.ulticode.modules.bookmark.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.BookmarkErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.bookmark.dto.*;
 import com.ulticode.modules.bookmark.entity.Bookmark;
 import com.ulticode.modules.bookmark.entity.BookmarkFolder;
@@ -90,7 +91,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         // Reject a name already in use by another of the user's folders.
         Optional<BookmarkFolder> existing = folderMapper.findByUserIdAndName(userId, dto.getName());
         if (existing.isPresent()) {
-            throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NAME_EXISTS);
+            throw new BusinessException(BookmarkErrorCode.BOOKMARK_FOLDER_NAME_EXISTS);
         }
 
         // Ensure the user has a default folder before adding a named one.
@@ -119,7 +120,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         if (dto.getName() != null && !dto.getName().equals(folder.getName())) {
             Optional<BookmarkFolder> existing = folderMapper.findByUserIdAndName(userId, dto.getName());
             if (existing.isPresent()) {
-                throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NAME_EXISTS);
+                throw new BusinessException(BookmarkErrorCode.BOOKMARK_FOLDER_NAME_EXISTS);
             }
             folder.setName(dto.getName());
         }
@@ -148,7 +149,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         BookmarkFolder folder = requireOwnedFolder(folderId, userId);
 
         if (Boolean.TRUE.equals(folder.getIsDefault())) {
-            throw new BusinessException(ErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT);
+            throw new BusinessException(BookmarkErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT);
         }
 
         // Delete all bookmarks in the folder (cascade should handle this, but be explicit)
@@ -188,7 +189,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         Bookmark bookmark = bookmarkMapper.selectById(bookmarkId);
         if (bookmark == null || !bookmark.getFolderId().equals(folderId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Bookmark not found in this folder");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Bookmark not found in this folder");
         }
 
         bookmarkMapper.deleteById(bookmarkId);
@@ -202,7 +203,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         int deleted = bookmarkMapper.deleteByFolderAndTarget(folderId, targetType.name(), targetId);
         if (deleted == 0) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Bookmark not found in this folder");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Bookmark not found in this folder");
         }
         log.debug("Removed {}:{} from folder {} for user {}", targetType, targetId, folderId, userId);
     }
@@ -214,7 +215,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         Bookmark bookmark = bookmarkMapper.selectById(bookmarkId);
         if (bookmark == null || !bookmark.getFolderId().equals(folderId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Bookmark not found in this folder");
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Bookmark not found in this folder");
         }
 
         if (dto.getNote() != null) {
@@ -248,7 +249,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         for (String folderId : folderIds) {
             BookmarkFolder folder = folderById.get(folderId);
             if (folder == null || !folder.getUserId().equals(userId)) {
-                throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NOT_FOUND, "Folder not found: " + folderId);
+                throw new BusinessException(BookmarkErrorCode.BOOKMARK_FOLDER_NOT_FOUND, "Folder not found: " + folderId);
             }
         }
 
@@ -266,8 +267,8 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     /**
      * Folder ownership invariant. Returns the folder if {@code userId} owns it,
-     * otherwise throws {@link ErrorCode#BOOKMARK_FOLDER_NOT_FOUND} (missing) or
-     * {@link ErrorCode#FORBIDDEN} (owned by another user).
+     * otherwise throws {@link BookmarkErrorCode#BOOKMARK_FOLDER_NOT_FOUND} (missing) or
+     * {@link BaseErrorCode#FORBIDDEN} (owned by another user).
      *
      * @param folderId the folder to resolve
      * @param userId   the requesting user
@@ -276,10 +277,10 @@ public class BookmarkServiceImpl implements BookmarkService {
     private BookmarkFolder requireOwnedFolder(String folderId, String userId) {
         BookmarkFolder folder = folderMapper.selectById(folderId);
         if (folder == null) {
-            throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NOT_FOUND);
+            throw new BusinessException(BookmarkErrorCode.BOOKMARK_FOLDER_NOT_FOUND);
         }
         if (!folder.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot access other user's folder");
+            throw new BusinessException(BaseErrorCode.FORBIDDEN, "Cannot access other user's folder");
         }
         return folder;
     }

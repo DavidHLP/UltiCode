@@ -1,7 +1,8 @@
 package com.ulticode.modules.subscription.service;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.AppErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.subscription.PremiumAccessPolicy;
 import com.ulticode.modules.subscription.constants.SubscriptionPlan;
 import com.ulticode.modules.subscription.constants.SubscriptionStatus;
@@ -363,7 +364,7 @@ class SubscriptionServiceTest {
                     BusinessException.class,
                     () -> subscriptionService.getCurrentUserSubscription()
             );
-            assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+            assertEquals(BaseErrorCode.UNAUTHORIZED, exception.getErrorCode());
         }
     }
 
@@ -428,7 +429,7 @@ class SubscriptionServiceTest {
                     BusinessException.class,
                     () -> subscriptionService.createSubscription(dto, USER_ID)
             );
-            assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
+            assertEquals(BaseErrorCode.BAD_REQUEST, exception.getErrorCode());
         }
 
         @Test
@@ -446,7 +447,7 @@ class SubscriptionServiceTest {
                     BusinessException.class,
                     () -> subscriptionService.createSubscription(dto, USER_ID)
             );
-            assertEquals(ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE, exception.getErrorCode());
+            assertEquals(AppErrorCode.SUBSCRIPTION_ALREADY_ACTIVE, exception.getErrorCode());
         }
     }
 
@@ -490,7 +491,7 @@ class SubscriptionServiceTest {
                     BusinessException.class,
                     () -> subscriptionService.cancelSubscription(SUBSCRIPTION_ID, USER_ID)
             );
-            assertEquals(ErrorCode.SUBSCRIPTION_NOT_FOUND, exception.getErrorCode());
+            assertEquals(AppErrorCode.SUBSCRIPTION_NOT_FOUND, exception.getErrorCode());
         }
 
         @Test
@@ -505,7 +506,7 @@ class SubscriptionServiceTest {
                     BusinessException.class,
                     () -> subscriptionService.cancelSubscription(SUBSCRIPTION_ID, "other-user-id")
             );
-            assertEquals(ErrorCode.FORBIDDEN, exception.getErrorCode());
+            assertEquals(BaseErrorCode.FORBIDDEN, exception.getErrorCode());
         }
     }
 

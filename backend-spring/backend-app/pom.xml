@@ -38,6 +38,11 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-common</artifactId>
 		</dependency>
+		<!-- Security infrastructure: CurrentUserProvider port, @RateLimit AOP. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-web-security</artifactId>
+		</dependency>
 
 		<!-- P1-API-001: provider-owned app contract. -->
 		<dependency>

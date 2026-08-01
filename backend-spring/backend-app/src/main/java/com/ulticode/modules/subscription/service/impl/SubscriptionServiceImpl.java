@@ -1,7 +1,8 @@
 package com.ulticode.modules.subscription.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.AppErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.subscription.PremiumAccessPolicy;
 import com.ulticode.modules.subscription.constants.SubscriptionPlan;
@@ -122,7 +123,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public SubscriptionDTO getCurrentUserSubscription() {
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
         Subscription subscription = subscriptionMapper.findActiveByUserId(userId);
@@ -138,13 +139,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         // Validate plan
         SubscriptionPlan plan = SubscriptionPlan.fromValue(dto.getPlan());
         if (plan == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid subscription plan");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid subscription plan");
         }
 
         // Check if user already has an active subscription
         Subscription existingSubscription = subscriptionMapper.findActiveByUserId(userId);
         if (existingSubscription != null) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
+            throw new BusinessException(AppErrorCode.SUBSCRIPTION_ALREADY_ACTIVE,
                     "User already has an active subscription");
         }
 
@@ -168,17 +169,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     public SubscriptionDTO updateSubscriptionStatus(String id, String status, String userId) {
         Subscription subscription = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(AppErrorCode.SUBSCRIPTION_NOT_FOUND));
 
         // Validate ownership
         if (!subscription.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot modify another user's subscription");
+            throw new BusinessException(BaseErrorCode.FORBIDDEN, "Cannot modify another user's subscription");
         }
 
         // Validate status
         SubscriptionStatus newStatus = SubscriptionStatus.fromValue(status);
         if (newStatus == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid subscription status");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid subscription status");
         }
 
         subscription.setStatus(status);
@@ -193,16 +194,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     public SubscriptionDTO cancelSubscription(String id, String userId) {
         Subscription subscription = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(AppErrorCode.SUBSCRIPTION_NOT_FOUND));
 
         // Validate ownership
         if (!subscription.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot cancel another user's subscription");
+            throw new BusinessException(BaseErrorCode.FORBIDDEN, "Cannot cancel another user's subscription");
         }
 
         // Check if already cancelled
         if (SubscriptionStatus.CANCELLED.getValue().equals(subscription.getStatus())) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_EXPIRED,
+            throw new BusinessException(AppErrorCode.SUBSCRIPTION_EXPIRED,
                     "Subscription is already cancelled");
         }
 
@@ -210,7 +211,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         // Fetch updated subscription
         subscription = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(AppErrorCode.SUBSCRIPTION_NOT_FOUND));
         subscription.setCancelledAt(LocalDateTime.now(clock));
 
         log.info("Subscription cancelled: {}", id);

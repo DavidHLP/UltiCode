@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.port.adapter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.port.ContestSummary;
+import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.modules.admin.port.SubscriptionSummary;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
@@ -10,8 +11,6 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.subscription.entity.Subscription;
-import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -48,7 +47,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper contestParticipantMapper;
-    private final SubscriptionMapper subscriptionMapper;
+    private final SubscriptionReadPort subscriptionReadPort;
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
 
@@ -81,17 +80,13 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     @Override
     public long countActiveSubscriptions() {
-        LambdaQueryWrapper<Subscription> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Subscription::getStatus, "ACTIVE");
-        return subscriptionMapper.selectCount(wrapper);
+        return subscriptionReadPort.countActiveSubscriptions();
     }
 
     @Override
     public List<SubscriptionSummary> listActiveSubscriptions() {
-        LambdaQueryWrapper<Subscription> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Subscription::getStatus, "ACTIVE");
-        return subscriptionMapper.selectList(wrapper).stream()
-                .map(s -> new SubscriptionSummary(s.getPlan()))
+        return subscriptionReadPort.listActiveSubscriptionPlans().stream()
+                .map(SubscriptionSummary::new)
                 .collect(Collectors.toList());
     }
 

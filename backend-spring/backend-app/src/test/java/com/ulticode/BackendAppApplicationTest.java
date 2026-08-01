@@ -107,6 +107,36 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.security.BanCheckPort banCheckPort;
 
+    @MockBean
+    private com.ulticode.modules.forum.mapper.ForumPostMapper forumPostMapper;
+
+    @MockBean
+    private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
+
+    @MockBean
+    private com.ulticode.app.userprofile.mapper.UserProfileMapper userProfileMapper;
+
+    @MockBean
+    private com.ulticode.modules.forum.mapper.ForumCommentMapper forumCommentMapper;
+
+    @MockBean
+    private com.ulticode.modules.forum.mapper.ForumCommunityMapper forumCommunityMapper;
+
+    @MockBean
+    private com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper forumCommunityMemberMapper;
+
+    @MockBean
+    private com.ulticode.modules.forum.mapper.ForumTagMapper forumTagMapper;
+
+    @MockBean
+    private com.ulticode.modules.forum.mapper.ForumUserMapper forumUserMapper;
+
+    @MockBean
+    private com.ulticode.app.api.service.ForumVoteReadPort forumVoteReadPort;
+
+    @MockBean
+    private com.ulticode.app.api.service.ForumPostReadPort forumPostReadPort;
+
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")

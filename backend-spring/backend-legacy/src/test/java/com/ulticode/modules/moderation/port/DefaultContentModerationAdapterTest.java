@@ -2,8 +2,8 @@ package com.ulticode.modules.moderation.port;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.forum.port.ForumCommentOwnerPort;
-import com.ulticode.modules.forum.port.ForumOwnerPort;
+import com.ulticode.app.api.service.ForumCommentOwnerPort;
+import com.ulticode.app.api.service.ForumOwnerPort;
 import com.ulticode.modules.problem.port.ProblemOwnerPort;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.app.api.service.SolutionOwnerPort;

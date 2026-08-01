@@ -1,7 +1,7 @@
 package com.ulticode.modules.search.source;
 
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.app.api.dto.ForumPostIndexDTO;
+import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchResponseVO;
 import lombok.RequiredArgsConstructor;
@@ -11,17 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Search source for the forum post domain. Owns:
- * <ul>
- *   <li>The {@link ForumPostMapper#searchPosts} call (the mapper owns the
- *       {@code is_deleted} predicate and the title / excerpt LIKE
- *       matching) and the LIMIT cap.</li>
- *   <li>The {@code /forum/post/{permalink}} URL template.</li>
- * </ul>
+ * Search source for the forum post domain.
  *
- * <p>Forum posts carry no metadata in the search response (the title and
- * excerpt already encode the rankable surface), so this source is the
- * leanest of the four.
+ * <p>P7-RELOCATE-FORUM-001: cutover from direct {@code ForumPostMapper}
+ * to {@link ForumPostReadPort} after the forum family relocated to
+ * {@code backend-app}. The port is defined in {@code backend-app-api}
+ * which is already on the {@code backend-legacy} classpath.
  *
  * @author ulticode
  */
@@ -29,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ForumSearchSource implements SearchSource {
 
-    private final ForumPostMapper forumPostMapper;
+    private final ForumPostReadPort forumPostReadPort;
 
     @Override
     public SearchIndexType getIndexType() {
@@ -38,16 +33,16 @@ public class ForumSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        List<ForumPost> posts = forumPostMapper.searchPosts(query, limit);
+        List<ForumPostIndexDTO> posts = forumPostReadPort.searchForIndex(query, limit);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(posts.size());
-        for (ForumPost post : posts) {
+        for (ForumPostIndexDTO post : posts) {
             results.add(SearchResponseVO.SearchResultItem.builder()
-                    .id(post.getId())
+                    .id(post.id())
                     .type(SearchIndexType.POSTS.name())
-                    .title(post.getTitle())
-                    .description(post.getExcerpt())
-                    .url(buildUrl(post.getPermalink()))
+                    .title(post.title())
+                    .description(post.excerpt())
+                    .url(buildUrl(post.permalink()))
                     .build());
         }
         return results;

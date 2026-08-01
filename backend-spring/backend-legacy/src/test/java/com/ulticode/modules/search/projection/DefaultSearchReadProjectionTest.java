@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.app.api.dto.ForumPostIndexDTO;
+import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.search.dto.SearchIndexType;
@@ -56,8 +56,7 @@ class DefaultSearchReadProjectionTest {
     private UserMapper userMapper;
 
     @Mock
-    private ForumPostMapper forumPostMapper;
-
+    private ForumPostReadPort forumPostReadPort;
     @Mock
     private SolutionReadPort solutionReadPort;
 
@@ -76,7 +75,7 @@ class DefaultSearchReadProjectionTest {
         List<SearchSource> sources = List.of(
                 new ProblemSearchSource(problemMapper),
                 new UserSearchSource(userMapper),
-                new ForumSearchSource(forumPostMapper),
+                new ForumSearchSource(forumPostReadPort),
                 new SolutionSearchSource(solutionReadPort)
         );
         searchProjection = new DefaultSearchReadProjection(sources);
@@ -109,7 +108,7 @@ class DefaultSearchReadProjectionTest {
 
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
-            when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
@@ -172,15 +171,10 @@ class DefaultSearchReadProjectionTest {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.POSTS);
 
-            List<ForumPost> posts = new ArrayList<>();
-            ForumPost post = new ForumPost();
-            post.setId("post-123");
-            post.setTitle("Test Post");
-            post.setExcerpt("This is a test post");
-            post.setPermalink("test-post");
-            posts.add(post);
+            List<ForumPostIndexDTO> posts = new ArrayList<>();
+            posts.add(new ForumPostIndexDTO("post-123", "Test Post", "This is a test post", "test-post"));
 
-            when(forumPostMapper.searchPosts("test", 20)).thenReturn(posts);
+            when(forumPostReadPort.searchForIndex("test", 20)).thenReturn(posts);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -252,7 +246,7 @@ class DefaultSearchReadProjectionTest {
 
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
-            when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
@@ -300,7 +294,7 @@ class DefaultSearchReadProjectionTest {
 
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
-            when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
@@ -420,7 +414,7 @@ class DefaultSearchReadProjectionTest {
 
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
-            when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act

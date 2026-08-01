@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.bookmark.mapper",
         "com.ulticode.modules.subscription.mapper",
         "com.ulticode.modules.solution.mapper",
+        "com.ulticode.modules.forum.mapper",
         "com.ulticode.app.userprofile.mapper",
         "com.ulticode.app.i18n.mapper",
         "com.ulticode.app.idempotency.mapper"

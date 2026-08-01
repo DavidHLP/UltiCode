@@ -15,9 +15,9 @@ import com.ulticode.modules.search.source.ForumSearchSource;
 import com.ulticode.modules.search.source.ProblemSearchSource;
 import com.ulticode.modules.search.source.SearchSource;
 import com.ulticode.modules.search.source.SolutionSearchSource;
+import com.ulticode.app.api.dto.SolutionIndexDTO;
+import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.modules.search.source.UserSearchSource;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +59,7 @@ class DefaultSearchReadProjectionTest {
     private ForumPostMapper forumPostMapper;
 
     @Mock
-    private SolutionMapper solutionMapper;
+    private SolutionReadPort solutionReadPort;
 
     @Mock
     private Client meiliSearchClient;
@@ -77,7 +77,7 @@ class DefaultSearchReadProjectionTest {
                 new ProblemSearchSource(problemMapper),
                 new UserSearchSource(userMapper),
                 new ForumSearchSource(forumPostMapper),
-                new SolutionSearchSource(solutionMapper)
+                new SolutionSearchSource(solutionReadPort)
         );
         searchProjection = new DefaultSearchReadProjection(sources);
 
@@ -110,7 +110,7 @@ class DefaultSearchReadProjectionTest {
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
             when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -204,17 +204,10 @@ class DefaultSearchReadProjectionTest {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.SOLUTIONS);
 
-            List<Solution> solutions = new ArrayList<>();
-            Solution solution = new Solution();
-            solution.setId("solution-123");
-            solution.setProblemId(1L);
-            solution.setTitle("Test Solution");
-            solution.setSummary("This is a test solution");
-            solution.setIsPublished(true);
-            solution.setIsDeleted(false);
-            solutions.add(solution);
 
-            when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(solutions);
+            List<SolutionIndexDTO> solutions = new ArrayList<>();
+            solutions.add(new SolutionIndexDTO("solution-123", "Test Solution", "This is a test solution", 1L));
+            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(solutions);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -260,7 +253,7 @@ class DefaultSearchReadProjectionTest {
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
             when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -308,7 +301,7 @@ class DefaultSearchReadProjectionTest {
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
             when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -428,7 +421,7 @@ class DefaultSearchReadProjectionTest {
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
             when(forumPostMapper.searchPosts(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);

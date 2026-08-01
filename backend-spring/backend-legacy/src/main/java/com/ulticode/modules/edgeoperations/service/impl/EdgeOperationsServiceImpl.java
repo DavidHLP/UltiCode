@@ -4,8 +4,7 @@ import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.port.SolutionOwnerPort;
 import com.ulticode.modules.vote.dto.VoteDTO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.EdgeOperation;
@@ -39,7 +38,7 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
 
     private final VoteService voteService;
     private final EdgeOperationMapper edgeOperationMapper;
-    private final SolutionMapper solutionMapper;
+    private final SolutionOwnerPort solutionOwnerPort;
     private final EdgeOperationInspector edgeOperationInspector;
 
     @Override
@@ -148,15 +147,7 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
             return;
         }
 
-        Solution solution = solutionMapper.selectById(solutionId);
-        if (solution == null) {
-            log.warn("Solution not found for vote count update: {}", solutionId);
-            return;
-        }
-
-        solution.setLikes((int) likes);
-        solution.setDislikes((int) dislikes);
-        solutionMapper.updateById(solution);
+        solutionOwnerPort.updateVoteCounts(solutionId, (int) likes, (int) dislikes);
 
         log.debug("Updated solution {} vote counts: likes={}, dislikes={}", solutionId, likes, dislikes);
     }

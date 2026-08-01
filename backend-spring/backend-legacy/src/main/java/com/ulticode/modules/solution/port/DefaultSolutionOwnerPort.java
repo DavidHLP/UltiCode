@@ -122,4 +122,17 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
         Solution solution = solutionMapper.selectById(id);
         return solution != null ? solution.getUserId() : null;
     }
+
+    @Override
+    @Transactional
+    public void updateVoteCounts(String id, int likes, int dislikes) {
+        Solution solution = solutionMapper.selectById(id);
+        if (solution == null) {
+            log.debug("Solution {} not found; vote count update skipped", id);
+            return;
+        }
+        solution.setLikes(likes);
+        solution.setDislikes(dislikes);
+        solutionMapper.updateById(solution);
+    }
 }

@@ -1,10 +1,9 @@
 package com.ulticode.modules.search.source;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.ulticode.app.api.dto.SolutionIndexDTO;
+import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchResponseVO;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,14 +13,17 @@ import java.util.List;
 /**
  * Search source for the solution (editorial) domain. Owns:
  * <ul>
- *   <li>The {@link SolutionMapper} call and the {@code is_published} /
- *       {@code is_deleted} predicates that gate published, non-deleted
- *       editorials.</li>
- *   <li>The title / summary LIKE matching and the LIMIT cap.</li>
+ *   <li>The search query delegation to {@link SolutionReadPort} which
+ *       handles the {@code is_published} / {@code is_deleted} predicates
+ *       and LIKE matching internally.</li>
  *   <li>The canonical {@code /problems/{problemId}/solutions/{id}} URL
  *       (with a {@code /solutions/{id}} fallback when the parent problem
  *       id is unknown).</li>
  * </ul>
+ *
+ * <p>P7-RELOCATE-SOLUTION-001: cut over from direct {@code SolutionMapper}
+ * to {@code SolutionReadPort} so this source no longer imports the
+ * solution entity or mapper.
  *
  * @author ulticode
  */
@@ -29,7 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SolutionSearchSource implements SearchSource {
 
-    private final SolutionMapper solutionMapper;
+    private final SolutionReadPort solutionReadPort;
 
     @Override
     public SearchIndexType getIndexType() {
@@ -38,25 +40,15 @@ public class SolutionSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        QueryWrapper<Solution> wrapper = new QueryWrapper<>();
-        wrapper.and(w -> w
-                .like("title", query)
-                .or()
-                .like("summary", query)
-        )
-                .eq("is_published", true)
-                .eq("is_deleted", false)
-                .last("LIMIT " + limit);
-
-        List<Solution> solutions = solutionMapper.selectList(wrapper);
+        List<SolutionIndexDTO> solutions = solutionReadPort.searchForIndex(query, limit);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(solutions.size());
-        for (Solution solution : solutions) {
+        for (SolutionIndexDTO solution : solutions) {
             results.add(SearchResponseVO.SearchResultItem.builder()
-                    .id(solution.getId())
+                    .id(solution.id())
                     .type(SearchIndexType.SOLUTIONS.name())
-                    .title(solution.getTitle())
-                    .description(solution.getSummary())
+                    .title(solution.title())
+                    .description(solution.summary())
                     .url(buildSolutionUrl(solution))
                     .build());
         }
@@ -69,15 +61,15 @@ public class SolutionSearchSource implements SearchSource {
     }
 
     /**
-     * Build the rich solution URL. The database row carries the parent
-     * problem id, so the canonical {@code /problems/{problemId}/solutions/{id}}
+     * Build the rich solution URL. The DTO carries the parent problem
+     * id, so the canonical {@code /problems/{problemId}/solutions/{id}}
      * shape is used whenever the parent is known; otherwise the simple
      * fallback {@code /solutions/{id}} applies.
      */
-    private String buildSolutionUrl(Solution solution) {
-        if (solution.getProblemId() != null) {
-            return "/problems/" + solution.getProblemId() + "/solutions/" + solution.getId();
+    private String buildSolutionUrl(SolutionIndexDTO solution) {
+        if (solution.problemId() != null) {
+            return "/problems/" + solution.problemId() + "/solutions/" + solution.id();
         }
-        return buildUrl(solution.getId());
+        return buildUrl(solution.id());
     }
 }

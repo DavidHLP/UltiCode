@@ -71,6 +71,19 @@ public interface SolutionOwnerPort {
     String resolveAuthorId(String id);
 
     /**
+     * Update denormalized vote counts on a solution.
+     *
+     * <p>Called by the edge-operations module after a vote to mirror
+     * likes/dislikes onto the solution row. If the solution does not
+     * exist (already deleted), the call is a silent no-op.
+     *
+     * @param id solution ID
+     * @param likes new like count
+     * @param dislikes new dislike count
+     */
+    void updateVoteCounts(String id, int likes, int dislikes);
+
+    /**
      * Result wrapper for flag/unflag operations carrying audit snapshot state.
      */
     record FlagResult(String authorUserId, boolean oldIsFlagged, String oldFlaggedReason) {}

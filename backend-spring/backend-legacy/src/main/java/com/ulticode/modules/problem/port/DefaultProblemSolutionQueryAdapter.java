@@ -1,16 +1,16 @@
 package com.ulticode.modules.problem.port;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.app.api.service.SolutionReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
  * Default adapter for {@link ProblemSolutionQueryPort} backed by
- * {@code SolutionMapper}. Lives in backend-legacy; when the problem module
- * migrates to backend-app, this adapter is replaced or the underlying data
- * access moves with it.
+ * {@link SolutionReadPort} from backend-app-api.
+ *
+ * <p>P7-RELOCATE-SOLUTION-001: cut over from direct {@code SolutionMapper}
+ * to {@code SolutionReadPort} so this adapter no longer imports the
+ * solution entity or mapper.
  *
  * @author ulticode
  */
@@ -18,13 +18,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DefaultProblemSolutionQueryAdapter implements ProblemSolutionQueryPort {
 
-    private final SolutionMapper solutionMapper;
+    private final SolutionReadPort solutionReadPort;
 
     @Override
     public long countSolutionsByProblemId(Long problemId) {
-        Long count = solutionMapper.selectCount(
-                new LambdaQueryWrapper<Solution>()
-                        .eq(Solution::getProblemId, problemId));
-        return count != null ? count : 0L;
+        return solutionReadPort.countByProblemId(problemId);
     }
 }

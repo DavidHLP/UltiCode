@@ -116,4 +116,10 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
         }
         return solution;
     }
+
+    @Override
+    public String resolveAuthorId(String id) {
+        Solution solution = solutionMapper.selectById(id);
+        return solution != null ? solution.getUserId() : null;
+    }
 }

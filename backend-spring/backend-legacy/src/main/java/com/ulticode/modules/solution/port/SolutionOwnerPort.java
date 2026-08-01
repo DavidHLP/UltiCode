@@ -63,6 +63,14 @@ public interface SolutionOwnerPort {
     Set<String> findExistingIds(List<String> ids);
 
     /**
+     * Resolve the author of a solution without mutating it.
+     *
+     * @param id solution ID
+     * @return author user ID, or {@code null} when the solution does not exist
+     */
+    String resolveAuthorId(String id);
+
+    /**
      * Result wrapper for flag/unflag operations carrying audit snapshot state.
      */
     record FlagResult(String authorUserId, boolean oldIsFlagged, String oldFlaggedReason) {}

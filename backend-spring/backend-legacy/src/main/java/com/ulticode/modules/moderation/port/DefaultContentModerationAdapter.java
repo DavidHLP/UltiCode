@@ -1,22 +1,37 @@
 package com.ulticode.modules.moderation.port;
 
-import com.ulticode.modules.forum.mapper.ForumCommentMapper;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.forum.port.ForumCommentOwnerPort;
+import com.ulticode.modules.forum.port.ForumOwnerPort;
+import com.ulticode.modules.problem.port.ProblemOwnerPort;
+import com.ulticode.modules.solution.port.SolutionCommentOwnerPort;
+import com.ulticode.modules.solution.port.SolutionOwnerPort;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+
+/**
+ * Adapter implementing {@link ContentModerationPort} that dispatches
+ * moderation operations (author resolution + flag status updates) by
+ * entity type.
+ *
+ * <p><b>P7-MODERATION-CUTOVER-001:</b> all five entity types delegate to
+ * their respective owner ports — {@link ForumOwnerPort},
+ * {@link ForumCommentOwnerPort}, {@link SolutionOwnerPort},
+ * {@link SolutionCommentOwnerPort}, {@link ProblemOwnerPort} — instead of
+ * importing family mappers directly. This decouples the moderation adapter
+ * from all family mapper types so those families can relocate to
+ * backend-app without breaking compilation here.
+ */
 @Component
 @RequiredArgsConstructor
 public class DefaultContentModerationAdapter implements ContentModerationPort {
 
-    private final ForumPostMapper forumPostMapper;
-    private final ForumCommentMapper forumCommentMapper;
-    private final SolutionMapper solutionMapper;
-    private final SolutionCommentMapper solutionCommentMapper;
-    private final ProblemMapper problemMapper;
+    private final ForumOwnerPort forumOwnerPort;
+    private final ForumCommentOwnerPort forumCommentOwnerPort;
+    private final SolutionOwnerPort solutionOwnerPort;
+    private final SolutionCommentOwnerPort solutionCommentOwnerPort;
+    private final ProblemOwnerPort problemOwnerPort;
 
     @Override
     public String resolveAuthorId(String entityType, String entityId) {
@@ -25,20 +40,15 @@ public class DefaultContentModerationAdapter implements ContentModerationPort {
         }
         switch (entityType) {
             case "forum_post":
-                var post = forumPostMapper.selectById(entityId);
-                return post != null ? post.getUserId() : null;
+                return forumOwnerPort.resolveAuthorId(entityId);
             case "forum_comment":
-                var comment = forumCommentMapper.selectById(entityId);
-                return comment != null ? comment.getAuthorId() : null;
+                return forumCommentOwnerPort.resolveAuthorId(entityId);
             case "solution":
-                var solution = solutionMapper.selectById(entityId);
-                return solution != null ? solution.getUserId() : null;
+                return solutionOwnerPort.resolveAuthorId(entityId);
             case "solution_comment":
-                var solComment = solutionCommentMapper.selectById(entityId);
-                return solComment != null ? solComment.getUserId() : null;
+                return solutionCommentOwnerPort.resolveAuthorId(entityId);
             case "problem":
-                var problem = problemMapper.selectById(entityId);
-                return problem != null ? problem.getPublishedBy() : null;
+                return problemOwnerPort.resolveAuthorId(entityId);
             default:
                 return null;
         }
@@ -51,19 +61,35 @@ public class DefaultContentModerationAdapter implements ContentModerationPort {
         }
         switch (entityType) {
             case "forum_post":
-                forumPostMapper.updateFlagStatus(entityId, isFlagged, reason);
+                if (isFlagged) {
+                    forumOwnerPort.flagPost(entityId, reason, LocalDateTime.now());
+                } else {
+                    forumOwnerPort.unflagPost(entityId);
+                }
                 break;
             case "forum_comment":
-                forumCommentMapper.updateFlagStatus(entityId, isFlagged, reason);
+                if (isFlagged) {
+                    forumCommentOwnerPort.flagComment(entityId, reason);
+                } else {
+                    forumCommentOwnerPort.unflagComment(entityId);
+                }
                 break;
             case "solution":
-                solutionMapper.updateFlagStatus(entityId, isFlagged, reason);
+                if (isFlagged) {
+                    solutionOwnerPort.flagSolution(entityId, reason, LocalDateTime.now());
+                } else {
+                    solutionOwnerPort.unflagSolution(entityId);
+                }
                 break;
             case "solution_comment":
-                solutionCommentMapper.updateFlagStatus(entityId, isFlagged, reason);
+                if (isFlagged) {
+                    solutionCommentOwnerPort.flagComment(entityId, reason);
+                } else {
+                    solutionCommentOwnerPort.unflagComment(entityId);
+                }
                 break;
             case "problem":
-                problemMapper.updateFlagStatus(entityId, isFlagged, reason);
+                problemOwnerPort.updateModerationFlag(entityId, isFlagged, reason);
                 break;
             default:
                 break;

@@ -148,4 +148,15 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         problemMapper.updateById(existing);
         log.info("ProblemOwnerPort.applyImportedUpdate id={}", id);
     }
+
+    @Override
+    public String resolveAuthorId(String id) {
+        var problem = problemMapper.selectById(id);
+        return problem != null ? problem.getPublishedBy() : null;
+    }
+
+    @Override
+    public void updateModerationFlag(String id, boolean isFlagged, String reason) {
+        problemMapper.updateFlagStatus(id, isFlagged, reason);
+    }
 }

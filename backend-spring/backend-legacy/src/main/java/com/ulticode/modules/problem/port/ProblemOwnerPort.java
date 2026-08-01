@@ -32,6 +32,24 @@ import java.util.List;
 public interface ProblemOwnerPort {
 
     /**
+     * Resolve the author (publishedBy) of a problem without mutating it.
+     *
+     * @param id problem ID as String (matches moderation adapter's entityId shape)
+     * @return publishedBy user ID, or {@code null} when the problem does not exist
+     */
+    String resolveAuthorId(String id);
+
+    /**
+     * Set the flag status on a problem by String ID. Used by the moderation
+     * adapter which operates on String entity IDs across all content types.
+     *
+     * @param id problem ID as String
+     * @param isFlagged new flag state
+     * @param reason flag reason (or {@code null} when unflagging)
+     */
+    void updateModerationFlag(String id, boolean isFlagged, String reason);
+
+    /**
      * Flag a problem for moderation. Sets {@code is_flagged = true}
      * and {@code flag_reason} on the row; idempotent (no-op when
      * already flagged with the same reason).

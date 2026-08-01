@@ -88,4 +88,10 @@ public class DefaultForumOwnerPort implements ForumOwnerPort {
         }
         return post;
     }
+
+    @Override
+    public String resolveAuthorId(String postId) {
+        ForumPost post = forumPostMapper.selectById(postId);
+        return post != null ? post.getUserId() : null;
+    }
 }

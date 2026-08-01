@@ -47,6 +47,14 @@ public interface ForumOwnerPort {
     ToggleResult setLocked(String postId, boolean locked);
 
     /**
+     * Resolve the author of a post without mutating it.
+     *
+     * @param postId target post ID
+     * @return author user ID, or {@code null} when the post does not exist
+     */
+    String resolveAuthorId(String postId);
+
+    /**
      * Result wrapper holding the author user ID and pre-mutation flag state
      * (used by admin policies for audit recording).
      */

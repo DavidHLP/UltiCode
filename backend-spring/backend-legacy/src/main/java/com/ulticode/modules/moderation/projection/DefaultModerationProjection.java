@@ -19,8 +19,7 @@ import com.ulticode.modules.moderation.entity.Report;
 import com.ulticode.modules.moderation.mapper.AppealMapper;
 import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
 import com.ulticode.modules.moderation.mapper.ReportMapper;
-import com.ulticode.modules.solution.entity.SolutionComment;
-import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
+import com.ulticode.modules.solution.port.SolutionCommentOwnerPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.moderation.port.ModerationUserReadPort;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +57,7 @@ public class DefaultModerationProjection implements ModerationProjection {
     private final ReportMapper reportMapper;
     private final AppealMapper appealMapper;
     private final ModerationUserReadPort userReadPort;
-    private final SolutionCommentMapper solutionCommentMapper;
+    private final SolutionCommentOwnerPort solutionCommentOwnerPort;
 
     // ------------------------------------------------------------------
     // Queue projection
@@ -388,9 +387,9 @@ public class DefaultModerationProjection implements ModerationProjection {
         vo.setEntityId(item.getEntityId());
         // 解析 parentId（对于 solution_comment 类型）
         if ("solution_comment".equals(item.getEntityType())) {
-            SolutionComment comment = solutionCommentMapper.selectById(item.getEntityId());
-            if (comment != null) {
-                vo.setParentId(comment.getSolutionId());
+            String parentId = solutionCommentOwnerPort.resolveSolutionId(item.getEntityId());
+            if (parentId != null) {
+                vo.setParentId(parentId);
             }
         }
         vo.setAuthorId(item.getAuthorId());

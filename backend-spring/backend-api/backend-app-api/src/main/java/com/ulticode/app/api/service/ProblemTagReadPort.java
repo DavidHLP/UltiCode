@@ -1,4 +1,4 @@
-package com.ulticode.modules.solution.port;
+package com.ulticode.app.api.service;
 
 import java.util.Collection;
 import java.util.List;

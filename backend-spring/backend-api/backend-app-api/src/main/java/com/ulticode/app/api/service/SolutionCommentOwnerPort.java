@@ -1,4 +1,4 @@
-package com.ulticode.modules.solution.port;
+package com.ulticode.app.api.service;
 
 /**
  * P7-MODERATION-CUTOVER-001: owner-only write + author-resolve surface for

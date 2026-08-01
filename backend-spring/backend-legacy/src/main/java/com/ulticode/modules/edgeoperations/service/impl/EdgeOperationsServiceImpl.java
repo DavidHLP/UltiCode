@@ -4,7 +4,7 @@ import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
-import com.ulticode.modules.solution.port.SolutionOwnerPort;
+import com.ulticode.app.api.service.SolutionOwnerPort;
 import com.ulticode.modules.vote.dto.VoteDTO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.EdgeOperation;

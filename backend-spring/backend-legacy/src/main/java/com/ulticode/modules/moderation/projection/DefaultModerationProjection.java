@@ -19,7 +19,7 @@ import com.ulticode.modules.moderation.entity.Report;
 import com.ulticode.modules.moderation.mapper.AppealMapper;
 import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
 import com.ulticode.modules.moderation.mapper.ReportMapper;
-import com.ulticode.modules.solution.port.SolutionCommentOwnerPort;
+import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.moderation.port.ModerationUserReadPort;
 import lombok.RequiredArgsConstructor;

@@ -4,7 +4,7 @@ import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.edgeoperations.service.impl.EdgeOperationsServiceImpl;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
+
 import com.ulticode.modules.vote.dto.VoteDTO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.EdgeOperation;
@@ -52,10 +52,6 @@ class EdgeOperationsServiceTest {
 
     @Mock
     private EdgeOperationMapper edgeOperationMapper;
-
-    @Mock
-    private SolutionMapper solutionMapper;
-
     @Spy
     private EdgeOperationInspector edgeOperationInspector =
             org.mockito.Mockito.mock(EdgeOperationInspector.class);

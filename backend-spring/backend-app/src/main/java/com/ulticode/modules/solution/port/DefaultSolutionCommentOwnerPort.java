@@ -1,5 +1,6 @@
 package com.ulticode.modules.solution.port;
 
+import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code @Update} SQL the moderation adapter previously called directly.
  * The mapper SQL uses {@code NOW()} for the timestamp, so no caller-supplied
  * time is needed. Pre-mutation state is captured via
- * {@code selectByIdIgnoreDeleted} so {@link FlagResult} is populated even
+ * {@code selectByIdIgnoreDeleted} so {@link SolutionCommentOwnerPort.FlagResult} is populated even
  * for soft-deleted comments. Author/parent resolves use {@code selectById}
  * to match the original adapter's read behavior.
  */
@@ -28,7 +29,7 @@ public class DefaultSolutionCommentOwnerPort implements SolutionCommentOwnerPort
 
     @Override
     @Transactional
-    public FlagResult flagComment(String commentId, String reason) {
+    public SolutionCommentOwnerPort.FlagResult flagComment(String commentId, String reason) {
         SolutionComment comment = solutionCommentMapper.selectByIdIgnoreDeleted(commentId);
         if (comment == null) {
             return null;
@@ -40,12 +41,12 @@ public class DefaultSolutionCommentOwnerPort implements SolutionCommentOwnerPort
         solutionCommentMapper.updateFlagStatus(commentId, true, reason != null ? reason : "");
         log.info("Flagged solution comment {}", commentId);
 
-        return new FlagResult(comment.getUserId(), previousIsFlagged, previousReason);
+        return new SolutionCommentOwnerPort.FlagResult(comment.getUserId(), previousIsFlagged, previousReason);
     }
 
     @Override
     @Transactional
-    public FlagResult unflagComment(String commentId) {
+    public SolutionCommentOwnerPort.FlagResult unflagComment(String commentId) {
         SolutionComment comment = solutionCommentMapper.selectByIdIgnoreDeleted(commentId);
         if (comment == null) {
             return null;
@@ -57,7 +58,7 @@ public class DefaultSolutionCommentOwnerPort implements SolutionCommentOwnerPort
         solutionCommentMapper.updateFlagStatus(commentId, false, null);
         log.info("Unflagged solution comment {}", commentId);
 
-        return new FlagResult(comment.getUserId(), previousIsFlagged, previousReason);
+        return new SolutionCommentOwnerPort.FlagResult(comment.getUserId(), previousIsFlagged, previousReason);
     }
 
     @Override

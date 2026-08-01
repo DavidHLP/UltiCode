@@ -1,4 +1,4 @@
-package com.ulticode.modules.solution.port;
+package com.ulticode.app.api.service;
 
 /**
  * Read-and-write seam the solution write path uses against the

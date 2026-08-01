@@ -7,7 +7,7 @@ import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.solution.port.ProblemExistencePort;
+import com.ulticode.app.api.service.ProblemExistencePort;
 import com.ulticode.modules.solution.projection.SolutionProjection;
 import com.ulticode.modules.solution.service.impl.SolutionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,6 +1,8 @@
 package com.ulticode.modules.solution.port;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.app.api.service.ProblemExistencePort;
+import com.ulticode.app.api.service.SolutionOwnerPort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.solution.entity.Solution;

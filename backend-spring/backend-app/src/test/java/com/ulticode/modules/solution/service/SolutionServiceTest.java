@@ -1,8 +1,6 @@
 package com.ulticode.modules.solution.service;
 
-import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.app.uuid.AppUuidGenerator;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
@@ -46,15 +44,13 @@ class SolutionServiceTest {
     @Mock
     private SolutionCommentMapper solutionCommentMapper;
     @Mock
-    private ProblemMapper problemMapper;
-    @Mock
     private ProblemExistencePort problemExistencePort;
     @Mock
     private SolutionProjection solutionProjection;
     @Mock
     private Clock clock;
     @Mock
-    private UuidGenerator uuidGenerator;
+    private AppUuidGenerator uuidGenerator;
 
     @InjectMocks
     private SolutionServiceImpl solutionService;
@@ -126,10 +122,7 @@ class SolutionServiceTest {
     @Test
     @DisplayName("OBS-3: create persists tags as comma-joined string (DTO List<String> -> entity String)")
     void create_persistsTagsAsJoinedString() {
-        Problem problem = new Problem();
-        problem.setId(PROBLEM_ID);
-        problem.setHasSolution(false);
-        when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
+        when(problemExistencePort.exists(PROBLEM_ID)).thenReturn(true);
         when(solutionMapper.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(null);
 
         CreateSolutionDTO dto = new CreateSolutionDTO();
@@ -148,10 +141,7 @@ class SolutionServiceTest {
     @Test
     @DisplayName("OBS-3: create persists empty string when tags is null")
     void create_persistsEmptyStringWhenTagsMissing() {
-        Problem problem = new Problem();
-        problem.setId(PROBLEM_ID);
-        problem.setHasSolution(false);
-        when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
+        when(problemExistencePort.exists(PROBLEM_ID)).thenReturn(true);
         when(solutionMapper.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(null);
 
         CreateSolutionDTO dto = new CreateSolutionDTO();

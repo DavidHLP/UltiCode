@@ -1,23 +1,18 @@
 package com.ulticode.modules.solution.controller;
 
-import com.ulticode.UlticodeBackendApplication;
-import com.ulticode.common.config.MapperConfig;
+import com.ulticode.common.response.Result;
 import com.ulticode.modules.solution.dto.SolutionTopicVO;
 import com.ulticode.modules.solution.service.SolutionTopicService;
-import com.ulticode.security.AuthenticationEntryPointImpl;
-import com.ulticode.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
@@ -26,28 +21,23 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(
-        value = SolutionTopicController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = MapperConfig.class
-        )
-)
-@ContextConfiguration(classes = UlticodeBackendApplication.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 @DisplayName("SolutionTopicController")
 class SolutionTopicControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private SolutionTopicService solutionTopicService;
 
-    @MockBean private JwtTokenProvider jwtTokenProvider;
-    @MockBean private JwtProperties jwtProperties;
-    @MockBean private JwtAuthenticationFilter jwtAuthenticationFilter;
-    @MockBean private AuthenticationEntryPointImpl authenticationEntryPoint;
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        SolutionTopicController controller = new SolutionTopicController(solutionTopicService);
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(controller)
+                .setMessageConverters(new MappingJackson2HttpMessageConverter())
+                .build();
+    }
 
     @Test
     @DisplayName("GET /solution-topics returns 200 with topic list")
@@ -57,7 +47,8 @@ class SolutionTopicControllerTest {
                 new SolutionTopicVO("topic-dp", "动态规划", 5)
         ));
 
-        mockMvc.perform(get("/solution-topics"))
+        mockMvc.perform(get("/solution-topics")
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data[0].id").value("topic-greedy"))

@@ -1,10 +1,10 @@
 package com.ulticode.modules.solution.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.common.annotation.CheckBan;
+import com.ulticode.app.security.CheckBan;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.app.error.SolutionErrorCode;
+import com.ulticode.app.uuid.AppUuidGenerator;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
@@ -45,7 +45,7 @@ public class SolutionServiceImpl implements SolutionService {
     private final ProblemExistencePort problemExistencePort;
     private final SolutionProjection solutionProjection;
     private final Clock clock;
-    private final UuidGenerator uuidGenerator;
+    private final AppUuidGenerator uuidGenerator;
 
     private static final int MAX_SUMMARY_LENGTH = 180;
 
@@ -80,7 +80,7 @@ public class SolutionServiceImpl implements SolutionService {
     @CheckBan
     public SolutionCommentVO createComment(String solutionId, String userId, CreateSolutionCommentDTO dto) {
         findById(solutionId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND));
 
         SolutionComment comment = new SolutionComment();
         comment.setId(uuidGenerator.newId());
@@ -102,10 +102,10 @@ public class SolutionServiceImpl implements SolutionService {
     public SolutionCommentVO updateComment(String commentId, String userId, UpdateSolutionCommentDTO dto) {
         SolutionComment comment = solutionCommentMapper.selectById(commentId);
         if (comment == null || Boolean.TRUE.equals(comment.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.SOLUTION_COMMENT_NOT_FOUND);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_COMMENT_NOT_FOUND);
         }
         if (!comment.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.USER_CANNOT_EDIT_OTHERS);
+            throw new BusinessException(SolutionErrorCode.USER_CANNOT_EDIT_OTHERS);
         }
 
         comment.setContent(dto.getContent());
@@ -119,10 +119,10 @@ public class SolutionServiceImpl implements SolutionService {
     public void deleteComment(String commentId, String userId) {
         SolutionComment comment = solutionCommentMapper.selectById(commentId);
         if (comment == null || Boolean.TRUE.equals(comment.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.SOLUTION_COMMENT_NOT_FOUND);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_COMMENT_NOT_FOUND);
         }
         if (!comment.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.USER_CANNOT_EDIT_OTHERS);
+            throw new BusinessException(SolutionErrorCode.USER_CANNOT_EDIT_OTHERS);
         }
 
         comment.setIsDeleted(true);
@@ -139,7 +139,7 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     public SolutionVO getSolutionById(String id, String currentUserId) {
         Solution solution = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND));
 
         // Increment view count
         solution.setViews(solution.getViews() != null ? solution.getViews() + 1 : 1);
@@ -154,7 +154,7 @@ public class SolutionServiceImpl implements SolutionService {
     public SolutionVO create(Long problemId, String userId, CreateSolutionDTO createDTO) {
         // Verify problem exists
         if (!problemExistencePort.exists(problemId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+            throw new BusinessException(SolutionErrorCode.PROBLEM_NOT_FOUND);
         }
 
         // Check if user already has a solution for this problem
@@ -163,7 +163,7 @@ public class SolutionServiceImpl implements SolutionService {
                 .eq(Solution::getUserId, userId);
         Solution existing = solutionMapper.selectOne(existingWrapper);
         if (existing != null) {
-            throw new BusinessException(ErrorCode.SOLUTION_ALREADY_EXISTS);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_ALREADY_EXISTS);
         }
 
         // Build summary from content
@@ -201,11 +201,11 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional
     public SolutionVO update(String id, String userId, UpdateSolutionDTO updateDTO) {
         Solution solution = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND));
 
         // Check ownership
         if (!solution.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.SOLUTION_CANNOT_UPDATE_OTHERS);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_CANNOT_UPDATE_OTHERS);
         }
 
         // Build summary from content
@@ -230,11 +230,11 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional
     public void delete(String id, String userId) {
         Solution solution = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND));
 
         // Check ownership
         if (!solution.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.SOLUTION_CANNOT_DELETE_OTHERS);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_CANNOT_DELETE_OTHERS);
         }
 
         Long problemId = solution.getProblemId();

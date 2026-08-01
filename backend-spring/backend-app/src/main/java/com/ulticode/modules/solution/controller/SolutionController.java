@@ -2,7 +2,8 @@ package com.ulticode.modules.solution.controller;
 
 import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.SolutionErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -79,7 +80,7 @@ public class SolutionController {
 
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
         SolutionVO solution = solutionService.create(problemId, userId, createDTO);
@@ -123,7 +124,7 @@ public class SolutionController {
 
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
         SolutionVO solution = solutionService.update(id, userId, updateDTO);
@@ -146,7 +147,7 @@ public class SolutionController {
 
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
         solutionService.delete(id, userId);
@@ -218,7 +219,7 @@ public class SolutionController {
             @Valid @RequestBody CreateSolutionCommentDTO dto) {
 
         if (!currentUserProvider.isAuthenticated()) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         String userId = currentUserProvider.getCurrentUserId();
         SolutionCommentVO comment = solutionService.createComment(solutionId, userId, dto);
@@ -233,7 +234,7 @@ public class SolutionController {
             @Valid @RequestBody UpdateSolutionCommentDTO dto) {
 
         if (!currentUserProvider.isAuthenticated()) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         String userId = currentUserProvider.getCurrentUserId();
         SolutionCommentVO comment = solutionService.updateComment(commentId, userId, dto);
@@ -247,7 +248,7 @@ public class SolutionController {
             @PathVariable String commentId) {
 
         if (!currentUserProvider.isAuthenticated()) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         String userId = currentUserProvider.getCurrentUserId();
         solutionService.deleteComment(commentId, userId);

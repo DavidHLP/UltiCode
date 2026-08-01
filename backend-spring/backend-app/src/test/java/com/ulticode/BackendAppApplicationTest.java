@@ -71,6 +71,43 @@ class BackendAppApplicationTest {
     @MockBean
     private FollowEventPublisher followEventPublisher;
 
+    @MockBean
+    private com.ulticode.modules.solution.service.SolutionService solutionService;
+
+    @MockBean
+    private com.ulticode.modules.solution.projection.SolutionProjection solutionProjection;
+
+    @MockBean
+    private com.ulticode.modules.solution.service.SolutionTopicService solutionTopicService;
+
+    @MockBean
+    private com.ulticode.app.api.service.ProblemExistencePort problemExistencePort;
+
+    @MockBean
+    private com.ulticode.app.api.service.SolutionOwnerPort solutionOwnerPort;
+
+    @MockBean
+    private com.ulticode.app.api.service.SolutionCommentOwnerPort solutionCommentOwnerPort;
+
+    @MockBean
+    private com.ulticode.app.api.service.AchievementBadgeReadPort achievementBadgeReadPort;
+
+    @MockBean
+    private com.ulticode.app.api.service.ProblemTagReadPort problemTagReadPort;
+
+    @MockBean
+    private com.ulticode.app.api.service.SolutionVoteReadPort solutionVoteReadPort;
+
+    @MockBean
+    private com.ulticode.modules.solution.port.SolutionUserReadPort solutionUserReadPort;
+
+    @MockBean
+    private com.ulticode.app.api.service.SolutionReadPort solutionReadPort;
+
+    @MockBean
+    private com.ulticode.app.security.BanCheckPort banCheckPort;
+
+
     @Test
     @DisplayName("context loads and /actuator/health is UP")
     void healthEndpointReturnsUp() {

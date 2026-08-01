@@ -2,6 +2,8 @@
 # P7-MIGRATE-PROBLEM-001: exclude datasource/redis autoconfig in unit tests
 # (context-load and shell smoke tests don't need real DB connections).
 spring:
+  profiles:
+    active: test
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration

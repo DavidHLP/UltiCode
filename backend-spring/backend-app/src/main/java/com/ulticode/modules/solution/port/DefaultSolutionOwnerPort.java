@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.app.api.service.ProblemExistencePort;
 import com.ulticode.app.api.service.SolutionOwnerPort;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.SolutionErrorCode;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import lombok.RequiredArgsConstructor;
@@ -114,7 +114,7 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
     private Solution loadOrThrow(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
-            throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND);
         }
         return solution;
     }

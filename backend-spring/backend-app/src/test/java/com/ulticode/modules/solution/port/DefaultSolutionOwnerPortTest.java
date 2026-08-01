@@ -3,8 +3,8 @@ package com.ulticode.modules.solution.port;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.app.api.service.ProblemExistencePort;
 import com.ulticode.app.api.service.SolutionOwnerPort;
+import com.ulticode.app.error.SolutionErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,6 +112,6 @@ class DefaultSolutionOwnerPortTest {
         assertThatThrownBy(() -> port.flagSolution("missing", "reason", LocalDateTime.now()))
                 .isInstanceOf(BusinessException.class)
                 .extracting("code")
-                .isEqualTo(ErrorCode.SOLUTION_NOT_FOUND.getCode());
+                .isEqualTo(SolutionErrorCode.SOLUTION_NOT_FOUND.code());
     }
 }

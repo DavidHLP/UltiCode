@@ -7,7 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.SolutionErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
@@ -64,7 +64,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
     @Override
     public List<SolutionCommentVO> getComments(String solutionId) {
         if (solutionMapper.selectById(solutionId) == null) {
-            throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
+            throw new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND);
         }
 
         LambdaQueryWrapper<SolutionComment> queryWrapper = new LambdaQueryWrapper<>();

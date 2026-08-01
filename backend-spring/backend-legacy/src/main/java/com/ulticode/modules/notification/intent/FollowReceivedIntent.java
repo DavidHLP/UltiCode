@@ -10,15 +10,6 @@ import java.util.Map;
 
 /**
  * Intent emitted when {@code currentUserId} follows {@code targetUserId}.
- *
- * <p>Idempotency follows the D-10 "first follow per day" rule: the
- * {@link #intentId()} includes the follow day, so the first follow on a
- * given day is delivered and any same-day unfollow/refollow collapses
- * (already-delivered). A refollow on a later day produces a distinct id
- * and is delivered again — the intended business behavior. The day comes
- * from the producer-supplied {@link Clock} so it is deterministic in tests.
- *
- * <p>Reference: ADR-004 §2.1; D-10 first-follow idempotency (legacy).
  */
 public record FollowReceivedIntent(
         String userId,
@@ -30,10 +21,6 @@ public record FollowReceivedIntent(
 
     @Override
     public String intentId() {
-        // D-10 "first follow per day": the day component makes a cross-day
-        // unfollow/refollow produce a distinct id so the ledger does not
-        // silently drop the later follow as already-delivered. A same-day
-        // refollow still collapses, matching the documented business intent.
         return "follow:" + userId + ":" + followerUserId + ":" + followDay;
     }
 
@@ -55,17 +42,22 @@ public record FollowReceivedIntent(
     }
 
     /**
-     * Build from the actor {@link User}, the target user id, and the
-     * {@link Clock} that determines the idempotency day (D-10). The clock is
-     * required so {@link #intentId()} is deterministic in tests.
+     * Build from primitive parameters without needing a User entity instance.
      */
-    public static FollowReceivedIntent of(User follower, String targetUserId, Clock clock) {
+    public static FollowReceivedIntent of(String followerId, String followerUsername, String targetUserId, Clock clock) {
         return new FollowReceivedIntent(
                 targetUserId,
-                follower.getId(),
-                follower.getUsername(),
-                LocalDate.now(clock),
+                followerId,
+                followerUsername != null ? followerUsername : followerId,
+                LocalDate.now(clock != null ? clock : Clock.systemUTC()),
                 NotificationCategory.COMMUNICATION
         );
+    }
+
+    /**
+     * Build from the actor {@link User}, the target user id, and the {@link Clock}.
+     */
+    public static FollowReceivedIntent of(User follower, String targetUserId, Clock clock) {
+        return of(follower.getId(), follower.getUsername(), targetUserId, clock);
     }
 }

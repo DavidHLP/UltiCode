@@ -7,7 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.modules.follow.port.FollowCountPort;
+import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
@@ -312,8 +312,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
         try {
             // Follow counts come from the follow module via FollowCountPort —
             // the user module no longer imports FollowMapper directly.
-            followerCount = followCountPort.countFollowers(id);
-            followingCount = followCountPort.countFollowing(id);
+            followerCount = (int) followCountPort.countFollowers(id);
+            followingCount = (int) followCountPort.countFollowing(id);
         } catch (Exception e) {
             log.warn("Failed to get follow counts for user {}: {}", id, e.getMessage());
         }

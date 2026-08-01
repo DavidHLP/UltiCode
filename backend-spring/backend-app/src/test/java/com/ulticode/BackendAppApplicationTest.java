@@ -2,11 +2,16 @@ package com.ulticode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.ulticode.app.api.event.FollowEventPublisher;
 import com.ulticode.app.api.service.BookmarkReadPort;
+import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
 import com.ulticode.modules.bookmark.projection.BookmarkProjection;
 import com.ulticode.modules.bookmark.service.BookmarkService;
+import com.ulticode.modules.follow.inspector.FollowInspector;
+import com.ulticode.modules.follow.port.UserReadPort;
+import com.ulticode.modules.follow.service.FollowService;
 import com.ulticode.modules.subscription.service.SubscriptionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,16 +25,6 @@ import org.springframework.http.ResponseEntity;
 
 /**
  * P1-INFRA-005: verify the app service shell boots and exposes health.
- *
- * <p>P7-RELOCATE-I18N-001: @MockBean I18nService so the context loads when
- * MybatisAutoConfiguration is excluded (no real TranslationMapper bean).
- *
- * <p>P7-APP-SUBSCRIPTION-001: @MockBean SubscriptionService and
- * SubscriptionReadPort so the context loads without a datasource.
- *
- * <p>P7-APP-BOOKMARK-001: @MockBean BookmarkService, BookmarkReadPort,
- * and BookmarkProjection so the context loads without a datasource
- * (no real BookmarkMapper/BookmarkFolderMapper bean).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BackendAppApplicationTest {
@@ -57,6 +52,21 @@ class BackendAppApplicationTest {
 
     @MockBean
     private BookmarkProjection bookmarkProjection;
+
+    @MockBean
+    private FollowService followService;
+
+    @MockBean
+    private FollowCountPort followCountPort;
+
+    @MockBean
+    private FollowInspector followInspector;
+
+    @MockBean
+    private UserReadPort userReadPort;
+
+    @MockBean
+    private FollowEventPublisher followEventPublisher;
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")

@@ -9,6 +9,9 @@ spring:
       - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
 
 dubbo:
+  application:
+    name: backend-app-test
   registry:
+    address: N/A
     register: false
     subscribe: false

@@ -1,16 +1,17 @@
 package com.ulticode.modules.follow.inspector;
 
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.app.error.FollowErrorCode;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.dto.UserSummaryDTO;
 import com.ulticode.modules.follow.entity.UserFollow;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.mapper.FollowMapper.FollowCountDTO;
 import com.ulticode.modules.follow.port.UserReadPort;
-import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.follow.port.UserReadPort.UserSummaryData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,31 +19,9 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
- * Default adapter for {@link FollowInspector}. Side-effect free: reads
- * from {@link FollowMapper} and {@link UserMapper} only.
- *
- * <p>This is the new home for the follower / following / stats / status
- * reads that {@code FollowService} used to expose. The service kept its
- * write-path contract (follow / unfollow) and delegates every read to
- * this module; the HTTP caller ({@code FollowController}) and the write
- * module ({@code FollowServiceImpl#follow} / {@code #unfollow}) reuse
- * the same seam — the latter via {@link #getFollowStats(String)} — so
- * the pagination, batch-count enrichment, and {@code UserSummaryDTO}
- * formatting live in one deep module instead of leaking across the
- * service's write-path bean graph.
- *
- * <p>Neither collaborator is exclusive to the inspector: the write
- * module still holds {@code FollowMapper} (for the idempotent insert /
- * delete) and {@code UserMapper} (for the target-user existence check).
- * The concentration win is the read <em>logic</em> — the batch count
- * join, the page-clamp invariants, the bio truncation rule — which now
- * has a single owner. The deletion test passes: removing this class
- * would push those ~90 lines of read formatting back into the service,
- * making it shallower (interface nearly as complex as the
- * implementation) rather than merely moving the code.
+ * Default adapter for {@link FollowInspector}. Side-effect free.
  */
 @Slf4j
 @Service
@@ -67,9 +46,8 @@ public class DefaultFollowInspector implements FollowInspector {
         }
 
         List<String> userIds = follows.stream().map(UserFollow::getFollowerId).toList();
-        Map<String, User> userMap = userReadPort.findByIds(userIds);
+        Map<String, UserSummaryData> userMap = userReadPort.findByIds(userIds);
 
-        // Batch fetch follower/following counts for all users in 2 queries total
         Map<String, FollowCountDTO> countMap = new HashMap<>();
         if (!userIds.isEmpty()) {
             List<FollowCountDTO> followerCounts = followMapper.batchFollowCounts(userIds);
@@ -109,9 +87,8 @@ public class DefaultFollowInspector implements FollowInspector {
         }
 
         List<String> userIds = follows.stream().map(UserFollow::getFollowingId).toList();
-        Map<String, User> userMap = userReadPort.findByIds(userIds);
+        Map<String, UserSummaryData> userMap = userReadPort.findByIds(userIds);
 
-        // Batch fetch follower/following counts for all users in 2 queries total
         Map<String, FollowCountDTO> countMap = new HashMap<>();
         if (!userIds.isEmpty()) {
             List<FollowCountDTO> followerCounts = followMapper.batchFollowCounts(userIds);
@@ -147,26 +124,26 @@ public class DefaultFollowInspector implements FollowInspector {
     @Override
     public boolean isFollowing(String currentUserId, String targetUserId) {
         if (currentUserId.equals(targetUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot query follow status of yourself");
+            throw new BusinessException(BaseErrorCode.FORBIDDEN, "Cannot query follow status of yourself");
         }
         if (!userReadPort.exists(targetUserId)) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "User not found");
         }
         return followMapper.exists(currentUserId, targetUserId);
     }
 
-    private UserSummaryDTO toUserSummary(User user, Map<String, FollowCountDTO> countMap) {
+    private UserSummaryDTO toUserSummary(UserSummaryData user, Map<String, FollowCountDTO> countMap) {
         if (user == null) {
             return null;
         }
         UserSummaryDTO dto = new UserSummaryDTO();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        dto.setAvatar(user.getAvatar());
-        String bio = user.getBio();
+        dto.setId(user.id());
+        dto.setUsername(user.username());
+        dto.setAvatar(user.avatar());
+        String bio = user.bio();
         dto.setBio(bio != null && bio.length() > 100 ? bio.substring(0, 100) : bio);
 
-        FollowCountDTO counts = countMap.get(user.getId());
+        FollowCountDTO counts = countMap.get(user.id());
         dto.setFollowerCount(counts != null ? counts.followerCount() : 0);
         dto.setFollowingCount(counts != null ? counts.followingCount() : 0);
         return dto;

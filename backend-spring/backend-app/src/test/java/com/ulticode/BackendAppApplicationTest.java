@@ -38,6 +38,9 @@ class BackendAppApplicationTest {
     @Autowired
     private TestRestTemplate rest;
 
+
+    @Autowired
+    private com.ulticode.app.api.service.JudgeFeatureFlagsPort judgeFeatureFlagsPort;
     @MockBean
     private I18nService i18nService;
 
@@ -166,17 +169,12 @@ class BackendAppApplicationTest {
     private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
     @MockBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
-    // @MockBean removed: DefaultSubmissionFencePort now implements app-api interface.
-    // Wiring verified by SubmissionPortWiringTest (compile-time type assignment).
-    // @MockBean kept for test-context startup (SubmissionMapper unavailable in test profile).
+    // App-api type alignment is verified by SubmissionPortWiringTest.
+    // Keep port mocks for test-context startup; this profile has no SqlSessionFactory.
     @MockBean
     private com.ulticode.app.api.service.SubmissionFencePort submissionFencePort;
     @MockBean
-    private com.ulticode.app.api.service.CodeExecutionPort codeExecutionPort;
-    @MockBean
     private com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
-    @MockBean
-    private com.ulticode.app.api.service.VerdictResolvePort verdictResolvePort;
     @MockBean
     private com.ulticode.app.api.service.RejudgePolicy rejudgePolicy;
     @MockBean
@@ -185,8 +183,6 @@ class BackendAppApplicationTest {
     private com.ulticode.app.api.service.SubmissionStreakPort submissionStreakPort;
     @MockBean
     private com.ulticode.app.api.service.JudgeConfigPort judgeConfigPort;
-    @MockBean
-    private com.ulticode.app.api.service.JudgeFeatureFlagsPort judgeFeatureFlagsPort;
     @MockBean
     private com.ulticode.app.api.service.SubmissionNotificationPort submissionNotificationPort;
     @MockBean
@@ -229,5 +225,12 @@ class BackendAppApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("backend-app shell up");
+    }
+
+    @Test
+    @DisplayName("JudgeFeatureFlagsPort resolves to the backend-app adapter")
+    void judgeFeatureFlagsPortResolvesToAppAdapter() {
+        assertThat(judgeFeatureFlagsPort)
+                .isInstanceOf(com.ulticode.modules.submission.port.DefaultJudgeFeatureFlagsPort.class);
     }
 }

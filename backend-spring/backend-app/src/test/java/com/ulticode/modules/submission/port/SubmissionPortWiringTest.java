@@ -1,14 +1,17 @@
 package com.ulticode.modules.submission.port;
 
 import com.ulticode.app.api.service.CodeExecutionPort;
+import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.app.api.service.SubmissionFencePort;
 import com.ulticode.app.api.service.SubmissionWritePort;
 import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -52,5 +55,31 @@ class SubmissionPortWiringTest {
     void codeExecutionPortWiring() {
         assertTrue(CodeExecutionPort.class.isAssignableFrom(CodeExecutionService.class),
                 "CodeExecutionService must implement com.ulticode.app.api.service.CodeExecutionPort");
+    }
+
+    @Test
+    @DisplayName("DefaultJudgeFeatureFlagsPort implements app-api JudgeFeatureFlagsPort")
+    void judgeFeatureFlagsPortWiring() {
+        assertTrue(JudgeFeatureFlagsPort.class.isAssignableFrom(DefaultJudgeFeatureFlagsPort.class),
+                "DefaultJudgeFeatureFlagsPort must implement com.ulticode.app.api.service.JudgeFeatureFlagsPort");
+    }
+
+    @Test
+    @DisplayName("DefaultJudgeFeatureFlagsPort delegates both feature flags")
+    void judgeFeatureFlagsPortDelegates() {
+        FeatureFlagsProperties properties = new FeatureFlagsProperties();
+        properties.setUseGenerationFence(true);
+        properties.getJudgeQueue().setUsePort(true);
+
+        DefaultJudgeFeatureFlagsPort adapter = new DefaultJudgeFeatureFlagsPort(properties);
+
+        assertTrue(adapter.isUseGenerationFence());
+        assertTrue(adapter.isJudgeQueueUsePort());
+
+        properties.setUseGenerationFence(false);
+        properties.getJudgeQueue().setUsePort(false);
+
+        assertFalse(adapter.isUseGenerationFence());
+        assertFalse(adapter.isJudgeQueueUsePort());
     }
 }

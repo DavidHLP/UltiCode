@@ -1,18 +1,18 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.app.api.dto.ContestAdminDTO;
+import com.ulticode.app.api.dto.ContestAnnouncementDTO;
+import com.ulticode.app.api.dto.ContestRankingEntryDTO;
+import com.ulticode.app.api.service.ContestAdminReadPort;
+import com.ulticode.app.api.service.ContestAnnouncementReadPort;
+import com.ulticode.app.api.service.ContestLiveRankingReadPort;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.service.AdminContestService;
-import com.ulticode.app.api.dto.ContestRankingEntryDTO;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.app.api.service.ContestLiveRankingReadPort;
+import com.ulticode.common.response.PageResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,35 +22,16 @@ import java.util.List;
 /**
  * Read facade for the admin contest surface.
  *
- * <p>After the write state machine moved to
- * {@link AdminContestMutationServiceImpl}, this service keeps only the read
- * paths the admin contest surface exposes:
- * <ul>
- *   <li>{@link #getContests} and {@link #getContest} delegate to
- *       {@link AdminContestProjection} &mdash; the ADR-0011 read module that
- *       owns every entity-to-{@link AdminContestVO} shape and the
- *       cross-module problem-count enrichment.</li>
- *   <li>{@link #getAnnouncements} reads the announcement list from
- *       {@link ContestAnnouncementMapper} (ordered by pinned then recency).</li>
- *   <li>{@link #getRankings} validates the contest exists then reads the
- *       live ranking through {@link ContestLiveRankingReadPort}.</li>
- * </ul>
- *
- * <p>The read contract is unchanged from the legacy single-service shape;
- * only the writes moved. This completes the write side of ADR-0011 Stage 3
- * <em>without</em> reopening the projection decision.
- *
- * @author ulticode
- * @see AdminContestMutationServiceImpl the write module
- * @see AdminContestProjection the read module
+ * <p>P7-RELOCATE-CONTEST-001 AC #7: all contest entity/mapper imports
+ * replaced with app-api read-ports.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminContestServiceImpl implements AdminContestService {
 
-    private final ContestMapper contestMapper;
-    private final ContestAnnouncementMapper contestAnnouncementMapper;
+    private final ContestAdminReadPort contestAdminReadPort;
+    private final ContestAnnouncementReadPort contestAnnouncementReadPort;
     private final ContestLiveRankingReadPort liveRankingReadPort;
     private final AdminContestProjection adminContestProjection;
 
@@ -65,15 +46,15 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    public List<ContestAnnouncement> getAnnouncements(String contestId) {
-        return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
+    public List<ContestAnnouncementDTO> getAnnouncements(String contestId) {
+        return contestAnnouncementReadPort.findByContestIdOrderByCreatedAtDesc(contestId);
     }
 
     @Override
     public List<ContestRankingEntryDTO> getRankings(String contestId) {
-        Contest contest = contestMapper.selectById(contestId);
+        ContestAdminDTO contest = contestAdminReadPort.selectById(contestId);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Contest not found");
         }
         return liveRankingReadPort.readLiveRanking(contestId, 100);
     }

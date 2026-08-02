@@ -222,11 +222,12 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
 
         List<ProblemMapper.ProblemTagDTO> tagDTOs =
                 problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
-        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
+        Map<Long, List<ProblemListDetailVO.ProblemInListVO.ProblemTagVO>> tagMap = tagDTOs.stream()
                 .collect(Collectors.groupingBy(
                         ProblemMapper.ProblemTagDTO::problemId,
                         Collectors.mapping(dto -> {
-                            ProblemVO.ProblemTagVO tagVO = new ProblemVO.ProblemTagVO();
+                            ProblemListDetailVO.ProblemInListVO.ProblemTagVO tagVO =
+                                    new ProblemListDetailVO.ProblemInListVO.ProblemTagVO();
                             tagVO.setId(dto.tagId());
                             tagVO.setLabel(dto.tagName());
                             return tagVO;

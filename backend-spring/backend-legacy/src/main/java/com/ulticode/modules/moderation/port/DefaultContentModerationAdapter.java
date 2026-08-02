@@ -4,7 +4,7 @@ import com.ulticode.app.api.service.ForumCommentOwnerPort;
 import com.ulticode.common.exception.BusinessException;
 import java.time.LocalDateTime;
 import com.ulticode.app.api.service.ForumOwnerPort;
-import com.ulticode.modules.problem.port.ProblemOwnerPort;
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.app.api.service.SolutionOwnerPort;
 import lombok.RequiredArgsConstructor;

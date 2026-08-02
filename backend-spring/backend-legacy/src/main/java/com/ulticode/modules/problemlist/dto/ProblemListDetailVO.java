@@ -78,6 +78,15 @@ public class ProblemListDetailVO {
         private java.math.BigDecimal acceptanceRate;
         private Boolean isPremium;
         private Boolean hasSolution;
-        private java.util.List<com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO> tags;
+        private java.util.List<ProblemTagVO> tags;
+
+        /**
+         * Lightweight tag projection for problem list items.
+         */
+        @Data
+        public static class ProblemTagVO {
+            private String id;
+            private String label;
+        }
     }
 }

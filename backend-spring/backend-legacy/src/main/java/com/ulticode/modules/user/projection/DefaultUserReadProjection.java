@@ -8,8 +8,8 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.app.api.service.FollowCountPort;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
+import com.ulticode.app.api.service.ProblemDifficultyReadPort;
+import com.ulticode.app.api.service.ProblemTagStatsReadPort;
 import com.ulticode.app.api.dto.SubmissionDateCountDTO;
 import com.ulticode.app.api.service.SubmissionUserStatsPort;
 import com.ulticode.app.api.service.SubmissionStreakPort;
@@ -58,8 +58,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
     private final UserMapper userMapper;
     private final SubmissionUserStatsPort submissionUserStats;
     private final SubmissionStreakPort submissionStreakCalculator;
-    private final ProblemMapper problemMapper;
-    private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final ProblemDifficultyReadPort problemDifficultyReadPort;
+    private final ProblemTagStatsReadPort problemTagStatsReadPort;
     private final FollowCountPort followCountPort;
     private final CurrentUserProvider currentUserProvider;
 
@@ -172,8 +172,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
         }
 
         // Get total counts by difficulty from problems table
-        List<com.ulticode.modules.user.dto.DifficultyCountDTO> totalByDifficulty = problemMapper.countByDifficulty();
-        for (com.ulticode.modules.user.dto.DifficultyCountDTO row : totalByDifficulty) {
+        List<DifficultyCountDTO> totalByDifficulty = problemDifficultyReadPort.countByDifficulty();
+        for (DifficultyCountDTO row : totalByDifficulty) {
             String difficulty = row.getDifficulty();
             int total = row.getCount().intValue();
             if (statsMap.containsKey(difficulty)) {
@@ -275,10 +275,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
         UserSkillsDTO skillsDTO = new UserSkillsDTO();
 
-        // Get tag stats from problem_tag_relations
-        List<Map<String, Object>> tagStats = Optional
-                .ofNullable(problemTagRelationMapper.findTagStatsByUserId(id))
-                .orElse(List.of());
+        // Get tag stats from problem-tag relations via port
+        List<Map<String, Object>> tagStats = problemTagStatsReadPort.findTagStatsByUserId(id);
         List<UserSkillsDTO.UserSkill> skills = tagStats.stream()
                 .map(this::toUserSkill)
                 .toList();

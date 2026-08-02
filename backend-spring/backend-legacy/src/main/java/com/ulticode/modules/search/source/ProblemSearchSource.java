@@ -1,14 +1,12 @@
 package com.ulticode.modules.search.source;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.app.api.dto.ProblemIndexDTO;
+import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchResponseVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,10 +14,7 @@ import java.util.Map;
 /**
  * Search source for the problem domain. Owns:
  * <ul>
- *   <li>The {@link ProblemMapper} call and the {@code is_published} /
- *       {@code is_deleted} predicates that gate published, non-deleted
- *       problems.</li>
- *   <li>The title / slug LIKE matching and the LIMIT cap.</li>
+ *   <li>The {@link ProblemSearchReadPort} call for fetching problem index data.</li>
  *   <li>The {@code /problems/{slug}} URL template.</li>
  *   <li>The problem metadata projection (slug, difficulty).</li>
  * </ul>
@@ -30,7 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ProblemSearchSource implements SearchSource {
 
-    private final ProblemMapper problemMapper;
+    private final ProblemSearchReadPort problemSearchReadPort;
 
     @Override
     public SearchIndexType getIndexType() {
@@ -39,30 +34,18 @@ public class ProblemSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        QueryWrapper<Problem> wrapper = new QueryWrapper<>();
-        wrapper.and(w -> w
-                .like("title", query)
-                .or()
-                .like("slug", query)
-        )
-                .eq("is_published", true)
-                .eq("is_deleted", false)
-                .last("LIMIT " + limit);
+        List<ProblemIndexDTO> problems = problemSearchReadPort.searchForIndex(query, limit);
 
-        List<Problem> problems = problemMapper.selectList(wrapper);
-
-        List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(problems.size());
-        for (Problem problem : problems) {
-            results.add(SearchResponseVO.SearchResultItem.builder()
-                    .id(String.valueOf(problem.getId()))
-                    .type(SearchIndexType.PROBLEMS.name())
-                    .title(problem.getTitle())
-                    .description(problem.getSlug())
-                    .url(buildUrl(problem.getSlug()))
-                    .metadata(createProblemMetadata(problem))
-                    .build());
-        }
-        return results;
+        return problems.stream()
+                .map(dto -> SearchResponseVO.SearchResultItem.builder()
+                        .id(dto.id())
+                        .type(SearchIndexType.PROBLEMS.name())
+                        .title(dto.title())
+                        .description(dto.slug())
+                        .url(buildUrl(dto.slug()))
+                        .metadata(createProblemMetadata(dto))
+                        .build())
+                .toList();
     }
 
     @Override
@@ -70,11 +53,11 @@ public class ProblemSearchSource implements SearchSource {
         return "/problems/" + entityId;
     }
 
-    private Map<String, Object> createProblemMetadata(Problem problem) {
+    private Map<String, Object> createProblemMetadata(ProblemIndexDTO dto) {
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("slug", problem.getSlug());
-        if (problem.getDifficulty() != null) {
-            metadata.put("difficulty", problem.getDifficulty());
+        metadata.put("slug", dto.slug());
+        if (dto.difficulty() != null) {
+            metadata.put("difficulty", dto.difficulty());
         }
         return metadata;
     }

@@ -25,20 +25,18 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.SubmissionReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,40 +65,19 @@ public class DefaultContestProjection implements ContestProjection {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final GlobalRankingMapper globalRankingMapper;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemFactsPort problemFactsPort;
     private final RankingService rankingService;
     private final SubmissionReadPort submissionProjection;
 
-    /**
-     * User-contest history: a single batched read of the user's
-     * ContestParticipant rows (one query), filtered in memory, then
-     * a single batched read of the matching Contest rows (one query),
-     * projected through the same {@link #toVOInternal} path as the
-     * public catalog so the user-history VO has the same shape and
-     * enrichment as the rest of the app.
-     *
-     * <p>Before this method existed the read lived inside
-     * {@code ContestParticipationServiceImpl.getUserContests} and
-     * issued <code>1 + 2N</code> queries: one to load the participant
-     * list, then a per-row {@code contestMapper.selectById} (N) plus
-     * a per-row {@code findByContestIdAndUserId} inside
-     * {@code toContestVO} (N) which re-read the same participant
-     * the caller already held. For a user with 100 participations
-     * the projection was 201 queries; this method collapses it to 2.
-     */
     @Override
     public java.util.List<ContestVO> findUserContests(String userId, String type) {
         if (userId == null || userId.isBlank()) {
             return java.util.Collections.emptyList();
         }
-        // 1. Single participant-by-user read.
         java.util.List<ContestParticipant> all = participantMapper.findByUserId(userId);
         if (all == null || all.isEmpty()) {
             return java.util.Collections.emptyList();
         }
-        // 2. Filter by status in memory (the type token is a small switch
-        //    that exactly matches the previous service-side filter, so
-        //    the projection is a drop-in replacement).
         java.util.Set<String> contestIds = new HashSet<>();
         java.util.Map<String, ContestParticipant> byContestId = new HashMap<>();
         for (ContestParticipant p : all) {
@@ -119,22 +96,16 @@ public class DefaultContestProjection implements ContestProjection {
         if (contestIds.isEmpty()) {
             return java.util.Collections.emptyList();
         }
-        // 3. Single batched contest read.
         java.util.List<Contest> contests = contestMapper.selectBatchIds(contestIds);
         if (contests == null || contests.isEmpty()) {
             return java.util.Collections.emptyList();
         }
-        // 4. Project through the canonical toVO path, reusing the
-        //    participant we already loaded so the inner
-        //    findByContestIdAndUserId call is avoided.
         java.util.List<ContestVO> result = new ArrayList<>(contests.size());
         for (Contest contest : contests) {
             if (contest == null) continue;
             long problemCount = contestProblemMapper.countByContestId(contest.getId());
             ContestParticipant participant = byContestId.get(contest.getId());
             ContestVO vo = toVOInternal(contest, userId, problemCount, participant);
-            // Mirror the previous service behaviour: copy user rank/score
-            // from the participant row so the list is not stale.
             if (participant != null) {
                 vo.setUserRanking(participant.getFinalRank());
                 if (participant.getTotalScore() != null) {
@@ -146,10 +117,6 @@ public class DefaultContestProjection implements ContestProjection {
         return result;
     }
 
-    // ------------------------------------------------------------------
-    // Entity accessors
-    // ------------------------------------------------------------------
-
     @Override
     public Optional<Contest> findById(String id) {
         return Optional.ofNullable(contestMapper.selectById(id));
@@ -159,10 +126,6 @@ public class DefaultContestProjection implements ContestProjection {
     public Optional<Contest> findBySlug(String slug) {
         return Optional.ofNullable(contestMapper.findBySlug(slug));
     }
-
-    // ------------------------------------------------------------------
-    // Single-contest reads
-    // ------------------------------------------------------------------
 
     @Override
     public ContestVO getContestById(String idOrSlug, String userId) {
@@ -259,12 +222,13 @@ public class DefaultContestProjection implements ContestProjection {
                 .map(cp -> {
                     ContestProblemVO vo = new ContestProblemVO();
                     BeanUtils.copyProperties(cp, vo);
-                    Problem problem = problemMapper.selectById(cp.getProblemId());
-                    if (problem != null) {
-                        vo.setTitle(problem.getTitle());
-                        vo.setSlug(problem.getSlug());
-                        vo.setDifficulty(problem.getDifficulty());
-                        vo.setAcceptanceRate(problem.getAcceptanceRate());
+                    ProblemFactsPort.ContestProblemFacts facts =
+                            problemFactsPort.findContestProblemFacts(cp.getProblemId());
+                    if (facts != null) {
+                        vo.setTitle(facts.title());
+                        vo.setSlug(facts.slug());
+                        vo.setDifficulty(facts.difficulty());
+                        vo.setAcceptanceRate(facts.acceptanceRate());
                     }
                     return vo;
                 })
@@ -302,13 +266,11 @@ public class DefaultContestProjection implements ContestProjection {
         if (problemPath == null || problemPath.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem id is required");
         }
-        // 1) Try parsing as numeric (legacy & most common case).
         try {
             return Long.parseLong(problemPath);
         } catch (NumberFormatException ignored) {
             // fall through to contest_problem.id lookup
         }
-        // 2) Look up the composite id in contest_problems.
         return contestProblemMapper.findByContestIdAndId(contestId, problemPath)
                 .map(cp -> {
                     if (cp.getProblemId() == null) {
@@ -320,10 +282,6 @@ public class DefaultContestProjection implements ContestProjection {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND,
                         "Contest problem not found: " + problemPath));
     }
-
-    // ------------------------------------------------------------------
-    // Catalog list reads
-    // ------------------------------------------------------------------
 
     private record ContestEnrichment(Map<String, Long> problemCounts, Map<String, ContestParticipant> participants) {}
 
@@ -360,7 +318,6 @@ public class DefaultContestProjection implements ContestProjection {
         int currentPageSize = Math.min(query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 20, 100);
         LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
         qw.eq(Contest::getIsDeleted, false);
-        // Admin sees all contests including drafts and invisible ones
         applyCatalogFilters(qw, query);
         applySort(qw, query);
         Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
@@ -453,10 +410,6 @@ public class DefaultContestProjection implements ContestProjection {
         return PageResult.of(items, result.getTotal(), p, ps);
     }
 
-    // ------------------------------------------------------------------
-    // Statistics
-    // ------------------------------------------------------------------
-
     @Override
     public GlobalContestStatsVO getStats() {
         long registered = participantMapper.countByStatus(ContestParticipantStatus.REGISTERED.name());
@@ -470,10 +423,6 @@ public class DefaultContestProjection implements ContestProjection {
                 totalSubmissions
         );
     }
-
-    // ------------------------------------------------------------------
-    // Ranking reads
-    // ------------------------------------------------------------------
 
     @Override
     @Cacheable(value = "contestRanking", key = "'getGlobalRanking:' + #limit")
@@ -490,7 +439,6 @@ public class DefaultContestProjection implements ContestProjection {
             return globalRankingMapper.findTopRankings(max).stream()
                     .map(this::toRankingVO).collect(Collectors.toList());
         }
-        // R9.1: keyset cursor — null/blank means first page.
         Integer afterRank = null;
         String afterUserId = null;
         if (cursor != null && !cursor.isBlank()) {
@@ -515,7 +463,6 @@ public class DefaultContestProjection implements ContestProjection {
         int currentPage = (page != null && page > 0) ? page : 1;
         int currentLimit = (limit != null && limit > 0) ? Math.min(limit, 100) : 50;
         boolean filtered = country != null && !country.isBlank();
-
         long total = filtered
                 ? globalRankingMapper.findByCountry(country).size()
                 : globalRankingMapper.countTotal();
@@ -523,9 +470,6 @@ public class DefaultContestProjection implements ContestProjection {
         List<GlobalRanking> rankings = filtered
                 ? globalRankingMapper.findByCountry(country)
                 : globalRankingMapper.findRankingsPaginated(currentLimit, offset);
-        // Apply in-memory pagination for the filtered branch since findByCountry
-        // returns the full per-country list; for the global branch the SQL already
-        // paginated.
         if (filtered) {
             int from = Math.min(offset, rankings.size());
             int to = Math.min(offset + currentLimit, rankings.size());
@@ -534,7 +478,6 @@ public class DefaultContestProjection implements ContestProjection {
         List<ContestRankingVO> paginatedList = rankings.stream()
                 .map(this::toRankingVO)
                 .collect(Collectors.toList());
-
         return PageResult.of(paginatedList, total, currentPage, currentLimit);
     }
 
@@ -566,13 +509,6 @@ public class DefaultContestProjection implements ContestProjection {
         return vo;
     }
 
-    /**
-     * R9.1 / F-24: per-contest ranking VO converter for the keyset path.
-     * {@link ContestParticipantMapper.ContestParticipantWithUser} is the mapper
-     * result record; we project it into the same {@link ContestRankingVO} shape
-     * as the global path so callers can use the same response type regardless of
-     * whether the cache key is per-contest.
-     */
     private ContestRankingVO toContestRankingVO(ContestParticipantMapper.ContestParticipantWithUser p) {
         if (p == null) return null;
         ContestRankingVO vo = new ContestRankingVO();

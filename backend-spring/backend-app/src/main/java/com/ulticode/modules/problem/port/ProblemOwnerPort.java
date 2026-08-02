@@ -16,6 +16,11 @@ import java.util.List;
  * imports the underlying mapper or the {@code Problem} entity
  * across the port boundary.
  *
+ * <p>This interface extends {@link com.ulticode.app.api.service.ProblemOwnerPort}
+ * (the app-api canonical contract) so that the single
+ * {@code DefaultProblemOwnerPort} implementation satisfies both the local
+ * deep-module seam and the app-api consumer seam simultaneously.
+ *
  * <p>Read methods (toVO, findBySlug, findSubmissionsByProblemId)
  * and the existing publish / unpublish / delete write methods
  * stay on {@code com.ulticode.modules.admin.port.AdminProblemPort}
@@ -29,7 +34,7 @@ import java.util.List;
  * replaces the default adapter with a {@code @DubboService} and
  * the wire shape is unchanged.
  */
-public interface ProblemOwnerPort {
+public interface ProblemOwnerPort extends com.ulticode.app.api.service.ProblemOwnerPort {
 
     /**
      * Resolve the author (publishedBy) of a problem without mutating it.

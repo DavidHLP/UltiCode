@@ -39,4 +39,15 @@ public interface ProblemFactsPort {
     record ProblemDisplayFacts(Long id, String title, String slug) {}
 
     record ProblemLimits(Integer timeLimitSeconds, Integer memoryLimitMb) {}
+
+    /**
+     * Contest-facing facts (title / slug / difficulty / acceptanceRate).
+     *
+     * @param problemId the problem id
+     * @return the facts, or {@code null} if the problem row is missing
+     */
+    ContestProblemFacts findContestProblemFacts(Long problemId);
+
+    record ContestProblemFacts(Long id, String title, String slug, String difficulty,
+                               java.math.BigDecimal acceptanceRate) {}
 }

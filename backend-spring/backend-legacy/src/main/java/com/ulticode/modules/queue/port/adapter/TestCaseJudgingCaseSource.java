@@ -1,8 +1,8 @@
 package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.problem.entity.TestCase;
-import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.app.api.dto.ProblemJudgingCaseDTO;
+import com.ulticode.app.api.service.ProblemJudgingCaseReadPort;
 import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import lombok.RequiredArgsConstructor;
@@ -12,30 +12,31 @@ import java.util.List;
 
 /**
  * Canonical {@link JudgingCaseSource} backed by the {@code test_cases}
- * table. Reads active cases for a problem and maps each to a {@link JudgingCase},
- * parsing inputs via the shared {@link JudgingCaseInputs} policy. Preserves the
- * hidden/sample flags so the pipeline can resolve per-case scope.
+ * table via the Problem app-api port. Reads active cases for a problem and maps
+ * each to a {@link JudgingCase}, parsing inputs via the shared
+ * {@link JudgingCaseInputs} policy. Uses the ProblemJudgingCaseReadPort to
+ * abstract away the backend-app test case storage.
  */
 @Component
 @RequiredArgsConstructor
 public class TestCaseJudgingCaseSource implements JudgingCaseSource {
 
-    private final TestCaseMapper testCaseMapper;
+    private final ProblemJudgingCaseReadPort port;
     private final ObjectMapper objectMapper;
 
     @Override
     public List<JudgingCase> loadCases(long problemId) {
-        List<TestCase> cases = testCaseMapper.findActiveCasesForJudging(problemId);
+        List<ProblemJudgingCaseDTO> cases = port.loadCases(problemId);
         if (cases == null || cases.isEmpty()) {
             return List.of();
         }
-        return cases.stream().map(tc -> new JudgingCase(
-                tc.getId(),
-                "Case " + tc.getTestOrder(),
-                tc.getOutputText(),
-                JudgingCaseInputs.parse(objectMapper, tc.getInputs(), tc.getInputText(), tc.getId()),
-                tc.getIsHidden(),
-                tc.getIsSample()
+        return cases.stream().map(dto -> new JudgingCase(
+                dto.id(),
+                "Case " + dto.testOrder(),
+                dto.outputText(),
+                JudgingCaseInputs.parse(objectMapper, dto.inputs(), dto.inputText(), dto.id()),
+                null,
+                null
         )).toList();
     }
 }

@@ -86,4 +86,26 @@ public class ProblemFactsAdapter implements ProblemFactsPort {
             return null;
         }
     }
+
+    @Override
+    public ContestProblemFacts findContestProblemFacts(Long problemId) {
+        if (problemId == null) {
+            return null;
+        }
+        try {
+            Problem problem = problemMapper.selectById(problemId);
+            if (problem == null) {
+                return null;
+            }
+            return new ContestProblemFacts(
+                    problem.getId(),
+                    problem.getTitle(),
+                    problem.getSlug(),
+                    problem.getDifficulty(),
+                    problem.getAcceptanceRate());
+        } catch (RuntimeException e) {
+            log.debug("Failed to read problem {} contest facts: {}", problemId, e.getMessage());
+            return null;
+        }
+    }
 }

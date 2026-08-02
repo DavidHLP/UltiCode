@@ -15,16 +15,14 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
-import com.ulticode.modules.problem.dto.ProblemVO;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.app.api.dto.ProblemListItemDTO;
+import com.ulticode.app.api.service.ProblemListReadPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +52,7 @@ public class DefaultProblemListProjection implements ProblemListProjection {
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListCategoryMapper problemListCategoryMapper;
     private final ProblemListBookmarkMapper problemListBookmarkMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemListReadPort problemListReadPort;
     private final UserMapper userMapper;
 
     // ------------------------------------------------------------------
@@ -108,12 +106,6 @@ public class DefaultProblemListProjection implements ProblemListProjection {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         result.setSavedLists(savedLists);
-
-        // Get featured lists
-        List<ProblemList> featured = problemListMapper.findFeatured();
-        result.setFeaturedLists(featured.stream()
-                .map(list -> toSummaryVOWithSavedStatus(list, userId))
-                .collect(Collectors.toList()));
 
         // Get categories - NOTE: Requires database migration
         try {
@@ -173,46 +165,44 @@ public class DefaultProblemListProjection implements ProblemListProjection {
             vo.setAuthorUsername(author.getUsername());
         }
 
-        // Get problems in the list
+        // Get problems in the list via ProblemListReadPort
         List<ProblemListProblemRelation> relations = problemListProblemMapper.findByListId(id);
         if (!relations.isEmpty()) {
             Set<Long> problemIds = relations.stream()
                     .map(ProblemListProblemRelation::getProblemId)
                     .collect(Collectors.toSet());
-            List<Problem> problems = problemMapper.selectBatchIds(problemIds);
-            Map<Long, Problem> problemMap = problems.stream()
-                    .collect(Collectors.toMap(Problem::getId, p -> p));
-
-            // Batch-fetch tags for problems in the list
-            List<ProblemMapper.ProblemTagDTO> tagDTOs = problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
-            Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
-                    .collect(Collectors.groupingBy(
-                            ProblemMapper.ProblemTagDTO::problemId,
-                            Collectors.mapping(dto -> {
-                                ProblemVO.ProblemTagVO tagVO = new ProblemVO.ProblemTagVO();
-                                tagVO.setId(dto.tagId());
-                                tagVO.setLabel(dto.tagName());
-                                return tagVO;
-                            }, Collectors.toList())
-                    ));
+            List<ProblemListItemDTO> dtos = problemListReadPort.findByIds(problemIds);
+            Map<Long, ProblemListItemDTO> dtoById = dtos.stream()
+                    .collect(Collectors.toMap(ProblemListItemDTO::id, dto -> dto));
+            Map<Long, List<ProblemListDetailVO.ProblemInListVO.ProblemTagVO>> tagMap = dtos.stream()
+                    .collect(Collectors.toMap(
+                            ProblemListItemDTO::id,
+                            dto -> (dto.tags() == null ? List.of()
+                                    : dto.tags().stream()
+                                            .map(t -> {
+                                                ProblemListDetailVO.ProblemInListVO.ProblemTagVO tag = new ProblemListDetailVO.ProblemInListVO.ProblemTagVO();
+                                                tag.setId(t.id());
+                                                tag.setLabel(t.label());
+                                                return tag;
+                                            })
+                                            .collect(Collectors.toList()))));
 
             List<ProblemListDetailVO.ProblemInListVO> problemVOs = relations.stream()
                     .map(rel -> {
-                        Problem problem = problemMap.get(rel.getProblemId());
-                        if (problem == null) return null;
-
+                        ProblemListItemDTO dto = dtoById.get(rel.getProblemId());
+                        if (dto == null) return null;
                         ProblemListDetailVO.ProblemInListVO pvo = new ProblemListDetailVO.ProblemInListVO();
-                        pvo.setId(problem.getId());
-                        pvo.setSlug(problem.getSlug());
-                        pvo.setTitle(problem.getTitle());
-                        pvo.setDifficulty(problem.getDifficulty());
-                        pvo.setStatus(problem.getStatus());
+                        pvo.setId(dto.id());
+                        pvo.setSlug(dto.slug());
+                        pvo.setTitle(dto.title());
+                        pvo.setDifficulty(dto.difficulty());
+                        pvo.setStatus(dto.status());
                         pvo.setSortOrder(rel.getSortOrder());
                         pvo.setAddedAt(rel.getAddedAt());
-                        pvo.setAcceptanceRate(problem.getAcceptanceRate());
-                        pvo.setIsPremium(problem.getIsPremium());
-                        pvo.setHasSolution(problem.getHasSolution());
-                        pvo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
+                        pvo.setAcceptanceRate(dto.acceptanceRate());
+                        pvo.setIsPremium(dto.isPremium());
+                        pvo.setHasSolution(dto.hasSolution());
+                        pvo.setTags(tagMap.getOrDefault(dto.id(), List.of()));
                         return pvo;
                     })
                     .filter(Objects::nonNull)
@@ -314,7 +304,6 @@ public class DefaultProblemListProjection implements ProblemListProjection {
     // Projection helpers (also used by the write-side service)
     // ------------------------------------------------------------------
 
-    @Override
     public ProblemListSummaryVO toSummaryVO(ProblemList list) {
         ProblemListSummaryVO vo = new ProblemListSummaryVO();
         vo.setId(list.getId());
@@ -365,7 +354,6 @@ public class DefaultProblemListProjection implements ProblemListProjection {
         vo.setColor(category.getColor());
         vo.setSortOrder(category.getSortOrder());
         vo.setCreatedAt(category.getCreatedAt());
-        vo.setUpdatedAt(category.getUpdatedAt());
 
         // Get list count
         vo.setListCount((int) problemListBookmarkMapper.findByCategoryId(category.getId()).size());
@@ -378,40 +366,38 @@ public class DefaultProblemListProjection implements ProblemListProjection {
         Set<Long> problemIds = relations.stream()
                 .map(ProblemListProblemRelation::getProblemId)
                 .collect(Collectors.toSet());
-        List<Problem> problems = problemMapper.selectBatchIds(problemIds);
-        Map<Long, Problem> problemMap = problems.stream()
-                .collect(Collectors.toMap(Problem::getId, p -> p));
-
-        List<ProblemMapper.ProblemTagDTO> tagDTOs =
-                problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
-        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
-                .collect(Collectors.groupingBy(
-                        ProblemMapper.ProblemTagDTO::problemId,
-                        Collectors.mapping(dto -> {
-                            ProblemVO.ProblemTagVO tagVO = new ProblemVO.ProblemTagVO();
-                            tagVO.setId(dto.tagId());
-                            tagVO.setLabel(dto.tagName());
-                            return tagVO;
-                        }, Collectors.toList())
-                ));
+        List<ProblemListItemDTO> dtos = problemListReadPort.findByIds(problemIds);
+        Map<Long, ProblemListItemDTO> dtoById = dtos.stream()
+                .collect(Collectors.toMap(ProblemListItemDTO::id, dto -> dto));
+        Map<Long, List<ProblemListDetailVO.ProblemInListVO.ProblemTagVO>> tagMap = dtos.stream()
+                .collect(Collectors.toMap(
+                        ProblemListItemDTO::id,
+                        dto -> (dto.tags() == null ? List.of()
+                                : dto.tags().stream()
+                                        .map(t -> {
+                                            ProblemListDetailVO.ProblemInListVO.ProblemTagVO tag = new ProblemListDetailVO.ProblemInListVO.ProblemTagVO();
+                                            tag.setId(t.id());
+                                            tag.setLabel(t.label());
+                                            return tag;
+                                        })
+                                        .collect(Collectors.toList()))));
 
         return relations.stream()
                 .map(rel -> {
-                    Problem problem = problemMap.get(rel.getProblemId());
-                    if (problem == null) return null;
-                    ProblemListDetailVO.ProblemInListVO pvo =
-                            new ProblemListDetailVO.ProblemInListVO();
-                    pvo.setId(problem.getId());
-                    pvo.setSlug(problem.getSlug());
-                    pvo.setTitle(problem.getTitle());
-                    pvo.setDifficulty(problem.getDifficulty());
-                    pvo.setStatus(problem.getStatus());
+                    ProblemListItemDTO dto = dtoById.get(rel.getProblemId());
+                    if (dto == null) return null;
+                    ProblemListDetailVO.ProblemInListVO pvo = new ProblemListDetailVO.ProblemInListVO();
+                    pvo.setId(dto.id());
+                    pvo.setSlug(dto.slug());
+                    pvo.setTitle(dto.title());
+                    pvo.setDifficulty(dto.difficulty());
+                    pvo.setStatus(dto.status());
                     pvo.setSortOrder(rel.getSortOrder());
                     pvo.setAddedAt(rel.getAddedAt());
-                    pvo.setAcceptanceRate(problem.getAcceptanceRate());
-                    pvo.setIsPremium(problem.getIsPremium());
-                    pvo.setHasSolution(problem.getHasSolution());
-                    pvo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
+                    pvo.setAcceptanceRate(dto.acceptanceRate());
+                    pvo.setIsPremium(dto.isPremium());
+                    pvo.setHasSolution(dto.hasSolution());
+                    pvo.setTags(tagMap.getOrDefault(dto.id(), List.of()));
                     return pvo;
                 })
                 .filter(Objects::nonNull)
@@ -420,8 +406,7 @@ public class DefaultProblemListProjection implements ProblemListProjection {
 
     private ProblemListDetailVO.ProblemListStatsVO assembleStats(
             String listId, List<ProblemListDetailVO.ProblemInListVO> problems) {
-        ProblemListDetailVO.ProblemListStatsVO statsVO =
-                new ProblemListDetailVO.ProblemListStatsVO();
+        ProblemListDetailVO.ProblemListStatsVO statsVO = new ProblemListDetailVO.ProblemListStatsVO();
         statsVO.setListId(listId);
         int totalCount = problems.size();
         int solvedCount = 0;

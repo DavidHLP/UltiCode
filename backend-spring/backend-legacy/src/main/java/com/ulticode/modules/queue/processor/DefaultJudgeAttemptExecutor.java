@@ -26,7 +26,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.concurrent.atomic.AtomicReference;
 /**
  * Default {@link JudgeAttemptExecutor} implementation. Owns the
  * {@code claim → heartbeat → execute → verdict → contest effect → push → release}
@@ -203,13 +203,18 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     private ScheduledFuture<?> startHeartbeat(String submissionId, String attemptId) {
         ScheduledExecutorService executor = getOrCreateHeartbeatExecutor();
-        return executor.scheduleAtFixedRate(
+        AtomicReference<ScheduledFuture<?>> taskRef = new AtomicReference<>();
+        ScheduledFuture<?> task = executor.scheduleAtFixedRate(
                 () -> {
                     try {
                         boolean renewed = submissionFencePort.renewLease(
                                 submissionId, attemptId, LeaseConstants.LEASE_TTL_SECONDS);
                         if (!renewed) {
                             incrementLeaseMissRenew();
+                            ScheduledFuture<?> scheduledTask = taskRef.get();
+                            if (scheduledTask != null) {
+                                scheduledTask.cancel(false);
+                            }
                             log.debug("Heartbeat renew failed for submission {} attempt {} (lease lost)",
                                     submissionId, attemptId);
                         }
@@ -220,6 +225,8 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                 LeaseConstants.HEARTBEAT_INTERVAL_MS,
                 LeaseConstants.HEARTBEAT_INTERVAL_MS,
                 TimeUnit.MILLISECONDS);
+        taskRef.set(task);
+        return task;
     }
 
     private void stopHeartbeat(ScheduledFuture<?> heartbeatTask) {

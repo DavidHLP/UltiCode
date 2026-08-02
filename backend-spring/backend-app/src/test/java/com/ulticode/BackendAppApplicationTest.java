@@ -169,10 +169,6 @@ class BackendAppApplicationTest {
     private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
     @MockBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
-    // App-api type alignment is verified by SubmissionPortWiringTest.
-    // Keep port mocks for test-context startup; this profile has no SqlSessionFactory.
-    @MockBean
-    private com.ulticode.app.api.service.SubmissionFencePort submissionFencePort;
     @MockBean
     private com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
     @MockBean

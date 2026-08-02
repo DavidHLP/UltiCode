@@ -11,12 +11,10 @@ import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.modules.contest.entity.enums.ContestStatus;
-import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.app.api.dto.ContestAdminDTO;
+import com.ulticode.app.api.dto.ContestAnnouncementDTO;
+import com.ulticode.app.api.service.ContestAdminReadPort;
+import com.ulticode.app.api.service.ContestAnnouncementReadPort;
 import com.ulticode.modules.contest.port.ContestOwnerPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +31,6 @@ import org.mockito.quality.Strictness;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -71,9 +68,9 @@ class AdminContestMutationServiceImplTest {
     private static final String ADMIN_USER_ID = "admin-1";
     private static final String CONTEST_ID = "contest-1";
 
-    /** Read-side mappers still used by the admin for the re-fetch + before-state snapshot. */
-    @Mock private ContestMapper contestMapper;
-    @Mock private ContestAnnouncementMapper contestAnnouncementMapper;
+    /** P7-AC7: read-side ports replace the legacy mappers */
+    @Mock private ContestAdminReadPort contestAdminReadPort;
+    @Mock private ContestAnnouncementReadPort contestAnnouncementReadPort;
     @Mock private ContestAnnouncementPushPort contestAnnouncementPushPort;
     @Mock private AdminContestReadPort contestReadPort;
     @Mock private AdminContestProjection adminContestProjection;
@@ -84,12 +81,6 @@ class AdminContestMutationServiceImplTest {
      * this port. The test stubs the port to return the new ids.
      */
     @Mock private ContestOwnerPort contestOwnerPort;
-    /**
-     * Kept as a mock so the @BeforeEach constructor call still
-     * resolves; the test never sets a stub or verifies a call on it
-     * because the port owns the contest-problem write path.
-     */
-    @Mock private ContestProblemMapper contestProblemMapper;
 
     private final Clock clock = Clock.systemUTC();
 
@@ -98,12 +89,9 @@ class AdminContestMutationServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AdminContestMutationServiceImpl(
-                contestAnnouncementPushPort, contestReadPort, clock,
-                adminContestProjection, currentUserProvider, contestOwnerPort);
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "contestMapper", contestMapper);
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "contestProblemMapper", contestProblemMapper);
-        org.springframework.test.util.ReflectionTestUtils.setField(
-                service, "contestAnnouncementMapper", contestAnnouncementMapper);
+                contestAdminReadPort, contestAnnouncementReadPort,
+                contestAnnouncementPushPort, contestReadPort,
+                clock, adminContestProjection, currentUserProvider, contestOwnerPort);
         when(currentUserProvider.getCurrentUserId()).thenReturn(ADMIN_USER_ID);
     }
 
@@ -139,8 +127,7 @@ class AdminContestMutationServiceImplTest {
             assertThat(cmdCaptor.getValue()).isNotNull();
             // P3-OWNER-001-B: the admin no longer calls the foreign
             // mapper for the contest row insert.
-            verify(contestMapper, never()).insert(any(Contest.class));
-            verify(contestProblemMapper, never()).batchInsert(any());
+            verify(contestOwnerPort).createContest(any(CreateContestDTO.class), eq(ADMIN_USER_ID));
         }
 
         @Test
@@ -167,11 +154,11 @@ class AdminContestMutationServiceImplTest {
         @Test
         @DisplayName("forwards id + DTO to ContestOwnerPort.updateContest and re-fetches via projection")
         void routesToOwnerPort() {
-            final Contest before = new Contest();
+            final ContestAdminDTO before = new ContestAdminDTO();
             before.setId(CONTEST_ID);
             before.setTitle("Old");
-            before.setStatus(ContestStatus.UPCOMING.name());
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            before.setStatus("UPCOMING");
+            when(contestAdminReadPort.selectById(CONTEST_ID)).thenReturn(before);
             final AdminContestVO expected = new AdminContestVO();
             expected.setId(CONTEST_ID);
             when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
@@ -183,15 +170,13 @@ class AdminContestMutationServiceImplTest {
             // P3-OWNER-001-B: the admin no longer calls the foreign
             // mapper for the contest row update or the problem
             // replacement.
-            verify(contestMapper, never()).updateById(any(Contest.class));
-            verify(contestProblemMapper, never()).deleteByContestId(anyString());
-            verify(contestProblemMapper, never()).batchInsert(any());
+            verify(contestOwnerPort).updateContest(anyString(), any(UpdateContestDTO.class));
         }
 
         @Test
         @DisplayName("CONTEST_NOT_FOUND when the contest does not exist")
         void notFound() {
-            when(contestMapper.selectById("missing")).thenReturn(null);
+            when(contestAdminReadPort.selectById("missing")).thenReturn(null);
 
             assertThatThrownBy(() -> service.updateContest("missing", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
@@ -203,11 +188,11 @@ class AdminContestMutationServiceImplTest {
         @Test
         @DisplayName("CONTEST_ONLY_REGISTER_UPCOMING when the contest is not UPCOMING (raised by the port)")
         void notUpcoming() {
-            final Contest before = new Contest();
+            final ContestAdminDTO before = new ContestAdminDTO();
             before.setId(CONTEST_ID);
             before.setTitle("Running contest");
-            before.setStatus(ContestStatus.RUNNING.name());
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            before.setStatus("RUNNING");
+            when(contestAdminReadPort.selectById(CONTEST_ID)).thenReturn(before);
             // The port is the layer that owns the status guard; the
             // service delegates the write so the port raises the
             // exception. The test simulates that by having the port
@@ -234,15 +219,14 @@ class AdminContestMutationServiceImplTest {
         @Test
         @DisplayName("forwards id + currentUserId to ContestOwnerPort.deleteContest")
         void routesToOwnerPort() {
-            final Contest before = new Contest();
+            final ContestAdminDTO before = new ContestAdminDTO();
             before.setId(CONTEST_ID);
-            before.setStatus(ContestStatus.UPCOMING.name());
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            before.setStatus("UPCOMING");
+            when(contestAdminReadPort.selectById(CONTEST_ID)).thenReturn(before);
 
             service.deleteContest(CONTEST_ID);
 
             verify(contestOwnerPort).deleteContest(eq(CONTEST_ID), eq(ADMIN_USER_ID));
-            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
@@ -257,10 +241,10 @@ class AdminContestMutationServiceImplTest {
         @Test
         @DisplayName("forwards id to ContestOwnerPort.startContest and re-fetches via projection")
         void routesToOwnerPort() {
-            final Contest before = new Contest();
+            final ContestAdminDTO before = new ContestAdminDTO();
             before.setId(CONTEST_ID);
-            before.setStatus(ContestStatus.UPCOMING.name());
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            before.setStatus("UPCOMING");
+            when(contestAdminReadPort.selectById(CONTEST_ID)).thenReturn(before);
             final AdminContestVO expected = new AdminContestVO();
             expected.setId(CONTEST_ID);
             when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
@@ -269,7 +253,6 @@ class AdminContestMutationServiceImplTest {
 
             assertThat(vo).isSameAs(expected);
             verify(contestOwnerPort).startContest(CONTEST_ID);
-            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
@@ -280,10 +263,10 @@ class AdminContestMutationServiceImplTest {
         @Test
         @DisplayName("forwards id to ContestOwnerPort.endContest and re-fetches via projection")
         void routesToOwnerPort() {
-            final Contest before = new Contest();
+            final ContestAdminDTO before = new ContestAdminDTO();
             before.setId(CONTEST_ID);
-            before.setStatus(ContestStatus.RUNNING.name());
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            before.setStatus("RUNNING");
+            when(contestAdminReadPort.selectById(CONTEST_ID)).thenReturn(before);
             final AdminContestVO expected = new AdminContestVO();
             expected.setId(CONTEST_ID);
             when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
@@ -292,7 +275,6 @@ class AdminContestMutationServiceImplTest {
 
             assertThat(vo).isSameAs(expected);
             verify(contestOwnerPort).endContest(CONTEST_ID);
-            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
@@ -310,16 +292,19 @@ class AdminContestMutationServiceImplTest {
             final String annId = "ann-1";
             when(contestOwnerPort.createAnnouncement(eq(CONTEST_ID), eq("t"), eq("c"), eq(true)))
                     .thenReturn(annId);
-            final ContestAnnouncement ann = new ContestAnnouncement();
+            final ContestAnnouncementDTO ann = new ContestAnnouncementDTO();
             ann.setId(annId);
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, annId)).thenReturn(ann);
+            ann.setContestId(CONTEST_ID);
+            ann.setTitle("t");
+            ann.setContent("c");
+            ann.setIsPinned(true);
+            when(contestAnnouncementReadPort.findByContestIdAndId(CONTEST_ID, annId)).thenReturn(ann);
 
-            final ContestAnnouncement result = service.createAnnouncement(CONTEST_ID, "t", "c", true);
+            final ContestAnnouncementDTO result = service.createAnnouncement(CONTEST_ID, "t", "c", true);
 
             assertThat(result).isSameAs(ann);
             verify(contestOwnerPort).createAnnouncement(CONTEST_ID, "t", "c", true);
             verify(contestAnnouncementPushPort).emitAnnouncement(eq(CONTEST_ID), any(AnnouncementPayload.class));
-            verify(contestAnnouncementMapper, never()).insert(any(ContestAnnouncement.class));
         }
     }
 
@@ -328,37 +313,33 @@ class AdminContestMutationServiceImplTest {
     class UpdateAnnouncement {
 
         @Test
-        @DisplayName("forwards to ContestOwnerPort.updateAnnouncement and re-fetches via mapper")
+        @DisplayName("forwards to ContestOwnerPort.updateAnnouncement and re-fetches via read port")
         void routesAndRefetches() {
-            final ContestAnnouncement before = new ContestAnnouncement();
+            final ContestAnnouncementDTO before = new ContestAnnouncementDTO();
             before.setId("ann-1");
             before.setContestId(CONTEST_ID);
             before.setTitle("old");
             before.setIsPinned(false);
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1"))
-                    .thenReturn(before)
-                    .thenReturn(before);
-            final ContestAnnouncement after = new ContestAnnouncement();
+            final ContestAnnouncementDTO after = new ContestAnnouncementDTO();
             after.setId("ann-1");
             after.setContestId(CONTEST_ID);
             after.setTitle("new");
             after.setIsPinned(true);
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1"))
+            when(contestAnnouncementReadPort.findByContestIdAndId(CONTEST_ID, "ann-1"))
                     .thenReturn(before)
                     .thenReturn(after);
 
-            final ContestAnnouncement result = service.updateAnnouncement(
+            final ContestAnnouncementDTO result = service.updateAnnouncement(
                     CONTEST_ID, "ann-1", "new", null, true);
 
             assertThat(result).isSameAs(after);
             verify(contestOwnerPort).updateAnnouncement(CONTEST_ID, "ann-1", "new", null, true);
-            verify(contestAnnouncementMapper, never()).updateById(any(ContestAnnouncement.class));
         }
 
         @Test
         @DisplayName("BAD_REQUEST when the announcement does not exist")
         void notFound() {
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "missing"))
+            when(contestAnnouncementReadPort.findByContestIdAndId(CONTEST_ID, "missing"))
                     .thenReturn(null);
 
             assertThatThrownBy(() -> service.updateAnnouncement(
@@ -378,17 +359,16 @@ class AdminContestMutationServiceImplTest {
         @Test
         @DisplayName("forwards to ContestOwnerPort.deleteAnnouncement")
         void routesToOwnerPort() {
-            final ContestAnnouncement before = new ContestAnnouncement();
+            final ContestAnnouncementDTO before = new ContestAnnouncementDTO();
             before.setId("ann-1");
             before.setContestId(CONTEST_ID);
             before.setTitle("t");
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1"))
+            when(contestAnnouncementReadPort.findByContestIdAndId(CONTEST_ID, "ann-1"))
                     .thenReturn(before);
 
             service.deleteAnnouncement(CONTEST_ID, "ann-1");
 
             verify(contestOwnerPort).deleteAnnouncement(CONTEST_ID, "ann-1");
-            verify(contestAnnouncementMapper, never()).deleteById(anyString());
         }
     }
 }

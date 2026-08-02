@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.app.api.dto.ContestAdminDTO;
 
 /**
  * Read-side deep module for the admin contest management surface &mdash; owns
@@ -93,7 +93,7 @@ public interface AdminContestProjection {
      * @return projected admin contest VO, or {@code null} when the input is
      *         {@code null}
      */
-    AdminContestVO toAdminVO(Contest contest);
+    AdminContestVO toAdminVO(ContestAdminDTO contest);
 
     /**
      * Generate a URL-friendly slug from a contest title. Falls back to a

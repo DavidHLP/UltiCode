@@ -5,10 +5,9 @@ import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.port.ContestSummary;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.modules.admin.port.SubscriptionSummary;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestParticipant;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.app.api.dto.ContestAdminDTO;
+import com.ulticode.app.api.service.ContestAdminReadPort;
+import com.ulticode.app.api.service.ContestParticipantReadPort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -45,17 +44,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
-    private final ContestMapper contestMapper;
-    private final ContestParticipantMapper contestParticipantMapper;
+    private final ContestAdminReadPort contestAdminReadPort;
+    private final ContestParticipantReadPort contestParticipantReadPort;
     private final SubscriptionReadPort subscriptionReadPort;
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
 
     @Override
     public ContestParticipationData loadContestData(LocalDateTime startDate) {
-        LambdaQueryWrapper<Contest> contestWrapper = new LambdaQueryWrapper<>();
-        contestWrapper.ge(Contest::getStartTime, startDate);
-        List<Contest> contests = contestMapper.selectList(contestWrapper);
+        List<ContestAdminDTO> contests = contestAdminReadPort.selectByStartTimeAfter(startDate);
 
         List<ContestSummary> contestSummaries = contests.stream()
                 .map(c -> new ContestSummary(
@@ -68,11 +65,10 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
         Map<String, Long> participantsByContest = new HashMap<>();
         Set<String> uniqueParticipants = new HashSet<>();
         if (!contests.isEmpty()) {
-            // Short-circuit avoids IN () syntax error in MySQL.
-            List<String> contestIds = contests.stream().map(Contest::getId).collect(Collectors.toList());
-            for (ContestParticipant p : contestParticipantMapper.findByContestIds(contestIds)) {
-                participantsByContest.merge(p.getContestId(), 1L, Long::sum);
-                uniqueParticipants.add(p.getUserId());
+            List<String> contestIds = contests.stream().map(ContestAdminDTO::getId).collect(Collectors.toList());
+            for (ContestParticipantReadPort.ParticipantInfo p : contestParticipantReadPort.findByContestIds(contestIds)) {
+                participantsByContest.merge(p.contestId(), 1L, Long::sum);
+                uniqueParticipants.add(p.userId());
             }
         }
         return new ContestParticipationData(contestSummaries, participantsByContest, uniqueParticipants);
@@ -111,9 +107,8 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     @Override
     public long countContestsInRange(LocalDateTime from) {
-        LambdaQueryWrapper<Contest> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(Contest::getStartTime, from);
-        return contestMapper.selectCount(wrapper);
+        // AC #7: use read-port instead of Contest entity/LambdaQueryWrapper
+        return contestAdminReadPort.selectByStartTimeAfter(from).size();
     }
 
     @Override

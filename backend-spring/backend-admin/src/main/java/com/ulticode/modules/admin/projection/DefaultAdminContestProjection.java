@@ -1,44 +1,27 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.dto.ContestAdminDTO;
+import com.ulticode.app.api.service.ContestAdminReadPort;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Default (and only) adapter for {@link AdminContestProjection}. Owns every
- * entity-to-{@code AdminContestVO} projection rule and URL-slug shape for the
- * admin contest surface &mdash; see the interface javadoc for the deepening
- * rationale.
+ * Default adapter for {@link AdminContestProjection}.
  *
- * <p>All read methods are pure reads; none mutate contest state. Cross-module
- * enrichment ({@link ContestProblemMapper} for the {@code problemCount} field
- * on the VO) lives here and only here &mdash; the {@code AdminContestService}
- * write state machine no longer imports {@code ContestProblemMapper} for read
- * enrichment after the extraction.
- *
- * <p>Mirrors the {@code DefaultAdminSubmissionProjection} /
- * {@code DefaultModerationProjection} / {@code DefaultAchievementProjection}
- * shape exactly: {@link org.springframework.stereotype.Service @Service} +
- * Lombok's {@link lombok.RequiredArgsConstructor} for constructor injection,
- * {@link lombok.extern.slf4j.Slf4j @Slf4j} for the SLF4J Logger, and a
- * small, focused surface that callers compose with the service's write
- * methods.
+ * <p>P7-RELOCATE-CONTEST-001 AC #7: all contest entity/mapper imports
+ * replaced with {@link ContestAdminReadPort}. {@code toAdminVO} now accepts
+ * {@link ContestAdminDTO} instead of Contest entity.
  *
  * @author ulticode
  */
@@ -47,13 +30,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultAdminContestProjection implements AdminContestProjection {
 
-    private final ContestMapper contestMapper;
-    private final ContestProblemMapper contestProblemMapper;
+    private final ContestAdminReadPort contestAdminReadPort;
     private final UuidGenerator uuidGenerator;
-
-    // ------------------------------------------------------------------
-    // Paginated list read (query build + shape)
-    // ------------------------------------------------------------------
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -61,10 +39,10 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         int page = pageRequest.page();
         int limit = pageRequest.pageSize();
 
-        Page<Contest> result = contestMapper.selectPage(
-                new Page<>(page, limit), buildWrapper(query));
+        PageResult<ContestAdminDTO> result = contestAdminReadPort.selectPage(
+                page, limit, query.getSearch(), query.getStatus(), query.getType());
 
-        List<AdminContestVO> vos = result.getRecords().stream()
+        List<AdminContestVO> vos = result.getItems().stream()
                 .map(this::toAdminVO)
                 .collect(Collectors.toList());
 
@@ -73,19 +51,15 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
 
     @Override
     public AdminContestVO getContest(String id) {
-        Contest contest = contestMapper.selectById(id);
+        ContestAdminDTO contest = contestAdminReadPort.selectById(id);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Contest not found");
         }
         return toAdminVO(contest);
     }
 
-    // ------------------------------------------------------------------
-    // Projection helpers (entity -> AdminContestVO)
-    // ------------------------------------------------------------------
-
     @Override
-    public AdminContestVO toAdminVO(Contest contest) {
+    public AdminContestVO toAdminVO(ContestAdminDTO contest) {
         if (contest == null) {
             return null;
         }
@@ -101,10 +75,9 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         vo.setEndTime(contest.getEndTime());
         vo.setDurationMinutes(contest.getDurationMinutes());
         vo.setIsVisible(contest.getIsVisible());
-        vo.setParticipantCount(contest.getParticipantCount());
         vo.setCreatedAt(contest.getCreatedAt());
         vo.setUpdatedAt(contest.getUpdatedAt());
-        vo.setProblemCount((int) contestProblemMapper.countByContestId(contest.getId()));
+        vo.setProblemCount((int) contestAdminReadPort.countProblemsByContestId(contest.getId()));
 
         return vo;
     }
@@ -125,50 +98,5 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         }
 
         return slug;
-    }
-
-    // ------------------------------------------------------------------
-    // Internal helpers
-    // ------------------------------------------------------------------
-
-    /**
-     * Build the {@link LambdaQueryWrapper} that backs the paginated list read
-     * for the admin contest surface. Pure query-shape concern &mdash; no
-     * service-layer imports needed.
-     */
-    private LambdaQueryWrapper<Contest> buildWrapper(AdminContestQueryDTO query) {
-        LambdaQueryWrapper<Contest> wrapper = new LambdaQueryWrapper<>();
-
-        // Search filter (title or slug)
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = "%" + query.getSearch() + "%";
-            wrapper.and(w -> w
-                    .like(Contest::getTitle, search)
-                    .or()
-                    .like(Contest::getSlug, search));
-        }
-
-        // Type filter
-        if (StringUtils.hasText(query.getType())) {
-            wrapper.eq(Contest::getContestType, query.getType());
-        }
-
-        // Status filter
-        if (StringUtils.hasText(query.getStatus())) {
-            wrapper.eq(Contest::getStatus, query.getStatus());
-        }
-
-        // Sorting
-        boolean isAsc = !"desc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        switch (sortBy) {
-            case "title" -> wrapper.orderBy(true, isAsc, Contest::getTitle);
-            case "startTime" -> wrapper.orderBy(true, isAsc, Contest::getStartTime);
-            case "createdAt" -> wrapper.orderBy(true, isAsc, Contest::getCreatedAt);
-            case "updatedAt" -> wrapper.orderBy(true, isAsc, Contest::getUpdatedAt);
-            default -> wrapper.orderBy(true, isAsc, Contest::getCreatedAt);
-        }
-
-        return wrapper;
     }
 }

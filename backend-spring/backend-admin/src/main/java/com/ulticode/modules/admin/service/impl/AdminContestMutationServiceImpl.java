@@ -1,4 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
+import com.ulticode.app.api.dto.ContestAdminDTO;
+import com.ulticode.app.api.dto.ContestAnnouncementDTO;
+import com.ulticode.app.api.service.ContestAdminReadPort;
+import com.ulticode.app.api.service.ContestAnnouncementReadPort;
 
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
@@ -12,16 +16,8 @@ import com.ulticode.modules.admin.port.AdminContestReadPort;
 import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.service.AdminContestMutationService;
-import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.modules.contest.entity.ContestProblem;
-import com.ulticode.modules.contest.entity.enums.ContestStatus;
-import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.port.ContestOwnerPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
@@ -80,12 +76,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminContestMutationServiceImpl implements AdminContestMutationService {
 
-    @Autowired
-    private ContestMapper contestMapper;
-    @Autowired
-    private ContestProblemMapper contestProblemMapper;
-    @Autowired
-    private ContestAnnouncementMapper contestAnnouncementMapper;
+    private final ContestAdminReadPort contestAdminReadPort;
+    private final ContestAnnouncementReadPort contestAnnouncementReadPort;
     private final ContestAnnouncementPushPort contestAnnouncementPushPort;
     private final AdminContestReadPort contestReadPort;
     private final Clock clock;
@@ -96,7 +88,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
      * {@code contest_problems}, and {@code contest_announcements}
      * tables. Replaces the direct foreign-mapper write calls
      * (contestMapper.insert / updateById, contestProblemMapper
-     * deleteByContestId / batchInsert, contestAnnouncementMapper
+     * deleteByContestId / batchInsert, contestAnnouncementReadPort
      * insert / updateById / deleteById) that lived here before
      * the Phase 3 owner boundary was established. The
      * contest problem shaping (score / index / base-score rule)
@@ -133,7 +125,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
     public AdminContestVO updateContest(String id, UpdateContestDTO dto) {
         // P3-OWNER-001-B: capture the old values for the audit before
         // the port mutates the row. The status-guard is also port-side.
-        final Contest before = contestMapper.selectById(id);
+        final ContestAdminDTO before = contestAdminReadPort.selectById(id);
         if (before == null) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
@@ -164,7 +156,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         // P3-OWNER-001-B: the soft-delete write is owned by the
         // port. The admin captures the old values for the audit
         // and records the actor for the port.
-        final Contest before = contestMapper.selectById(id);
+        final ContestAdminDTO before = contestAdminReadPort.selectById(id);
         Map<String, Object> oldValues = new HashMap<>();
         if (before != null) {
             oldValues.put("title", before.getTitle());
@@ -185,12 +177,12 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         // P3-OWNER-001-B: the port owns the status guard, the
         // problem-existence check, and the status transition. The
         // admin re-fetches via the projection for VO composition.
-        final Contest before = contestMapper.selectById(id);
+        final ContestAdminDTO before = contestAdminReadPort.selectById(id);
         if (before != null) {
             AuditContext.setOldValues(Map.of("status", before.getStatus()));
         }
         contestOwnerPort.startContest(id);
-        AuditContext.setNewValues(Map.of("status", ContestStatus.RUNNING.name()));
+        AuditContext.setNewValues(Map.of("status", "RUNNING"));
         log.info("Admin started contest: {}", id);
         return adminContestProjection.getContest(id);
     }
@@ -198,12 +190,12 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
     @Override
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO endContest(String id) {
-        final Contest before = contestMapper.selectById(id);
+        final ContestAdminDTO before = contestAdminReadPort.selectById(id);
         if (before != null) {
             AuditContext.setOldValues(Map.of("status", before.getStatus()));
         }
         contestOwnerPort.endContest(id);
-        AuditContext.setNewValues(Map.of("status", ContestStatus.FINISHED.name()));
+        AuditContext.setNewValues(Map.of("status", "FINISHED"));
         log.info("Admin ended contest: {}", id);
         return adminContestProjection.getContest(id);
     }
@@ -211,7 +203,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
     @Override
     @Transactional
     @Audited(action = AuditVocabulary.CREATE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, captureOldState = false)
-    public ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
+    public ContestAnnouncementDTO createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
         // P3-OWNER-001-B: the announcement row is owned by the
         // port. The WebSocket push (D-12) stays in admin because
         // it is an outbound side effect on the admin's
@@ -235,15 +227,15 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         log.info("Admin created announcement {} for contest {}", newId, contestId);
         // Re-fetch the entity for the caller; the read is a
         // sanctioned admin path (the existing findByContestIdAndId).
-        return contestAnnouncementMapper.findByContestIdAndId(contestId, newId);
+        return contestAnnouncementReadPort.findByContestIdAndId(contestId, newId);
     }
 
     @Override
     @Audited(action = AuditVocabulary.UPDATE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
-    public ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned) {
+    public ContestAnnouncementDTO updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned) {
         // Capture old values for the audit before the port
         // mutates the row.
-        final ContestAnnouncement before = contestAnnouncementMapper
+        final ContestAnnouncementDTO before = contestAnnouncementReadPort
                 .findByContestIdAndId(contestId, announcementId);
         if (before == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
@@ -261,13 +253,13 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         AuditContext.setNewValues(newValues);
 
         log.info("Admin updated announcement {} for contest {}", announcementId, contestId);
-        return contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
+        return contestAnnouncementReadPort.findByContestIdAndId(contestId, announcementId);
     }
 
     @Override
     @Audited(action = AuditVocabulary.DELETE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public void deleteAnnouncement(String contestId, String announcementId) {
-        final ContestAnnouncement before = contestAnnouncementMapper
+        final ContestAnnouncementDTO before = contestAnnouncementReadPort
                 .findByContestIdAndId(contestId, announcementId);
         Map<String, Object> oldValues = new HashMap<>();
         if (before != null) {

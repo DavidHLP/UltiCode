@@ -1,5 +1,6 @@
 package com.ulticode.modules.submission.port;
 
+import com.ulticode.app.api.service.SubmissionFencePort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
@@ -13,15 +14,7 @@ import java.util.Optional;
  * <p>Thin wrapper over {@link SubmissionMapper} that lifts the three fence
  * operations the judge worker needs — read generation, CAS-acquire lease,
  * renew lease — out of raw-mapper + entity territory and into the typed
- * {@code Optional<Long>} / {@code boolean} shape the port promises. This is the
- * only place outside {@code DefaultSubmissionWritePort} that the submission
- * state machine touches {@link SubmissionMapper} for in-flight state; the judge
- * attempt executor now depends on the port instead.
- *
- * <p>Byte-for-byte with the pre-deepening executor: {@code selectById == null}
- * becomes {@link Optional#empty()}, a null {@code generation} column resolves
- * to {@code 1L}, and both CAS ops succeed iff the affected-row count is
- * {@code 1}.
+ * {@code Optional<Long>} / {@code boolean} shape the port promises.
  *
  * @author ulticode
  */

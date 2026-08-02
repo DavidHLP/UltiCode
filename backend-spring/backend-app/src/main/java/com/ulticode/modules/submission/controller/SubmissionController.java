@@ -13,7 +13,7 @@ import com.ulticode.app.api.dto.SubmissionQueryDTO;
 import com.ulticode.app.api.dto.SubmissionDetailVO;
 import com.ulticode.app.api.dto.SubmissionStatusMeta;
 import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
+import com.ulticode.app.api.service.SubmissionWritePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import java.util.List;

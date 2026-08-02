@@ -1,2 +1,0 @@
-Method <com.ulticode.modules.forum.lifecycle.DefaultForumUserLifecycleModule.resolveOrCreate(java.lang.String)> calls method <com.ulticode.modules.forum.mapper.ForumUserMapper.insert(java.lang.Object)> in (DefaultForumUserLifecycleModule.java:80)
-Method <com.ulticode.modules.forum.lifecycle.DefaultForumUserLifecycleModule.syncIdentityFields(java.lang.String)> calls method <com.ulticode.modules.forum.mapper.ForumUserMapper.updateById(java.lang.Object)> in (DefaultForumUserLifecycleModule.java:125)

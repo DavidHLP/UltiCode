@@ -6,6 +6,7 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.app.api.dto.RunResultDTO;
+import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.app.api.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxExecutor;
@@ -66,7 +67,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CodeExecutionService {
+public class CodeExecutionService implements CodeExecutionPort {
 
     private final SandboxExecutor sandboxExecutor;
     private final SandboxOutputFormatter sandboxOutputFormatter;
@@ -97,6 +98,7 @@ public class CodeExecutionService {
      */
     private final Map<String, List<String>> signatureCache = new ConcurrentHashMap<>();
 
+    @Override
     public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
         String language = request.getLanguage() == null
                 ? ""

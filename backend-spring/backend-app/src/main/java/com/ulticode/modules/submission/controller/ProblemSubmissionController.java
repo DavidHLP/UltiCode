@@ -12,7 +12,7 @@ import com.ulticode.app.api.dto.RunSubmissionDTO;
 import com.ulticode.app.api.dto.SubmissionListItemVO;
 import com.ulticode.app.api.dto.SubmissionQueryDTO;
 import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
+import com.ulticode.app.api.service.SubmissionWritePort;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import io.swagger.v3.oas.annotations.Operation;

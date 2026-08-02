@@ -1,0 +1,56 @@
+package com.ulticode.modules.submission.port;
+
+import com.ulticode.app.api.service.CodeExecutionPort;
+import com.ulticode.app.api.service.SubmissionFencePort;
+import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.modules.submission.service.CodeExecutionService;
+import com.ulticode.modules.submission.service.VerdictResolver;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Wiring assertion that verifies the app-api port interfaces are implemented by
+ * the backend-app default adapters.
+ *
+ * <p>This test catches the {@code F-003} bug class (port interface fragmentation)
+ * where the consumer injects an app-api port type but the provider implements a
+ * different type. The assertion is a compile-time + runtime type-assignment
+ * check: if the impl class does not implement the app-api interface, the test
+ * fails to compile or the {@code isAssignableFrom} check returns false.
+ *
+ * @author ulticode
+ */
+@DisplayName("Submission port wiring: app-api interface ↔ backend-app impl")
+class SubmissionPortWiringTest {
+
+    @Test
+    @DisplayName("DefaultSubmissionFencePort implements app-api SubmissionFencePort")
+    void fencePortWiring() {
+        assertTrue(SubmissionFencePort.class.isAssignableFrom(DefaultSubmissionFencePort.class),
+                "DefaultSubmissionFencePort must implement com.ulticode.app.api.service.SubmissionFencePort");
+    }
+
+    @Test
+    @DisplayName("DefaultSubmissionWritePort implements app-api SubmissionWritePort")
+    void writePortWiring() {
+        assertTrue(SubmissionWritePort.class.isAssignableFrom(DefaultSubmissionWritePort.class),
+                "DefaultSubmissionWritePort must implement com.ulticode.app.api.service.SubmissionWritePort");
+    }
+
+    @Test
+    @DisplayName("VerdictResolver implements app-api VerdictResolvePort")
+    void verdictResolvePortWiring() {
+        assertTrue(VerdictResolvePort.class.isAssignableFrom(VerdictResolver.class),
+                "VerdictResolver must implement com.ulticode.app.api.service.VerdictResolvePort");
+    }
+
+    @Test
+    @DisplayName("CodeExecutionService implements app-api CodeExecutionPort")
+    void codeExecutionPortWiring() {
+        assertTrue(CodeExecutionPort.class.isAssignableFrom(CodeExecutionService.class),
+                "CodeExecutionService must implement com.ulticode.app.api.service.CodeExecutionPort");
+    }
+}

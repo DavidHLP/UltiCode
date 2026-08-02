@@ -12,6 +12,8 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.SubmissionFencePort;
 import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.modules.submission.codec.TestCaseDetailCodec;
+import com.ulticode.modules.submission.fence.LeaseConstants;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * ordering for one judge attempt and the cutover between the legacy and
  * fenced paths.
  *
- * <p>Extracted from the previous {@code JudgeWorkerProcessor} (which is now
- * a thin polling adapter). The behaviour of the legacy and fenced paths is
- * preserved verbatim — architecture-review candidate #4.
- *
  * @author ulticode
  */
 @Slf4j
@@ -50,10 +48,6 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private final MeterRegistry meterRegistry;
     private final UuidGenerator uuidGenerator;
 
-    /**
-     * Single-thread heartbeat scheduler. Lazily initialised because the
-     * fenced path is flag-gated and most deployments run flag-off.
-     */
     private volatile ScheduledExecutorService heartbeatExecutor;
 
     public DefaultJudgeAttemptExecutor(SubmissionWritePort submissionWritePort,
@@ -76,10 +70,6 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     @Override
     public void runAttempt(JudgeJob job, JudgeQueue port, JudgeJobHandle handle) {
-        // When the fenced path is on, every attempt goes through the lease
-        // CAS regardless of which queue adapter delivered it. The legacy
-        // path is the no-lease fallback for deployments that have not
-        // completed the M3c-2 cutover.
         if (featureFlags != null && featureFlags.isUseGenerationFence()) {
             processJobFenced(job, port, handle);
         } else {
@@ -122,25 +112,16 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
     }
 
-    /**
-     * Legacy transition step of the attempt lifecycle: flip the submission row
-     * to JUDGING before the sandbox runs. Centralised so the verdict constant
-     * lives here and the path reads as orchestrator above it.
-     */
     private void transitionToJudging(String submissionId) {
         submissionWritePort.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, 0.0, null);
     }
 
-    /**
-     * Legacy verdict step: write the pipeline outcome to the submission row
-     * and notify. Cleanup (release) is the caller's responsibility so this
-     * helper stays a single-responsibility writer.
-     */
     private void applyLegacyVerdict(String submissionId, String userId, String problemId,
                                     JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
+        String testDetailsJson = TestCaseDetailCodec.toJson(pipelineResult.testCaseDetails());
         submissionWritePort.updateSubmissionResult(submissionId, status,
-                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), null);
+                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), testDetailsJson);
         notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
     }
 
@@ -162,7 +143,8 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
         long generation = observed.get();
 
-        boolean acquired = submissionFencePort.acquireLease(submissionId, generation);
+        boolean acquired = submissionFencePort.acquireLease(
+                submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
         if (!acquired) {
             log.debug("Fenced judge: lease not acquired for submission {} gen {} (already moved)",
                     submissionId, generation);
@@ -197,21 +179,22 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
     }
 
-    /**
-     * Fenced verdict step: CAS-write the pipeline outcome and notify only when
-     * the CAS lands. Fail-closed conditional fencing lives here as one named
-     * seam so the path reads as orchestration above it.
-     */
     private void writeVerdictFenced(String submissionId, String userId, String problemId,
                                     String attemptId, long generation,
                                     JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
-        submissionWritePort.updateSubmissionResultFenced(
+        String testDetailsJson = TestCaseDetailCodec.toJson(pipelineResult.testCaseDetails());
+        boolean written = submissionWritePort.updateSubmissionResultFenced(
                 submissionId, status,
-                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), null,
-                generation, Integer.parseInt(attemptId));
+                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), testDetailsJson,
+                generation, attemptId);
 
-        notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
+        if (written) {
+            notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
+        } else {
+            log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
+                    status.wireValue(), submissionId, generation);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -223,7 +206,8 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         return executor.scheduleAtFixedRate(
                 () -> {
                     try {
-                        boolean renewed = submissionFencePort.renewLease(submissionId, 0);
+                        boolean renewed = submissionFencePort.renewLease(
+                                submissionId, attemptId, LeaseConstants.LEASE_TTL_SECONDS);
                         if (!renewed) {
                             incrementLeaseMissRenew();
                             log.debug("Heartbeat renew failed for submission {} attempt {} (lease lost)",
@@ -233,8 +217,8 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                         log.warn("Heartbeat renew threw for submission {}: {}", submissionId, e.getMessage());
                     }
                 },
-                5000,
-                5000,
+                LeaseConstants.HEARTBEAT_INTERVAL_MS,
+                LeaseConstants.HEARTBEAT_INTERVAL_MS,
                 TimeUnit.MILLISECONDS);
     }
 
@@ -281,23 +265,12 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
     }
 
-    /**
-     * Shared execute step of the attempt lifecycle: run the sandbox pipeline
-     * for one job and lift the null-result (sandbox yielded no verdict) into
-     * an empty Optional so each path applies its own SYSTEM_ERROR variant.
-     */
     private Optional<JudgeExecutionResult> runPipeline(JudgeJob job) throws Exception {
         return Optional.ofNullable(executionPipeline.execute(
                 job.getLanguage(), job.getCode(),
                 Long.parseLong(job.getProblemId()), job.getUserId(), job.getSubmissionId()));
     }
 
-    /**
-     * Shared notify step of the attempt lifecycle: compute the contest-id +
-     * memory shape and push one verdict payload. The legacy and fenced
-     * success paths share this verbatim; the fenced path gates the call on
-     * its CAS landing, keeping the fail-closed conditional fencing intact.
-     */
     private void notifyVerdict(String userId, String submissionId, String problemId,
                                SubmissionStatus status, JudgeExecutionResult result) {
         long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
@@ -321,11 +294,6 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
     }
 
-    /**
-     * Centralised SYSTEM_ERROR write + push for the unfenced (flag-off) path.
-     * Collapses the three legacy error branches (markExhausted, null result,
-     * pipeline exception) onto one locality so the verdict constant lives here.
-     */
     private void markSystemError(String submissionId, String userId, String problemId,
                                  String contestId) {
         SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
@@ -333,18 +301,15 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
     }
 
-    /**
-     * Centralised fenced SYSTEM_ERROR write + push. The push fires only when the
-     * fenced CAS actually lands (written == true), matching the per-branch guard
-     * each call site previously inlined.
-     */
     private void markSystemErrorFenced(String submissionId, long generation, String attemptId,
                                        String userId, String problemId, String contestId) {
         SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-        submissionWritePort.updateSubmissionResultFenced(
+        boolean written = submissionWritePort.updateSubmissionResultFenced(
                 submissionId, status, 0, 0.0, null,
-                generation, Integer.parseInt(attemptId));
-        pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
+                generation, attemptId);
+        if (written) {
+            pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
+        }
     }
 
     private static final class NamedDaemonThreadFactory implements ThreadFactory {

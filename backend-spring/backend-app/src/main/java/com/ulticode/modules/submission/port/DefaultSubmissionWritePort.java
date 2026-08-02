@@ -8,6 +8,7 @@ import com.ulticode.app.api.service.AchievementTriggerPort;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.app.api.service.ProblemFactsPort;
+import com.ulticode.app.api.service.SubmissionWritePort;
 import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
@@ -15,6 +16,7 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
+import com.ulticode.modules.submission.codec.TestCaseDetailCodec;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -155,7 +157,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     @Override
     @Transactional
     public void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
-                                       Double memory, List<Submission.TestCaseDetail> testDetails) {
+                                       Double memory, String testDetailsJson) {
         String wire = SubmissionStatusCodec.toWire(status);
         Submission submission = submissionMapper.selectById(submissionId);
         if (submission == null) {
@@ -165,7 +167,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         submission.setStatus(wire);
         submission.setRuntime(runtime);
         submission.setMemory(memory);
-        submission.setTestDetails(testDetails);
+        submission.setTestDetails(TestCaseDetailCodec.fromJson(testDetailsJson));
         if (status == SubmissionStatus.ACCEPTED) {
             PerformanceStats stats = performanceStats.compute(submission, runtime, memory);
             applyPerformanceStatsToEntity(submission, stats);
@@ -194,12 +196,10 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
 
     @Override
     @Transactional
-    public boolean updateSubmissionResultFenced(String submissionId, long generation,
-                                                String attemptId, SubmissionStatus status,
-                                                int runtime, Double memory,
-                                                List<Submission.TestCaseDetail> testDetails) {
+    public boolean updateSubmissionResultFenced(String submissionId, SubmissionStatus status,
+                                                int runtime, Double memory, String testDetailsJson,
+                                                long generation, String attemptId) {
         String wire = SubmissionStatusCodec.toWire(status);
-        String testDetailsJson = serializeTestDetails(testDetails);
 
         Double runtimePercentile = null;
         Double memoryPercentile = null;
@@ -243,14 +243,6 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         return true;
     }
 
-    private void publishContestScoringEvent(Submission submission, SubmissionStatus status) {
-        publishContestScoringEvent(submission, status,
-                submission.getGeneration() != null ? submission.getGeneration() : 1L,
-                submission.getRuntime() != null ? submission.getRuntime() : 0,
-                submission.getMemory() != null ? submission.getMemory() : 0,
-                null);
-    }
-
     private void publishContestScoringEvent(Submission submission, SubmissionStatus status,
                                             long generation, int runtimeMs, double memoryMb,
                                             String contestId) {
@@ -287,18 +279,6 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             return objectMapper.writeValueAsString(bins);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.warn("Failed to serialize distribution bins: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private String serializeTestDetails(List<Submission.TestCaseDetail> testDetails) {
-        if (testDetails == null || testDetails.isEmpty()) {
-            return null;
-        }
-        try {
-            return objectMapper.writeValueAsString(testDetails);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            log.warn("Failed to serialize test details: {}", e.getMessage());
             return null;
         }
     }

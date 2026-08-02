@@ -166,10 +166,15 @@ class BackendAppApplicationTest {
     private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
     @MockBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
+    // @MockBean removed: DefaultSubmissionFencePort now implements app-api interface.
+    // Wiring verified by SubmissionPortWiringTest (compile-time type assignment).
+    // @MockBean kept for test-context startup (SubmissionMapper unavailable in test profile).
     @MockBean
     private com.ulticode.app.api.service.SubmissionFencePort submissionFencePort;
     @MockBean
     private com.ulticode.app.api.service.CodeExecutionPort codeExecutionPort;
+    @MockBean
+    private com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
     @MockBean
     private com.ulticode.app.api.service.VerdictResolvePort verdictResolvePort;
     @MockBean

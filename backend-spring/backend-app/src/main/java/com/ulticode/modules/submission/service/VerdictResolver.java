@@ -1,5 +1,5 @@
 package com.ulticode.modules.submission.service;
-
+import com.ulticode.app.api.service.VerdictResolvePort;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.domain.submission.enums.SubmissionStatus.Kind;
@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -46,7 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Component
-public class VerdictResolver {
+public class VerdictResolver implements VerdictResolvePort {
 
     private final AtomicLong unknownWireFallbackCount = new AtomicLong(0);
 
@@ -92,6 +93,26 @@ public class VerdictResolver {
      * @param caseStatusWireValues wire strings of the per-case statuses; may not be {@code null}
      * @return the final verdict
      */
+    /**
+     * Port-contract bridge — satisfies {@link VerdictResolvePort#reduceWire(List)}
+     * by delegating to the {@code Collection<String>} overload above.
+     * Callers that hold {@code List} (all existing call sites) bind here.
+     */
+    @Override
+    public SubmissionStatus reduceWire(List<String> caseWireValues) {
+        return reduceWire((Collection<String>) caseWireValues);
+    }
+
+    /**
+     * String-overload bridge for callers that still hold wire strings (e.g.
+     * {@code RunResultDTO.RunCaseResult.getStatus()}). Strict decode — unknown
+     * values are logged, counted, and mapped to
+     * {@link SubmissionStatus#SYSTEM_ERROR} rather than failing the whole
+     * reduction, so a single malformed case cannot crash the judge loop.
+     *
+     * @param caseStatusWireValues wire strings of the per-case statuses; may not be {@code null}
+     * @return the final verdict
+     */
     public SubmissionStatus reduceWire(Collection<String> caseStatusWireValues) {
         if (caseStatusWireValues == null) {
             throw new IllegalArgumentException("caseStatusWireValues must not be null");
@@ -105,9 +126,6 @@ public class VerdictResolver {
             try {
                 s = SubmissionStatusCodec.fromWire(wire);
             } catch (IllegalArgumentException e) {
-                // Unknown / null wire — strict decode failed. Log + count + fall back
-                // to SYSTEM_ERROR so a single malformed case can't take the whole
-                // judge loop down. Operators should alert on this counter.
                 long count = unknownWireFallbackCount.incrementAndGet();
                 log.warn("VerdictResolver unknown wire value: raw='{}' (fallback to SYSTEM_ERROR, total={})",
                         wire, count);

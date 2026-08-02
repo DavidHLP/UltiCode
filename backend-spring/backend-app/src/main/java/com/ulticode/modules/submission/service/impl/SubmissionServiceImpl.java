@@ -13,7 +13,7 @@ import com.ulticode.app.api.dto.SubmissionQueryDTO;
 import com.ulticode.app.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
+import com.ulticode.app.api.service.SubmissionWritePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
@@ -30,7 +30,7 @@ import java.util.Optional;
  *
  * <p><b>Deep-module boundary.</b> Every state mutation (Submission intake +
  * the two verdict writers) is owned by
- * {@link com.ulticode.modules.submission.port.SubmissionWritePort} /
+ * {@link com.ulticode.app.api.service.SubmissionWritePort} /
  * {@code DefaultSubmissionWritePort}. This implementation surfaces two
  * surfaces to callers:
  * <ul>

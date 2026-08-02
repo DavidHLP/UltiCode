@@ -30,7 +30,6 @@
 		<dependency>
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-app</artifactId>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>

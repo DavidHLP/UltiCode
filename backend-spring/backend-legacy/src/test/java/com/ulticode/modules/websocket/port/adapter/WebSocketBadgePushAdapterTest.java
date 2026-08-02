@@ -2,7 +2,7 @@ package com.ulticode.modules.websocket.port.adapter;
 
 import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
-import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
+import com.ulticode.app.api.dto.BadgeEarnedPayload;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

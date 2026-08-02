@@ -211,6 +211,15 @@ class DefaultJudgeExecutionPipelineTest {
                     caseResult(null, "Memory Limit Exceeded", "10ms", "256.0MB"),
                     caseResult(null, "Runtime Error", "10ms", "1.0MB"));
 
+            assertThat(pipeline.determineVerdict(cases.subList(0, 1))).isEqualTo(SubmissionStatus.ACCEPTED);
+            assertThat(pipeline.determineVerdict(cases.subList(0, 2)))
+                    .isEqualTo(SubmissionStatus.PRESENTATION_ERROR);
+            assertThat(pipeline.determineVerdict(cases.subList(0, 3)))
+                    .isEqualTo(SubmissionStatus.WRONG_ANSWER);
+            assertThat(pipeline.determineVerdict(cases.subList(0, 4)))
+                    .isEqualTo(SubmissionStatus.TIME_LIMIT_EXCEEDED);
+            assertThat(pipeline.determineVerdict(cases.subList(0, 5)))
+                    .isEqualTo(SubmissionStatus.MEMORY_LIMIT_EXCEEDED);
             assertThat(pipeline.determineVerdict(cases)).isEqualTo(SubmissionStatus.RUNTIME_ERROR);
         }
 

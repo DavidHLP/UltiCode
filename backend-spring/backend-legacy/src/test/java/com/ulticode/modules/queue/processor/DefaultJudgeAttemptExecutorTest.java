@@ -160,7 +160,10 @@ class DefaultJudgeAttemptExecutorTest {
         executor.runAttempt(job(), null, null);
 
         ArgumentCaptor<String> details = ArgumentCaptor.forClass(String.class);
-        verify(submissionWritePort).updateSubmissionResult(
+        InOrder legacyWrites = inOrder(submissionWritePort);
+        legacyWrites.verify(submissionWritePort).updateSubmissionResult(
+                "submission-1", SubmissionStatus.JUDGING, 0, 0.0, null);
+        legacyWrites.verify(submissionWritePort).updateSubmissionResult(
                 eq("submission-1"), eq(SubmissionStatus.ACCEPTED), eq(5), eq(2.0), details.capture());
         assertThat(details.getValue()).contains("\"caseId\":\"legacy-case\"");
         verify(submissionWritePort, never()).updateSubmissionResultFenced(
@@ -199,8 +202,8 @@ class DefaultJudgeAttemptExecutorTest {
         assertThat(heartbeat.get()).isNotNull();
 
         heartbeat.get().run();
-        verify(submissionFencePort).renewLease("submission-1", "attempt-1", 60L);
         heartbeat.get().run();
+        verify(submissionFencePort, times(2)).renewLease("submission-1", "attempt-1", 60L);
 
         verify(heartbeatTask, times(2)).cancel(false);
         verify(leaseMissCounter).increment();

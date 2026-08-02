@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
  * rollback path keeps case scope unset and stamps the seam-supplied case id.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("P0-1 JudgeExecutionPipeline legacy fallback (flag=false)")
+@DisplayName("JudgeExecutionPipeline legacy case-source fallback")
 class JudgeWorkerLegacyFallbackTest {
 
     @Mock
@@ -53,7 +53,7 @@ class JudgeWorkerLegacyFallbackTest {
     private DefaultJudgeExecutionPipeline pipeline;
 
     @Test
-    @DisplayName("flag=false: legacy cases produce scope-null details via the JudgingCaseSource seam")
+    @DisplayName("legacy cases produce scope-null details via the JudgingCaseSource seam")
     void legacyFallbackLeavesScopeNull() throws Exception {
         JudgingCase legacyCase = new JudgingCase("1", "Case 1", "expected", List.of(), null, null);
         when(judgingCaseSource.loadCases(100L)).thenReturn(List.of(legacyCase));

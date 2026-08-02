@@ -171,7 +171,7 @@ public class OwnerBoundaryArchTest {
                                     "call a WRITE method (insert/update/delete) on UserMapper",
                                     (JavaMethodCall call) -> {
                                         String ownerName = call.getTargetOwner().getName();
-                                        if (!ownerName.endsWith("UserMapper")) {
+                                        if (!ownerName.equals("com.ulticode.modules.user.mapper.UserMapper")) {
                                             return false;
                                         }
                                         String methodName = call.getTarget().getName();

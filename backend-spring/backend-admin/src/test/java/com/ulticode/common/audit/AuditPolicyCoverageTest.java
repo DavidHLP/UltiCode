@@ -54,7 +54,8 @@ class AuditPolicyCoverageTest {
 
     @Test
     void catalog_banEntries_match_real_annotations() {
-        Set<Method> banCheckedMethods = scanAnnotatedMethods(CheckBan.class);
+        Set<Method> banCheckedMethods = new HashSet<>(scanAnnotatedMethods(CheckBan.class));
+        banCheckedMethods.addAll(scanAnnotatedMethods(com.ulticode.app.security.CheckBan.class));
         for (AuditPolicy.BanEntry entry : AuditPolicy.BAN_CHECKED) {
             boolean found = banCheckedMethods.stream().anyMatch(m ->
                     m.getDeclaringClass().getName().equals(entry.declaringClass())

@@ -252,6 +252,12 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.event.outbox.IntegrationOutboxMapper integrationOutboxMapper;
     @MockBean private com.ulticode.modules.event.inbox.ConsumerInboxMapper consumerInboxMapper;
     @MockBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    @MockBean private org.redisson.api.RedissonClient redissonClient;
+    @MockBean(name = "judgeQueue") private org.redisson.api.RQueue<Object> judgeQueueBean;
+    @MockBean(name = "emailQueue") private org.redisson.api.RQueue<Object> emailQueueBean;
+    @MockBean(name = "notificationQueue") private org.redisson.api.RQueue<Object> notificationQueueBean;
+    @MockBean private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+    @MockBean private com.ulticode.modules.queue.port.SubmissionResultPushPort submissionResultPushPort;
 
 
     @Test

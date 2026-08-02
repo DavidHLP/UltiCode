@@ -1,8 +1,8 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.modules.queue.port.SubmissionResultPushPort;
+import com.ulticode.app.api.service.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
-import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
+import com.ulticode.app.api.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import org.springframework.stereotype.Component;
 

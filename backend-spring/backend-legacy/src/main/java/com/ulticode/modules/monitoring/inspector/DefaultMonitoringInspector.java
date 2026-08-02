@@ -9,10 +9,10 @@ import com.ulticode.modules.monitoring.dto.RedisStatsVO;
 import com.ulticode.modules.monitoring.dto.ResourceUsageVO;
 import com.ulticode.modules.monitoring.dto.SystemHealthVO;
 import com.ulticode.modules.monitoring.dto.SystemInfoVO;
-import com.ulticode.modules.queue.constants.QueueConstants;
-import com.ulticode.modules.queue.dto.ProbeStatus;
-import com.ulticode.modules.queue.dto.QueueHealthSnapshotDTO;
-import com.ulticode.modules.queue.inspector.QueueInspector;
+
+import com.ulticode.app.api.dto.ProbeStatus;
+import com.ulticode.app.api.dto.QueueHealthSnapshotDTO;
+import com.ulticode.app.api.service.QueueHealthProbePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,9 +89,9 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
      * management frontend renders rows in this order.
      */
     private static final List<String> KNOWN_QUEUE_NAMES =
-            List.of(QueueConstants.JUDGE_QUEUE,
-                    QueueConstants.NOTIFICATION_QUEUE,
-                    QueueConstants.EMAIL_QUEUE);
+            List.of("judge_queue",
+                    "notification_queue",
+                    "email_queue");
 
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
@@ -106,7 +106,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
      * owned port (satisfies {@code .claude/rules/backend/06}) instead
      * of probing broker key layouts directly.
      */
-    private final QueueInspector queueInspector;
+    private final QueueHealthProbePort queueInspector;
 
     @Value("${spring.application.name:UltiCode}")
     private String applicationName;
@@ -479,13 +479,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
             // produce a dashboard row; surface it as PROBE_FAILED so
             // checkQueues() can flip unhealthy on this queue too.
             log.warn("Queue inspector threw for {}: {}", queueName, e.getMessage());
-            return QueueHealthSnapshotDTO.builder()
-                    .queueName(queueName)
-                    .waitingDepth(0L)
-                    .failedCount(0L)
-                    .completedCount(0L)
-                    .probeStatus(ProbeStatus.PROBE_FAILED)
-                    .build();
+            return new QueueHealthSnapshotDTO(queueName, 0L, 0L, 0L, ProbeStatus.PROBE_FAILED);
         }
     }
 

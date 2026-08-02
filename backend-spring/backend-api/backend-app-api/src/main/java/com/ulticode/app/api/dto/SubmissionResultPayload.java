@@ -1,15 +1,14 @@
-package com.ulticode.modules.websocket.contest.dto;
+package com.ulticode.app.api.dto;
 
 import java.time.Instant;
 
 /**
  * Submission result payload for contest events.
  *
- * @deprecated Use {@link com.ulticode.app.api.dto.SubmissionResultPayload} instead.
- * This class remains only until the websocket family relocates
- * (P7-RELOCATE-WEBSOCKET-001).
+ * <p>Sent to individual users when their submission is judged.
+ * Extracted from websocket.contest.dto for P7-INFRA-S2: queue depends on
+ * this type but websocket family has not yet relocated.
  */
-@Deprecated(forRemoval = true)
 public record SubmissionResultPayload(
     String event,
     String submissionId,

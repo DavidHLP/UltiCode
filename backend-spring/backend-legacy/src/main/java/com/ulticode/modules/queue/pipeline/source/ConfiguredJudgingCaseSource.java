@@ -4,7 +4,7 @@ import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.adapter.ProblemExampleJudgingCaseSource;
 import com.ulticode.modules.queue.port.adapter.TestCaseJudgingCaseSource;
-import com.ulticode.modules.submission.config.JudgeSourceProperties;
+import com.ulticode.app.api.service.JudgeConfigPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -27,7 +27,7 @@ public class ConfiguredJudgingCaseSource implements JudgingCaseSource {
 
     private final TestCaseJudgingCaseSource canonicalSource;
     private final ProblemExampleJudgingCaseSource legacySource;
-    private final JudgeSourceProperties judgeSourceProperties;
+    private final JudgeConfigPort judgeSourceProperties;
 
     @Override
     public List<JudgingCase> loadCases(long problemId) {

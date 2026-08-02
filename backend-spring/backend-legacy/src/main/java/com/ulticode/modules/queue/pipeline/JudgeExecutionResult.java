@@ -1,7 +1,7 @@
 package com.ulticode.modules.queue.pipeline;
 
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 
 import java.util.List;
 

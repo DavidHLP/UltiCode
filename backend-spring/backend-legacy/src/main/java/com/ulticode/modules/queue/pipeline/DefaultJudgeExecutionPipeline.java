@@ -3,13 +3,13 @@ package com.ulticode.modules.queue.pipeline;
 import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
-import com.ulticode.modules.submission.dto.RunResultDTO;
-import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.app.api.dto.RunResultDTO;
+import com.ulticode.app.api.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.CaseScope;
-import com.ulticode.modules.submission.service.CodeExecutionService;
-import com.ulticode.modules.submission.service.VerdictResolver;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.CaseScope;
+import com.ulticode.app.api.service.CodeExecutionPort;
+import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
 
     private final JudgingCaseSource judgingCaseSource;
-    private final CodeExecutionService codeExecutionService;
-    private final VerdictResolver verdictResolver;
+    private final CodeExecutionPort codeExecutionService;
+    private final VerdictResolvePort verdictResolver;
     private final VerdictMetricsParser verdictMetricsParser;
 
     @Override

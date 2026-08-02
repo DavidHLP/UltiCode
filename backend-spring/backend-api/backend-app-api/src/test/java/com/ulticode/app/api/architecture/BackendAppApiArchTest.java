@@ -120,10 +120,19 @@ public class BackendAppApiArchTest {
                     .should().onlyDependOnClassesThat().resideInAnyPackage(
                             "com.ulticode.app.api..",
                             "com.ulticode.common..",
+                            "com.ulticode.domain..",
                             "java..",
                             "javax..",
-                            "jakarta..")
+                            "jakarta..",
+                            "lombok..",
+                            "com.fasterxml.jackson.annotation..",
+                            "org.springframework.context..",
+                            "io.swagger.v3.oas.annotations..")
                     .because("contract module may only depend on its "
-                            + "own package and backend-common; no "
+                            + "own package, backend-common, and standard "
+                            + "annotation libraries (Lombok compile-time "
+                            + "codegen, Jackson serialization annotations, "
+                            + "Spring ApplicationEvent for domain events, "
+                            + "Swagger OpenAPI documentation); no "
                             + "impl/Entity/legacy leakage.");
 }

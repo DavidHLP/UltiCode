@@ -1,7 +1,7 @@
 package com.ulticode.modules.queue.outbox.shadow;
 
-import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
-import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
+import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
+import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

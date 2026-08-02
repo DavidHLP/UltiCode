@@ -2,7 +2,7 @@ package com.ulticode.modules.notification.intent;
 
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 
 import java.util.Map;

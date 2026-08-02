@@ -44,7 +44,7 @@ public final class EmailTemplates {
             dto.setVariables(java.util.Map.of(
                     "problemTitle", s.problemTitle() == null ? "" : s.problemTitle(),
                     "status", s.status().wireValue(),
-                    "isAccepted", s.status() == com.ulticode.modules.submission.enums.SubmissionStatus.ACCEPTED,
+                    "isAccepted", s.status() == com.ulticode.domain.submission.enums.SubmissionStatus.ACCEPTED,
                     "elapsedMs", s.elapsedMs(),
                     "memoryBytes", s.memoryBytes(),
                     "contestId", s.contestId() == null ? "" : s.contestId(),

@@ -7,7 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
+import com.ulticode.app.api.service.SubmissionUserStatsPort;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;

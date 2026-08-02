@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.port;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.port.SubmissionAnalyticsPort;
+import com.ulticode.app.api.service.SubmissionAnalyticsPort;
 
 import java.time.LocalDateTime;
 import java.util.List;

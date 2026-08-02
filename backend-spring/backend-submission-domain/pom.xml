@@ -19,10 +19,6 @@
 			<artifactId>backend-common</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.ulticode</groupId>
-			<artifactId>backend-app-api</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>com.baomidou</groupId>
 			<artifactId>mybatis-plus-extension</artifactId>
 			<version>${mybatis-plus.version}</version>

@@ -28,6 +28,25 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-common</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.validation</groupId>
+			<artifactId>jakarta.validation-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.swagger.core.v3</groupId>
+			<artifactId>swagger-annotations-jakarta</artifactId>
+			<version>2.2.22</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 		<!--
 		  Test surface. archunit-junit5 enforces the no-Entity / no-Mapper /
@@ -62,14 +81,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<!--
-					  backend-app-api carries no jacoco agent, so the parent's
-					  @{argLine} placeholder is never resolved and would be
-					  passed to the forked JVM as the literal '@{argLine}'
-					  (which crashes `java -jar`). The plain attach flag is
-					  enough to make ByteBuddy's inline mock maker usable
-					  under JDK 17.0.2 — mirrors backend-common's workaround.
-					-->
 					<argLine>-Djdk.attach.allowAttachSelf=true</argLine>
 				</configuration>
 			</plugin>

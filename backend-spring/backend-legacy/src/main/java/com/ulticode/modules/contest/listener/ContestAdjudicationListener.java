@@ -1,7 +1,7 @@
 package com.ulticode.modules.contest.listener;
 
 import com.ulticode.modules.contest.service.ContestAdjudicationService;
-import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
+import com.ulticode.app.api.event.SubmissionJudgedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

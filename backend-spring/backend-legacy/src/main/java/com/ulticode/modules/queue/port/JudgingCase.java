@@ -1,6 +1,6 @@
 package com.ulticode.modules.queue.port;
 
-import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.app.api.dto.RunSubmissionDTO;
 
 import java.util.List;
 

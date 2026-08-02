@@ -13,7 +13,7 @@ import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -129,7 +129,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         // By status — typed projection from the read port
         List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
-        for (com.ulticode.modules.submission.dto.StatusCountDTO row : submissionReadPort.countByStatus()) {
+        for (com.ulticode.app.api.dto.StatusCountDTO row : submissionReadPort.countByStatus()) {
             SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
             sc.setStatus(row.getStatus());
             sc.setCount(row.getCount());
@@ -139,7 +139,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         // By language — typed projection from the read port
         List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
-        for (com.ulticode.modules.submission.dto.LanguageCountDTO row : submissionReadPort.countByLanguage()) {
+        for (com.ulticode.app.api.dto.LanguageCountDTO row : submissionReadPort.countByLanguage()) {
             SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
             lc.setLanguage(row.getLanguage());
             lc.setCount(row.getCount());

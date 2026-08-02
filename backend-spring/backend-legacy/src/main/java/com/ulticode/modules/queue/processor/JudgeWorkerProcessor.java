@@ -2,7 +2,7 @@ package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
@@ -53,7 +53,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
     private final QueueService queueService;
     private final QueueConfig queueConfig;
-    private final FeatureFlagsProperties featureFlags;
+    private final JudgeFeatureFlagsPort featureFlags;
     private final ObjectProvider<JudgeQueue> judgeQueueProvider;
     private final JudgeAttemptExecutor attemptExecutor;
 
@@ -113,7 +113,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             initialDelayString = "${judge.port.initial-delay-ms:5000}"
     )
     public void pollAndProcessFromPort() {
-        if (!featureFlags.getJudgeQueue().isUsePort()) {
+        if (!featureFlags.isJudgeQueueUsePort()) {
             return;
         }
         JudgeQueue port = judgeQueueProvider.getIfAvailable();

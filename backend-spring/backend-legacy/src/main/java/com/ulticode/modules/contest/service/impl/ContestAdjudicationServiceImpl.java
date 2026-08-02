@@ -16,7 +16,7 @@ import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.scoring.ScoringStrategy;
 import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
 import com.ulticode.modules.contest.service.ContestAdjudicationService;
-import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
+import com.ulticode.app.api.event.SubmissionJudgedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;

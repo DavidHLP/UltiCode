@@ -86,7 +86,7 @@ public interface AdminSubmissionProjection {
 
     /**
      * Get the available status filter options, derived from the canonical
-     * {@link com.ulticode.modules.submission.enums.SubmissionStatus} enum so
+     * {@link com.ulticode.domain.submission.enums.SubmissionStatus} enum so
      * the dropdown stays in sync with both the DB display names and the
      * statistics categories. Returns all statuses including transient ones
      * (Judging) so admins can filter on every observed state.

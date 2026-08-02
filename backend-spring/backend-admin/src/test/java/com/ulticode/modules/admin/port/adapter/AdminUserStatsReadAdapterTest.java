@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
+import com.ulticode.app.api.service.SubmissionUserStatsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

@@ -56,7 +56,7 @@ public class EmailNotificationChannel implements NotificationChannel {
             // Email only for terminal submission outcomes (matches the
             // "isAccepted" emphasis in the original SubmissionServiceImpl
             // dispatch — in-flight results are not useful in an email).
-            return s.status().getKind() != com.ulticode.modules.submission.enums.SubmissionStatus.Kind.IN_FLIGHT;
+            return s.status().getKind() != com.ulticode.domain.submission.enums.SubmissionStatus.Kind.IN_FLIGHT;
         }
         if (intent instanceof com.ulticode.modules.notification.intent.AchievementEarnedIntent) {
             return true;

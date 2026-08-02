@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
+import com.ulticode.app.api.service.SubmissionUserStatsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

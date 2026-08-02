@@ -9,7 +9,7 @@ import lombok.Data;
  * <p>Field {@link #key} carries the exact string stored in
  * {@code submissions.status} (e.g. {@code "Compile Error"} with a space),
  * so the admin UI can issue a filter that matches DB values directly.
- * Field {@link #code} carries the {@link com.ulticode.modules.submission.enums.SubmissionStatus}
+ * Field {@link #code} carries the {@link com.ulticode.domain.submission.enums.SubmissionStatus}
  * enum name (e.g. {@code "COMPILE_ERROR"}) for stable programmatic
  * reference; i18n keys in the frontend map onto this code.</p>
  */

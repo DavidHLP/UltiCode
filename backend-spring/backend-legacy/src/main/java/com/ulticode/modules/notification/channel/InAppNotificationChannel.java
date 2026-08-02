@@ -142,7 +142,7 @@ public class InAppNotificationChannel implements NotificationChannel {
             m.put("problemId", s.problemId());
             m.put("problemTitle", s.problemTitle() == null ? "" : s.problemTitle());
             m.put("status", s.status().wireValue());
-            m.put("isAccepted", s.status() == com.ulticode.modules.submission.enums.SubmissionStatus.ACCEPTED);
+            m.put("isAccepted", s.status() == com.ulticode.domain.submission.enums.SubmissionStatus.ACCEPTED);
             m.put("elapsedMs", s.elapsedMs());
             m.put("memoryBytes", s.memoryBytes());
             if (s.contestId() != null) {

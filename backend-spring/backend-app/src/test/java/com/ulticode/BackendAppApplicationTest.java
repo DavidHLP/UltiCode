@@ -137,6 +137,74 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.api.service.ForumPostReadPort forumPostReadPort;
 
+    // ==================== Submission family (P7-RELOCATE-SUBMISSION-001) ====================
+
+    @MockBean
+    private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+    @MockBean
+    private com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper judgeOutboxMapper;
+    @MockBean
+    private com.ulticode.modules.submission.result.SubmissionResultOutboxMapper submissionResultOutboxMapper;
+    @MockBean
+    private com.ulticode.modules.submission.projection.SubmissionProjection submissionProjection;
+    @MockBean
+    private com.ulticode.modules.submission.stats.SubmissionPerformanceStats submissionPerformanceStats;
+    @MockBean
+    private com.ulticode.app.api.service.ProblemFactsPort submissionProblemFactsPort;
+    @MockBean
+    private com.ulticode.app.api.service.UserExistencePort userExistencePort;
+    @MockBean
+    private com.ulticode.app.api.service.JudgeEnqueuePort judgeEnqueuePort;
+    @MockBean
+    private com.ulticode.app.api.service.ContestSubmissionPort contestSubmissionPort;
+    @MockBean
+    private com.ulticode.app.api.service.AchievementTriggerPort achievementTriggerPort;
+    @MockBean
+    private com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher judgedNotificationDispatcher;
+    // FeatureFlagsProperties is a real @ConfigurationProperties bean; must NOT be mocked
+    @MockBean
+    private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionFencePort submissionFencePort;
+    @MockBean
+    private com.ulticode.app.api.service.CodeExecutionPort codeExecutionPort;
+    @MockBean
+    private com.ulticode.app.api.service.VerdictResolvePort verdictResolvePort;
+    @MockBean
+    private com.ulticode.app.api.service.RejudgePolicy rejudgePolicy;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionReadPort submissionReadPort;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionStreakPort submissionStreakPort;
+    @MockBean
+    private com.ulticode.app.api.service.JudgeConfigPort judgeConfigPort;
+    @MockBean
+    private com.ulticode.app.api.service.JudgeFeatureFlagsPort judgeFeatureFlagsPort;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionNotificationPort submissionNotificationPort;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionAnalyticsPort submissionAnalyticsPort;
+    @MockBean
+    private com.ulticode.app.api.service.SubmissionUserStatsPort submissionUserStatsPort;
+    @MockBean
+    private com.ulticode.app.api.service.ProblemSubmissionStatsPort problemSubmissionStatsPort;
+    @MockBean
+    private com.ulticode.modules.submission.config.DockerSandboxConfig dockerSandboxConfig;
+    @MockBean
+    private com.ulticode.modules.submission.sandbox.SandboxExecutor sandboxExecutor;
+    @MockBean
+    private com.ulticode.modules.submission.service.VerdictResolver verdictResolver;
+    @MockBean
+    private com.ulticode.modules.submission.service.SandboxOutputFormatter sandboxOutputFormatter;
+    @MockBean
+    private com.ulticode.modules.submission.port.JudgingLanguageSupport judgingLanguageSupport;
+    @MockBean
+    private com.ulticode.modules.submission.port.ProblemFactsPort submissionPortProblemFactsPort;
+
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")

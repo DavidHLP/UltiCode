@@ -27,8 +27,8 @@ import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.submission.dto.SubmissionVO;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
+import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.app.api.service.SubmissionReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -69,7 +69,7 @@ public class DefaultContestProjection implements ContestProjection {
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final ProblemMapper problemMapper;
     private final RankingService rankingService;
-    private final SubmissionProjection submissionProjection;
+    private final SubmissionReadPort submissionProjection;
 
     /**
      * User-contest history: a single batched read of the user's
@@ -284,7 +284,7 @@ public class DefaultContestProjection implements ContestProjection {
         return contestSubmissionMapper
                 .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
                 .stream()
-                .map(submissionProjection::toVO)
+                .map(s -> submissionProjection.toVO(s.getId()))
                 .toList();
     }
 

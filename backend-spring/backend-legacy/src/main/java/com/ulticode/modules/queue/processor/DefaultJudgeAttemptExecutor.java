@@ -7,12 +7,11 @@ import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
-import com.ulticode.modules.submission.config.FeatureFlagsProperties;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
-import com.ulticode.modules.submission.fence.LeaseConstants;
-import com.ulticode.modules.submission.port.ContestSubmissionPort;
-import com.ulticode.modules.submission.port.SubmissionFencePort;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
+import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.app.api.service.ContestSubmissionPort;
+import com.ulticode.app.api.service.SubmissionFencePort;
+import com.ulticode.app.api.service.SubmissionWritePort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +46,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private final ContestSubmissionPort contestSubmissionPort;
     private final JudgeExecutionPipeline executionPipeline;
     private final SubmissionFencePort submissionFencePort;
-    private final FeatureFlagsProperties featureFlags;
+    private final JudgeFeatureFlagsPort featureFlags;
     private final MeterRegistry meterRegistry;
     private final UuidGenerator uuidGenerator;
 
@@ -62,7 +61,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                                        ContestSubmissionPort contestSubmissionPort,
                                        JudgeExecutionPipeline executionPipeline,
                                        SubmissionFencePort submissionFencePort,
-                                       FeatureFlagsProperties featureFlags,
+                                       JudgeFeatureFlagsPort featureFlags,
                                        MeterRegistry meterRegistry,
                                        UuidGenerator uuidGenerator) {
         this.submissionWritePort = submissionWritePort;
@@ -129,7 +128,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
      * lives here and the path reads as orchestrator above it.
      */
     private void transitionToJudging(String submissionId) {
-        submissionWritePort.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
+        submissionWritePort.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, 0.0, null);
     }
 
     /**
@@ -141,7 +140,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                                     JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
         submissionWritePort.updateSubmissionResult(submissionId, status,
-                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), pipelineResult.testCaseDetails());
+                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), null);
         notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
     }
 
@@ -163,8 +162,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
         long generation = observed.get();
 
-        boolean acquired = submissionFencePort.acquireLease(
-                submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
+        boolean acquired = submissionFencePort.acquireLease(submissionId, generation);
         if (!acquired) {
             log.debug("Fenced judge: lease not acquired for submission {} gen {} (already moved)",
                     submissionId, generation);
@@ -208,16 +206,12 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                                     String attemptId, long generation,
                                     JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
-        boolean written = submissionWritePort.updateSubmissionResultFenced(
-                submissionId, generation, attemptId, status,
-                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), pipelineResult.testCaseDetails());
+        submissionWritePort.updateSubmissionResultFenced(
+                submissionId, status,
+                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), null,
+                generation, Integer.parseInt(attemptId));
 
-        if (written) {
-            notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
-        } else {
-            log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
-                    status.wireValue(), submissionId, generation);
-        }
+        notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
     }
 
     // -----------------------------------------------------------------------
@@ -229,8 +223,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         return executor.scheduleAtFixedRate(
                 () -> {
                     try {
-                        boolean renewed = submissionFencePort.renewLease(
-                                submissionId, attemptId, LeaseConstants.LEASE_TTL_SECONDS);
+                        boolean renewed = submissionFencePort.renewLease(submissionId, 0);
                         if (!renewed) {
                             incrementLeaseMissRenew();
                             log.debug("Heartbeat renew failed for submission {} attempt {} (lease lost)",
@@ -240,8 +233,8 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                         log.warn("Heartbeat renew threw for submission {}: {}", submissionId, e.getMessage());
                     }
                 },
-                LeaseConstants.HEARTBEAT_INTERVAL_MS,
-                LeaseConstants.HEARTBEAT_INTERVAL_MS,
+                5000,
+                5000,
                 TimeUnit.MILLISECONDS);
     }
 
@@ -348,11 +341,10 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private void markSystemErrorFenced(String submissionId, long generation, String attemptId,
                                        String userId, String problemId, String contestId) {
         SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-        boolean written = submissionWritePort.updateSubmissionResultFenced(
-                submissionId, generation, attemptId, status, 0, 0.0, null);
-        if (written) {
-            pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
-        }
+        submissionWritePort.updateSubmissionResultFenced(
+                submissionId, status, 0, 0.0, null,
+                generation, Integer.parseInt(attemptId));
+        pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
     }
 
     private static final class NamedDaemonThreadFactory implements ThreadFactory {

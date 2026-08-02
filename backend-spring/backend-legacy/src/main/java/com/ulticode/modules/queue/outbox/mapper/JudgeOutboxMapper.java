@@ -1,7 +1,7 @@
 package com.ulticode.modules.queue.outbox.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
+import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

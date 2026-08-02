@@ -17,7 +17,7 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.app.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import org.junit.jupiter.api.DisplayName;

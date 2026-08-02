@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.ulticode.domain.submission.enums.SubmissionStatus;
+
 /**
  * User-facing metadata catalog for {@link SubmissionStatus}.
  *

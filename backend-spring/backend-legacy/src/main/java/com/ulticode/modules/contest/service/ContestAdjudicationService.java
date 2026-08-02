@@ -1,6 +1,6 @@
 package com.ulticode.modules.contest.service;
 
-import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
+import com.ulticode.app.api.event.SubmissionJudgedEvent;
 
 /**
  * Deep Contest adjudication module — the single owner of verdict application.

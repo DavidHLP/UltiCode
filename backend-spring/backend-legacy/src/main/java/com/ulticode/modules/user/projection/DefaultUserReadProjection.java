@@ -10,10 +10,10 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
-import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
-import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
-import com.ulticode.modules.user.dto.DifficultyCountDTO;
+import com.ulticode.app.api.dto.SubmissionDateCountDTO;
+import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.app.api.service.SubmissionStreakPort;
+import com.ulticode.app.api.dto.DifficultyCountDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
@@ -57,7 +57,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
     private final UserMapper userMapper;
     private final SubmissionUserStatsPort submissionUserStats;
-    private final SubmissionStreakCalculator submissionStreakCalculator;
+    private final SubmissionStreakPort submissionStreakCalculator;
     private final ProblemMapper problemMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final FollowCountPort followCountPort;
@@ -172,8 +172,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
         }
 
         // Get total counts by difficulty from problems table
-        List<DifficultyCountDTO> totalByDifficulty = problemMapper.countByDifficulty();
-        for (DifficultyCountDTO row : totalByDifficulty) {
+        List<com.ulticode.modules.user.dto.DifficultyCountDTO> totalByDifficulty = problemMapper.countByDifficulty();
+        for (com.ulticode.modules.user.dto.DifficultyCountDTO row : totalByDifficulty) {
             String difficulty = row.getDifficulty();
             int total = row.getCount().intValue();
             if (statsMap.containsKey(difficulty)) {

@@ -1,8 +1,8 @@
 package com.ulticode.modules.queue.outbox.dispatcher;
 
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
-import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
+import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
+import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;

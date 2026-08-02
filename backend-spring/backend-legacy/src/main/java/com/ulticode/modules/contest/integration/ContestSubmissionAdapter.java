@@ -11,7 +11,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.submission.port.ContestSubmissionPort;
+import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

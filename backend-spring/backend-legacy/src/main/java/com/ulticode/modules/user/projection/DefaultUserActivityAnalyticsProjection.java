@@ -1,11 +1,11 @@
 package com.ulticode.modules.user.projection;
 
 import com.ulticode.modules.admin.dto.UserActivityReportVO;
-import com.ulticode.modules.submission.dto.DailyActiveUserCount;
-import com.ulticode.modules.submission.dto.HourlyActiveUserCount;
-import com.ulticode.modules.submission.dto.TopActiveUserCount;
-import com.ulticode.modules.submission.dto.WeeklyActiveUserCount;
-import com.ulticode.modules.submission.port.SubmissionActivityAnalyticsPort;
+import com.ulticode.app.api.dto.DailyActiveUserCount;
+import com.ulticode.app.api.dto.HourlyActiveUserCount;
+import com.ulticode.app.api.dto.TopActiveUserCount;
+import com.ulticode.app.api.dto.WeeklyActiveUserCount;
+import com.ulticode.app.api.service.SubmissionActivityAnalyticsPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;

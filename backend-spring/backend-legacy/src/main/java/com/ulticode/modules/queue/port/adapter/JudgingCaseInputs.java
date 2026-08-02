@@ -3,7 +3,7 @@ package com.ulticode.modules.queue.port.adapter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.app.api.dto.RunSubmissionDTO;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;

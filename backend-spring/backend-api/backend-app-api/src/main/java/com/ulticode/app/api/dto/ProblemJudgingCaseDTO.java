@@ -12,4 +12,6 @@ public record ProblemJudgingCaseDTO(
         Integer testOrder,
         String inputText,
         String outputText,
-        String inputs) {}
+        String inputs,
+        Boolean isHidden,
+        Boolean isSample) {}

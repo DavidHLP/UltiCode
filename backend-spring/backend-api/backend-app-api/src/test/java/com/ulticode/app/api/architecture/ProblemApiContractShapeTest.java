@@ -149,7 +149,8 @@ class ProblemApiContractShapeTest {
         assertThat(ProblemCompletionReportDTO.class.isRecord()).isTrue();
         assertThat(Arrays.stream(ProblemJudgingCaseDTO.class.getRecordComponents())
                 .map(RecordComponent::getName).toList())
-                .containsExactly("id", "testOrder", "inputText", "outputText", "inputs");
+                .containsExactly("id", "testOrder", "inputText", "outputText", "inputs",
+                        "isHidden", "isSample");
     }
 
     private static void assertMethod(Class<?> owner, String name, Class<?> returnType,

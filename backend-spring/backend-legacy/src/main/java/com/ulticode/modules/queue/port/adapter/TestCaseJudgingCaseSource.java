@@ -35,8 +35,8 @@ public class TestCaseJudgingCaseSource implements JudgingCaseSource {
                 "Case " + dto.testOrder(),
                 dto.outputText(),
                 JudgingCaseInputs.parse(objectMapper, dto.inputs(), dto.inputText(), dto.id()),
-                null,
-                null
+                dto.isHidden(),
+                dto.isSample()
         )).toList();
     }
 }

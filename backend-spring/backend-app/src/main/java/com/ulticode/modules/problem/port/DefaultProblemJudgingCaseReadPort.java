@@ -27,7 +27,9 @@ public class DefaultProblemJudgingCaseReadPort implements ProblemJudgingCaseRead
                         tc.getTestOrder(),
                         tc.getInputText(),
                         tc.getOutputText(),
-                        tc.getInputs()
+                        tc.getInputs(),
+                        tc.getIsHidden(),
+                        tc.getIsSample()
                 ))
                 .toList();
     }

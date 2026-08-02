@@ -12,7 +12,8 @@ import static org.mockito.Mockito.when;
 
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ModerationErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.moderation.dto.AppealVO;
 import com.ulticode.modules.moderation.dto.CreateAppealDTO;
 import com.ulticode.modules.moderation.dto.CreateReportDTO;
@@ -33,7 +34,7 @@ import com.ulticode.modules.moderation.mapper.UserBanMapper;
 import com.ulticode.modules.moderation.mapper.UserWarningMapper;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
-import com.ulticode.modules.auth.account.AuthAccountPort;
+import com.ulticode.app.api.service.ModerationAccountPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -62,7 +63,7 @@ class ModerationServiceImplTest {
   @Mock private AppealMapper appealMapper;
   @Mock private UserWarningMapper warningMapper;
   @Mock private UserBanMapper banMapper;
-  @Mock private AuthAccountPort accountPort;
+  @Mock private ModerationAccountPort accountPort;
   @Mock private ContentModerationPort contentModerationPort;
   @Mock private ModerationProjection moderationProjection;
   @Mock private CurrentUserProvider currentUserProvider;
@@ -90,7 +91,7 @@ class ModerationServiceImplTest {
 
     assertThatThrownBy(() -> service().createAppeal(appealDto("q-1", "other-user"), "other-user"))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MODERATION_NOT_AUTHOR);
+        .hasFieldOrPropertyWithValue("errorCode", ModerationErrorCode.NOT_AUTHOR);
 
     verify(appealMapper, never()).insert(any(Appeal.class));
     verify(queueMapper, never()).updateById(any(ModerationQueue.class));
@@ -102,7 +103,7 @@ class ModerationServiceImplTest {
 
     assertThatThrownBy(() -> service().createAppeal(appealDto("q-1", "author-1"), "author-1"))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MODERATION_CANNOT_APPEAL);
+        .hasFieldOrPropertyWithValue("errorCode", ModerationErrorCode.CANNOT_APPEAL);
 
     verify(appealMapper, never()).insert(any(Appeal.class));
   }
@@ -147,7 +148,7 @@ class ModerationServiceImplTest {
 
     assertThatThrownBy(() -> service().createReport(dto, "reporter-1"))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MODERATION_ALREADY_REPORTED);
+        .hasFieldOrPropertyWithValue("errorCode", ModerationErrorCode.ALREADY_REPORTED);
 
     verify(queueMapper, never()).insert(any(ModerationQueue.class));
   }
@@ -164,7 +165,7 @@ class ModerationServiceImplTest {
 
     assertThatThrownBy(() -> service().getAppeal("a-1", "stranger"))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FORBIDDEN);
+        .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.FORBIDDEN);
   }
 
   @Test
@@ -185,7 +186,7 @@ class ModerationServiceImplTest {
 
     assertThatThrownBy(() -> service().getAppeal("missing", "owner-1"))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MODERATION_APPEAL_NOT_FOUND);
+        .hasFieldOrPropertyWithValue("errorCode", ModerationErrorCode.APPEAL_NOT_FOUND);
   }
 
   // ----- performAction strategy dispatch -----
@@ -217,7 +218,7 @@ class ModerationServiceImplTest {
 
     assertThatThrownBy(() -> service().performAction("missing", dto, "mod-1"))
         .isInstanceOf(BusinessException.class)
-        .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+        .hasFieldOrPropertyWithValue("errorCode", ModerationErrorCode.QUEUE_NOT_FOUND);
 
     verify(actionMapper, never()).insert(any(ModerationAction.class));
   }

@@ -2,7 +2,8 @@ package com.ulticode.modules.moderation.service.impl;
 
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ModerationErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.moderation.dto.AppealVO;
 import com.ulticode.modules.moderation.dto.BatchActionResultVO;
 import com.ulticode.modules.moderation.dto.BatchModerationActionDTO;
@@ -28,8 +29,8 @@ import com.ulticode.modules.moderation.mapper.UserWarningMapper;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.auth.account.AuthAccountPort;
+import com.ulticode.app.api.dto.ModerationUserInfo;
+import com.ulticode.app.api.service.ModerationAccountPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final AppealMapper appealMapper;
     private final UserWarningMapper warningMapper;
     private final UserBanMapper banMapper;
-    private final AuthAccountPort accountPort;
+    private final ModerationAccountPort accountPort;
     private final ContentModerationPort contentModerationPort;
     private final ModerationProjection moderationProjection;
     private final Clock clock;
@@ -98,10 +99,10 @@ public class ModerationServiceImpl implements ModerationService {
             // Check why it failed
             ModerationQueue item = queueMapper.selectById(id);
             if (item == null) {
-                throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+                throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND);
             }
             if (item.getAssignedToId() != null && !item.getAssignedToId().equals(moderatorId)) {
-                throw new BusinessException(ErrorCode.MODERATION_ALREADY_ASSIGNED);
+                throw new BusinessException(ModerationErrorCode.ALREADY_ASSIGNED);
             }
             // If already assigned to current moderator, consider it success
         }
@@ -113,13 +114,13 @@ public class ModerationServiceImpl implements ModerationService {
     public ModerationQueueVO assignItem(String id, String moderatorId, String assignedTo) {
         ModerationQueue item = queueMapper.selectById(id);
         if (item == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND);
         }
 
         // Verify the target moderator exists
-        User targetModerator = accountPort.findById(assignedTo).orElse(null);
+        ModerationUserInfo targetModerator = accountPort.findById(assignedTo).orElse(null);
         if (targetModerator == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(BaseErrorCode.NOT_FOUND);
         }
 
         queueMapper.assignToModerator(id, assignedTo);
@@ -131,7 +132,7 @@ public class ModerationServiceImpl implements ModerationService {
     public ModerationQueueVO unassignItem(String id, String moderatorId) {
         ModerationQueue item = queueMapper.selectById(id);
         if (item == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND);
         }
 
         queueMapper.unassign(id);
@@ -143,7 +144,7 @@ public class ModerationServiceImpl implements ModerationService {
     public ModerationQueueVO performAction(String id, PerformModerationActionDTO dto, String moderatorId) {
         ModerationQueue item = queueMapper.selectById(id);
         if (item == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND);
         }
 
         ModerationActionType actionType = dto.getAction();
@@ -234,7 +235,7 @@ public class ModerationServiceImpl implements ModerationService {
         try {
             reportMapper.insert(report);
         } catch (DuplicateKeyException e) {
-            throw new BusinessException(ErrorCode.MODERATION_ALREADY_REPORTED);
+            throw new BusinessException(ModerationErrorCode.ALREADY_REPORTED);
         }
 
         // Resolve author ID from entity
@@ -271,17 +272,17 @@ public class ModerationServiceImpl implements ModerationService {
     public AppealVO createAppeal(CreateAppealDTO dto, String appellantId) {
         ModerationQueue queueItem = queueMapper.selectById(dto.getQueueId());
         if (queueItem == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND);
         }
 
         // Only the author of the content can appeal
         if (!queueItem.getAuthorId().equals(appellantId)) {
-            throw new BusinessException(ErrorCode.MODERATION_NOT_AUTHOR);
+            throw new BusinessException(ModerationErrorCode.NOT_AUTHOR);
         }
 
         // Check if queue item is in appealable state
         if (!"RESOLVED".equals(queueItem.getStatus())) {
-            throw new BusinessException(ErrorCode.MODERATION_CANNOT_APPEAL);
+            throw new BusinessException(ModerationErrorCode.CANNOT_APPEAL);
         }
 
         Appeal appeal = new Appeal();
@@ -304,7 +305,7 @@ public class ModerationServiceImpl implements ModerationService {
     public AppealVO getAppeal(String id, String currentUserId) {
         Appeal appeal = appealMapper.selectById(id);
         if (appeal == null) {
-            throw new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.APPEAL_NOT_FOUND);
         }
         // Authorization guard: only appellant or MOD/ADMIN/SUPER_ADMIN may read.
         // Use Objects.equals for null-safety on BOTH sides — if appellantId is null
@@ -316,7 +317,7 @@ public class ModerationServiceImpl implements ModerationService {
         if (!isOwner && !isModerator) {
             log.warn("User {} attempted to read appeal {} owned by {}",
                     currentUserId, id, appeal.getAppellantId());
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+            throw new BusinessException(BaseErrorCode.FORBIDDEN);
         }
         return moderationProjection.toAppealVO(appeal);
     }
@@ -326,11 +327,11 @@ public class ModerationServiceImpl implements ModerationService {
     public AppealVO reviewAppeal(String id, ReviewAppealDTO dto, String moderatorId) {
         Appeal appeal = appealMapper.selectById(id);
         if (appeal == null) {
-            throw new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.APPEAL_NOT_FOUND);
         }
 
         if (!"PENDING".equals(appeal.getStatus()) && !"UNDER_REVIEW".equals(appeal.getStatus())) {
-            throw new BusinessException(ErrorCode.MODERATION_APPEAL_ALREADY_REVIEWED);
+            throw new BusinessException(ModerationErrorCode.APPEAL_ALREADY_REVIEWED);
         }
 
         String decision = dto.getDecision().toUpperCase();

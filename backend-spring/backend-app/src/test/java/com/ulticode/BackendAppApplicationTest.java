@@ -258,6 +258,21 @@ class BackendAppApplicationTest {
     @MockBean(name = "notificationQueue") private org.redisson.api.RQueue<Object> notificationQueueBean;
     @MockBean private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
     @MockBean private com.ulticode.modules.queue.port.SubmissionResultPushPort submissionResultPushPort;
+    @MockBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
+    @MockBean private com.ulticode.app.api.service.ModerationAccountPort moderationAccountPort;
+    @MockBean private com.ulticode.app.api.service.ModerationContentActionPort moderationContentActionPort;
+
+    @MockBean private com.ulticode.modules.moderation.mapper.UserWarningMapper userwarningmapperMapper;
+
+    @MockBean private com.ulticode.modules.moderation.mapper.UserBanMapper userbanmapperMapper;
+
+    @MockBean private com.ulticode.modules.moderation.mapper.AppealMapper appealmapperMapper;
+
+    @MockBean private com.ulticode.modules.moderation.mapper.ReportMapper reportmapperMapper;
+
+    @MockBean private com.ulticode.modules.moderation.mapper.ModerationActionMapper moderationactionmapperMapper;
+
+    @MockBean private com.ulticode.modules.moderation.mapper.ModerationQueueMapper moderationqueuemapperMapper;
 
 
     @Test

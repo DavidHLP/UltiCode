@@ -1,20 +1,14 @@
 package com.ulticode.modules.moderation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.UlticodeBackendApplication;
-import com.ulticode.common.config.CorsProperties;
-import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ModerationErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.moderation.dto.*;
 import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
-import com.ulticode.security.AuthenticationEntryPointImpl;
-import com.ulticode.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,10 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -57,14 +47,8 @@ import com.ulticode.common.auth.CurrentUserProvider;
  * and no security context, these endpoints are accessible without authentication.
  * Authorization is tested separately in integration tests.</p>
  */
-@WebMvcTest(
-        value = ModerationController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = MapperConfig.class
-        )
-)
-@ContextConfiguration(classes = UlticodeBackendApplication.class)
+@WebMvcTest(controllers = ModerationController.class)
+@org.springframework.context.annotation.Import(com.ulticode.app.error.ModerationWebExceptionHandler.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("ModerationController")
 class ModerationControllerTest {
@@ -81,19 +65,6 @@ class ModerationControllerTest {
     @MockBean
     private ModerationProjection moderationProjection;
 
-    // SecurityConfig dependencies
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
-    @MockBean
-    private JwtProperties jwtProperties;
-    @MockBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-    @MockBean
-    private AuthenticationEntryPointImpl authenticationEntryPoint;
-    @MockBean
-    private CorsProperties corsProperties;
-    @MockBean
-    private StringRedisTemplate stringRedisTemplate;
     @MockBean
     private CurrentUserProvider currentUserProvider;
 
@@ -281,7 +252,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when queue item not found")
         void getQueueItem_notFound() throws Exception {
             when(moderationProjection.queueItemById("nonexistent"))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND));
 
             mockMvc.perform(get("/moderation/queue/nonexistent"))
                     .andExpect(status().isNotFound());
@@ -376,7 +347,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when queue item not found")
         void claimItem_notFound() throws Exception {
             when(moderationService.claimItem(eq("nonexistent"), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND));
 
             mockMvc.perform(post("/moderation/queue/nonexistent/claim"))
                     .andExpect(status().isNotFound());
@@ -408,7 +379,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when queue item not found")
         void assignItem_notFound() throws Exception {
             when(moderationService.assignItem(eq("nonexistent"), any(), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND));
 
             AssignDTO dto = new AssignDTO();
             dto.setAssignedTo("mod-2");
@@ -442,7 +413,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when queue item not found")
         void unassignItem_notFound() throws Exception {
             when(moderationService.unassignItem(eq("nonexistent"), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND));
 
             mockMvc.perform(patch("/moderation/queue/nonexistent/unassign"))
                     .andExpect(status().isNotFound());
@@ -532,7 +503,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when queue item not found")
         void performAction_notFound() throws Exception {
             when(moderationService.performAction(eq("nonexistent"), any(), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND));
 
             PerformModerationActionDTO dto = new PerformModerationActionDTO();
             dto.setAction(ModerationActionType.DISMISSED);
@@ -683,7 +654,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 409 when already reported")
         void createReport_alreadyReported() throws Exception {
-            doThrow(new BusinessException(ErrorCode.MODERATION_ALREADY_REPORTED))
+            doThrow(new BusinessException(ModerationErrorCode.ALREADY_REPORTED))
                     .when(moderationService).createReport(any(), any());
 
             CreateReportDTO dto = new CreateReportDTO();
@@ -756,7 +727,7 @@ class ModerationControllerTest {
             // Service reuses MODERATION_QUEUE_NOT_FOUND for missing reports —
             // a dedicated MODERATION_REPORT_NOT_FOUND should be added
             when(moderationProjection.reportById("nonexistent"))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND));
 
             mockMvc.perform(get("/moderation/reports/nonexistent"))
                     .andExpect(status().isNotFound());
@@ -854,7 +825,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when appeal not found")
         void getAppeal_notFound() throws Exception {
             when(moderationService.getAppeal(eq("nonexistent"), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.APPEAL_NOT_FOUND));
 
             mockMvc.perform(get("/moderation/appeals/nonexistent"))
                     .andExpect(status().isNotFound());
@@ -865,7 +836,7 @@ class ModerationControllerTest {
         void getAppeal_forbidden_nonOwnerNonModerator() throws Exception {
             // Service guard rejects when currentUserId != appellantId and user lacks MOD/ADMIN role.
             when(moderationService.getAppeal(eq("appeal-1"), any()))
-                    .thenThrow(new BusinessException(ErrorCode.FORBIDDEN));
+                    .thenThrow(new BusinessException(BaseErrorCode.FORBIDDEN));
 
             mockMvc.perform(get("/moderation/appeals/appeal-1"))
                     .andExpect(status().isForbidden())
@@ -988,7 +959,7 @@ class ModerationControllerTest {
         @DisplayName("should return 404 when appeal not found")
         void reviewAppeal_notFound() throws Exception {
             when(moderationService.reviewAppeal(eq("nonexistent"), any(), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND));
+                    .thenThrow(new BusinessException(ModerationErrorCode.APPEAL_NOT_FOUND));
 
             ReviewAppealDTO dto = new ReviewAppealDTO();
             dto.setDecision("APPROVED");
@@ -1003,7 +974,7 @@ class ModerationControllerTest {
         @DisplayName("should return 400 when appeal already reviewed")
         void reviewAppeal_alreadyReviewed() throws Exception {
             when(moderationService.reviewAppeal(eq("appeal-1"), any(), any()))
-                    .thenThrow(new BusinessException(ErrorCode.MODERATION_APPEAL_ALREADY_REVIEWED));
+                    .thenThrow(new BusinessException(ModerationErrorCode.APPEAL_ALREADY_REVIEWED));
 
             ReviewAppealDTO dto = new ReviewAppealDTO();
             dto.setDecision("APPROVED");

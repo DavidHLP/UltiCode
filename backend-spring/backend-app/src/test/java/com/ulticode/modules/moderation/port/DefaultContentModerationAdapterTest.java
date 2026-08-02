@@ -1,7 +1,8 @@
 package com.ulticode.modules.moderation.port;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.SolutionErrorCode;
 import com.ulticode.app.api.service.ForumCommentOwnerPort;
 import com.ulticode.app.api.service.ForumOwnerPort;
 import com.ulticode.app.api.service.ProblemOwnerPort;
@@ -210,7 +211,7 @@ class DefaultContentModerationAdapterTest {
         @Test
         @DisplayName("forum_post flag silently no-ops when post already deleted")
         void flagForumPost_whenPostDeleted_silentlyNoOps() {
-            doThrow(new BusinessException(ErrorCode.NOT_FOUND))
+            doThrow(new BusinessException(BaseErrorCode.NOT_FOUND))
                     .when(forumOwnerPort).flagPost(eq("p1"), eq("r"), any(LocalDateTime.class));
 
             assertThatCode(() -> adapter.updateFlagStatus("forum_post", "p1", true, "r"))
@@ -220,7 +221,7 @@ class DefaultContentModerationAdapterTest {
         @Test
         @DisplayName("forum_post unflag silently no-ops when post already deleted")
         void unflagForumPost_whenPostDeleted_silentlyNoOps() {
-            doThrow(new BusinessException(ErrorCode.NOT_FOUND))
+            doThrow(new BusinessException(BaseErrorCode.NOT_FOUND))
                     .when(forumOwnerPort).unflagPost("p1");
 
             assertThatCode(() -> adapter.updateFlagStatus("forum_post", "p1", false, null))
@@ -230,7 +231,7 @@ class DefaultContentModerationAdapterTest {
         @Test
         @DisplayName("solution flag silently no-ops when solution already deleted")
         void flagSolution_whenSolutionDeleted_silentlyNoOps() {
-            doThrow(new BusinessException(ErrorCode.SOLUTION_NOT_FOUND))
+            doThrow(new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND))
                     .when(solutionOwnerPort).flagSolution(eq("s1"), eq("r"), any(LocalDateTime.class));
 
             assertThatCode(() -> adapter.updateFlagStatus("solution", "s1", true, "r"))
@@ -240,11 +241,12 @@ class DefaultContentModerationAdapterTest {
         @Test
         @DisplayName("solution unflag silently no-ops when solution already deleted")
         void unflagSolution_whenSolutionDeleted_silentlyNoOps() {
-            doThrow(new BusinessException(ErrorCode.SOLUTION_NOT_FOUND))
+            doThrow(new BusinessException(SolutionErrorCode.SOLUTION_NOT_FOUND))
                     .when(solutionOwnerPort).unflagSolution("s1");
 
             assertThatCode(() -> adapter.updateFlagStatus("solution", "s1", false, null))
                     .doesNotThrowAnyException();
         }
+
     }
 }

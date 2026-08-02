@@ -3,7 +3,8 @@ package com.ulticode.modules.moderation.projection;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ModerationErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.moderation.dto.AppealStatsVO;
 import com.ulticode.modules.moderation.dto.AppealVO;
@@ -20,7 +21,7 @@ import com.ulticode.modules.moderation.mapper.AppealMapper;
 import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
 import com.ulticode.modules.moderation.mapper.ReportMapper;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
-import com.ulticode.modules.user.entity.User;
+import com.ulticode.app.api.dto.ModerationUserInfo;
 import com.ulticode.modules.moderation.port.ModerationUserReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +72,7 @@ public class DefaultModerationProjection implements ModerationProjection {
         Page<ModerationQueue> result = queueMapper.selectPage(page, wrapper);
 
         List<ModerationQueue> records = result.getRecords();
-        Map<String, User> userMap = buildUserMap(records);
+        Map<String, ModerationUserInfo> userMap = buildUserMap(records);
 
         List<ModerationQueueVO> voList = records.stream()
                 .map(item -> toQueueVO(item, userMap))
@@ -84,9 +85,9 @@ public class DefaultModerationProjection implements ModerationProjection {
     public ModerationQueueVO queueItemById(String id) {
         ModerationQueue item = queueMapper.selectById(id);
         if (item == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND);
         }
-        Map<String, User> userMap = buildUserMap(List.of(item));
+        Map<String, ModerationUserInfo> userMap = buildUserMap(List.of(item));
         return toQueueVO(item, userMap);
     }
 
@@ -96,7 +97,7 @@ public class DefaultModerationProjection implements ModerationProjection {
         if (item == null) {
             return null;
         }
-        Map<String, User> userMap = buildUserMap(List.of(item));
+        Map<String, ModerationUserInfo> userMap = buildUserMap(List.of(item));
         return toQueueVO(item, userMap);
     }
 
@@ -145,7 +146,7 @@ public class DefaultModerationProjection implements ModerationProjection {
     public ReportVO reportById(String id) {
         Report report = reportMapper.selectById(id);
         if (report == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND, "Report not found: " + id);
+            throw new BusinessException(ModerationErrorCode.QUEUE_NOT_FOUND, "Report not found: " + id);
         }
         return toReportVO(report);
     }
@@ -208,16 +209,16 @@ public class DefaultModerationProjection implements ModerationProjection {
         vo.setUpdatedAt(appeal.getUpdatedAt());
 
         if (appeal.getAppellantId() != null) {
-            User appellant = userReadPort.findById(appeal.getAppellantId());
+            ModerationUserInfo appellant = userReadPort.findById(appeal.getAppellantId());
             if (appellant != null) {
-                vo.setAppellantName(appellant.getName());
-                vo.setAppellantUsername(appellant.getUsername());
+                vo.setAppellantName(appellant.username());
+                vo.setAppellantUsername(appellant.username());
             }
         }
         if (appeal.getReviewedById() != null) {
-            User reviewedBy = userReadPort.findById(appeal.getReviewedById());
+            ModerationUserInfo reviewedBy = userReadPort.findById(appeal.getReviewedById());
             if (reviewedBy != null) {
-                vo.setReviewedByName(reviewedBy.getName());
+                vo.setReviewedByName(reviewedBy.username());
             }
         }
 
@@ -367,7 +368,7 @@ public class DefaultModerationProjection implements ModerationProjection {
         return result;
     }
 
-    private Map<String, User> buildUserMap(List<ModerationQueue> items) {
+    private Map<String, ModerationUserInfo> buildUserMap(List<ModerationQueue> items) {
         Set<String> userIds = new HashSet<>();
         for (ModerationQueue item : items) {
             if (item.getAuthorId() != null) userIds.add(item.getAuthorId());
@@ -380,7 +381,7 @@ public class DefaultModerationProjection implements ModerationProjection {
         return userReadPort.findByIds(userIds);
     }
 
-    private ModerationQueueVO toQueueVO(ModerationQueue item, Map<String, User> userMap) {
+    private ModerationQueueVO toQueueVO(ModerationQueue item, Map<String, ModerationUserInfo> userMap) {
         ModerationQueueVO vo = new ModerationQueueVO();
         vo.setId(item.getId());
         vo.setEntityType(item.getEntityType());
@@ -407,19 +408,19 @@ public class DefaultModerationProjection implements ModerationProjection {
         vo.setUpdatedAt(item.getUpdatedAt());
         vo.setResolvedAt(item.getResolvedAt());
 
-        User author = userMap.get(item.getAuthorId());
+        ModerationUserInfo author = userMap.get(item.getAuthorId());
         if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorName(author.username());
+            vo.setAuthorUsername(author.username());
         }
-        User assignedTo = userMap.get(item.getAssignedToId());
+        ModerationUserInfo assignedTo = userMap.get(item.getAssignedToId());
         if (assignedTo != null) {
-            vo.setAssignedToName(assignedTo.getName());
-            vo.setAssignedToUsername(assignedTo.getUsername());
+            vo.setAssignedToName(assignedTo.username());
+            vo.setAssignedToUsername(assignedTo.username());
         }
-        User reviewedBy = userMap.get(item.getReviewedById());
+        ModerationUserInfo reviewedBy = userMap.get(item.getReviewedById());
         if (reviewedBy != null) {
-            vo.setReviewedByName(reviewedBy.getName());
+            vo.setReviewedByName(reviewedBy.username());
         }
 
         return vo;
@@ -440,10 +441,10 @@ public class DefaultModerationProjection implements ModerationProjection {
         vo.setUpdatedAt(report.getUpdatedAt());
 
         if (report.getReporterId() != null) {
-            User reporter = userReadPort.findById(report.getReporterId());
+            ModerationUserInfo reporter = userReadPort.findById(report.getReporterId());
             if (reporter != null) {
-                vo.setReporterName(reporter.getName());
-                vo.setReporterUsername(reporter.getUsername());
+                vo.setReporterName(reporter.username());
+                vo.setReporterUsername(reporter.username());
             }
         }
 

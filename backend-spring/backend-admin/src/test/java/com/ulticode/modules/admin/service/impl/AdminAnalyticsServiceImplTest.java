@@ -5,7 +5,7 @@ import com.ulticode.modules.admin.analytics.RevenueReporter;
 import com.ulticode.modules.admin.analytics.SystemResourceReporter;
 import com.ulticode.modules.admin.dto.AnalyticsOverviewVO;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
-import com.ulticode.modules.problem.projection.ProblemAnalyticsProjection;
+import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
 import com.ulticode.modules.user.projection.UserActivityAnalyticsProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +37,7 @@ class AdminAnalyticsServiceImplTest {
     @Mock
     private UserActivityAnalyticsProjection userActivityAnalyticsProjection;
     @Mock
-    private ProblemAnalyticsProjection problemAnalyticsProjection;
+    private ProblemAnalyticsReadPort problemAnalyticsReadPort;
     @Mock
     private ContestParticipationReporter contestParticipationReporter;
     @Mock
@@ -57,7 +57,7 @@ class AdminAnalyticsServiceImplTest {
     void setUp() {
         service = new AdminAnalyticsServiceImpl(
                 userActivityAnalyticsProjection,
-                problemAnalyticsProjection,
+                problemAnalyticsReadPort,
                 contestParticipationReporter,
                 revenueReporter,
                 systemResourceReporter,

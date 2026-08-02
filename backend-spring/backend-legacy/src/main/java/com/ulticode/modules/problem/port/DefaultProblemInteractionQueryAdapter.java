@@ -1,5 +1,6 @@
 package com.ulticode.modules.problem.port;
 
+import com.ulticode.app.api.service.ProblemInteractionQueryPort;
 import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;

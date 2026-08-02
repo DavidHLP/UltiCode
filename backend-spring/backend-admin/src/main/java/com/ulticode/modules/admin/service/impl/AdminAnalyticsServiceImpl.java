@@ -6,7 +6,8 @@ import com.ulticode.modules.admin.analytics.SystemResourceReporter;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.service.AdminAnalyticsService;
-import com.ulticode.modules.problem.projection.ProblemAnalyticsProjection;
+import com.ulticode.app.api.dto.ProblemCompletionReportDTO;
+import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
 import com.ulticode.modules.user.projection.UserActivityAnalyticsProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,7 @@ import java.time.LocalDateTime;
  * <ul>
  *   <li>delegates user-activity and problem-completion reports to the
  *       read-side projections owned by their respective modules
- *       ({@link UserActivityAnalyticsProjection},
- *       {@link ProblemAnalyticsProjection}),</li>
+ *       ({@link UserActivityAnalyticsProjection}, {@link ProblemAnalyticsReadPort}),</li>
  *   <li>delegates the contest-participation report to
  *       {@link ContestParticipationReporter},</li>
  *   <li>delegates the revenue report to {@link RevenueReporter},</li>
@@ -48,7 +48,7 @@ import java.time.LocalDateTime;
 public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
     private final UserActivityAnalyticsProjection userActivityAnalyticsProjection;
-    private final ProblemAnalyticsProjection problemAnalyticsProjection;
+    private final ProblemAnalyticsReadPort problemAnalyticsReadPort;
 
     private final ContestParticipationReporter contestParticipationReporter;
     private final RevenueReporter revenueReporter;
@@ -64,7 +64,30 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
     @Override
     public ProblemCompletionReportVO getProblemCompletionReport(Integer days) {
-        return problemAnalyticsProjection.loadProblemCompletionReport(days);
+        return toProblemCompletionReportVO(problemAnalyticsReadPort.loadProblemCompletionReport(days));
+    }
+
+    private ProblemCompletionReportVO toProblemCompletionReportVO(ProblemCompletionReportDTO report) {
+        return new ProblemCompletionReportVO(
+                report.totalAttempts(),
+                report.successfulAttempts(),
+                report.overallCompletionRate(),
+                report.byDifficulty().stream()
+                        .map(row -> new ProblemCompletionReportVO.DifficultyStats(
+                                row.difficulty(), row.total(), row.completed(), row.rate()))
+                        .toList(),
+                report.byTag().stream()
+                        .map(row -> new ProblemCompletionReportVO.TagStats(
+                                row.tagId(), row.label(), row.total(), row.completed(), row.rate()))
+                        .toList(),
+                report.trendingProblems().stream()
+                        .map(row -> new ProblemCompletionReportVO.TrendingProblem(
+                                row.problemId(), row.title(), row.attempts(), row.completionRate()))
+                        .toList(),
+                report.hardestProblems().stream()
+                        .map(row -> new ProblemCompletionReportVO.HardestProblem(
+                                row.problemId(), row.title(), row.difficulty(), row.completionRate()))
+                        .toList());
     }
 
     @Override

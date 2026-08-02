@@ -166,7 +166,7 @@ public interface ProblemMapper extends BaseMapper<Problem> {
 
     /**
      * P3-OWNER-001-A: column-targeted difficulty update so the
-     * {@link com.ulticode.modules.problem.port.ProblemOwnerPort}
+     * {@link com.ulticode.app.api.service.ProblemOwnerPort}
      * can own the write without smuggling a full {@code Problem}
      * entity through the port boundary. Idempotent: writing the
      * same difficulty the row already has is a no-op (the WHERE

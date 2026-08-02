@@ -1,4 +1,5 @@
 package com.ulticode.modules.problem.port;
+import com.ulticode.app.api.service.ProblemOwnerPort;
 
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;

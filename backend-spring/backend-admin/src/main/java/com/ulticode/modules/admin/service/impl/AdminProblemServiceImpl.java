@@ -25,7 +25,7 @@ import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.problem.port.ProblemOwnerPort;
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.modules.submission.entity.Submission;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

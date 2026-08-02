@@ -4,7 +4,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.app.api.service.ForumCommentOwnerPort;
 import com.ulticode.app.api.service.ForumOwnerPort;
-import com.ulticode.modules.problem.port.ProblemOwnerPort;
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.app.api.service.SolutionOwnerPort;
 import org.junit.jupiter.api.BeforeEach;

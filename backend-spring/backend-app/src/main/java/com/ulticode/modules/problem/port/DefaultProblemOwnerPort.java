@@ -1,5 +1,5 @@
 package com.ulticode.modules.problem.port;
-
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +23,13 @@ import java.util.List;
  * {@code @DubboService} consumer wrapper, the wire shape is
  * unchanged.
  *
- * <p>The {@code moderateProblem} and {@code flagProblem} methods
- * mirror the underlying mapper signatures; the bulk variants
- * wrap the mapper in a single transaction so a mid-list failure
+ * <p>The port interface lives in {@code backend-app-api}
+ * ({@link com.ulticode.app.api.service.ProblemOwnerPort}) so
+ * cross-module consumers inject the shared contract without
+ * importing the problem module's implementation package.
+ *
+ * <p>{@code restoreDeletedByIds} and {@code moderateProblems} are
+ * all-or-nothing: if any single row update fails, the transaction
  * rolls back the whole batch.
  */
 @Slf4j

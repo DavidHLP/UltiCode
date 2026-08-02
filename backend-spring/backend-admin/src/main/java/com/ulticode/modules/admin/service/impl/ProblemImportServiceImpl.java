@@ -6,7 +6,7 @@ import com.ulticode.modules.admin.dto.problem.ImportProblemsResponseDTO;
 import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.port.ProblemOwnerPort;
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

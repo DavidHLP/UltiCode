@@ -5,7 +5,7 @@ import com.ulticode.modules.admin.dto.problem.ImportProblemsRequestDTO;
 import com.ulticode.modules.admin.dto.problem.ImportProblemsResponseDTO;
 import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.port.ProblemOwnerPort;
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

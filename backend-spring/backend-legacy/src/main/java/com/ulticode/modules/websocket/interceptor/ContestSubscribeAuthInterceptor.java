@@ -1,9 +1,9 @@
 package com.ulticode.modules.websocket.interceptor;
 
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.contest.subscription.ContestSubscriptionPolicy;
-import com.ulticode.modules.contest.subscription.ContestSubscriptionPolicy.ContestSubscribeRequest;
-import com.ulticode.modules.contest.subscription.ContestSubscriptionPolicy.SubscriptionDecision;
+import com.ulticode.app.api.service.ContestSubscriptionPolicy;
+import com.ulticode.app.api.service.ContestSubscriptionPolicy.ContestSubscribeRequest;
+import com.ulticode.app.api.service.ContestSubscriptionPolicy.SubscriptionDecision;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import java.util.Map;

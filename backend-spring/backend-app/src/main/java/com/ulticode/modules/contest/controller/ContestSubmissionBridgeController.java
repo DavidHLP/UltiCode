@@ -1,9 +1,9 @@
 package com.ulticode.modules.contest.controller;
+import com.ulticode.common.error.BaseErrorCode;
 
 import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.contest.controller.internal.ContestControllerSupport;
 import com.ulticode.modules.contest.projection.ContestProjection;
@@ -88,7 +88,7 @@ public class ContestSubmissionBridgeController {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
         String userId = ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider);
         if (createDTO == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Submission payload is required");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Submission payload is required");
         }
         Long realProblemId = resolveContestProblemId(resolvedId, problemPath);
         createDTO.setProblemId(realProblemId);
@@ -99,7 +99,7 @@ public class ContestSubmissionBridgeController {
 
     private Long resolveContestProblemId(String contestId, String problemPath) {
         if (problemPath == null || problemPath.isBlank()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, MSG_PROBLEM_ID_REQUIRED);
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, MSG_PROBLEM_ID_REQUIRED);
         }
         return contestProjection.resolveContestProblemId(contestId, problemPath);
     }
@@ -111,7 +111,7 @@ public class ContestSubmissionBridgeController {
                     .map(ConstraintViolation::getMessage)
                     .findFirst()
                     .orElse("Validation failed");
-            throw new BusinessException(ErrorCode.BAD_REQUEST, message);
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, message);
         }
     }
 }

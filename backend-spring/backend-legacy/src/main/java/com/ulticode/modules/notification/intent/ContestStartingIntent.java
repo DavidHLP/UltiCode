@@ -1,7 +1,5 @@
 package com.ulticode.modules.notification.intent;
 
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 
@@ -54,19 +52,23 @@ public record ContestStartingIntent(
                         "reminderType", reminderType,
                         "startTime", startTime == null ? "" : startTime.toString()));
     }
-
     /**
-     * Build from a {@link Contest}, a {@link ContestParticipant}, and a
-     * reminder-type string ({@code "24h"} or {@code "1h"}).
+     * Build from native fields (P7-RELOCATE-CONTEST-001: replaces the
+     * entity-based factory so this intent no longer imports contest entities).
+     *
+     * @param userId       the participant user id
+     * @param contestId    the contest id
+     * @param contestTitle the contest title
+     * @param startTime    the contest start time
+     * @param reminderType "24h" or "1h"
      */
-    public static ContestStartingIntent of(Contest contest,
-                                           ContestParticipant participant,
-                                           String reminderType) {
+    public static ContestStartingIntent of(String userId, String contestId, String contestTitle,
+                                           LocalDateTime startTime, String reminderType) {
         return new ContestStartingIntent(
-                participant.getUserId(),
-                contest.getId(),
-                contest.getTitle(),
-                contest.getStartTime(),
+                userId,
+                contestId,
+                contestTitle,
+                startTime,
                 reminderType,
                 NotificationCategory.SYSTEM
         );

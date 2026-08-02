@@ -7,12 +7,12 @@ import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.service.AdminContestService;
-import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
+import com.ulticode.app.api.dto.ContestRankingEntryDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
+import com.ulticode.app.api.service.ContestLiveRankingReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -70,7 +70,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    public List<LiveRankingEntryVO> getRankings(String contestId) {
+    public List<ContestRankingEntryDTO> getRankings(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);

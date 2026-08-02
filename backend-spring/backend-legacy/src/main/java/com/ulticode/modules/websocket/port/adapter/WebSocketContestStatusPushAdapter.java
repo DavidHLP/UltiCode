@@ -1,7 +1,6 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.modules.contest.entity.enums.ContestStatus;
-import com.ulticode.modules.contest.port.ContestStatusPushPort;
+import com.ulticode.app.api.service.ContestStatusPushPort;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.slf4j.Logger;
@@ -18,6 +17,11 @@ import java.time.Instant;
  * directly. Also owns the contest→wire enum translation
  * (RUNNING→RUNNING, FINISHED→ENDED; other states are silently skipped).
  *
+ * <p>P7-RELOCATE-CONTEST-001: now implements the app-api port interface
+ * (String statusName + Long epoch-millis replaces ContestStatus enum +
+ * Instant) so the contest module can call the port without importing
+ * the legacy websocket package.
+ *
  * @author ulticode
  */
 @Component
@@ -32,26 +36,28 @@ public class WebSocketContestStatusPushAdapter implements ContestStatusPushPort 
     }
 
     @Override
-    public void emitStatus(String contestId, ContestStatus status,
-                           Instant startedAt, Instant endsAt, String message) {
-        ContestStatusEvent.ContestStatus wire = toWireStatus(status);
+    public void emitStatus(String contestId, String statusName,
+                           Long startedAtEpochMillis, Long endsAtEpochMillis, String message) {
+        ContestStatusEvent.ContestStatus wire = toWireStatus(statusName);
         if (wire == null) {
             // DRAFT, UPCOMING, CANCELLED never produce a wire push.
             return;
         }
+        Instant startedAt = startedAtEpochMillis != null ? Instant.ofEpochMilli(startedAtEpochMillis) : null;
+        Instant endsAt = endsAtEpochMillis != null ? Instant.ofEpochMilli(endsAtEpochMillis) : null;
         ContestStatusEvent event = new ContestStatusEvent(contestId, wire, startedAt, endsAt, message);
         String destination = WebSocketUtils.getContestRoomName(contestId) + "/status";
         broadcastBridge.send(destination, event);
         log.info("Contest {} status changed to: {}", contestId, wire);
     }
 
-    private static ContestStatusEvent.ContestStatus toWireStatus(ContestStatus status) {
-        if (status == null) {
+    private static ContestStatusEvent.ContestStatus toWireStatus(String statusName) {
+        if (statusName == null) {
             return null;
         }
-        return switch (status) {
-            case RUNNING -> ContestStatusEvent.ContestStatus.RUNNING;
-            case FINISHED -> ContestStatusEvent.ContestStatus.ENDED;
+        return switch (statusName) {
+            case "RUNNING" -> ContestStatusEvent.ContestStatus.RUNNING;
+            case "FINISHED" -> ContestStatusEvent.ContestStatus.ENDED;
             default -> null;
         };
     }

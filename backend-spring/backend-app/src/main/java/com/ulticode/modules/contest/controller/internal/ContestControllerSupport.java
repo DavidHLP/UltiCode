@@ -1,7 +1,8 @@
 package com.ulticode.modules.contest.controller.internal;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.projection.ContestProjection;
@@ -36,7 +37,7 @@ public final class ContestControllerSupport {
                 .map(Contest::getId)
                 .or(() -> contestProjection.findBySlug(idOrSlug).map(Contest::getId))
                 .orElseThrow(() -> new BusinessException(
-                        ErrorCode.CONTEST_NOT_FOUND,
+                        ContestErrorCode.CONTEST_NOT_FOUND,
                         "Contest not found by id or slug: " + idOrSlug));
     }
 
@@ -46,7 +47,7 @@ public final class ContestControllerSupport {
     public static String getCurrentUserIdOrThrow(CurrentUserProvider currentUserProvider) {
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         return userId;
     }

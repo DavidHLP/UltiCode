@@ -1,7 +1,8 @@
 package com.ulticode.modules.contest.port;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
@@ -41,7 +42,7 @@ import java.util.List;
  * <p>Status guard rationale: start/end guards check the in-memory
  * contest state (loaded via the existing {@link ContestMapper#selectById}
  * read method, allowed per ADR-0011) and reject the write with
- * the same {@code ErrorCode.CONTEST_NOT_STARTED} / {@code CONTEST_ENDED}
+ * the same {@code ContestErrorCode.CONTEST_NOT_STARTED} / {@code CONTEST_ENDED}
  * that the admin path used.
  */
 @Slf4j
@@ -88,7 +89,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
             contestMapper.insert(contest);
         } catch (DataIntegrityViolationException e) {
             // P0-5 / H2: uk_contest_slug rejected.
-            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
+            throw new BusinessException(ContestErrorCode.CONTEST_SLUG_EXISTS,
                     "Contest slug '" + slug + "' already exists");
         }
 
@@ -109,11 +110,11 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     public void updateContest(String id, UpdateContestDTO command) {
         final Contest contest = contestMapper.selectById(id);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+            throw new BusinessException(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
 
         if (command.getTitle() != null) {
@@ -165,13 +166,13 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     public void deleteContest(String id, String deletedBy) {
         final Contest contest = contestMapper.selectById(id);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         final String status = contest.getStatus();
         if (!ContestStatus.UPCOMING.name().equals(status)
                 && !ContestStatus.FINISHED.name().equals(status)) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         contest.setIsDeleted(true);
@@ -187,11 +188,11 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     public void startContest(String id) {
         final Contest contest = contestMapper.selectById(id);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED);
         }
 
         // The original admin path asked the read port
@@ -203,7 +204,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
         final List<ContestProblem> existing =
                 contestProblemMapper.findByContestId(id);
         if (existing.isEmpty()) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         contest.setStatus(ContestStatus.RUNNING.name());
@@ -217,11 +218,11 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     public void endContest(String id) {
         final Contest contest = contestMapper.selectById(id);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ENDED);
+            throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
         }
 
         contest.setStatus(ContestStatus.FINISHED.name());
@@ -237,7 +238,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     public String createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
         final Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         final ContestAnnouncement announcement = new ContestAnnouncement();
@@ -261,7 +262,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
         final ContestAnnouncement announcement = contestAnnouncementMapper
                 .findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
 
         if (title != null) {
@@ -286,7 +287,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
         final ContestAnnouncement announcement = contestAnnouncementMapper
                 .findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
 
         contestAnnouncementMapper.deleteById(announcementId);

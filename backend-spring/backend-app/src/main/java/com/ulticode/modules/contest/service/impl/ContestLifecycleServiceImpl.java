@@ -9,14 +9,13 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
-import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
-import com.ulticode.modules.contest.port.ContestStatusPushPort;
+import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
+import com.ulticode.app.api.service.ContestStatusPushPort;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.RatingCalculationService;
-import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
-import com.ulticode.modules.notification.intent.ContestStartingIntent;
+import com.ulticode.app.api.service.ContestNotificationPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,7 +71,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     private final ContestClock contestClock;
     private final ContestStatusPushPort contestStatusPushPort;
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
-    private final NotificationDispatcher notificationDispatcher;
+    private final ContestNotificationPort contestNotificationPort;
     private final RatingCalculationService ratingService;
 
     @Override
@@ -225,8 +224,9 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
             return;
         }
         try {
-            notificationDispatcher.dispatch(
-                    ContestStartingIntent.of(contest, participant, reminderType));
+            contestNotificationPort.notifyContestStarting(
+                    participant.getUserId(), contest.getId(), contest.getTitle(),
+                    contest.getStartTime(), reminderType);
             log.debug("Sent {} reminder for contest {} to user {}",
                     reminderType, contest.getId(), participant.getUserId());
         } catch (Exception e) {
@@ -263,8 +263,8 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         contest.setActualStartTime(now);
         contestStatusPushPort.emitStatus(
                 contest.getId(),
-                ContestStatus.RUNNING,
-                now.atZone(ZoneId.systemDefault()).toInstant(),
+                ContestStatus.RUNNING.name(),
+                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
                 null,
                 null
         );
@@ -303,9 +303,9 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         contest.setActualEndTime(now);
         contestStatusPushPort.emitStatus(
                 contest.getId(),
-                ContestStatus.FINISHED,
+                ContestStatus.FINISHED.name(),
                 null,
-                now.atZone(ZoneId.systemDefault()).toInstant(),
+                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
                 null
         );
 

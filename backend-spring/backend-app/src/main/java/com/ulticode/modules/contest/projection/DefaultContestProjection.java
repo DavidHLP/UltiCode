@@ -1,9 +1,10 @@
 package com.ulticode.modules.contest.projection;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestListVO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
@@ -132,7 +133,7 @@ public class DefaultContestProjection implements ContestProjection {
         Contest contest = findById(idOrSlug).orElse(null);
         if (contest == null) {
             contest = findBySlug(idOrSlug)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND));
         }
         return toVO(contest, userId);
     }
@@ -216,7 +217,7 @@ public class DefaultContestProjection implements ContestProjection {
     public List<ContestProblemVO> getContestProblems(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null || contest.getIsDeleted()) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         return contestProblemMapper.findByContestId(contestId).stream()
                 .map(cp -> {
@@ -239,11 +240,11 @@ public class DefaultContestProjection implements ContestProjection {
     public List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (contestProblem == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);
         }
         return contestSubmissionMapper
                 .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
@@ -256,7 +257,7 @@ public class DefaultContestProjection implements ContestProjection {
     public List<ContestAnnouncement> getContestAnnouncements(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null || contest.getIsDeleted()) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
     }
@@ -264,7 +265,7 @@ public class DefaultContestProjection implements ContestProjection {
     @Override
     public Long resolveContestProblemId(String contestId, String problemPath) {
         if (problemPath == null || problemPath.isBlank()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem id is required");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Problem id is required");
         }
         try {
             return Long.parseLong(problemPath);
@@ -274,12 +275,12 @@ public class DefaultContestProjection implements ContestProjection {
         return contestProblemMapper.findByContestIdAndId(contestId, problemPath)
                 .map(cp -> {
                     if (cp.getProblemId() == null) {
-                        throw new BusinessException(ErrorCode.NOT_FOUND,
+                        throw new BusinessException(BaseErrorCode.NOT_FOUND,
                                 "Contest problem has no underlying problem id: " + problemPath);
                     }
                     return cp.getProblemId();
                 })
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND,
+                .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND,
                         "Contest problem not found: " + problemPath));
     }
 
@@ -485,7 +486,7 @@ public class DefaultContestProjection implements ContestProjection {
     public PageResult<ContestRankingVO> getAdminContestRanking(String contestId, Integer page, Integer limit) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         return rankingService != null ? rankingService.getContestRanking(contestId, page, limit) : PageResult.of(List.of(), 0L, 1, 50);
     }

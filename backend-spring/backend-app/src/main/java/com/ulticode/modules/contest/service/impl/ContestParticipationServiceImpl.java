@@ -1,10 +1,10 @@
 package com.ulticode.modules.contest.service.impl;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.achievement.constants.AchievementType;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
+import com.ulticode.app.api.service.ContestAchievementPort;
 import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
@@ -57,7 +57,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final ContestClock contestClock;
-    private final AchievementTriggerService achievementTriggerService;
+    private final ContestAchievementPort achievementTriggerPort;
     /**
      * All {@link ContestParticipant} writes and read-then-write composites
      * cross this seam — the service never calls the participant mapper's
@@ -78,14 +78,14 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Transactional
     public void registerForContest(String contestId, String userId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null) throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
         if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+            throw new BusinessException(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
         LocalDateTime now = LocalDateTime.now(clock);
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
-            throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
+            throw new BusinessException(ContestErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
 
         // P1-3 (TOCTOU fix): drop the read-then-insert existsBy check. The DB unique
@@ -94,7 +94,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         // we catch below. The tryIncrementRegisteredCount happens BEFORE the
         // insert so a failing insert rolls back the increment (same transaction).
         int updated = contestMapper.tryIncrementRegisteredCount(contestId);
-        if (updated == 0) throw new BusinessException(ErrorCode.CONTEST_FULL);
+        if (updated == 0) throw new BusinessException(ContestErrorCode.CONTEST_FULL);
 
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
@@ -105,7 +105,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // Race lost: another transaction inserted the same (contest, user)
             // row. The transaction will roll back the registeredCount increment.
-            throw new BusinessException(ErrorCode.CONTEST_ALREADY_REGISTERED);
+            throw new BusinessException(ContestErrorCode.CONTEST_ALREADY_REGISTERED);
         }
         log.info("User {} registered for contest {}", userId, contestId);
 
@@ -113,7 +113,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         // registration; failures must not roll back the registration itself.
         try {
             long participationCount = participantMapper.countByUserId(userId);
-            achievementTriggerService.trigger(userId, AchievementType.CONTEST_PARTICIPATION, (int) participationCount);
+            achievementTriggerPort.triggerContestParticipation(userId, (int) participationCount);
         } catch (Exception e) {
             log.warn("Failed to trigger contest achievement for user {}: {}", userId, e.getMessage());
         }
@@ -123,20 +123,20 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Transactional
     public void unregisterFromContest(String contestId, String userId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null) throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
         ContestParticipant participant = participantMapper.findByContestIdAndUserId(contestId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_REGISTERED));
+                .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED));
 
         if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+            throw new BusinessException(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
         // P2-7 fix: also reject unregister after registration_end. Without this
         // check a user could unregister after the registration window closed,
         // letting them dodge a no-show penalty in some scoring rules.
         LocalDateTime now = LocalDateTime.now(clock);
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
-            throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
+            throw new BusinessException(ContestErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
         participantTransitions.deleteById(participant.getId());
         contestMapper.decrementRegisteredCount(contestId);
@@ -146,7 +146,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Override
     public ParticipationStatusDTO getParticipationStatus(String contestId, String userId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null) throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
         ParticipationStatusDTO status = new ParticipationStatusDTO();
         status.setContestId(contestId);
@@ -195,10 +195,10 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Transactional
     public ParticipationStatusDTO startVirtualContest(String contestId, String userId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null) throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
         if (!ContestStatus.FINISHED.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ENDED);
+            throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
         }
 
         // R3.3: idempotent start. Use FOR UPDATE to serialize concurrent calls
@@ -270,23 +270,23 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Transactional
     public void finishVirtualContest(String contestId, String sessionId, String userId) {
         Optional<ContestParticipant> participantOpt = participantMapper.findByContestIdAndUserId(contestId, userId);
-        if (participantOpt.isEmpty()) throw new BusinessException(ErrorCode.CONTEST_NOT_REGISTERED);
+        if (participantOpt.isEmpty()) throw new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED);
 
         ContestParticipant participant = participantOpt.get();
-        if (!Boolean.TRUE.equals(participant.getIsVirtual())) throw new BusinessException(ErrorCode.CONTEST_NOT_REGISTERED);
+        if (!Boolean.TRUE.equals(participant.getIsVirtual())) throw new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED);
 
         // sessionId is optional. If absent, fall back to the participant's stored
         // virtualSessionId (single active session per user per contest, so unambiguous).
         // If present, validate it matches to defend against tampering.
         if (sessionId != null && !sessionId.isBlank()
                 && !sessionId.equals(participant.getVirtualSessionId())) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid virtual session id");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Invalid virtual session id");
         }
         String effectiveSessionId = (sessionId == null || sessionId.isBlank())
                 ? participant.getVirtualSessionId()
                 : sessionId;
         if (effectiveSessionId == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "No active virtual session");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "No active virtual session");
         }
 
         // Idempotency: re-running finish on a session that is already FINISHED

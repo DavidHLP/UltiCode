@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
+import com.ulticode.app.api.dto.ContestRankingEntryDTO;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 
 import java.util.List;
@@ -65,5 +65,5 @@ public interface AdminContestService {
      *         {@link com.ulticode.common.exception.ErrorCode#CONTEST_NOT_FOUND}
      *         when the contest does not exist
      */
-    List<LiveRankingEntryVO> getRankings(String contestId);
+    List<ContestRankingEntryDTO> getRankings(String contestId);
 }

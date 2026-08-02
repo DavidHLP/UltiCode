@@ -12,7 +12,7 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
+import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

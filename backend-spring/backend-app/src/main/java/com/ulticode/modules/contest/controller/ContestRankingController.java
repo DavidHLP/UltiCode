@@ -5,9 +5,8 @@ import com.ulticode.common.response.Result;
 import com.ulticode.modules.contest.controller.internal.ContestControllerSupport;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
-import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
+import com.ulticode.modules.contest.service.impl.RankingServiceImpl;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.RankingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -36,8 +35,7 @@ import java.util.List;
 public class ContestRankingController {
 
     private final ContestProjection contestProjection;
-    private final RankingService rankingService;
-    private final ContestLiveRankingReadPort liveRankingReadPort;
+    private final RankingServiceImpl rankingService;
 
     @Operation(summary = "Get global ranking",
             description = "Get the global leaderboard")
@@ -81,6 +79,6 @@ public class ContestRankingController {
             @RequestParam(required = false, defaultValue = "100") Integer limit) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
         int effectiveLimit = (limit != null) ? limit : 100;
-        return Result.success(liveRankingReadPort.readLiveRanking(resolvedId, effectiveLimit));
+        return Result.success(rankingService.readLiveRanking(resolvedId, effectiveLimit));
     }
 }

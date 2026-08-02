@@ -1,7 +1,7 @@
 package com.ulticode.modules.websocket.notification;
 
 import com.ulticode.common.time.TimeSource;
-import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
+import com.ulticode.app.api.service.ContestLiveRankingReadPort;
 import com.ulticode.modules.websocket.config.WebSocketProperties;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload;

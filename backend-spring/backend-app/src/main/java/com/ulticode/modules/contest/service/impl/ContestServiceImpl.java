@@ -1,10 +1,11 @@
 package com.ulticode.modules.contest.service.impl;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.contest.clock.ContestClock;
@@ -78,20 +79,20 @@ public class ContestServiceImpl implements ContestService {
     public SubmissionVO submitContestProblem(String contestId, Long problemId, String userId, CreateSubmissionDTO createDTO) {
         Contest contest = getContestOrThrow(contestId);
         if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED, "Contest is not running");
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED, "Contest is not running");
         }
         // P1-2 fix: enforce contest end time. Admin must call endContest at end_time,
         // but if they forget, submissions past end_time would otherwise slip through.
         if (contest.getEndTime() != null && LocalDateTime.now(clock).isAfter(contest.getEndTime())) {
-            throw new BusinessException(ErrorCode.CONTEST_ENDED, "Contest end time has passed");
+            throw new BusinessException(ContestErrorCode.CONTEST_ENDED, "Contest end time has passed");
         }
 
         getContestProblemOrThrow(contestId, problemId);
 
         ContestParticipant participant = participantMapper.findByContestIdAndUserId(contestId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_REGISTERED));
+                .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED));
         if (!ContestParticipantStatus.STARTED.name().equals(participant.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED, "Contest participation has not started");
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED, "Contest participation has not started");
         }
 
         // R6.2 / F-07: virtual sessions get a hard deadline based on
@@ -103,7 +104,7 @@ public class ContestServiceImpl implements ContestService {
         if (Boolean.TRUE.equals(participant.getIsVirtual())
                 && virtualEnd != null
                 && LocalDateTime.now(clock).isAfter(virtualEnd)) {
-            throw new BusinessException(ErrorCode.CONTEST_ENDED,
+            throw new BusinessException(ContestErrorCode.CONTEST_ENDED,
                     "Virtual contest duration has passed");
         }
 
@@ -120,11 +121,11 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = "contest", allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public ContestProblemVO addProblem(String contestId, AddContestProblemDTO dto) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(BaseErrorCode.FORBIDDEN);
         getContestOrThrow(contestId);
         ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, dto.getProblemId());
         if (existing != null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem already exists in this contest");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Problem already exists in this contest");
         }
         long count = contestProblemMapper.countByContestId(contestId);
         ContestProblem cp = new ContestProblem();
@@ -154,11 +155,11 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = "contest", allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public void removeProblem(String contestId, Long problemId) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(BaseErrorCode.FORBIDDEN);
         getContestOrThrow(contestId);
         ContestProblem cp = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (cp == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem not found in this contest");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Problem not found in this contest");
         }
         contestProblemMapper.deleteById(cp.getId());
         Map<String, Object> newValues = new HashMap<>();
@@ -179,7 +180,7 @@ public class ContestServiceImpl implements ContestService {
     private Contest getContestOrThrow(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         return contest;
     }
@@ -188,7 +189,7 @@ public class ContestServiceImpl implements ContestService {
         getContestOrThrow(contestId);
         ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (contestProblem == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+            throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);
         }
         return contestProblem;
     }

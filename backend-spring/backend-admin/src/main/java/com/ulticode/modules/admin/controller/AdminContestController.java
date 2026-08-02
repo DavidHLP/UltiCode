@@ -1,8 +1,9 @@
-package com.ulticode.modules.contest.controller;
+package com.ulticode.modules.admin.controller;
+import com.ulticode.common.error.BaseErrorCode;
+
 
 import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -185,7 +186,7 @@ public class AdminContestController {
     private String getCurrentUserIdOrThrow() {
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         return userId;
     }
@@ -200,7 +201,7 @@ public class AdminContestController {
      */
     private void rejectUnsafeTitleChars(String title) {
         if (title != null && (title.contains("<") || title.contains(">"))) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Title must not contain < or >");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Title must not contain < or >");
         }
     }
 }

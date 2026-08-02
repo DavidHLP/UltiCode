@@ -1,4 +1,5 @@
 package com.ulticode.modules.contest.service.impl;
+import com.ulticode.common.error.BaseErrorCode;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,11 +12,9 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
-import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,7 +47,7 @@ public class RankingServiceImpl implements RankingService {
     @Override
     public PageResult<ContestRankingVO> getContestRanking(String contestId, Integer page, Integer limit) {
         if (contestId == null || contestId.isBlank()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "contestId is required");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "contestId is required");
         }
 
         PaginationRequest pageRequest = PaginationRequest.of(page, limit, 50);
@@ -73,7 +72,7 @@ public class RankingServiceImpl implements RankingService {
      */
     public List<LiveRankingEntryVO> readLiveRanking(String contestId, int limit) {
         if (contestId == null || contestId.isBlank()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "contestId is required");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "contestId is required");
         }
         int currentLimit = (limit > 0) ? limit : DEFAULT_LIVE_LIMIT;
         currentLimit = Math.min(currentLimit, MAX_LIVE_LIMIT);

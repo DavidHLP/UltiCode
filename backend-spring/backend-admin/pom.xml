@@ -36,6 +36,11 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
+			<artifactId>backend-legacy</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
 			<artifactId>backend-web-security</artifactId>
 		</dependency>
 

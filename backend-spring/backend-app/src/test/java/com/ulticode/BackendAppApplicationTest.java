@@ -247,6 +247,11 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.contest.service.ContestParticipantTransitions contestParticipantTransitions;
     @MockBean private com.ulticode.modules.contest.service.RatingCalculationService ratingCalculationService;
     @MockBean private com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor contestRankingCacheEvictor;
+    // P7-INFRA-S1: vote + event infrastructure
+    @MockBean private com.ulticode.modules.vote.mapper.EdgeOperationMapper edgeOperationMapper;
+    @MockBean private com.ulticode.modules.event.outbox.IntegrationOutboxMapper integrationOutboxMapper;
+    @MockBean private com.ulticode.modules.event.inbox.ConsumerInboxMapper consumerInboxMapper;
+    @MockBean private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
 
     @Test

@@ -25,9 +25,10 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.forum.mapper",
         "com.ulticode.modules.problem.mapper",
         "com.ulticode.modules.contest.mapper",
+        "com.ulticode.modules.vote.mapper",
+        "com.ulticode.modules.event.outbox",
+        "com.ulticode.modules.event.inbox",
         "com.ulticode.app.userprofile.mapper",
-        "com.ulticode.app.i18n.mapper",
-        "com.ulticode.app.idempotency.mapper"
 })
 public class MapperScanConfig {
 }

@@ -4,7 +4,7 @@ import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.ContestStartingIntent;
 import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 import com.ulticode.modules.achievement.port.BadgePushPort;

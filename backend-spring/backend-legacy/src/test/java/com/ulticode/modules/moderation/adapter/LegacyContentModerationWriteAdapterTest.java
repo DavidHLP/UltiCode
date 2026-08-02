@@ -5,7 +5,7 @@ import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
-import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -88,7 +88,7 @@ class LegacyContentModerationWriteAdapterTest {
             assertThatThrownBy(() -> adapter.apply(cmd("forum_post", ModerationAction.HIDE)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(BaseErrorCode.BAD_REQUEST);
+                    .isEqualTo(ErrorCode.BAD_REQUEST);
         }
 
         @Test
@@ -97,7 +97,7 @@ class LegacyContentModerationWriteAdapterTest {
             assertThatThrownBy(() -> adapter.apply(cmd("unknown_type", ModerationAction.DELETE)))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(BaseErrorCode.BAD_REQUEST);
+                    .isEqualTo(ErrorCode.BAD_REQUEST);
         }
     }
 }

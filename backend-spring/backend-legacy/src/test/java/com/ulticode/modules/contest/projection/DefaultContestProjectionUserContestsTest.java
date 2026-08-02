@@ -12,7 +12,7 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
+import com.ulticode.app.api.service.SubmissionReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class DefaultContestProjectionUserContestsTest {
     @Mock private ContestAnnouncementMapper contestAnnouncementMapper;
     @Mock private ProblemMapper problemMapper;
     @Mock private RankingService rankingService;
-    @Mock private SubmissionProjection submissionProjection;
+    @Mock private SubmissionReadPort submissionProjection;
 
     private DefaultContestProjection projection;
 

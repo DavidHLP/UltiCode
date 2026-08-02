@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
@@ -94,7 +95,7 @@ class DefaultProblemProjectionTest {
                 problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
                 problemSubmissionStats, solutionQueryPort, interactionQueryPort,
                 new ObjectMapper(), currentUserProvider,
-                new com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport());
+                mock(com.ulticode.app.api.service.JudgingLanguageSupport.class));
     }
 
     // ------------------------------------------------------------------

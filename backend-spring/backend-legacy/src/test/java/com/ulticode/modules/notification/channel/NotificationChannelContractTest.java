@@ -8,7 +8,7 @@ import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import com.ulticode.modules.notification.intent.NotificationIntent;
 import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
 import com.ulticode.modules.notification.intent.SystemAlertIntent;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.notification.port.UserEmailPort;
 import com.ulticode.modules.achievement.port.BadgePushPort;

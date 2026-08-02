@@ -4,7 +4,7 @@ import com.ulticode.modules.queue.pipeline.DefaultJudgeExecutionPipeline;
 import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
-import com.ulticode.modules.submission.dto.RunResultDTO;
+import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;

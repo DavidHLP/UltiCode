@@ -5,7 +5,7 @@ import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
 import com.ulticode.modules.notification.service.NotificationService;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

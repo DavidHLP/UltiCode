@@ -25,6 +25,13 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-submission-domain</artifactId>
 		</dependency>
+		<!-- P7: test-scope access to relocated family types (forum/solution/submission).
+		     No cycle: backend-app does not depend on backend-legacy. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-app</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-notification-domain</artifactId>

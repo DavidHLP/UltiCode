@@ -13,7 +13,7 @@ import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
-import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
+import com.ulticode.app.api.event.SubmissionJudgedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

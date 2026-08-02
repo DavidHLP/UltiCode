@@ -1,18 +1,15 @@
 package com.ulticode.modules.contest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.UlticodeBackendApplication;
-import com.ulticode.common.config.MapperConfig;
+import com.ulticode.app.api.dto.CreateSubmissionDTO;
+import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestParticipationService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,11 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -37,26 +30,25 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.ulticode.common.auth.CurrentUserProvider;
 
-@WebMvcTest(
-        controllers = {ContestSubmissionBridgeController.class, ContestCatalogController.class,
-                ContestRankingController.class, ContestParticipationController.class},
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = MapperConfig.class
-        )
-)
-@ContextConfiguration(classes = UlticodeBackendApplication.class)
+/**
+ * {@code @WebMvcTest} for contest public controllers.
+ *
+ * <p>Uses {@code addFilters=false} to bypass every security filter, isolating
+ * the controller layer for request/response contract testing. Rewritten to
+ * match {@code ProblemControllerTest} pattern during P7-RELOCATE-CONTEST-001:
+ * removed legacy infrastructure deps (UlticodeBackendApplication, MapperConfig,
+ * JwtTokenProvider, JwtProperties).
+ */
+@WebMvcTest(controllers = {
+        ContestSubmissionBridgeController.class,
+        ContestCatalogController.class,
+        ContestRankingController.class,
+        ContestParticipationController.class
+})
 @AutoConfigureMockMvc(addFilters = false)
-@DisplayName("ContestController public routes")
+@DisplayName("Contest public routes")
 class ContestPublicControllerTest {
-    @org.junit.jupiter.api.BeforeEach
-    void stubCurrentUser() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn("user-1");
-        when(currentUserProvider.isAuthenticated()).thenReturn(true);
-    }
-
 
     @Autowired
     private MockMvc mockMvc;
@@ -70,22 +62,21 @@ class ContestPublicControllerTest {
     @MockBean
     private ContestProjection contestProjection;
 
-    @MockBean
-    private RankingService rankingService;
 
     @MockBean
     private ContestParticipationService participationService;
 
     @MockBean
-    private ContestLiveRankingReadPort liveRankingReadPort;
+    private com.ulticode.modules.contest.service.impl.RankingServiceImpl rankingServiceImpl;
 
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
-
-    @MockBean
-    private JwtProperties jwtProperties;
     @MockBean
     private CurrentUserProvider currentUserProvider;
+
+    @BeforeEach
+    void stubCurrentUser() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("user-1");
+        when(currentUserProvider.isAuthenticated()).thenReturn(true);
+    }
 
     private Contest contest() {
         Contest contest = new Contest();
@@ -100,7 +91,6 @@ class ContestPublicControllerTest {
     class ContestProblemSubmissionsTests {
 
         @Test
-        @WithMockUser(username = "user-1")
         @DisplayName("GET should route to the current user's contest problem submissions")
         void getContestProblemSubmissions_routes() throws Exception {
             Contest contest = contest();
@@ -118,7 +108,6 @@ class ContestPublicControllerTest {
         }
 
         @Test
-        @WithMockUser(username = "user-1")
         @DisplayName("POST should accept language and code without problemId in the body")
         void submitContestProblem_routes() throws Exception {
             Contest contest = contest();

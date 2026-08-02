@@ -1,7 +1,8 @@
 package com.ulticode.modules.contest.port;
+import com.ulticode.common.error.BaseErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
@@ -108,7 +109,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.createContest(dto, "admin-1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_SLUG_EXISTS));
+                            .isEqualTo(ContestErrorCode.CONTEST_SLUG_EXISTS));
         }
     }
 
@@ -126,7 +127,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.updateContest("missing", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_NOT_FOUND));
+                            .isEqualTo(ContestErrorCode.CONTEST_NOT_FOUND));
         }
 
         @Test
@@ -139,7 +140,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.updateContest("c1", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING));
+                            .isEqualTo(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING));
         }
 
         @Test
@@ -178,7 +179,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.startContest("c1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_NOT_STARTED));
+                            .isEqualTo(ContestErrorCode.CONTEST_NOT_STARTED));
         }
 
         @Test
@@ -192,7 +193,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.startContest("c1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_NOT_FOUND));
+                            .isEqualTo(ContestErrorCode.CONTEST_NOT_FOUND));
         }
 
         @Test
@@ -225,7 +226,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.endContest("c1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_ENDED));
+                            .isEqualTo(ContestErrorCode.CONTEST_ENDED));
         }
 
         @Test
@@ -255,7 +256,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.deleteContest("missing", "admin-1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_NOT_FOUND));
+                            .isEqualTo(ContestErrorCode.CONTEST_NOT_FOUND));
         }
 
         @Test
@@ -305,7 +306,7 @@ class DefaultContestOwnerPortTest {
                     "c1", "missing", "t", "c", true))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.BAD_REQUEST));
+                            .isEqualTo(BaseErrorCode.BAD_REQUEST));
         }
 
         @Test
@@ -336,7 +337,7 @@ class DefaultContestOwnerPortTest {
             assertThatThrownBy(() -> port.deleteAnnouncement("c1", "missing"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.BAD_REQUEST));
+                            .isEqualTo(BaseErrorCode.BAD_REQUEST));
         }
 
         @Test

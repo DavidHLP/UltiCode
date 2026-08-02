@@ -1,7 +1,7 @@
 package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
@@ -225,7 +225,7 @@ class ContestServiceImplTest {
             assertThatThrownBy(() -> contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_STARTED);
+                    .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_STARTED);
 
             verify(submissionWritePort, never()).submit(any(), any());
         }
@@ -275,7 +275,7 @@ class ContestServiceImplTest {
             assertThatThrownBy(() -> contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ENDED);
+                    .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ENDED);
 
             verify(submissionWritePort, never()).submit(any(), any());
         }

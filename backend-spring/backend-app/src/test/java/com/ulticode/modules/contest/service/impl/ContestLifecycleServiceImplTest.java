@@ -1,4 +1,6 @@
 package com.ulticode.modules.contest.service.impl;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
@@ -9,13 +11,13 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
-import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
-import com.ulticode.modules.contest.port.ContestStatusPushPort;
+import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
+import com.ulticode.app.api.service.ContestStatusPushPort;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.RatingCalculationService;
-import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
-import com.ulticode.modules.notification.intent.ContestStartingIntent;
+import com.ulticode.app.api.service.ContestNotificationPort;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -74,7 +76,7 @@ class ContestLifecycleServiceImplTest {
     @Mock private ContestStatusPushPort contestStatusPushPort;
     @Mock private ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     @Mock private RatingCalculationService ratingService;
-    @Mock private NotificationDispatcher notificationDispatcher;
+    @Mock private ContestNotificationPort contestNotificationPort;
 
     private ContestLifecycleServiceImpl service;
 
@@ -87,7 +89,7 @@ class ContestLifecycleServiceImplTest {
                 contestSubmissionMapper, contestProblemResultMapper,
                 firstSolveRecordMapper, rankingCacheEvictor, clock,
                 contestClock, contestStatusPushPort, contestRankingMarkDirtyPort,
-                notificationDispatcher, ratingService);
+                contestNotificationPort, ratingService);
     }
 
     /** P0-2: batchStartParticipants crosses the seam and returns its count. */
@@ -132,7 +134,7 @@ class ContestLifecycleServiceImplTest {
         service.tick(NOW);
 
         verify(contestMapper).tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class));
-        verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.RUNNING),
+        verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.RUNNING.name()),
                 any(), argThat(java.util.Objects::isNull), argThat(java.util.Objects::isNull));
         verify(contestRankingMarkDirtyPort).markDirty(CONTEST_ID);
     }
@@ -154,7 +156,7 @@ class ContestLifecycleServiceImplTest {
         verify(contestMapper).tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(participantTransitions)
                 .finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class));
-        verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED),
+        verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED.name()),
                 argThat(java.util.Objects::isNull), any(), argThat(java.util.Objects::isNull));
         verify(ratingService).calculateAndUpdate(CONTEST_ID);
     }
@@ -194,9 +196,9 @@ class ContestLifecycleServiceImplTest {
         verify(contestStatusPushPort, never()).emitStatus(anyString(), any(), any(), any(), any());
     }
 
-    /** sendReminders: a contest in the T-24h window fans out a ContestStartingIntent with reminderType=24h. */
+    /** sendReminders: a contest in the T-24h window fans out a notification with reminderType=24h. */
     @Test
-    @DisplayName("sendReminders: T-24h contest dispatches a ContestStartingIntent with reminderType=24h")
+    @DisplayName("sendReminders: T-24h contest dispatches notification with reminderType=24h")
     void sendReminders_t24hWindow_dispatchesIntent() {
         Contest contest = newContest(ContestStatus.UPCOMING.name());
         contest.setStartTime(NOW.plusHours(24).plusMinutes(30)); // inside 24h..25h window
@@ -207,18 +209,13 @@ class ContestLifecycleServiceImplTest {
 
         service.sendReminders(NOW);
 
-        ArgumentCaptor<ContestStartingIntent> captor =
-                ArgumentCaptor.forClass(ContestStartingIntent.class);
-        verify(notificationDispatcher).dispatch(captor.capture());
-        ContestStartingIntent intent = captor.getValue();
-        assertThat(intent.reminderType()).isEqualTo("24h");
-        assertThat(intent.userId()).isEqualTo("user-1");
-        assertThat(intent.contestId()).isEqualTo(CONTEST_ID);
+        verify(contestNotificationPort).notifyContestStarting(
+                eq("user-1"), eq(CONTEST_ID), any(), any(), eq("24h"));
     }
 
-    /** sendReminders: a contest in the T-1h window fans out a distinct intent (reminderType=1h). */
+    /** sendReminders: a contest in the T-1h window fans out a distinct notification (reminderType=1h). */
     @Test
-    @DisplayName("sendReminders: T-1h contest dispatches a distinct ContestStartingIntent (reminderType=1h)")
+    @DisplayName("sendReminders: T-1h contest dispatches notification with reminderType=1h")
     void sendReminders_t1hWindow_dispatchesDistinctIntent() {
         Contest contest = newContest(ContestStatus.UPCOMING.name());
         contest.setStartTime(NOW.plusHours(1).plusMinutes(30)); // inside 1h..2h window
@@ -229,12 +226,8 @@ class ContestLifecycleServiceImplTest {
 
         service.sendReminders(NOW);
 
-        ArgumentCaptor<ContestStartingIntent> captor =
-                ArgumentCaptor.forClass(ContestStartingIntent.class);
-        verify(notificationDispatcher).dispatch(captor.capture());
-        assertThat(captor.getValue().reminderType()).isEqualTo("1h");
-        // Distinct intent id from the 24h case so the ledger dedups them independently.
-        assertThat(captor.getValue().intentId()).endsWith(":1h");
+        verify(contestNotificationPort).notifyContestStarting(
+                eq("user-1"), eq(CONTEST_ID), any(), any(), eq("1h"));
     }
 
     /** sendReminders: a contest outside both windows dispatches nothing. */
@@ -247,7 +240,7 @@ class ContestLifecycleServiceImplTest {
 
         service.sendReminders(NOW);
 
-        verify(notificationDispatcher, never()).dispatch(any());
+        verify(contestNotificationPort, never()).notifyContestStarting(any(), any(), any(), any(), any());
     }
 
     /** P2-5: deleteContestCascade is idempotent on missing/soft-deleted contests. */

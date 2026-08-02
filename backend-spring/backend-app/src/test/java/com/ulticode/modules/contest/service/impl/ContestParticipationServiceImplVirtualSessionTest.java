@@ -1,7 +1,8 @@
 package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -51,7 +52,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     private ContestParticipantTransitions participantTransitions;
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
-    private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
+    private com.ulticode.app.api.service.ContestAchievementPort achievementTriggerPort;
     private com.ulticode.modules.contest.projection.ContestProjection contestProjection;
     private ContestParticipationServiceImpl service;
 
@@ -66,15 +67,15 @@ class ContestParticipationServiceImplVirtualSessionTest {
         participantTransitions = mock(ContestParticipantTransitions.class);
         clock = mock(Clock.class);
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
-        achievementTriggerService =
-                mock(com.ulticode.modules.achievement.service.AchievementTriggerService.class);
+        achievementTriggerPort =
+                mock(com.ulticode.app.api.service.ContestAchievementPort.class);
         contestProjection =
                 mock(com.ulticode.modules.contest.projection.ContestProjection.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
         service = new ContestParticipationServiceImpl(
                 contestMapper, participantMapper, clock, new FixedUuidGenerator(),
-                contestClock, achievementTriggerService, participantTransitions,
+                contestClock, achievementTriggerPort, participantTransitions,
                 contestProjection);
     }
 
@@ -204,7 +205,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, "wrong-uuid", USER_ID))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAD_REQUEST);
+                .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.BAD_REQUEST);
     }
 
     @Test
@@ -217,7 +218,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, null, USER_ID))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_REGISTERED);
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_REGISTERED);
     }
 
     @Test
@@ -265,9 +266,8 @@ class ContestParticipationServiceImplVirtualSessionTest {
         service.registerForContest(CONTEST_ID, USER_ID);
 
         verify(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
-        verify(achievementTriggerService).trigger(
+        verify(achievementTriggerPort).triggerContestParticipation(
                 USER_ID,
-                com.ulticode.modules.achievement.constants.AchievementType.CONTEST_PARTICIPATION,
                 3);
     }
 
@@ -279,10 +279,10 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_FULL);
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_FULL);
 
         verify(participantTransitions, never()).registerRealParticipant(any(ContestParticipant.class));
-        verify(achievementTriggerService, never()).trigger(any(), any(), anyInt());
+        verify(achievementTriggerPort, never()).triggerContestParticipation(any(), anyInt());
     }
 
     @Test
@@ -295,9 +295,9 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ALREADY_REGISTERED);
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ALREADY_REGISTERED);
 
-        verify(achievementTriggerService, never()).trigger(any(), any(), anyInt());
+        verify(achievementTriggerPort, never()).triggerContestParticipation(any(), anyInt());
     }
 
     @Test
@@ -309,7 +309,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
                 .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
 
         verify(contestMapper, never()).tryIncrementRegisteredCount(any());
     }
@@ -321,7 +321,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
         when(participantMapper.countByUserId(USER_ID)).thenReturn(1L);
         doThrow(new RuntimeException("achievement service down"))
-                .when(achievementTriggerService).trigger(any(), any(), anyInt());
+                .when(achievementTriggerPort).triggerContestParticipation(any(), anyInt());
 
         // Must not propagate — the side effect is best-effort by design.
         service.registerForContest(CONTEST_ID, USER_ID);

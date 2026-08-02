@@ -1,5 +1,9 @@
 package com.ulticode.modules.contest.subscription;
 
+import com.ulticode.app.api.service.ContestSubscriptionPolicy;
+import com.ulticode.app.api.service.ContestSubscriptionPolicy.ContestSubscribeRequest;
+import com.ulticode.app.api.service.ContestSubscriptionPolicy.SubscriptionDecision;
+import com.ulticode.app.api.service.ContestSubscriptionPolicy.Verdict;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +15,8 @@ import java.util.Optional;
  * Default {@link ContestSubscriptionPolicy} implementation. Owns the
  * {@link ContestParticipantMapper} lookup and the eligibility rules.
  *
- * <p>The transport adapter is responsible for parsing the topic
- * ({@code /topic/contest/{id}}) and extracting the user from the
- * session — the policy only sees a clean
- * {@link ContestSubscribeRequest}.
+ * <p>P7-RELOCATE-CONTEST-001: now implements the app-api
+ * {@link ContestSubscriptionPolicy} interface directly.
  *
  * @author ulticode
  */
@@ -31,14 +33,14 @@ public class DefaultContestSubscriptionPolicy implements ContestSubscriptionPoli
         }
         if (request.userId() == null) {
             return SubscriptionDecision.deny(
-                    ContestSubscriptionPolicy.Verdict.DENY_NOT_AUTHENTICATED,
+                    Verdict.DENY_NOT_AUTHENTICATED,
                     "Not authenticated");
         }
         Optional<ContestParticipant> participant = contestParticipantMapper
                 .findByContestIdAndUserId(request.contestId().get(), request.userId());
         if (participant.isEmpty()) {
             return SubscriptionDecision.deny(
-                    ContestSubscriptionPolicy.Verdict.DENY_NOT_REGISTERED,
+                    Verdict.DENY_NOT_REGISTERED,
                     "Not registered for contest " + request.contestId().get());
         }
         return SubscriptionDecision.allow();

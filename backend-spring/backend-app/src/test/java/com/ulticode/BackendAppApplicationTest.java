@@ -228,6 +228,25 @@ class BackendAppApplicationTest {
     private com.ulticode.app.api.service.ProblemAnalyticsReadPort problemAnalyticsReadPort;
     @MockBean
     private com.ulticode.app.api.service.JudgingLanguageSupport problemJudgingLanguageSupport;
+    // P7-RELOCATE-CONTEST-001: contest mappers + app-api ports
+    @MockBean private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.ContestAnnouncementMapper contestAnnouncementMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.ContestProblemResultMapper contestProblemResultMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.FirstSolveRecordMapper firstSolveRecordMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.GlobalRankingMapper globalRankingMapper;
+    @MockBean private com.ulticode.modules.contest.mapper.ScoringRuleMapper scoringRuleMapper;
+    @MockBean private com.ulticode.modules.contest.clock.ContestClock contestClock;
+    @MockBean private com.ulticode.app.api.service.ContestAchievementPort contestAchievementPort;
+    @MockBean private com.ulticode.app.api.service.ContestNotificationPort contestNotificationPort;
+    @MockBean private com.ulticode.app.api.service.ContestStatusPushPort contestStatusPushPortBean;
+    @MockBean private com.ulticode.app.api.service.ContestRankingMarkDirtyPort contestRankingMarkDirtyPortBean;
+    @MockBean private com.ulticode.app.api.service.ContestLiveRankingReadPort contestLiveRankingReadPortBean;
+    @MockBean private com.ulticode.modules.contest.service.ContestParticipantTransitions contestParticipantTransitions;
+    @MockBean private com.ulticode.modules.contest.service.RatingCalculationService ratingCalculationService;
+    @MockBean private com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor contestRankingCacheEvictor;
 
 
     @Test

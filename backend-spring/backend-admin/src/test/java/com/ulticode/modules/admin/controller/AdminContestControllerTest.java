@@ -1,4 +1,4 @@
-package com.ulticode.modules.contest.controller;
+package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.UlticodeBackendApplication;

@@ -1,7 +1,8 @@
 package com.ulticode.modules.contest.service.impl;
+import com.ulticode.common.error.BaseErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.mapper.ContestMapper;
@@ -167,7 +168,7 @@ class RankingServiceImplTest {
         void getContestRanking_nullContestId_throwsException() {
             assertThatThrownBy(() -> rankingService.getContestRanking(null, 1, 20))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAD_REQUEST);
+                    .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.BAD_REQUEST);
         }
 
         @Test
@@ -175,7 +176,7 @@ class RankingServiceImplTest {
         void getContestRanking_blankContestId_throwsException() {
             assertThatThrownBy(() -> rankingService.getContestRanking("   ", 1, 20))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAD_REQUEST);
+                    .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.BAD_REQUEST);
         }
 
         @Test

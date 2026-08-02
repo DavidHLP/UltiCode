@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
+import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
 import com.ulticode.modules.websocket.notification.WebSocketContestRankingFlusher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,5 @@
 package com.ulticode.modules.contest.service.impl;
+import com.ulticode.common.error.BaseErrorCode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -9,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.modules.contest.dto.CreateScoringRuleDTO;
 import com.ulticode.modules.contest.dto.ScoringRuleVO;
 import com.ulticode.modules.contest.dto.UpdateScoringRuleDTO;
@@ -149,7 +150,7 @@ class ScoringRuleServiceImplTest {
             assertThatThrownBy(() -> service.findById(MISSING_ID))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(ErrorCode.SCORING_RULE_NOT_FOUND);
+                    .isEqualTo(ContestErrorCode.SCORING_RULE_NOT_FOUND);
         }
     }
 
@@ -255,7 +256,7 @@ class ScoringRuleServiceImplTest {
             assertThatThrownBy(() -> service.update(MISSING_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(ErrorCode.SCORING_RULE_NOT_FOUND);
+                    .isEqualTo(ContestErrorCode.SCORING_RULE_NOT_FOUND);
 
             verify(scoringRuleMapper, never()).updateById(any(ScoringRule.class));
         }
@@ -289,7 +290,7 @@ class ScoringRuleServiceImplTest {
             assertThatThrownBy(() -> service.delete(RULE_ID))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(ErrorCode.BAD_REQUEST);
+                    .isEqualTo(BaseErrorCode.BAD_REQUEST);
 
             verify(scoringRuleMapper, never()).deleteById(any(String.class));
         }
@@ -302,7 +303,7 @@ class ScoringRuleServiceImplTest {
             assertThatThrownBy(() -> service.delete(MISSING_ID))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(ErrorCode.SCORING_RULE_NOT_FOUND);
+                    .isEqualTo(ContestErrorCode.SCORING_RULE_NOT_FOUND);
 
             verify(scoringRuleMapper, never()).deleteById(any(String.class));
             verify(scoringRuleMapper, never()).countContestsUsingRule(any(String.class));

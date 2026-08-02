@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.BatchRejudgeCommand;
 import com.ulticode.app.api.command.RejudgeCommand;
-import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.exception.BusinessException;
@@ -11,7 +11,6 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.modules.submission.dto.RejudgeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,7 +71,7 @@ public class SubmissionCutoverService {
         if (!dubboEnabled) {
             return submissionService.batchRejudge(submissionIds, notifyUsers);
         }
-        RpcResult<BatchRejudgeResultDTO> result = dubboProvider.batchRejudge(
+        RpcResult<com.ulticode.app.api.dto.BatchRejudgeResultDTO> result = dubboProvider.batchRejudge(
                 new BatchRejudgeCommand(
                         UUID.randomUUID().toString(), IdMetadata.mint(),
                         new ActorDelegation("ADMIN", "admin", "admin", "cutover batch rejudge"),
@@ -80,7 +79,7 @@ public class SubmissionCutoverService {
         if (!result.success()) {
             throw mapError(result);
         }
-        BatchRejudgeResultDTO dto = result.data();
+        com.ulticode.app.api.dto.BatchRejudgeResultDTO dto = result.data();
         BatchRejudgeResponse response = new BatchRejudgeResponse();
         response.setTotal(dto.total());
         response.setSuccessful(dto.successful());

@@ -2,8 +2,8 @@ package com.ulticode.modules.admin.policy.impl;
 
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
-import com.ulticode.modules.forum.port.ForumOwnerPort;
-import com.ulticode.modules.forum.port.ForumOwnerPort.FlagResult;
+import com.ulticode.app.api.service.ForumOwnerPort;
+import com.ulticode.app.api.service.ForumOwnerPort.FlagResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -52,7 +52,7 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
             result.authorUserId(),
             Map.of(
                 "isFlagged", result.previousIsFlagged(),
-                "flaggedReason", result.previousFlaggedReason()
+                "flaggedReason", result.previousReason()
             ),
             Map.of(
                 "isFlagged", true,
@@ -74,7 +74,7 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
             result.authorUserId(),
             Map.of(
                 "isFlagged", result.previousIsFlagged(),
-                "flaggedReason", result.previousFlaggedReason()
+                "flaggedReason", result.previousReason()
             ),
             Map.of(
                 "isFlagged", false,

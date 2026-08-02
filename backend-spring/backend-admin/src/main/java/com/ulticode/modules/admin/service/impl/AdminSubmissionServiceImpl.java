@@ -26,6 +26,12 @@ import java.util.List;
  * Cross-module entity imports ({@code User}, {@code Problem}) and their
  * mappers have left this file &mdash; the projection owns them.
  *
+ * <p>P7-FIX-ADMIN-CONSUMERS-001: RejudgePolicy port signature changed from
+ * {@code (Submission, admin.dto.RejudgeResult)} to
+ * {@code (String, app.api.dto.RejudgeResult)} during SUBMISSION relocation.
+ * This impl now bridges the admin interface's legacy return type
+ * ({@code submission.dto.RejudgeResult}) with the port's new API type.
+ *
  * @author ulticode
  */
 @Slf4j
@@ -34,13 +40,6 @@ import java.util.List;
 public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
     private final AdminSubmissionReadPort submissionReadPort;
-    /**
-     * C2 / architecture-review #3: the rejudge policy owns strategy
-     * selection (fenced vs legacy) behind one {@link RejudgePolicy#rejudge}
-     * port. This service is now a 3-line dispatch: load submission, build
-     * the result DTO, hand both to the policy. Both branches are testable
-     * through the policy without this service in the loop.
-     */
     private final RejudgePolicy rejudgePolicy;
 
     @Override
@@ -55,38 +54,16 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             return result;
         }
 
-        com.ulticode.modules.admin.dto.RejudgeResult legacyResult = new com.ulticode.modules.admin.dto.RejudgeResult();
-        legacyResult.setSubmissionId(id);
-        legacyResult.setOldStatus(submission.getStatus());
-        legacyResult = rejudgePolicy.rejudge(submission, legacyResult);
+        com.ulticode.app.api.dto.RejudgeResult portInput = new com.ulticode.app.api.dto.RejudgeResult();
+        portInput.setSubmissionId(id);
+        portInput.setOldStatus(submission.getStatus());
+        com.ulticode.app.api.dto.RejudgeResult portResult = rejudgePolicy.rejudge(id, portInput);
 
-        return toDomain(legacyResult);
+        return toDomain(portResult);
     }
 
-    /**
-     * Batch rejudge — intentionally NOT routed through
-     * {@link com.ulticode.modules.admin.bulk.AdminBulkExecutor}.
-     *
-     * <p>Architecture-review candidate #1 lists this method as a victim of
-     * the duplicated bulk loop, but the executor's contract is a per-id
-     * {@code Consumer<String>} producing a uniform success/error outcome.
-     * This method's per-id result is a rich {@link RejudgeResult} (carrying
-     * {@code oldStatus}, {@code newStatus}, {@code retryCount},
-     * {@code rejudgedAt}) that the admin UI renders, and each iteration
-     * delegates to {@link #rejudge(String, boolean)} which already isolates
-     * failures internally. Forcing the rich result through the executor's
-     * void-action aggregated shape would erase that enrichment and
-     * double-wrap the error handling. The 15-LOC loop here is a thin
-     * delegating counter, not the switch-shaped dispatch the executor
-     * targets &mdash; so it is left as-is. Withdrawn with evidence per the
-     * architecture-review closure.
-     */
     @Override
     public BatchRejudgeResponse batchRejudge(List<String> submissionIds, boolean notifyUsers) {
-        // Non-null, non-empty, and size<=50 are enforced by Bean Validation
-        // on the controller (see BatchRejudgeRequest @NotEmpty/@Size and
-        // @Valid on the @RequestBody), so we can drop the silent null/empty
-        // branch that previously masked client bugs.
         BatchRejudgeResponse response = new BatchRejudgeResponse();
         response.setTotal(submissionIds.size());
         response.setResults(new ArrayList<>(submissionIds.size()));
@@ -108,18 +85,18 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         return response;
     }
 
-    private RejudgeResult toDomain(com.ulticode.modules.admin.dto.RejudgeResult legacy) {
-        if (legacy == null) {
+    private RejudgeResult toDomain(com.ulticode.app.api.dto.RejudgeResult portResult) {
+        if (portResult == null) {
             return null;
         }
         RejudgeResult domain = new RejudgeResult();
-        domain.setSubmissionId(legacy.getSubmissionId());
-        domain.setSuccess(legacy.getSuccess());
-        domain.setOldStatus(legacy.getOldStatus());
-        domain.setNewStatus(legacy.getNewStatus());
-        domain.setError(legacy.getError());
-        domain.setRejudgedAt(legacy.getRejudgedAt());
-        domain.setRetryCount(legacy.getRetryCount());
+        domain.setSubmissionId(portResult.getSubmissionId());
+        domain.setSuccess(portResult.getSuccess());
+        domain.setOldStatus(portResult.getOldStatus());
+        domain.setNewStatus(portResult.getNewStatus());
+        domain.setError(portResult.getError());
+        domain.setRejudgedAt(portResult.getRejudgedAt());
+        domain.setRetryCount(portResult.getRetryCount());
         return domain;
     }
 }

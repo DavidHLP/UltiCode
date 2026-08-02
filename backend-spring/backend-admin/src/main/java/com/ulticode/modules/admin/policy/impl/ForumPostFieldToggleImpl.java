@@ -4,8 +4,8 @@ import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
-import com.ulticode.modules.forum.port.ForumOwnerPort;
-import com.ulticode.modules.forum.port.ForumOwnerPort.ToggleResult;
+import com.ulticode.app.api.service.ForumOwnerPort;
+import com.ulticode.app.api.service.ForumOwnerPort.ToggleResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -53,8 +53,8 @@ public class ForumPostFieldToggleImpl implements ForumPostFieldToggle {
             fieldToggle.auditAction(),
             ENTITY_FORUM_POST,
             postId,
-            result.authorUserId(),
-            Map.of(fieldToggle.fieldName(), result.previousValue()),
+            result.authorId(),
+            Map.of(fieldToggle.fieldName(), result.previousState()),
             Map.of(fieldToggle.fieldName(), fieldToggle.newValue())
         );
 

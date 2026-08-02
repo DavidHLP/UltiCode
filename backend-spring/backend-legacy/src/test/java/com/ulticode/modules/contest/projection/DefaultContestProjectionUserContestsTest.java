@@ -11,7 +11,7 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.SubmissionReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,7 +51,7 @@ class DefaultContestProjectionUserContestsTest {
     @Mock private ContestSubmissionMapper contestSubmissionMapper;
     @Mock private GlobalRankingMapper globalRankingMapper;
     @Mock private ContestAnnouncementMapper contestAnnouncementMapper;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemFactsPort problemFactsPort;
     @Mock private RankingService rankingService;
     @Mock private SubmissionReadPort submissionProjection;
 
@@ -67,7 +67,7 @@ class DefaultContestProjectionUserContestsTest {
         projection = new DefaultContestProjection(
                 contestMapper, contestProblemMapper, participantMapper,
                 contestSubmissionMapper, globalRankingMapper, contestAnnouncementMapper,
-                problemMapper, rankingService, submissionProjection);
+                problemFactsPort, rankingService, submissionProjection);
     }
 
     private ContestParticipant makeParticipant(String contestId, String status, boolean isVirtual) {

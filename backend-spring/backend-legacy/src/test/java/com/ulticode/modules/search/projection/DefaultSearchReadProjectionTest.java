@@ -7,7 +7,8 @@ import com.meilisearch.sdk.SearchRequest;
 import com.ulticode.app.api.dto.ForumPostIndexDTO;
 import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.app.api.dto.ProblemIndexDTO;
+import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
@@ -49,8 +50,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DefaultSearchReadProjectionTest {
 
-    @Mock
-    private ProblemMapper problemMapper;
+    @Mock private ProblemSearchReadPort problemSearchReadPort;
 
     @Mock
     private UserMapper userMapper;
@@ -73,7 +73,7 @@ class DefaultSearchReadProjectionTest {
     @BeforeEach
     void setUp() {
         List<SearchSource> sources = List.of(
-                new ProblemSearchSource(problemMapper),
+                new ProblemSearchSource(problemSearchReadPort),
                 new UserSearchSource(userMapper),
                 new ForumSearchSource(forumPostReadPort),
                 new SolutionSearchSource(solutionReadPort)
@@ -96,17 +96,11 @@ class DefaultSearchReadProjectionTest {
             // Arrange - MeiliSearch client is not set
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
 
-            List<Problem> problems = new ArrayList<>();
-            Problem problem = new Problem();
-            problem.setId(1L);
-            problem.setTitle("Two Sum");
-            problem.setSlug("two-sum");
-            problem.setDifficulty("Easy");
-            problem.setIsPublished(true);
-            problem.setIsDeleted(false);
+            List<ProblemIndexDTO> problems = new ArrayList<>();
+            ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
             problems.add(problem);
 
-            when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
@@ -225,13 +219,8 @@ class DefaultSearchReadProjectionTest {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             // index is null by default
 
-            List<Problem> problems = new ArrayList<>();
-            Problem problem = new Problem();
-            problem.setId(1L);
-            problem.setTitle("Test Problem");
-            problem.setSlug("test-problem");
-            problem.setIsPublished(true);
-            problem.setIsDeleted(false);
+            List<ProblemIndexDTO> problems = new ArrayList<>();
+            ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
             problems.add(problem);
 
             List<User> users = new ArrayList<>();
@@ -244,7 +233,7 @@ class DefaultSearchReadProjectionTest {
             user.setIsDeleted(0);
             users.add(user);
 
-            when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
@@ -258,7 +247,7 @@ class DefaultSearchReadProjectionTest {
             assertTrue(response.getResults().size() >= 2);
 
             // Verify that both problems and users were searched
-            verify(problemMapper).selectList(any(QueryWrapper.class));
+            verify(problemSearchReadPort).searchForIndex(anyString(), anyInt());
             verify(userMapper).selectList(any(QueryWrapper.class));
         }
 
@@ -269,14 +258,9 @@ class DefaultSearchReadProjectionTest {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setLimit(2);
 
-            List<Problem> problems = new ArrayList<>();
+            List<ProblemIndexDTO> problems = new ArrayList<>();
             for (int i = 1; i <= 5; i++) {
-                Problem problem = new Problem();
-                problem.setId((long) i);
-                problem.setTitle("Test Problem " + i);
-                problem.setSlug("test-problem-" + i);
-                problem.setIsPublished(true);
-                problem.setIsDeleted(false);
+                ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
                 problems.add(problem);
             }
 
@@ -292,7 +276,7 @@ class DefaultSearchReadProjectionTest {
                 users.add(user);
             }
 
-            when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
@@ -352,7 +336,7 @@ class DefaultSearchReadProjectionTest {
             assertTrue(response.getResults().isEmpty());
 
             // Verify that database fallback was NOT called (since we didn't set up mocks for it)
-            verify(problemMapper, never()).selectList(any(QueryWrapper.class));
+            verify(problemSearchReadPort, never()).searchForIndex(anyString(), anyInt());
             verify(userMapper, never()).selectList(any(QueryWrapper.class));
         }
     }
@@ -402,17 +386,11 @@ class DefaultSearchReadProjectionTest {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
 
-            List<Problem> problems = new ArrayList<>();
-            Problem problem = new Problem();
-            problem.setId(1L);
-            problem.setTitle("Two Sum");
-            problem.setSlug("two-sum");
-            problem.setDifficulty("Easy");
-            problem.setIsPublished(true);
-            problem.setIsDeleted(false);
+            List<ProblemIndexDTO> problems = new ArrayList<>();
+            ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
             problems.add(problem);
 
-            when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());

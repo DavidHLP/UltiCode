@@ -6,8 +6,11 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.app.api.service.SubmissionStreakPort;
+import com.ulticode.app.api.service.ProblemDifficultyReadPort;
+import com.ulticode.app.api.service.ProblemTagStatsReadPort;
+import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
@@ -54,11 +57,15 @@ class DefaultUserReadProjectionTest {
     @Mock
     private UserMapper userMapper;
     @Mock
+    private SubmissionStreakPort submissionStreakCalculator;
+    @Mock
     private SubmissionUserStatsPort submissionUserStats;
     @Mock
     private ProblemMapper problemMapper;
     @Mock
-    private ProblemTagRelationMapper problemTagRelationMapper;
+    private ProblemDifficultyReadPort problemDifficultyReadPort;
+    @Mock
+    private ProblemTagStatsReadPort problemTagStatsReadPort;
     @Mock
     private FollowCountPort followCountPort;
     @Mock
@@ -281,7 +288,7 @@ class DefaultUserReadProjectionTest {
         @DisplayName("should map MyBatis row maps to user skills")
         void getUserSkillsById_mapsRowMaps() {
             when(userMapper.selectById("user-123")).thenReturn(testUser);
-            when(problemTagRelationMapper.findTagStatsByUserId("user-123")).thenReturn(List.of(
+            when(problemTagStatsReadPort.findTagStatsByUserId("user-123")).thenReturn(List.of(
                     Map.of("tagName", "动态规划", "tagSlug", "dynamic-programming", "count", 4L),
                     Map.of("tagName", "数组", "tagSlug", "array", "count", 2)));
             when(submissionUserStats.countAcceptedProblemsByUserId("user-123")).thenReturn(6L);
@@ -297,7 +304,7 @@ class DefaultUserReadProjectionTest {
         @DisplayName("should return empty skills when no tag stats exist")
         void getUserSkillsById_handlesNoTagStats() {
             when(userMapper.selectById("user-123")).thenReturn(testUser);
-            when(problemTagRelationMapper.findTagStatsByUserId("user-123")).thenReturn(null);
+            when(problemTagStatsReadPort.findTagStatsByUserId("user-123")).thenReturn(null);
             when(submissionUserStats.countAcceptedProblemsByUserId("user-123")).thenReturn(null);
 
             UserSkillsDTO result = userReadProjection.getUserSkillsById("user-123");

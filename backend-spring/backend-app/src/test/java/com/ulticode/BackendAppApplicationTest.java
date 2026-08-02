@@ -202,6 +202,33 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.modules.submission.port.ProblemFactsPort submissionPortProblemFactsPort;
 
+    // ==================== Problem family (P7-RELOCATE-PROBLEM-001) ====================
+
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemMapper problemMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemDetailMapper problemDetailMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemExampleMapper problemExampleMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemLanguageMapper problemLanguageMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemNoteMapper problemNoteMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemTagMapper problemTagMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemTagRelationMapper problemTagRelationMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.ProblemVersionMapper problemVersionMapper;
+    @MockBean
+    private com.ulticode.modules.problem.mapper.TestCaseMapper testCaseMapper;
+    @MockBean
+    private com.ulticode.app.api.service.ProblemInteractionQueryPort problemInteractionQueryPort;
+    @MockBean
+    private com.ulticode.app.api.service.ProblemAnalyticsReadPort problemAnalyticsReadPort;
+    @MockBean
+    private com.ulticode.app.api.service.JudgingLanguageSupport problemJudgingLanguageSupport;
+
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")

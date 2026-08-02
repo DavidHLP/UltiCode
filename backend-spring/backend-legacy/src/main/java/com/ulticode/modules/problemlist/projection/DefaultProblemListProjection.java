@@ -118,6 +118,11 @@ public class DefaultProblemListProjection implements ProblemListProjection {
             log.warn("Categories table may not exist: {}", e.getMessage());
             result.setCategories(Collections.emptyList());
         }
+        // Get featured lists
+        List<ProblemList> featured = problemListMapper.findFeatured();
+        result.setFeaturedLists(featured.stream()
+                .map(list -> toSummaryVOWithSavedStatus(list, userId))
+                .collect(Collectors.toList()));
 
         return result;
     }

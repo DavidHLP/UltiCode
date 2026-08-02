@@ -13,7 +13,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.app.api.service.ProblemListReadPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -59,7 +59,7 @@ class DefaultProblemListProjectionTest {
     @Mock private ProblemListProblemMapper problemListProblemMapper;
     @Mock private ProblemListCategoryMapper problemListCategoryMapper;
     @Mock private ProblemListBookmarkMapper problemListBookmarkMapper;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemListReadPort problemListReadPort;
     @Mock private UserMapper userMapper;
 
     private static final String OWNER_ID = "user-001";
@@ -70,7 +70,7 @@ class DefaultProblemListProjectionTest {
     void setUp() {
         projection = new DefaultProblemListProjection(
                 problemListMapper, problemListProblemMapper, problemListCategoryMapper,
-                problemListBookmarkMapper, problemMapper, userMapper);
+                problemListBookmarkMapper, problemListReadPort, userMapper);
     }
 
     @Nested

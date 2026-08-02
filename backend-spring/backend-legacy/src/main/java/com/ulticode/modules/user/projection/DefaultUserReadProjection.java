@@ -277,7 +277,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
         // Get tag stats from problem-tag relations via port
         List<Map<String, Object>> tagStats = problemTagStatsReadPort.findTagStatsByUserId(id);
-        List<UserSkillsDTO.UserSkill> skills = tagStats.stream()
+        List<UserSkillsDTO.UserSkill> skills = (tagStats == null ? List.<Map<String, Object>>of() : tagStats).stream()
                 .map(this::toUserSkill)
                 .toList();
 

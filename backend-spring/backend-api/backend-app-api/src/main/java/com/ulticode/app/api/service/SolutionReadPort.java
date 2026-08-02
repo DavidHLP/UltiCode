@@ -35,4 +35,12 @@ public interface SolutionReadPort {
      * @return count of solutions for the problem
      */
     long countByProblemId(Long problemId);
+
+    /**
+     * Count published solutions for a given user.
+     *
+     * @param userId user ID
+     * @return count of solutions authored by the user
+     */
+    long countByUserId(String userId);
 }

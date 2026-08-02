@@ -58,4 +58,10 @@ public class DefaultSolutionReadAdapter implements SolutionReadPort {
                         .eq("problem_id", problemId));
         return count != null ? count : 0L;
     }
+
+    @Override
+    public long countByUserId(String userId) {
+        Long count = solutionMapper.countByUserId(userId);
+        return count != null ? count : 0L;
+    }
 }

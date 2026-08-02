@@ -1,20 +1,21 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.app.api.service.SubmissionStreakPort;
 import com.ulticode.app.api.service.SubmissionUserStatsPort;
-import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
+import com.ulticode.app.api.service.SolutionReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
  * Production adapter for {@link AdminUserStatsReadPort}.
  *
- * <p>Backed by {@link SubmissionUserStatsPort} + {@code SolutionMapper}. Coerces
- * the nullable {@code Long}/{@code Integer} returns to primitives so
- * the port interface stays null-free — the admin module depends on the
- * submission read port, not the submission mapper. Tests substitute a fixture
- * by providing another bean of the port interface.
+ * <p>Backed by {@link SubmissionUserStatsPort} + {@link SolutionReadPort} +
+ * {@link SubmissionStreakPort}. Coerces the nullable {@code Long}/{@code Integer}
+ * returns to primitives so the port interface stays null-free — the admin
+ * module depends on app-api read ports, not on concrete mappers or stats
+ * classes. Tests substitute a fixture by providing another bean of the port
+ * interface.
  *
  * @author ulticode
  */
@@ -23,8 +24,8 @@ import org.springframework.stereotype.Component;
 public class AdminUserStatsReadAdapter implements AdminUserStatsReadPort {
 
     private final SubmissionUserStatsPort submissionUserStats;
-    private final SubmissionStreakCalculator submissionStreakCalculator;
-    private final SolutionMapper solutionMapper;
+    private final SubmissionStreakPort submissionStreakPort;
+    private final SolutionReadPort solutionReadPort;
 
     @Override
     public long countSubmissionsByUserId(String userId) {
@@ -40,12 +41,11 @@ public class AdminUserStatsReadAdapter implements AdminUserStatsReadPort {
 
     @Override
     public long countSolutionsByUserId(String userId) {
-        Long n = solutionMapper.countByUserId(userId);
-        return n == null ? 0L : n;
+        return solutionReadPort.countByUserId(userId);
     }
 
     @Override
     public int calculateSubmissionStreak(String userId) {
-        return submissionStreakCalculator.computeStreak(userId);
+        return submissionStreakPort.computeStreak(userId);
     }
 }

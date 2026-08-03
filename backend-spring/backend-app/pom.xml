@@ -49,6 +49,12 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-app-api</artifactId>
 		</dependency>
+		<!-- P7-SEARCH-RELOCATE-001: full-text search backend (optional, gated by meilisearch.enabled). -->
+		<dependency>
+			<groupId>com.meilisearch.sdk</groupId>
+			<artifactId>meilisearch-java</artifactId>
+			<version>0.20.1</version>
+		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-auth-api</artifactId>

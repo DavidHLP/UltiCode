@@ -1,6 +1,5 @@
 package com.ulticode.modules.search.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
@@ -8,19 +7,17 @@ import com.ulticode.app.api.dto.ForumPostIndexDTO;
 import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.app.api.dto.ProblemIndexDTO;
-import com.ulticode.app.api.service.ProblemSearchReadPort;
+import com.ulticode.app.api.dto.UserIndexDTO;import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
 import com.ulticode.modules.search.source.ForumSearchSource;
 import com.ulticode.modules.search.source.ProblemSearchSource;
-import com.ulticode.modules.search.source.SearchSource;
-import com.ulticode.modules.search.source.SolutionSearchSource;
+import com.ulticode.app.api.service.UserSearchReadPort;
+import com.ulticode.modules.search.source.SearchSource;import com.ulticode.modules.search.source.SolutionSearchSource;
 import com.ulticode.app.api.dto.SolutionIndexDTO;
 import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.modules.search.source.UserSearchSource;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -53,7 +50,7 @@ class DefaultSearchReadProjectionTest {
     @Mock private ProblemSearchReadPort problemSearchReadPort;
 
     @Mock
-    private UserMapper userMapper;
+    private UserSearchReadPort userSearchReadPort;
 
     @Mock
     private ForumPostReadPort forumPostReadPort;
@@ -74,7 +71,7 @@ class DefaultSearchReadProjectionTest {
     void setUp() {
         List<SearchSource> sources = List.of(
                 new ProblemSearchSource(problemSearchReadPort),
-                new UserSearchSource(userMapper),
+                new UserSearchSource(userSearchReadPort),
                 new ForumSearchSource(forumPostReadPort),
                 new SolutionSearchSource(solutionReadPort)
         );
@@ -101,7 +98,7 @@ class DefaultSearchReadProjectionTest {
             problems.add(problem);
 
             when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
@@ -130,18 +127,11 @@ class DefaultSearchReadProjectionTest {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.USERS);
 
-            List<User> users = new ArrayList<>();
-            User user = new User();
-            user.setId("user-123");
-            user.setUsername("testuser");
-            user.setName("Test User");
-            user.setAvatar("avatar.png");
-            user.setIsActive(true);
-            user.setIsBanned(false);
-            user.setIsDeleted(0);
+            List<UserIndexDTO> users = new ArrayList<>();
+            UserIndexDTO user = new UserIndexDTO("user-123", "testuser", "Test User", "avatar.png");
             users.add(user);
 
-            when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -223,18 +213,12 @@ class DefaultSearchReadProjectionTest {
             ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
             problems.add(problem);
 
-            List<User> users = new ArrayList<>();
-            User user = new User();
-            user.setId("user-123");
-            user.setUsername("testuser");
-            user.setName("Test User");
-            user.setIsActive(true);
-            user.setIsBanned(false);
-            user.setIsDeleted(0);
+            List<UserIndexDTO> users = new ArrayList<>();
+            UserIndexDTO user = new UserIndexDTO("user-123", "testuser", "Test User", "avatar.png");
             users.add(user);
 
             when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
@@ -248,7 +232,7 @@ class DefaultSearchReadProjectionTest {
 
             // Verify that both problems and users were searched
             verify(problemSearchReadPort).searchForIndex(anyString(), anyInt());
-            verify(userMapper).selectList(any(QueryWrapper.class));
+            verify(userSearchReadPort).searchForIndex(anyString(), anyInt());
         }
 
         @Test
@@ -264,20 +248,13 @@ class DefaultSearchReadProjectionTest {
                 problems.add(problem);
             }
 
-            List<User> users = new ArrayList<>();
+            List<UserIndexDTO> users = new ArrayList<>();
             for (int i = 1; i <= 5; i++) {
-                User user = new User();
-                user.setId("user-" + i);
-                user.setUsername("testuser" + i);
-                user.setName("Test User " + i);
-                user.setIsActive(true);
-                user.setIsBanned(false);
-                user.setIsDeleted(0);
-                users.add(user);
+                users.add(new UserIndexDTO("user-" + i, "testuser" + i, "Test User " + i, null));
             }
 
             when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
@@ -337,7 +314,7 @@ class DefaultSearchReadProjectionTest {
 
             // Verify that database fallback was NOT called (since we didn't set up mocks for it)
             verify(problemSearchReadPort, never()).searchForIndex(anyString(), anyInt());
-            verify(userMapper, never()).selectList(any(QueryWrapper.class));
+            verify(userSearchReadPort, never()).searchForIndex(anyString(), anyInt());
         }
     }
 
@@ -391,7 +368,7 @@ class DefaultSearchReadProjectionTest {
             problems.add(problem);
 
             when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
             when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
@@ -412,18 +389,11 @@ class DefaultSearchReadProjectionTest {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.USERS);
 
-            List<User> users = new ArrayList<>();
-            User user = new User();
-            user.setId("user-123");
-            user.setUsername("testuser");
-            user.setName("Test User");
-            user.setAvatar("https://example.com/avatar.png");
-            user.setIsActive(true);
-            user.setIsBanned(false);
-            user.setIsDeleted(0);
+            List<UserIndexDTO> users = new ArrayList<>();
+            UserIndexDTO user = new UserIndexDTO("user-123", "testuser", "Test User", "https://example.com/avatar.png");
             users.add(user);
 
-            when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);

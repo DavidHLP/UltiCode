@@ -1,10 +1,9 @@
 package com.ulticode.modules.search.source;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.ulticode.app.api.dto.UserIndexDTO;
+import com.ulticode.app.api.service.UserSearchReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchResponseVO;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,19 +15,25 @@ import java.util.Map;
 /**
  * Search source for the user domain. Owns:
  * <ul>
- *   <li>The {@link UserMapper} call and the {@code is_deleted} predicate.</li>
- *   <li>The username / name LIKE matching and the LIMIT cap.</li>
+ *   <li>The {@link UserSearchReadPort} call (App-side Q-read of the
+ *       Auth-owned users table; non-deleted predicate, username/name
+ *       LIKE matching and LIMIT cap enforced by the port adapter).</li>
  *   <li>The {@code /users/{username}} URL template.</li>
  *   <li>The user metadata projection (username, avatar).</li>
  * </ul>
  *
- * @author ulticode
+ * <p>P7-SEARCH-RELOCATE-001: replaced the direct legacy {@code UserMapper}
+ * dependency with {@link UserSearchReadPort} (port extracted in
+ * P7-SEARCH-CONTRACTS-001). Behavioral parity with the previous
+ * {@code QueryWrapper} path: same LIKE columns, same is_deleted=0
+ * predicate, same LIMIT cap; results additionally arrive in a
+ * deterministic username order (port adapter).
  */
 @Service
 @RequiredArgsConstructor
 public class UserSearchSource implements SearchSource {
 
-    private final UserMapper userMapper;
+    private final UserSearchReadPort userSearchReadPort;
 
     @Override
     public SearchIndexType getIndexType() {
@@ -37,30 +42,22 @@ public class UserSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.and(w -> w
-                        .like("username", query)
-                        .or()
-                        .like("name", query))
-                .eq("is_deleted", false)
-                .last("LIMIT " + limit);
-
-        List<User> users = userMapper.selectList(wrapper);
+        List<UserIndexDTO> users = userSearchReadPort.searchForIndex(query, limit);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(users.size());
-        for (User user : users) {
+        for (UserIndexDTO user : users) {
             Map<String, Object> metadata = new HashMap<>();
-            metadata.put("username", user.getUsername());
-            if (user.getAvatar() != null) {
-                metadata.put("avatar", user.getAvatar());
+            metadata.put("username", user.username());
+            if (user.avatar() != null) {
+                metadata.put("avatar", user.avatar());
             }
 
             results.add(SearchResponseVO.SearchResultItem.builder()
-                    .id(String.valueOf(user.getId()))
+                    .id(user.accountId())
                     .type(SearchIndexType.USERS.name())
-                    .title(user.getUsername())
-                    .description(user.getName())
-                    .url(buildUrl(user.getUsername()))
+                    .title(user.username())
+                    .description(user.name())
+                    .url(buildUrl(user.username()))
                     .metadata(metadata)
                     .build());
         }

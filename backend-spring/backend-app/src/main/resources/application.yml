@@ -118,3 +118,11 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"
+
+# MeiliSearch Configuration (optional - for full-text search).
+# P7-SEARCH-RELOCATE-001: moved from backend-legacy with the search
+# family; SearchController lives in backend-app now.
+meilisearch:
+  enabled: ${MEILISEARCH_ENABLED:false}
+  host: ${MEILISEARCH_HOST:}
+  api-key: ${MEILISEARCH_API_KEY:}

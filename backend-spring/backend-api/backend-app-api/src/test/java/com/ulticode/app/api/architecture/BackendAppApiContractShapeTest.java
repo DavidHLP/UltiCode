@@ -115,6 +115,8 @@ class BackendAppApiContractShapeTest {
                 "com.ulticode.app.api.command.UploadAvatarCommand",
                 "com.ulticode.app.api.dto.ProfileWriteResult",
                 "com.ulticode.app.api.service.ProfileWriteService",
+                "com.ulticode.app.api.dto.UserProfileDTO",
+                "com.ulticode.app.api.service.UserProfileQueryService",
                 "com.ulticode.app.api.error.AppErrorCode");
         Set<String> missing = new HashSet<>();
         ClassLoader cl = getClass().getClassLoader();

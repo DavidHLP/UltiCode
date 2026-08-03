@@ -1,0 +1,26 @@
+package com.ulticode.app.user.port;
+
+import com.ulticode.app.api.dto.UserProfileDTO;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+import java.util.Set;
+
+/** MyBatis Q-read mapper for {@code user_profiles} table. */
+@Mapper
+public interface UserProfileReadMapper {
+
+    String COLUMNS = "account_id AS accountId, name, avatar, bio, company, "
+            + "github, location, twitter, website, preferred_language AS preferredLanguage";
+
+    @Select("SELECT " + COLUMNS + " FROM user_profiles WHERE account_id = #{accountId} LIMIT 1")
+    UserProfileDTO findByAccountId(@Param("accountId") String accountId);
+
+    @Select("<script>"
+            + "SELECT " + COLUMNS + " FROM user_profiles WHERE account_id IN "
+            + "<foreach collection='accountIds' item='id' open='(' separator=',' close=')'>#{id}</foreach>"
+            + "</script>")
+    List<UserProfileDTO> findByAccountIds(@Param("accountIds") Set<String> accountIds);
+}

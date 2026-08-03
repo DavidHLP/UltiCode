@@ -1,7 +1,7 @@
 package com.ulticode.modules.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.ulticode.modules.user.entity.User;
+import com.ulticode.app.user.port.UserSummaryView;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -42,19 +42,19 @@ public class ProfileVO {
      * @param achievementCount number of achievements earned
      * @return a new ProfileVO instance
      */
-    public static ProfileVO fromUser(User user, UserStatsDTO stats,
+    public static ProfileVO fromUser(UserSummaryView user, UserStatsDTO stats,
                                      int followerCount, int followingCount, int achievementCount) {
         ProfileVO vo = new ProfileVO();
-        vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
-        vo.setName(user.getName());
-        vo.setAvatar(user.getAvatar());
-        vo.setBio(user.getBio());
-        vo.setCompany(user.getCompany());
-        vo.setLocation(user.getLocation());
-        vo.setWebsite(user.getWebsite());
-        vo.setJoinedAt(user.getJoinedAt());
-        vo.setPreferredLanguage(user.getPreferredLanguage());
+        vo.setId(user.id());
+        vo.setUsername(user.username());
+        vo.setName(user.name());
+        vo.setAvatar(user.avatar());
+        vo.setBio(user.bio());
+        vo.setCompany(user.company());
+        vo.setLocation(user.location());
+        vo.setWebsite(user.website());
+        vo.setJoinedAt(user.joinedAt());
+        vo.setPreferredLanguage(user.preferredLanguage());
         vo.setTotalSolved(stats != null ? stats.getTotalSolved() : 0);
         vo.setSubmissionCount(stats != null ? stats.getSubmissionCount() : 0L);
         vo.setGlobalRank(stats != null ? stats.getGlobalRank() : null);

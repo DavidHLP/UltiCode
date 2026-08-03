@@ -132,6 +132,9 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper problemListBookmarkMapper;
 
     @MockBean
+    private com.ulticode.app.user.port.UserReadMapper userReadMapper;
+
+    @MockBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
 
     @MockBean

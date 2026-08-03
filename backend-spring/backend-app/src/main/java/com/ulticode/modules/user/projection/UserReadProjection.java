@@ -1,11 +1,11 @@
 package com.ulticode.modules.user.projection;
 
+import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import com.ulticode.modules.user.entity.User;
 
 import java.util.Collection;
 import java.util.Map;
@@ -30,33 +30,33 @@ public interface UserReadProjection {
      * Find a user by their unique ID.
      *
      * @param id the user ID
-     * @return the user entity, or empty if not found
+     * @return the user if found
      */
-    Optional<User> findById(String id);
+    Optional<UserSummaryView> findById(String id);
 
     /**
      * Find multiple users by their IDs, returned as a map keyed by user ID.
      *
-     * @param ids the user IDs
-     * @return map of user ID to User entity
+     * @param ids the collection of user IDs
+     * @return a map of user ID to user
      */
-    Map<String, User> findAllById(Collection<String> ids);
+    Map<String, UserSummaryView> findAllById(Collection<String> ids);
 
     /**
      * Find a user by their username.
      *
      * @param username the username
-     * @return the user entity, or empty if not found
+     * @return the user if found
      */
-    Optional<User> findByUsername(String username);
+    Optional<UserSummaryView> findByUsername(String username);
 
     /**
      * Find a user by their email address.
      *
      * @param email the email address
-     * @return the user entity, or empty if not found
+     * @return the user if found
      */
-    Optional<User> findByEmail(String email);
+    Optional<UserSummaryView> findByEmail(String email);
 
     /**
      * Get the current authenticated user's profile.
@@ -68,9 +68,9 @@ public interface UserReadProjection {
     /**
      * List users with pagination.
      *
-     * @param page     the page number (1-based)
-     * @param pageSize the number of items per page
-     * @return paginated result of user view objects
+     * @param page     page number (1-based)
+     * @param pageSize page size
+     * @return paginated user list
      */
     PageResult<UserVO> listUsers(Integer page, Integer pageSize);
 
@@ -84,7 +84,7 @@ public interface UserReadProjection {
 
     /**
      * Get user statistics including solved problems count by difficulty,
-     * streak, total solved, and submission heatmap.
+     * submission heatmap, and global ranking.
      *
      * @param id the user ID
      * @return the user statistics
@@ -95,23 +95,23 @@ public interface UserReadProjection {
      * Get user skills (tag statistics) for a user.
      *
      * @param id the user ID
-     * @return the user skills data
+     * @return the user skills DTO
      */
     UserSkillsDTO getUserSkillsById(String id);
 
     /**
-     * Convert a User entity to UserVO.
+     * Convert a UserSummaryView to UserVO.
      *
-     * @param user the user entity
+     * @param user the user summary view
      * @return the user view object
      */
-    UserVO toVO(User user);
+    UserVO toVO(UserSummaryView user);
 
     /**
      * Get a user's full profile including stats and social counts.
      *
      * @param id the user ID
-     * @return the user profile view object
+     * @return the profile view object
      */
     ProfileVO getUserProfile(String id);
 
@@ -119,7 +119,7 @@ public interface UserReadProjection {
      * Get a user's full profile by their username.
      *
      * @param username the username
-     * @return the user profile view object
+     * @return the profile view object
      */
     ProfileVO getUserProfileByUsername(String username);
 }

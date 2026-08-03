@@ -1,13 +1,13 @@
 package com.ulticode.modules.user.projection;
 
-import com.ulticode.modules.admin.dto.UserActivityReportVO;
+import com.ulticode.app.user.port.UserReadMapper;
+import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.app.api.dto.DailyActiveUserCount;
 import com.ulticode.app.api.dto.HourlyActiveUserCount;
 import com.ulticode.app.api.dto.TopActiveUserCount;
 import com.ulticode.app.api.dto.WeeklyActiveUserCount;
 import com.ulticode.app.api.service.SubmissionActivityAnalyticsPort;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.dto.UserActivityReportVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 public class DefaultUserActivityAnalyticsProjection implements UserActivityAnalyticsProjection {
 
     private final Clock clock;
-    private final UserMapper userMapper;
+    private final UserReadMapper userReadMapper;
     private final SubmissionActivityAnalyticsPort submissionActivityAnalytics;
 
     @Override
@@ -102,12 +103,12 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
         for (TopActiveUserCount row : topUserCounts) {
             String userId = row.getUserId();
             int count = row.getSubmissionCount() != null ? row.getSubmissionCount().intValue() : 0;
-            User user = userMapper.selectById(userId);
+            UserSummaryView user = userReadMapper.selectById(userId);
             topUsers.add(new UserActivityReportVO.TopActiveUser(
                     userId,
-                    user != null ? user.getUsername() : "Unknown",
+                    user != null ? user.username() : "Unknown",
                     count,
-                    user != null ? user.getLastLoginAt() : null
+                    user != null ? user.lastLoginAt() : null
             ));
         }
         report.setTopActiveUsers(topUsers);

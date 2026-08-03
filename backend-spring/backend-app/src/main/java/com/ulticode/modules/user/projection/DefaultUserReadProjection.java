@@ -1,9 +1,10 @@
 package com.ulticode.modules.user.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.error.UserErrorCode;
+import com.ulticode.app.user.port.UserReadMapper;
+import com.ulticode.app.user.port.UserSummaryView;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -18,11 +19,8 @@ import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +38,7 @@ import java.util.stream.Collectors;
  * read-side join for the user domain — see the interface javadoc for why
  * this is a deep module.
  *
- * <p>The simple find-by-* reads delegate straight to {@code UserMapper}.
+ * <p>The simple find-by-* reads delegate straight to {@code UserReadMapper}.
  * The user-stats read owns the cross-table join across
  * {@code submissions} + {@code problems} + the global-ranking table, plus
  * the heatmap-level bucketing that the deleted {@code UserService} facade
@@ -55,7 +53,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultUserReadProjection implements UserReadProjection {
 
-    private final UserMapper userMapper;
+    private final UserReadMapper userReadMapper;
     private final SubmissionUserStatsPort submissionUserStats;
     private final SubmissionStreakPort submissionStreakCalculator;
     private final ProblemDifficultyReadPort problemDifficultyReadPort;
@@ -64,51 +62,50 @@ public class DefaultUserReadProjection implements UserReadProjection {
     private final CurrentUserProvider currentUserProvider;
 
     @Override
-    public Optional<User> findById(String id) {
+    public Optional<UserSummaryView> findById(String id) {
         if (id == null || id.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(userMapper.selectById(id));
+        return Optional.ofNullable(userReadMapper.selectById(id));
     }
 
     @Override
-    public Map<String, User> findAllById(Collection<String> ids) {
+    public Map<String, UserSummaryView> findAllById(Collection<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return Map.of();
         }
-        return userMapper.selectBatchIds(ids).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        return ids.stream()
+                .map(userReadMapper::selectById)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(UserSummaryView::id, u -> u));
     }
 
     @Override
-    public Optional<User> findByUsername(String username) {
+    public Optional<UserSummaryView> findByUsername(String username) {
         if (username == null || username.isBlank()) {
             return Optional.empty();
         }
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername, username);
-        return Optional.ofNullable(userMapper.selectOne(queryWrapper));
+        return Optional.ofNullable(userReadMapper.selectByUsername(username));
     }
 
     @Override
-    public Optional<User> findByEmail(String email) {
+    public Optional<UserSummaryView> findByEmail(String email) {
         if (email == null || email.isBlank()) {
             return Optional.empty();
         }
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getEmail, email);
-        return Optional.ofNullable(userMapper.selectOne(queryWrapper));
+        // UserReadMapper does not expose email lookup; throw unsupported
+        throw new UnsupportedOperationException("Email lookup is not supported in the relocated projection");
     }
 
     @Override
     public UserVO getCurrentUser() {
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        User user = findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        UserSummaryView user = findById(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
         return toVO(user);
     }
@@ -116,26 +113,22 @@ public class DefaultUserReadProjection implements UserReadProjection {
     @Override
     public PageResult<UserVO> listUsers(Integer page, Integer pageSize) {
         PaginationRequest pageRequest = PaginationRequest.of(page, pageSize);
+        int offset = (pageRequest.page() - 1) * pageRequest.pageSize();
 
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getIsActive, true)
-                .eq(User::getIsBanned, false)
-                .orderByDesc(User::getJoinedAt);
+        List<UserSummaryView> users = userReadMapper.selectActiveUsers(pageRequest.pageSize(), offset);
+        long total = userReadMapper.countActiveUsers();
 
-        Page<User> userPage = new Page<>(pageRequest.page(), pageRequest.pageSize());
-        Page<User> result = userMapper.selectPage(userPage, queryWrapper);
-
-        List<UserVO> userVOList = result.getRecords().stream()
+        List<UserVO> userVOList = users.stream()
                 .map(this::toPublicVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(userVOList, result.getTotal(), pageRequest);
+        return PageResult.of(userVOList, total, pageRequest);
     }
 
     @Override
     public UserVO getUserById(String id) {
-        User user = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        UserSummaryView user = findById(id)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
         // Return public profile (without email)
         return toPublicVO(user);
@@ -146,7 +139,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
     public UserStatsDTO getUserStatsById(String id) {
         // Verify user exists
         if (findById(id).isEmpty()) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(UserErrorCode.USER_NOT_FOUND);
         }
 
         UserStatsDTO stats = new UserStatsDTO();
@@ -227,41 +220,56 @@ public class DefaultUserReadProjection implements UserReadProjection {
     }
 
     @Override
-    public UserVO toVO(User user) {
+    public UserVO toVO(UserSummaryView user) {
         if (user == null) {
             return null;
         }
 
         UserVO vo = new UserVO();
-        BeanUtils.copyProperties(user, vo);
+        vo.setId(user.id());
+        vo.setUsername(user.username());
+        vo.setName(user.name());
+        vo.setEmail(user.email());
+        vo.setAvatar(user.avatar());
+        vo.setBio(user.bio());
+        vo.setCompany(user.company());
+        vo.setGithub(user.github());
+        vo.setJoinedAt(user.joinedAt());
+        vo.setLocation(user.location());
+        vo.setTwitter(user.twitter());
+        vo.setWebsite(user.website());
+        vo.setPreferredLanguage(user.preferredLanguage());
+        vo.setRole(user.role());
+        vo.setIsActive(user.isActive());
+        vo.setLastLoginAt(user.lastLoginAt());
         return vo;
     }
 
     /**
-     * Convert a User entity to UserVO without sensitive information.
+     * Convert a UserSummaryView to UserVO without sensitive information.
      * Used for public profiles.
      *
-     * @param user the user entity
+     * @param user the user summary view
      * @return the user view object without email
      */
-    private UserVO toPublicVO(User user) {
+    private UserVO toPublicVO(UserSummaryView user) {
         if (user == null) {
             return null;
         }
 
         UserVO vo = new UserVO();
-        vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
-        vo.setName(user.getName());
-        vo.setAvatar(user.getAvatar());
-        vo.setBio(user.getBio());
-        vo.setCompany(user.getCompany());
-        vo.setGithub(user.getGithub());
-        vo.setJoinedAt(user.getJoinedAt());
-        vo.setLocation(user.getLocation());
-        vo.setTwitter(user.getTwitter());
-        vo.setWebsite(user.getWebsite());
-        vo.setPreferredLanguage(user.getPreferredLanguage());
+        vo.setId(user.id());
+        vo.setUsername(user.username());
+        vo.setName(user.name());
+        vo.setAvatar(user.avatar());
+        vo.setBio(user.bio());
+        vo.setCompany(user.company());
+        vo.setGithub(user.github());
+        vo.setJoinedAt(user.joinedAt());
+        vo.setLocation(user.location());
+        vo.setTwitter(user.twitter());
+        vo.setWebsite(user.website());
+        vo.setPreferredLanguage(user.preferredLanguage());
         // Email is not included in public profile
         return vo;
     }
@@ -270,7 +278,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
     public UserSkillsDTO getUserSkillsById(String id) {
         // Verify user exists
         if (findById(id).isEmpty()) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(UserErrorCode.USER_NOT_FOUND);
         }
 
         UserSkillsDTO skillsDTO = new UserSkillsDTO();
@@ -300,8 +308,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
     @Override
     public ProfileVO getUserProfile(String id) {
-        User user = findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        UserSummaryView user = findById(id)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
         UserStatsDTO stats = getUserStatsById(id);
 
@@ -321,8 +329,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
     @Override
     public ProfileVO getUserProfileByUsername(String username) {
-        User user = findByUsername(username)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        return getUserProfile(user.getId());
+        UserSummaryView user = findByUsername(username)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+        return getUserProfile(user.id());
     }
 }

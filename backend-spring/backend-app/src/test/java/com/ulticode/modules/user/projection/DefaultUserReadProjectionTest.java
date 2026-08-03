@@ -1,9 +1,11 @@
 package com.ulticode.modules.user.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.error.UserErrorCode;
+import com.ulticode.app.user.port.UserReadMapper;
+import com.ulticode.app.user.port.UserSummaryView;
+import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.app.api.service.SubmissionUserStatsPort;
 import com.ulticode.app.api.service.SubmissionStreakPort;
@@ -11,8 +13,6 @@ import com.ulticode.app.api.service.ProblemDifficultyReadPort;
 import com.ulticode.app.api.service.ProblemTagStatsReadPort;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,9 +37,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultUserReadProjection}.
@@ -51,16 +51,14 @@ import com.ulticode.common.auth.CurrentUserProvider;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@Disabled("P7-INFRA: ProblemMapper/ProblemTagRelationMapper relocated to backend-app")
 class DefaultUserReadProjectionTest {
 
     @Mock
-    private UserMapper userMapper;
+    private UserReadMapper userReadMapper;
     @Mock
     private SubmissionStreakPort submissionStreakCalculator;
     @Mock
     private SubmissionUserStatsPort submissionUserStats;
-    // P7-INFRA: ProblemMapper relocated to backend-app
     @Mock
     private ProblemDifficultyReadPort problemDifficultyReadPort;
     @Mock
@@ -73,19 +71,29 @@ class DefaultUserReadProjectionTest {
     @InjectMocks
     private DefaultUserReadProjection userReadProjection;
 
-    private User testUser;
+    private UserSummaryView testUser;
 
     @BeforeEach
     void setUp() {
         when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
-        testUser = new User();
-        testUser.setId("test-user-id");
-        testUser.setUsername("testuser");
-        testUser.setName("Test User");
-        testUser.setEmail("test@example.com");
-        testUser.setAvatar("https://example.com/avatar.png");
-        testUser.setBio("Test bio");
-        testUser.setJoinedAt(LocalDateTime.now().minusDays(30));
+        testUser = new UserSummaryView(
+                "test-user-id",
+                "testuser",
+                "Test User",
+                "test@example.com",
+                "https://example.com/avatar.png",
+                "Test bio",
+                "Test Company",
+                "testgithub",
+                LocalDateTime.now().minusDays(30),
+                "Test Location",
+                "@testtwitter",
+                "https://test.com",
+                "en",
+                "USER",
+                true,
+                false,
+                LocalDateTime.now().minusDays(5));
     }
 
     @Nested
@@ -95,31 +103,31 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return user when found")
         void shouldReturnUserWhenFound() {
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-            Optional<User> result = userReadProjection.findById("test-user-id");
+            when(userReadMapper.selectById("test-user-id")).thenReturn(testUser);
+            Optional<UserSummaryView> result = userReadProjection.findById("test-user-id");
             assertTrue(result.isPresent());
-            assertEquals("test-user-id", result.get().getId());
+            assertEquals("test-user-id", result.get().id());
         }
 
         @Test
         @DisplayName("should return empty when not found")
         void shouldReturnEmptyWhenNotFound() {
-            when(userMapper.selectById("non-existent")).thenReturn(null);
-            Optional<User> result = userReadProjection.findById("non-existent");
+            when(userReadMapper.selectById("non-existent")).thenReturn(null);
+            Optional<UserSummaryView> result = userReadProjection.findById("non-existent");
             assertFalse(result.isPresent());
         }
 
         @Test
         @DisplayName("should return empty for null id")
         void shouldReturnEmptyForNullId() {
-            Optional<User> result = userReadProjection.findById(null);
+            Optional<UserSummaryView> result = userReadProjection.findById(null);
             assertFalse(result.isPresent());
         }
 
         @Test
         @DisplayName("should return empty for blank id")
         void shouldReturnEmptyForBlankId() {
-            Optional<User> result = userReadProjection.findById("   ");
+            Optional<UserSummaryView> result = userReadProjection.findById("   ");
             assertFalse(result.isPresent());
         }
     }
@@ -131,17 +139,17 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return user when found")
         void shouldReturnUserWhenFound() {
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(testUser);
-            Optional<User> result = userReadProjection.findByUsername("testuser");
+            when(userReadMapper.selectByUsername("testuser")).thenReturn(testUser);
+            Optional<UserSummaryView> result = userReadProjection.findByUsername("testuser");
             assertTrue(result.isPresent());
-            assertEquals("testuser", result.get().getUsername());
+            assertEquals("testuser", result.get().username());
         }
 
         @Test
         @DisplayName("should return empty when not found")
         void shouldReturnEmptyWhenNotFound() {
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
-            Optional<User> result = userReadProjection.findByUsername("nonexistent");
+            when(userReadMapper.selectByUsername("nonexistent")).thenReturn(null);
+            Optional<UserSummaryView> result = userReadProjection.findByUsername("nonexistent");
             assertFalse(result.isPresent());
         }
     }
@@ -151,20 +159,11 @@ class DefaultUserReadProjectionTest {
     class FindByEmailTests {
 
         @Test
-        @DisplayName("should return user when found")
-        void shouldReturnUserWhenFound() {
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(testUser);
-            Optional<User> result = userReadProjection.findByEmail("test@example.com");
-            assertTrue(result.isPresent());
-            assertEquals("test@example.com", result.get().getEmail());
-        }
-
-        @Test
-        @DisplayName("should return empty when not found")
-        void shouldReturnEmptyWhenNotFound() {
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
-            Optional<User> result = userReadProjection.findByEmail("nonexistent@example.com");
-            assertFalse(result.isPresent());
+        @DisplayName("should throw UnsupportedOperationException — email lookup removed from app read port")
+        @Disabled("P7: email lookup removed from app read port")
+        void shouldThrowUnsupportedOperationException() {
+            assertThrows(UnsupportedOperationException.class,
+                    () -> userReadProjection.findByEmail("test@example.com"));
         }
     }
 
@@ -175,7 +174,7 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return current user when authenticated")
         void shouldReturnCurrentUserWhenAuthenticated() {
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            when(userReadMapper.selectById("test-user-id")).thenReturn(testUser);
             UserVO result = userReadProjection.getCurrentUser();
             assertNotNull(result);
             assertEquals("test-user-id", result.getId());
@@ -188,17 +187,17 @@ class DefaultUserReadProjectionTest {
             BusinessException ex = assertThrows(
                     BusinessException.class,
                     () -> userReadProjection.getCurrentUser());
-            assertEquals(ErrorCode.UNAUTHORIZED, ex.getErrorCode());
+            assertEquals(BaseErrorCode.UNAUTHORIZED, ex.getErrorCode());
         }
 
         @Test
         @DisplayName("should throw USER_NOT_FOUND when user not found")
         void shouldThrowUserNotFoundWhenUserNotFound() {
-            when(userMapper.selectById("test-user-id")).thenReturn(null);
+            when(userReadMapper.selectById("test-user-id")).thenReturn(null);
             BusinessException ex = assertThrows(
                     BusinessException.class,
                     () -> userReadProjection.getCurrentUser());
-            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            assertEquals(UserErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
     }
 
@@ -209,10 +208,8 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return paginated list of users")
         void shouldReturnPaginatedListOfUsers() {
-            Page<User> userPage = new Page<>(1, 20);
-            userPage.setRecords(List.of(testUser));
-            userPage.setTotal(1);
-            when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(userPage);
+            when(userReadMapper.selectActiveUsers(20, 0)).thenReturn(List.of(testUser));
+            when(userReadMapper.countActiveUsers()).thenReturn(1L);
 
             var result = userReadProjection.listUsers(1, 20);
             assertNotNull(result);
@@ -223,10 +220,8 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should limit page size to 100")
         void shouldLimitPageSizeTo100() {
-            Page<User> userPage = new Page<>(1, 100);
-            userPage.setRecords(List.of());
-            userPage.setTotal(0);
-            when(userMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(userPage);
+            when(userReadMapper.selectActiveUsers(100, 0)).thenReturn(List.of());
+            when(userReadMapper.countActiveUsers()).thenReturn(0L);
 
             var result = userReadProjection.listUsers(1, 200);
             assertEquals(100, result.getPageSize());
@@ -240,7 +235,7 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return user public profile")
         void shouldReturnUserPublicProfile() {
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            when(userReadMapper.selectById("test-user-id")).thenReturn(testUser);
             UserVO result = userReadProjection.getUserById("test-user-id");
             assertNotNull(result);
             assertEquals("test-user-id", result.getId());
@@ -251,11 +246,11 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should throw USER_NOT_FOUND when user not found")
         void shouldThrowUserNotFoundWhenUserNotFound() {
-            when(userMapper.selectById("non-existent")).thenReturn(null);
+            when(userReadMapper.selectById("non-existent")).thenReturn(null);
             BusinessException ex = assertThrows(
                     BusinessException.class,
                     () -> userReadProjection.getUserById("non-existent"));
-            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+            assertEquals(UserErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
     }
 
@@ -286,7 +281,7 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should map MyBatis row maps to user skills")
         void getUserSkillsById_mapsRowMaps() {
-            when(userMapper.selectById("user-123")).thenReturn(testUser);
+            when(userReadMapper.selectById("user-123")).thenReturn(testUser);
             when(problemTagStatsReadPort.findTagStatsByUserId("user-123")).thenReturn(List.of(
                     Map.of("tagName", "动态规划", "tagSlug", "dynamic-programming", "count", 4L),
                     Map.of("tagName", "数组", "tagSlug", "array", "count", 2)));
@@ -302,7 +297,7 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return empty skills when no tag stats exist")
         void getUserSkillsById_handlesNoTagStats() {
-            when(userMapper.selectById("user-123")).thenReturn(testUser);
+            when(userReadMapper.selectById("user-123")).thenReturn(testUser);
             when(problemTagStatsReadPort.findTagStatsByUserId("user-123")).thenReturn(null);
             when(submissionUserStats.countAcceptedProblemsByUserId("user-123")).thenReturn(null);
 

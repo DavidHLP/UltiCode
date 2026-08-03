@@ -32,4 +32,20 @@ public interface ReconciliationQueryMapper {
             + "</foreach>"
             + "</script>")
     Set<String> selectExistingIds(@Param("ids") Set<String> ids);
+
+    @Select("SELECT COUNT(*) FROM refresh_tokens c LEFT JOIN users p ON c.user_id = p.id "
+            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
+    long countOrphanRefreshTokens();
+
+    @Select("SELECT COUNT(*) FROM password_resets c LEFT JOIN users p ON c.user_id = p.id "
+            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
+    long countOrphanPasswordResets();
+
+    @Select("SELECT COUNT(*) FROM oauth_provider_identities c LEFT JOIN users p ON c.user_id = p.id "
+            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
+    long countOrphanOauthProviderIdentities();
+
+    @Select("SELECT COUNT(*) FROM user_permissions c LEFT JOIN users p ON c.user_id = p.id "
+            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
+    long countOrphanUserPermissions();
 }

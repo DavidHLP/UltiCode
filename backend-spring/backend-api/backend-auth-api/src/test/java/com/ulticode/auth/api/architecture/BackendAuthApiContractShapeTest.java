@@ -66,6 +66,7 @@ class BackendAuthApiContractShapeTest {
                 "com.ulticode.auth.api.service.AccountAdministrationService",
                 "com.ulticode.auth.api.service.AuthorizationSnapshotService",
                 "com.ulticode.auth.api.service.ReconciliationQueryService",
+                "com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts",
                 "com.ulticode.auth.api.dto.UserIdentityDTO",
                 "com.ulticode.auth.api.dto.AccountStateDTO",
                 "com.ulticode.auth.api.dto.AuthorizationSnapshotDTO",

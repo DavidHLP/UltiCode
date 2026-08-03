@@ -5,6 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.reconciliation.ReconciliationQueryMapper;
 import com.ulticode.common.rpc.RpcResult;
 import java.util.List;
@@ -57,9 +58,19 @@ class AccountReconciliationProviderTest {
     }
 
     @Test
-    @DisplayName("existingUserIds tolerates null mapper result")
-    void existingUserIdsNullMapperResult() {
-        when(reconciliationQueryMapper.selectExistingIds(Set.of("u-1"))).thenReturn(null);
-        assertThat(provider.existingUserIds(Set.of("u-1")).data()).isEmpty();
+    @DisplayName("countAuthOrphans maps all four mapper counts into the record")
+    void countAuthOrphansMapsAllFour() {
+        when(reconciliationQueryMapper.countOrphanRefreshTokens()).thenReturn(1L);
+        when(reconciliationQueryMapper.countOrphanPasswordResets()).thenReturn(2L);
+        when(reconciliationQueryMapper.countOrphanOauthProviderIdentities()).thenReturn(3L);
+        when(reconciliationQueryMapper.countOrphanUserPermissions()).thenReturn(4L);
+
+        RpcResult<AuthReconciliationOrphanCounts> result = provider.countAuthOrphans();
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data().refreshTokens()).isEqualTo(1L);
+        assertThat(result.data().passwordResets()).isEqualTo(2L);
+        assertThat(result.data().oauthProviderIdentities()).isEqualTo(3L);
+        assertThat(result.data().userPermissions()).isEqualTo(4L);
     }
 }

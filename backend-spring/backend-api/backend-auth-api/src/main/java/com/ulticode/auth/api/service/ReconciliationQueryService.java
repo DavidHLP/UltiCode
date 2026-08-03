@@ -1,5 +1,6 @@
 package com.ulticode.auth.api.service;
 
+import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.common.rpc.RpcResult;
 
 import java.util.Collection;
@@ -43,4 +44,15 @@ public interface ReconciliationQueryService {
      *         are omitted)
      */
     RpcResult<Set<String>> existingUserIds(Collection<String> ids);
+
+    /**
+     * Orphan counts for the four Auth-internal child references to the
+     * users table (refresh_tokens / password_resets /
+     * oauth_provider_identities / user_permissions). Physical-existence
+     * semantics: a child is an orphan only when the parent id does not
+     * exist at all.
+     *
+     * @return success with the four orphan counts
+     */
+    RpcResult<AuthReconciliationOrphanCounts> countAuthOrphans();
 }

@@ -1,5 +1,6 @@
 package com.ulticode.auth.dubbo.provider;
 
+import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
 import com.ulticode.auth.reconciliation.ReconciliationQueryMapper;
 import com.ulticode.common.rpc.RpcResult;
@@ -52,5 +53,15 @@ public class AccountReconciliationProvider implements ReconciliationQueryService
             return RpcResult.success(Collections.emptySet(), "t-system");
         }
         return RpcResult.success(existing, "t-system");
+    }
+
+    @Override
+    public RpcResult<AuthReconciliationOrphanCounts> countAuthOrphans() {
+        return RpcResult.success(new AuthReconciliationOrphanCounts(
+                reconciliationQueryMapper.countOrphanRefreshTokens(),
+                reconciliationQueryMapper.countOrphanPasswordResets(),
+                reconciliationQueryMapper.countOrphanOauthProviderIdentities(),
+                reconciliationQueryMapper.countOrphanUserPermissions()),
+                "t-system");
     }
 }

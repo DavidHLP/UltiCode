@@ -41,6 +41,9 @@ class BackendAppApplicationTest {
 
     @Autowired
     private com.ulticode.app.api.service.JudgeFeatureFlagsPort judgeFeatureFlagsPort;
+
+    @Autowired
+    private com.ulticode.common.audit.AuditSinkPort auditSinkPort;
     @MockBean
     private I18nService i18nService;
 
@@ -313,6 +316,15 @@ class BackendAppApplicationTest {
 
     @MockBean private com.ulticode.modules.moderation.mapper.ModerationQueueMapper moderationqueuemapperMapper;
 
+    // P7-AUDIT-SINK-OWNER-BINDING-001: mapper bean for AppAuditSinkAdapter in the test profile
+    @MockBean private com.ulticode.app.audit.AppAuditOutboxMapper appAuditOutboxMapper;
+
+    // Pre-existing shell-test wiring gap unmasked by the audit fix: UserProfileQueryProvider needs this mapper
+    @MockBean private com.ulticode.app.user.port.UserProfileReadMapper userProfileReadMapper;
+
+    // Pre-existing shell-test wiring gap (P7-INFRA-MODERATION-BRIDGE-001): ModerationServiceImpl needs this port
+    @MockBean private com.ulticode.modules.moderation.port.ContentModerationPort contentModerationPort;
+
 
     @Test
     @DisplayName("context loads and /actuator/health is UP")
@@ -339,5 +351,12 @@ class BackendAppApplicationTest {
     void judgeFeatureFlagsPortResolvesToAppAdapter() {
         assertThat(judgeFeatureFlagsPort)
                 .isInstanceOf(com.ulticode.modules.submission.port.DefaultJudgeFeatureFlagsPort.class);
+    }
+
+    @Test
+    @DisplayName("AuditSinkPort resolves to the App-local outbox adapter (P7-AUDIT-SINK-OWNER-BINDING-001)")
+    void auditSinkPortResolvesToAppAdapter() {
+        assertThat(auditSinkPort)
+                .isInstanceOf(com.ulticode.app.audit.AppAuditSinkAdapter.class);
     }
 }

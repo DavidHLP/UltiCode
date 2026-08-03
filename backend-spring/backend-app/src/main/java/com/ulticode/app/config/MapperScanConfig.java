@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.event.outbox",
         "com.ulticode.modules.event.inbox",
         "com.ulticode.app.userprofile.mapper",
+        "com.ulticode.app.audit",
 })
 public class MapperScanConfig {
 }

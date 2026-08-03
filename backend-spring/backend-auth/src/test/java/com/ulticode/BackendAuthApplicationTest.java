@@ -23,6 +23,9 @@ class BackendAuthApplicationTest {
     @Autowired
     private TestRestTemplate rest;
 
+    @Autowired
+    private com.ulticode.common.audit.AuditSinkPort auditSinkPort;
+
     @Test
     @DisplayName("context loads and /actuator/health is UP")
     void healthEndpointReturnsUp() {
@@ -41,5 +44,12 @@ class BackendAuthApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("backend-auth shell up");
+    }
+
+    @Test
+    @DisplayName("AuditSinkPort resolves to the Auth-local outbox adapter (P7-AUDIT-SINK-OWNER-BINDING-001)")
+    void auditSinkPortResolvesToAuthAdapter() {
+        assertThat(auditSinkPort)
+                .isInstanceOf(com.ulticode.auth.audit.AuthAuditSinkAdapter.class);
     }
 }

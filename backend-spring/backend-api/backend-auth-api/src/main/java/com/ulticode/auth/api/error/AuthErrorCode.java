@@ -33,6 +33,18 @@ public enum AuthErrorCode implements NamespacedErrorCode {
     /** Addressed role does not exist on the auth provider. */
     ROLE_NOT_FOUND(40404, "Role not found"),
 
+    /** A username or email is already owned by another account. */
+    ACCOUNT_ALREADY_EXISTS(40904, "Account already exists"),
+
+    /** The same idempotency key was reused with a different request body. */
+    IDEMPOTENCY_KEY_CONFLICT(40905, "Idempotency key conflict"),
+
+    /** The account-management command contains an invalid business value. */
+    INVALID_ACCOUNT_REQUEST(40001, "Invalid account request"),
+
+    /** The supplied current password does not match the stored credential. */
+    PASSWORD_MISMATCH(40002, "Password mismatch"),
+
     /** Generic unexpected auth state; provider logged the underlying cause. */
     UNEXPECTED_AUTH_STATE(50001, "Unexpected auth state");
 

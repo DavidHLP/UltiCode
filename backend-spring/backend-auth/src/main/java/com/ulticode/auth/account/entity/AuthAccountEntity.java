@@ -14,8 +14,10 @@ public class AuthAccountEntity {
     private String role;
     private Boolean active;
     private Boolean banned;
+    private String bannedReason;
     private LocalDateTime bannedUntil;
     private LocalDateTime joinedAt;
+    private LocalDateTime lastLoginAt;
     private Long authzVersion;
     private String passwordResetTokenHash;
     private LocalDateTime passwordResetExpiresAt;

@@ -3,12 +3,20 @@ package com.ulticode.auth.api.architecture;
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
 import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.command.ChangePasswordCommand;
+import com.ulticode.auth.api.command.CreateAccountCommand;
+import com.ulticode.auth.api.command.DeleteAccountCommand;
+import com.ulticode.auth.api.command.ResetPasswordCommand;
+import com.ulticode.auth.api.command.UpdateAccountCredentialsCommand;
 import com.ulticode.auth.api.command.WriteCommand;
+import com.ulticode.auth.api.dto.AccountMutationDTO;
+import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountAdministrationService;
+import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.error.NamespacedErrorCode;
@@ -64,17 +72,40 @@ class BackendAuthApiContractShapeTest {
         Set<String> required = Set.of(
                 "com.ulticode.auth.api.service.IdentityQueryService",
                 "com.ulticode.auth.api.service.AccountAdministrationService",
+                "com.ulticode.auth.api.service.AccountManagementService",
                 "com.ulticode.auth.api.service.AuthorizationSnapshotService",
                 "com.ulticode.auth.api.service.ReconciliationQueryService",
                 "com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts",
                 "com.ulticode.auth.api.dto.UserIdentityDTO",
                 "com.ulticode.auth.api.dto.AccountStateDTO",
+                "com.ulticode.auth.api.dto.AccountMutationDTO",
+                "com.ulticode.auth.api.dto.AuthAccountDTO",
+                "com.ulticode.auth.api.dto.AccountQueryDTO",
+                "com.ulticode.auth.api.dto.ChangePasswordDTO",
                 "com.ulticode.auth.api.dto.AuthorizationSnapshotDTO",
                 "com.ulticode.auth.api.command.ActorDelegation",
                 "com.ulticode.auth.api.command.WriteCommand",
                 "com.ulticode.auth.api.command.ChangeAccountStateCommand",
                 "com.ulticode.auth.api.command.ChangeAuthorizationCommand",
+                "com.ulticode.auth.api.command.CreateAccountCommand",
+                "com.ulticode.auth.api.command.UpdateAccountCredentialsCommand",
+                "com.ulticode.auth.api.command.ChangePasswordCommand",
+                "com.ulticode.auth.api.command.ResetPasswordCommand",
+                "com.ulticode.auth.api.command.DeleteAccountCommand",
                 "com.ulticode.auth.api.error.AuthErrorCode");
+        Set<Class<?>> scanned = Set.of(
+                UserIdentityDTO.class,
+                AccountStateDTO.class,
+                AccountMutationDTO.class,
+                AuthorizationSnapshotDTO.class,
+                ActorDelegation.class,
+                ChangeAccountStateCommand.class,
+                ChangeAuthorizationCommand.class,
+                CreateAccountCommand.class,
+                UpdateAccountCredentialsCommand.class,
+                ChangePasswordCommand.class,
+                ResetPasswordCommand.class,
+                DeleteAccountCommand.class);
         Set<String> missing = new HashSet<>();
         ClassLoader cl = getClass().getClassLoader();
         for (String fqcn : required) {
@@ -103,6 +134,8 @@ class BackendAuthApiContractShapeTest {
         Set<Class<?>> scanned = Set.of(
                 UserIdentityDTO.class,
                 AccountStateDTO.class,
+                AccountMutationDTO.class,
+                AuthAccountDTO.class,
                 AuthorizationSnapshotDTO.class,
                 ActorDelegation.class,
                 ChangeAccountStateCommand.class,
@@ -253,6 +286,24 @@ class BackendAuthApiContractShapeTest {
                             + method.getDeclaringClass().getSimpleName()
                             + "#" + method.getName()
                             + " implements WriteCommand")
+                    .isAssignableFrom(params[0].getType());
+        }
+    }
+    @Test
+    void account_management_service_methods_take_write_commands() {
+        for (Method method : AccountManagementService.class.getDeclaredMethods()) {
+            assertThat(method.getReturnType())
+                    .as("AccountManagementService." + method.getName()
+                            + " must return RpcResult")
+                    .isEqualTo(RpcResult.class);
+            Parameter[] params = method.getParameters();
+            assertThat(params)
+                    .as("AccountManagementService." + method.getName()
+                            + " takes exactly one WriteCommand")
+                    .hasSize(1);
+            assertThat(WriteCommand.class)
+                    .as("the single parameter of AccountManagementService#"
+                            + method.getName() + " implements WriteCommand")
                     .isAssignableFrom(params[0].getType());
         }
     }

@@ -73,6 +73,7 @@ class BackendAuthApiContractShapeTest {
                 "com.ulticode.auth.api.service.IdentityQueryService",
                 "com.ulticode.auth.api.service.AccountAdministrationService",
                 "com.ulticode.auth.api.service.AccountManagementService",
+                "com.ulticode.auth.api.service.AccountQueryService",
                 "com.ulticode.auth.api.service.AuthorizationSnapshotService",
                 "com.ulticode.auth.api.service.ReconciliationQueryService",
                 "com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts",
@@ -305,6 +306,14 @@ class BackendAuthApiContractShapeTest {
                     .as("the single parameter of AccountManagementService#"
                             + method.getName() + " implements WriteCommand")
                     .isAssignableFrom(params[0].getType());
+        }
+    }
+    @Test
+    void account_query_service_methods_return_rpc_result() {
+        for (Method method : com.ulticode.auth.api.service.AccountQueryService.class.getDeclaredMethods()) {
+            assertThat(method.getReturnType())
+                    .as("AccountQueryService." + method.getName() + " must return RpcResult")
+                    .isEqualTo(RpcResult.class);
         }
     }
 

@@ -10,10 +10,11 @@
  */
 import axios from 'axios';
 
-const API_BASE_URL =
-  (typeof import.meta !== 'undefined' &&
-    (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL) ||
-  'http://localhost:9001';
+type ViteImportMeta = ImportMeta & {
+  env?: { VITE_API_BASE_URL?: string };
+};
+const viteMeta = import.meta as ViteImportMeta;
+const API_BASE_URL = viteMeta.env?.VITE_API_BASE_URL || '/api';
 
 export const rawAxios = axios.create({
   baseURL: API_BASE_URL,

@@ -9,9 +9,9 @@
 #      declares the canonical identity-header strip; every proxy
 #      location in both confs MUST `include` that snippet (no per-location
 #      drift).
-#   2. Path preservation: every family location uses `proxy_pass
-#      http://backend:9001/<family>/;` so longest-prefix matching does not
-#      strip the family prefix from the upstream URI.
+#   2. Path preservation: every family location uses the canonical owner
+#      upstream with an explicit family suffix, so longest-prefix matching
+#      does not strip the family prefix from the upstream URI.
 #   3. WebSocket upgrade: the `map` directive lives at http scope and
 #      every location uses `Connection $connection_upgrade;` (NOT a
 #      hardcoded "upgrade", which would break SockJS HTTP-fallback
@@ -141,12 +141,12 @@ file_must_contain "$SECURITY_CONF" 'add_header[[:space:]]+Referrer-Policy' "snip
 
 heading "3. proxy_pass prefix preservation (per family)"
 declare -A EXPECT_PASS=(
-    ['/api/auth/']='http://backend-auth:9001/auth/;'
-    ['/api/admin/']='http://backend:9001/admin/;'
-    ['/api/moderation/']='http://backend:9001/moderation/;'
-    ['/api/']='http://backend:9001/;'
-    ['/api/ws/']='http://backend:9001/ws/;'
-    ['/ws/']='http://backend:9001/ws/;'
+    ['/api/auth/']='http://backend-auth:9101/auth/;'
+    ['/api/admin/']='http://backend-admin:9102/admin/;'
+    ['/api/moderation/']='http://backend-app:9103/moderation/;'
+    ['/api/']='http://backend-app:9103/;'
+    ['/api/ws/']='http://backend-app:9103/ws/;'
+    ['/ws/']='http://backend-app:9103/ws/;'
 )
 for conf_label in "console:$CONSOLE_CONF" "management:$MANAGEMENT_CONF"; do
     label="${conf_label%%:*}"

@@ -75,7 +75,8 @@ cat >"$OUTPUT_FILE" <<EOF
 # Do not commit this file or reuse these credentials outside this checkout.
 
 SPRING_PROFILES_ACTIVE=dev
-SERVER_PORT=9001
+# Direct backend-app fallback; PM2/Compose override each owner to 9101/9102/9103.
+SERVER_PORT=9103
 CONSOLE_PORT=9002
 MANAGEMENT_PORT=9003
 
@@ -141,10 +142,10 @@ DEV_SEED_ADMIN_ROLE=ADMIN
 
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
-GITHUB_REDIRECT_URI=http://localhost:9001/auth/github/callback
+GITHUB_REDIRECT_URI=http://localhost:9002/api/auth/github/callback
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://localhost:9001/auth/google/callback
+GOOGLE_REDIRECT_URI=http://localhost:9002/api/auth/google/callback
 SMTP_HOST=localhost
 SMTP_PORT=1025
 SMTP_USER=
@@ -152,7 +153,7 @@ SMTP_PASSWORD=
 EMAIL_ENABLED=false
 EMAIL_FROM_NAME="UltiCode Dev"
 
-VITE_API_BASE_URL=http://localhost:9001
+VITE_API_BASE_URL=/api
 VITE_ADMIN_BASE_URL=http://localhost:9003
 VITE_TEST_USERNAME=admin
 VITE_TEST_PASSWORD=admin123

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 const ADMIN_BASE_URL = process.env.VITE_ADMIN_BASE_URL || 'http://localhost:9003'
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:9001'
+const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:9003/api'
 
 test.describe('Problem List Edit Flow', () => {
   test.beforeEach(async ({ page }) => {

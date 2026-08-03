@@ -4,11 +4,11 @@
 # P1-INFRA-003: Real-Dubbo registration smoke.
 #
 # Spins up the dev infrastructure (MySQL + Redis + Nacos) via docker compose,
-# runs Flyway migrations, then starts backend-legacy (Dubbo 3.3.6 Triple +
-# Nacos registry, dev namespace) long enough for the Dubbo Triple provider
-# to register itself with Nacos. Queries the Nacos instance list and asserts
-# that the service name `ulticode-backend-legacy` is present in the
-# `DEFAULT_GROUP` of the `dev` namespace. Tears everything down on exit.
+# runs Flyway migrations, then starts backend-auth (Dubbo 3.3.6 Triple +
+# Nacos registry, dev namespace) long enough for the provider to register
+# itself with Nacos. Queries the Nacos instance list and asserts that the
+# service name `backend-auth` is present in the `DEFAULT_GROUP` of the
+# `dev` namespace. Tears everything down on exit.
 #
 # This is the live acceptance check for P1-INFRA-003 acceptance criteria
 # "service registers successfully with dev namespace". The unit test
@@ -19,8 +19,7 @@
 #   ./scripts/dev/dubbo-nacos-smoke.sh
 #
 # Exit codes:
-#   0  Nacos registry contains the ulticode-backend-legacy instance
-#   1  any failure (compose up, migrations, backend boot, Nacos query)
+#   0  Nacos registry contains the backend-auth instance
 #
 
 set -euo pipefail
@@ -56,7 +55,7 @@ export JWT_SECRET
 export DUBBO_REGISTRY_USERNAME="$NACOS_USERNAME"
 export DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD"
 
-SERVICE_NAME="${DUBBO_APPLICATION_NAME:-ulticode-backend-legacy}"
+SERVICE_NAME="${DUBBO_APPLICATION_NAME:-backend-auth}"
 NACOS_BASE="http://127.0.0.1:${NACOS_PORT:-28848}"
 NACOS_NAMESPACE="${DUBBO_NAMESPACE:-dev}"
 NACOS_GROUP="DEFAULT_GROUP"
@@ -71,8 +70,7 @@ cleanup() {
   echo
   echo "--- Cleanup (rc=$rc) ---"
   if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "Stopping backend-legacy (pid=$BACKEND_PID)..."
-    kill -TERM "$BACKEND_PID" 2>/dev/null || true
+    echo "Stopping backend-auth (pid=$BACKEND_PID)..."
     for _ in 1 2 3 4 5; do
       kill -0 "$BACKEND_PID" 2>/dev/null || break
       sleep 2
@@ -160,19 +158,20 @@ echo "--- 3a. Installing backend-common into the local repo ---"
     || { echo "backend-common install failed (see $LOG_DIR/backend-common-install.log)" >&2; tail -50 "$LOG_DIR/backend-common-install.log" >&2; exit 1; }
 )
 
-echo "--- 4. Starting backend-legacy (Dubbo Triple + Nacos registry) ---"
+echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
 (
-  cd "$ROOT_DIR/backend-spring/backend-legacy"
-  SPRING_PROFILES_ACTIVE=dev \
-    timeout --kill-after=15 240 ../mvnw \
-      -Dspring-boot.run.profiles=dev \
-      -Dmaven.test.skip=true \
-      -Dspring-boot.run.fork=false \
-      -B spring-boot:run >"$LOG_DIR/backend-legacy.log" 2>&1 &
+  cd "$ROOT_DIR/backend-spring"
+  SERVER_PORT=9101 \
+    SPRING_PROFILES_ACTIVE=dev \
+      timeout --kill-after=15 240 ./mvnw -pl backend-auth -am \
+        -Dspring-boot.run.profiles=dev \
+        -Dmaven.test.skip=true \
+        -Dspring-boot.run.fork=false \
+        -B spring-boot:run >"$LOG_DIR/backend-auth.log" 2>&1 &
   echo $!
 ) >"$LOG_DIR/backend.pid"
 BACKEND_PID="$(cat "$LOG_DIR/backend.pid")"
-echo "  backend-legacy pid=$BACKEND_PID (logs: $LOG_DIR/backend-legacy.log)"
+echo "  backend-auth pid=$BACKEND_PID (logs: $LOG_DIR/backend-auth.log)"
 
 # Nacos 2.x with auth enabled requires a JWT accessToken for Open API calls.
 # The registry client (Dubbo Nacos client) already performs login internally;
@@ -199,14 +198,14 @@ if [[ -z "$NACOS_TOKEN" ]]; then
   exit 1
 fi
 
-echo "--- 6. Waiting for backend-legacy to register with Nacos ---"
+echo "--- 6. Waiting for backend-auth to register with Nacos ---"
 REGISTERED=0
 response=""
 NACOS_INSTANCE_LIST_URL_WITH_TOKEN="${NACOS_INSTANCE_LIST_URL}&accessToken=${NACOS_TOKEN}"
 for attempt in $(seq 1 44); do
   if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "backend-legacy exited before registering (see $LOG_DIR/backend-legacy.log)." >&2
-    tail -120 "$LOG_DIR/backend-legacy.log" >&2
+    echo "backend-auth exited before registering (see $LOG_DIR/backend-auth.log)." >&2
+    tail -120 "$LOG_DIR/backend-auth.log" >&2
     exit 1
   fi
   response="$(curl -fsS "${NACOS_INSTANCE_LIST_URL_WITH_TOKEN}" 2>/dev/null || true)"
@@ -222,10 +221,10 @@ for attempt in $(seq 1 44); do
 done
 
 if [[ "$REGISTERED" -ne 1 ]]; then
-  echo "backend-legacy did not register with Nacos in time." >&2
+  echo "backend-auth did not register with Nacos in time." >&2
   echo "Last Nacos response: $response" >&2
-  echo "--- backend-legacy log tail ---" >&2
-  tail -120 "$LOG_DIR/backend-legacy.log" >&2
+  echo "--- backend-auth log tail ---" >&2
+  tail -120 "$LOG_DIR/backend-auth.log" >&2
   exit 1
 fi
 

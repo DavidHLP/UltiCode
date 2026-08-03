@@ -84,6 +84,29 @@ export default defineConfig({
     // (默认仅绑 localhost, 在 IPv6 优先的机器上只监听 [::1], IPv4 回环访问失败)
     host: true,
     port: 9003,
+    proxy: {
+      '/api/auth': {
+        target: 'http://127.0.0.1:9101',
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
+      '/api/admin': {
+        target: 'http://127.0.0.1:9102',
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
+      '/api/moderation': {
+        target: 'http://127.0.0.1:9103',
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
+      '/api': {
+        target: 'http://127.0.0.1:9103',
+        ws: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, '') || '/',
+      },
+      '/ws': {
+        target: 'http://127.0.0.1:9103',
+        ws: true,
+      },
+    },
     fs: {
       // Allow serving files from workspace root for pnpm monorepo
       // This enables access to .pnpm directory for font files (e.g., KaTeX)

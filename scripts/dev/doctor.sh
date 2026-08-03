@@ -20,9 +20,11 @@ set -u
 set -o pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PORTS=(9001 9002 9003 8563)
+PORTS=(9101 9102 9103 9002 9003 8563)
 LABELS=(
-  "9001:Spring Boot Backend"
+  "9101:Auth Backend"
+  "9102:Admin Backend"
+  "9103:App Backend"
   "9002:Console Frontend (Vite)"
   "9003:Management Frontend (Vite)"
   "8563:Arthas MCP Server"
@@ -302,7 +304,9 @@ recommend() {
   if [[ "$pm2_has_apps" == true && "$ports_pm2" -ge 1 ]]; then
     printf '  %s PM2 is owning the ports (mode A active). Use PM2:\n' "$(color green 'OK')"
     printf '      pm2 status                   # see what is up\n'
-    printf '      pm2 logs ulticode-9001       # backend logs\n'
+    printf '      pm2 logs ulticode-auth     # auth backend logs\n'
+    printf '      pm2 logs ulticode-admin    # admin backend logs\n'
+    printf '      pm2 logs ulticode-app       # app backend logs\n'
     printf '      open http://localhost:9002   # console\n'
     return
   fi
@@ -322,7 +326,7 @@ recommend() {
 
   if [[ "$ports_busy" -gt 0 && "$ports_pm2" -eq 0 && "$ports_preview" -eq 0 ]]; then
     printf '  %s ports are held by %d unknown process(es). Investigate before starting more:\n' "$(color yellow 'WARN')" "$ports_busy"
-    printf '      %s\n' 'lsof -i :9001   # or netstat -ano on Windows'
+    printf '      %s\n' 'lsof -i :9101   # or netstat -ano on Windows'
   fi
 }
 

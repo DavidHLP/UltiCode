@@ -29,15 +29,15 @@ Options:
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
   --only <apps>        只起指定 PM2 app, 逗号分隔
-                       (如 9001 或 9001,9002; 可简写或带 ulticode- 前缀)
-  --no-frontend        不起前端 (等同 --only 9001)
+                       (如 auth,admin,app 或 9101,9102; 前端仍可用 9002/9003)
+  --no-frontend        不起前端 (等同 --only auth,admin,app)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   -h, --help           显示此帮助
 
 Examples:
   ./scripts/dev/up.sh                          # 全量冷启动
   ./scripts/dev/up.sh --quick                  # 改代码后热重启 (最快)
-  ./scripts/dev/up.sh --only 9001              # 只起后端
+  ./scripts/dev/up.sh --only auth              # 只起 Auth
   ./scripts/dev/up.sh --frontend-only          # 只起前端
   ./scripts/dev/up.sh --no-frontend --skip-bootstrap
   ./scripts/dev/up.sh --skip-infra --skip-migrate
@@ -75,7 +75,7 @@ if [[ "$FRONTEND_ONLY" == true ]]; then
   SKIP_BOOTSTRAP=true
 fi
 
-# 把 "9001,9002" 或 "ulticode-9001,ulticode-9002" 统一规范化
+# 把 owner 名、service 名或 9101/9102/9103 统一规范化为 PM2 app 名
 normalize_apps() {
   local IFS=','
   local out=""
@@ -83,9 +83,27 @@ normalize_apps() {
     a="${a// /}"
     [[ -z "$a" ]] && continue
     case "$a" in
-      ulticode-*) out="${out:+$out,}$a" ;;
-      *)          out="${out:+$out,}ulticode-$a" ;;
+      auth|backend-auth|ulticode-auth|9101)
+        a="ulticode-auth"
+        ;;
+      admin|backend-admin|ulticode-admin|9102)
+        a="ulticode-admin"
+        ;;
+      app|backend-app|ulticode-app|9103)
+        a="ulticode-app"
+        ;;
+      console|ulticode-9002|9002)
+        a="ulticode-9002"
+        ;;
+      management|ulticode-9003|9003)
+        a="ulticode-9003"
+        ;;
+      *)
+        echo "Unknown PM2 app alias: $a" >&2
+        exit 2
+        ;;
     esac
+    [[ ",$out," == *",$a,"* ]] || out="${out:+$out,}$a"
   done
   echo "$out"
 }
@@ -96,9 +114,9 @@ if [[ -n "$ONLY" ]]; then
 elif [[ "$FRONTEND_ONLY" == true ]]; then
   PM2_APPS="ulticode-9002,ulticode-9003"
 elif [[ "$NO_FRONTEND" == true ]]; then
-  PM2_APPS="ulticode-9001"
+  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app"
 else
-  PM2_APPS="ulticode-9001,ulticode-9002,ulticode-9003"
+  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-9002,ulticode-9003"
 fi
 
 # ===== 前置检查 =====
@@ -200,8 +218,9 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DEV_SEED_ADMIN_EMAIL="$DEV_SEED_ADMIN_EMAIL" \
     DEV_SEED_ADMIN_PASSWORD="$DEV_SEED_ADMIN_PASSWORD" \
     DEV_SEED_ADMIN_ROLE="$DEV_SEED_ADMIN_ROLE" \
+    SERVER_PORT=9102 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 90 mvn spring-boot:run \
+      timeout --kill-after=15 90 mvn -pl backend-admin -am spring-boot:run \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \
         -Dspring-boot.run.arguments='--spring.main.web-application-type=none' \
@@ -278,8 +297,14 @@ check_port() {
 apps_csv=",$PM2_APPS,"
 for _ in $(seq 1 90); do
   all_ok=true
-  if [[ "$apps_csv" == *",ulticode-9001,"* ]]; then
-    check_port 9001 '/contest?page=1&size=1' || all_ok=false
+  if [[ "$apps_csv" == *",ulticode-auth,"* ]]; then
+    check_port 9101 '/api/v1/auth/health' || all_ok=false
+  fi
+  if [[ "$apps_csv" == *",ulticode-admin,"* ]]; then
+    check_port 9102 '/api/v1/admin/health' || all_ok=false
+  fi
+  if [[ "$apps_csv" == *",ulticode-app,"* ]]; then
+    check_port 9103 '/api/v1/app/health' || all_ok=false
   fi
   if [[ "$apps_csv" == *",ulticode-9002,"* ]]; then
     check_port 9002 '/' || all_ok=false
@@ -293,11 +318,13 @@ Development stack is ready (services: $PM2_APPS).
 
   Console:    http://localhost:9002
   Management: http://localhost:9003
-  Backend:    http://localhost:9001
+  Auth API:   http://localhost:9101
+  Admin API:  http://localhost:9102
+  App API:    http://localhost:9103
   Nacos:      http://localhost:28848/nacos
 EOF
     # admin 凭据只在起了后端时显示 (admin 由 dev-admin bootstrap 维护)
-    if [[ "$apps_csv" == *",ulticode-9001,"* && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
+    if [[ "$apps_csv" == *",ulticode-auth,"* || "$apps_csv" == *",ulticode-admin,"* || "$apps_csv" == *",ulticode-app,"* ]] && [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
       cat <<EOF
 
 Local development administrator:

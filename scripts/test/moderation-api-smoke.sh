@@ -1,7 +1,7 @@
 #!/bin/bash
-# Moderation API Smoke Test
-# Tests moderation API endpoints against a running backend.
-# Requires: curl, a running backend.
+# Moderation API smoke test through the owner gateway.
+# Tests moderation API endpoints against a running Auth/Admin/App stack.
+# Requires: curl, a running gateway.
 #
 # Usage: ./moderation-api-smoke.sh [BASE_URL] [USERNAME] [PASSWORD]
 #   Credentials default to SMOKE_USER / SMOKE_PASS env vars.
@@ -10,7 +10,7 @@
 set -euo pipefail
 trap 'rm -f /tmp/mod-smoke-cookies.txt' EXIT
 
-BASE_URL="${1:-http://localhost:9001}"
+BASE_URL="${1:-http://localhost:9003/api}"
 USERNAME="${2:-${SMOKE_USER:-}}"
 SMOKE_CRED="${3:-${SMOKE_PASS:-}}"
 

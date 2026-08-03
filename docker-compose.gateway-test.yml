@@ -1,29 +1,65 @@
 # Gateway topology smoke test (used by scripts/test/gateway-baseline.sh).
 #
-# Mirrors docker-compose.prod.yml's wiring at the network layer (the
-# `gateway` service resolves `backend` via Docker DNS exactly as the
-# production console/management containers would), but with the production
-# console nginx.conf + a deterministic echo backend on 9001.
+# Mirrors docker-compose.prod.yml's wiring at the network layer: the gateway
+# resolves backend-auth/backend-admin/backend-app via Docker DNS exactly as the
+# production frontend containers do. Each owner is a deterministic echo
+# backend on its production internal HTTP port.
 #
 # Usage (called by the script — don't run directly):
 #   docker compose -f docker-compose.gateway-test.yml up -d
 #   docker compose -f docker-compose.gateway-test.yml down
 #
-# The gateway port is published on loopback only, matching the production
-# compose behaviour. The backend port is NOT published.
+# The gateway port is published on loopback only. Backend ports are NOT
+# published.
 services:
-  backend:
+  backend-auth:
     image: python:3.12-alpine
-    container_name: gateway-test-backend
+    container_name: gateway-test-backend-auth
     working_dir: /opt
     command:
       - sh
       - -c
-      - "apk add --no-cache curl >/dev/null 2>&1 && python3 fake-backend.py 9001"
+      - "python3 fake-backend.py 9101"
     volumes:
       - ./infrastructure/nginx/fake-backend.py:/opt/fake-backend.py:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9001/_probe"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9101/_probe')"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    networks:
+      - gw-net
+
+  backend-admin:
+    image: python:3.12-alpine
+    container_name: gateway-test-backend-admin
+    working_dir: /opt
+    command:
+      - sh
+      - -c
+      - "python3 fake-backend.py 9102"
+    volumes:
+      - ./infrastructure/nginx/fake-backend.py:/opt/fake-backend.py:ro
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9102/_probe')"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    networks:
+      - gw-net
+
+  backend-app:
+    image: python:3.12-alpine
+    container_name: gateway-test-backend-app
+    working_dir: /opt
+    command:
+      - sh
+      - -c
+      - "python3 fake-backend.py 9103"
+    volumes:
+      - ./infrastructure/nginx/fake-backend.py:/opt/fake-backend.py:ro
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9103/_probe')"]
       interval: 1s
       timeout: 1s
       retries: 30
@@ -36,21 +72,20 @@ services:
     ports:
       - "127.0.0.1:8081:8080"
     depends_on:
-      backend:
+      backend-auth:
+        condition: service_healthy
+      backend-admin:
+        condition: service_healthy
+      backend-app:
         condition: service_healthy
     volumes:
-      # console/nginx.conf carries ${API_ORIGIN}; mounted as a
-      # default.conf.template so the alpine entrypoint runs envsubst.
+      # Render the shared security headers under the include path expected by
+      # console/nginx.conf; the template is static but follows nginx's normal
+      # envsubst layout.
       - ./console/nginx.conf:/etc/nginx/templates/default.conf.template:ro
-      # security-headers.conf also carries ${API_ORIGIN}; mounted
-      # under templates/includes/ so envsubst renders it into
-      # /etc/nginx/conf.d/includes/security-headers.conf (the path
-      # the include directive in our confs expects).
       - ./infrastructure/nginx/includes/security-headers.conf:/etc/nginx/templates/includes/security-headers.conf.template:ro
       # backend-proxy.conf has no env vars; mount it directly.
       - ./infrastructure/nginx/includes/backend-proxy.conf:/etc/nginx/conf.d/includes/backend-proxy.conf:ro
-    environment:
-      API_ORIGIN: "http://localhost:9001"
     networks:
       - gw-net
 

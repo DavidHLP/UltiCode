@@ -52,12 +52,10 @@ RUN addgroup -g 1001 -S appgroup && \
 # Drop the alpine default conf so only ours gets loaded.
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY console/nginx.conf /etc/nginx/templates/default.conf.template
-# Security-headers.conf contains ${API_ORIGIN}; it MUST go through the
-# envsubst pipeline, so copy it under templates/ as a .template and let
-# the alpine entrypoint render it into /etc/nginx/conf.d/includes/.
+# Keep the shared security headers under templates/includes so the nginx
+# entrypoint renders them into the conf.d/includes path used by nginx.conf.
 COPY infrastructure/nginx/includes/security-headers.conf /etc/nginx/templates/includes/security-headers.conf.template
 COPY infrastructure/nginx/includes/backend-proxy.conf /etc/nginx/conf.d/includes/backend-proxy.conf
-ENV API_ORIGIN="http://localhost:9001"
 
 # Grant write access to nginx runtime directories and conf.d (for envsubst)
 RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d && \

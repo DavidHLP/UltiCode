@@ -139,9 +139,9 @@
                                     │ Axios + CSRF    │
                                     ▼                ▼
                        ┌────────────────────────────────────────────┐
-                       │  Spring Boot 3.2.5 · Java 17   (9001)      │
-                       │  26 modules · MyBatis-Plus · MapStruct     │
-                       │  JWT + Redis Session · SpringDoc OpenAPI   │
+                       │          Owner API gateway (/api)           │
+                       │ Auth :9101 · Admin :9102 · App :9103       │
+                       │ JWT + Redis Session · SpringDoc OpenAPI   │
                        └──┬──────────────┬──────────────┬───────────┘
                           │              │              │
                           ▼              ▼              ▼
@@ -163,7 +163,7 @@
 
 ```
 UltiCode/
-├── backend-spring/   # Spring Boot 3.2.5 后端 — 端口 9001
+├── backend-spring/   # Spring Boot 3.2.5 owner services — 9101/9102/9103
 ├── console/          # Vue 3 用户前端 — 端口 9002
 ├── management/       # Vue 3 管理后台 — 端口 9003
 ├── shared/           # 共享包 (auth-core · auth-ui · badge-config · design-system · sandbox-types · theme)
@@ -320,8 +320,9 @@ dev 数据库会自动创建固定管理员账号：
 |------|------|------|
 | 用户前端 (Console) | <http://localhost:9002> | PWA · 支持 light/dark/compact 切换 |
 | 管理后台 (Management) | <http://localhost:9003> | 需 `admin` 角色 |
-| 后端 API | <http://localhost:9001> | REST · `Result<T>` 封装 |
-| Swagger UI | <http://localhost:9001/swagger-ui.html> | OpenAPI 3 |
+| Auth API | <http://localhost:9101> | 认证 / 凭据 Owner |
+| Admin API | <http://localhost:9102> | 治理 / 管理 Owner |
+| App API | <http://localhost:9103> | OJ / 用户业务 Owner |
 | Nacos 控制台 | <http://localhost:28848/nacos> | 配置中心 / 服务发现 |
 | Arthas MCP | <http://localhost:8563/mcp> | STATELESS · Claude Code / IDE 直连 |
 
@@ -335,12 +336,14 @@ dev 数据库会自动创建固定管理员账号：
 ### 后端 (`backend-spring/`)
 
 ```bash
-# 通过 PM2
-pm2 restart ulticode-9001
-pm2 logs ulticode-9001
+# 通过 PM2（完整三 owner 后端）
+pm2 restart ulticode-auth ulticode-admin ulticode-app
+pm2 logs ulticode-auth
 
-# 直接启动
-./mvnw spring-boot:run -Dmaven.test.skip=true
+# 直接启动单个 owner
+./mvnw -pl backend-auth -am spring-boot:run -Dmaven.test.skip=true
+./mvnw -pl backend-admin -am spring-boot:run -Dmaven.test.skip=true
+./mvnw -pl backend-app -am spring-boot:run -Dmaven.test.skip=true
 
 # 编译 / 测试 / 集成
 ./mvnw compile -B
@@ -460,7 +463,9 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 
 | 端口 | PM2 app | 进程类型 | 备注 |
 |------|---------|---------|------|
-| 9001 | `ulticode-9001` | Spring Boot 后端 | 长生命周期 |
+| 9101 | `ulticode-auth` | Auth Spring Boot | Auth Owner |
+| 9102 | `ulticode-admin` | Admin Spring Boot | Admin Owner |
+| 9103 | `ulticode-app` | App Spring Boot | App Owner |
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |
 | 9003 | `ulticode-9003` | Management (Vite) | dev: Vite · prod: 静态服务 |
 | — | `ulticode-init-db` | Flyway 一次性任务 | `stopped` 是**预期终态** |
@@ -469,21 +474,21 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 ### 常用命令
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动（按序拉起 init-db → 9001 → 前端）
+pm2 start ecosystem.config.cjs   # 首次启动三 owner + 两个前端
 pm2 start all                    # 后续启动
 pm2 restart all                  # 重启
 pm2 stop all
 pm2 status                       # 状态
 pm2 logs                         # 实时日志
-pm2 logs ulticode-9001 --nostream --lines 200   # 拉最近 200 行
+pm2 logs ulticode-auth --nostream --lines 200
+pm2 logs ulticode-admin --nostream --lines 200
+pm2 logs ulticode-app --nostream --lines 200
 pm2 save && pm2 resurrect        # 持久化与恢复
 ```
 
-### 启动顺序（重要！）
-
 1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
 2. `pm2 restart ulticode-init-db`（跑 Flyway）
-3. `pm2 restart ulticode-9001`
+3. `pm2 restart ulticode-auth ulticode-admin ulticode-app`
 4. 启动两个前端
 
 > 一键修复： `./scripts/dev/up.sh --skip-install`
@@ -508,8 +513,8 @@ pm2 save && pm2 resurrect        # 持久化与恢复
 | `SPRING_PROFILES_ACTIVE` | Spring Profile | dev / prod |
 
 > **pm2 env 缓存陷阱**：`pm2 restart --update-env` 不会重读 `.env`。
-> 改 `.env` 后若 9001 报 `RedisWrongPasswordException` 等认证错，请用：
-> `pm2 delete ulticode-9001 && pm2 start ecosystem.config.cjs --only ulticode-9001`
+> 改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
+> `pm2 delete ulticode-auth ulticode-admin ulticode-app && pm2 start ecosystem.config.cjs --only auth,admin,app`
 
 ---
 
@@ -581,7 +586,7 @@ git commit -m "feat(module): concise description"
 
 - 复现步骤 / 期望 / 实际行为
 - 环境（dev / prod、浏览器、Node / Java 版本）
-- 关键日志（`pm2 logs ulticode-9001 --nostream --lines 200`）
+- 关键日志（`pm2 logs ulticode-auth ulticode-admin ulticode-app --nostream --lines 200`）
 
 ---
 

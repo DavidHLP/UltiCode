@@ -240,24 +240,15 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   const dedupPolicy = config.dedupPolicy ?? 'non-auth-readonly'
   const canceledMessage = config.canceledMessage ?? 'Request canceled'
   let isAuthErrorHandling = false
-  const isDevelopment = (() => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return Boolean((import.meta as any)?.env?.DEV)
-    } catch {
-      return false
+  type ViteImportMeta = ImportMeta & {
+    env?: {
+      DEV?: boolean
+      VITE_API_BASE_URL?: string
     }
-  })()
-  const baseURL =
-    config.baseURL ??
-    (() => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (import.meta as any)?.env?.VITE_API_BASE_URL || 'http://localhost:9001'
-      } catch {
-        return 'http://localhost:9001'
-      }
-    })()
+  }
+  const viteMeta = import.meta as ViteImportMeta
+  const isDevelopment = Boolean(viteMeta.env?.DEV)
+  const baseURL = config.baseURL ?? viteMeta.env?.VITE_API_BASE_URL ?? '/api'
 
   const service: AxiosInstance = axios.create({
     baseURL,

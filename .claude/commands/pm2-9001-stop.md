@@ -1,4 +1,4 @@
-Stop ulticode-9001 (Backend).
+Stop all owner backends (auth/admin/app).
 ```bash
-cd "/home/david/project/UltiCode-Public-Next" && pm2 stop ulticode-9001
+cd "/home/david/project/UltiCode-Public-Next" && pm2 stop ulticode-auth ulticode-admin ulticode-app
 ```

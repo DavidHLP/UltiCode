@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# End-to-end curl test for /admin/solutions 7 endpoints.
+# End-to-end curl test for /admin/solutions 7 endpoints through the owner gateway.
 # Output is structured key=value lines for the QA doc.
 set -u
 
-BASE="${BASE:-http://localhost:9001}"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+BASE="${BASE:-http://localhost:9003/api}"
 COOKIE_JAR="$(mktemp -t uc-cookies-XXXXXX)"
 HEADERS_JAR="$(mktemp -t uc-headers-XXXXXX)"
 trap 'rm -f "$COOKIE_JAR" "$HEADERS_JAR"' EXIT
 
 set -a
-. /home/david/project/UltiCode/.env
+. "$ROOT_DIR/.env"
 set +a
 
 PASS=0; FAIL=0

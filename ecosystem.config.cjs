@@ -1,21 +1,49 @@
 const path = require('path')
 
 const ROOT = __dirname
+const BACKEND_CWD = path.join(ROOT, 'backend-spring')
+const BACKEND_ENV_FILE = path.join(ROOT, '.env')
 
 module.exports = {
   apps: [
     {
-      name: 'ulticode-9001',
-      cwd: path.join(ROOT, 'backend-spring'),
+      name: 'ulticode-auth',
+      cwd: BACKEND_CWD,
       script: 'mvn',
-      // P1-INFRA-001: backend-spring is a Maven reactor; select the legacy
-      // module which holds the Spring Boot boot.
-      args: '-pl backend-legacy -am spring-boot:run -Dspring-boot.run.profiles=dev',
+      args: '-pl backend-auth -am spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
-      env_file: path.join(ROOT, '.env'),
-      env: { SERVER_PORT: '9001' },
-      out_file: path.join(ROOT, 'logs', 'backend-spring.out.log'),
-      error_file: path.join(ROOT, 'logs', 'backend-spring.err.log'),
+      env_file: BACKEND_ENV_FILE,
+      env: { SERVER_PORT: '9101' },
+      out_file: path.join(ROOT, 'logs', 'backend-auth.out.log'),
+      error_file: path.join(ROOT, 'logs', 'backend-auth.err.log'),
+      merge_logs: true,
+      time: true,
+      max_memory_restart: '1G',
+    },
+    {
+      name: 'ulticode-admin',
+      cwd: BACKEND_CWD,
+      script: 'mvn',
+      args: '-pl backend-admin -am spring-boot:run -Dspring-boot.run.profiles=dev',
+      interpreter: 'none',
+      env_file: BACKEND_ENV_FILE,
+      env: { SERVER_PORT: '9102' },
+      out_file: path.join(ROOT, 'logs', 'backend-admin.out.log'),
+      error_file: path.join(ROOT, 'logs', 'backend-admin.err.log'),
+      merge_logs: true,
+      time: true,
+      max_memory_restart: '1G',
+    },
+    {
+      name: 'ulticode-app',
+      cwd: BACKEND_CWD,
+      script: 'mvn',
+      args: '-pl backend-app -am spring-boot:run -Dspring-boot.run.profiles=dev',
+      interpreter: 'none',
+      env_file: BACKEND_ENV_FILE,
+      env: { SERVER_PORT: '9103' },
+      out_file: path.join(ROOT, 'logs', 'backend-app.out.log'),
+      error_file: path.join(ROOT, 'logs', 'backend-app.err.log'),
       merge_logs: true,
       time: true,
       max_memory_restart: '1G',
@@ -26,7 +54,7 @@ module.exports = {
       script: 'pnpm',
       args: 'dev',
       interpreter: 'none',
-      env: { NODE_ENV: 'development' },
+      env: { NODE_ENV: 'development', VITE_API_BASE_URL: '/api' },
       out_file: path.join(ROOT, 'logs', 'console.out.log'),
       error_file: path.join(ROOT, 'logs', 'console.err.log'),
       merge_logs: true,
@@ -39,7 +67,7 @@ module.exports = {
       script: 'pnpm',
       args: 'dev',
       interpreter: 'none',
-      env: { NODE_ENV: 'development' },
+      env: { NODE_ENV: 'development', VITE_API_BASE_URL: '/api' },
       out_file: path.join(ROOT, 'logs', 'management.out.log'),
       error_file: path.join(ROOT, 'logs', 'management.err.log'),
       merge_logs: true,

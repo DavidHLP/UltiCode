@@ -149,7 +149,7 @@ if command -v pm2 >/dev/null 2>&1; then
     declare -A ST
     while IFS=$'\t' read -r name status; do
       [ -n "$name" ] && ST["$name"]="$status"
-    done < <(echo "$PM2_JSON" | jq -r '.[] | select(.name|test("^ulticode-(9001|9002|9003)$")) | "\(.name)\t\(.pm2_env.status)"' 2>/dev/null)
+    done < <(echo "$PM2_JSON" | jq -r '.[] | select(.name|test("^(ulticode-auth|ulticode-admin|ulticode-app|ulticode-(9002|9003))$")) | "\(.name)\t\(.pm2_env.status)"' 2>/dev/null)
     # SECURITY: `pm2 jlist` contains .pm2_env.env (DB_PASSWORD etc.) and
     # .pm2_env.args. The jq projection above selects ONLY .name and
     # .pm2_env.status. Do not weaken the projection.
@@ -157,7 +157,7 @@ if command -v pm2 >/dev/null 2>&1; then
       PM2_DOTS=""
       ONLINE=0
       TOTAL=0
-      for svc in ulticode-9001 ulticode-9002 ulticode-9003; do
+      for svc in ulticode-auth ulticode-admin ulticode-app ulticode-9002 ulticode-9003; do
         TOTAL=$((TOTAL+1))
         st="${ST[$svc]:-missing}"
         case "$st" in

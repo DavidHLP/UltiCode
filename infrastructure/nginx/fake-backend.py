@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Tiny HTTP echo backend used to verify nginx path translation.
 
-It logs every request (method, path, query) and returns a JSON record of
-what it received. It listens on 9001 by default. Used by tests in
-scripts/test/gateway-baseline.sh.
+what it received. It listens on the port passed by the gateway test and
+is used by scripts/test/gateway-baseline.sh.
 """
 import http.server
 import json
@@ -44,7 +43,7 @@ class EchoHandler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 9001
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 9103
     server = http.server.ThreadingHTTPServer(("0.0.0.0", port), EchoHandler)
     print(f"[echo-backend] listening on 0.0.0.0:{port}", flush=True)
     server.serve_forever()

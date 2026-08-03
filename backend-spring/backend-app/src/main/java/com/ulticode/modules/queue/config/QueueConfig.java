@@ -97,7 +97,7 @@ public class QueueConfig {
             RedissonClient redissonClient,
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry) {
-        String consumerId = "ulticode-9001-" + ProcessHandle.current().pid();
+        String consumerId = "ulticode-app-" + ProcessHandle.current().pid();
         return new RedissonStreamsJudgeQueueAdapter(
                 redissonClient,
                 objectMapper,

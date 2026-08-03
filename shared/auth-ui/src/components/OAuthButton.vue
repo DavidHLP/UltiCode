@@ -52,10 +52,10 @@ function handleOAuth() {
       );
     }
     console.warn(
-      "[OAuthButton] VITE_API_BASE_URL is not set; falling back to http://localhost:9001 for dev.",
+      "[OAuthButton] VITE_API_BASE_URL is not set; falling back to /api for dev.",
     );
   }
-  const apiBase = baseUrl ?? "http://localhost:9001";
+  const apiBase = baseUrl ?? "/api";
   if (props.provider === "github") {
     window.location.href = `${apiBase}/auth/github`;
   } else if (props.provider === "google") {

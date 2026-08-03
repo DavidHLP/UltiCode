@@ -22,10 +22,10 @@ describe("rawAxios", () => {
     expect(rawAxios.defaults.withCredentials).toBe(true);
   });
 
-  it("uses the VITE_API_BASE_URL or falls back to localhost:9001", () => {
-    // Don't assert exact value (env-driven) — just that baseURL is set
-    // to something the refresh call can resolve against.
+  it("uses VITE_API_BASE_URL or falls back to the same-origin /api gateway", () => {
+    // Don't assert exact value (env-driven); both absolute deployments and the
+    // relative local gateway are valid refresh targets.
     expect(typeof rawAxios.defaults.baseURL).toBe("string");
-    expect(rawAxios.defaults.baseURL).toMatch(/^https?:\/\//);
+    expect(rawAxios.defaults.baseURL).toMatch(/^(https?:\/\/|\/api(?:\/|$))/);
   });
 });

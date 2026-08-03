@@ -24,8 +24,24 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - name: backend
+          - name: backend-auth
             dockerfile: ./backend-spring/Dockerfile
+            module: backend-auth
+            artifact: app.jar
+            port: 9101
+            health_path: /api/v1/auth/health
+          - name: backend-admin
+            dockerfile: ./backend-spring/Dockerfile
+            module: backend-admin
+            artifact: app-exec.jar
+            port: 9102
+            health_path: /api/v1/admin/health
+          - name: backend-app
+            dockerfile: ./backend-spring/Dockerfile
+            module: backend-app
+            artifact: app-exec.jar
+            port: 9103
+            health_path: /api/v1/app/health
           - name: console
             dockerfile: ./console/Dockerfile
           - name: management
@@ -61,5 +77,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SERVICE_MODULE=${{ matrix.service.module }}
+            SERVICE_ARTIFACT=${{ matrix.service.artifact }}
+            SERVICE_PORT=${{ matrix.service.port }}
+            SERVICE_HEALTH_PATH=${{ matrix.service.health_path }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

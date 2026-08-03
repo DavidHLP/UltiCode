@@ -1,44 +1,46 @@
-# Stage 1: Build
+# Build one Spring Boot owner service from the Maven reactor.
+# The CI/publish matrices pass SERVICE_MODULE, SERVICE_ARTIFACT, SERVICE_PORT,
+# and SERVICE_HEALTH_PATH for backend-auth, backend-admin, and backend-app.
+ARG SERVICE_MODULE=backend-auth
+ARG SERVICE_ARTIFACT=app.jar
+ARG SERVICE_PORT=9101
+ARG SERVICE_HEALTH_PATH=/api/v1/auth/health
+
 FROM eclipse-temurin:17-jdk-alpine AS builder
 
+ARG SERVICE_MODULE
+ARG SERVICE_ARTIFACT
+
 WORKDIR /app
 
-# Copy Maven wrapper and reactor pom first for dependency caching.
-COPY backend-spring/.mvn/ ./.mvn/
-COPY backend-spring/mvnw ./mvnw
-COPY backend-spring/pom.xml ./pom.xml
-COPY backend-spring/backend-legacy/pom.xml ./backend-legacy/pom.xml
+# Copy the complete reactor so -am resolves the selected owner's
+# canonical shared/API/domain dependencies. Deferred business consumers may
+# still bring backend-legacy into the compile graph until its retirement task.
+COPY backend-spring/ ./
 
-# Download backend dependencies (recommendation/ module was removed in
-# commit 65dd5cc51; do not re-introduce the COPY lines without a real module.)
-WORKDIR /app
-RUN chmod +x ./mvnw && ./mvnw -pl backend-legacy -am -B dependency:go-offline
+RUN chmod +x ./mvnw \
+    && ./mvnw -pl "${SERVICE_MODULE}" -am -B -DskipTests package \
+    && cp "${SERVICE_MODULE}/target/${SERVICE_ARTIFACT}" /app/service.jar
 
-# Copy source and build the legacy module (the only Spring Boot boot
-# module under the P1-INFRA-001 reactor; future P1-INFRA-005 service
-# modules will publish their own images).
-COPY backend-spring/backend-legacy/src ./backend-legacy/src
-RUN ./mvnw -pl backend-legacy -am package -DskipTests -B
-
-# Stage 2: Runtime
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
+ARG SERVICE_PORT
+ARG SERVICE_HEALTH_PATH
+
 WORKDIR /app
 
-# Add healthcheck utility
 RUN apk add --no-cache curl
 
-# Copy built JAR
-COPY --from=builder /app/backend-legacy/target/app-exec.jar ./app.jar
+COPY --from=builder /app/service.jar ./app.jar
 
-# Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-ENV SERVER_PORT=9001
-EXPOSE 9001
+ENV SERVER_PORT=${SERVICE_PORT}
+ENV HEALTH_PATH=${SERVICE_HEALTH_PATH}
+EXPOSE ${SERVICE_PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -fsS 'http://localhost:9001/contest?page=1&size=1' >/dev/null || exit 1
+    CMD curl -fsS "http://localhost:${SERVER_PORT}${HEALTH_PATH}" >/dev/null || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

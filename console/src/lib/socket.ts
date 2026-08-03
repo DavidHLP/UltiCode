@@ -107,7 +107,7 @@ export interface WebSocketMessage<T = unknown> {
 type EventCallback<T = unknown> = (data: T) => void;
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
+  import.meta.env.VITE_API_BASE_URL || "/api";
 
 /**
  * Notification channel adapter over the deep realtime transport. Owns the

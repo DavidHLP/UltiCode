@@ -13,7 +13,9 @@ on:
         type: choice
         options:
           - all
-          - backend
+          - backend-auth
+          - backend-admin
+          - backend-app
           - console
           - management
 
@@ -40,7 +42,7 @@ jobs:
           TAG="${{ github.event.inputs.image_tag }}"
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.repository }}"
-          SERVICES=("backend" "console" "management")
+          SERVICES=("backend-auth" "backend-admin" "backend-app" "console" "management")
 
           for SVC in "${SERVICES[@]}"; do
             echo "Checking ${SVC}:${TAG}..."
@@ -86,21 +88,32 @@ jobs:
                     docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
                     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"
 
-      - name: Health check - backend (fail fast)
+      - name: Health check - backend owners (fail fast)
         run: |
           SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          echo "Checking backend health..."
-          for i in $(seq 1 15); do
-            if $SSH_CMD "docker exec ulticode-backend curl -sf 'http://localhost:9001/contest?page=1&size=1' > /dev/null 2>&1"; then
-              echo "  Backend is healthy"
-              break
-            fi
-            if [ "$i" -eq 15 ]; then
-              echo "::error::Backend failed health check after 75 seconds"
-              exit 1
-            fi
-            echo "  Waiting for backend... ($i/15)"
-            sleep 5
+          SERVICES=(
+            "backend-auth:9101:/api/v1/auth/health"
+            "backend-admin:9102:/api/v1/admin/health"
+            "backend-app:9103:/api/v1/app/health"
+          )
+          for svc in "${SERVICES[@]}"; do
+            NAME="${svc%%:*}"
+            REST="${svc#*:}"
+            PORT="${REST%%:*}"
+            HEALTH_PATH="${REST#*:}"
+            echo "Checking $NAME..."
+            for i in $(seq 1 15); do
+              if $SSH_CMD "docker exec ulticode-$NAME curl -sf 'http://localhost:$PORT$HEALTH_PATH' > /dev/null 2>&1"; then
+                echo "  $NAME is healthy"
+                break
+              fi
+              if [ "$i" -eq 15 ]; then
+                echo "::error::$NAME failed health check after 75 seconds"
+                exit 1
+              fi
+              echo "  Waiting for $NAME... ($i/15)"
+              sleep 5
+            done
           done
 
       - name: Health check - frontends

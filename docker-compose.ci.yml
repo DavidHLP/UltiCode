@@ -1,12 +1,39 @@
-# CI override: build images locally instead of pulling from GHCR
+# CI override: build owner images locally instead of pulling from GHCR.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml up -d --build
 
 services:
-  backend:
-    image: ulticode-backend:latest
+  backend-auth:
+    image: ulticode-backend-auth:latest
     build:
       context: .
       dockerfile: backend-spring/Dockerfile
+      args:
+        SERVICE_MODULE: backend-auth
+        SERVICE_ARTIFACT: app.jar
+        SERVICE_PORT: "9101"
+        SERVICE_HEALTH_PATH: /api/v1/auth/health
+
+  backend-admin:
+    image: ulticode-backend-admin:latest
+    build:
+      context: .
+      dockerfile: backend-spring/Dockerfile
+      args:
+        SERVICE_MODULE: backend-admin
+        SERVICE_ARTIFACT: app-exec.jar
+        SERVICE_PORT: "9102"
+        SERVICE_HEALTH_PATH: /api/v1/admin/health
+
+  backend-app:
+    image: ulticode-backend-app:latest
+    build:
+      context: .
+      dockerfile: backend-spring/Dockerfile
+      args:
+        SERVICE_MODULE: backend-app
+        SERVICE_ARTIFACT: app-exec.jar
+        SERVICE_PORT: "9103"
+        SERVICE_HEALTH_PATH: /api/v1/app/health
 
   console:
     image: ulticode-console:latest

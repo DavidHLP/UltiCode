@@ -1,20 +1,34 @@
 package com.ulticode.modules.admin.projection;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.LanguageOption;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.StatusOption;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.SubmissionStatistics;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.user.entity.User;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,7 +125,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
     public AdminSubmissionVO getSubmission(String id) {
         Submission submission = submissionReadPort.findById(id);
         if (submission == null) {
-            throw new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.SUBMISSION_NOT_FOUND);
         }
         return toAdminVOWithDetails(submission);
     }

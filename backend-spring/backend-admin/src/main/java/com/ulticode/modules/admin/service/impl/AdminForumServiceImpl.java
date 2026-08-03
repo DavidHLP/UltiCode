@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
@@ -118,7 +118,7 @@ public class AdminForumServiceImpl implements AdminForumService {
             // Row was concurrently modified/deleted between selectById and softDelete.
             // Throw to roll back the audit entry as well — a dangling audit row
             // pointing at a non-existent soft delete is worse than a clean error.
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
         log.info("Post soft-deleted: {} by {}", id, performerId);
     }
@@ -175,7 +175,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private ForumPost getPostEntityOrThrow(String id) {
         ForumPost post = forumPostMapper.selectById(id);
         if (post == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
         return post;
     }

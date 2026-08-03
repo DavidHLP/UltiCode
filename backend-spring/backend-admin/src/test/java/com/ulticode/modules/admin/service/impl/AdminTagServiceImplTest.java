@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.dto.tag.CreateTagDTO;
 import com.ulticode.modules.admin.dto.tag.MergeTagDTO;
@@ -101,7 +101,7 @@ class AdminTagServiceImplTest {
         void rejectsNullTypeOnGetTags() {
             assertThatThrownBy(() -> service.getTags(q(null)))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("code").isEqualTo(ErrorCode.BAD_REQUEST.getCode());
+                    .extracting("code").isEqualTo(AdminErrorCode.BAD_REQUEST.getCode());
         }
 
         @Test
@@ -109,7 +109,7 @@ class AdminTagServiceImplTest {
         void rejectsUnknownTypeOnGetTags() {
             assertThatThrownBy(() -> service.getTags(q("BOGUS")))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("code").isEqualTo(ErrorCode.BAD_REQUEST.getCode());
+                    .extracting("code").isEqualTo(AdminErrorCode.BAD_REQUEST.getCode());
         }
 
         @Test
@@ -246,7 +246,7 @@ class AdminTagServiceImplTest {
 
             assertThatThrownBy(() -> service.mergeTag(dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("code").isEqualTo(ErrorCode.PROBLEM_TAG_NOT_FOUND.getCode());
+                    .extracting("code").isEqualTo(AdminErrorCode.PROBLEM_TAG_NOT_FOUND.getCode());
         }
 
         @Test
@@ -265,7 +265,7 @@ class AdminTagServiceImplTest {
 
             assertThatThrownBy(() -> service.mergeTag(dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("code").isEqualTo(ErrorCode.FORUM_TAG_NOT_FOUND.getCode());
+                    .extracting("code").isEqualTo(AdminErrorCode.FORUM_TAG_NOT_FOUND.getCode());
         }
     }
 
@@ -294,7 +294,7 @@ class AdminTagServiceImplTest {
 
             assertThatThrownBy(() -> service.updateTag("missing", dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("code").isEqualTo(ErrorCode.PROBLEM_TAG_NOT_FOUND.getCode());
+                    .extracting("code").isEqualTo(AdminErrorCode.PROBLEM_TAG_NOT_FOUND.getCode());
         }
     }
 }

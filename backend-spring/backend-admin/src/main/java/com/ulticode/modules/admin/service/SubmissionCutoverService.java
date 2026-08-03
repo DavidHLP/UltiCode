@@ -7,7 +7,7 @@ import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -101,15 +101,15 @@ public class SubmissionCutoverService {
     private static BusinessException mapError(RpcResult<?> result) {
         var err = result.error();
         if (err == null) {
-            return new BusinessException(ErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
         }
         int code = err.code();
         if (code == 40401) {
-            return new BusinessException(ErrorCode.PROBLEM_NOT_FOUND, err.message());
+            return new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND, err.message());
         }
         if (code == 40901 || code == 40902) {
-            return new BusinessException(ErrorCode.CONFLICT, err.message());
+            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
         }
-        return new BusinessException(ErrorCode.UNKNOWN_ERROR, err.message());
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
     }
 }

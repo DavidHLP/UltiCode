@@ -7,8 +7,8 @@ import com.ulticode.app.api.command.UpdateNotificationCommand;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.service.NotificationAdministrationService;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -148,12 +148,12 @@ public class NotificationCutoverService {
     private static BusinessException mapError(RpcResult<?> result) {
         var err = result.error();
         if (err == null) {
-            return new BusinessException(ErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
         }
         int code = err.code();
         if (code == 40401) {
-            return new BusinessException(ErrorCode.NOT_FOUND, err.message());
+            return new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
         }
-        return new BusinessException(ErrorCode.UNKNOWN_ERROR, err.message());
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
     }
 }

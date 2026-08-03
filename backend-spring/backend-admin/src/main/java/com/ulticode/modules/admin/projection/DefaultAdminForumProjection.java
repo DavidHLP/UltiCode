@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminForumCommunityVO;
@@ -187,7 +187,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
     public AdminForumPostVO getPost(String id) {
         ForumPost post = forumPostMapper.selectById(id);
         if (post == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
         return toAdminVOWithDetails(post);
     }

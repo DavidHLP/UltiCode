@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.TraceIdUtil;
@@ -57,7 +57,7 @@ public class AuditController {
             response.setContentType("application/json;charset=UTF-8");
             String traceId = TraceIdUtil.current();
             objectMapper.writeValue(response.getWriter(),
-                Result.error(ErrorCode.BAD_REQUEST.getCode(),
+                Result.error(AdminErrorCode.BAD_REQUEST.getCode(),
                     "Unsupported format: " + format, traceId));
             return;
         }

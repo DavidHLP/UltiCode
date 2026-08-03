@@ -1,7 +1,10 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 
 /**
@@ -40,7 +43,7 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
  * </ul>
  *
  * <p>All methods are pure reads; none mutate user state. The single-item
- * read throws {@link com.ulticode.common.exception.ErrorCode#USER_NOT_FOUND}
+ * read throws {@link com.ulticode.admin.error.AdminErrorCode#USER_NOT_FOUND}
  * to preserve the access contract observed by the controller and by
  * {@link com.ulticode.modules.admin.service.UserPermissionService}.
  *
@@ -86,7 +89,7 @@ public interface AdminUserProjection {
      * @param id user ID
      * @return admin user VO with full stats + permissions snapshot
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#USER_NOT_FOUND}
+     *         {@link com.ulticode.admin.error.AdminErrorCode#USER_NOT_FOUND}
      *         when the user does not exist
      */
     AdminUserVO getUserById(String id);

@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.testcase.BulkImportResponse;
 import com.ulticode.modules.admin.dto.testcase.BulkImportTestCasesDTO;
@@ -115,7 +115,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, newCase("a", "b")))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.PROBLEM_NOT_FOUND);
             verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
@@ -128,7 +128,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.VALIDATION_FAILED);
             verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
@@ -144,7 +144,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
             verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
@@ -160,7 +160,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
             verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
@@ -237,7 +237,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.bulkImportTestCases(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
             verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
@@ -250,7 +250,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.bulkImportTestCases(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.PROBLEM_NOT_FOUND);
             verify(testCaseOwnerPort, never()).deleteAllForProblem(any());
             verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
@@ -279,7 +279,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.reorderTestCases(PROBLEM_ID, List.of("a", "a")))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.BAD_REQUEST);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.BAD_REQUEST);
             verify(testCaseOwnerPort, never()).updateTestOrder(any(), anyInt(), any());
         }
     }
@@ -326,7 +326,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.updateTestCase(PROBLEM_ID, "a", dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
             verify(testCaseOwnerPort, never()).updateTestCase(any(TestCaseWrite.class));
         }
 
@@ -344,7 +344,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.updateTestCase(PROBLEM_ID, "a", dto))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
             verify(testCaseOwnerPort, never()).updateTestCase(any(TestCaseWrite.class));
         }
 
@@ -369,7 +369,7 @@ class AdminTestCaseServiceTest {
 
             assertThatThrownBy(() -> service.getTestCase(PROBLEM_ID, "a"))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_NOT_FOUND);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.TEST_CASE_NOT_FOUND);
         }
 
         @Test

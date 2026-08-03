@@ -5,7 +5,7 @@ import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -73,7 +73,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
                                                  LocalDateTime expiresAt, boolean isRevoke) {
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
 
         final AdminUserVO beforeVo = adminUserProjection.getUserById(id);
@@ -156,7 +156,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             return;
         }
         if (!currentUserProvider.hasRole("SUPER_ADMIN")) {
-            throw new BusinessException(ErrorCode.FORBIDDEN,
+            throw new BusinessException(AdminErrorCode.FORBIDDEN,
                 "Granting/revoking MANAGE_PERMISSIONS:SYSTEM requires SUPER_ADMIN role");
         }
     }

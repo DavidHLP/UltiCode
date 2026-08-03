@@ -4,7 +4,7 @@ import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.time.TimeSource;
 import com.ulticode.common.time.TimeSourceHolder;
@@ -211,7 +211,7 @@ class UserPermissionServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     BusinessException be = (BusinessException) ex;
-                    assertThat(be.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+                    assertThat(be.getErrorCode()).isEqualTo(AdminErrorCode.FORBIDDEN);
                 });
     }
 
@@ -244,7 +244,7 @@ class UserPermissionServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     BusinessException be = (BusinessException) ex;
-                    assertThat(be.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+                    assertThat(be.getErrorCode()).isEqualTo(AdminErrorCode.FORBIDDEN);
                 });
     }
 }

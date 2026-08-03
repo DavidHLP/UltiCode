@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
@@ -97,7 +97,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         problemListAdminService.findEntityById(id);
 
         if (dto.getProblems() == null) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Problems list is required");
+            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Problems list is required");
         }
 
         problemListAdminService.adminReplaceListProblems(id, dto);

@@ -5,7 +5,7 @@ import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.config.CorsProperties;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
@@ -168,7 +168,7 @@ class AdminProblemListControllerTest {
         @DisplayName("should return 404 when problem list not found")
         void updateBasicInfo_notFound() throws Exception {
             when(adminProblemListService.updateBasicInfo(eq("missing-id"), any(), any(UpdateBasicInfoDTO.class)))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
             dto.setName("Updated Name");
@@ -210,7 +210,7 @@ class AdminProblemListControllerTest {
         @DisplayName("should return 404 when problem list not found")
         void updateVisibility_notFound() throws Exception {
             when(adminProblemListService.updateVisibility(eq("missing-id"), any(), any(UpdateVisibilityDTO.class)))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
             dto.setIsPublic(true);
@@ -269,7 +269,7 @@ class AdminProblemListControllerTest {
         @DisplayName("should return 404 when problem list not found")
         void updateBanner_notFound() throws Exception {
             when(adminProblemListService.updateBanner(eq("missing-id"), any(), any(UpdateBannerDTO.class)))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             UpdateBannerDTO dto = new UpdateBannerDTO();
             dto.setBannerTag("Hot");

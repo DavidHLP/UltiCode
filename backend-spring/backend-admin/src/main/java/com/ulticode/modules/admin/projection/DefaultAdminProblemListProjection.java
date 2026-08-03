@@ -2,8 +2,8 @@ package com.ulticode.modules.admin.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
@@ -91,7 +91,7 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
     @Override
     public ProblemListDetailVO getAdminListDetail(String id) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         ProblemListDetailVO vo = new ProblemListDetailVO();
         vo.setId(list.getId());

@@ -5,7 +5,7 @@ import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.config.CorsProperties;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.LanguageOption;
 import com.ulticode.modules.submission.dto.RejudgeResult;
@@ -187,7 +187,7 @@ class AdminSubmissionControllerTest {
         @DisplayName("returns 404 with code 40001 when submission not found")
         void notFound_returns404WithCode() throws Exception {
             when(adminSubmissionProjection.getSubmission("nope"))
-                .thenThrow(new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND));
+                .thenThrow(new BusinessException(AdminErrorCode.SUBMISSION_NOT_FOUND));
 
             mockMvc.perform(get("/admin/submissions/nope"))
                 .andExpect(status().isNotFound())

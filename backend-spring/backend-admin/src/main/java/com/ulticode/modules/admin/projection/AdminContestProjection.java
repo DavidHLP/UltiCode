@@ -1,8 +1,12 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminContestVO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.api.dto.ContestAdminDTO;
 
 /**
@@ -76,7 +80,7 @@ public interface AdminContestProjection {
      * @param id contest ID
      * @return admin contest VO
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#CONTEST_NOT_FOUND}
+     *         {@link com.ulticode.admin.error.AdminErrorCode#CONTEST_NOT_FOUND}
      *         when the contest does not exist
      */
     AdminContestVO getContest(String id);

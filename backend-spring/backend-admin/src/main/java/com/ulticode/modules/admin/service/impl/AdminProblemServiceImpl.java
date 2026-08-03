@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
@@ -233,7 +233,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private Problem findProblemById(Long id) {
         Problem problem = problemMapper.selectById(id);
         if (problem == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND);
         }
         return problem;
     }

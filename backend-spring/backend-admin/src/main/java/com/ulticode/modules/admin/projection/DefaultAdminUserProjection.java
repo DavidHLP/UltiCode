@@ -8,7 +8,7 @@ import com.ulticode.auth.api.dto.PermissionEntry;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.rpc.RpcResult;
@@ -127,12 +127,12 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
     @Override
     public AdminUserVO getUserById(String id) {
         if (accountQueryService == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
 
         RpcResult<AuthAccountDTO> rpcResult = accountQueryService.getAccountById(id);
         if (rpcResult == null || !rpcResult.success() || rpcResult.data() == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
 
         AuthAccountDTO account = rpcResult.data();

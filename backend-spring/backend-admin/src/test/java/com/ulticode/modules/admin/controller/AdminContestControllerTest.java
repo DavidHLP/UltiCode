@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.ContestVO;
@@ -166,7 +166,7 @@ class ContestControllerTest {
         @DisplayName("should return 403 when non-admin user tries to create contest")
         void createContest_forbidden_asUser() throws Exception {
             when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
-                    .thenThrow(new BusinessException(ErrorCode.FORBIDDEN));
+                    .thenThrow(new BusinessException(AdminErrorCode.FORBIDDEN));
 
             CreateContestDTO dto = createValidDTO();
 

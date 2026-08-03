@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.projection;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
@@ -163,7 +163,7 @@ class DefaultAdminProblemListProjectionTest {
             assertThatThrownBy(() -> projection.getAdminListDetail(LIST_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 

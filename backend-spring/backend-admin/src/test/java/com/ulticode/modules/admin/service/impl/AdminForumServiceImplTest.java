@@ -238,7 +238,7 @@ class AdminForumServiceImplTest {
             org.assertj.core.api.Assertions.assertThatThrownBy(
                     () -> adminForumService.deletePost("post-1"))
                     .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
-                    .extracting("code").isEqualTo(com.ulticode.common.exception.ErrorCode.NOT_FOUND.getCode());
+                    .extracting("code").isEqualTo(com.ulticode.admin.error.AdminErrorCode.NOT_FOUND.getCode());
 
             verify(forumPostMapper).softDelete(eq("post-1"), anyString());
         }

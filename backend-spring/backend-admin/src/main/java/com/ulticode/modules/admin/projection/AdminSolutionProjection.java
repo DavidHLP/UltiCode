@@ -1,8 +1,12 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 
 /**
@@ -37,7 +41,7 @@ import com.ulticode.modules.admin.dto.AdminSolutionVO;
  * </ul>
  *
  * <p>All methods are pure reads; none mutate solution state. The single-item
- * read throws {@link com.ulticode.common.exception.ErrorCode#SOLUTION_NOT_FOUND}
+ * read throws {@link com.ulticode.admin.error.AdminErrorCode#SOLUTION_NOT_FOUND}
  * to preserve the access contract observed by the controller.
  *
  * <p>Mirrors the {@link AdminSubmissionProjection} /
@@ -87,7 +91,7 @@ public interface AdminSolutionProjection {
      * @param id solution ID
      * @return admin solution VO with full details
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#SOLUTION_NOT_FOUND}
+     *         {@link com.ulticode.admin.error.AdminErrorCode#SOLUTION_NOT_FOUND}
      *         when the solution does not exist
      */
     AdminSolutionVO getSolution(String id);

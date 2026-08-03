@@ -2,8 +2,8 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.admin.service.ProblemExportService;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * <p>Owns every line of business logic the controller used to carry:
  * <ul>
  *   <li>format normalisation + validation (throws
- *       {@link BusinessException} {@link ErrorCode#BAD_REQUEST} on unknown
+ *       {@link BusinessException} {@link AdminErrorCode#BAD_REQUEST} on unknown
  *       format, so the global handler shapes the response);</li>
  *   <li>the {@link ProblemExportService#MAX_EXPORT_SIZE} cap;</li>
  *   <li>the CSV header literal + per-field escaping;</li>
@@ -69,7 +69,7 @@ public class ProblemExportServiceImpl implements ProblemExportService {
     private static String normalizeFormat(String format) {
         String normalized = format != null ? format.trim().toLowerCase() : "json";
         if (!"csv".equals(normalized) && !"json".equals(normalized)) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST,
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
                 "Unsupported format: " + format + ". Use 'json' or 'csv'.");
         }
         return normalized;
@@ -79,7 +79,7 @@ public class ProblemExportServiceImpl implements ProblemExportService {
         try {
             return objectMapper.writeValueAsBytes(problems);
         } catch (JsonProcessingException e) {
-            // Serialization of a list of POJO VOs should never fail in
+            // Serialization of a list of POJOs should never fail in
             // production; surface as a 500 rather than swallowing.
             throw new UncheckedIOException(e);
         }

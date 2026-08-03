@@ -5,7 +5,7 @@ import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.service.ContestAdministrationService;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.AdminContestVO;
@@ -135,7 +135,7 @@ class ContestSubmissionCutoverServiceTest {
                     RpcResult.failure(new RpcResult.ErrorPayload("app", 40902, "conflict"), "t-1"));
             assertThatThrownBy(() -> contestCutover.startContest("c1"))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.CONFLICT);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.CONFLICT);
         }
     }
 
@@ -183,7 +183,7 @@ class ContestSubmissionCutoverServiceTest {
                     RpcResult.failure(new RpcResult.ErrorPayload("app", 40401, "not found"), "t-1"));
             assertThatThrownBy(() -> submissionCutover.rejudge("s1", false))
                     .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
+                    .extracting("errorCode").isEqualTo(AdminErrorCode.PROBLEM_NOT_FOUND);
         }
     }
 }

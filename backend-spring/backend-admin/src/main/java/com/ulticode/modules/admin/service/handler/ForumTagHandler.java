@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.tag.*;
 import com.ulticode.modules.forum.entity.ForumTag;
@@ -55,7 +55,7 @@ public class ForumTagHandler implements TagDomainHandler {
     public TagVO getById(String id) {
         ForumTag tag = forumTagMapper.selectById(id);
         if (tag == null) {
-            throw new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
         }
         return toTagVO(tag);
     }
@@ -63,10 +63,10 @@ public class ForumTagHandler implements TagDomainHandler {
     @Override
     public TagVO create(CreateTagDTO dto, String slug) {
         if (forumTagMapper.existsByName(dto.getName())) {
-            throw new BusinessException(ErrorCode.FORUM_TAG_NAME_EXISTS);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_NAME_EXISTS);
         }
         if (forumTagMapper.existsBySlug(slug)) {
-            throw new BusinessException(ErrorCode.FORUM_TAG_SLUG_EXISTS);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_SLUG_EXISTS);
         }
         ForumTag tag = new ForumTag();
         tag.setId(uuidGenerator.newId());
@@ -84,17 +84,17 @@ public class ForumTagHandler implements TagDomainHandler {
     public TagVO update(String id, UpdateTagDTO dto) {
         ForumTag existing = forumTagMapper.selectById(id);
         if (existing == null) {
-            throw new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
         }
         if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.getName())) {
             if (forumTagMapper.existsByName(dto.getName())) {
-                throw new BusinessException(ErrorCode.FORUM_TAG_NAME_EXISTS);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_NAME_EXISTS);
             }
             existing.setName(dto.getName());
         }
         if (StringUtils.hasText(dto.getSlug()) && !dto.getSlug().equals(existing.getSlug())) {
             if (forumTagMapper.existsBySlug(dto.getSlug())) {
-                throw new BusinessException(ErrorCode.FORUM_TAG_SLUG_EXISTS);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_SLUG_EXISTS);
             }
             existing.setSlug(dto.getSlug());
         }
@@ -111,7 +111,7 @@ public class ForumTagHandler implements TagDomainHandler {
     @Override
     public void delete(String id) {
         if (forumTagMapper.selectById(id) == null) {
-            throw new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
         }
         forumTagMapper.deleteById(id);
     }
@@ -121,7 +121,7 @@ public class ForumTagHandler implements TagDomainHandler {
         ForumTag source = forumTagMapper.selectById(dto.getSourceId());
         ForumTag target = forumTagMapper.selectById(dto.getTargetTagId());
         if (source == null || target == null) {
-            throw new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
         }
         forumTagMapper.deleteById(dto.getSourceId());
     }

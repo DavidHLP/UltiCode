@@ -1,6 +1,8 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.impl.ExportPayload;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 
 /**
@@ -30,7 +32,7 @@ public interface ProblemExportService {
      * @param query  the problem filters
      * @param format {@code "json"} or {@code "csv"} (case-insensitive, whitespace-trimmed);
      *               any other value throws {@link com.ulticode.common.exception.BusinessException}
-     *               with {@link com.ulticode.common.exception.ErrorCode#BAD_REQUEST}
+     *               with {@link com.ulticode.common.error.BaseErrorCode#BAD_REQUEST}
      * @return the shaped payload (content type, filename, body)
      */
     ExportPayload export(ProblemQueryDTO query, String format);

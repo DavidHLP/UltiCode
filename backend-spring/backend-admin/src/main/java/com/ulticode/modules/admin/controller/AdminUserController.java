@@ -1,19 +1,35 @@
 package com.ulticode.modules.admin.controller;
-
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.websecurity.annotation.RateLimit;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.Result;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.BanUserRequest;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.BulkUserActionRequest;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.GrantPermissionRequest;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.ResetPasswordRequest;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.RevokePermissionRequest;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserManagementService;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -148,8 +164,8 @@ public class AdminUserController {
         }
         if (!org.springframework.util.StringUtils.hasText(act)
                 || !org.springframework.util.StringUtils.hasText(res)) {
-            throw new com.ulticode.common.exception.BusinessException(
-                com.ulticode.common.exception.ErrorCode.VALIDATION_FAILED,
+            throw new BusinessException(
+                AdminErrorCode.VALIDATION_FAILED,
                 "action and resource are required (via query string or request body)");
         }
         return Result.success(userPermissionService.revokeUserPermission(id, act, res));

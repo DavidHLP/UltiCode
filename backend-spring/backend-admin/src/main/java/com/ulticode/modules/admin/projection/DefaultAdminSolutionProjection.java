@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
@@ -103,7 +103,7 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
     public AdminSolutionVO getSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
-            throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.SOLUTION_NOT_FOUND);
         }
         return toAdminVO(solution);
     }

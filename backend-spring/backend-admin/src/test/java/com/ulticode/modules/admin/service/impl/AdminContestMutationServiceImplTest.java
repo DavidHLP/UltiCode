@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.port.AdminContestReadPort;
@@ -134,12 +134,12 @@ class AdminContestMutationServiceImplTest {
         @DisplayName("surfaces owner-port CONTEST_SLUG_EXISTS as a BusinessException")
         void slugConflictFromPort() {
             when(contestOwnerPort.createContest(any(CreateContestDTO.class), anyString()))
-                    .thenThrow(new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS, "duplicate"));
+                    .thenThrow(new BusinessException(AdminErrorCode.CONTEST_SLUG_EXISTS, "duplicate"));
 
             assertThatThrownBy(() -> service.createContest(new CreateContestDTO(), ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_SLUG_EXISTS));
+                            .isEqualTo(AdminErrorCode.CONTEST_SLUG_EXISTS));
         }
     }
 
@@ -181,7 +181,7 @@ class AdminContestMutationServiceImplTest {
             assertThatThrownBy(() -> service.updateContest("missing", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_NOT_FOUND));
+                            .isEqualTo(AdminErrorCode.CONTEST_NOT_FOUND));
             verify(contestOwnerPort, never()).updateContest(anyString(), any());
         }
 
@@ -198,13 +198,13 @@ class AdminContestMutationServiceImplTest {
             // exception. The test simulates that by having the port
             // throw on the matching call. updateContest is a void
             // return, so use doThrow instead of thenThrow.
-            org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING))
+            org.mockito.Mockito.doThrow(new BusinessException(AdminErrorCode.CONTEST_ONLY_REGISTER_UPCOMING))
                     .when(contestOwnerPort).updateContest(eq(CONTEST_ID), any(UpdateContestDTO.class));
 
             assertThatThrownBy(() -> service.updateContest(CONTEST_ID, new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING));
+                            .isEqualTo(AdminErrorCode.CONTEST_ONLY_REGISTER_UPCOMING));
         }
     }
 
@@ -346,7 +346,7 @@ class AdminContestMutationServiceImplTest {
                     CONTEST_ID, "missing", "new", null, null))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.BAD_REQUEST));
+                            .isEqualTo(AdminErrorCode.BAD_REQUEST));
             verify(contestOwnerPort, never()).updateAnnouncement(anyString(), anyString(),
                     anyString(), any(), anyBoolean());
         }

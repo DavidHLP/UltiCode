@@ -5,7 +5,7 @@ import com.ulticode.UlticodeBackendApplication;
 import com.ulticode.common.config.CorsProperties;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.dto.tag.TagListResponse;
 import com.ulticode.modules.admin.dto.tag.TagVO;
 import com.ulticode.modules.admin.service.AdminTagService;
@@ -177,7 +177,7 @@ class AdminTagControllerTest {
         @DisplayName("not found returns 404")
         void notFoundReturns404() throws Exception {
             when(service.getTag(eq("missing"), eq("PROBLEM")))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND));
 
             mockMvc.perform(get("/admin/tags/missing").param("type", "PROBLEM"))
                     .andExpect(status().isNotFound())
@@ -188,7 +188,7 @@ class AdminTagControllerTest {
         @DisplayName("wrong type returns 404 (PROBLEM id queried as FORUM)")
         void wrongTypeReturns404() throws Exception {
             when(service.getTag(eq("t1"), eq("FORUM")))
-                    .thenThrow(new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND));
 
             mockMvc.perform(get("/admin/tags/t1").param("type", "FORUM"))
                     .andExpect(status().isNotFound());
@@ -291,7 +291,7 @@ class AdminTagControllerTest {
         @DisplayName("name collision returns 409")
         void nameCollisionReturns409() throws Exception {
             when(service.updateTag(eq("t1"), any()))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_TAG_NAME_EXISTS));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_TAG_NAME_EXISTS));
 
             mockMvc.perform(patch("/admin/tags/t1")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -336,7 +336,7 @@ class AdminTagControllerTest {
         @Test
         @DisplayName("not found returns 404")
         void notFoundReturns404() throws Exception {
-            org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND))
+            org.mockito.Mockito.doThrow(new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND))
                     .when(service).deleteTag(eq("missing"), eq("PROBLEM"));
 
             mockMvc.perform(delete("/admin/tags/missing").param("type", "PROBLEM"))

@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
 import com.ulticode.app.api.service.ProblemAdministrationService;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
@@ -174,7 +174,7 @@ class ProblemCutoverServiceTest {
             assertThatThrownBy(() -> cutoverService.publishProblem(99L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
+                    .isEqualTo(AdminErrorCode.PROBLEM_NOT_FOUND);
         }
 
         @Test
@@ -188,7 +188,7 @@ class ProblemCutoverServiceTest {
             assertThatThrownBy(() -> cutoverService.publishProblem(99L))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode")
-                    .isEqualTo(ErrorCode.CONFLICT);
+                    .isEqualTo(AdminErrorCode.CONFLICT);
         }
     }
 }

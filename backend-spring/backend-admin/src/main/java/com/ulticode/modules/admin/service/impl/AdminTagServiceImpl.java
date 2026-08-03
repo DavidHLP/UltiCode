@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.tag.*;
@@ -28,11 +28,11 @@ public class AdminTagServiceImpl implements AdminTagService {
 
     private static String normalizeType(String type) {
         if (type == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST,
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
                     "Invalid tag type: required. Allowed: PROBLEM, FORUM");
         }
         if (TagTypes.WHITELIST.stream().noneMatch(t -> t.equalsIgnoreCase(type))) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST,
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
                     "Invalid tag type: '" + type + "'. Allowed: PROBLEM, FORUM");
         }
         return type.toUpperCase();
@@ -99,7 +99,7 @@ public class AdminTagServiceImpl implements AdminTagService {
     @Audited(action = AuditVocabulary.UPDATE_TAG, entityType = AuditVocabulary.ENTITY_TAG)
     public void mergeTag(MergeTagDTO dto) {
         if (dto.getSourceId().equals(dto.getTargetTagId())) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Cannot merge tag into itself");
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Cannot merge tag into itself");
         }
         String normalized = normalizeType(dto.getType());
         TagDomainHandler handler = handlerFor(normalized);

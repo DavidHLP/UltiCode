@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.tag.*;
 import com.ulticode.modules.problem.entity.ProblemTag;
@@ -63,7 +63,7 @@ public class ProblemTagHandler implements TagDomainHandler {
     public TagVO getById(String id) {
         ProblemTag tag = problemTagMapper.selectById(id);
         if (tag == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
         return toTagVO(tag);
     }
@@ -89,7 +89,7 @@ public class ProblemTagHandler implements TagDomainHandler {
     public TagVO update(String id, UpdateTagDTO dto) {
         ProblemTag existing = problemTagMapper.selectById(id);
         if (existing == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
         if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.getLabel())) {
             checkNameConflict(dto.getName());
@@ -113,7 +113,7 @@ public class ProblemTagHandler implements TagDomainHandler {
     @Override
     public void delete(String id) {
         if (problemTagMapper.selectById(id) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
         problemTagMapper.deleteById(id);
     }
@@ -123,7 +123,7 @@ public class ProblemTagHandler implements TagDomainHandler {
         ProblemTag source = problemTagMapper.selectById(dto.getSourceId());
         ProblemTag target = problemTagMapper.selectById(dto.getTargetTagId());
         if (source == null || target == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
         LambdaUpdateWrapper<ProblemTagRelation> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(ProblemTagRelation::getTagId, dto.getSourceId())
@@ -150,7 +150,7 @@ public class ProblemTagHandler implements TagDomainHandler {
         LambdaQueryWrapper<ProblemTag> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProblemTag::getLabel, name);
         if (problemTagMapper.selectCount(wrapper) > 0) {
-            throw new BusinessException(ErrorCode.PROBLEM_TAG_NAME_EXISTS);
+            throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NAME_EXISTS);
         }
     }
 
@@ -158,7 +158,7 @@ public class ProblemTagHandler implements TagDomainHandler {
         LambdaQueryWrapper<ProblemTag> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProblemTag::getSlug, slug);
         if (problemTagMapper.selectCount(wrapper) > 0) {
-            throw new BusinessException(ErrorCode.PROBLEM_TAG_SLUG_EXISTS);
+            throw new BusinessException(AdminErrorCode.PROBLEM_TAG_SLUG_EXISTS);
         }
     }
 

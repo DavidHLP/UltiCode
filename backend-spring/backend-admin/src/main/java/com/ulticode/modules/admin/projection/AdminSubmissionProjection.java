@@ -1,10 +1,16 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.LanguageOption;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.StatusOption;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.SubmissionStatistics;
 
 import java.util.List;
@@ -39,7 +45,7 @@ import java.util.List;
  * </ul>
  *
  * <p>All methods are pure reads; none mutate submission state. The single-item
- * read throws {@link com.ulticode.common.exception.ErrorCode#SUBMISSION_NOT_FOUND}
+ * read throws {@link com.ulticode.admin.error.AdminErrorCode#SUBMISSION_NOT_FOUND}
  * to preserve the access contract observed by the controller.
  *
  * <p>Mirrors the {@link com.ulticode.modules.problemlist.projection.ProblemListProjection}
@@ -70,7 +76,7 @@ public interface AdminSubmissionProjection {
      * @param id submission ID
      * @return admin submission VO with full details
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#SUBMISSION_NOT_FOUND}
+     *         {@link com.ulticode.admin.error.AdminErrorCode#SUBMISSION_NOT_FOUND}
      *         when the submission does not exist
      */
     AdminSubmissionVO getSubmission(String id);

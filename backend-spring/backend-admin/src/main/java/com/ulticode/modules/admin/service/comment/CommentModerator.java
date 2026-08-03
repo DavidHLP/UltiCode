@@ -1,7 +1,10 @@
 package com.ulticode.modules.admin.service.comment;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminCommentVO;
 
 /**
@@ -51,7 +54,7 @@ public interface CommentModerator {
      * @param commentId the comment id
      * @return the enriched {@link AdminCommentVO}
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#NOT_FOUND} when
+     *         {@link com.ulticode.common.error.BaseErrorCode#NOT_FOUND} when
      *         the comment does not exist
      */
     AdminCommentVO getComment(String commentId);

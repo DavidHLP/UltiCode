@@ -6,8 +6,8 @@ import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -85,13 +85,13 @@ public class ContentModerationCutoverService {
 
     private void dispatchLocal(String contentId, String contentType, ModerationAction action) {
         if (action != ModerationAction.DELETE) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST,
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
                     "Unsupported moderation action: " + action);
         }
         switch (contentType) {
             case "forum_post", "forum" -> forumService.deletePost(contentId);
             case "solution" -> solutionService.deleteSolution(contentId);
-            default -> throw new BusinessException(ErrorCode.BAD_REQUEST,
+            default -> throw new BusinessException(AdminErrorCode.BAD_REQUEST,
                     "Unknown contentType: " + contentType);
         }
     }
@@ -107,15 +107,15 @@ public class ContentModerationCutoverService {
     private static BusinessException mapError(RpcResult<?> result) {
         var err = result.error();
         if (err == null) {
-            return new BusinessException(ErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
         }
         int code = err.code();
         if (code == 40401) {
-            return new BusinessException(ErrorCode.NOT_FOUND, err.message());
+            return new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
         }
         if (code == 40902) {
-            return new BusinessException(ErrorCode.CONFLICT, err.message());
+            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
         }
-        return new BusinessException(ErrorCode.UNKNOWN_ERROR, err.message());
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
     }
 }

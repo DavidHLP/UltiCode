@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
@@ -85,7 +85,7 @@ public class ForumCommentModerator implements CommentModerator {
     public AdminCommentVO getComment(String commentId) {
         ForumComment comment = forumCommentMapper.selectByIdIgnoreDeleted(commentId);
         if (comment == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
         AdminCommentReadPort.AuthorSummary author = commentReadPort
                 .findAuthorSummariesByIds(Set.of(comment.getAuthorId()))
@@ -162,7 +162,7 @@ public class ForumCommentModerator implements CommentModerator {
     private ForumComment requireEntity(String commentId) {
         ForumComment comment = forumCommentMapper.selectByIdIgnoreDeleted(commentId);
         if (comment == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
         return comment;
     }

@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
@@ -204,12 +204,12 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should surface PROBLEM_LIST_NOT_FOUND when the projection cannot find the list")
         void notFound() {
             when(adminProblemListProjection.getAdminListDetail(LIST_ID))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             assertThatThrownBy(() -> service.getProblemList(LIST_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 
@@ -272,7 +272,7 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when service findEntityById rejects")
         void notFoundBubbles() {
             when(problemListAdminService.findEntityById(LIST_ID))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             UpdateProblemListDTO dto = new UpdateProblemListDTO();
             dto.setName("X");
@@ -280,7 +280,7 @@ class AdminProblemListServiceImplTest {
             assertThatThrownBy(() -> service.updateProblemList(LIST_ID, dto, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
             verify(problemListAdminService, never()).adminUpdateProblemList(any(), any());
         }
     }
@@ -311,12 +311,12 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when entity missing")
         void notFoundBubbles() {
             when(problemListAdminService.findEntityById(LIST_ID))
-                    .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             assertThatThrownBy(() -> service.deleteProblemList(LIST_ID, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
             verify(problemListAdminService, never()).adminDeleteProblemList(any());
         }
     }
@@ -363,7 +363,7 @@ class AdminProblemListServiceImplTest {
             assertThatThrownBy(() -> service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.VALIDATION_FAILED));
+                            .isEqualTo(AdminErrorCode.VALIDATION_FAILED));
             verify(problemListAdminService, never()).adminReplaceListProblems(any(), any());
         }
 

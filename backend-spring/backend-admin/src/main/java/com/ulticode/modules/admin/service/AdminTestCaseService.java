@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -47,7 +47,7 @@ public class AdminTestCaseService {
     /** Fail fast with PROBLEM_NOT_FOUND when the owning problem does not exist. */
     private void requireProblem(Long problemId) {
         if (problemMapper.selectById(problemId) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND);
         }
     }
 
@@ -81,7 +81,7 @@ public class AdminTestCaseService {
         requireProblem(problemId);
         TestCase testCase = testCaseMapper.selectById(testCaseId);
         if (testCase == null || !testCase.getProblemId().equals(problemId)) {
-            throw new BusinessException(ErrorCode.TEST_CASE_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.TEST_CASE_NOT_FOUND);
         }
         return testCase;
     }
@@ -93,7 +93,7 @@ public class AdminTestCaseService {
         try {
             objectMapper.readTree(inputs);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Invalid JSON in inputs field: " + e.getMessage());
+            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Invalid JSON in inputs field: " + e.getMessage());
         }
     }
 
@@ -150,7 +150,7 @@ public class AdminTestCaseService {
         boolean sample = Boolean.TRUE.equals(isSample);
         boolean hidden = isHidden != null ? isHidden : !sample;
         if (sample == hidden) {
-            throw new BusinessException(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            throw new BusinessException(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
         }
         return new boolean[]{sample, hidden};
     }
@@ -192,7 +192,7 @@ public class AdminTestCaseService {
         // but alternate admin callers (scripts, future UIs) reach this endpoint
         // too — this guard makes the invariant server-side enforced.
         if (Boolean.TRUE.equals(existing.getIsSample()) == Boolean.TRUE.equals(existing.getIsHidden())) {
-            throw new BusinessException(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            throw new BusinessException(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
         }
         PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getTestOrder, existing::setTestOrder);
         PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputText, existing::setInputText);
@@ -244,7 +244,7 @@ public class AdminTestCaseService {
         requireProblem(problemId);
         Set<String> uniqueIds = new HashSet<>(testCaseIds);
         if (uniqueIds.size() != testCaseIds.size()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Duplicate test case IDs");
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Duplicate test case IDs");
         }
         for (int i = 0; i < testCaseIds.size(); i++) {
             TestCase existing = getTestCase(problemId, testCaseIds.get(i));
@@ -278,7 +278,7 @@ public class AdminTestCaseService {
             return objectMapper.writeValueAsString(cases);
         } catch (Exception e) {
             log.error("Failed to serialize test cases for problem {}", problemId, e);
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "Failed to serialize test cases");
+            throw new BusinessException(AdminErrorCode.DATABASE_ERROR, "Failed to serialize test cases");
         }
     }
 }

@@ -1,8 +1,12 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminForumCommunityVO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 
 /**
@@ -30,7 +34,7 @@ import com.ulticode.modules.admin.dto.AdminForumPostVO;
  * </ul>
  *
  * <p>All methods are pure reads; none mutate post or community state. The
- * single-item read throws {@link com.ulticode.common.exception.ErrorCode#NOT_FOUND}
+ * single-item read throws {@link com.ulticode.common.error.BaseErrorCode#NOT_FOUND}
  * to preserve the access contract observed by the controller.
  *
  * <p>Mirrors the {@link AdminSubmissionProjection} /
@@ -64,7 +68,7 @@ public interface AdminForumProjection {
      * @param id post ID
      * @return admin forum post VO with full details
      * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#NOT_FOUND}
+     *         {@link com.ulticode.common.error.BaseErrorCode#NOT_FOUND}
      *         when the post does not exist
      */
     AdminForumPostVO getPost(String id);

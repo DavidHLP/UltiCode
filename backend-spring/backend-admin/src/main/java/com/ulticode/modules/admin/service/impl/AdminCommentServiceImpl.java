@@ -4,8 +4,8 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
@@ -193,7 +193,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
 
     /**
      * Resolve the moderator for a type tag. Throws
-     * {@link BusinessException}({@link ErrorCode#BAD_REQUEST}) when the
+     * {@link BusinessException}({@link AdminErrorCode#BAD_REQUEST}) when the
      * type is not registered — the closed set is whatever the component
      * scan has provided at startup, so there is no static allow-list
      * to drift from the bean registrations.
@@ -202,9 +202,8 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         CommentModerator moderator = moderatorsByType.get(type);
         if (moderator == null) {
             Set<String> valid = moderatorsByType.keySet();
-            throw new BusinessException(ErrorCode.BAD_REQUEST,
-                "Invalid comment type: '" + type + "'. Allowed: " + String.join(", ",
-                    valid.stream().sorted().collect(Collectors.toList())));
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
+                "Invalid comment type: '" + type + "'. Allowed: " + valid.stream().sorted().collect(Collectors.toList()));
         }
         return moderator;
     }

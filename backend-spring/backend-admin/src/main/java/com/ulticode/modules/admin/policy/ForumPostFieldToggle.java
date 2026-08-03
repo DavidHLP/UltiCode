@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.policy;
 
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.forum.entity.ForumPost;
 
 import java.util.function.BiConsumer;

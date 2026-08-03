@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.port.AdminCommentReadPort;
 import com.ulticode.modules.admin.service.comment.CommentModerator;
 import org.junit.jupiter.api.AfterEach;
@@ -87,7 +87,7 @@ class AdminCommentServiceImplTest {
     @Test
     @DisplayName("deleteComment with unknown id delegates to forum moderator, which throws BusinessException")
     void deleteComment_unknownId_throwsBusinessException() {
-        org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.NOT_FOUND))
+        org.mockito.Mockito.doThrow(new BusinessException(AdminErrorCode.NOT_FOUND))
                 .when(forumModerator).deleteComment("missing");
 
         assertThrows(

@@ -17,7 +17,7 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -78,13 +78,13 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         RpcResult<AuthAccountDTO> usernameCheck = accountQueryService.getAccountByUsername(dto.getUsername());
         if (usernameCheck != null && usernameCheck.success() && usernameCheck.data() != null) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
+            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Username already exists");
         }
 
         if (StringUtils.hasText(dto.getEmail())) {
             RpcResult<AuthAccountDTO> emailCheck = accountQueryService.getAccountByEmail(dto.getEmail());
             if (emailCheck != null && emailCheck.success() && emailCheck.data() != null) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Email already exists");
+                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Email already exists");
             }
         }
 
@@ -103,7 +103,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         RpcResult<AccountMutationDTO> createResult = accountManagementService.createAccount(createCmd);
         if (createResult == null || !createResult.success() || createResult.data() == null) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Failed to create account on Auth provider");
+            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Failed to create account on Auth provider");
         }
 
         String newUserId = createResult.data().accountId();
@@ -127,7 +127,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         RpcResult<AuthAccountDTO> currentRpc = accountQueryService.getAccountById(id);
         if (currentRpc == null || !currentRpc.success() || currentRpc.data() == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
 
         AuthAccountDTO current = currentRpc.data();
@@ -135,14 +135,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         if (StringUtils.hasText(dto.getUsername()) && !dto.getUsername().equals(current.username())) {
             RpcResult<AuthAccountDTO> existingUsername = accountQueryService.getAccountByUsername(dto.getUsername());
             if (existingUsername != null && existingUsername.success() && existingUsername.data() != null) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
+                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Username already exists");
             }
         }
 
         if (StringUtils.hasText(dto.getEmail()) && !dto.getEmail().equals(current.email())) {
             RpcResult<AuthAccountDTO> existingEmail = accountQueryService.getAccountByEmail(dto.getEmail());
             if (existingEmail != null && existingEmail.success() && existingEmail.data() != null) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Email already exists");
+                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Email already exists");
             }
         }
 
@@ -349,7 +349,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         if (accountAdministrationService != null) {
             RpcResult<AccountStateDTO> res = accountAdministrationService.changeState(command);
             if (res == null || !res.success()) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Account state mutation failed");
+                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Account state mutation failed");
             }
         }
     }
@@ -357,20 +357,20 @@ public class UserManagementServiceImpl implements UserManagementService {
     private AuthAccountDTO getAccountOrThrow(String id) {
         RpcResult<AuthAccountDTO> currentRpc = accountQueryService.getAccountById(id);
         if (currentRpc == null || !currentRpc.success() || currentRpc.data() == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
         return currentRpc.data();
     }
 
     private void checkQueryServiceAvailable() {
         if (accountQueryService == null) {
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "AccountQueryService unavailable");
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "AccountQueryService unavailable");
         }
     }
 
     private void checkManagementServiceAvailable() {
         if (accountManagementService == null) {
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "AccountManagementService unavailable");
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "AccountManagementService unavailable");
         }
     }
 }

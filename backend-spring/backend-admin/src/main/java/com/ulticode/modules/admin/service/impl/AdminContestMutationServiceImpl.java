@@ -8,7 +8,7 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminContestVO;
@@ -127,7 +127,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         // the port mutates the row. The status-guard is also port-side.
         final ContestAdminDTO before = contestAdminReadPort.selectById(id);
         if (before == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(AdminErrorCode.CONTEST_NOT_FOUND);
         }
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("title", before.getTitle());
@@ -238,7 +238,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         final ContestAnnouncementDTO before = contestAnnouncementReadPort
                 .findByContestIdAndId(contestId, announcementId);
         if (before == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST);
         }
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("title", before.getTitle());

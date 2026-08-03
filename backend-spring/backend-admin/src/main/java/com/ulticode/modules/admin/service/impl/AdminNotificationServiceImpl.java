@@ -3,8 +3,8 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
@@ -91,7 +91,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         String currentUserId = currentUserProvider.getCurrentUserId();
         User currentUser = userMapper.selectById(currentUserId);
         if (currentUser == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Current user not found");
+            throw new BusinessException(AdminErrorCode.NOT_FOUND, "Current user not found");
         }
 
         String category = request.getCategory() != null ? request.getCategory() : SYSTEM_CATEGORY;
@@ -118,7 +118,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                     metadata,
                     /* existingAnnouncementId */ null);
         } catch (IllegalArgumentException ex) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, ex.getMessage());
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST, ex.getMessage());
         }
 
         log.info("Created system notification '{}' for {}/{} users by admin {} (announcementId={})",
@@ -170,7 +170,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     public void deleteNotification(String id) {
         Notification notification = notificationMapper.selectById(id);
         if (notification == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Notification not found");
+            throw new BusinessException(AdminErrorCode.NOT_FOUND, "Notification not found");
         }
 
         AuditContext.setOldValues(Map.of(
@@ -203,7 +203,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
         Notification notification = notificationMapper.selectById(id);
         if (notification == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Notification not found");
+            throw new BusinessException(AdminErrorCode.NOT_FOUND, "Notification not found");
         }
 
         AuditContext.setOldValues(Map.of(

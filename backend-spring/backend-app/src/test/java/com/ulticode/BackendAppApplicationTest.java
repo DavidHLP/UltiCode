@@ -114,6 +114,9 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.forum.mapper.ForumPostMapper forumPostMapper;
 
     @MockBean
+    private com.ulticode.modules.search.port.UserSearchReadMapper userSearchReadMapper;
+
+    @MockBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
 
     @MockBean

@@ -272,6 +272,10 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.notification.port.NotificationPushPort notificationPushPortBean;
     @MockBean private com.ulticode.modules.achievement.port.BadgePushPort badgePushPortBean;
     @MockBean private com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper notificationDeliveryLedgerMapper;
+    // P7-RELOCATE-WEBSOCKET-001
+    @MockBean private com.ulticode.app.api.service.JwtValidationPort jwtValidationPort;
+    @MockBean private com.ulticode.app.api.service.AccountReadPort accountReadPort;
+    @MockBean private com.ulticode.modules.websocket.port.TokenBlacklistPort tokenBlacklistPort;
 
     @MockBean private com.ulticode.modules.moderation.mapper.UserWarningMapper userwarningmapperMapper;
 

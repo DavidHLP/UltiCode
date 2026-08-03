@@ -19,7 +19,7 @@ import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.port.ContestOwnerPort;
-import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import com.ulticode.app.api.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -217,7 +217,7 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         final String newId = contestOwnerPort.createAnnouncement(contestId, title, content, isPinned);
 
         contestAnnouncementPushPort.emitAnnouncement(contestId,
-                AnnouncementPayload.of(newId, contestId, title, content));
+                AnnouncementPayload.of(contestId, newId, title, content, currentUserProvider.getCurrentUserId()));
 
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("title", title);

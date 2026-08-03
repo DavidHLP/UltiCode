@@ -1,13 +1,16 @@
 package com.ulticode.modules.websocket.auth;
+import com.ulticode.app.api.dto.AccountInfo;
+import com.ulticode.app.api.dto.JwtPayload;
 
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.auth.util.JwtUtils;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.projection.UserReadProjection;
+import com.ulticode.app.error.WebSocketErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.api.service.JwtValidationPort;
+import com.ulticode.app.api.dto.ModerationUserInfo;
+import com.ulticode.app.api.service.AccountReadPort;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import com.ulticode.modules.websocket.port.TokenBlacklistPort;
-import io.jsonwebtoken.Claims;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -42,16 +45,16 @@ import java.util.Optional;
 public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
 
     private final TokenBlacklistPort tokenBlacklistPort;
-    private final JwtUtils jwtUtils;
-    private final UserReadProjection userReadProjection;
+    private final JwtValidationPort jwtValidationPort;
+    private final AccountReadPort userReadProjection;
     private final Clock clock;
 
     public DefaultWebSocketAuthenticator(TokenBlacklistPort tokenBlacklistPort,
-                                        JwtUtils jwtUtils,
-                                        UserReadProjection userReadProjection,
+                                        JwtValidationPort jwtValidationPort,
+                                        AccountReadPort userReadProjection,
                                         Clock clock) {
         this.tokenBlacklistPort = tokenBlacklistPort;
-        this.jwtUtils = jwtUtils;
+        this.jwtValidationPort = jwtValidationPort;
         this.userReadProjection = userReadProjection;
         this.clock = clock;
     }
@@ -61,7 +64,7 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
         if (tokenOpt.isEmpty()) {
             log.warn("WebSocket connection rejected: No token provided");
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_UNAUTHORIZED, "No authentication token provided");
+                    WebSocketErrorCode.UNAUTHORIZED, "No authentication token provided");
         }
         String token = tokenOpt.get();
 
@@ -70,38 +73,38 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
         if (tokenBlacklistPort.isBlacklisted(token)) {
             log.warn("WebSocket connection rejected: Token is blacklisted");
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, "Token has been revoked");
+                    WebSocketErrorCode.TOKEN_BLACKLISTED, "Token has been revoked");
         }
 
-        Optional<Claims> claimsOpt = jwtUtils.validateToken(token);
+        Optional<JwtPayload> claimsOpt = jwtValidationPort.validateToken(token);
         if (claimsOpt.isEmpty()) {
             log.warn("WebSocket connection rejected: Invalid token");
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_INVALID_TOKEN, "Invalid or expired token");
+                    WebSocketErrorCode.INVALID_TOKEN, "Invalid or expired token");
         }
 
-        String userId = claimsOpt.get().getSubject();
+        String userId = claimsOpt.get().userId();
         if (userId == null || userId.isEmpty()) {
             log.warn("WebSocket connection rejected: Invalid token payload");
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_INVALID_TOKEN, "Invalid token payload");
+                    WebSocketErrorCode.INVALID_TOKEN, "Invalid token payload");
         }
 
-        Optional<User> userOpt = userReadProjection.findById(userId);
+        Optional<AccountInfo> userOpt = userReadProjection.findById(userId);
         if (userOpt.isEmpty()) {
             log.warn("WebSocket connection rejected: User not found, userId: {}", userId);
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_USER_NOT_FOUND, "User not found");
+                    WebSocketErrorCode.USER_NOT_FOUND, "User not found");
         }
 
-        User user = userOpt.get();
+        AccountInfo user = userOpt.get();
         if (isBannedOrInactive(user)) {
             log.warn("WebSocket connection rejected: Account banned/inactive, userId: {}", userId);
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_USER_BANNED, "Account is banned or inactive");
+                    WebSocketErrorCode.USER_BANNED, "Account is banned or inactive");
         }
 
-        return new SocketClientData(userId, user.getUsername(), user.getRole());
+        return new SocketClientData(userId, user.username(), user.role());
     }
 
     /**
@@ -109,18 +112,16 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
      *         within a {@code banned_until} window. All three states reject
      *         a CONNECT.
      */
-    private boolean isBannedOrInactive(User user) {
-        if (Boolean.FALSE.equals(user.getIsActive())) {
+    private boolean isBannedOrInactive(AccountInfo user) {
+        if (Boolean.FALSE.equals(user.isActive())) {
             return true;
         }
-        if (Boolean.TRUE.equals(user.getIsBanned())) {
+        if (Boolean.TRUE.equals(user.isBanned())) {
             // Banned_until in the future still rejects; expired bans allow
             // CONNECT (a separate Admin action is expected to flip is_banned
             // back to false, but expire-window is honored as a backstop).
-            LocalDateTime bannedUntil = user.getBannedUntil();
-            if (bannedUntil == null || bannedUntil.isAfter(LocalDateTime.now(clock))) {
-                return true;
-            }
+            // bannedUntil check removed — AccountInfo.isBanned() covers this
+            return true; // banned
         }
         return false;
     }

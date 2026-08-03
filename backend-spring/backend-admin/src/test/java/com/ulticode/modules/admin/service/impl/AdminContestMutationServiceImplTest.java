@@ -16,7 +16,7 @@ import com.ulticode.app.api.dto.ContestAnnouncementDTO;
 import com.ulticode.app.api.service.ContestAdminReadPort;
 import com.ulticode.app.api.service.ContestAnnouncementReadPort;
 import com.ulticode.modules.contest.port.ContestOwnerPort;
-import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import com.ulticode.app.api.dto.AnnouncementPayload;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

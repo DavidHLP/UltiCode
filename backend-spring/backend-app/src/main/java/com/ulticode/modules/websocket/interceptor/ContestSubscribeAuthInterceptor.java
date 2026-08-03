@@ -1,6 +1,7 @@
 package com.ulticode.modules.websocket.interceptor;
 
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.WebSocketErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.app.api.service.ContestSubscriptionPolicy;
 import com.ulticode.app.api.service.ContestSubscriptionPolicy.ContestSubscribeRequest;
 import com.ulticode.app.api.service.ContestSubscriptionPolicy.SubscriptionDecision;
@@ -83,14 +84,14 @@ public class ContestSubscribeAuthInterceptor implements ChannelInterceptor {
             log.warn("R6.4 / F-17: SUBSCRIBE {} with no session attrs, sessionId: {}",
                     destination, accessor.getSessionId());
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_UNAUTHORIZED, "No session attributes");
+                    WebSocketErrorCode.UNAUTHORIZED, "No session attributes");
         }
         Object userObj = attrs.get("user");
         if (!(userObj instanceof SocketClientData user)) {
             log.warn("R6.4 / F-17: SUBSCRIBE {} with no user, sessionId: {}",
                     destination, accessor.getSessionId());
             throw new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_UNAUTHORIZED, "Not authenticated");
+                    WebSocketErrorCode.UNAUTHORIZED, "Not authenticated");
         }
 
         // Translate the STOMP frame into a transport-agnostic request and
@@ -102,9 +103,9 @@ public class ContestSubscribeAuthInterceptor implements ChannelInterceptor {
                         Optional.of(contestId)));
 
         if (decision.verdict() != ContestSubscriptionPolicy.Verdict.ALLOW) {
-            ErrorCode code = decision.verdict() == ContestSubscriptionPolicy.Verdict.DENY_NOT_REGISTERED
-                    ? ErrorCode.FORBIDDEN
-                    : ErrorCode.WEBSOCKET_UNAUTHORIZED;
+            com.ulticode.common.error.NamespacedErrorCode code = decision.verdict() == ContestSubscriptionPolicy.Verdict.DENY_NOT_REGISTERED
+                    ? com.ulticode.common.error.BaseErrorCode.FORBIDDEN
+                    : WebSocketErrorCode.UNAUTHORIZED;
             log.warn("R6.4 / F-17: user {} denied SUBSCRIBE to {} ({})",
                     user.userId(), destination, decision.verdict());
             throw new WebSocketAuthenticationException(code, decision.reason());

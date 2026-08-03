@@ -1,6 +1,7 @@
 package com.ulticode.modules.websocket.handler;
 
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.WebSocketErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.dto.WebSocketErrorMessage;
@@ -92,6 +93,6 @@ public class WebSocketExceptionHandler {
       }
     }
 
-    return WebSocketErrorMessage.from(ErrorCode.UNKNOWN_ERROR, "An unexpected error occurred. Please try again.");
+    return WebSocketErrorMessage.from(BaseErrorCode.UNKNOWN_ERROR, "An unexpected error occurred. Please try again.");
   }
 }

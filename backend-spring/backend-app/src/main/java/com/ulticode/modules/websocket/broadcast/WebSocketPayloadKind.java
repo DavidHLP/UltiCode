@@ -1,8 +1,8 @@
 package com.ulticode.modules.websocket.broadcast;
 
-import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import com.ulticode.app.api.dto.AnnouncementPayload;
 import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload;
-import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
+import com.ulticode.app.api.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;

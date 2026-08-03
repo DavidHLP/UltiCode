@@ -1,6 +1,7 @@
 package com.ulticode.modules.websocket.interceptor;
 
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.WebSocketErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.websocket.auth.WebSocketAuthenticator;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.util.TokenExtractor;
@@ -114,7 +115,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       // pre-fix behaviour was log-and-return, which silently admitted
       // frames on unattributed sessions — that is a fail-open bug.
       throw new WebSocketAuthenticationException(
-          ErrorCode.WEBSOCKET_SESSION_MISSING,
+          WebSocketErrorCode.SESSION_MISSING,
           "WebSocket session is missing attributes for " + command);
     }
 
@@ -123,7 +124,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       // Same rationale: a SEND/SUBSCRIBE without a bound principal must
       // not silently pass through.
       throw new WebSocketAuthenticationException(
-          ErrorCode.WEBSOCKET_SESSION_MISSING,
+          WebSocketErrorCode.SESSION_MISSING,
           "WebSocket session has no authenticated user for " + command);
     }
 
@@ -131,7 +132,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
       // Garbage in the session map (regression / manual injection) must
       // not become a silent bypass either.
       throw new WebSocketAuthenticationException(
-          ErrorCode.WEBSOCKET_SESSION_MISSING,
+          WebSocketErrorCode.SESSION_MISSING,
           "WebSocket session has invalid user payload for " + command);
     }
 
@@ -183,14 +184,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
   /** Exception for WebSocket authentication failures. */
   public static class WebSocketAuthenticationException extends RuntimeException {
-    private final ErrorCode errorCode;
+    private final com.ulticode.common.error.NamespacedErrorCode errorCode;
 
-    public WebSocketAuthenticationException(ErrorCode errorCode, String message) {
+    public WebSocketAuthenticationException(com.ulticode.common.error.NamespacedErrorCode errorCode, String message) {
       super(message);
       this.errorCode = errorCode;
     }
 
-    public ErrorCode getErrorCode() {
+    public com.ulticode.common.error.NamespacedErrorCode getErrorCode() {
       return errorCode;
     }
   }

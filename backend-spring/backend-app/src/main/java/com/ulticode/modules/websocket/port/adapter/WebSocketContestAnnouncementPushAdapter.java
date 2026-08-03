@@ -1,7 +1,7 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
-import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import com.ulticode.app.api.service.ContestAnnouncementPushPort;
+import com.ulticode.app.api.dto.AnnouncementPayload;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

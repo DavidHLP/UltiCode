@@ -8,7 +8,7 @@ import com.ulticode.modules.websocket.auth.WebSocketAuthenticator;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import com.ulticode.modules.websocket.util.TokenExtractor;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.WebSocketErrorCode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -111,14 +111,14 @@ class JwtChannelInterceptorTest {
     when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.of(token));
     when(authenticator.authenticate(any()))
             .thenThrow(new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, "Token has been revoked"));
+                    WebSocketErrorCode.TOKEN_BLACKLISTED, "Token has been revoked"));
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
 
     WebSocketAuthenticationException ex = assertThrows(
             WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
-    assertEquals(ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, ex.getErrorCode());
+    assertEquals(WebSocketErrorCode.TOKEN_BLACKLISTED, ex.getErrorCode());
   }
 
   @Test
@@ -130,14 +130,14 @@ class JwtChannelInterceptorTest {
     when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.empty());
     when(authenticator.authenticate(Optional.empty()))
             .thenThrow(new WebSocketAuthenticationException(
-                    ErrorCode.WEBSOCKET_UNAUTHORIZED, "No authentication token provided"));
+                    WebSocketErrorCode.UNAUTHORIZED, "No authentication token provided"));
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
 
     WebSocketAuthenticationException ex = assertThrows(
             WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
-    assertEquals(ErrorCode.WEBSOCKET_UNAUTHORIZED, ex.getErrorCode());
+    assertEquals(WebSocketErrorCode.UNAUTHORIZED, ex.getErrorCode());
     verify(authenticator).authenticate(Optional.empty());
   }
 
@@ -158,7 +158,7 @@ class JwtChannelInterceptorTest {
 
   @Test
   void webSocketAuthenticationException_getErrorCode_returnsCode() {
-    ErrorCode errorCode = ErrorCode.WEBSOCKET_UNAUTHORIZED;
+    var errorCode = WebSocketErrorCode.UNAUTHORIZED;
     String message = "Test error message";
 
     JwtChannelInterceptor.WebSocketAuthenticationException exception =
@@ -199,7 +199,7 @@ class JwtChannelInterceptorTest {
     WebSocketAuthenticationException ex = assertThrows(
             WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
-    assertEquals(ErrorCode.WEBSOCKET_SESSION_MISSING, ex.getErrorCode());
+    assertEquals(WebSocketErrorCode.SESSION_MISSING, ex.getErrorCode());
     verifyNoInteractions(authenticator);
   }
 
@@ -215,7 +215,7 @@ class JwtChannelInterceptorTest {
     WebSocketAuthenticationException ex = assertThrows(
             WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
-    assertEquals(ErrorCode.WEBSOCKET_SESSION_MISSING, ex.getErrorCode());
+    assertEquals(WebSocketErrorCode.SESSION_MISSING, ex.getErrorCode());
     verifyNoInteractions(authenticator);
   }
 }

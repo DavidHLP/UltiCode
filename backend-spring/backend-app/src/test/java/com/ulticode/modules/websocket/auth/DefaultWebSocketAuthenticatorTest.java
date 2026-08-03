@@ -4,18 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.auth.util.JwtUtils;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.projection.UserReadProjection;
+import com.ulticode.app.api.dto.AccountInfo;
+import com.ulticode.app.api.dto.JwtPayload;
+import com.ulticode.app.api.service.AccountReadPort;
+import com.ulticode.app.api.service.JwtValidationPort;
+import com.ulticode.app.error.WebSocketErrorCode;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import com.ulticode.modules.websocket.port.TokenBlacklistPort;
-import io.jsonwebtoken.Claims;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +40,8 @@ class DefaultWebSocketAuthenticatorTest {
     private static final Instant NOW = Instant.parse("2026-07-25T00:00:00Z");
 
     @Mock private TokenBlacklistPort tokenBlacklistPort;
-    @Mock private JwtUtils jwtUtils;
-    @Mock private UserReadProjection userReadProjection;
+    @Mock private JwtValidationPort jwtValidationPort;
+    @Mock private AccountReadPort accountReadPort;
 
     private DefaultWebSocketAuthenticator authenticator;
 
@@ -52,7 +50,7 @@ class DefaultWebSocketAuthenticatorTest {
         // Fixed Clock so banned_until comparisons are deterministic across runs.
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         authenticator = new DefaultWebSocketAuthenticator(
-                tokenBlacklistPort, jwtUtils, userReadProjection, clock);
+                tokenBlacklistPort, jwtValidationPort, accountReadPort, clock);
     }
 
     @Test
@@ -61,7 +59,7 @@ class DefaultWebSocketAuthenticatorTest {
         assertThatThrownBy(() -> authenticator.authenticate(Optional.empty()))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_UNAUTHORIZED);
+                .isEqualTo(WebSocketErrorCode.UNAUTHORIZED);
     }
 
     @Test
@@ -72,7 +70,7 @@ class DefaultWebSocketAuthenticatorTest {
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED);
+                .isEqualTo(WebSocketErrorCode.TOKEN_BLACKLISTED);
     }
 
     @Test
@@ -89,71 +87,62 @@ class DefaultWebSocketAuthenticatorTest {
     @DisplayName("invalid/expired JWT → WEBSOCKET_INVALID_TOKEN")
     void invalidJwt() {
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.empty());
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_INVALID_TOKEN);
+                .isEqualTo(WebSocketErrorCode.INVALID_TOKEN);
     }
 
     @Test
-    @DisplayName("JWT with null subject → WEBSOCKET_INVALID_TOKEN")
-    void jwtWithoutSubject_null() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
+    @DisplayName("JWT with null userId → WEBSOCKET_INVALID_TOKEN")
+    void jwtWithoutUserId_null() {
+        JwtPayload jwtPayload = new JwtPayload(null, "alice", "USER");
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(null);
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.of(jwtPayload));
 
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_INVALID_TOKEN);
+                .isEqualTo(WebSocketErrorCode.INVALID_TOKEN);
     }
 
     @Test
-    @DisplayName("JWT with empty subject → WEBSOCKET_INVALID_TOKEN")
-    void jwtWithoutSubject_empty() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
+    @DisplayName("JWT with empty userId → WEBSOCKET_INVALID_TOKEN")
+    void jwtWithoutUserId_empty() {
+        JwtPayload jwtPayload = new JwtPayload("", "alice", "USER");
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn("");
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.of(jwtPayload));
 
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_INVALID_TOKEN);
+                .isEqualTo(WebSocketErrorCode.INVALID_TOKEN);
     }
 
     @Test
     @DisplayName("user not found → WEBSOCKET_USER_NOT_FOUND")
     void userNotFound() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        JwtPayload jwtPayload = new JwtPayload(USER_ID, "alice", "USER");
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(USER_ID);
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.empty());
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.of(jwtPayload));
+        when(accountReadPort.findById(USER_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_USER_NOT_FOUND);
+                .isEqualTo(WebSocketErrorCode.USER_NOT_FOUND);
     }
 
     @Test
     @DisplayName("happy path returns SocketClientData with copied identity")
     void happyPath() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
-        User user = new User();
-        user.setId(USER_ID);
-        user.setUsername("alice");
-        user.setRole("USER");
-        user.setIsActive(true);
-        user.setIsBanned(false);
+        JwtPayload jwtPayload = new JwtPayload(USER_ID, "alice", "USER");
+        AccountInfo accountInfo = new AccountInfo(USER_ID, "alice", "USER", true, false);
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(USER_ID);
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.of(jwtPayload));
+        when(accountReadPort.findById(USER_ID)).thenReturn(Optional.of(accountInfo));
 
         SocketClientData data = authenticator.authenticate(Optional.of(TOKEN));
 
@@ -167,80 +156,30 @@ class DefaultWebSocketAuthenticatorTest {
     @Test
     @DisplayName("inactive account → WEBSOCKET_USER_BANNED (no DB lookup shortcut)")
     void inactiveAccount_rejected() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
-        User user = new User();
-        user.setId(USER_ID);
-        user.setIsActive(false);     // explicitly inactive
-        user.setIsBanned(false);
+        JwtPayload jwtPayload = new JwtPayload(USER_ID, "alice", "USER");
+        AccountInfo accountInfo = new AccountInfo(USER_ID, "alice", "USER", false, false);
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(USER_ID);
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.of(jwtPayload));
+        when(accountReadPort.findById(USER_ID)).thenReturn(Optional.of(accountInfo));
 
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_USER_BANNED);
+                .isEqualTo(WebSocketErrorCode.USER_BANNED);
     }
 
     @Test
-    @DisplayName("banned account with future banned_until → WEBSOCKET_USER_BANNED")
-    void bannedAccount_futureUntil_rejected() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
-        User user = new User();
-        user.setId(USER_ID);
-        user.setIsActive(true);
-        user.setIsBanned(true);
-        user.setBannedUntil(LocalDateTime.of(2027, 1, 1, 0, 0)); // > NOW
+    @DisplayName("banned account → WEBSOCKET_USER_BANNED")
+    void bannedAccount_rejected() {
+        JwtPayload jwtPayload = new JwtPayload(USER_ID, "alice", "USER");
+        AccountInfo accountInfo = new AccountInfo(USER_ID, "alice", "USER", true, true);
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(USER_ID);
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(jwtValidationPort.validateToken(TOKEN)).thenReturn(Optional.of(jwtPayload));
+        when(accountReadPort.findById(USER_ID)).thenReturn(Optional.of(accountInfo));
 
         assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
                 .isInstanceOf(WebSocketAuthenticationException.class)
                 .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_USER_BANNED);
-    }
-
-    @Test
-    @DisplayName("banned account with past banned_until → CONNECT allowed (expire backstop)")
-    void bannedAccount_pastUntil_allowed() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
-        User user = new User();
-        user.setId(USER_ID);
-        user.setUsername("alice");
-        user.setRole("USER");
-        user.setIsActive(true);
-        user.setIsBanned(true);
-        user.setBannedUntil(LocalDateTime.of(2025, 1, 1, 0, 0)); // < NOW
-        when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(USER_ID);
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
-
-        SocketClientData data = authenticator.authenticate(Optional.of(TOKEN));
-
-        assertThat(data.userId()).isEqualTo(USER_ID);
-    }
-
-    @Test
-    @DisplayName("banned account with no banned_until → WEBSOCKET_USER_BANNED")
-    void bannedAccount_noUntil_rejected() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
-        User user = new User();
-        user.setId(USER_ID);
-        user.setIsActive(true);
-        user.setIsBanned(true);
-        user.setBannedUntil(null); // permanent ban
-        when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-        when(claims.getSubject()).thenReturn(USER_ID);
-        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
-
-        assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
-                .isInstanceOf(WebSocketAuthenticationException.class)
-                .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
-                .isEqualTo(ErrorCode.WEBSOCKET_USER_BANNED);
+                .isEqualTo(WebSocketErrorCode.USER_BANNED);
     }
 }

@@ -1,6 +1,7 @@
 package com.ulticode.modules.websocket.dto;
 
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.WebSocketErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 
 /** WebSocket error message sent to clients. */
 public record WebSocketErrorMessage(boolean success, String error, String message) {
@@ -12,8 +13,8 @@ public record WebSocketErrorMessage(boolean success, String error, String messag
    * @param message the error message
    * @return error message
    */
-  public static WebSocketErrorMessage from(ErrorCode errorCode, String message) {
-    return new WebSocketErrorMessage(false, errorCode.name(), message);
+  public static WebSocketErrorMessage from(com.ulticode.common.error.NamespacedErrorCode errorCode, String message) {
+    return new WebSocketErrorMessage(false, errorCode.namespace() + ":" + errorCode.code(), message);
   }
 
   /**

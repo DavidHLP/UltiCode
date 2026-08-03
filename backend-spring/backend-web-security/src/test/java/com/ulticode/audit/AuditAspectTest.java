@@ -1,4 +1,4 @@
-package com.ulticode.common.aspect;
+package com.ulticode.audit;
 
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditSinkPort;

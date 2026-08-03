@@ -186,7 +186,7 @@ public final class AuditPolicy {
                     "banned users cannot create new forum posts"),
             entry("com.ulticode.modules.forum.service.impl.ForumCommentServiceImpl",
                     "createComment", "forum",
-                    "banned users cannot create new forum comments"),
+                    "banned users cannot comment on forum comments"),
     };
 
     private static AuditEntry entry(String declaringClass, String methodName,

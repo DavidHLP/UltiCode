@@ -1,6 +1,7 @@
-package com.ulticode.common.aspect;
+package com.ulticode.audit;
 
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditPolicy;
 import com.ulticode.common.audit.AuditSinkPort;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.websecurity.util.ClientIpResolver;
@@ -113,34 +114,43 @@ public class AuditAspect {
         if (paramName == null || paramName.isEmpty()) {
             return null;
         }
-
-        if (!(joinPoint.getSignature() instanceof CodeSignature signature)) {
+        String[] paramNames = ((CodeSignature) joinPoint.getSignature()).getParameterNames();
+        Object[] args = joinPoint.getArgs();
+        if (paramNames == null) {
             return null;
         }
-
-        String[] paramNames = signature.getParameterNames();
-        Object[] args = joinPoint.getArgs();
-
         for (int i = 0; i < paramNames.length; i++) {
-            if (paramName.equals(paramNames[i]) && args[i] != null) {
-                return args[i].toString();
+            if (paramNames[i].equals(paramName)) {
+                Object arg = args[i];
+                return arg != null ? arg.toString() : null;
             }
         }
-
         return null;
     }
 
     private String extractEntityId(Object result) {
         if (result == null) {
-            return "N/A";
+            return null;
         }
+        // Try getId() first
         try {
-            java.lang.reflect.Method getId = result.getClass().getMethod("getId");
-            Object id = getId.invoke(result);
-            return id != null ? id.toString() : "N/A";
-        } catch (Exception e) {
-            return "N/A";
+            Object id = result.getClass().getMethod("getId").invoke(result);
+            if (id != null) {
+                return id.toString();
+            }
+        } catch (Exception ignored) {
+            // fall through
         }
+        // Try id field
+        try {
+            Object id = result.getClass().getField("id").get(result);
+            if (id != null) {
+                return id.toString();
+            }
+        } catch (Exception ignored) {
+            // fall through
+        }
+        return null;
     }
 
     private Map<String, Object> captureSimpleState(Object result) {
@@ -148,9 +158,7 @@ public class AuditAspect {
             return null;
         }
         try {
-            java.lang.reflect.Method getId = result.getClass().getMethod("getId");
-            Object id = getId.invoke(result);
-            return Map.of("id", id != null ? id.toString() : "N/A");
+            return Map.of("result", result.toString());
         } catch (Exception e) {
             return null;
         }
@@ -162,7 +170,6 @@ public class AuditAspect {
         if (attributes == null) {
             return null;
         }
-
         HttpServletRequest request = attributes.getRequest();
         String ua = request.getHeader("User-Agent");
         return ua != null && !ua.isEmpty() ? ua : null;

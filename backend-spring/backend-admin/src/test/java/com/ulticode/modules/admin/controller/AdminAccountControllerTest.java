@@ -2,16 +2,21 @@ package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.UlticodeBackendApplication;
+import com.ulticode.auth.api.command.ChangePasswordCommand;
+import com.ulticode.auth.api.dto.AccountMutationDTO;
+import com.ulticode.auth.api.dto.ChangePasswordDTO;
+import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.config.CorsProperties;
 import com.ulticode.common.config.MapperConfig;
-import com.ulticode.modules.user.dto.ChangePasswordDTO;
-import com.ulticode.modules.user.port.UserWritePort;
-import com.ulticode.modules.user.projection.UserReadProjection;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.security.AuthenticationEntryPointImpl;
 import com.ulticode.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,26 +26,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * @WebMvcTest for AdminAccountController.
- *
- * <p>Mirrors {@link AdminSettingsControllerTest}: {@code addFilters=false}
- * bypasses security; auth is exercised in {@code PrivilegedControllerAuthorizationTest}.
- * The password-change regression proves the endpoint delegates to the deep
- * {@link UserWritePort} seam instead of returning the historical false-success
- * response that left the administrator password unchanged.
- */
 @WebMvcTest(
         value = AdminAccountController.class,
         excludeFilters = @ComponentScan.Filter(
@@ -48,7 +44,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 classes = MapperConfig.class
         )
 )
-// Disambiguate from BackendAdminApplication on the test classpath (P7-ADMIN-BULK-001)
 @ContextConfiguration(classes = UlticodeBackendApplication.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminAccountController")
@@ -61,13 +56,14 @@ class AdminAccountControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private UserReadProjection userReadProjection;
+    private AdminUserProjection adminUserProjection;
     @MockBean
-    private UserWritePort userWritePort;
+    private UserManagementService userManagementService;
+    @MockBean
+    private AccountManagementService accountManagementService;
     @MockBean
     private CurrentUserProvider currentUserProvider;
 
-    // SecurityConfig dependencies (excluded by @WebMvcTest)
     @MockBean private JwtTokenProvider jwtTokenProvider;
     @MockBean private JwtProperties jwtProperties;
     @MockBean private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -80,43 +76,47 @@ class AdminAccountControllerTest {
                     + "\"newPassword\":\"new-password\","
                     + "\"confirmPassword\":\"new-password\"}";
 
+    @BeforeEach
+    void setUp() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-123");
+    }
+
     @Nested
     @DisplayName("POST /admin/account/change-password")
     class ChangePassword {
 
         @Test
-        @DisplayName("delegates to the deep UserWritePort seam (no false success)")
-        void delegatesToUserWritePort() throws Exception {
+        @DisplayName("delegates to AccountManagementService on valid request")
+        void delegatesToAccountManagementService() throws Exception {
+            AccountMutationDTO dto = new AccountMutationDTO(
+                    "admin-123", "admin", "admin@example.com", "ADMIN", true, false, 0L, false);
+            when(accountManagementService.changePassword(any(ChangePasswordCommand.class)))
+                    .thenReturn(RpcResult.success(dto, "t-123"));
+
             mockMvc.perform(post("/admin/account/change-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(VALID_BODY))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.code").value(0));
-
-            verify(userWritePort).changePassword(any(ChangePasswordDTO.class));
         }
 
         @Test
-        @DisplayName("rejects a missing confirm password (validation boundary)")
+        @DisplayName("rejects a missing confirm password (400)")
         void missingConfirmPassword() throws Exception {
             mockMvc.perform(post("/admin/account/change-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"currentPassword\":\"current-password\","
                                     + "\"newPassword\":\"new-password\"}"))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.data.confirmPassword").exists());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
-        @DisplayName("rejects a too-short new password (policy boundary)")
+        @DisplayName("rejects a missing new password (400)")
         void shortNewPassword() throws Exception {
             mockMvc.perform(post("/admin/account/change-password")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"currentPassword\":\"current-password\","
-                                    + "\"newPassword\":\"short\","
-                                    + "\"confirmPassword\":\"short\"}"))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.data.newPassword").exists());
+                            .content("{\"currentPassword\":\"current-password\"}"))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

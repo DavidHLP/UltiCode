@@ -36,14 +36,14 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
-			<artifactId>backend-legacy</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.ulticode</groupId>
 			<artifactId>backend-web-security</artifactId>
 		</dependency>
 
+		<!-- P7-RELOCATE-ADMIN-001: cross-domain types and audit infrastructure -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-legacy</artifactId>
+		</dependency>
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -141,11 +141,6 @@
 		</dependency>
 
 		<!-- P7-RELOCATE-ADMIN-001: cross-domain types and audit infrastructure -->
-		<dependency>
-			<groupId>com.ulticode</groupId>
-			<artifactId>backend-legacy</artifactId>
-		</dependency>
-
 		<!-- Test dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

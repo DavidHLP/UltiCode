@@ -1,0 +1,183 @@
+package com.ulticode.modules.reconciliation;
+
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.MybatisSqlSessionFactoryBuilder;
+import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
+import com.ulticode.app.api.service.AppReconciliationReadPort;
+import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
+import com.ulticode.auth.api.service.ReconciliationQueryService;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.uuid.FixedUuidGenerator;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * P7-RECON-AGGREGATOR-001: OwnerReconciler integration against a real
+ * database — admin-local only.
+ *
+ * <p>Real SQL executes for the two admin-owned surfaces:
+ * <ul>
+ *   <li>{@code reconciliation_runs} persistence (ReconciliationRunMapper);</li>
+ *   <li>{@code audit_logs.performer_id} orphan check (AuditOrphanMapper).</li>
+ * </ul>
+ * Auth facts and the nine App child counts come from faked
+ * ports/providers — cross-owner SQL has been removed from admin.
+ *
+ * <p>Bootstrap is a hand-rolled MyBatis-Plus {@link SqlSessionFactory}
+ * over the container datasource instead of a full Spring context: the
+ * admin application component-scan collides with backend-app's
+ * {@code ResourceServerJwtVerifier} (pre-existing P7 conflict,
+ * tracked as known Admin DB IT failure), which is unrelated to this
+ * family.
+ */
+@Testcontainers
+@DisplayName("P7-RECON-AGGREGATOR-001: OwnerReconciler admin-local IT")
+class OwnerReconcilerIT {
+
+    @Container
+    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
+            .withDatabaseName("ulticode_admin_reconciler_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    private static HikariDataSource dataSource;
+    private static JdbcTemplate jdbcTemplate;
+    private static SqlSessionFactory sessionFactory;
+    private static SqlSession session;
+    private static ReconciliationRunMapper runMapper;
+    private static AuditOrphanMapper auditOrphanMapper;
+
+    @BeforeAll
+    static void provision() throws Exception {
+        try (Connection conn = DriverManager.getConnection(
+                MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword());
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("""
+                CREATE TABLE `reconciliation_runs` (
+                  `run_id` varchar(40) NOT NULL,
+                  `started_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                  `finished_at` datetime(3) DEFAULT NULL,
+                  `owner` varchar(20) NOT NULL,
+                  `status` varchar(20) NOT NULL DEFAULT 'RUNNING',
+                  `divergence_count` int NOT NULL DEFAULT 0,
+                  `orphan_count` int NOT NULL DEFAULT 0,
+                  `detail` text,
+                  PRIMARY KEY (`run_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+                """);
+            stmt.execute("""
+                CREATE TABLE `users` (
+                  `id` varchar(40) NOT NULL,
+                  `username` varchar(120) NOT NULL,
+                  `is_deleted` tinyint(1) NOT NULL DEFAULT '0',
+                  PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+                """);
+            stmt.execute("""
+                CREATE TABLE `audit_logs` (
+                  `id` varchar(40) NOT NULL,
+                  `performer_id` varchar(40) DEFAULT NULL,
+                  PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
+
+            stmt.execute("INSERT INTO `users` (`id`, `username`, `is_deleted`) VALUES " +
+                    "('u-001', 'alice', 0), ('u-002', 'bob', 0), ('u-del', 'deleted', 1)");
+            stmt.execute("INSERT INTO `audit_logs` (`id`, `performer_id`) VALUES " +
+                    "('al-1', 'u-001'), ('al-2', 'u-del'), ('al-ghost', 'ghost-user')");
+        }
+
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(MYSQL.getJdbcUrl());
+        config.setUsername(MYSQL.getUsername());
+        config.setPassword(MYSQL.getPassword());
+        config.setMaximumPoolSize(4);
+        dataSource = new HikariDataSource(config);
+        jdbcTemplate = new JdbcTemplate(dataSource);
+
+        MybatisConfiguration mybatisConfiguration = new MybatisConfiguration();
+        mybatisConfiguration.setEnvironment(new Environment(
+                "test", new JdbcTransactionFactory(), dataSource));
+        mybatisConfiguration.addMapper(ReconciliationRunMapper.class);
+        mybatisConfiguration.addMapper(AuditOrphanMapper.class);
+        sessionFactory = new MybatisSqlSessionFactoryBuilder().build(mybatisConfiguration);
+        session = sessionFactory.openSession(true);
+        runMapper = session.getMapper(ReconciliationRunMapper.class);
+        auditOrphanMapper = session.getMapper(AuditOrphanMapper.class);
+    }
+
+    @AfterAll
+    static void cleanup() throws SQLException {
+        if (session != null) {
+            session.close();
+        }
+        if (dataSource != null) {
+            dataSource.close();
+        }
+    }
+
+    private OwnerReconciler newReconciler() {
+        ReconciliationQueryService authService = mock(ReconciliationQueryService.class);
+        when(authService.countActiveUsers()).thenReturn(RpcResult.success(2L, "t-system"));
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+
+        AppReconciliationReadPort appPort = mock(AppReconciliationReadPort.class);
+        when(appPort.countUserProfiles()).thenReturn(2L);
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+
+        OwnerReconciler reconciler = new OwnerReconciler(
+                runMapper, new FixedUuidGenerator("run-it-1"), appPort, auditOrphanMapper);
+        ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
+        return reconciler;
+    }
+
+    @Test
+    @DisplayName("real run persistence + real audit orphan SQL detect ghost performer")
+    void runPersistsAndDetectsAuditOrphan() {
+        ReconciliationRun run = newReconciler().runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        assertThat(run.getDivergenceCount()).isZero();
+        assertThat(run.getOrphanCount()).isEqualTo(1);
+        assertThat(run.getDetail()).contains("\"child\":\"audit_logs\"");
+        assertThat(run.getDetail()).contains("\"orphans\":1");
+
+        Integer persisted = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM reconciliation_runs WHERE run_id = 'run-it-1'", Integer.class);
+        assertThat(persisted).isEqualTo(1);
+        String persistedStatus = jdbcTemplate.queryForObject(
+                "SELECT status FROM reconciliation_runs WHERE run_id = 'run-it-1'", String.class);
+        assertThat(persistedStatus).isEqualTo("COMPLETED");
+    }
+
+    @Test
+    @DisplayName("soft-deleted parent physically exists and is NOT an orphan")
+    void softDeletedParentIsNotOrphan() {
+        // al-2 references the soft-deleted but physically present u-del → not orphan
+        // al-ghost references a nonexistent id → orphan; al-1 references u-001 → not orphan
+        assertThat(auditOrphanMapper.countOrphanAuditLogs()).isEqualTo(1L);
+    }
+}

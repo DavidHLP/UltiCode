@@ -1,8 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.UlticodeBackendApplication;
-import com.ulticode.common.config.MapperConfig;
+import com.ulticode.admin.error.AdminWebExceptionHandler;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.dto.AdminContestVO;
@@ -12,8 +11,6 @@ import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
-import com.ulticode.security.jwt.JwtTokenProvider;
-import com.ulticode.security.jwt.JwtProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,12 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ContextConfiguration;
 
 import java.time.LocalDateTime;
 
@@ -43,15 +38,9 @@ import com.ulticode.common.auth.CurrentUserProvider;
  *
  * <p>Tests contest creation endpoint with security context.</p>
  */
-@WebMvcTest(
-        value = AdminContestController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = MapperConfig.class
-        )
-)
-@ContextConfiguration(classes = UlticodeBackendApplication.class)
+@WebMvcTest(AdminContestController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@ContextConfiguration(classes = {AdminContestController.class, AdminWebExceptionHandler.class})
 @DisplayName("AdminContestController")
 class ContestControllerTest {
     @org.junit.jupiter.api.BeforeEach
@@ -84,11 +73,6 @@ class ContestControllerTest {
     @MockBean
     private RankingService rankingService;
 
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
-
-    @MockBean
-    private JwtProperties jwtProperties;
     @MockBean
     private CurrentUserProvider currentUserProvider;
 

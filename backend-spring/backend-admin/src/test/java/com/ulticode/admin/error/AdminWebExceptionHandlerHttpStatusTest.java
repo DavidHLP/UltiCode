@@ -96,6 +96,15 @@ class AdminWebExceptionHandlerHttpStatusTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @Test
+    void nullErrorCode_fallsBackTo500() {
+        BusinessException ex = new BusinessException(null, "missing error code");
+
+        ResponseEntity<Result<Void>> response = handler.handleBusinessException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     /**
      * A fake "legacy-like" error code that implements NamespacedErrorCode and
      * exposes a getHttpStatus() method, simulating the legacy ErrorCode contract

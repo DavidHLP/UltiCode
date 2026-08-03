@@ -1,15 +1,9 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.UlticodeBackendApplication;
-import com.ulticode.common.config.CorsProperties;
-import com.ulticode.common.config.MapperConfig;
+import com.ulticode.admin.error.AdminWebExceptionHandler;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.service.AuditService;
-import com.ulticode.security.AuthenticationEntryPointImpl;
-import com.ulticode.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,11 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ContextConfiguration;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -36,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for AuditController.
@@ -52,16 +42,9 @@ import com.ulticode.common.auth.CurrentUserProvider;
  * <p>Mirrors the pattern of {@link AdminProblemListControllerTest}: bypass
  * security filters, mock the service and security dependencies.</p>
  */
-@WebMvcTest(
-        value = AuditController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = MapperConfig.class
-        )
-)
-// Disambiguate from BackendAdminApplication on the test classpath (P7-ADMIN-BULK-001)
-@ContextConfiguration(classes = UlticodeBackendApplication.class)
+@WebMvcTest(AuditController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@ContextConfiguration(classes = {AuditController.class, AdminWebExceptionHandler.class})
 @DisplayName("AuditController - export format handling")
 class AuditControllerFormatTest {
 
@@ -74,21 +57,6 @@ class AuditControllerFormatTest {
     @MockBean
     private AuditService auditService;
 
-    // SecurityConfig dependencies (kept consistent with sibling controller tests)
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
-    @MockBean
-    private JwtProperties jwtProperties;
-    @MockBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-    @MockBean
-    private AuthenticationEntryPointImpl authenticationEntryPoint;
-    @MockBean
-    private CorsProperties corsProperties;
-    @MockBean
-    private StringRedisTemplate stringRedisTemplate;
-    @MockBean
-    private CurrentUserProvider currentUserProvider;
 
     @Nested
     @DisplayName("GET /admin/audit/export with unsupported format")

@@ -1,6 +1,5 @@
 package com.ulticode;
 
-import com.ulticode.common.config.SecurityConfig;
 import com.ulticode.modules.queue.config.QueueConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,16 +11,22 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * P1-INFRA-005: Admin service placeholder boot entry.
  *
- * <p>Excludes legacy configurations that conflict with admin-specific ones
- * or require infrastructure not available in the admin shell
- * (P7-RELOCATE-ADMIN-001).
+ * <p>Excludes the Legacy monolith security configuration from the broad scan without
+ * a compile-time type dependency. It also excludes App-owned queue, config, and
+ * security adapters from the admin shell.</p>
  */
 @SpringBootApplication
 @ComponentScan(
         basePackages = "com.ulticode",
         excludeFilters = {
-                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
-                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = QueueConfig.class)
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = QueueConfig.class),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX,
+                        pattern = "com\\.ulticode\\.common\\.config\\.SecurityConfig"),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.config\\..*"),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.security\\..*")
         }
 )
 @EnableAsync

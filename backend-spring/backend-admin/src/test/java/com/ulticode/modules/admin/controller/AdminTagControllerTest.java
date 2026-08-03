@@ -1,18 +1,12 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.UlticodeBackendApplication;
-import com.ulticode.common.config.CorsProperties;
-import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminWebExceptionHandler;
 import com.ulticode.modules.admin.dto.tag.TagListResponse;
 import com.ulticode.modules.admin.dto.tag.TagVO;
 import com.ulticode.modules.admin.service.AdminTagService;
-import com.ulticode.security.AuthenticationEntryPointImpl;
-import com.ulticode.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,12 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ContextConfiguration;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,16 +50,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>Bug #4 → PATCH with empty name returns 400 (was 200 silent ignore)</li>
  * </ul>
  */
-@WebMvcTest(
-        value = AdminTagController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = MapperConfig.class
-        )
-)
-// Disambiguate from BackendAdminApplication on the test classpath (P7-ADMIN-BULK-001)
-@ContextConfiguration(classes = UlticodeBackendApplication.class)
+@WebMvcTest(AdminTagController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@ContextConfiguration(classes = {AdminTagController.class, AdminWebExceptionHandler.class})
 @DisplayName("AdminTagController")
 class AdminTagControllerTest {
 
@@ -81,13 +65,6 @@ class AdminTagControllerTest {
     @MockBean
     private AdminTagService service;
 
-    // SecurityConfig mocks (mirror AdminSettingsControllerTest lines 73-77)
-    @MockBean private JwtTokenProvider jwtTokenProvider;
-    @MockBean private JwtProperties jwtProperties;
-    @MockBean private JwtAuthenticationFilter jwtAuthenticationFilter;
-    @MockBean private AuthenticationEntryPointImpl authenticationEntryPoint;
-    @MockBean private CorsProperties corsProperties;
-    @MockBean private StringRedisTemplate stringRedisTemplate;
 
     private static TagVO sampleTag(String id, String name, String type) {
         TagVO v = new TagVO();

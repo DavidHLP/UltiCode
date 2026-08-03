@@ -16,13 +16,12 @@ import org.springframework.http.ResponseEntity;
  * P1-INFRA-005: verify the admin service shell boots and exposes health.
  *
  * <p>Disabled until the admin shell has its own isolated test context
- * (Testcontainers-based IT). With the P7-RELOCATE-ADMIN-001 dependency on
- * backend-legacy the full component scan requires Redis/MySQL infrastructure
- * that is not available in a plain unit test.
+ * (Testcontainers-based IT). The full component scan requires Redis/MySQL
+ * infrastructure that is not available in a plain unit test.</p>
  */
 @Disabled("Requires Redis/MySQL infrastructure — convert to Testcontainers IT (P7-RELOCATE-ADMIN-001)")
 @SpringBootTest(
-        classes = UlticodeBackendApplication.class,
+        classes = BackendAdminApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "spring.main.allow-bean-definition-overriding=true",

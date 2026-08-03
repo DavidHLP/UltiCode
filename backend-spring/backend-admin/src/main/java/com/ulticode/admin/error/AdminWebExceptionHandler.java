@@ -8,6 +8,8 @@ import com.ulticode.common.util.TraceIdUtil;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -15,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -57,6 +60,32 @@ public class AdminWebExceptionHandler {
                 BaseErrorCode.BAD_REQUEST.code(), "Validation failed", errors, traceId));
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Result<Map<String, String>>> handleConstraintViolation(
+            ConstraintViolationException exception) {
+        Map<String, String> errors = new HashMap<>();
+        for (ConstraintViolation<?> violation : exception.getConstraintViolations()) {
+            String path = violation.getPropertyPath().toString();
+            String fieldName = path.contains(".")
+                    ? path.substring(path.lastIndexOf('.') + 1)
+                    : path;
+            errors.put(fieldName, violation.getMessage());
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.errorWithData(
+                BaseErrorCode.BAD_REQUEST.code(), "Validation failed", errors, TraceIdUtil.current()));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Result<Map<String, String>>> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException exception) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(exception.getParameterName(),
+                "Missing required parameter '" + exception.getParameterName()
+                        + "' (type=" + exception.getParameterType() + ")");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.errorWithData(
+                BaseErrorCode.BAD_REQUEST.code(), "Validation failed", errors, TraceIdUtil.current()));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Result<Void>> handleHttpMessageNotReadable(
             HttpMessageNotReadableException exception) {
@@ -92,6 +121,9 @@ public class AdminWebExceptionHandler {
     }
 
     private HttpStatus httpStatus(NamespacedErrorCode errorCode) {
+        if (errorCode == null) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
         if (errorCode instanceof AdminErrorCode adminErrorCode) {
             return adminErrorCode.getHttpStatus();
         }

@@ -1,8 +1,11 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.dto.UserProfileDTO;
+import com.ulticode.app.api.service.UserProfileQueryService;
+import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.PermissionEntry;
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
@@ -13,163 +16,170 @@ import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.modules.auth.service.AuthCutoverService;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Default (and only) adapter for {@link AdminUserProjection}. Owns every
- * entity-to-VO projection rule and read-side aggregation for the admin user
- * surface &mdash; see the interface javadoc for why this is a deep module.
- *
- * <p>All methods are pure reads; none mutate user state. The detail read
- * ({@link #getUserById}) is the collaboration point used by both
- * {@link com.ulticode.modules.admin.service.UserManagementService} (after a
- * write) and {@link com.ulticode.modules.admin.service.UserPermissionService}
- * (after a grant / revoke) to compose the post-mutation VO.
- *
- * <p><b>Permission source migration (P7-RETIRE-PERMISSION-001):</b>
- * Role-template permissions are now fetched via Dubbo RPC
- * ({@link RoleTemplateService}); direct user permissions are read from the
- * authorization snapshot's {@code permissionEntries} via
- * {@link AuthCutoverService#getSnapshot}. The legacy
- * {@code RolePermissionMapper}, {@code PermissionService}, and their entity
- * types are no longer imported here.
- *
- * <p><b>List vs. detail asymmetry (intentional):</b> the list path
- * ({@link #getUsers}) deliberately omits stats / permissions enrichment to
- * keep the paginated read N+1-safe across a page of users. Only the
- * single-row detail path ({@link #getUserById}) pays the enrichment cost.
- *
- * @author ulticode
+ * Adapter for {@link AdminUserProjection} using decoupled Auth and App RPC/port seams.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DefaultAdminUserProjection implements AdminUserProjection {
 
-    private final UserMapper userMapper;
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    private AccountQueryService accountQueryService;
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    private UserProfileQueryService userProfileQueryService;
+
     private final AdminUserStatsReadPort userStatsReadPort;
     private final AuthCutoverService authCutoverService;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private RoleTemplateService roleTemplateService;
 
-    // ------------------------------------------------------------------
-    // Paginated list read (query build + entity->VO shaping, NO enrichment)
-    // ------------------------------------------------------------------
+    // Constructors for test injection when Spring/Dubbo context is unavailable
+    public DefaultAdminUserProjection(AccountQueryService accountQueryService,
+                                      UserProfileQueryService userProfileQueryService,
+                                      AdminUserStatsReadPort userStatsReadPort,
+                                      AuthCutoverService authCutoverService,
+                                      RoleTemplateService roleTemplateService) {
+        this.accountQueryService = accountQueryService;
+        this.userProfileQueryService = userProfileQueryService;
+        this.userStatsReadPort = userStatsReadPort;
+        this.authCutoverService = authCutoverService;
+        this.roleTemplateService = roleTemplateService;
+    }
 
     @Override
     public PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query) {
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        AccountQueryDTO accountQuery = new AccountQueryDTO(
+                query.getSearch(),
+                query.getRole(),
+                query.getIsActive(),
+                query.getIsBanned(),
+                pageRequest.page(),
+                pageRequest.pageSize(),
+                query.getSortBy(),
+                query.getSortOrder()
+        );
 
-        // 搜索过滤 — username / email / name 三列 OR
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = "%" + query.getSearch() + "%";
-            wrapper.and(w -> w
-                    .like(User::getUsername, search)
-                    .or().like(User::getEmail, search)
-                    .or().like(User::getName, search));
+        if (accountQueryService == null) {
+            return PageResult.of(Collections.emptyList(), 0L, pageRequest);
         }
 
-        // 角色过滤
-        if (StringUtils.hasText(query.getRole())) {
-            wrapper.eq(User::getRole, query.getRole());
+        RpcResult<AuthAccountDTO> rpcResult = accountQueryService.queryAccounts(accountQuery);
+        if (rpcResult == null || !rpcResult.success() || rpcResult.page() == null) {
+            return PageResult.of(Collections.emptyList(), 0L, pageRequest);
         }
 
-        // 启用状态过滤
-        if (query.getIsActive() != null) {
-            wrapper.eq(User::getIsActive, query.getIsActive());
+        RpcResult.Page page = rpcResult.page();
+        @SuppressWarnings("unchecked")
+        List<AuthAccountDTO> accountList = (List<AuthAccountDTO>) page.items();
+        long total = page.total() != null ? page.total() : 0L;
+
+        if (accountList == null || accountList.isEmpty()) {
+            return PageResult.of(Collections.emptyList(), total, pageRequest);
         }
 
-        // 封禁状态过滤
-        if (query.getIsBanned() != null) {
-            wrapper.eq(User::getIsBanned, query.getIsBanned());
+        Set<String> accountIds = accountList.stream()
+                .map(AuthAccountDTO::accountId)
+                .collect(Collectors.toSet());
+
+        Map<String, UserProfileDTO> profileMap = Collections.emptyMap();
+        if (userProfileQueryService != null) {
+            RpcResult<List<UserProfileDTO>> profileRpcResult = userProfileQueryService.getProfilesByAccountIds(accountIds);
+            if (profileRpcResult != null && profileRpcResult.success() && profileRpcResult.data() != null) {
+                profileMap = profileRpcResult.data().stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a));
+            }
         }
 
-        // 排序
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "joinedAt";
-        switch (sortBy) {
-            case "username" -> wrapper.orderBy(true, isAsc, User::getUsername);
-            case "email" -> wrapper.orderBy(true, isAsc, User::getEmail);
-            case "lastLoginAt" -> wrapper.orderBy(true, isAsc, User::getLastLoginAt);
-            default -> wrapper.orderBy(true, isAsc, User::getJoinedAt);
-        }
-
-        Page<User> userPage = new Page<>(pageRequest.page(), pageRequest.pageSize());
-        Page<User> result = userMapper.selectPage(userPage, wrapper);
-
-        // List path: entity->VO mapping only — NO stats / permissions enrichment
-        // (intentional; protects the paginated read from N+1 explosions).
-        // Detail path (getUserById) owns enrichment.
-        List<AdminUserVO> voList = result.getRecords().stream()
-                .map(this::toVO)
+        final Map<String, UserProfileDTO> finalProfileMap = profileMap;
+        List<AdminUserVO> voList = accountList.stream()
+                .map(acc -> toVO(acc, finalProfileMap.get(acc.accountId())))
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.getTotal(), pageRequest);
+        return PageResult.of(voList, total, pageRequest);
     }
-
-    // ------------------------------------------------------------------
-    // Single-item detail read (entity->VO + stats + permissions enrichment)
-    // ------------------------------------------------------------------
 
     @Override
     public AdminUserVO getUserById(String id) {
-        User user = userMapper.selectById(id);
-        if (user == null) {
+        if (accountQueryService == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-        AdminUserVO vo = toVO(user);
-        populateStats(vo, user.getId());
-        populatePermissions(vo, user.getId(), user.getRole());
+
+        RpcResult<AuthAccountDTO> rpcResult = accountQueryService.getAccountById(id);
+        if (rpcResult == null || !rpcResult.success() || rpcResult.data() == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        AuthAccountDTO account = rpcResult.data();
+
+        UserProfileDTO profile = null;
+        if (userProfileQueryService != null) {
+            RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(id);
+            if (profileRpc != null && profileRpc.success()) {
+                profile = profileRpc.data();
+            }
+        }
+
+        AdminUserVO vo = toVO(account, profile);
+        populateStats(vo, account.accountId());
+        populatePermissions(vo, account.accountId(), account.role());
         return vo;
     }
 
-    // ------------------------------------------------------------------
-    // Projection helpers (entity -> AdminUserVO)
-    // ------------------------------------------------------------------
-
-    /**
-     * 将 User 实体转为基础 AdminUserVO（不含 stats / permissions）。
-     * 列表路径与详情路径的共用底座；enrichment 由详情路径单独追加。
-     */
-    private AdminUserVO toVO(User user) {
-        if (user == null) {
+    private AdminUserVO toVO(AuthAccountDTO account, UserProfileDTO profile) {
+        if (account == null) {
             return null;
         }
 
         AdminUserVO vo = new AdminUserVO();
-        vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
-        vo.setName(user.getName());
-        vo.setEmail(user.getEmail());
-        vo.setAvatar(user.getAvatar());
-        vo.setRole(user.getRole());
-        vo.setIsActive(user.getIsActive());
-        vo.setIsBanned(user.getIsBanned());
-        vo.setBanReason(user.getBannedReason());
-        vo.setBannedUntil(user.getBannedUntil());
-        vo.setJoinedAt(user.getJoinedAt());
-        vo.setLastLoginAt(user.getLastLoginAt());
+        vo.setId(account.accountId());
+        vo.setUsername(account.username());
+        vo.setEmail(account.email());
+        vo.setRole(account.role());
+        vo.setIsActive(account.active());
+        vo.setIsBanned(account.banned());
+        vo.setBanReason(account.bannedReason());
+        vo.setBannedUntil(account.bannedUntil());
+        vo.setJoinedAt(account.joinedAt());
+        vo.setLastLoginAt(account.lastLoginAt());
+
+        if (profile != null) {
+            vo.setName(profile.name());
+            vo.setAvatar(profile.avatar());
+        }
 
         return vo;
     }
 
     private void populateStats(AdminUserVO vo, String userId) {
+        if (userStatsReadPort == null) {
+            return;
+        }
         AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
         stats.setTotalSubmissions((int) userStatsReadPort.countSubmissionsByUserId(userId));
         stats.setAcceptedSubmissions((int) userStatsReadPort.countAcceptedProblemsByUserId(userId));
@@ -187,10 +197,6 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         vo.setPermissions(permissions);
     }
 
-    /**
-     * 处理 role 权限。role 权限不带过期时间。
-     * 通过 Dubbo RPC 查询 backend-auth 的 RoleTemplateService。
-     */
     private void populateRolePermissions(List<AdminUserVO.PermissionInfo> sink, String role) {
         if (roleTemplateService == null) {
             return;
@@ -209,10 +215,6 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         }
     }
 
-    /**
-     * 处理 user 直接权限。过滤已过期项，避免 UI 显示无效授权。
-     * 通过 AuthCutoverService 获取 authorization snapshot 的 permissionEntries。
-     */
     private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
         if (authCutoverService == null) {
             return;

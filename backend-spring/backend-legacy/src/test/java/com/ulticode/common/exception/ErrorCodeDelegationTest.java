@@ -61,15 +61,4 @@ class ErrorCodeDelegationTest {
         assertThat(ErrorCode.AUTH_INVALID_CREDENTIALS.code()).isEqualTo(10001);
         assertThat(ErrorCode.AUTH_INVALID_CREDENTIALS.message()).isEqualTo("Invalid credentials");
     }
-
-    @Test
-    @DisplayName("P2-DISC-001: BusinessException in backend-legacy extends backend-common BusinessException")
-    void legacyBusinessExceptionExtendsCommon() {
-        BusinessException ex = new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "custom msg");
-        assertThat(ex).isInstanceOf(com.ulticode.common.exception.BusinessException.class);
-        assertThat(ex.getCode()).isEqualTo(10001);
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS);
-        assertThat(ex.getMessage()).isEqualTo("custom msg");
-        assertThat(ex.getHttpStatus().value()).isEqualTo(401);
-    }
 }

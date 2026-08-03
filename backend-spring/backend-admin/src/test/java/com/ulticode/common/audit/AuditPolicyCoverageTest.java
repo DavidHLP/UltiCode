@@ -1,7 +1,6 @@
 package com.ulticode.common.audit;
 
 import com.ulticode.common.annotation.Audited;
-import com.ulticode.common.annotation.CheckBan;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -54,8 +53,9 @@ class AuditPolicyCoverageTest {
 
     @Test
     void catalog_banEntries_match_real_annotations() {
-        Set<Method> banCheckedMethods = new HashSet<>(scanAnnotatedMethods(CheckBan.class));
-        banCheckedMethods.addAll(scanAnnotatedMethods(com.ulticode.app.security.CheckBan.class));
+        // Legacy com.ulticode.common.annotation.CheckBan was deleted by
+        // P7-LEGACY-DEAD-INFRA-DELETE-001; only the App-owned annotation remains.
+        Set<Method> banCheckedMethods = new HashSet<>(scanAnnotatedMethods(com.ulticode.app.security.CheckBan.class));
         for (AuditPolicy.BanEntry entry : AuditPolicy.BAN_CHECKED) {
             boolean found = banCheckedMethods.stream().anyMatch(m ->
                     m.getDeclaringClass().getName().equals(entry.declaringClass())

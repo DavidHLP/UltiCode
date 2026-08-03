@@ -1,9 +1,11 @@
 package com.ulticode.app.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import com.ulticode.common.metrics.SqlTimingInterceptor;
 import java.time.LocalDateTime;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +28,13 @@ import org.springframework.context.annotation.Configuration;
  * remain with their current owners until the corresponding feature families
  * migrate.
  *
+ * <p>The {@link SqlTimingInterceptor} is registered at the MyBatis Executor
+ * level via {@link ConfigurationCustomizer} (same pattern as
+ * {@code com.ulticode.common.config.MybatisPlusConfig} in backend-legacy).
+ * The interceptor and its {@code MetricsCollector} are process-local copies
+ * (P7-LEAF-PLAN-001): after the monitoring split each service counts its own
+ * SQL metrics.
+ *
  * <p>Mirrors {@code com.ulticode.admin.config.MybatisPlusConfig} (commit
  * {@code ce0ed40e}) — the admin shell established this exact pattern for
  * relocated MyBatis-Plus entities.
@@ -38,6 +47,18 @@ public class MybatisPlusConfig {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
         return interceptor;
+    }
+
+    /**
+     * Register the {@link SqlTimingInterceptor} at the MyBatis Executor
+     * level via {@code Configuration#addInterceptor}.
+     *
+     * @param sqlTimingInterceptor the SQL timing/counting interceptor
+     * @return customizer that adds the interceptor to the MyBatis config
+     */
+    @Bean
+    public ConfigurationCustomizer mybatisCustomizer(SqlTimingInterceptor sqlTimingInterceptor) {
+        return configuration -> configuration.addInterceptor(sqlTimingInterceptor);
     }
 
     @Bean

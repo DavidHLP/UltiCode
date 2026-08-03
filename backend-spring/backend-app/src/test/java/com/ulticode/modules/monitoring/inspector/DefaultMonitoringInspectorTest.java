@@ -304,16 +304,65 @@ class DefaultMonitoringInspectorTest {
         }
     }
 
-    @Disabled("P7-INFRA: QueueConstants/QueueInspector relocated to backend-app")
     @Nested
     @DisplayName("getQueueStats Tests")
     class GetQueueStatsTests {
-        // P7-INFRA: All queue-constant references relocated to backend-app.
-        // Stubbed so the outer class compiles; this @Disabled class runs nothing.
 
         @Test
-        void stub() {
-            throw new UnsupportedOperationException("GetQueueStatsTests is @Disabled — see class Javadoc");
+        @DisplayName("returns one row per known queue in wire order")
+        void returnsOneRowPerKnownQueueInWireOrder() {
+            List<QueueStatsVO> stats = monitoringInspector.getQueueStats();
+
+            assertEquals(3, stats.size());
+            assertEquals(List.of("judge_queue", "notification_queue", "email_queue"),
+                    stats.stream().map(QueueStatsVO::getName).toList());
+        }
+
+        @Test
+        @DisplayName("maps snapshot depth/counters into the queue row")
+        void mapsSnapshotFieldsIntoRow() {
+            when(queueInspector.getQueueHealthSnapshot("judge_queue"))
+                    .thenReturn(QueueHealthSnapshotDTO.builder()
+                            .queueName("judge_queue")
+                            .waitingDepth(7L)
+                            .completedCount(3L)
+                            .failedCount(2L)
+                            .probeStatus(ProbeStatus.OK)
+                            .build());
+
+            QueueStatsVO judge = monitoringInspector.getQueueStats().get(0);
+
+            assertEquals(7L, judge.getWaiting());
+            assertEquals(3L, judge.getCompleted());
+            assertEquals(2L, judge.getFailed());
+        }
+
+        @Test
+        @DisplayName("renders a PROBE_FAILED snapshot as a zero-depth row (health check carries the failure)")
+        void probeFailedSnapshotRendersZeroDepthRow() {
+            when(queueInspector.getQueueHealthSnapshot(anyString()))
+                    .thenReturn(QueueHealthSnapshotDTO.builder()
+                            .queueName("judge_queue")
+                            .waitingDepth(0L)
+                            .failedCount(0L)
+                            .completedCount(0L)
+                            .probeStatus(ProbeStatus.PROBE_FAILED)
+                            .build());
+
+            List<QueueStatsVO> stats = monitoringInspector.getQueueStats();
+
+            assertTrue(stats.stream().allMatch(s -> s.getWaiting() == 0L));
+        }
+
+        @Test
+        @DisplayName("translates an unexpected inspector exception into a PROBE_FAILED row")
+        void inspectorExceptionBecomesProbeFailedRow() {
+            when(queueInspector.getQueueHealthSnapshot(anyString()))
+                    .thenThrow(new IllegalStateException("broker down"));
+
+            List<QueueStatsVO> stats = monitoringInspector.getQueueStats();
+
+            assertTrue(stats.stream().allMatch(s -> s.getWaiting() == 0L));
         }
     }
     @Nested

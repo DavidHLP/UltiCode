@@ -36,6 +36,12 @@ mybatis-plus:
     db-config:
       id-type: input
 
+app:
+  monitoring:
+    # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor
+    # + /monitoring/database.slowQueries (moved from backend-legacy application.yml).
+    slow-query-ms: 500
+
 management:
   endpoints:
     web:

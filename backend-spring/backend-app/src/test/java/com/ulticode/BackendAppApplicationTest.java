@@ -117,6 +117,9 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.search.port.UserSearchReadMapper userSearchReadMapper;
 
     @MockBean
+    private com.ulticode.modules.reconciliation.port.AppReconciliationReadMapper appReconciliationReadMapper;
+
+    @MockBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
 
     @MockBean

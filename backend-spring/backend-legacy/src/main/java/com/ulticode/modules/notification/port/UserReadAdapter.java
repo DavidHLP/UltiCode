@@ -35,7 +35,7 @@ public class UserReadAdapter implements UserReadPort {
         if (user == null) {
             return null;
         }
-        return new NotificationUserInfo(user.getId(), user.getUsername(), user.getEmail());
+        return new NotificationUserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getName());
     }
 
     @Override
@@ -45,7 +45,7 @@ public class UserReadAdapter implements UserReadPort {
         }
         List<User> users = userMapper.selectBatchIds(userIds);
         return users.stream()
-                .map(u -> new NotificationUserInfo(u.getId(), u.getUsername(), u.getEmail()))
+                .map(u -> new NotificationUserInfo(u.getId(), u.getUsername(), u.getEmail(), u.getName()))
                 .toList();
     }
 }

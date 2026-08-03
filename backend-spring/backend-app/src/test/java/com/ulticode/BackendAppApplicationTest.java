@@ -135,6 +135,9 @@ class BackendAppApplicationTest {
     private com.ulticode.app.user.port.UserReadMapper userReadMapper;
 
     @MockBean
+    private com.ulticode.app.user.port.UserProfileWriteMapper userProfileWriteMapper;
+
+    @MockBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
 
     @MockBean

@@ -1,7 +1,9 @@
 package com.ulticode.modules.problemlist.service;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ProblemListErrorCode;
+import com.ulticode.app.error.ProblemErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
 import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
@@ -14,7 +16,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
-import com.ulticode.modules.problemlist.port.ProblemExistencePort;
+import com.ulticode.app.api.service.ProblemExistencePort;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.impl.ProblemListServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -171,7 +173,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.updateBasicInfo(LIST_ID, OTHER_USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_CANNOT_EDIT));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT));
 
             verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
@@ -188,7 +190,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.updateBasicInfo(LIST_ID, OWNER_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
@@ -257,7 +259,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.updateVisibility(LIST_ID, OTHER_USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_CANNOT_EDIT));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT));
 
             verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
@@ -330,7 +332,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.updateBanner(LIST_ID, OTHER_USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_CANNOT_EDIT));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT));
 
             verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
@@ -384,7 +386,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.forkList(LIST_ID, OWNER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
@@ -398,7 +400,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.forkList(LIST_ID, OWNER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_PRIVATE));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_PRIVATE));
 
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
@@ -462,7 +464,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.addProblem(LIST_ID, OWNER_ID, PROBLEM_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE));
 
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
@@ -475,7 +477,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.addProblem(LIST_ID, OWNER_ID, PROBLEM_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
 
         @Test
@@ -487,7 +489,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.addProblem(LIST_ID, OTHER_USER_ID, PROBLEM_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_CANNOT_EDIT));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT));
 
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
@@ -504,7 +506,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.addProblem(LIST_ID, OWNER_ID, PROBLEM_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_NOT_FOUND));
+                            .isEqualTo(ProblemErrorCode.PROBLEM_NOT_FOUND));
 
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
@@ -546,7 +548,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.addProblem(LIST_ID, OWNER_ID, PROBLEM_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE));
         }
     }
 
@@ -575,7 +577,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.findEntityById(LIST_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 
@@ -641,7 +643,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminUpdateProblemList(LIST_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
             verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
 
@@ -715,7 +717,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminUpdateBasicInfo(LIST_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 
@@ -772,7 +774,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminUpdateVisibility(LIST_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 
@@ -832,7 +834,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminUpdateBanner(LIST_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 
@@ -897,7 +899,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminReplaceListProblems(LIST_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.VALIDATION_FAILED));
+                            .isEqualTo(BaseErrorCode.VALIDATION_FAILED));
             verify(problemListProblemMapper).deleteByListId(LIST_ID);
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
@@ -913,7 +915,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminReplaceListProblems(LIST_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
             verify(problemListProblemMapper, never()).deleteByListId(any());
         }
     }
@@ -942,7 +944,7 @@ class ProblemListServiceTest {
             assertThatThrownBy(() -> problemListService.adminDeleteProblemList(LIST_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
             verify(problemListProblemMapper, never()).deleteByListId(any());
             verify(problemListMapper, never()).deleteById(anyString());
         }

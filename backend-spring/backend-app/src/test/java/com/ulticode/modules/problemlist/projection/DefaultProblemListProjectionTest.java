@@ -1,7 +1,9 @@
 package com.ulticode.modules.problemlist.projection;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ProblemListErrorCode;
+import com.ulticode.app.error.ProblemErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.UserListsForProblemVO;
@@ -14,8 +16,8 @@ import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.app.api.service.ProblemListReadPort;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.app.api.dto.NotificationUserInfo;
+import com.ulticode.app.api.service.UserReadPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -60,7 +62,7 @@ class DefaultProblemListProjectionTest {
     @Mock private ProblemListCategoryMapper problemListCategoryMapper;
     @Mock private ProblemListBookmarkMapper problemListBookmarkMapper;
     @Mock private ProblemListReadPort problemListReadPort;
-    @Mock private UserMapper userMapper;
+    @Mock private UserReadPort userReadPort;
 
     private static final String OWNER_ID = "user-001";
 
@@ -70,7 +72,7 @@ class DefaultProblemListProjectionTest {
     void setUp() {
         projection = new DefaultProblemListProjection(
                 problemListMapper, problemListProblemMapper, problemListCategoryMapper,
-                problemListBookmarkMapper, problemListReadPort, userMapper);
+                problemListBookmarkMapper, problemListReadPort, userReadPort);
     }
 
     @Nested
@@ -275,7 +277,7 @@ class DefaultProblemListProjectionTest {
             assertThatThrownBy(() -> projection.getListOverview(LIST_ID, OWNER_ID, "en"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
 
         @Test
@@ -289,7 +291,7 @@ class DefaultProblemListProjectionTest {
             assertThatThrownBy(() -> projection.getListOverview(LIST_ID, OWNER_ID, "en"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.PROBLEM_LIST_PRIVATE));
+                            .isEqualTo(ProblemListErrorCode.PROBLEM_LIST_PRIVATE));
         }
     }
 
@@ -305,10 +307,7 @@ class DefaultProblemListProjectionTest {
             ProblemList list = listEntity("list-1", "Summary List");
             list.setAuthorId(OWNER_ID);
             when(problemListProblemMapper.countByListId("list-1")).thenReturn(7L);
-            User author = new User();
-            author.setName("Alice");
-            author.setUsername("alice");
-            when(userMapper.selectById(OWNER_ID)).thenReturn(author);
+            when(userReadPort.findById(OWNER_ID)).thenReturn(new NotificationUserInfo(OWNER_ID, "alice", null, "Alice"));
 
             ProblemListSummaryVO vo = projection.toSummaryVO(list);
 
@@ -318,7 +317,7 @@ class DefaultProblemListProjectionTest {
             assertThat(vo.getAuthorName()).isEqualTo("Alice");
             assertThat(vo.getAuthorUsername()).isEqualTo("alice");
             verify(problemListProblemMapper).countByListId("list-1");
-            verify(userMapper).selectById(OWNER_ID);
+            verify(userReadPort).findById(OWNER_ID);
         }
 
         @Test

@@ -1,7 +1,9 @@
 package com.ulticode.modules.problemlist.projection;
 
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ProblemListErrorCode;
+import com.ulticode.app.error.ProblemErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
@@ -17,8 +19,8 @@ import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.app.api.service.ProblemListReadPort;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.app.api.dto.NotificationUserInfo;
+import com.ulticode.app.api.service.UserReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,7 +55,7 @@ public class DefaultProblemListProjection implements ProblemListProjection {
     private final ProblemListCategoryMapper problemListCategoryMapper;
     private final ProblemListBookmarkMapper problemListBookmarkMapper;
     private final ProblemListReadPort problemListReadPort;
-    private final UserMapper userMapper;
+    private final UserReadPort userReadPort;
 
     // ------------------------------------------------------------------
     // Overview reads
@@ -130,11 +132,11 @@ public class DefaultProblemListProjection implements ProblemListProjection {
     @Override
     public ProblemListDetailVO getListOverview(String id, String userId, String locale) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         // Check access
         if (!list.getIsPublic() && (userId == null || !list.getAuthorId().equals(userId))) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_PRIVATE);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_PRIVATE);
         }
 
         ProblemListDetailVO vo = new ProblemListDetailVO();
@@ -164,10 +166,10 @@ public class DefaultProblemListProjection implements ProblemListProjection {
         }
 
         // Get author info
-        User author = userMapper.selectById(list.getAuthorId());
+        NotificationUserInfo author = userReadPort.findById(list.getAuthorId());
         if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorName(author.name());
+            vo.setAuthorUsername(author.username());
         }
 
         // Get problems in the list via ProblemListReadPort
@@ -328,10 +330,10 @@ public class DefaultProblemListProjection implements ProblemListProjection {
         vo.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
 
         // Get author info
-        User author = userMapper.selectById(list.getAuthorId());
+        NotificationUserInfo author = userReadPort.findById(list.getAuthorId());
         if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorName(author.name());
+            vo.setAuthorUsername(author.username());
         }
 
         return vo;

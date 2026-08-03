@@ -2,7 +2,9 @@ package com.ulticode.modules.problemlist.controller;
 
 import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ProblemListErrorCode;
+import com.ulticode.app.error.ProblemErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.problemlist.dto.*;
@@ -215,7 +217,7 @@ public class ProblemListController {
     private String requireAuthenticatedUserId() {
         String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         return userId;
     }

@@ -120,6 +120,18 @@ class BackendAppApplicationTest {
     private com.ulticode.modules.reconciliation.port.AppReconciliationReadMapper appReconciliationReadMapper;
 
     @MockBean
+    private com.ulticode.modules.problemlist.mapper.ProblemListMapper problemListMapper;
+
+    @MockBean
+    private com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper problemListProblemMapper;
+
+    @MockBean
+    private com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper problemListCategoryMapper;
+
+    @MockBean
+    private com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper problemListBookmarkMapper;
+
+    @MockBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;
 
     @MockBean

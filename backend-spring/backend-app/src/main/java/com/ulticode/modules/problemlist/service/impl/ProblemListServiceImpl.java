@@ -2,7 +2,9 @@ package com.ulticode.modules.problemlist.service.impl;
 
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.app.error.ProblemListErrorCode;
+import com.ulticode.app.error.ProblemErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.problemlist.dto.CreateCategoryDTO;
@@ -26,7 +28,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
-import com.ulticode.modules.problemlist.port.ProblemExistencePort;
+import com.ulticode.app.api.service.ProblemExistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -85,10 +87,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         list.setName(dto.getName());
@@ -103,10 +105,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         if (dto.getIsPublic() != null) {
@@ -125,10 +127,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTag, list::setBannerTag);
@@ -144,10 +146,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO updateList(String id, String userId, UpdateProblemListDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         if (dto.getName() != null) {
@@ -180,10 +182,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
             userIdFrom = "userId", entityIdFrom = "id")
     public void deleteList(String id, String userId) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         // Delete all problem relations
@@ -197,10 +199,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO forkList(String id, String userId) {
         ProblemList original = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!original.getIsPublic()) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_PRIVATE);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_PRIVATE);
         }
 
         // Create new list
@@ -231,15 +233,15 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public void addProblem(String listId, String userId, Long problemId) {
         ProblemList list = problemListMapper.findById(listId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         // Check if problem exists (via the consumer-owned port, not the problem mapper)
         if (!problemExistencePort.exists(problemId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+            throw new BusinessException(ProblemErrorCode.PROBLEM_NOT_FOUND);
         }
 
         // Check if already exists — throw BusinessException so API returns 409 instead of silent no-op.
@@ -247,7 +249,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
         // enforces uniqueness regardless, and the catch below converts any race-condition
         // duplicate into the same BusinessException for a deterministic 409 contract.
         if (problemListProblemMapper.findByListIdAndProblemId(listId, problemId).isPresent()) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
         }
 
         // Get max sort order
@@ -264,7 +266,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
         } catch (DuplicateKeyException e) {
             // Concurrent insert won the race; treat as duplicate per the same 409 contract.
             log.debug("addProblem lost duplicate race for list={} problem={}", listId, problemId);
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
         }
     }
 
@@ -272,10 +274,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public void removeProblem(String listId, String userId, Long problemId) {
         ProblemList list = problemListMapper.findById(listId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
         problemListProblemMapper.deleteByListIdAndProblemId(listId, problemId);
@@ -285,10 +287,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public void saveList(String userId, String listId, String categoryId) {
         ProblemList list = problemListMapper.findById(listId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         if (!list.getIsPublic() && !list.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_PRIVATE);
+            throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_PRIVATE);
         }
 
         // Check if already saved
@@ -299,9 +301,9 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
         // Validate category if provided
         if (categoryId != null) {
             ProblemListCategory category = problemListCategoryMapper.findById(categoryId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND));
             if (!category.getUserId().equals(userId)) {
-                throw new BusinessException(ErrorCode.FORBIDDEN);
+                throw new BusinessException(BaseErrorCode.FORBIDDEN);
             }
         }
 
@@ -358,7 +360,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
         // NOTE: This method requires the problem_list_categories table to exist
         // Check if category name already exists for user
         if (problemListCategoryMapper.findByUserIdAndName(userId, dto.getName()).isPresent()) {
-            throw new BusinessException(ErrorCode.CONFLICT);
+            throw new BusinessException(BaseErrorCode.CONFLICT);
         }
 
         Integer maxOrder = problemListCategoryMapper.getMaxSortOrder(userId);
@@ -382,10 +384,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     public CategorySummaryVO updateCategory(String categoryId, String userId, UpdateCategoryDTO dto) {
         // NOTE: This method requires the problem_list_categories table to exist
         ProblemListCategory category = problemListCategoryMapper.findById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND));
 
         if (!category.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+            throw new BusinessException(BaseErrorCode.FORBIDDEN);
         }
 
         if (dto.getName() != null) {
@@ -412,10 +414,10 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     public void deleteCategory(String categoryId, String userId) {
         // NOTE: This method requires the problem_list_categories table to exist
         ProblemListCategory category = problemListCategoryMapper.findById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND));
 
         if (!category.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+            throw new BusinessException(BaseErrorCode.FORBIDDEN);
         }
 
         // Remove category from bookmarks
@@ -433,14 +435,14 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional(readOnly = true)
     public ProblemList findEntityById(String id) {
         return problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
     }
 
     @Override
     @Transactional
     public ProblemListSummaryVO adminUpdateProblemList(String id, UpdateProblemListDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getName, list::setName);
         PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getDescription, list::setDescription);
@@ -460,7 +462,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO adminUpdateBasicInfo(String id, UpdateBasicInfoDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getName, list::setName);
         PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getDescription, list::setDescription);
@@ -474,7 +476,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO adminUpdateVisibility(String id, UpdateVisibilityDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsPublic, list::setIsPublic);
         PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsFeatured, list::setIsFeatured);
@@ -488,7 +490,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public ProblemListSummaryVO adminUpdateBanner(String id, UpdateBannerDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTag, list::setBannerTag);
         PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerIcon, list::setBannerIcon);
@@ -504,12 +506,12 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public void adminReplaceListProblems(String id, UpdateProblemListProblemsDTO dto) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         problemListProblemMapper.deleteByListId(id);
 
         if (dto.getProblems() == null) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Problems list is required");
+            throw new BusinessException(BaseErrorCode.VALIDATION_FAILED, "Problems list is required");
         }
 
         for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
@@ -525,7 +527,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Transactional
     public void adminDeleteProblemList(String id) {
         ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         problemListProblemMapper.deleteByListId(id);
         problemListMapper.deleteById(id);

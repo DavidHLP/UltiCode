@@ -1,6 +1,9 @@
 package com.ulticode.modules.moderation.port;
 
+import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.service.ForumCommentOwnerPort;
+import com.ulticode.app.api.service.ModerationContentActionPort;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import java.time.LocalDateTime;
 import com.ulticode.app.api.service.ForumOwnerPort;
@@ -30,7 +33,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DefaultContentModerationAdapter implements ContentModerationPort {
+public class DefaultContentModerationAdapter implements ContentModerationPort, ModerationContentActionPort {
 
     private final ForumOwnerPort forumOwnerPort;
     private final ForumCommentOwnerPort forumCommentOwnerPort;
@@ -96,5 +99,22 @@ public class DefaultContentModerationAdapter implements ContentModerationPort {
             case "PROBLEM" -> problemOwnerPort.updateModerationFlag(entityId, isFlagged, reason);
             default -> log.warn("Unknown entity type in updateFlagStatus: {}", entityType);
         }
+    }
+    @Override
+    public ContentLifecycleState deleteContent(String contentType, String contentId) {
+        if (contentType == null || contentId == null) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "contentType and contentId are required");
+        }
+        return switch (contentType.toLowerCase()) {
+            case "forum_post", "forum" -> {
+                forumOwnerPort.deletePost(contentId);
+                yield ContentLifecycleState.DELETED;
+            }
+            case "solution" -> {
+                solutionOwnerPort.deleteSolution(contentId);
+                yield ContentLifecycleState.DELETED;
+            }
+            default -> throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Unknown contentType: " + contentType);
+        };
     }
 }

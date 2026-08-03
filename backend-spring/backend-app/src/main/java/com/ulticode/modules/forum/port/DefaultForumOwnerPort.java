@@ -100,4 +100,15 @@ public class DefaultForumOwnerPort implements ForumOwnerPort {
         ForumPost post = forumPostMapper.selectById(postId);
         return post != null ? post.getUserId() : null;
     }
+    @Override
+    @Transactional
+    public DeleteResult deletePost(String postId) {
+        ForumPost post = forumPostMapper.selectById(postId);
+        if (post == null) {
+            return new DeleteResult(null, null);
+        }
+        forumPostMapper.deleteById(post.getId());
+        log.info("Soft-deleted forum post {}", postId);
+        return new DeleteResult(post.getUserId(), post.getTitle());
+    }
 }

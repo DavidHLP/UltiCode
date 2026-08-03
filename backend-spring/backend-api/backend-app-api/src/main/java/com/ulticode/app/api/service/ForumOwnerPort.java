@@ -42,9 +42,14 @@ public interface ForumOwnerPort {
      */
     String resolveAuthorId(String postId);
 
+    /** Soft-delete a forum post. */
+    DeleteResult deletePost(String postId);
+
     // ─── Result records ───────────────────────────────────────────────────
 
     record FlagResult(String authorUserId, boolean previousIsFlagged, String previousReason) {}
 
     record ToggleResult(String authorId, boolean previousState) {}
+
+    record DeleteResult(String authorUserId, String title) {}
 }

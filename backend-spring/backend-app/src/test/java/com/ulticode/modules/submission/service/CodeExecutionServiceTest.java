@@ -3,7 +3,7 @@ package com.ulticode.modules.submission.service;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
-import com.ulticode.modules.submission.port.ProblemFactsPort;
+import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.app.api.dto.RunSubmissionDTO;
 import com.ulticode.domain.submission.enums.SubmissionStatus;

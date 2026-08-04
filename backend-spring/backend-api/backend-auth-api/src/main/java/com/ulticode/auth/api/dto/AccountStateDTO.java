@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Projection of an account's lifecycle state as returned by
  * {@link com.ulticode.auth.api.service.AccountAdministrationService#changeState}.
@@ -14,5 +16,5 @@ public record AccountStateDTO(
         String accountId,
         boolean active,
         boolean banned,
-        long version) {
+        long version) implements Serializable {
 }

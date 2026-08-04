@@ -3,6 +3,7 @@ package com.ulticode.app.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.io.Serializable;
 
 /**
  * Weekly active-user aggregation row: the ISO week-start date, the MySQL
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class WeeklyActiveUserCount {
+public class WeeklyActiveUserCount implements Serializable {
     private String weekStart;
     private Integer yearWeek;
     private Long count;

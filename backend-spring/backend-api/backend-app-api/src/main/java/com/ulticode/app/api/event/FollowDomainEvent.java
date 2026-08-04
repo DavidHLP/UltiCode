@@ -1,5 +1,7 @@
 package com.ulticode.app.api.event;
 
+import java.io.Serializable;
+
 /**
  * Domain event payload for follow / unfollow actions.
  */
@@ -10,4 +12,4 @@ public record FollowDomainEvent(
         int targetFollowerCount,
         int followerFollowingCount,
         boolean isFollow
-) {}
+) implements Serializable {}

@@ -36,7 +36,7 @@ import java.util.function.Function;
  * mutation instead of creating an unrecorded side effect.
  */
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-auth", version = "1.0.0")
 public class AccountManagementProvider implements AccountManagementService {
 
     private static final Logger log = LoggerFactory.getLogger(AccountManagementProvider.class);

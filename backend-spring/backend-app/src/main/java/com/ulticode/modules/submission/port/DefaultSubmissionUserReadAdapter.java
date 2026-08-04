@@ -35,7 +35,7 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class DefaultSubmissionUserReadAdapter implements SubmissionUserReadPort {
 
-    @DubboReference(check = false)
+    @DubboReference(group = "backend-auth", check = false)
     private IdentityQueryService identityQueryService;
 
     private final UserProfileMapper userProfileMapper;

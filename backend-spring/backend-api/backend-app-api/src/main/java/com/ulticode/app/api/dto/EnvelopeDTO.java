@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 import java.util.List;
 import java.util.Map;
+import java.io.Serializable;
 
 /**
  * D-form harness envelope as written to stdout by the pre-compiled harness
@@ -13,7 +14,7 @@ public record EnvelopeDTO(
         int exitCode,
         long totalElapsedMs,
         List<PerCaseResultDTO> results
-) {
+) implements Serializable {
     @SuppressWarnings("unchecked")
     public static EnvelopeDTO fromMap(Map<String, Object> m) {
         if (m == null) {

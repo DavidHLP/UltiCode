@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Orphan-count snapshot for the four Auth-internal child references
  * that point at the Auth-owned {@code users} table.
@@ -22,7 +24,7 @@ public record AuthReconciliationOrphanCounts(
         long refreshTokens,
         long passwordResets,
         long oauthProviderIdentities,
-        long userPermissions) {
+        long userPermissions) implements Serializable {
 
     public static final AuthReconciliationOrphanCounts ZERO =
             new AuthReconciliationOrphanCounts(0, 0, 0, 0);

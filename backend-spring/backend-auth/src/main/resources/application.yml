@@ -155,8 +155,11 @@ dubbo:
     username: ${DUBBO_REGISTRY_USERNAME:}
     password: ${DUBBO_REGISTRY_PASSWORD:}
     timeout: 5000
-    use-as-config-center: false
-    use-as-metadata-center: false
+    # P1-INFRA-003: register-mode=instance 下 provider 必须把 interface→application
+    # 映射发布到 metadata/config center, 否则消费方解析不到实例
+    # ("No provider available ... invokers: 0[]")。与 backend-app/backend-admin 保持一致。
+    use-as-config-center: true
+    use-as-metadata-center: true
     parameters:
       namespace: ${DUBBO_NAMESPACE:dev}
       group: DEFAULT_GROUP

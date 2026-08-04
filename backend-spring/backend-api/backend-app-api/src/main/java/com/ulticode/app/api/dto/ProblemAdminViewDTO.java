@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Admin-facing view of a problem as returned by
  * {@link com.ulticode.app.api.service.ProblemAdministrationService}.
@@ -15,5 +17,5 @@ public record ProblemAdminViewDTO(
         String slug,
         String title,
         long version,
-        String status) {
+        String status) implements Serializable {
 }

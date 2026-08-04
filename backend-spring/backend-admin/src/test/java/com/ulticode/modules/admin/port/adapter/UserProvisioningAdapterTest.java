@@ -1,10 +1,12 @@
-package com.ulticode.modules.user.port;
+package com.ulticode.modules.admin.port.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.rpc.RpcResult;
@@ -35,16 +37,19 @@ class UserProvisioningAdapterTest {
 
     private AccountQueryService accountQueryService;
     private AccountManagementService accountManagementService;
+    private AccountAdministrationService accountAdministrationService;
     private UserProvisioningAdapter adapter;
 
     @BeforeEach
     void setUp() {
         accountQueryService = mock(AccountQueryService.class);
         accountManagementService = mock(AccountManagementService.class);
+        accountAdministrationService = mock(AccountAdministrationService.class);
         adapter = new UserProvisioningAdapter(
                 new PasswordEncoderStub(), new FixedUuidGenerator());
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "accountManagementService", accountManagementService);
+        ReflectionTestUtils.setField(adapter, "accountAdministrationService", accountAdministrationService);
     }
 
     @Test
@@ -129,17 +134,24 @@ class UserProvisioningAdapterTest {
 
     @Test
     void restoreAdministratorVerifiesExistenceThenMutates() {
+        AuthAccountDTO locked = new AuthAccountDTO("u-restore", "old", "old@example.com", "USER",
+                false, true, "spam", null, LocalDateTime.now(), null, 0L);
+        AuthAccountDTO unbanned = new AuthAccountDTO("u-restore", "old", "old@example.com", "USER",
+                false, false, null, null, LocalDateTime.now(), null, 1L);
         when(accountQueryService.getAccountById("u-restore"))
-                .thenReturn(RpcResult.success(
-                        new AuthAccountDTO("u-restore", "old", "old@example.com", "USER",
-                                false, true, "spam", null, LocalDateTime.now(), null, 0L),
-                        "t-test"));
+                .thenReturn(RpcResult.success(locked, "t-test"))
+                .thenReturn(RpcResult.success(unbanned, "t-test"));
         when(accountManagementService.updateCredentials(any()))
                 .thenReturn(RpcResult.success(
                         new com.ulticode.auth.api.dto.AccountMutationDTO("u-restore", "restored", "restored@example.com", "ADMIN", true, false, 2L, false), "t-test"));
         when(accountManagementService.resetPassword(any()))
                 .thenReturn(RpcResult.success(
                         new com.ulticode.auth.api.dto.AccountMutationDTO("u-restore", "restored", "restored@example.com", "ADMIN", true, false, 3L, false), "t-test"));
+        when(accountAdministrationService.changeState(any()))
+                .thenReturn(RpcResult.success(
+                        new AccountStateDTO("u-restore", false, false, 1L), "t-test"))
+                .thenReturn(RpcResult.success(
+                        new AccountStateDTO("u-restore", true, false, 2L), "t-test"));
 
         adapter.restoreAdministrator("u-restore",
                 new UserProvisioningPort.AdministratorSpec(
@@ -147,6 +159,12 @@ class UserProvisioningAdapterTest {
 
         verify(accountManagementService).updateCredentials(any());
         verify(accountManagementService).resetPassword(any());
+        verify(accountAdministrationService).changeState(org.mockito.ArgumentMatchers.argThat(
+                command -> command.action() == com.ulticode.auth.api.command.ChangeAccountStateCommand.AccountStateAction.UNBAN
+                        && command.expectedVersion() == 0L));
+        verify(accountAdministrationService).changeState(org.mockito.ArgumentMatchers.argThat(
+                command -> command.action() == com.ulticode.auth.api.command.ChangeAccountStateCommand.AccountStateAction.ENABLE
+                        && command.expectedVersion() == 1L));
     }
 
     @Test

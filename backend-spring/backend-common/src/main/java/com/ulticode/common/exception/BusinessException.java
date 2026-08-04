@@ -3,13 +3,14 @@ package com.ulticode.common.exception;
 import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.util.TraceIdUtil;
 import lombok.Getter;
+import java.io.Serializable;
 
 /**
  * Base business exception in backend-common carrying a {@link NamespacedErrorCode} and trace ID.
  * Free of Spring dependencies so it can be safely used across all service contracts (P2-DISC-001).
  */
 @Getter
-public class BusinessException extends RuntimeException {
+public class BusinessException extends RuntimeException implements Serializable {
 
     private final NamespacedErrorCode errorCode;
     private final String traceId;

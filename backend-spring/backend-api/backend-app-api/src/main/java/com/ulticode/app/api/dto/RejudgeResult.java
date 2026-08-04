@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import lombok.Data;
+import java.io.Serializable;
 
 import java.time.Instant;
 
@@ -9,7 +10,7 @@ import java.time.Instant;
  * Used by the {@link com.ulticode.app.api.service.RejudgePolicy} port.
  */
 @Data
-public class RejudgeResult {
+public class RejudgeResult implements Serializable {
 
     private String submissionId;
 

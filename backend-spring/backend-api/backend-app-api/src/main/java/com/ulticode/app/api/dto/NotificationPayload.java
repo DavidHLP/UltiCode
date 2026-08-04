@@ -3,6 +3,7 @@ package com.ulticode.app.api.dto;
 
 import java.time.Instant;
 import java.util.Map;
+import java.io.Serializable;
 
 /**
  * Notification payload for user notifications.
@@ -17,10 +18,10 @@ public record NotificationPayload(
     String content,
     Map<String, Object> data,
     Instant createdAt,
-    boolean read) {
+    boolean read) implements Serializable {
 
   /** Notification types. */
-  public static class NotificationType {
+  public static class NotificationType implements Serializable {
     public static final String MENTION = "mention";
     public static final String REPLY = "reply";
     public static final String SYSTEM = "system";

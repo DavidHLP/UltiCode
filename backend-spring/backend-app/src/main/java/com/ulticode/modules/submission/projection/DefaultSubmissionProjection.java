@@ -17,7 +17,7 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.enums.SubmissionStatusCatalog;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
-import com.ulticode.modules.submission.port.ProblemFactsPort;
+import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

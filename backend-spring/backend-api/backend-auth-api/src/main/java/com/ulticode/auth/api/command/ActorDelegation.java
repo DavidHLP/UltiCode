@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.command;
 
+import java.io.Serializable;
+
 /**
  * Actor delegation record carried on every write command issued against
  * {@code backend-auth-api}.
@@ -33,7 +35,7 @@ public record ActorDelegation(
         String actorType,
         String actorId,
         String delegatorId,
-        String rationale) {
+        String rationale) implements Serializable {
 
     /**
      * Compact constructor enforcing the non-blank {@link #actorType} rule.

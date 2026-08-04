@@ -1,11 +1,12 @@
 package com.ulticode.app.api.dto;
 
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * DTO for submission history data.
  */
-public class SubmissionHistoryDTO {
+public class SubmissionHistoryDTO implements Serializable {
 
     private List<MonthlySubmission> monthly;
     private List<LanguageSubmission> languages;
@@ -71,7 +72,7 @@ public class SubmissionHistoryDTO {
     /**
      * Monthly submission stats.
      */
-    public static class MonthlySubmission {
+    public static class MonthlySubmission implements Serializable {
         private String month;
         private int count;
         private int accepted;
@@ -113,7 +114,7 @@ public class SubmissionHistoryDTO {
     /**
      * Language usage stats.
      */
-    public static class LanguageSubmission {
+    public static class LanguageSubmission implements Serializable {
         private String language;
         private int count;
 

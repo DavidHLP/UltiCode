@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.Serializable;
 
 /**
  * Entity-free live contest ranking entry, consumed by websocket and admin
@@ -13,7 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @author ulticode
  */
 @Schema(description = "Live contest ranking entry")
-public class ContestRankingEntryDTO {
+public class ContestRankingEntryDTO implements Serializable {
 
     @Schema(description = "User rank in the contest")
     private Integer rank;

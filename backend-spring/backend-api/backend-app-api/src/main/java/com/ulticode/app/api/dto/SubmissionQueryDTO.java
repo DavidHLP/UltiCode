@@ -1,12 +1,13 @@
 package com.ulticode.app.api.dto;
 
 import lombok.Data;
+import java.io.Serializable;
 
 /**
  * Query DTO for listing submissions.
  */
 @Data
-public class SubmissionQueryDTO {
+public class SubmissionQueryDTO implements Serializable {
 
     /**
      * Page number (1-based)

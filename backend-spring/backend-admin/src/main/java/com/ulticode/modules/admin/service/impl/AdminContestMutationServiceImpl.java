@@ -13,7 +13,7 @@ import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.port.AdminContestReadPort;
-import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
+import com.ulticode.app.api.service.ContestAnnouncementPushPort;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.CreateContestDTO;

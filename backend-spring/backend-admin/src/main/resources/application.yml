@@ -8,13 +8,25 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${DB_USER:ulticode}
     password: ${DB_PASSWORD:}
+  # P7-RELOCATE: admin scans the App-owned domain services (contest/submission/
+  # queue write paths) which enqueue via the shared Redisson queues, so the
+  # admin shell needs the same Redis wiring as backend-app.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
 
 backup:
   dir: ${BACKUP_DIR:/tmp/backups}
@@ -69,16 +81,18 @@ dubbo:
     metadata-type: local
   protocol:
     name: tri
-    port: 20882
+    # bootstrap (up.sh) 以 DUBBO_PROTOCOL_PORT=-1 随机端口运行, 避免与
+    # PM2 ulticode-admin (20882) 或残留的 bootstrap JVM 抢端口。
+    port: ${DUBBO_PROTOCOL_PORT:20882}
     triple:
       max-requests-per-connection: 50
   registry:
     address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
-    username: ${DUBBO_REGISTRY_USERNAME:}
-    password: ${DUBBO_REGISTRY_PASSWORD:}
+    username: ${DUBBO_REGISTRY_USERNAME:${NACOS_USERNAME:}}
+    password: ${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}
     timeout: 5000
-    use-as-config-center: false
-    use-as-metadata-center: false
+    use-as-config-center: true
+    use-as-metadata-center: true
     parameters:
       namespace: ${DUBBO_NAMESPACE:dev}
       group: DEFAULT_GROUP

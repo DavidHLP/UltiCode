@@ -18,7 +18,7 @@ import java.util.Optional;
  * <p>Provides read-only RPC operations for Auth-owned account queries.
  */
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-auth", version = "1.0.0")
 public class AccountQueryProvider implements AccountQueryService {
 
     private static final String DEFAULT_TRACE_ID = "t-system";

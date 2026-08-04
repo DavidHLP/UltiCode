@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import java.time.Instant;
+import java.io.Serializable;
 
 /**
  * Submission result payload for contest events.
@@ -19,7 +20,7 @@ public record SubmissionResultPayload(
     double score,
     Integer timeUsed,
     Long memoryUsed,
-    Instant judgedAt) {
+    Instant judgedAt) implements Serializable {
 
   public static SubmissionResultPayload of(
       String submissionId,

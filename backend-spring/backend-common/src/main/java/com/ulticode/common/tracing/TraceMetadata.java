@@ -1,5 +1,7 @@
 package com.ulticode.common.tracing;
 
+import java.io.Serializable;
+
 /**
  * Trace metadata captured at the producer, propagated unchanged through
  * cross-service calls (HTTP, Dubbo, queue events), and surfaced to the
@@ -34,7 +36,7 @@ public record TraceMetadata(
         String traceId,
         String spanId,
         String parentSpanId,
-        Long deadlineMs) {
+        Long deadlineMs) implements Serializable {
 
     /**
      * @return true when {@link #traceId} is non-null and non-blank.

@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to partial-update a contest's editable fields. Issued by
@@ -35,7 +36,7 @@ public record UpdateContestCommand(
         String title,
         Long startEpochMs,
         Integer durationMinutes,
-        String rationale) implements WriteCommand {
+        String rationale) implements Serializable, WriteCommand {
 
     public UpdateContestCommand {
         if (commandId == null || commandId.isBlank()) {

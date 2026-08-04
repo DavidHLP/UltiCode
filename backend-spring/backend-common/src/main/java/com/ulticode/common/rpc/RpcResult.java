@@ -2,6 +2,7 @@ package com.ulticode.common.rpc;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ulticode.common.error.NamespacedErrorCode;
+import java.io.Serializable;
 
 import java.util.List;
 import java.util.Objects;
@@ -63,7 +64,7 @@ public record RpcResult<T>(
         ErrorPayload error,
         String traceId,
         Long deadlineMs,
-        String idempotencyKey) {
+        String idempotencyKey) implements Serializable {
 
     /**
      * Pagination sub-payload; null for non-paginated RPCs. The {@code items}
@@ -76,7 +77,7 @@ public record RpcResult<T>(
             Long total,
             Integer page,
             Integer pageSize,
-            Integer totalPages) {
+            Integer totalPages) implements Serializable {
     }
 
     /**
@@ -91,7 +92,7 @@ public record RpcResult<T>(
     public record ErrorPayload(
             String namespace,
             int code,
-            String message) {
+            String message) implements Serializable {
 
         /**
          * @return this payload's namespace, or {@code ""} for

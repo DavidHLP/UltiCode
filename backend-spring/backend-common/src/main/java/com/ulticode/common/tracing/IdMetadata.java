@@ -1,6 +1,7 @@
 package com.ulticode.common.tracing;
 
 import java.util.UUID;
+import java.io.Serializable;
 
 /**
  * Idempotency key carried on mutating RPC calls so a retried producer does
@@ -21,7 +22,7 @@ import java.util.UUID;
 public record IdMetadata(
         String idempotencyKey,
         String fingerprint,
-        String issuedBy) {
+        String issuedBy) implements Serializable {
 
     /**
      * Convenience: mint a fresh UUID-v4 idempotency key with no fingerprint

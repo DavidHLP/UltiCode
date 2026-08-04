@@ -1,12 +1,13 @@
 package com.ulticode.app.api.dto;
 
 import lombok.Data;
+import java.io.Serializable;
 
 /**
  * Submission status metadata for frontend display.
  */
 @Data
-public class SubmissionStatusMeta {
+public class SubmissionStatusMeta implements Serializable {
 
     private String key;
 

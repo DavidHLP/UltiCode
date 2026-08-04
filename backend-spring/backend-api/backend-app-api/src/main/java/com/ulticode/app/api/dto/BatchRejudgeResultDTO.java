@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * Read-back DTO for batch rejudge operations.
@@ -18,5 +19,5 @@ public record BatchRejudgeResultDTO(
         int total,
         int successful,
         int failed,
-        List<RejudgeResultDTO> results) {
+        List<RejudgeResultDTO> results) implements Serializable {
 }

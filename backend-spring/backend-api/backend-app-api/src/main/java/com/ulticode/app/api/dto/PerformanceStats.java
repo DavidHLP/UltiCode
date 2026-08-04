@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 import java.util.List;
 import java.util.Map;
+import java.io.Serializable;
 
 /**
  * Immutable value object returned by
@@ -30,7 +31,7 @@ public record PerformanceStats(
         List<Map<String, Number>> runtimeDistBinsMs,
         Double memoryPercentile,
         List<Map<String, Number>> memoryDistBinsMb
-) {
+) implements Serializable {
 
     /**
      * Empty stats instance. Returned when no peer data is available or

@@ -2,6 +2,7 @@ package com.ulticode.common.uuid;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.io.Serializable;
 
 /**
  * In-test {@link UuidGenerator} — deterministic, monotonically
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author ulticode
  */
-public class FixedUuidGenerator implements UuidGenerator {
+public class FixedUuidGenerator implements Serializable, UuidGenerator {
 
     private final AtomicLong counter;
     private final String prefix;

@@ -8,7 +8,7 @@ import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.service.AdminAnalyticsService;
 import com.ulticode.app.api.dto.ProblemCompletionReportDTO;
 import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
-import com.ulticode.modules.user.projection.UserActivityAnalyticsProjection;
+import com.ulticode.modules.admin.projection.UserActivityAnalyticsProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

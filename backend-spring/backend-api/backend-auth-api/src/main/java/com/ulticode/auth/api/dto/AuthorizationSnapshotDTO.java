@@ -3,6 +3,7 @@ package com.ulticode.auth.api.dto;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.io.Serializable;
 
 /**
  * Authorization snapshot returned by
@@ -38,7 +39,7 @@ public record AuthorizationSnapshotDTO(
         String role,
         Set<String> permissions,
         long version,
-        List<PermissionEntry> permissionEntries) {
+        List<PermissionEntry> permissionEntries) implements Serializable {
 
     /**
      * Convenience constructor for callers that do not have structured

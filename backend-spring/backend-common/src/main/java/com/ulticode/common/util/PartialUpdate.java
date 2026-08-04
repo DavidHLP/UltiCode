@@ -2,6 +2,7 @@ package com.ulticode.common.util;
 
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import org.springframework.util.StringUtils;
+import java.io.Serializable;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -37,7 +38,7 @@ import java.util.function.Function;
  * PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getUsername, User::getUsername);
  * }</pre>
  */
-public final class PartialUpdate {
+public final class PartialUpdate implements Serializable {
 
     private PartialUpdate() {
         // Utility class

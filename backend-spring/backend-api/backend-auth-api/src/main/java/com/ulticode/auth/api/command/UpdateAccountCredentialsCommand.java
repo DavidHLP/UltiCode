@@ -2,6 +2,7 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /** Auth-owned command for changing an account's username and email. */
 public record UpdateAccountCredentialsCommand(
@@ -11,7 +12,7 @@ public record UpdateAccountCredentialsCommand(
         TraceMetadata trace,
         String accountId,
         String username,
-        String email) implements WriteCommand {
+        String email) implements Serializable, WriteCommand {
 
     public UpdateAccountCredentialsCommand {
         requireNonBlank(commandId, "commandId");

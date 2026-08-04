@@ -1,5 +1,7 @@
 package com.ulticode.auth.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Identity projection returned by
  * {@code backend-auth} {@code IdentityQueryService}.
@@ -28,5 +30,5 @@ public record UserIdentityDTO(
         String username,
         String role,
         boolean active,
-        boolean banned) {
+        boolean banned) implements Serializable {
 }

@@ -1,6 +1,7 @@
 package com.ulticode.auth.api.dto;
 
 import java.time.OffsetDateTime;
+import java.io.Serializable;
 
 /**
  * Structured permission entry carried inside
@@ -33,7 +34,7 @@ public record PermissionEntry(
         String action,
         String resource,
         String source,
-        OffsetDateTime expiresAt) {
+        OffsetDateTime expiresAt) implements Serializable {
 
     public PermissionEntry {
         if (action == null || action.isBlank()) {

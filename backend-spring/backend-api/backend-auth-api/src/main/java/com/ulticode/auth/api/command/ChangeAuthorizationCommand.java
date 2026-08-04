@@ -2,6 +2,7 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 import java.util.Set;
 
@@ -36,7 +37,7 @@ public record ChangeAuthorizationCommand(
         Long expectedVersion,
         String role,
         Set<String> permissions,
-        String rationale) implements WriteCommand {
+        String rationale) implements Serializable, WriteCommand {
 
     public ChangeAuthorizationCommand {
         if (commandId == null || commandId.isBlank()) {

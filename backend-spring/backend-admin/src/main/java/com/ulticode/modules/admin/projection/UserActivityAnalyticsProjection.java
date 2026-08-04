@@ -1,4 +1,4 @@
-package com.ulticode.modules.user.projection;
+package com.ulticode.modules.admin.projection;
 
 import com.ulticode.modules.admin.dto.UserActivityReportVO;
 

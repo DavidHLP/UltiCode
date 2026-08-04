@@ -1,6 +1,7 @@
 package com.ulticode.common.response;
 
 import lombok.Data;
+import java.io.Serializable;
 
 import java.util.List;
 
@@ -11,7 +12,7 @@ import java.util.List;
  * @param <T> the type of items in the page
  */
 @Data
-public class PageResult<T> {
+public class PageResult<T> implements Serializable {
 
     /**
      * List of items in the current page

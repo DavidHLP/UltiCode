@@ -1,0 +1,62 @@
+package com.ulticode.modules.moderation.port.adapter;
+
+import com.ulticode.app.api.dto.ModerationUserInfo;
+import com.ulticode.app.user.port.UserReadMapper;
+import com.ulticode.app.user.port.UserSummaryView;
+import com.ulticode.modules.moderation.port.ModerationUserReadPort;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Production adapter for the moderation module's local
+ * {@link ModerationUserReadPort} sub-interface (P7-RELOCATE).
+ *
+ * <p>Reads the Auth-owned {@code users} table through the App-owned
+ * {@link UserReadMapper} Q-read (same shared-read precedent as the other
+ * relocated user-surface projections). Implements the local sub-interface
+ * on purpose: the smoke test mocks that exact type, and the sub-interface
+ * inherits the app-api contract unchanged.
+ *
+ * <p>{@link UserReadMapper} has no batch select, so {@link #findByIds}
+ * loops {@code selectById} — the caller ({@code DefaultModerationProjection})
+ * already caps the id set to the users referenced by one page of queue
+ * items, so the loop stays bounded.
+ */
+@Component
+@RequiredArgsConstructor
+public class ModerationUserReadAdapter implements ModerationUserReadPort {
+
+    private final UserReadMapper userReadMapper;
+
+    @Override
+    public ModerationUserInfo findById(String userId) {
+        if (userId == null) {
+            return null;
+        }
+        UserSummaryView user = userReadMapper.selectById(userId);
+        return user != null ? new ModerationUserInfo(user.id(), user.username()) : null;
+    }
+
+    @Override
+    public Map<String, ModerationUserInfo> findByIds(Collection<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, ModerationUserInfo> result = new LinkedHashMap<>();
+        for (String userId : userIds) {
+            if (userId == null) {
+                continue;
+            }
+            UserSummaryView user = userReadMapper.selectById(userId);
+            if (user != null) {
+                result.put(user.id(), new ModerationUserInfo(user.id(), user.username()));
+            }
+        }
+        return result;
+    }
+}

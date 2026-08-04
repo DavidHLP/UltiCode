@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to transition a contest from RUNNING to FINISHED. Issued by
@@ -30,7 +31,7 @@ public record EndContestCommand(
         TraceMetadata trace,
         String contestId,
         Long expectedVersion,
-        String rationale) implements WriteCommand {
+        String rationale) implements Serializable, WriteCommand {
 
     public EndContestCommand {
         if (commandId == null || commandId.isBlank()) {

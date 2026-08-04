@@ -5,7 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.port.ProblemFactsPort;
+import com.ulticode.app.api.service.ProblemFactsPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

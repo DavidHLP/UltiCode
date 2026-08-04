@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to publish / unpublish a problem. Issued by the Admin BFF
@@ -20,7 +21,7 @@ public record PublishProblemCommand(
         String problemId,
         Long expectedVersion,
         boolean publish,
-        String rationale) implements WriteCommand {
+        String rationale) implements Serializable, WriteCommand {
 
     public PublishProblemCommand {
         if (commandId == null || commandId.isBlank()) {

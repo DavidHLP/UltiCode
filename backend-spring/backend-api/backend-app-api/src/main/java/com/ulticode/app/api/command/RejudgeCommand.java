@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to trigger an explicit rejudge of a submission. Issued by the
@@ -46,7 +47,7 @@ public record RejudgeCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String submissionId,
-        boolean notifyUser) implements WriteCommand {
+        boolean notifyUser) implements Serializable, WriteCommand {
 
     public RejudgeCommand {
         if (commandId == null || commandId.isBlank()) {

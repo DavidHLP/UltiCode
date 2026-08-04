@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import java.time.LocalDateTime;
+import java.io.Serializable;
 
 /**
  * Entity-free contest announcement snapshot consumed by backend-admin
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
  *
  * @author ulticode
  */
-public class ContestAnnouncementDTO {
+public class ContestAnnouncementDTO implements Serializable {
 
     private String id;
     private String contestId;

@@ -34,7 +34,7 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class DefaultForumUserReadAdapter implements ForumUserReadPort {
 
-    @DubboReference(check = false)
+    @DubboReference(group = "backend-auth", check = false)
     private IdentityQueryService identityQueryService;
 
     private final UserProfileMapper userProfileMapper;

@@ -3,6 +3,7 @@ package com.ulticode.app.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.io.Serializable;
 
 /**
  * Peak-hour aggregation row: the hour of day (0-23) and the distinct
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HourlyActiveUserCount {
+public class HourlyActiveUserCount implements Serializable {
     private Integer hour;
     private Long count;
 }

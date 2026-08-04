@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Raw Problem-owned test-case projection for the judge queue.
  *
@@ -14,4 +16,4 @@ public record ProblemJudgingCaseDTO(
         String outputText,
         String inputs,
         Boolean isHidden,
-        Boolean isSample) {}
+        Boolean isSample) implements Serializable {}

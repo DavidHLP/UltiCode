@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Result of a profile write operation, returned by
  * {@code ProfileWriteService.updateProfile}.
@@ -18,5 +20,5 @@ public record ProfileWriteResult(
         String location,
         String twitter,
         String website,
-        String preferredLanguage) {
+        String preferredLanguage) implements Serializable {
 }

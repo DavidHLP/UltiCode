@@ -1,11 +1,12 @@
 package com.ulticode.app.api.dto;
 
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * DTO for learning progress data.
  */
-public class LearningProgressDTO {
+public class LearningProgressDTO implements Serializable {
 
     private List<WeeklyProgress> weeklyProgress;
     private List<DifficultyProgress> difficultyProgress;
@@ -93,7 +94,7 @@ public class LearningProgressDTO {
     /**
      * Weekly submission progress entry.
      */
-    public static class WeeklyProgress {
+    public static class WeeklyProgress implements Serializable {
         private String week;
         private int solved;
         private double timeSpent;
@@ -135,7 +136,7 @@ public class LearningProgressDTO {
     /**
      * Difficulty-based progress entry.
      */
-    public static class DifficultyProgress {
+    public static class DifficultyProgress implements Serializable {
         private String difficulty;
         private int count;
         private double avgTime;

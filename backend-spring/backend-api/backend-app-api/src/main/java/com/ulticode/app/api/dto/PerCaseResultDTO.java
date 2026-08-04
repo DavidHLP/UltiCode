@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 import java.util.List;
 import java.util.Map;
+import java.io.Serializable;
 
 /**
  * Per-case verdict block as emitted by the D-form harness envelope.
@@ -19,8 +20,8 @@ public record PerCaseResultDTO(
         ErrorDTO error,
         String userStdout,
         String userStderr
-) {
-    public record ErrorDTO(String type, String message, List<String> stack) {}
+) implements Serializable {
+    public record ErrorDTO(String type, String message, List<String> stack) implements Serializable {}
 
     @SuppressWarnings("unchecked")
     public static PerCaseResultDTO fromMap(Map<String, Object> m) {

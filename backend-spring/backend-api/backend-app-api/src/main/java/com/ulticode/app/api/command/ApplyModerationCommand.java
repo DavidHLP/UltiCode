@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to apply a moderation decision to App-owned content
@@ -28,7 +29,7 @@ public record ApplyModerationCommand(
         String contentId,
         String contentType,
         ModerationAction action,
-        String rationale) implements WriteCommand {
+        String rationale) implements Serializable, WriteCommand {
 
     /**
      * Discriminated moderation action. Provider must validate the

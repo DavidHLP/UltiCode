@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Lightweight DTO for vote status queries.
  *
@@ -18,7 +20,7 @@ public record VoteStatusDTO(
         int userVote,
         long likes,
         long dislikes
-) {
+) implements Serializable {
     /** Net score: likes minus dislikes. */
     public long score() {
         return likes - dislikes;

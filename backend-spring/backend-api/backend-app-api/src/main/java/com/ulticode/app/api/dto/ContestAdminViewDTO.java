@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Admin-facing view of a contest as returned by
  * {@link com.ulticode.app.api.service.ContestAdministrationService}.
@@ -20,5 +22,5 @@ package com.ulticode.app.api.dto;
 public record ContestAdminViewDTO(
         String contestId,
         String title,
-        String status) {
+        String status) implements Serializable {
 }

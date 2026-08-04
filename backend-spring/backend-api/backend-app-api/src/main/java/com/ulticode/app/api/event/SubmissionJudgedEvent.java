@@ -1,6 +1,7 @@
 package com.ulticode.app.api.event;
 
 import org.springframework.context.ApplicationEvent;
+import java.io.Serializable;
 
 import java.time.LocalDateTime;
 
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
  *   <li>{@code AFTER_COMMIT}: contest scoring and achievement listeners.</li>
  * </ul>
  */
-public class SubmissionJudgedEvent extends ApplicationEvent {
+public class SubmissionJudgedEvent extends ApplicationEvent implements Serializable {
 
     private final String submissionId;
     private final String userId;

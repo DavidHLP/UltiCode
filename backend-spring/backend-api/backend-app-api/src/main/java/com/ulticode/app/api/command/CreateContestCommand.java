@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to create a new contest. Issued by the Admin BFF against
@@ -57,7 +58,7 @@ public record CreateContestCommand(
         String scoringRuleId,
         String description,
         long startEpochMs,
-        int durationMinutes) implements WriteCommand {
+        int durationMinutes) implements Serializable, WriteCommand {
 
     public CreateContestCommand {
         if (commandId == null || commandId.isBlank()) {

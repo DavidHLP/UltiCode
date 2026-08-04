@@ -16,7 +16,6 @@ import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.auth.api.service.AuthorizationSnapshotService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +38,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DefaultAdminUserProjection implements AdminUserProjection {
 
     @Autowired(required = false)
@@ -57,6 +55,18 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private RoleTemplateService roleTemplateService;
+
+    /**
+     * Production constructor: only the local port is constructor-injected;
+     * the Dubbo references stay optional field injections so the admin
+     * context loads while providers are down. Explicitly marked
+     * {@link Autowired} because the test constructor below would otherwise
+     * leave Spring without a unique candidate.
+     */
+    @Autowired
+    public DefaultAdminUserProjection(AdminUserStatsReadPort userStatsReadPort) {
+        this.userStatsReadPort = userStatsReadPort;
+    }
 
     // Constructors for test injection when Spring/Dubbo context is unavailable
     public DefaultAdminUserProjection(AccountQueryService accountQueryService,

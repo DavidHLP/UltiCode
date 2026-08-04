@@ -3,6 +3,7 @@ package com.ulticode.app.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.io.Serializable;
 
 /**
  * Typed projection of {@code submissions} aggregated by language.
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LanguageCountDTO {
+public class LanguageCountDTO implements Serializable {
     /** Programming language (e.g. "java", "python"). */
     private String language;
     /** Number of submissions in this language. */

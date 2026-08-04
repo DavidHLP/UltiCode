@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Lightweight DTO for forum post search index results.
  *
@@ -16,4 +18,4 @@ public record ForumPostIndexDTO(
         String title,
         String excerpt,
         String permalink
-) {}
+) implements Serializable {}

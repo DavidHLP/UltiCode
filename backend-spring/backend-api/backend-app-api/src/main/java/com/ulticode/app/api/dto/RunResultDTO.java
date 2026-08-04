@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 import lombok.Builder;
 import lombok.Data;
+import java.io.Serializable;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ import java.util.List;
  */
 @Data
 @Builder
-public class RunResultDTO {
+public class RunResultDTO implements Serializable {
 
     private String id;
     private Long problemId;
@@ -53,7 +54,7 @@ public class RunResultDTO {
 
     @Data
     @Builder
-    public static class RunCaseResult {
+    public static class RunCaseResult implements Serializable {
         private String id;
         private String runId;
         private String submissionTestId;
@@ -77,7 +78,7 @@ public class RunResultDTO {
 
         @Data
         @Builder
-        public static class InputParam {
+        public static class InputParam implements Serializable {
             private String id;
             private String label;
             private String name;

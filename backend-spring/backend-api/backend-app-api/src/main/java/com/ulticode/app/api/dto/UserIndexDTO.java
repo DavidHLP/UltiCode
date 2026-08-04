@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Lightweight DTO for user search index results.
  *
@@ -20,4 +22,4 @@ public record UserIndexDTO(
         String username,
         String name,
         String avatar
-) {}
+) implements Serializable {}

@@ -14,7 +14,7 @@ import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
 import com.ulticode.modules.submission.util.OJSignatureParser;
 import com.ulticode.modules.submission.port.JudgingLanguageSupport;
-import com.ulticode.modules.submission.port.ProblemFactsPort;
+import com.ulticode.app.api.service.ProblemFactsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

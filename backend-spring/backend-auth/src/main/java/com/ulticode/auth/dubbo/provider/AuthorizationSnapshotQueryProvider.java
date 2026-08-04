@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-auth", version = "1.0.0")
 public class AuthorizationSnapshotQueryProvider implements AuthorizationSnapshotService {
 
     private final AuthAccountPort authAccountPort;

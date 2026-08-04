@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 /**
  * Command to soft-delete a contest. Issued by the Admin BFF against
@@ -28,7 +29,7 @@ public record DeleteContestCommand(
         TraceMetadata trace,
         String contestId,
         Long expectedVersion,
-        String rationale) implements WriteCommand {
+        String rationale) implements Serializable, WriteCommand {
 
     public DeleteContestCommand {
         if (commandId == null || commandId.isBlank()) {

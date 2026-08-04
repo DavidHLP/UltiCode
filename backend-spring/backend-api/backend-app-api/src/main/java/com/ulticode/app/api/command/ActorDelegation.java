@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import java.io.Serializable;
+
 /**
  * Actor delegation record carried on every write command issued
  * against {@code backend-app-api}.
@@ -21,7 +23,7 @@ public record ActorDelegation(
         String actorType,
         String actorId,
         String delegatorId,
-        String rationale) {
+        String rationale) implements Serializable {
 
     public ActorDelegation {
         if (actorType == null || actorType.isBlank()) {

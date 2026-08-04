@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Minimal user info for cross-module read operations (notification
  * fan-out, problem-list author lookup, etc.). Replaces direct
@@ -17,7 +19,7 @@ package com.ulticode.app.api.dto;
  *                 not need it)
  * @param name     display name (may be null when the source has none)
  */
-public record NotificationUserInfo(String id, String username, String email, String name) {
+public record NotificationUserInfo(String id, String username, String email, String name) implements Serializable {
 
     /**
      * Backwards-compatible convenience constructor for consumers that

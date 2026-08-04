@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import java.time.Instant;
+import java.io.Serializable;
 
 /**
  * Result returned by
@@ -19,5 +20,5 @@ public record RejudgeResultDTO(
         String submissionId,
         String newStatus,
         long rejudgedAtEpochMs,
-        int retryCount) {
+        int retryCount) implements Serializable {
 }

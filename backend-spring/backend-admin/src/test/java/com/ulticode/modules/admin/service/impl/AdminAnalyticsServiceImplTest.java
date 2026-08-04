@@ -6,7 +6,7 @@ import com.ulticode.modules.admin.analytics.SystemResourceReporter;
 import com.ulticode.modules.admin.dto.AnalyticsOverviewVO;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
-import com.ulticode.modules.user.projection.UserActivityAnalyticsProjection;
+import com.ulticode.modules.admin.projection.UserActivityAnalyticsProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
+import java.io.Serializable;
 
 /**
  * Result returned by {@code ContentModerationService.apply}.
@@ -25,7 +26,7 @@ public record ModerationApplyResultDTO(
         String moderationCaseId,
         String contentId,
         ModerationAction appliedAction,
-        ContentLifecycleState newContentState) {
+        ContentLifecycleState newContentState) implements Serializable {
 
     public ModerationApplyResultDTO {
         if (moderationCaseId == null || moderationCaseId.isBlank()) {

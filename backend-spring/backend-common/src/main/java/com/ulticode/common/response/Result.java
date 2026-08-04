@@ -3,6 +3,7 @@ package com.ulticode.common.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.ulticode.common.util.TraceIdUtil;
 import lombok.Data;
+import java.io.Serializable;
 
 /**
  * Generic response wrapper for all API responses.
@@ -12,7 +13,7 @@ import lombok.Data;
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Result<T> {
+public class Result<T> implements Serializable {
 
     /**
      * Response code (0 for success, error code otherwise)

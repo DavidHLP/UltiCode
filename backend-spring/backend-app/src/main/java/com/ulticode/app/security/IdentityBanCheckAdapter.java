@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class IdentityBanCheckAdapter implements BanCheckPort {
 
-    @DubboReference(check = false)
+    @DubboReference(group = "backend-auth", check = false)
     private IdentityQueryService identityQueryService;
 
     @Override

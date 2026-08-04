@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * boundary as RPC — no cross-owner DB grants.
  */
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-auth", version = "1.0.0")
 public class AccountReconciliationProvider implements ReconciliationQueryService {
 
     private final ReconciliationQueryMapper reconciliationQueryMapper;

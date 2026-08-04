@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * Minimal Problem projection used by problem-list reads.
@@ -19,12 +20,12 @@ public record ProblemListItemDTO(
         BigDecimal acceptanceRate,
         Boolean isPremium,
         Boolean hasSolution,
-        List<Tag> tags) {
+        List<Tag> tags) implements Serializable {
 
     public ProblemListItemDTO {
         tags = tags == null ? List.of() : List.copyOf(tags);
     }
 
     /** Lightweight tag projection attached to a Problem list item. */
-    public record Tag(String id, String label) {}
+    public record Tag(String id, String label) implements Serializable {}
 }

@@ -42,6 +42,7 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.reconciliation.port",
         "com.ulticode.modules.search.port",
         "com.ulticode.modules.submission.mapper",
+        "com.ulticode.modules.submission.outbox.mapper",
         "com.ulticode.modules.submission.result",
         "com.ulticode.modules.subscription.mapper",
 })

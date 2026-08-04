@@ -18,8 +18,8 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/dev/up.sh [options]
 
-启动 UltiCode 开发栈: Docker 基础设施 → Nacos 配置 → Flyway 迁移 → dev-admin
-→ pnpm install → PM2 服务 → 就绪检查。
+启动 UltiCode 开发栈: Docker 基础设施 → Nacos 配置 → Flyway 迁移 → 启动 auth →
+dev-admin bootstrap (经 Dubbo RPC) → pnpm install → PM2 服务 → 就绪检查。
 
 Options:
   --quick              热重启: 跳过 infra/Nacos/迁移/admin/依赖, 只重启 PM2 服务
@@ -200,8 +200,35 @@ else
   echo "Skipping database migrations (--skip-migrate / --quick / --frontend-only)."
 fi
 
-# ===== 步骤 4: dev-admin bootstrap =====
+# ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====
 if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
+  # UserProvisioningAdapter 通过 Dubbo RPC 调用 backend-auth 的
+  # AccountManagementService 创建/恢复 admin (check=false: 容器可启动, 调用期才需要 provider)。
+  # 所以 bootstrap 前必须先拉起 ulticode-auth 并等待其 Dubbo provider 注册到 Nacos。
+  echo "Starting ulticode-auth first (admin provisioning uses Dubbo RPC to backend-auth)..."
+  (
+    cd "$ROOT_DIR"
+    pm2 startOrRestart ecosystem.config.cjs --only ulticode-auth --update-env
+    pm2 save
+  )
+  auth_ready=false
+  for _ in $(seq 1 90); do
+    auth_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+      http://127.0.0.1:9101/api/v1/auth/health 2>/dev/null || true)"
+    if [[ "$auth_code" == "200" ]]; then
+      auth_ready=true
+      break
+    fi
+    sleep 2
+  done
+  if [[ "$auth_ready" != true ]]; then
+    echo "ulticode-auth did not become healthy; cannot run dev-admin bootstrap." >&2
+    pm2 logs ulticode-auth --nostream --lines 50 >&2 || true
+    exit 1
+  fi
+  # Dubbo provider 向 Nacos 的注册滞后于 HTTP 健康端点, 留注册缓冲。
+  sleep 5
+
   echo "Creating or restoring the documented development administrator..."
   # NOTE: web-application-type=none 关闭 web 容器,只运行 DevUserBootstrapRunner 创建 dev admin。
   # 应用内存在非 daemon 线程(Redisson netty / 调度器),runner 完成后 JVM 不自退,会永久阻塞脚本。
@@ -211,8 +238,15 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   #   2) timeout --kill-after 限定 —— mvn JVM 仍卡住时,SIGTERM 后 15s SIGKILL 兜底。
   # admin 在 DevUserBootstrapRunner 内已落库;退出码 124(SIGTERM)/137(SIGKILL) 表示超时收尾——
   # 属预期,放行;其他非零退出码才是真失败。
+  # DUBBO_REGISTRY_USERNAME/PASSWORD 映射自 NACOS_* (与 ecosystem.config.cjs 一致),
+  # 否则 Dubbo 注册中心鉴权失败 (错误码 5-10), 消费者发现不到 auth provider。
+  # DUBBO_PROTOCOL_PORT=-1: bootstrap 只需消费 RPC, 随机端口避免与 PM2 admin
+  # 或残留 bootstrap JVM 抢 20882 (BindException: 地址已在使用)。
   (
     cd "$ROOT_DIR/backend-spring"
+    DUBBO_REGISTRY_USERNAME="$NACOS_USERNAME" \
+    DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD" \
+    DUBBO_PROTOCOL_PORT=-1 \
     APP_DEV_USERS_ENABLED=true \
     DEV_SEED_ADMIN_USERNAME="$DEV_SEED_ADMIN_USERNAME" \
     DEV_SEED_ADMIN_EMAIL="$DEV_SEED_ADMIN_EMAIL" \
@@ -220,7 +254,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DEV_SEED_ADMIN_ROLE="$DEV_SEED_ADMIN_ROLE" \
     SERVER_PORT=9102 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 90 mvn -pl backend-admin -am spring-boot:run \
+      timeout --kill-after=15 90 mvn -f backend-admin/pom.xml spring-boot:run \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \
         -Dspring-boot.run.arguments='--spring.main.web-application-type=none' \

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * a known role with zero template rows returns an empty success list.
  */
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-auth", version = "1.0.0")
 public class RoleTemplateServiceProvider implements RoleTemplateService {
 
     private static final Set<String> VALID_ROLES = Set.of(

@@ -1,6 +1,7 @@
 package com.ulticode.common.audit;
 
 import java.util.Objects;
+import java.io.Serializable;
 
 /**
  * Single source of truth for "what does the system audit / ban-check?".
@@ -26,7 +27,7 @@ import java.util.Objects;
  * aspect becomes a thin dispatcher. Until then this is the audit
  * "map"; the annotations are the audit "triggers".
  */
-public final class AuditPolicy {
+public final class AuditPolicy implements Serializable {
 
     private AuditPolicy() {
         // utility class
@@ -42,7 +43,7 @@ public final class AuditPolicy {
             String action,
             String entityType,
             String notes
-    ) {
+    ) implements Serializable {
         public AuditEntry {
             Objects.requireNonNull(declaringClass, "declaringClass");
             Objects.requireNonNull(methodName, "methodName");
@@ -60,7 +61,7 @@ public final class AuditPolicy {
             String methodName,
             String targetModule,
             String notes
-    ) {
+    ) implements Serializable {
         public BanEntry {
             Objects.requireNonNull(declaringClass, "declaringClass");
             Objects.requireNonNull(methodName, "methodName");

@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * rows return a stable empty profile DTO without fabricating account credentials.
  */
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-app", version = "1.0.0")
 public class UserProfileQueryProvider implements UserProfileQueryService {
 
     private static final String DEFAULT_TRACE_ID = "t-system";

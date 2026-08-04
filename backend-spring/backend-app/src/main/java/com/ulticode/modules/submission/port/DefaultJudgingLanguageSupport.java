@@ -12,10 +12,17 @@ import java.util.Set;
  * constants stop crossing module boundaries directly — cross-module callers
  * go through this bean.
  *
+ * <p>It also implements the app-api variant
+ * ({@code com.ulticode.app.api.service.JudgingLanguageSupport}) consumed by
+ * {@code DefaultProblemProjection} (P7-RELOCATE); both contracts are served
+ * by the same constants, {@link #supportedLanguages()} aliases
+ * {@link #executableLanguages()} per the app-api contract.
+ *
  * @author ulticode
  */
 @Component
-public class DefaultJudgingLanguageSupport implements JudgingLanguageSupport {
+public class DefaultJudgingLanguageSupport implements JudgingLanguageSupport,
+        com.ulticode.app.api.service.JudgingLanguageSupport {
 
     /**
      * Languages the codebase advertises in the API. Kept as a Set so the
@@ -52,6 +59,11 @@ public class DefaultJudgingLanguageSupport implements JudgingLanguageSupport {
 
     @Override
     public Set<String> executableLanguages() {
+        return EXECUTABLE;
+    }
+
+    @Override
+    public Set<String> supportedLanguages() {
         return EXECUTABLE;
     }
 

@@ -3,12 +3,13 @@ package com.ulticode.app.api.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.io.Serializable;
 
 /**
  * DTO for creating a new submission.
  */
 @Data
-public class CreateSubmissionDTO {
+public class CreateSubmissionDTO implements Serializable {
 
     @NotNull(message = "Problem ID is required")
     private Long problemId;

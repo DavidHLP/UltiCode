@@ -6,6 +6,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
  * <p>Preserved verbatim so flag-off deployments observe no behavior change.
  */
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class LegacyRejudgeStrategy {
 

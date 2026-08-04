@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import java.io.Serializable;
 
 import java.time.LocalDateTime;
 
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SubmissionListItemVO {
+public class SubmissionListItemVO implements Serializable {
 
     private String id;
     private String status;
@@ -28,7 +29,7 @@ public class SubmissionListItemVO {
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class ProblemSummary {
+    public static class ProblemSummary implements Serializable {
         private Long id;
         private String title;
         private String slug;

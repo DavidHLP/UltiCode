@@ -1,6 +1,7 @@
 package com.ulticode.common.time;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.io.Serializable;
 
 /**
  * In-test {@link TimeSource} &mdash; deterministic, controllable clock.
@@ -34,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *       throttle / cleanup cutoff timestamps.</li>
  * </ul>
  */
-public class FakeTimeSource implements TimeSource {
+public class FakeTimeSource implements Serializable, TimeSource {
 
     private final AtomicLong wall;
     private final AtomicLong monotonic;

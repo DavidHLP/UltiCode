@@ -3,6 +3,7 @@ package com.ulticode.app.api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.io.Serializable;
 
 /**
  * Typed projection of {@code submissions} aggregated by status.
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class StatusCountDTO {
+public class StatusCountDTO implements Serializable {
     /** Submission status string (e.g. "Accepted", "WrongAnswer"). */
     private String status;
     /** Number of submissions in this status. */

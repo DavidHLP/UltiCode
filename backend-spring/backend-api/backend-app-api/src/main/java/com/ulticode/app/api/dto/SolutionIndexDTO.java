@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Minimal projection of a solution row for search indexing. Carries only
  * the fields external consumers (search, problem) need — never the full
@@ -15,5 +17,5 @@ public record SolutionIndexDTO(
         String id,
         String title,
         String summary,
-        Long problemId) {
+        Long problemId) implements Serializable {
 }

@@ -2,6 +2,7 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import java.io.Serializable;
 
 import java.util.List;
 
@@ -39,7 +40,7 @@ public record CreateNotificationCommand(
         String type,
         String category,
         String target,
-        List<String> userIds) implements WriteCommand {
+        List<String> userIds) implements Serializable, WriteCommand {
 
     public CreateNotificationCommand {
         if (commandId == null || commandId.isBlank()) {

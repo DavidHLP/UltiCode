@@ -1,12 +1,14 @@
-package com.ulticode.modules.user.port;
+package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.auth.api.command.ActorDelegation;
+import com.ulticode.auth.api.command.ChangeAccountStateCommand;
 import com.ulticode.auth.api.command.ResetPasswordCommand;
 import com.ulticode.auth.api.command.CreateAccountCommand;
 import com.ulticode.auth.api.command.UpdateAccountCredentialsCommand;
 import com.ulticode.auth.api.dto.AccountMutationDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.rpc.RpcResult;
@@ -53,6 +55,10 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
     private AccountManagementService accountManagementService;
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    private AccountAdministrationService accountAdministrationService;
 
     @Override
     public long countActiveAdministrators() {
@@ -159,11 +165,13 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
         }
 
         // Verify the account exists
+        AuthAccountDTO current = null;
         if (accountQueryService != null) {
             RpcResult<AuthAccountDTO> check = accountQueryService.getAccountById(id);
             if (check == null || !check.success() || check.data() == null) {
                 throw new IllegalStateException("Cannot restore nonexistent administrator: " + id);
             }
+            current = check.data();
         }
 
         String commandId = UUID.randomUUID().toString();
@@ -181,5 +189,49 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
         ResetPasswordCommand pwCmd = new ResetPasswordCommand(
                 pwCommandId, IdMetadata.of(pwIdempotencyKey, null), actor, trace, id, spec.rawPassword(), "admin restore");
         accountManagementService.resetPassword(pwCmd);
+
+        // Restore lifecycle state: the seed-account lockdown migration
+        // (V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts) may
+        // have left the account banned/disabled; the documented development
+        // administrator must be able to log in after a restore.
+        if (current != null && (current.banned() || !current.active())) {
+            if (accountAdministrationService == null) {
+                throw new IllegalStateException(
+                        "AccountAdministrationService unavailable; cannot restore administrator state");
+            }
+            if (current.banned()) {
+                changeLifecycleState(id, current.authzVersion(),
+                        ChangeAccountStateCommand.AccountStateAction.UNBAN);
+                // The optimistic-lock version moved under us; re-read.
+                current = queryAccountOrThrow(id);
+            }
+            if (!current.active()) {
+                changeLifecycleState(id, current.authzVersion(),
+                        ChangeAccountStateCommand.AccountStateAction.ENABLE);
+            }
+        }
+    }
+
+    private AuthAccountDTO queryAccountOrThrow(String id) {
+        RpcResult<AuthAccountDTO> result = accountQueryService.getAccountById(id);
+        if (result == null || !result.success() || result.data() == null) {
+            throw new IllegalStateException("Cannot re-read administrator account after state change: " + id);
+        }
+        return result.data();
+    }
+
+    private void changeLifecycleState(String id, long expectedVersion,
+            ChangeAccountStateCommand.AccountStateAction action) {
+        ChangeAccountStateCommand command = new ChangeAccountStateCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.of(uuidGenerator.newId(), null),
+                new ActorDelegation("ADMIN", "bootstrap", "bootstrap", "restore admin"),
+                TraceMetadata.EMPTY,
+                id, expectedVersion, action, "admin restore");
+        RpcResult<?> result = accountAdministrationService.changeState(command);
+        if (result == null || !result.success()) {
+            throw new IllegalStateException("Failed to " + action + " administrator " + id
+                    + (result != null && result.error() != null ? ": " + result.error().message() : ""));
+        }
     }
 }

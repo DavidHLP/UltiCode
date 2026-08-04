@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Component
-@DubboService(version = "1.0.0")
+@DubboService(group = "backend-auth", version = "1.0.0")
 public class AccountAdministrationProvider implements AccountAdministrationService {
 
     private static final Logger log = LoggerFactory.getLogger(AccountAdministrationProvider.class);

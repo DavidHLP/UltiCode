@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import java.time.Instant;
+import java.io.Serializable;
 
 /**
  * Contest announcement payload for WebSocket broadcast.
@@ -13,7 +14,7 @@ public record AnnouncementPayload(
     String title,
     String content,
     String authorId,
-    Instant createdAt) {
+    Instant createdAt) implements Serializable {
 
   public static AnnouncementPayload of(String contestId, String announcementId,
       String title, String content, String authorId) {

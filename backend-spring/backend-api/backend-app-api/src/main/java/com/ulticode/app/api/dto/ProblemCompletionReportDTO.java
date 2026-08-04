@@ -1,6 +1,7 @@
 package com.ulticode.app.api.dto;
 
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * Entity-free Problem completion report returned by the Problem provider.
@@ -16,7 +17,7 @@ public record ProblemCompletionReportDTO(
         List<DifficultyStats> byDifficulty,
         List<TagStats> byTag,
         List<TrendingProblem> trendingProblems,
-        List<HardestProblem> hardestProblems) {
+        List<HardestProblem> hardestProblems) implements Serializable {
 
     public ProblemCompletionReportDTO {
         byDifficulty = byDifficulty == null ? List.of() : List.copyOf(byDifficulty);
@@ -26,16 +27,16 @@ public record ProblemCompletionReportDTO(
     }
 
     /** Completion rate grouped by difficulty. */
-    public record DifficultyStats(String difficulty, int total, int completed, double rate) {}
+    public record DifficultyStats(String difficulty, int total, int completed, double rate) implements Serializable {}
 
     /** Completion rate grouped by tag. */
-    public record TagStats(String tagId, String label, int total, int completed, double rate) {}
+    public record TagStats(String tagId, String label, int total, int completed, double rate) implements Serializable {}
 
     /** Most-attempted Problem data point. */
     public record TrendingProblem(String problemId, String title, int attempts,
-                                  double completionRate) {}
+                                  double completionRate) implements Serializable {}
 
     /** Lowest-completion-rate Problem data point. */
     public record HardestProblem(String problemId, String title, String difficulty,
-                                 double completionRate) {}
+                                 double completionRate) implements Serializable {}
 }

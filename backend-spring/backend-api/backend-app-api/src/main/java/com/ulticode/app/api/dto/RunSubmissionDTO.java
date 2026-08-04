@@ -3,11 +3,12 @@ package com.ulticode.app.api.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import java.io.Serializable;
 
 import java.util.List;
 
 @Data
-public class RunSubmissionDTO {
+public class RunSubmissionDTO implements Serializable {
 
     @NotBlank(message = "Language is required")
     private String language;
@@ -19,7 +20,7 @@ public class RunSubmissionDTO {
     private List<RunTestCase> testCases;
 
     @Data
-    public static class RunTestCase {
+    public static class RunTestCase implements Serializable {
         private String id;
         private String label;
         private String output;
@@ -27,7 +28,7 @@ public class RunSubmissionDTO {
     }
 
     @Data
-    public static class RunInput {
+    public static class RunInput implements Serializable {
         private String id;
         private String label;
         private String name;

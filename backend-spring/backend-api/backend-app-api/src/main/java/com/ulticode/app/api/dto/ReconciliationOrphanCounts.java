@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Aggregated orphan-count snapshot for the nine App child references
  * that point at the Auth-owned {@code users} table.
@@ -32,7 +34,7 @@ public record ReconciliationOrphanCounts(
         long contestParticipants,
         long userAchievements,
         long userFollowsByFollower,
-        long userFollowsByFollowing) {
+        long userFollowsByFollowing) implements Serializable {
 
     public static final ReconciliationOrphanCounts ZERO = new ReconciliationOrphanCounts(0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

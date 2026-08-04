@@ -24,7 +24,7 @@ public class DefaultUserReadAdapter implements UserReadPort {
 
     private final UserProfileMapper userProfileMapper;
 
-    @DubboReference(check = false)
+    @DubboReference(group = "backend-auth", check = false)
     private IdentityQueryService identityQueryService;
 
     @Override

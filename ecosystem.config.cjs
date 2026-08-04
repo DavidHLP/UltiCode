@@ -28,7 +28,7 @@ module.exports = {
       name: 'ulticode-admin',
       cwd: BACKEND_CWD,
       script: 'mvn',
-      args: '-pl backend-admin -am spring-boot:run -Dspring-boot.run.profiles=dev',
+      args: '-f backend-admin/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: { SERVER_PORT: '9102' },

@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * Read-back DTO for notification administration operations.
  *
@@ -23,5 +25,5 @@ public record NotificationAdminViewDTO(
         String title,
         String type,
         String category,
-        long createdEpochMs) {
+        long createdEpochMs) implements Serializable {
 }

@@ -1,5 +1,7 @@
 package com.ulticode.common.response;
 
+import java.io.Serializable;
+
 /**
  * Normalized pagination request — the single source of truth for the rules
  * "default page 1, default page-size 20, hard cap 100".
@@ -32,7 +34,7 @@ package com.ulticode.common.response;
  * methods + two accessors + offset) hiding the entire normalization rule set.
  * Tests cross the same seam as callers.
  */
-public record PaginationRequest(int page, int pageSize) {
+public record PaginationRequest(int page, int pageSize) implements Serializable {
 
     /** Default page number (1-based). */
     public static final int DEFAULT_PAGE = 1;

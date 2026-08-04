@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * DTO capturing per-user best (fastest / lowest-memory) accepted submission
  * metrics, aggregated server-side by
@@ -20,5 +22,5 @@ public record UserBestStats(
         String userId,
         Integer bestRuntimeMs,
         Double bestMemoryMb
-) {
+) implements Serializable {
 }

@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * User account info for cross-module authentication/authorization checks.
  * Used by websocket auth after relocation from backend-legacy.
@@ -9,5 +11,5 @@ public record AccountInfo(
     String username,
     String role,
     boolean isActive,
-    boolean isBanned) {
+    boolean isBanned) implements Serializable {
 }

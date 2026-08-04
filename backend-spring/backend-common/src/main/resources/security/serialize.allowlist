@@ -1,0 +1,7 @@
+# Dubbo serialization security allowlist (P7-RELOCATE).
+# The RPC envelope (com.ulticode.common.rpc.RpcResult) and the auth/app
+# API DTOs are records that intentionally do not implement
+# java.io.Serializable (see MICROSERVICE_MIGRATION_GUIDE §2.6). Without
+# this allowlist Dubbo 3.3 strict class checking refuses to
+# serialize/deserialize them over hessian2.
+com.ulticode.

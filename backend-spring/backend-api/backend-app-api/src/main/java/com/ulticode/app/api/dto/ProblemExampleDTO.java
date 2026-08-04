@@ -1,5 +1,7 @@
 package com.ulticode.app.api.dto;
 
+import java.io.Serializable;
+
 /**
  * DTO for problem example data.
  *
@@ -15,4 +17,4 @@ public record ProblemExampleDTO(
     String inputText,
     String outputText,
     String inputs
-) {}
+) implements Serializable {}

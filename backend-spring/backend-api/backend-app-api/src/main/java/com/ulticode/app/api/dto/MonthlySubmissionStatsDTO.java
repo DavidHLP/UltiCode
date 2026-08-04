@@ -1,12 +1,13 @@
 package com.ulticode.app.api.dto;
 
 import lombok.Data;
+import java.io.Serializable;
 
 /**
  * DTO for monthly submission statistics.
  */
 @Data
-public class MonthlySubmissionStatsDTO {
+public class MonthlySubmissionStatsDTO implements Serializable {
     private String month;
     private Integer totalCount;
     private Integer acceptedCount;

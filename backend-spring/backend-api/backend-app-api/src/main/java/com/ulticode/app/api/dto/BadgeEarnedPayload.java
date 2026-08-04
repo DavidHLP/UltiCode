@@ -2,6 +2,7 @@ package com.ulticode.app.api.dto;
 
 
 import java.time.Instant;
+import java.io.Serializable;
 
 /**
  * Badge earned payload for achievement notifications.
@@ -16,10 +17,10 @@ public record BadgeEarnedPayload(
     String badgeIcon,
     String badgeTier,
     String userId,
-    Instant earnedAt) {
+    Instant earnedAt) implements Serializable {
 
   /** Badge tiers. */
-  public static class BadgeTier {
+  public static class BadgeTier implements Serializable {
     public static final String BRONZE = "bronze";
     public static final String SILVER = "silver";
     public static final String GOLD = "gold";

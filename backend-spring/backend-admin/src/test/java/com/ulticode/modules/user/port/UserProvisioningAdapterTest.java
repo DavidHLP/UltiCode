@@ -2,153 +2,195 @@ package com.ulticode.modules.user.port;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.service.AccountManagementService;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.uuid.FixedUuidGenerator;
+import com.ulticode.modules.admin.port.UserProvisioningPort;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ulticode.common.uuid.FixedUuidGenerator;
-import com.ulticode.modules.admin.port.UserProvisioningPort;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.auth.account.AuthAccountPort;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 /**
- * Locks the concentrated create/restore invariant relocated from the deleted
- * {@code AdministratorProvisioner}: ids and timestamps flow through the
- * {@code UuidGenerator} and {@code Clock} seams, passwords are encoded, and
- * active accounts are pinned to active + unbanned. The adapter is the user
- * module's implementation of admin's {@link UserProvisioningPort}.
+ * Tests the Dubbo-backed {@link UserProvisioningAdapter}.
+ *
+ * <p>Locks the provisioning invariant: identity checks go through
+ * {@code AccountQueryService}, create/restore mutations go through
+ * {@code AccountManagementService}, and the adapter constructs the
+ * RPC commands with correct passwords and metadata.
  */
 class UserProvisioningAdapterTest {
 
-  private static final Instant FIXED_INSTANT = Instant.parse("2026-07-17T10:15:30Z");
-  private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.of("UTC"));
+    private AccountQueryService accountQueryService;
+    private AccountManagementService accountManagementService;
+    private UserProvisioningAdapter adapter;
 
-  @Test
-  void createAppliesSeamIdsAndTimestampsAndEncodesPassword() {
-    UserMapper userMapper = mock(UserMapper.class);
-    AuthAccountPort accountPort = mock(AuthAccountPort.class);
-    PasswordEncoderStub encoder = new PasswordEncoderStub();
-    UserProvisioningAdapter adapter =
-        new UserProvisioningAdapter(
-            userMapper, accountPort, encoder, new FixedUuidGenerator("admin-id-1"), FIXED_CLOCK);
-
-    adapter.createAdministrator(
-        new UserProvisioningPort.AdministratorSpec(
-            "root", "Root Admin", "root@example.com", "raw-secret", "SUPER_ADMIN"));
-
-    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    verify(accountPort).create(captor.capture());
-    User persisted = captor.getValue();
-    assertThat(persisted.getId()).isEqualTo("admin-id-1");
-    assertThat(persisted.getUsername()).isEqualTo("root");
-    assertThat(persisted.getName()).isEqualTo("Root Admin");
-    assertThat(persisted.getEmail()).isEqualTo("root@example.com");
-    assertThat(persisted.getPassword()).isEqualTo("encoded(raw-secret)");
-    assertThat(persisted.getRole()).isEqualTo("SUPER_ADMIN");
-    assertThat(persisted.getIsActive()).isTrue();
-    assertThat(persisted.getIsBanned()).isFalse();
-    assertThat(persisted.getIsDeleted()).isEqualTo(0);
-    assertThat(persisted.getJoinedAt()).isEqualTo(LocalDateTime.now(FIXED_CLOCK));
-    assertThat(encoder.lastEncoded).isEqualTo("raw-secret");
-  }
-
-  @Test
-  void restoreRewritesActiveFieldsAndClearsBanMetadataWithoutNewIdOrTimestamp() {
-    UserMapper userMapper = mock(UserMapper.class);
-    AuthAccountPort accountPort = mock(AuthAccountPort.class);
-    PasswordEncoderStub encoder = new PasswordEncoderStub();
-    UserProvisioningAdapter adapter =
-        new UserProvisioningAdapter(
-            userMapper, accountPort, encoder, new FixedUuidGenerator("unused-id"), FIXED_CLOCK);
-
-    User existing = new User();
-    existing.setId("original-id");
-    existing.setUsername("admin");
-    existing.setJoinedAt(LocalDateTime.parse("2024-01-01T00:00:00"));
-    existing.setIsDeleted(0);
-    existing.setIsActive(false);
-    existing.setIsBanned(true);
-    existing.setBannedUntil(LocalDateTime.parse("2026-12-31T00:00:00"));
-    existing.setBannedReason("Disabled seed account");
-    when(userMapper.selectById("original-id")).thenReturn(existing);
-
-    adapter.restoreAdministrator(
-        "original-id",
-        new UserProvisioningPort.AdministratorSpec(
-            "admin", "Development Administrator", "admin@localhost.test", "admin123", "ADMIN"));
-
-    verify(accountPort).updateBanStatus("original-id", false, null);
-    verify(accountPort).updatePassword("original-id", "encoded(admin123)");
-    verify(accountPort).updateAccountCredentials("original-id", "admin", "admin@localhost.test", "ADMIN");
-  }
-
-  @Test
-  void restoreThrowsAndMutatesNothingWhenAccountVanished() {
-    UserMapper userMapper = mock(UserMapper.class);
-    AuthAccountPort accountPort = mock(AuthAccountPort.class);
-    PasswordEncoderStub encoder = new PasswordEncoderStub();
-    UserProvisioningAdapter adapter =
-        new UserProvisioningAdapter(
-            userMapper, accountPort, encoder, new FixedUuidGenerator("unused-id"), FIXED_CLOCK);
-    when(userMapper.selectById("ghost-id")).thenReturn(null);
-
-    assertThatThrownBy(
-            () ->
-                adapter.restoreAdministrator(
-                    "ghost-id",
-                    new UserProvisioningPort.AdministratorSpec(
-                        "admin", "Dev Admin", "admin@localhost.test", "admin123", "ADMIN")))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("nonexistent administrator");
-
-    verify(userMapper, never()).updateById(org.mockito.ArgumentMatchers.<User>any());
-    // No cleartext processed for a vanished account — the stub records the last encode() input
-    assertThat(encoder.lastEncoded).isNull();
-  }
-
-  @Test
-  void administratorSpecToStringRedactsRawPassword() {
-    UserProvisioningPort.AdministratorSpec spec =
-        new UserProvisioningPort.AdministratorSpec(
-            "root", "Root Admin", "root@example.com", "super-secret-123", "SUPER_ADMIN");
-
-    String rendered = spec.toString();
-
-    assertThat(rendered).doesNotContain("super-secret-123");
-    assertThat(rendered).contains("<redacted>");
-    // value equality is unaffected by the toString override (still compares all components)
-    assertThat(spec)
-        .isEqualTo(
-            new UserProvisioningPort.AdministratorSpec(
-                "root", "Root Admin", "root@example.com", "super-secret-123", "SUPER_ADMIN"));
-  }
-
-  /** Minimal fake that records the cleartext and returns a distinguishable encoded value. */
-  private static final class PasswordEncoderStub implements org.springframework.security.crypto.password.PasswordEncoder {
-    String lastEncoded;
-
-    @Override
-    public String encode(CharSequence rawPassword) {
-      this.lastEncoded = rawPassword.toString();
-      return "encoded(" + rawPassword + ")";
+    @BeforeEach
+    void setUp() {
+        accountQueryService = mock(AccountQueryService.class);
+        accountManagementService = mock(AccountManagementService.class);
+        adapter = new UserProvisioningAdapter(
+                new PasswordEncoderStub(), new FixedUuidGenerator());
+        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
+        ReflectionTestUtils.setField(adapter, "accountManagementService", accountManagementService);
     }
 
-    @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
-      return false;
+    @Test
+    void identityExistsReturnsTrueWhenUsernameMatches() {
+        when(accountQueryService.getAccountByUsername("admin"))
+                .thenReturn(RpcResult.success(
+                        new AuthAccountDTO("u1", "admin", "admin@example.com", "ADMIN",
+                                true, false, null, null, LocalDateTime.now(), null, 0L),
+                        "t-test"));
+
+        assertThat(adapter.identityExists("admin", null)).isTrue();
     }
 
-    @Override
-    public boolean upgradeEncoding(String encodedPassword) {
-      return false;
+    @Test
+    void identityExistsReturnsFalseWhenNoMatch() {
+        when(accountQueryService.getAccountByUsername("ghost"))
+                .thenReturn(RpcResult.failure(com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND, "t-test"));
+        when(accountQueryService.getAccountByEmail("ghost@example.com"))
+                .thenReturn(RpcResult.failure(com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND, "t-test"));
+
+        assertThat(adapter.identityExists("ghost", "ghost@example.com")).isFalse();
     }
-  }
+
+    @Test
+    void emailConflictsReturnsTrueWhenOwnedByDifferentAccount() {
+        when(accountQueryService.getAccountByEmail("taken@example.com"))
+                .thenReturn(RpcResult.success(
+                        new AuthAccountDTO("u-other", "someone", "taken@example.com", "USER",
+                                true, false, null, null, LocalDateTime.now(), null, 0L),
+                        "t-test"));
+
+        assertThat(adapter.emailConflicts("taken@example.com", "u-me")).isTrue();
+    }
+
+    @Test
+    void emailConflictsReturnsFalseWhenOwnedBySameAccount() {
+        when(accountQueryService.getAccountByEmail("mine@example.com"))
+                .thenReturn(RpcResult.success(
+                        new AuthAccountDTO("u-me", "me", "mine@example.com", "USER",
+                                true, false, null, null, LocalDateTime.now(), null, 0L),
+                        "t-test"));
+
+        assertThat(adapter.emailConflicts("mine@example.com", "u-me")).isFalse();
+    }
+
+    @Test
+    void findIdByUsernameReturnsIdWhenFound() {
+        when(accountQueryService.getAccountByUsername("alice"))
+                .thenReturn(RpcResult.success(
+                        new AuthAccountDTO("u-alice", "alice", "alice@example.com", "ADMIN",
+                                true, false, null, null, LocalDateTime.now(), null, 0L),
+                        "t-test"));
+
+        Optional<String> id = adapter.findIdByUsername("alice");
+        assertThat(id).hasValue("u-alice");
+    }
+
+    @Test
+    void createAdministratorSendsCommandWithEncodedPassword() {
+        RpcResult<com.ulticode.auth.api.dto.AccountMutationDTO> okResult =
+                RpcResult.success(
+                        new com.ulticode.auth.api.dto.AccountMutationDTO("u-new", "newadmin", "new@example.com", "ADMIN", true, false, 1L, false),
+                        "t-test");
+        when(accountManagementService.createAccount(any())).thenReturn(okResult);
+
+        adapter.createAdministrator(new UserProvisioningPort.AdministratorSpec(
+                "newadmin", "New Admin", "new@example.com", "secret123", "ADMIN"));
+
+        verify(accountManagementService).createAccount(any());
+    }
+
+    @Test
+    void createAdministratorThrowsWhenServiceReturnsFailure() {
+        when(accountManagementService.createAccount(any()))
+                .thenReturn(RpcResult.failure(com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND, "t-test"));
+
+        assertThatThrownBy(() -> adapter.createAdministrator(
+                new UserProvisioningPort.AdministratorSpec(
+                        "dupe", "D", "d@e.com", "pw", "USER")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void restoreAdministratorVerifiesExistenceThenMutates() {
+        when(accountQueryService.getAccountById("u-restore"))
+                .thenReturn(RpcResult.success(
+                        new AuthAccountDTO("u-restore", "old", "old@example.com", "USER",
+                                false, true, "spam", null, LocalDateTime.now(), null, 0L),
+                        "t-test"));
+        when(accountManagementService.updateCredentials(any()))
+                .thenReturn(RpcResult.success(
+                        new com.ulticode.auth.api.dto.AccountMutationDTO("u-restore", "restored", "restored@example.com", "ADMIN", true, false, 2L, false), "t-test"));
+        when(accountManagementService.resetPassword(any()))
+                .thenReturn(RpcResult.success(
+                        new com.ulticode.auth.api.dto.AccountMutationDTO("u-restore", "restored", "restored@example.com", "ADMIN", true, false, 3L, false), "t-test"));
+
+        adapter.restoreAdministrator("u-restore",
+                new UserProvisioningPort.AdministratorSpec(
+                        "restored", "Restored Admin", "restored@example.com", "newpass", "ADMIN"));
+
+        verify(accountManagementService).updateCredentials(any());
+        verify(accountManagementService).resetPassword(any());
+    }
+
+    @Test
+    void restoreAdministratorThrowsForNonexistentAccount() {
+        when(accountQueryService.getAccountById("ghost"))
+                .thenReturn(RpcResult.failure(com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND, "t-test"));
+
+        assertThatThrownBy(() -> adapter.restoreAdministrator("ghost",
+                new UserProvisioningPort.AdministratorSpec("g", "G", "g@e.com", "pw", "USER")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void countActiveAdministratorsReturnsTotal() {
+        when(accountQueryService.queryAccounts(any(AccountQueryDTO.class)))
+                .thenReturn(RpcResult.page(java.util.List.of(), 3L, 1, 1, "t-test"));
+
+        assertThat(adapter.countActiveAdministrators()).isEqualTo(3L);
+    }
+
+    @Test
+    void administratorSpecToStringRedactsRawPassword() {
+        UserProvisioningPort.AdministratorSpec spec =
+                new UserProvisioningPort.AdministratorSpec("admin", "Admin", "a@b.com", "secret", "ADMIN");
+
+        assertThat(spec.toString()).contains("<redacted>");
+        assertThat(spec.toString()).doesNotContain("secret");
+    }
+
+    /** Minimal fake that records the cleartext and returns a distinguishable encoded value. */
+    private static final class PasswordEncoderStub implements org.springframework.security.crypto.password.PasswordEncoder {
+        @Override
+        public String encode(CharSequence rawPassword) {
+            return "encoded:" + rawPassword;
+        }
+
+        @Override
+        public boolean matches(CharSequence rawPassword, String encodedPassword) {
+            return ("encoded:" + rawPassword).equals(encodedPassword);
+        }
+
+        @Override
+        public boolean upgradeEncoding(String encodedPassword) {
+            return false;
+        }
+    }
 }

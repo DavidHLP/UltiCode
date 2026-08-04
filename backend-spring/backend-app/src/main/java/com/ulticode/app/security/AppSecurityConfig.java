@@ -1,5 +1,6 @@
 package com.ulticode.app.security;
 
+import com.ulticode.app.security.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,16 +8,15 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security configuration for the backend-app shell (P7-RELOCATE).
  *
- * <p>Mirrors {@code AdminSecurityConfig}: the shell excludes Boot's
- * {@code SecurityAutoConfiguration}, so without an owned
- * {@code @EnableWebSecurity} there is no {@link HttpSecurity} bean and the
- * actuator {@code ManagementWebSecurityAutoConfiguration} fails at startup.
- * Lives in the app-owned security package which the admin shell excludes,
- * so each context keeps exactly one security configuration.
+ * <p>Registers {@link JwtAuthenticationFilter} so the app shell can
+ * authenticate requests from the access_token cookie (issued by
+ * backend-auth) and populate the SecurityContext needed by
+ * {@code @PreAuthorize} method security.
  */
 @Configuration
 @EnableWebSecurity
@@ -24,13 +24,15 @@ import org.springframework.security.web.SecurityFilterChain;
 public class AppSecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/api/v1/health").permitAll()
                 .anyRequest().permitAll()
-            );
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

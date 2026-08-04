@@ -72,6 +72,7 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtProperties.getRefreshTokenExpiration());
 
         return Jwts.builder()
+                .id(java.util.UUID.randomUUID().toString()) // jti: prevents deterministic hash collision on same-millisecond generation
                 .subject(userId)
                 .claim("type", "refresh")
                 .issuedAt(now)

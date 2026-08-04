@@ -574,21 +574,23 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         return (long) limits.memoryMb() * 1024L * 1024L;
     }
 
-    // ── Seccomp resolution (matches the pre-M2a helpers) ─────────────────────
+    // ── Seccomp resolution ─────────────────────────────────────────────────
 
     private String resolveSeccompProfileFilePath() {
         String path = config.seccompProfilePath();
-        // The pre-M2a code resolves both the file and the
-        // directory containing it; the directory is bind-mounted so
-        // docker can read the JSON file. Keeping the same convention
-        // avoids drift.
-        return path;
+        if (path == null || path.isBlank()) {
+            return "";
+        }
+        return java.nio.file.Path.of(path).toAbsolutePath().toString();
     }
 
     private String resolveSeccompProfileDirectoryPath() {
-        String path = config.seccompProfilePath();
-        int idx = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-        return idx >= 0 ? path.substring(0, idx) : ".";
+        String resolved = resolveSeccompProfileFilePath();
+        if (resolved.isEmpty()) {
+            return ".";
+        }
+        int idx = Math.max(resolved.lastIndexOf('/'), resolved.lastIndexOf('\\'));
+        return idx >= 0 ? resolved.substring(0, idx) : ".";
     }
 
 }

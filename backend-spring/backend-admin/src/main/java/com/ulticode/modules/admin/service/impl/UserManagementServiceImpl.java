@@ -23,15 +23,13 @@ import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.TraceIdUtil;
-import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserManagementService;
-import com.ulticode.modules.auth.service.AuthCutoverService;
-import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.port.UserProfilePort;
+import com.ulticode.modules.user.dto.UpdateUserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -66,8 +64,6 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final UserProfilePort userProfilePort;
     private final AuditRecorder auditRecorder;
     private final AdminUserProjection adminUserProjection;
-    private final BackendAuthRoleAdminClient backendAuthRoleAdminClient;
-    private final AuthCutoverService authCutoverService;
 
     @Override
     @Transactional
@@ -180,7 +176,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         if (StringUtils.hasText(dto.getRole()) && !dto.getRole().equals(current.role())) {
             try {
-                if (authCutoverService != null) {
+                if (accountAdministrationService != null) {
                     ActorDelegation actor = new ActorDelegation("ADMIN", "admin", "admin", "admin user update");
                     String reqId = TraceIdUtil.current();
                     if (reqId == null || reqId.isBlank()) {
@@ -192,9 +188,9 @@ public class UserManagementServiceImpl implements UserManagementService {
                             commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(reqId, null, null, null),
                             id, current.authzVersion(), dto.getRole(), Collections.emptySet(), "update user role"
                     );
-                    authCutoverService.changeAuthorization(command);
+                    accountAdministrationService.changeAuthorization(command);
                 } else {
-                    backendAuthRoleAdminClient.changeRole(id, dto.getRole());
+                    log.warn("AccountAdministrationService unavailable; role change for user {} skipped", id);
                 }
             } catch (RuntimeException e) {
                 log.warn("Role change failed for user {}: {}", id, e.getMessage());

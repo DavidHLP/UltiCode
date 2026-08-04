@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
@@ -11,15 +12,16 @@ import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.TraceIdUtil;
-import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import com.ulticode.modules.admin.service.UserPermissionService;
-import com.ulticode.modules.auth.service.AuthCutoverService;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.common.rpc.RpcResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,12 +41,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserPermissionServiceImpl implements UserPermissionService {
 
-    private final UserMapper userMapper;
-    private final BackendAuthRoleAdminClient backendAuthRoleAdminClient;
-    private final AuthCutoverService authCutoverService;
+    private final AdminUserEnricher userEnricher;
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    private AccountAdministrationService accountAdministrationService;
 
     @Override
     @Transactional
@@ -71,7 +75,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     private AdminUserVO performPermissionChange(String id, String action, String resource,
                                                  LocalDateTime expiresAt, boolean isRevoke) {
-        User user = userMapper.selectById(id);
+        AdminUserSummary user = userEnricher.enrichOne(id);
         if (user == null) {
             throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
@@ -88,7 +92,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         oldValues.put("alreadyPresent", alreadyPresent);
         AuditContext.setOldValues(oldValues);
 
-        if (authCutoverService != null) {
+        if (accountAdministrationService != null) {
             String actorId = currentUserProvider != null ? currentUserProvider.getCurrentUserId() : "admin";
             ActorDelegation actor = new ActorDelegation("ADMIN", actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
 
@@ -117,17 +121,14 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
             ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
                     commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(traceId, null, null, null),
-                    id, 0L, user.getRole(), targetPermissions, isRevoke ? "revoke permission" : "grant permission"
+                    id, 0L, user.role(), targetPermissions, isRevoke ? "revoke permission" : "grant permission"
             );
-            authCutoverService.changeAuthorization(command);
-        } else if (isRevoke) {
-            backendAuthRoleAdminClient.revokePermission(id, action, resource);
+            RpcResult<?> result = accountAdministrationService.changeAuthorization(command);
+            if (result != null && !result.success()) {
+                log.warn("AccountAdministrationService.changeAuthorization failed for user {}: {}", id, result.error());
+            }
         } else {
-            final String expiresAtIso = expiresAt == null ? null
-                    : expiresAt.atZone(java.time.ZoneId.systemDefault())
-                              .toOffsetDateTime()
-                              .toString();
-            backendAuthRoleAdminClient.grantPermission(id, action, resource, expiresAtIso);
+            log.warn("AccountAdministrationService unavailable; permission change for user {} skipped", id);
         }
 
         Map<String, Object> newValues = new HashMap<>();
@@ -145,7 +146,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             log.info("Revoke no-op (permission not present): user={} {}:{}",
                 id, action, resource);
         } else if (!isRevoke) {
-            log.info("Permission assigned via cutover/backend-auth: user={} {}:{} expiresAt={}",
+            log.info("Permission assigned via backend-auth RPC: user={} {}:{} expiresAt={}",
                 id, action, resource, expiresAt);
         }
         return adminUserProjection.getUserById(id);

@@ -13,7 +13,7 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.modules.auth.service.AuthCutoverService;
+import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,7 +39,7 @@ class AdminUserProjectionTest {
     @Mock private AccountQueryService accountQueryService;
     @Mock private UserProfileQueryService userProfileQueryService;
     @Mock private AdminUserStatsReadPort userStatsReadPort;
-    @Mock private AuthCutoverService authCutoverService;
+    @Mock private AuthorizationSnapshotService authorizationSnapshotService;
     @Mock private RoleTemplateService roleTemplateService;
 
     private DefaultAdminUserProjection projection;
@@ -60,7 +60,7 @@ class AdminUserProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminUserProjection(
-                accountQueryService, userProfileQueryService, userStatsReadPort, authCutoverService, roleTemplateService);
+                accountQueryService, userProfileQueryService, userStatsReadPort, authorizationSnapshotService, roleTemplateService);
     }
 
     @Nested

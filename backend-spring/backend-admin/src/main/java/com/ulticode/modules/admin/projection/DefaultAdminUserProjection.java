@@ -15,7 +15,7 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.modules.auth.service.AuthCutoverService;
+import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -51,7 +51,9 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
     private UserProfileQueryService userProfileQueryService;
 
     private final AdminUserStatsReadPort userStatsReadPort;
-    private final AuthCutoverService authCutoverService;
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    private AuthorizationSnapshotService authorizationSnapshotService;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private RoleTemplateService roleTemplateService;
@@ -60,12 +62,12 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
     public DefaultAdminUserProjection(AccountQueryService accountQueryService,
                                       UserProfileQueryService userProfileQueryService,
                                       AdminUserStatsReadPort userStatsReadPort,
-                                      AuthCutoverService authCutoverService,
+                                      AuthorizationSnapshotService authorizationSnapshotService,
                                       RoleTemplateService roleTemplateService) {
         this.accountQueryService = accountQueryService;
         this.userProfileQueryService = userProfileQueryService;
         this.userStatsReadPort = userStatsReadPort;
-        this.authCutoverService = authCutoverService;
+        this.authorizationSnapshotService = authorizationSnapshotService;
         this.roleTemplateService = roleTemplateService;
     }
 
@@ -216,12 +218,17 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
     }
 
     private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
-        if (authCutoverService == null) {
+        if (authorizationSnapshotService == null) {
             return;
         }
         com.ulticode.auth.api.dto.AuthorizationSnapshotDTO snapshot;
         try {
-            snapshot = authCutoverService.getSnapshot(userId);
+            RpcResult<com.ulticode.auth.api.dto.AuthorizationSnapshotDTO> rpc =
+                    authorizationSnapshotService.getSnapshot(userId);
+            if (rpc == null || !rpc.success() || rpc.data() == null) {
+                return;
+            }
+            snapshot = rpc.data();
         } catch (Exception e) {
             log.warn("Failed to fetch authorization snapshot for user {}: {}", userId, e.getMessage());
             return;

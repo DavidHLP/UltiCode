@@ -35,6 +35,15 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.event.inbox",
         "com.ulticode.app.userprofile.mapper",
         "com.ulticode.app.audit",
+        "com.ulticode.app.user.port",
+        "com.ulticode.app.i18n.mapper",
+        "com.ulticode.app.idempotency.mapper",
+        "com.ulticode.modules.problemlist.mapper",
+        "com.ulticode.modules.reconciliation.port",
+        "com.ulticode.modules.search.port",
+        "com.ulticode.modules.submission.mapper",
+        "com.ulticode.modules.submission.result",
+        "com.ulticode.modules.subscription.mapper",
 })
 public class MapperScanConfig {
 }

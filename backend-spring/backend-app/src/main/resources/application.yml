@@ -119,6 +119,37 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"
 
+# Code Execution Sandbox Configuration (P7-RELOCATE: moved from
+# backend-legacy application.yml). Without this block,
+# DockerSandboxConfig.seccompProfilePath() is null and
+# SandboxExecutorImpl.resolveSeccompProfileDirectoryPath() NPEs on
+# /problems/{id}/submissions/run.
+code-execution:
+  sandbox:
+    enabled: ${SANDBOX_ENABLED:false}
+    image: ${SANDBOX_IMAGE:ulticode-sandbox:latest}
+    memory: ${SANDBOX_MEMORY:256m}
+    cpus: ${SANDBOX_CPUS:1.0}
+    timeout: ${SANDBOX_TIMEOUT:10}
+    pids-limit: ${SANDBOX_PIDS_LIMIT:128}
+    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:../docker/sandbox/seccomp-profile.json}
+    d-form:
+      enabled: ${SANDBOX_DFORM_ENABLED:true}
+      harness-root: ${SANDBOX_DFORM_HARNESS_ROOT:/opt/harness}
+    languages:
+      java:
+        timeout-seconds: 10
+        memory: 256m
+      python:
+        timeout-seconds: 5
+        memory: 128m
+      c:
+        timeout-seconds: 5
+        memory: 128m
+      cpp:
+        timeout-seconds: 5
+        memory: 128m
+
 # MeiliSearch Configuration (optional - for full-text search).
 # P7-SEARCH-RELOCATE-001: moved from backend-legacy with the search
 # family; SearchController lives in backend-app now.

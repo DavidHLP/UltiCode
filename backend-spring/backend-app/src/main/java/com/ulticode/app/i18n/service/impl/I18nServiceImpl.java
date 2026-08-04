@@ -10,7 +10,6 @@ import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
  * Implementation of {@link I18nService}.
  */
 @Slf4j
-@ConditionalOnBean(TranslationMapper.class)
 @Service
 @RequiredArgsConstructor
 public class I18nServiceImpl implements I18nService {

@@ -7,8 +7,8 @@ import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,12 +21,14 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,13 +60,13 @@ class AdminNotificationProjectionTest {
     private CurrentUserProvider currentUserProvider;
 
     @Mock private NotificationMapper notificationMapper;
-    @Mock private UserMapper userMapper;
+    @Mock private AdminUserEnricher userEnricher;
 
     private DefaultAdminNotificationProjection projection;
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultAdminNotificationProjection(notificationMapper, userMapper);
+        projection = new DefaultAdminNotificationProjection(notificationMapper, userEnricher);
     }
 
     private Notification makeSystemNotification(String id, String announcementId, String creatorId) {
@@ -83,13 +85,7 @@ class AdminNotificationProjectionTest {
         return n;
     }
 
-    private User makeUser(String id, String username) {
-        User u = new User();
-        u.setId(id);
-        u.setUsername(username);
-        u.setAvatar("https://example.com/avatar/" + id + ".png");
-        return u;
-    }
+
 
     @Nested
     @DisplayName("getSystemNotifications()")
@@ -191,10 +187,9 @@ class AdminNotificationProjectionTest {
             when(notificationMapper.selectDedupedAnnouncements(
                     any(Page.class), any(), any(), any(), any(), any(), any()))
                     .thenReturn(page);
-            when(userMapper.selectBatchIds(any()))
-                    .thenReturn(List.of(
-                            makeUser("u-1", "alice"),
-                            makeUser("u-2", "bob")));
+            when(userEnricher.enrich(anySet())).thenReturn(Map.of(
+                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice", "https://example.com/avatar/u-1.png", "alice@example.com"),
+                    "u-2", new AdminUserSummary("u-2", "bob", "role2", "Bob", "https://example.com/avatar/u-2.png", "bob@example.com")));
 
             var result = projection.getSystemNotifications(query);
 
@@ -237,7 +232,8 @@ class AdminNotificationProjectionTest {
 
             assertThat(result.getItems()).hasSize(1);
             assertThat(result.getItems().get(0).getCreator()).isNull();
-            verify(userMapper, never()).selectBatchIds(any());
+
+            verify(userEnricher, never()).enrich(anySet());
         }
     }
 
@@ -255,8 +251,8 @@ class AdminNotificationProjectionTest {
         @DisplayName("populates every scalar field from the entity")
         void populatesScalars() {
             Notification n = makeSystemNotification("n-1", "a-1", "u-1");
-            when(userMapper.selectBatchIds(any()))
-                    .thenReturn(List.of(makeUser("u-1", "alice")));
+            when(userEnricher.enrich(anySet())).thenReturn(Map.of(
+                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice", "https://example.com/avatar/u-1.png", "alice@example.com")));
 
             AdminNotificationVO vo = projection.toAdminVO(n);
 
@@ -289,14 +285,14 @@ class AdminNotificationProjectionTest {
 
             assertThat(vo).isNotNull();
             assertThat(vo.getCreator()).isNull();
-            verify(userMapper, never()).selectBatchIds(any());
+            verify(userEnricher, never()).enrich(anySet());
         }
 
         @Test
         @DisplayName("creator stays null when the user is not found in the batch lookup")
         void creatorNullWhenUserNotFound() {
             Notification n = makeSystemNotification("n-1", "a-1", "missing-user");
-            when(userMapper.selectBatchIds(any())).thenReturn(List.of());
+            when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
 
             AdminNotificationVO vo = projection.toAdminVO(n);
 

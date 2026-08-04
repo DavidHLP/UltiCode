@@ -13,8 +13,8 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +23,7 @@ import org.springframework.util.StringUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,7 +55,7 @@ import java.util.stream.Collectors;
 public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
 
     private final SolutionMapper solutionMapper;
-    private final UserMapper userMapper;
+    private final AdminUserEnricher userEnricher;
     private final ProblemMapper problemMapper;
 
     // ------------------------------------------------------------------
@@ -160,7 +161,7 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
                 .map(Solution::getProblemId)
                 .collect(Collectors.toSet());
 
-        Map<String, User> userMap = batchLoadUsers(userIds);
+        Map<String, AdminUserSummary> userMap = batchLoadUsers(userIds);
         Map<Long, Problem> problemMap = batchLoadProblems(problemIds);
 
         List<AdminSolutionListItemVO> voList = result.getRecords().stream()
@@ -205,7 +206,7 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
                 .map(Solution::getProblemId)
                 .collect(Collectors.toSet());
 
-        Map<String, User> userMap = batchLoadUsers(userIds);
+        Map<String, AdminUserSummary> userMap = batchLoadUsers(userIds);
         Map<Long, Problem> problemMap = batchLoadProblems(problemIds);
 
         List<AdminSolutionListItemVO> voList = deletedSolutions.stream()
@@ -219,12 +220,11 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
     // Batch-loaders (cross-module enrichment — N+1-safe)
     // ------------------------------------------------------------------
 
-    private Map<String, User> batchLoadUsers(Set<String> userIds) {
+    private Map<String, AdminUserSummary> batchLoadUsers(Set<String> userIds) {
         if (userIds.isEmpty()) {
-            return new HashMap<>();
+            return Collections.emptyMap();
         }
-        return userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        return userEnricher.enrich(userIds);
     }
 
     private Map<Long, Problem> batchLoadProblems(Set<Long> problemIds) {
@@ -243,16 +243,16 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
      * Build a list-view {@link AdminSolutionListItemVO} from a Solution using
      * pre-loaded batch maps. Used by the paginated list read path.
      */
-    private AdminSolutionListItemVO toListItemVO(Solution solution, Map<String, User> userMap,
+    private AdminSolutionListItemVO toListItemVO(Solution solution, Map<String, AdminUserSummary> userMap,
                                                   Map<Long, Problem> problemMap) {
         if (solution == null) {
             return null;
         }
 
-        User author = userMap.get(solution.getUserId());
+        AdminUserSummary author = userMap.get(solution.getUserId());
         AdminSolutionListItemVO.AuthorInfo authorInfo = author != null
-                ? new AdminSolutionListItemVO.AuthorInfo(author.getId(), author.getUsername(),
-                        author.getName(), author.getEmail())
+                ? new AdminSolutionListItemVO.AuthorInfo(author.accountId(), author.username(),
+                        author.name(), author.email())
                 : null;
 
         Problem problem = problemMap.get(solution.getProblemId());
@@ -307,13 +307,13 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
         vo.setCreatedAt(solution.getCreatedAt());
         vo.setUpdatedAt(solution.getUpdatedAt());
 
-        User author = userMapper.selectById(solution.getUserId());
+        AdminUserSummary author = userEnricher.enrichOne(solution.getUserId());
         if (author != null) {
             AdminSolutionVO.AuthorInfo authorInfo = new AdminSolutionVO.AuthorInfo();
-            authorInfo.setId(author.getId());
-            authorInfo.setUsername(author.getUsername());
-            authorInfo.setName(author.getName());
-            authorInfo.setEmail(author.getEmail());
+            authorInfo.setId(author.accountId());
+            authorInfo.setUsername(author.username());
+            authorInfo.setName(author.name());
+            authorInfo.setEmail(author.email());
             vo.setAuthor(authorInfo);
         }
 

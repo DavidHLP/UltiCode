@@ -9,8 +9,9 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -26,6 +27,7 @@ import java.util.Collections;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
@@ -57,14 +59,14 @@ import static org.mockito.Mockito.when;
 class AdminSolutionProjectionTest {
 
     @Mock private SolutionMapper solutionMapper;
-    @Mock private UserMapper userMapper;
+    @Mock private AdminUserEnricher userEnricher;
     @Mock private ProblemMapper problemMapper;
 
     private DefaultAdminSolutionProjection projection;
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultAdminSolutionProjection(solutionMapper, userMapper, problemMapper);
+        projection = new DefaultAdminSolutionProjection(solutionMapper, userEnricher, problemMapper);
     }
 
     @Nested
@@ -90,11 +92,8 @@ class AdminSolutionProjectionTest {
             sol.setIsFlagged(true);
             sol.setIsPublished(true);
 
-            User author = new User();
-            author.setId("user-1");
-            author.setUsername("alice");
-            author.setName("Alice");
-            author.setEmail("alice@example.com");
+            AdminUserSummary author = new AdminUserSummary(
+                    "user-1", "alice", "role1", "Alice", "avatar1", "alice@example.com");
 
             Problem problem = new Problem();
             problem.setId(100L);
@@ -103,7 +102,7 @@ class AdminSolutionProjectionTest {
             problem.setDifficulty("easy");
 
             when(solutionMapper.selectById("sol-1")).thenReturn(sol);
-            when(userMapper.selectById("user-1")).thenReturn(author);
+            when(userEnricher.enrichOne("user-1")).thenReturn(author);
             when(problemMapper.selectById(100L)).thenReturn(problem);
 
             AdminSolutionVO vo = projection.getSolution("sol-1");
@@ -130,7 +129,7 @@ class AdminSolutionProjectionTest {
             sol.setProblemId(999L);
 
             when(solutionMapper.selectById("sol-2")).thenReturn(sol);
-            when(userMapper.selectById("user-orphan")).thenReturn(null);
+            when(userEnricher.enrichOne("user-orphan")).thenReturn(null);
             when(problemMapper.selectById(999L)).thenReturn(null);
 
             AdminSolutionVO vo = projection.getSolution("sol-2");
@@ -157,7 +156,7 @@ class AdminSolutionProjectionTest {
             // Active branch should be taken (isDeleted=false). selectPage must be
             // called; the deleted-branch raw-SQL methods must never be called.
             when(solutionMapper.selectPage(any(), any())).thenReturn(emptySolutionPage());
-            when(userMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+            when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
             when(problemMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
 
             projection.getFlaggedSolutions(query);
@@ -187,7 +186,7 @@ class AdminSolutionProjectionTest {
                 .thenReturn(Collections.emptyList());
             when(solutionMapper.countDeletedSolutions(any(), any(), any(), any(), any()))
                 .thenReturn(0L);
-            when(userMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+            when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
             when(problemMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
 
             PageResult<AdminSolutionListItemVO> result = projection.getSolutions(query);
@@ -205,7 +204,7 @@ class AdminSolutionProjectionTest {
             query.setLimit(10);
 
             when(solutionMapper.selectPage(any(), any())).thenReturn(emptySolutionPage());
-            when(userMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+            when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
             when(problemMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
 
             PageResult<AdminSolutionListItemVO> result = projection.getSolutions(query);
@@ -228,7 +227,7 @@ class AdminSolutionProjectionTest {
 
             projection.getSolutions(query);
 
-            verify(userMapper, never()).selectBatchIds(anyCollection());
+            verify(userEnricher, never()).enrich(anySet());
             verify(problemMapper, never()).selectBatchIds(anyCollection());
         }
     }

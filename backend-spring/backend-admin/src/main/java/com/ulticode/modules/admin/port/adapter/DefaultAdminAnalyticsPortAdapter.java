@@ -10,8 +10,13 @@ import com.ulticode.app.api.service.ContestAdminReadPort;
 import com.ulticode.app.api.service.ContestParticipantReadPort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.rpc.RpcResult;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -48,7 +53,10 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     private final ContestParticipantReadPort contestParticipantReadPort;
     private final SubscriptionReadPort subscriptionReadPort;
     private final SubmissionMapper submissionMapper;
-    private final UserMapper userMapper;
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    private AccountQueryService accountQueryService;
 
     @Override
     public ContestParticipationData loadContestData(LocalDateTime startDate) {
@@ -113,6 +121,14 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     @Override
     public long countAllUsers() {
-        return userMapper.selectCount(null);
+        if (accountQueryService == null) {
+            return 0L;
+        }
+        RpcResult<AuthAccountDTO> result = accountQueryService.queryAccounts(
+                new AccountQueryDTO(null, null, null, null, 1, 1, "joinedAt", "desc"));
+        if (result == null || result.page() == null || result.page().total() == null) {
+            return 0L;
+        }
+        return result.page().total();
     }
 }

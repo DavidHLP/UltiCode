@@ -27,9 +27,8 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,7 +65,7 @@ import java.util.stream.Collectors;
 public class DefaultAdminSubmissionProjection implements AdminSubmissionProjection {
 
     private final AdminSubmissionReadPort submissionReadPort;
-    private final UserMapper userMapper;
+    private final AdminUserEnricher userEnricher;
     private final ProblemMapper problemMapper;
     private final Clock clock;
 
@@ -82,7 +81,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
                 query, pageRequest.page(), pageRequest.pageSize());
 
         // Batch-load users and problems to avoid N+1 queries (WR-05)
-        Map<String, User> userMap = new HashMap<>();
+        Map<String, AdminUserSummary> userMap = new HashMap<>();
         Map<Long, Problem> problemMap = new HashMap<>();
         if (!result.getItems().isEmpty()) {
             Set<String> userIds = result.getItems().stream()
@@ -93,8 +92,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
                     .collect(Collectors.toSet());
 
             if (!userIds.isEmpty()) {
-                userMap = userMapper.selectBatchIds(userIds).stream()
-                        .collect(Collectors.toMap(User::getId, u -> u));
+                userMap = userEnricher.enrich(userIds);
             }
             if (!problemIds.isEmpty()) {
                 problemMap = problemMapper.selectBatchIds(problemIds).stream()
@@ -103,7 +101,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         }
 
         // Enrich with user and problem information using batch-loaded maps
-        Map<String, User> finalUserMap = userMap;
+        Map<String, AdminUserSummary> finalUserMap = userMap;
         Map<Long, Problem> finalProblemMap = problemMap;
         List<AdminSubmissionVO> vos = result.getItems().stream()
                 .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
@@ -241,7 +239,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
      * Convert a Submission entity to a list-view AdminSubmissionVO using
      * pre-loaded batch maps (avoids N+1 on the paginated read path).
      */
-    private AdminSubmissionVO toAdminVO(Submission submission, Map<String, User> userMap, Map<Long, Problem> problemMap) {
+    private AdminSubmissionVO toAdminVO(Submission submission, Map<String, AdminUserSummary> userMap, Map<Long, Problem> problemMap) {
         if (submission == null) {
             return null;
         }
@@ -257,9 +255,9 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         vo.setCreatedAt(submission.getCreatedAt());
         vo.setCodeLength(submission.getCode() != null ? submission.getCode().length() : 0);
 
-        User user = userMap.get(submission.getUserId());
+        AdminUserSummary user = userMap.get(submission.getUserId());
         if (user != null) {
-            vo.setUsername(user.getUsername());
+            vo.setUsername(user.username());
         }
 
         Problem problem = problemMap.get(submission.getProblemId());
@@ -314,9 +312,9 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         vo.setCodeLength(submission.getCode() != null ? submission.getCode().length() : 0);
 
         // Fetch user info (single-row detail path — no batch needed)
-        User user = userMapper.selectById(submission.getUserId());
+        AdminUserSummary user = userEnricher.enrichOne(submission.getUserId());
         if (user != null) {
-            vo.setUsername(user.getUsername());
+            vo.setUsername(user.username());
         }
 
         // Fetch problem info (single-row detail path)

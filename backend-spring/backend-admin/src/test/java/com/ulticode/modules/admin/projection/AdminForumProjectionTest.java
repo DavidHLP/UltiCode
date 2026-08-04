@@ -6,7 +6,8 @@ import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +49,7 @@ class AdminForumProjectionTest {
     @Mock private ForumPostMapper forumPostMapper;
     @Mock private ForumCommentMapper forumCommentMapper;
     @Mock private ForumCommunityMapper forumCommunityMapper;
-    @Mock private UserMapper userMapper;
+    @Mock private AdminUserEnricher userEnricher;
     @Mock private EdgeOperationMapper edgeOperationMapper;
 
     private DefaultAdminForumProjection projection;
@@ -59,7 +60,7 @@ class AdminForumProjectionTest {
     void setUp() {
         projection = new DefaultAdminForumProjection(
                 forumPostMapper, forumCommentMapper, forumCommunityMapper,
-                userMapper, edgeOperationMapper);
+                edgeOperationMapper, userEnricher);
 
         testPost = new ForumPost();
         testPost.setId("post-test-001");

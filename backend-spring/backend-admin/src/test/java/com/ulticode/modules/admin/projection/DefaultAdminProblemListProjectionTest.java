@@ -11,8 +11,9 @@ import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -48,7 +49,7 @@ class DefaultAdminProblemListProjectionTest {
     @Mock private ProblemListMapper problemListMapper;
     @Mock private ProblemListProblemMapper problemListProblemMapper;
     @Mock private ProblemMapper problemMapper;
-    @Mock private UserMapper userMapper;
+    @Mock private AdminUserEnricher userEnricher;
 
     private static final String OWNER_ID = "user-001";
 
@@ -57,7 +58,7 @@ class DefaultAdminProblemListProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminProblemListProjection(
-                problemListMapper, problemListProblemMapper, problemMapper, userMapper);
+                problemListMapper, problemListProblemMapper, problemMapper, userEnricher);
     }
 
     @Nested
@@ -82,10 +83,8 @@ class DefaultAdminProblemListProjectionTest {
                     .thenReturn(mapperPage);
             // toSummaryVO enrichment collaborators
             when(problemListProblemMapper.countByListId("list-1")).thenReturn(3L);
-            User author = new User();
-            author.setName("Alice");
-            author.setUsername("alice");
-            when(userMapper.selectById(OWNER_ID)).thenReturn(author);
+            when(userEnricher.enrichOne(OWNER_ID)).thenReturn(
+                    new AdminUserSummary(OWNER_ID, "alice", "role1", "Alice", "avatar1", "alice@example.com"));
 
             PageResult<ProblemListSummaryVO> result = projection.findAdminLists(query);
 
@@ -135,13 +134,9 @@ class DefaultAdminProblemListProjectionTest {
             when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
             when(problemListProblemMapper.findByListId(LIST_ID))
                     .thenReturn(Collections.emptyList());
-            User author = new User();
-            author.setName("Bob");
-            author.setUsername("bob");
-            when(userMapper.selectById(OWNER_ID)).thenReturn(author);
-
+            when(userEnricher.enrichOne(OWNER_ID)).thenReturn(
+                    new AdminUserSummary(OWNER_ID, "bob", "role2", "Bob", "avatar2", "bob@example.com"));
             ProblemListDetailVO vo = projection.getAdminListDetail(LIST_ID);
-
             assertThat(vo.getId()).isEqualTo(LIST_ID);
             assertThat(vo.getName()).isEqualTo("Detail List");
             assertThat(vo.getIsOwner()).isFalse();

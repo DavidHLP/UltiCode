@@ -14,8 +14,8 @@ import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
  * Batch-loads cross-module enrichment (user + community + comment count +
  * upvote / downvote counts) to keep the paginated list read N+1-safe.
  *
- * <p>Cross-module entity imports ({@link User}, {@link ForumCommunity},
+ * <p>Cross-module entity imports ({@link AdminUserSummary}, {@link ForumCommunity},
  * {@link ForumCommentMapper}, {@link EdgeOperationMapper}) live here and only
  * here &mdash; the admin forum service no longer imports them after the
  * ADR-0011 Stage 2 extraction.
@@ -54,9 +55,8 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
     private final ForumPostMapper forumPostMapper;
     private final ForumCommentMapper forumCommentMapper;
     private final ForumCommunityMapper forumCommunityMapper;
-    private final UserMapper userMapper;
     private final EdgeOperationMapper edgeOperationMapper;
-
+    private final AdminUserEnricher userEnricher;
     // ------------------------------------------------------------------
     // Paginated post list read (query build + batch enrichment)
     // ------------------------------------------------------------------
@@ -143,11 +143,9 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
                     .forEach(row -> downvoteMap.put((String) row.get("target_id"), ((Number) row.get("cnt")).intValue()));
         }
 
-        Map<String, User> userMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            userMap = userMapper.selectBatchIds(userIds).stream()
-                    .collect(Collectors.toMap(User::getId, u -> u));
-        }
+        Map<String, AdminUserSummary> userMap = userIds.isEmpty()
+                ? Collections.emptyMap()
+                : userEnricher.enrich(userIds);
 
         Map<String, ForumCommunity> communityMap = new HashMap<>();
         if (!communityIds.isEmpty()) {
@@ -156,7 +154,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
         }
 
         // Enrich with batch-loaded data
-        Map<String, User> finalUserMap = userMap;
+        Map<String, AdminUserSummary> finalUserMap = userMap;
         Map<String, ForumCommunity> finalCommunityMap = communityMap;
         List<AdminForumPostVO> vos = result.getRecords().stream()
                 .map(p -> toAdminVO(p, commentCountMap, upvoteMap, downvoteMap, finalUserMap, finalCommunityMap))
@@ -233,7 +231,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
      */
     private AdminForumPostVO toAdminVO(ForumPost post, Map<String, Long> commentCountMap,
                                         Map<String, Integer> upvoteMap, Map<String, Integer> downvoteMap,
-                                        Map<String, User> userMap, Map<String, ForumCommunity> communityMap) {
+                                        Map<String, AdminUserSummary> userMap, Map<String, ForumCommunity> communityMap) {
         if (post == null) {
             return null;
         }
@@ -258,10 +256,10 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
         vo.setCreatedAt(post.getCreatedAt());
         vo.setUpdatedAt(post.getCreatedAt());
 
-        User user = userMap.get(post.getUserId());
+        AdminUserSummary user = userMap.get(post.getUserId());
         if (user != null) {
-            vo.setUsername(user.getUsername());
-            vo.setAvatar(user.getAvatar());
+            vo.setUsername(user.username());
+            vo.setAvatar(user.avatar());
         }
 
         ForumCommunity community = communityMap.get(post.getCommunityId());
@@ -306,10 +304,10 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
         vo.setCreatedAt(post.getCreatedAt());
         vo.setUpdatedAt(post.getCreatedAt());
 
-        User user = userMapper.selectById(post.getUserId());
+        AdminUserSummary user = userEnricher.enrichOne(post.getUserId());
         if (user != null) {
-            vo.setUsername(user.getUsername());
-            vo.setAvatar(user.getAvatar());
+            vo.setUsername(user.username());
+            vo.setAvatar(user.avatar());
         }
 
         ForumCommunity community = forumCommunityMapper.selectById(post.getCommunityId());

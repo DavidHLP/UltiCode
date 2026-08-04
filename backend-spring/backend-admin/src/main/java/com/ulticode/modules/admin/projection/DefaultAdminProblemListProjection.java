@@ -16,8 +16,8 @@ import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  *
  * <p>All read methods are pure reads; none mutate list state. Cross-module
  * dependencies point inward (admin &rarr; feature): this projection imports
- * {@link ProblemList}, {@link Problem}, {@link User} entities and their
+ * {@link ProblemList}, {@link Problem} entities and their
  * mappers. The feature-side {@link com.ulticode.modules.problemlist.projection.ProblemListProjection}
  * no longer imports {@code AdminProblemListQueryDTO}, restoring the
  * admin &rarr; feature direction the rest of the admin projection series
@@ -62,7 +62,7 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
     private final ProblemListMapper problemListMapper;
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemMapper problemMapper;
-    private final UserMapper userMapper;
+    private final AdminUserEnricher userEnricher;
 
     // ------------------------------------------------------------------
     // Paginated list read (query build + shape)
@@ -112,10 +112,10 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
         vo.setIsSaved(false);
 
         // Author enrichment.
-        User author = userMapper.selectById(list.getAuthorId());
+        AdminUserSummary author = userEnricher.enrichOne(list.getAuthorId());
         if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorName(author.name());
+            vo.setAuthorUsername(author.username());
         }
 
         // Problems in the list with batched tag lookup.
@@ -202,10 +202,10 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
 
         vo.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
 
-        User author = userMapper.selectById(list.getAuthorId());
+        AdminUserSummary author = userEnricher.enrichOne(list.getAuthorId());
         if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorName(author.name());
+            vo.setAuthorUsername(author.username());
         }
 
         return vo;

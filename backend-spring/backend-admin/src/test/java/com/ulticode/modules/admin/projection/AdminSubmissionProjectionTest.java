@@ -10,8 +10,9 @@ import com.ulticode.app.api.dto.LanguageCountDTO;
 import com.ulticode.app.api.dto.StatusCountDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,10 +22,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +48,7 @@ import static org.mockito.Mockito.when;
 class AdminSubmissionProjectionTest {
 
     @Mock private AdminSubmissionReadPort submissionReadPort;
-    @Mock private UserMapper userMapper;
+    @Mock private AdminUserEnricher userEnricher;
     @Mock private ProblemMapper problemMapper;
 
     private DefaultAdminSubmissionProjection projection;
@@ -53,7 +56,7 @@ class AdminSubmissionProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminSubmissionProjection(
-                submissionReadPort, userMapper, problemMapper,
+                submissionReadPort, userEnricher, problemMapper,
                 java.time.Clock.systemDefaultZone());
     }
 
@@ -166,9 +169,9 @@ class AdminSubmissionProjectionTest {
             when(submissionReadPort.searchSubmissions(any(AdminSubmissionQueryDTO.class), anyInt(), anyInt()))
                 .thenReturn(PageResult.of(List.of(s1, s2), 2L, 1, 10));
 
-            User u1 = new User(); u1.setId("u1"); u1.setUsername("alice");
-            User u2 = new User(); u2.setId("u2"); u2.setUsername("bob");
-            when(userMapper.selectBatchIds(any())).thenReturn(List.of(u1, u2));
+            when(userEnricher.enrich(anySet())).thenReturn(Map.of(
+                    "u1", new AdminUserSummary("u1", "alice", "role1", "Alice", "avatar1", "alice@example.com"),
+                    "u2", new AdminUserSummary("u2", "bob", "role2", "Bob", "avatar2", "bob@example.com")));
 
             Problem p1 = new Problem(); p1.setId(100L); p1.setTitle("Two Sum"); p1.setSlug("two-sum");
             Problem p2 = new Problem(); p2.setId(200L); p2.setTitle("Add Two Numbers"); p2.setSlug("add-two-numbers");

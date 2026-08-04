@@ -15,13 +15,13 @@ import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.projection.AdminNotificationProjection;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import com.ulticode.modules.admin.service.AdminNotificationService;
 import com.ulticode.modules.notification.dispatcher.AnnouncementBroadcaster;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,7 +66,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     private static final String SYSTEM_CATEGORY = "SYSTEM";
 
     private final NotificationMapper notificationMapper;
-    private final UserMapper userMapper;
+    private final AdminUserEnricher userEnricher;
     private final Clock clock;
     private final AdminNotificationProjection adminNotificationProjection;
     private final CurrentUserProvider currentUserProvider;
@@ -89,7 +89,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
         String currentUserId = currentUserProvider.getCurrentUserId();
-        User currentUser = userMapper.selectById(currentUserId);
+        AdminUserSummary currentUser = userEnricher.enrichOne(currentUserId);
         if (currentUser == null) {
             throw new BusinessException(AdminErrorCode.NOT_FOUND, "Current user not found");
         }
@@ -99,7 +99,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("createdBy", currentUserId);
-        metadata.put("createdByName", currentUser.getUsername());
+        metadata.put("createdByName", currentUser.username());
         metadata.put("isSystemAnnouncement", true);
 
         // Architecture-review candidate #4: the recipient-resolution,

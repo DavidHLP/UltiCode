@@ -11,8 +11,8 @@ import com.ulticode.modules.notification.dispatcher.AnnouncementBroadcaster;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -53,7 +53,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 class AdminNotificationServiceImplTest {
 
     @Mock private NotificationMapper notificationMapper;
-    @Mock private UserMapper userMapper;
+    @Mock private AdminUserEnricher userEnricher;
     @Mock private AdminNotificationProjection adminNotificationProjection;
     @Mock private UuidGenerator uuidGenerator;
     @Mock
@@ -68,7 +68,7 @@ class AdminNotificationServiceImplTest {
         // service code only reads Clock.instant() / getZone() through it.
         Clock clock = Clock.systemUTC();
         adminNotificationService = new AdminNotificationServiceImpl(
-                notificationMapper, userMapper, clock,
+                notificationMapper, userEnricher, clock,
                 adminNotificationProjection, currentUserProvider, announcementBroadcaster);
     }
 
@@ -123,8 +123,8 @@ class AdminNotificationServiceImplTest {
                     org.mockito.ArgumentMatchers.any(),
                     org.mockito.ArgumentMatchers.any(),
                     org.mockito.ArgumentMatchers.any());
-            verify(userMapper, never())
-                    .selectBatchIds(org.mockito.ArgumentMatchers.any());
+            verify(userEnricher, never())
+                    .enrich(org.mockito.ArgumentMatchers.anySet());
         }
     }
 
@@ -196,11 +196,9 @@ class AdminNotificationServiceImplTest {
         }
 
         private void stubAdmin() {
-            User admin = new User();
-            admin.setId("admin-1");
-            admin.setUsername("admin");
             when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
-            when(userMapper.selectById("admin-1")).thenReturn(admin);
+            when(userEnricher.enrichOne("admin-1"))
+                    .thenReturn(new AdminUserSummary("admin-1", "admin", "ADMIN", "Admin", "avatar", "admin@ulticode.com"));
         }
 
         private AnnouncementBroadcaster.Outcome outcome(int delivered,

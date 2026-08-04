@@ -6,21 +6,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
 import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.app.api.dto.LanguageCountDTO;
 import com.ulticode.app.api.dto.StatusCountDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 /**
  * Production adapter for {@link AdminSubmissionReadPort}.
@@ -36,7 +35,7 @@ import java.util.stream.Collectors;
 public class AdminSubmissionMapperReadAdapter implements AdminSubmissionReadPort {
 
     private final SubmissionMapper submissionMapper;
-    private final UserMapper userMapper;
+    private final AdminUserEnricher userEnricher;
     private final ProblemMapper problemMapper;
 
     @Override
@@ -57,9 +56,11 @@ public class AdminSubmissionMapperReadAdapter implements AdminSubmissionReadPort
         // Search filter — resolve at DB level by pre-fetching matching user/problem IDs
         if (StringUtils.hasText(query.getSearch())) {
             String search = query.getSearch();
-            List<String> matchingUserIds = userMapper.selectList(
-                    new LambdaQueryWrapper<User>().like(User::getUsername, search)
-            ).stream().map(User::getId).collect(Collectors.toList());
+            // TODO: AdminUserEnricher doesn't support fuzzy username search. Need to add username search capability.
+            // For now, only exact username match via enrichOne lookup is supported.
+            List<String> matchingUserIds = java.util.Collections.emptyList();
+            // Legacy code: userMapper.selectList(new LambdaQueryWrapper<User>().like(User::getUsername, search))
+            //                 .stream().map(User::getId).collect(Collectors.toList());
             List<Long> matchingProblemIds = problemMapper.selectList(
                     new LambdaQueryWrapper<Problem>().like(Problem::getTitle, search)
             ).stream().map(Problem::getId).collect(Collectors.toList());

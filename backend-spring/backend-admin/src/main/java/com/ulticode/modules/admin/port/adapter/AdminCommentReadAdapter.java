@@ -1,12 +1,12 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.admin.port.AdminCommentReadPort;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +36,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AdminCommentReadAdapter implements AdminCommentReadPort {
 
-    private final UserMapper userMapper;
+    private final AdminUserEnricher userEnricher;
     private final ForumPostMapper forumPostMapper;
     private final SolutionMapper solutionMapper;
 
@@ -46,8 +46,9 @@ public class AdminCommentReadAdapter implements AdminCommentReadPort {
             return Map.of();
         }
         Map<String, AuthorSummary> result = new HashMap<>();
-        for (User u : userMapper.selectBatchIds(userIds)) {
-            result.put(u.getId(), new AuthorSummary(u.getId(), u.getUsername(), u.getAvatar()));
+        Map<String, AdminUserSummary> userMap = userEnricher.enrich(userIds);
+        for (AdminUserSummary u : userMap.values()) {
+            result.put(u.accountId(), new AuthorSummary(u.accountId(), u.username(), u.avatar()));
         }
         return result;
     }

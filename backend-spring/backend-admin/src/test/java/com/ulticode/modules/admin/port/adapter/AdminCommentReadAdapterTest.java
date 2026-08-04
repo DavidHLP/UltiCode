@@ -5,8 +5,8 @@ import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.projection.AdminUserEnricher;
+import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 class AdminCommentReadAdapterTest {
 
     @Mock
-    private UserMapper userMapper;
+    private AdminUserEnricher userEnricher;
 
     @Mock
     private ForumPostMapper forumPostMapper;
@@ -63,10 +63,10 @@ class AdminCommentReadAdapterTest {
     class EmptyInput {
 
         @Test
-        @DisplayName("empty user-id set returns empty map without touching UserMapper")
-        void emptyUserIds_noMapperCall() {
+        @DisplayName("empty user-id set returns empty map without touching AdminUserEnricher")
+        void emptyUserIds_noEnricherCall() {
             assertThat(adapter.findAuthorSummariesByIds(Set.of())).isEmpty();
-            verifyNoInteractions(userMapper);
+            verifyNoInteractions(userEnricher);
         }
 
         @Test
@@ -91,15 +91,9 @@ class AdminCommentReadAdapterTest {
         @Test
         @DisplayName("users are coerced to AuthorSummary keyed by id, null avatar preserved")
         void usersMappedToSummary() {
-            User u1 = new User();
-            u1.setId("u1");
-            u1.setUsername("alice");
-            u1.setAvatar("https://cdn.example.com/a.png");
-            User u2 = new User();
-            u2.setId("u2");
-            u2.setUsername("bob");
-            u2.setAvatar(null);
-            when(userMapper.selectBatchIds(Set.of("u1", "u2"))).thenReturn(List.of(u1, u2));
+            AdminUserSummary u1 = new AdminUserSummary("u1", "alice", null, null, "https://cdn.example.com/a.png", null);
+            AdminUserSummary u2 = new AdminUserSummary("u2", "bob", null, null, null, null);
+            when(userEnricher.enrich(Set.of("u1", "u2"))).thenReturn(Map.of("u1", u1, "u2", u2));
 
             Map<String, AdminCommentReadPort.AuthorSummary> result =
                     adapter.findAuthorSummariesByIds(Set.of("u1", "u2"));
@@ -114,10 +108,8 @@ class AdminCommentReadAdapterTest {
         @Test
         @DisplayName("missing user ids are absent so the caller coerces null author")
         void missingUserIdsAbsent() {
-            User u1 = new User();
-            u1.setId("u1");
-            u1.setUsername("alice");
-            when(userMapper.selectBatchIds(Set.of("u1", "ghost"))).thenReturn(List.of(u1));
+            AdminUserSummary u1 = new AdminUserSummary("u1", "alice", null, null, null, null);
+            when(userEnricher.enrich(Set.of("u1", "ghost"))).thenReturn(Map.of("u1", u1));
 
             Map<String, AdminCommentReadPort.AuthorSummary> result =
                     adapter.findAuthorSummariesByIds(Set.of("u1", "ghost"));

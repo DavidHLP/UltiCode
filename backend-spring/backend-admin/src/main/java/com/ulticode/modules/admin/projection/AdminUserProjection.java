@@ -13,7 +13,7 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
  * cross-module enrichment (submission/solution stats via
  * {@link com.ulticode.modules.admin.port.AdminUserStatsReadPort}; role + direct
  * permissions via Dubbo RPC {@link com.ulticode.auth.api.service.RoleTemplateService}
- * and {@link com.ulticode.modules.auth.service.AuthCutoverService}) for
+ * and {@link com.ulticode.auth.api.service.AuthorizationSnapshotService}) for
  * the admin user surface.
  *
  * <p>This is the same shallow cluster lifted out of

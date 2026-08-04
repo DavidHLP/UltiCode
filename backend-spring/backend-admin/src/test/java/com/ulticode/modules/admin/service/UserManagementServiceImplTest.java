@@ -9,12 +9,10 @@ import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.impl.UserManagementServiceImpl;
-import com.ulticode.modules.auth.service.AuthCutoverService;
 import com.ulticode.modules.user.port.UserProfilePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,8 +43,6 @@ class UserManagementServiceImplTest {
     @Mock private UserProfilePort userProfilePort;
     @Mock private AuditRecorder auditRecorder;
     @Mock private AdminUserProjection adminUserProjection;
-    @Mock private BackendAuthRoleAdminClient backendAuthRoleAdminClient;
-    @Mock private AuthCutoverService authCutoverService;
 
     @InjectMocks
     private UserManagementServiceImpl service;

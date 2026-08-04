@@ -5,7 +5,7 @@ import com.ulticode.app.api.dto.HourlyActiveUserCount;
 import com.ulticode.app.api.dto.TopActiveUserCount;
 import com.ulticode.app.api.dto.WeeklyActiveUserCount;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.port.SubmissionActivityAnalyticsPort;
+import com.ulticode.app.api.service.SubmissionActivityAnalyticsPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -44,7 +44,7 @@ public class SubmissionActivityAnalyticsMapperAdapter implements SubmissionActiv
     }
 
     @Override
-    public long countDistinctUsersInRange(LocalDateTime startDate, LocalDateTime endDate) {
+    public Long countActiveUsersBetween(LocalDateTime startDate, LocalDateTime endDate) {
         return submissionMapper.countDistinctUsersInRange(startDate, endDate);
     }
 }

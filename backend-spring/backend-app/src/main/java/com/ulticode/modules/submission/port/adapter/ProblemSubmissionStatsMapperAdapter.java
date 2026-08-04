@@ -5,7 +5,7 @@ import com.ulticode.app.api.dto.ProblemDifficultyCompletion;
 import com.ulticode.app.api.dto.ProblemTrend;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.port.ProblemSubmissionStatsPort;
+import com.ulticode.app.api.service.ProblemSubmissionStatsPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

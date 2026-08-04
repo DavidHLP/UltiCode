@@ -3,7 +3,7 @@ package com.ulticode.modules.submission.port.adapter;
 import com.ulticode.app.api.dto.LanguageCountDTO;
 import com.ulticode.app.api.dto.StatusCountDTO;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.port.SubmissionAnalyticsPort;
+import com.ulticode.app.api.service.SubmissionAnalyticsPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

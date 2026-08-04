@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DefaultTestCaseOwnerPort implements TestCaseOwnerPort {
+public class DefaultTestCaseOwnerPort implements com.ulticode.app.api.service.TestCaseOwnerPort {
 
     private final TestCaseMapper testCaseMapper;
 

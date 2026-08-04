@@ -2,7 +2,7 @@ package com.ulticode.modules.problem.port;
 
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
-import com.ulticode.modules.problem.port.TestCaseOwnerPort.TestCaseWrite;
+import com.ulticode.app.api.service.TestCaseOwnerPort.TestCaseWrite;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,7 +33,7 @@ class DefaultTestCaseOwnerPortTest {
     @Mock
     private TestCaseMapper testCaseMapper;
 
-    private TestCaseOwnerPort port;
+    private com.ulticode.app.api.service.TestCaseOwnerPort port;
 
     @BeforeEach
     void setUp() {

@@ -27,15 +27,27 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
+    /**
+     * Non-HttpOnly CSRF sentinel cookie. The frontend reads this from
+     * {@code document.cookie} to detect whether a session exists after a
+     * hard page refresh (the access_token cookie is HttpOnly and
+     * inaccessible to JS). Without this cookie the auth-core session
+     * store skips the {@code /auth/me} bootstrap call, causing every
+     * protected page to show "authentication required".
+     */
+    private static final String CSRF_TOKEN_COOKIE = "csrf_token";
+
     @Override
     public LoginResponse completeLogin(AuthAccountRecord account, HttpServletResponse response) {
         String accessToken = jwtTokenProvider.generateAccessToken(account.id(), account.username(), account.role());
-        setCookie(response, ACCESS_TOKEN_COOKIE, accessToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000));
+        setCookie(response, ACCESS_TOKEN_COOKIE, accessToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000), true);
 
         String refreshToken = refreshTokenService.createToken(account.id());
-        setCookie(response, REFRESH_TOKEN_COOKIE, refreshToken, (int) (jwtProperties.getRefreshTokenExpiration() / 1000));
+        setCookie(response, REFRESH_TOKEN_COOKIE, refreshToken, (int) (jwtProperties.getRefreshTokenExpiration() / 1000), true);
 
         String csrfToken = csrfService.generateToken(account.id());
+        setCookie(response, CSRF_TOKEN_COOKIE, csrfToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000), false);
+
         UserIdentityDTO identity = toUserIdentity(account);
 
         return LoginResponse.builder()
@@ -47,11 +59,13 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
     @Override
     public LoginResponse completeRefresh(AuthAccountRecord account, String rotatedRefreshToken, HttpServletResponse response) {
         String accessToken = jwtTokenProvider.generateAccessToken(account.id(), account.username(), account.role());
-        setCookie(response, ACCESS_TOKEN_COOKIE, accessToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000));
+        setCookie(response, ACCESS_TOKEN_COOKIE, accessToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000), true);
 
-        setCookie(response, REFRESH_TOKEN_COOKIE, rotatedRefreshToken, (int) (jwtProperties.getRefreshTokenExpiration() / 1000));
+        setCookie(response, REFRESH_TOKEN_COOKIE, rotatedRefreshToken, (int) (jwtProperties.getRefreshTokenExpiration() / 1000), true);
 
         String csrfToken = csrfService.generateToken(account.id());
+        setCookie(response, CSRF_TOKEN_COOKIE, csrfToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000), false);
+
         UserIdentityDTO identity = toUserIdentity(account);
 
         return LoginResponse.builder()
@@ -62,8 +76,9 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
 
     @Override
     public void clearSession(HttpServletResponse response) {
-        clearCookie(response, ACCESS_TOKEN_COOKIE);
-        clearCookie(response, REFRESH_TOKEN_COOKIE);
+        clearCookie(response, ACCESS_TOKEN_COOKIE, true);
+        clearCookie(response, REFRESH_TOKEN_COOKIE, true);
+        clearCookie(response, CSRF_TOKEN_COOKIE, false);
     }
 
     private UserIdentityDTO toUserIdentity(AuthAccountRecord account) {
@@ -76,23 +91,23 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         );
     }
 
-    private void setCookie(HttpServletResponse response, String name, String value, int maxAge) {
+    private void setCookie(HttpServletResponse response, String name, String value, int maxAge, boolean httpOnly) {
         if (response == null) {
             return;
         }
         Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(true);
+        cookie.setHttpOnly(httpOnly);
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
         response.addCookie(cookie);
     }
 
-    private void clearCookie(HttpServletResponse response, String name) {
+    private void clearCookie(HttpServletResponse response, String name, boolean httpOnly) {
         if (response == null) {
             return;
         }
         Cookie cookie = new Cookie(name, "");
-        cookie.setHttpOnly(true);
+        cookie.setHttpOnly(httpOnly);
         cookie.setPath("/");
         cookie.setMaxAge(0);
         response.addCookie(cookie);

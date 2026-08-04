@@ -1,6 +1,6 @@
 package com.ulticode.auth.dto;
 
-import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.dto.AuthUserVO;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,5 +12,5 @@ import lombok.Data;
 public class LoginResponse {
 
     private String csrfToken;
-    private UserIdentityDTO user;
+    private AuthUserVO user;
 }

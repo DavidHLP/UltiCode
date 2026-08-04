@@ -1,14 +1,14 @@
 package com.ulticode.auth.dto;
 
-import com.ulticode.auth.api.dto.UserIdentityDTO;
 import lombok.Data;
 
 /**
  * User view object carrying identity and CSRF token.
+ * Returned by {@code /auth/me}.
  */
 @Data
 public class UserWithCsrfVO {
 
-    private UserIdentityDTO user;
+    private AuthUserVO user;
     private String csrfToken;
 }

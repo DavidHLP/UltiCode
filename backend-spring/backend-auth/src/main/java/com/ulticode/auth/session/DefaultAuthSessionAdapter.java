@@ -1,7 +1,7 @@
 package com.ulticode.auth.session;
 
 import com.ulticode.auth.account.AuthAccountRecord;
-import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.dto.AuthUserVO;
 import com.ulticode.auth.dto.LoginResponse;
 import com.ulticode.auth.refreshtoken.service.RefreshTokenService;
 import com.ulticode.auth.security.csrf.CsrfService;
@@ -48,7 +48,7 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         String csrfToken = csrfService.generateToken(account.id());
         setCookie(response, CSRF_TOKEN_COOKIE, csrfToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000), false);
 
-        UserIdentityDTO identity = toUserIdentity(account);
+        AuthUserVO identity = toUserVO(account);
 
         return LoginResponse.builder()
                 .csrfToken(csrfToken)
@@ -66,7 +66,7 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         String csrfToken = csrfService.generateToken(account.id());
         setCookie(response, CSRF_TOKEN_COOKIE, csrfToken, (int) (jwtProperties.getAccessTokenExpiration() / 1000), false);
 
-        UserIdentityDTO identity = toUserIdentity(account);
+        AuthUserVO identity = toUserVO(account);
 
         return LoginResponse.builder()
                 .csrfToken(csrfToken)
@@ -81,13 +81,16 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         clearCookie(response, CSRF_TOKEN_COOKIE, false);
     }
 
-    private UserIdentityDTO toUserIdentity(AuthAccountRecord account) {
-        return new UserIdentityDTO(
+    private AuthUserVO toUserVO(AuthAccountRecord account) {
+        return new AuthUserVO(
                 account.id(),
                 account.username(),
+                account.username(),
+                account.email() != null ? account.email() : "",
                 account.role(),
                 Boolean.TRUE.equals(account.isActive()),
-                Boolean.TRUE.equals(account.isBanned())
+                Boolean.TRUE.equals(account.isBanned()),
+                account.joinedAt() != null ? account.joinedAt().toString() : ""
         );
     }
 

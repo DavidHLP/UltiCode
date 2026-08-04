@@ -3,6 +3,7 @@ package com.ulticode.auth.adapter.in.web;
 import com.ulticode.auth.account.AuthAccountPort;
 import com.ulticode.auth.account.AuthAccountRecord;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.dto.AuthUserVO;
 import com.ulticode.auth.dto.LoginDTO;
 import com.ulticode.auth.dto.LoginResponse;
 import com.ulticode.auth.dto.RegisterDTO;
@@ -81,13 +82,18 @@ public class AuthController {
                 .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND));
 
         String csrfToken = csrfService.generateToken(account.id());
-        UserIdentityDTO identity = new UserIdentityDTO(
-                account.id(), account.username(), account.role(),
-                Boolean.TRUE.equals(account.isActive()), Boolean.TRUE.equals(account.isBanned())
+
+        AuthUserVO userVO = new AuthUserVO(
+                account.id(), account.username(), account.username(),
+                account.email() != null ? account.email() : "",
+                account.role(),
+                Boolean.TRUE.equals(account.isActive()),
+                Boolean.TRUE.equals(account.isBanned()),
+                account.joinedAt() != null ? account.joinedAt().toString() : ""
         );
 
         UserWithCsrfVO response = new UserWithCsrfVO();
-        response.setUser(identity);
+        response.setUser(userVO);
         response.setCsrfToken(csrfToken);
 
         return Result.success(response);

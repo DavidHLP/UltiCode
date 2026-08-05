@@ -17,11 +17,12 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface UserSearchReadMapper {
 
-    @Select("SELECT id, username, name, avatar FROM users "
-            + "WHERE is_deleted = 0 "
-            + "AND (username LIKE CONCAT('%', #{query}, '%') "
-            + "     OR name LIKE CONCAT('%', #{query}, '%')) "
-            + "ORDER BY username ASC "
+    @Select("SELECT u.id, u.username, p.name, p.avatar "
+            + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
+            + "WHERE u.is_deleted = 0 "
+            + "AND (u.username LIKE CONCAT('%', #{query}, '%') "
+            + "     OR p.name LIKE CONCAT('%', #{query}, '%')) "
+            + "ORDER BY u.username ASC "
             + "LIMIT #{limit}")
     List<UserSearchRow> searchIndex(@Param("query") String query, @Param("limit") int limit);
 }

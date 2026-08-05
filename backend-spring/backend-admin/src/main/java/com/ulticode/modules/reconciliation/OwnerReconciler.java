@@ -51,12 +51,13 @@ public class OwnerReconciler {
             timeout = 3000, retries = 0, check = false)
     private ReconciliationQueryService authQueryService;
 
-    /** The reconciliation pair (source → target, vertical-split dual-write). */
+    /** Reconciliation pair for vertical-split table count divergence checks. */
     record ReconciliationPair(String sourceTable, String targetTable, String owner) {}
 
-    private static final List<ReconciliationPair> RECONCILIATION_PAIRS = List.of(
-            new ReconciliationPair("users", "user_profiles", "Auth")
-    );
+    // The users → user_profiles dual-write pair is removed: profile columns
+    // have been dropped from users (P5-USERPROFILE-001 contract phase).
+    // Reconciliation infrastructure remains for future pairs and orphan detection.
+    private static final List<ReconciliationPair> RECONCILIATION_PAIRS = List.of();
 
     @Scheduled(cron = "0 0 2 * * *")
     public void scheduledReconciliation() {
@@ -122,9 +123,8 @@ public class OwnerReconciler {
     }
 
     /**
-     * Reconcile the users → user_profiles dual-write pair: the Auth
-     * owner counts non-deleted users via RPC; the App owner counts
-     * profiles via the local read port.
+     * Reconcile a vertical-split pair: the source owner counts rows
+     * via RPC; the target owner counts via the local read port.
      */
     ReconciliationResult reconcilePair(ReconciliationPair pair) {
         long sourceCount = 0;

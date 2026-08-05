@@ -10,8 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <p>Owns profile-field mutations (name, avatar, bio, company, github,
  * location, twitter, website, preferredLanguage). These write to the
- * App-owned {@code user_profiles} table only; the transitional dual-write
- * to {@code users} profile columns (P5-USERPROFILE-001) ends here.
+ * App-owned {@code user_profiles} table (canonical source).
  *
  * <p>Account mutations (password, role, ban status) stay Auth-owned and
  * are NOT on this interface.

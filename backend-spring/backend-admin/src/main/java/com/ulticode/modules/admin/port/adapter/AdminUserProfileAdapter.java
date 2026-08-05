@@ -1,7 +1,6 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.app.user.port.UserProfileWriteMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.exception.BusinessException;
@@ -22,18 +21,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Admin-shell adapter for the legacy {@link UserProfilePort} contract
- * (P7-RELOCATE).
+ * Admin-shell adapter for {@link UserProfilePort}.
  *
- * <p>Replaces the excluded legacy {@code DefaultUserProfileAdapter} (which
- * needs the legacy {@code UserMapper}, intentionally absent from the admin
- * {@code @MapperScan}). Mirrors the App-side
- * {@code DefaultAppUserWritePort} write path: profile mutations dual-write
- * to the App-owned {@code user_profiles} table (canonical) and the profile
- * columns of the Auth-owned {@code users} table via
- * {@link UserProfileWriteMapper} (transitional, keeps the
- * {@code UserReadMapper} Q-read consistent during the P5-USERPROFILE-001
- * dual-write window).
+ * <p>Profile mutations write exclusively to the App-owned
+ * {@code user_profiles} table (canonical source).
  *
  * <p>Avatar upload preserves the legacy file-storage semantics (uploads
  * directory, UUID filename, content-type + size + extension validation).
@@ -44,7 +35,6 @@ import java.nio.file.Paths;
 public class AdminUserProfileAdapter implements UserProfilePort {
 
     private final UserProfileMapper userProfileMapper;
-    private final UserProfileWriteMapper userProfileWriteMapper;
     private final UuidGenerator uuidGenerator;
 
     @Override
@@ -64,39 +54,30 @@ public class AdminUserProfileAdapter implements UserProfilePort {
 
         if (updateDTO.getName() != null) {
             profile.setName(updateDTO.getName());
-            userProfileWriteMapper.updateName(userId, updateDTO.getName());
         }
         if (updateDTO.getAvatar() != null) {
             profile.setAvatar(updateDTO.getAvatar());
-            userProfileWriteMapper.updateAvatar(userId, updateDTO.getAvatar());
         }
         if (updateDTO.getBio() != null) {
             profile.setBio(updateDTO.getBio());
-            userProfileWriteMapper.updateBio(userId, updateDTO.getBio());
         }
         if (updateDTO.getCompany() != null) {
             profile.setCompany(updateDTO.getCompany());
-            userProfileWriteMapper.updateCompany(userId, updateDTO.getCompany());
         }
         if (updateDTO.getGithub() != null) {
             profile.setGithub(updateDTO.getGithub());
-            userProfileWriteMapper.updateGithub(userId, updateDTO.getGithub());
         }
         if (updateDTO.getLocation() != null) {
             profile.setLocation(updateDTO.getLocation());
-            userProfileWriteMapper.updateLocation(userId, updateDTO.getLocation());
         }
         if (updateDTO.getTwitter() != null) {
             profile.setTwitter(updateDTO.getTwitter());
-            userProfileWriteMapper.updateTwitter(userId, updateDTO.getTwitter());
         }
         if (updateDTO.getWebsite() != null) {
             profile.setWebsite(updateDTO.getWebsite());
-            userProfileWriteMapper.updateWebsite(userId, updateDTO.getWebsite());
         }
         if (updateDTO.getPreferredLanguage() != null) {
             profile.setPreferredLanguage(updateDTO.getPreferredLanguage());
-            userProfileWriteMapper.updatePreferredLanguage(userId, updateDTO.getPreferredLanguage());
         }
 
         if (isNew) {
@@ -105,7 +86,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
             userProfileMapper.updateById(profile);
         }
 
-        log.info("User profile updated (dual-write): {}", userId);
+        log.info("User profile updated: {}", userId);
         return toVO(profile);
     }
 
@@ -156,7 +137,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         String avatarUrl = "/uploads/avatars/" + filename;
         updateAvatarUrl(userId, avatarUrl);
 
-        log.info("Avatar uploaded (dual-write) for user {}: {}", userId, avatarUrl);
+        log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
         return avatarUrl;
     }
 
@@ -176,7 +157,6 @@ public class AdminUserProfileAdapter implements UserProfilePort {
             profile.setAvatar(avatarUrl);
             userProfileMapper.updateById(profile);
         }
-        userProfileWriteMapper.updateAvatar(userId, avatarUrl);
     }
 
     private UserVO toVO(UserProfile profile) {

@@ -1,6 +1,5 @@
 package com.ulticode.modules.user.port;
 
-import com.ulticode.app.user.port.UserProfileWriteMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.error.BaseErrorCode;
@@ -21,17 +20,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * App-side adapter for {@link AppUserWritePort}
- * (P7-RELOCATE-USER-REMAINDER-001).
+ * App-side adapter for {@link AppUserWritePort}.
  *
- * <p>Profile mutations dual-write to both the App-owned
- * {@code user_profiles} table and the profile columns of the
- * Auth-owned {@code users} table. This preserves the P5-USERPROFILE-001
- * dual-write invariant: {@code UserReadMapper} Q-reads profile columns
- * from {@code users}, so writes must propagate there to avoid stale
- * reads. The {@code user_profiles} write is the App-owned canonical
- * path; the {@code users} write is transitional and will be removed
- * when the dual-write window closes.
+ * <p>Profile mutations write exclusively to the App-owned
+ * {@code user_profiles} table (canonical source).
  *
  * <p>Avatar upload preserves the legacy file-storage logic (uploads
  * directory, UUID filename, content-type + size validation).
@@ -42,7 +34,6 @@ import java.nio.file.Paths;
 public class DefaultAppUserWritePort implements AppUserWritePort {
 
     private final UserProfileMapper userProfileMapper;
-    private final UserProfileWriteMapper userProfileWriteMapper;
     private final UuidGenerator uuidGenerator;
 
     @Override
@@ -62,39 +53,30 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
 
         if (updateDTO.getName() != null) {
             profile.setName(updateDTO.getName());
-            userProfileWriteMapper.updateName(userId, updateDTO.getName());
         }
         if (updateDTO.getAvatar() != null) {
             profile.setAvatar(updateDTO.getAvatar());
-            userProfileWriteMapper.updateAvatar(userId, updateDTO.getAvatar());
         }
         if (updateDTO.getBio() != null) {
             profile.setBio(updateDTO.getBio());
-            userProfileWriteMapper.updateBio(userId, updateDTO.getBio());
         }
         if (updateDTO.getCompany() != null) {
             profile.setCompany(updateDTO.getCompany());
-            userProfileWriteMapper.updateCompany(userId, updateDTO.getCompany());
         }
         if (updateDTO.getGithub() != null) {
             profile.setGithub(updateDTO.getGithub());
-            userProfileWriteMapper.updateGithub(userId, updateDTO.getGithub());
         }
         if (updateDTO.getLocation() != null) {
             profile.setLocation(updateDTO.getLocation());
-            userProfileWriteMapper.updateLocation(userId, updateDTO.getLocation());
         }
         if (updateDTO.getTwitter() != null) {
             profile.setTwitter(updateDTO.getTwitter());
-            userProfileWriteMapper.updateTwitter(userId, updateDTO.getTwitter());
         }
         if (updateDTO.getWebsite() != null) {
             profile.setWebsite(updateDTO.getWebsite());
-            userProfileWriteMapper.updateWebsite(userId, updateDTO.getWebsite());
         }
         if (updateDTO.getPreferredLanguage() != null) {
             profile.setPreferredLanguage(updateDTO.getPreferredLanguage());
-            userProfileWriteMapper.updatePreferredLanguage(userId, updateDTO.getPreferredLanguage());
         }
 
         if (isNew) {
@@ -103,7 +85,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             userProfileMapper.updateById(profile);
         }
 
-        log.info("User profile updated (dual-write): {}", userId);
+        log.info("User profile updated: {}", userId);
         return toVO(profile);
     }
 
@@ -153,7 +135,6 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
 
         String avatarUrl = "/uploads/avatars/" + filename;
 
-        // Dual-write avatar to both user_profiles and users
         UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {
             profile = new UserProfile();
@@ -164,9 +145,8 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             profile.setAvatar(avatarUrl);
             userProfileMapper.updateById(profile);
         }
-        userProfileWriteMapper.updateAvatar(userId, avatarUrl);
 
-        log.info("Avatar uploaded (dual-write) for user {}: {}", userId, avatarUrl);
+        log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
         return avatarUrl;
     }
 

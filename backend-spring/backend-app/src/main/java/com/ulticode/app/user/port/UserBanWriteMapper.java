@@ -17,8 +17,7 @@ import org.apache.ibatis.annotations.Update;
  * expected version). Mirrors the legacy adapter semantics exactly:
  * a direct column update on {@code users}.
  *
- * <p>This is a transitional seam, same classification as
- * {@link UserProfileWriteMapper}: once the Auth ownership cutover for
+ * <p>This is a transitional seam: once the Auth ownership cutover for
  * ban state completes, this mapper and its caller are deleted in favor
  * of the RPC write path.
  */

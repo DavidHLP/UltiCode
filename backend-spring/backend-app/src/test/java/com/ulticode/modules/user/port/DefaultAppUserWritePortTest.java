@@ -1,6 +1,5 @@
 package com.ulticode.modules.user.port;
 
-import com.ulticode.app.user.port.UserProfileWriteMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.error.BaseErrorCode;
@@ -24,34 +23,29 @@ import org.springframework.web.multipart.MultipartFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * P7-RELOCATE-USER-REMAINDER-001: focused tests for
- * {@link DefaultAppUserWritePort} dual-write paths.
+ * Focused tests for {@link DefaultAppUserWritePort} profile write paths.
  *
- * <p>Each profile field must write to <em>both</em> tables:
- * {@code user_profiles} (App-owned canonical) and {@code users} profile
- * columns (via {@link UserProfileWriteMapper}, Q-write for read
- * consistency during the P5-USERPROFILE-001 dual-write window).
+ * <p>Each profile field must write to {@code user_profiles}
+ * (App-owned canonical source).
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("DefaultAppUserWritePort dual-write")
+@DisplayName("DefaultAppUserWritePort profile writes")
 class DefaultAppUserWritePortTest {
 
     @Mock private UserProfileMapper userProfileMapper;
-    @Mock private UserProfileWriteMapper userProfileWriteMapper;
     @Mock private UuidGenerator uuidGenerator;
 
     private DefaultAppUserWritePort port;
 
     @BeforeEach
     void setUp() {
-        port = new DefaultAppUserWritePort(userProfileMapper, userProfileWriteMapper, uuidGenerator);
+        port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator);
     }
 
     @Nested
@@ -67,8 +61,8 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("new profile: inserts into user_profiles + dual-writes non-null fields to users")
-        void newProfileInsertsAndDualWrites() {
+        @DisplayName("new profile: inserts into user_profiles with non-null fields")
+        void newProfileInserts() {
             String userId = "u-001";
             when(userProfileMapper.selectById(userId)).thenReturn(null);
 
@@ -78,27 +72,19 @@ class DefaultAppUserWritePortTest {
 
             UserVO result = port.updateProfile(userId, dto);
 
-            // user_profiles insert
             ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
             verify(userProfileMapper).insert(captor.capture());
             assertThat(captor.getValue().getAccountId()).isEqualTo(userId);
             assertThat(captor.getValue().getName()).isEqualTo("Alice");
+            assertThat(captor.getValue().getBio()).isEqualTo("Engineer");
 
-            // dual-write to users table
-            verify(userProfileWriteMapper).updateName(userId, "Alice");
-            verify(userProfileWriteMapper).updateBio(userId, "Engineer");
-            // fields NOT in DTO should NOT be dual-written
-            verify(userProfileWriteMapper, never()).updateAvatar(eq(userId), any());
-            verify(userProfileWriteMapper, never()).updateGithub(eq(userId), any());
-
-            // VO returned with updated fields
             assertThat(result.getId()).isEqualTo(userId);
             assertThat(result.getName()).isEqualTo("Alice");
         }
 
         @Test
-        @DisplayName("existing profile: updates user_profiles + dual-writes only changed fields")
-        void existingProfileUpdatesAndDualWrites() {
+        @DisplayName("existing profile: updates user_profiles with changed fields")
+        void existingProfileUpdates() {
             String userId = "u-002";
             UserProfile existing = new UserProfile();
             existing.setAccountId(userId);
@@ -112,15 +98,11 @@ class DefaultAppUserWritePortTest {
             port.updateProfile(userId, dto);
 
             verify(userProfileMapper).updateById(any(UserProfile.class));
-            verify(userProfileWriteMapper).updateName(userId, "NewName");
-            verify(userProfileWriteMapper).updateCompany(userId, "Acme");
-            // unchanged fields not written
-            verify(userProfileWriteMapper, never()).updateBio(eq(userId), any());
         }
 
         @Test
-        @DisplayName("all nine fields dual-write when all non-null in DTO")
-        void allFieldsDualWrite() {
+        @DisplayName("all nine fields written when all non-null in DTO")
+        void allFieldsWritten() {
             String userId = "u-003";
             when(userProfileMapper.selectById(userId)).thenReturn(null);
 
@@ -137,15 +119,18 @@ class DefaultAppUserWritePortTest {
 
             port.updateProfile(userId, dto);
 
-            verify(userProfileWriteMapper).updateName(userId, "N");
-            verify(userProfileWriteMapper).updateAvatar(userId, "A");
-            verify(userProfileWriteMapper).updateBio(userId, "B");
-            verify(userProfileWriteMapper).updateCompany(userId, "C");
-            verify(userProfileWriteMapper).updateGithub(userId, "G");
-            verify(userProfileWriteMapper).updateLocation(userId, "L");
-            verify(userProfileWriteMapper).updateTwitter(userId, "T");
-            verify(userProfileWriteMapper).updateWebsite(userId, "W");
-            verify(userProfileWriteMapper).updatePreferredLanguage(userId, "P");
+            ArgumentCaptor<UserProfile> captor = ArgumentCaptor.forClass(UserProfile.class);
+            verify(userProfileMapper).insert(captor.capture());
+            UserProfile inserted = captor.getValue();
+            assertThat(inserted.getName()).isEqualTo("N");
+            assertThat(inserted.getAvatar()).isEqualTo("A");
+            assertThat(inserted.getBio()).isEqualTo("B");
+            assertThat(inserted.getCompany()).isEqualTo("C");
+            assertThat(inserted.getGithub()).isEqualTo("G");
+            assertThat(inserted.getLocation()).isEqualTo("L");
+            assertThat(inserted.getTwitter()).isEqualTo("T");
+            assertThat(inserted.getWebsite()).isEqualTo("W");
+            assertThat(inserted.getPreferredLanguage()).isEqualTo("P");
         }
     }
 
@@ -178,8 +163,8 @@ class DefaultAppUserWritePortTest {
         }
 
         @Test
-        @DisplayName("valid avatar: dual-writes to user_profiles + users, returns URL")
-        void validAvatarDualWrites() {
+        @DisplayName("valid avatar: writes to user_profiles, returns URL")
+        void validAvatarWrites() {
             String userId = "u-004";
             when(uuidGenerator.newId()).thenReturn("uuid-1");
             when(userProfileMapper.selectById(userId)).thenReturn(null);
@@ -189,10 +174,7 @@ class DefaultAppUserWritePortTest {
             String url = port.uploadAvatar(userId, file);
 
             assertThat(url).startsWith("/uploads/avatars/");
-            // user_profiles insert
             verify(userProfileMapper).insert(any(UserProfile.class));
-            // dual-write avatar to users
-            verify(userProfileWriteMapper).updateAvatar(eq(userId), eq(url));
         }
     }
 }

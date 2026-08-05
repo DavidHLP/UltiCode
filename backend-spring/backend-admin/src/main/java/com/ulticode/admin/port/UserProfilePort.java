@@ -9,9 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <p>Replaces the former {@code com.ulticode.modules.user.port.UserProfilePort}
  * from backend-legacy. The admin shell owns this interface; its implementation
- * ({@code AdminUserProfileAdapter}) dual-writes to the App-owned
- * {@code user_profiles} table and the transitional {@code users} profile
- * columns via {@code UserProfileWriteMapper}.
+ * ({@code AdminUserProfileAdapter}) writes to the App-owned
+ * {@code user_profiles} table (canonical source).
  *
  * <p>DTO types ({@link UpdateUserDTO}, {@link UserVO}) remain in
  * {@code com.ulticode.modules.user.dto} (backend-app) and are shared across

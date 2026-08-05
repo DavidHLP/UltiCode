@@ -3,19 +3,14 @@ package com.ulticode.app.user.port;
 import java.time.LocalDateTime;
 
 /**
- * Narrow Q-read view of the {@code users} table for the relocated
- * user-surface projections (P7-RELOCATE-USER-REMAINDER-001).
+ * Narrow Q-read view joining the Auth-owned {@code users} table
+ * (account columns) with the App-owned {@code user_profiles} table
+ * (profile columns).
  *
- * <p>Captures only the columns the projections need to build
- * {@code UserVO}/{@code ProfileVO}. This is a Q-classified shared read
- * of the Auth-owned {@code users} table — same precedent as
- * {@code UserSearchReadPort} and {@code GlobalRankingMapper}.
- *
- * <p>The {@code users} table retains both account columns (username,
- * email, password, role — Auth-owned) and profile columns (name,
- * avatar, bio, company — mirrored in {@code user_profiles}). This view
- * reads the profile columns for read-side projection; mutations go
- * through {@code UserProfileMapper} (App-owned write path).
+ * <p>Account columns (username, email, role, isActive, isBanned,
+ * lastLoginAt, joinedAt) come from {@code users}; profile columns
+ * (name, avatar, bio, company, github, location, twitter, website,
+ * preferredLanguage) come from {@code user_profiles}.
  *
  * @param id                user id
  * @param username          unique login handle

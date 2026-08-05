@@ -159,12 +159,17 @@ const contentItems = computed(() => {
 const userSecurityItems = computed(() => {
   const items = []
 
-  // 1. Users (Single item)
-  items.push({
-    title: t('nav.users'),
-    url: '/users',
-    icon: IconUsers,
-  })
+  // 1. Users (Single item) — gated by READ:USER to match the /users route
+  //    guard (router meta.permission = PERM.USER_READ). Previously pushed
+  //    unconditionally, so a user without USER_READ saw the menu but was
+  //    rejected by the route guard with a "no permission" toast.
+  if (authStore.hasPermission('READ', 'USER')) {
+    items.push({
+      title: t('nav.users'),
+      url: '/users',
+      icon: IconUsers,
+    })
+  }
 
   // 2. Moderation Group
   const moderationSubItems = []

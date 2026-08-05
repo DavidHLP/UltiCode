@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { PERM } from '@/constants/permissions'
+import { t } from '@/i18n'
 import { installAuthNavigation } from '@/shared/auth-core/src'
 
 /**
@@ -423,7 +424,7 @@ router.beforeEach(async (to) => {
 
     if (!hasAnyPermission) {
       const { toast } = await import('vue-sonner')
-      toast.error('You do not have permission to access this page', {
+      toast.error(t('errors.permission.forbiddenPage'), {
         duration: 4000,
         position: 'top-right',
       })
@@ -435,7 +436,7 @@ router.beforeEach(async (to) => {
     const roles = to.meta.roles as string[]
     if (!authStore.hasAnyRole(roles)) {
       const { toast } = await import('vue-sonner')
-      toast.error('You do not have the required role to access this page', {
+      toast.error(t('errors.permission.forbiddenRole'), {
         duration: 4000,
         position: 'top-right',
       })

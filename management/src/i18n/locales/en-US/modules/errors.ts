@@ -1,4 +1,10 @@
 export default {
+  // Permission errors
+  permission: {
+    forbiddenPage: 'You do not have permission to access this page',
+    forbiddenRole: 'You do not have the required role to access this page',
+  },
+
   // General errors
   general: {
     unknown: 'An unknown error occurred',

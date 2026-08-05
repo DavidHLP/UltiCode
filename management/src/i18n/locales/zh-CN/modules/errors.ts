@@ -1,4 +1,10 @@
 export default {
+  // 权限错误
+  permission: {
+    forbiddenPage: '您没有权限访问此页面',
+    forbiddenRole: '您没有访问此页面所需的角色',
+  },
+
   // 通用错误
   general: {
     unknown: '发生未知错误',

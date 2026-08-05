@@ -26,12 +26,14 @@ import java.util.UUID;
 /**
  * Auth-owned user credential controller located inside backend-auth.
  *
- * <p>Handles self-password changes at the {@code /users/me/password} boundary.
+ * <p>Handles self-password changes at the {@code /auth/me/password} boundary.
  * Delegates mutations to {@link AccountManagementService} with full actor delegation
- * and trace propagation.
+ * and trace propagation. AUTH-COMP-001: moved from /users to /auth so Nginx
+ * /api/auth/ catch-all routes password mutations to backend-auth instead of
+ * the App catch-all at /api/users/.
  */
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class UserCredentialController {
 

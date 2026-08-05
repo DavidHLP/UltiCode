@@ -2,7 +2,7 @@ package com.ulticode.auth.service;
 
 import com.ulticode.auth.account.AuthAccountPort;
 import com.ulticode.auth.account.AuthAccountRecord;
-import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.dto.AuthUserVO;
 import com.ulticode.auth.dto.LoginDTO;
 import com.ulticode.auth.dto.LoginResponse;
 import com.ulticode.auth.dto.RegisterDTO;
@@ -93,7 +93,7 @@ class AuthServiceImplTest {
 
             LoginResponse mockResponse = LoginResponse.builder()
                     .csrfToken("csrf-token-123")
-                    .user(new UserIdentityDTO("user-123", "alice", "USER", true, false))
+                    .user(new AuthUserVO("user-123", "alice", "alice", "", "USER", true, false, ""))
                     .build();
             when(authSessionPort.completeLogin(eq(activeUser), any())).thenReturn(mockResponse);
 
@@ -155,7 +155,7 @@ class AuthServiceImplTest {
 
             LoginResponse mockResponse = LoginResponse.builder()
                     .csrfToken("csrf-bob")
-                    .user(new UserIdentityDTO("fixed-uuid-1234", "bob", "USER", true, false))
+                    .user(new AuthUserVO("fixed-uuid-1234", "bob", "bob", "", "USER", true, false, ""))
                     .build();
             when(authSessionPort.completeLogin(any(), any())).thenReturn(mockResponse);
 
@@ -195,7 +195,7 @@ class AuthServiceImplTest {
 
             LoginResponse mockResponse = LoginResponse.builder()
                     .csrfToken("csrf-refreshed")
-                    .user(new UserIdentityDTO("user-123", "alice", "USER", true, false))
+                    .user(new AuthUserVO("user-123", "alice", "alice", "", "USER", true, false, ""))
                     .build();
             when(authSessionPort.completeRefresh(eq(activeUser), eq("new-refresh-token"), any())).thenReturn(mockResponse);
 

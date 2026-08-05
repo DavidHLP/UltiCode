@@ -75,7 +75,7 @@ export async function changePassword(data: {
   newPassword: string
   confirmPassword: string
 }): Promise<void> {
-  return apiPatch<void>('/users/me/password', data)
+  return apiPatch<void>('/auth/me/password', data)
 }
 
 export async function fetchUserStats(userId: string): Promise<UserStats> {

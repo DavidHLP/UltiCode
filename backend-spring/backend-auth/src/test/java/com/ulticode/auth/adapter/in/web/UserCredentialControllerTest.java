@@ -55,7 +55,7 @@ class UserCredentialControllerTest {
 
         ChangePasswordDTO body = new ChangePasswordDTO("oldPass123", "newPass123", "newPass123");
 
-        mockMvc.perform(patch("/users/me/password")
+        mockMvc.perform(patch("/auth/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
@@ -69,7 +69,7 @@ class UserCredentialControllerTest {
 
         ChangePasswordDTO body = new ChangePasswordDTO("oldPass123", "newPass123", "differentPass123");
 
-        mockMvc.perform(patch("/users/me/password")
+        mockMvc.perform(patch("/auth/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest());
@@ -84,7 +84,7 @@ class UserCredentialControllerTest {
 
         ChangePasswordDTO body = new ChangePasswordDTO("wrongOldPass", "newPass123", "newPass123");
 
-        mockMvc.perform(patch("/users/me/password")
+        mockMvc.perform(patch("/auth/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest());
@@ -97,7 +97,7 @@ class UserCredentialControllerTest {
 
         ChangePasswordDTO body = new ChangePasswordDTO("oldPass123", "newPass123", "newPass123");
 
-        mockMvc.perform(patch("/users/me/password")
+        mockMvc.perform(patch("/auth/me/password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isUnauthorized());

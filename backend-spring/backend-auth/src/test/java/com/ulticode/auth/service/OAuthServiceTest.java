@@ -2,7 +2,7 @@ package com.ulticode.auth.service;
 
 import com.ulticode.auth.account.AuthAccountPort;
 import com.ulticode.auth.account.AuthAccountRecord;
-import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.dto.AuthUserVO;
 import com.ulticode.auth.dto.LoginResponse;
 import com.ulticode.auth.error.AuthBusinessException;
 import com.ulticode.auth.error.AuthErrorCode;
@@ -11,6 +11,7 @@ import com.ulticode.auth.security.oauth.OAuthProperties;
 import com.ulticode.auth.security.oauth.OAuthStatePort;
 import com.ulticode.auth.security.oauth.OAuthTokenResponse;
 import com.ulticode.auth.security.oauth.OAuthUserInfo;
+import com.ulticode.auth.security.oauth.mapper.OAuthProviderIdentityMapper;
 import com.ulticode.auth.session.AuthSessionPort;
 import com.ulticode.auth.util.FixedUuidGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +62,9 @@ class OAuthServiceTest {
     private OAuthClient githubClient;
 
     @Mock
+    private OAuthProviderIdentityMapper providerIdentityMapper;
+
+    @Mock
     private Clock clock;
 
     private OAuthService oauthService;
@@ -83,7 +87,7 @@ class OAuthServiceTest {
 
         oauthService = new OAuthService(
                 oauthProperties, accountPort, authSessionPort, oauthStatePort,
-                List.of(githubClient), new FixedUuidGenerator(), clock);
+                List.of(githubClient), new FixedUuidGenerator(), clock, providerIdentityMapper);
         oauthService.wireClientLookup();
     }
 
@@ -121,7 +125,7 @@ class OAuthServiceTest {
 
             LoginResponse mockResponse = LoginResponse.builder()
                     .csrfToken("csrf-cat")
-                    .user(new UserIdentityDTO("fixed-uuid-1234", "octocat", "USER", true, false))
+                    .user(new AuthUserVO("fixed-uuid-1234", "octocat", "octocat", "", "USER", true, false, ""))
                     .build();
             when(authSessionPort.completeLogin(any(), any())).thenReturn(mockResponse);
 

@@ -28,7 +28,7 @@ import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserManagementService;
-import com.ulticode.modules.user.port.UserProfilePort;
+import com.ulticode.admin.port.UserProfilePort;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

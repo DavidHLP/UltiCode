@@ -1,19 +1,26 @@
-package com.ulticode.modules.user.port;
+package com.ulticode.admin.port;
 
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Application-side user profile write seam (P3-OWNER-002).
+ * Admin-shell user profile write seam.
  *
- * <p>App owns profile fields (nickname, avatar, bio, githubUrl, blogUrl, location).
- * Account fields (credentials, password, role, ban) are owned by Auth (AuthAccountPort).
+ * <p>Replaces the former {@code com.ulticode.modules.user.port.UserProfilePort}
+ * from backend-legacy. The admin shell owns this interface; its implementation
+ * ({@code AdminUserProfileAdapter}) dual-writes to the App-owned
+ * {@code user_profiles} table and the transitional {@code users} profile
+ * columns via {@code UserProfileWriteMapper}.
+ *
+ * <p>DTO types ({@link UpdateUserDTO}, {@link UserVO}) remain in
+ * {@code com.ulticode.modules.user.dto} (backend-app) and are shared across
+ * the App/Admin boundary at the same FQN.
  */
 public interface UserProfilePort {
 
     /**
-     * Update profile attributes for a user (nickname, bio, githubUrl, blogUrl, location).
+     * Update profile attributes for a user (name, bio, github, location, etc.).
      *
      * @param userId the user ID to update
      * @param updateDTO the profile update data

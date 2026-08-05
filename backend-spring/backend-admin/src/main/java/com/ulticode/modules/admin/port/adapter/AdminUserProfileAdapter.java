@@ -8,7 +8,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import com.ulticode.modules.user.port.UserProfilePort;
+import com.ulticode.admin.port.UserProfilePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;

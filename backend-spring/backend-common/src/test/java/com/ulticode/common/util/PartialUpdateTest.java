@@ -1,7 +1,6 @@
 package com.ulticode.common.util;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.ulticode.modules.user.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,18 +12,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link PartialUpdate}.
  *
- * <p>Each method has 4 cases: null value, absent-with-text, valid value,
- * and the MyBatis-Plus wrapper variants. Together they pin the contract
- * that the call sites across 7 admin/user services depend on:
- * <ul>
- *   <li>Null and blank values are treated as "no change" (no setter call).</li>
- *   <li>Non-null / non-blank values invoke the setter exactly once with the
- *       extracted value.</li>
- *   <li>Empty strings on text fields skip the setter; non-empty strings
- *       pass through verbatim.</li>
- *   <li>The wrapper variants accumulate into the supplied wrapper without
- *       consulting the mapper.</li>
- * </ul>
+ * <p>Migrated from backend-legacy to backend-common so the tests live next to
+ * the class they verify. The wrapper tests previously used
+ * {@code com.ulticode.modules.user.entity.User} as the LambdaUpdateWrapper
+ * generic; this version uses a common-local fixture ({@link WrapperEntity})
+ * to avoid a cross-module dependency while exercising the same null/blank
+ * short-circuit paths.
  */
 @DisplayName("PartialUpdate")
 class PartialUpdateTest {
@@ -117,10 +110,10 @@ class PartialUpdateTest {
         @Test
         @DisplayName("null value → wrapper is not mutated")
         void nullValueSkipsWrapper() {
-            LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+            LambdaUpdateWrapper<WrapperEntity> wrapper = new LambdaUpdateWrapper<>();
             // The MyBatis-Plus SFunction is not invoked because the value is
             // null — the getter short-circuits before the wrapper is touched.
-            PartialUpdate.setIfPresentWrapper(wrapper, new Dto(null), Dto::value, User::getName);
+            PartialUpdate.setIfPresentWrapper(wrapper, new Dto(null), Dto::value, WrapperEntity::getName);
             assertThat(wrapper.getSqlSet()).isNull();
         }
 
@@ -131,9 +124,9 @@ class PartialUpdateTest {
             // resolve SFunction → column. The null path never calls
             // wrapper.set(), so the cache is never touched. This test
             // exercises that contract on a freshly-constructed wrapper.
-            LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-            PartialUpdate.setIfPresentWrapper(wrapper, new Dto(null), Dto::value, User::getName);
-            PartialUpdate.setIfPresentWrapper(wrapper, new Dto(null), Dto::value, User::getEmail);
+            LambdaUpdateWrapper<WrapperEntity> wrapper = new LambdaUpdateWrapper<>();
+            PartialUpdate.setIfPresentWrapper(wrapper, new Dto(null), Dto::value, WrapperEntity::getName);
+            PartialUpdate.setIfPresentWrapper(wrapper, new Dto(null), Dto::value, WrapperEntity::getEmail);
             assertThat(wrapper.getSqlSet()).isNull();
         }
     }
@@ -147,24 +140,24 @@ class PartialUpdateTest {
         @Test
         @DisplayName("empty string → wrapper is not mutated")
         void emptyStringSkipsWrapper() {
-            LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-            PartialUpdate.setIfPresentTextWrapper(wrapper, new Dto(""), Dto::value, User::getName);
+            LambdaUpdateWrapper<WrapperEntity> wrapper = new LambdaUpdateWrapper<>();
+            PartialUpdate.setIfPresentTextWrapper(wrapper, new Dto(""), Dto::value, WrapperEntity::getName);
             assertThat(wrapper.getSqlSet()).isNull();
         }
 
         @Test
         @DisplayName("whitespace-only string → wrapper is not mutated")
         void whitespaceOnlySkipsWrapper() {
-            LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-            PartialUpdate.setIfPresentTextWrapper(wrapper, new Dto("   "), Dto::value, User::getName);
+            LambdaUpdateWrapper<WrapperEntity> wrapper = new LambdaUpdateWrapper<>();
+            PartialUpdate.setIfPresentTextWrapper(wrapper, new Dto("   "), Dto::value, WrapperEntity::getName);
             assertThat(wrapper.getSqlSet()).isNull();
         }
 
         @Test
         @DisplayName("null value → wrapper is not mutated")
         void nullValueSkipsWrapper() {
-            LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-            PartialUpdate.setIfPresentTextWrapper(wrapper, new Dto(null), Dto::value, User::getName);
+            LambdaUpdateWrapper<WrapperEntity> wrapper = new LambdaUpdateWrapper<>();
+            PartialUpdate.setIfPresentTextWrapper(wrapper, new Dto(null), Dto::value, WrapperEntity::getName);
             assertThat(wrapper.getSqlSet()).isNull();
         }
     }
@@ -174,4 +167,18 @@ class PartialUpdateTest {
     private record Dto(String value) {}
 
     private record BoxedDto(Integer count) {}
+
+    /**
+     * Minimal bean used as the {@link LambdaUpdateWrapper} generic type.
+     * Only getter methods are needed because the null/blank short-circuit
+     * paths never invoke the SFunction (no MyBatis-Plus column resolution).
+     */
+    @SuppressWarnings("unused")
+    public static class WrapperEntity {
+        private String name;
+        private String email;
+
+        public String getName() { return name; }
+        public String getEmail() { return email; }
+    }
 }

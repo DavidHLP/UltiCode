@@ -27,7 +27,6 @@
 		<module>backend-admin</module>
 		<module>backend-web-security</module>
 		<module>backend-app</module>
-		<module>backend-legacy</module>
 	</modules>
 
 	<properties>
@@ -108,11 +107,6 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-app</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.ulticode</groupId>
-				<artifactId>backend-legacy</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

@@ -14,8 +14,7 @@ ARG SERVICE_ARTIFACT
 WORKDIR /app
 
 # Copy the complete reactor so -am resolves the selected owner's
-# canonical shared/API/domain dependencies. Deferred business consumers may
-# still bring backend-legacy into the compile graph until its retirement task.
+# canonical shared/API/domain dependencies.
 COPY backend-spring/ ./
 
 RUN chmod +x ./mvnw \

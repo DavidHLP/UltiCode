@@ -58,4 +58,25 @@ public class AppSingleHopArchTest {
                     .because("§6.5: a Dubbo Provider class must not also hold a "
                             + "@DubboReference, which would make it a Consumer "
                             + "and create a controller → dubbo A → dubbo B chain.");
+
+    /**
+     * P2-RBAC-001 (consumer-side guard): App classes must not import
+     * Auth's internal role/permission admin surface. Callers must use
+     * the published Dubbo contract {@code AccountAdministrationService}
+     * in backend-auth-api. This complements the provider-side rule in
+     * {@code AuthSingleHopArchTest}.
+     */
+    @ArchTest
+    static final ArchRule APP_MUST_NOT_IMPORT_AUTH_RBAC_INTERNALS =
+            noClasses()
+                    .that().resideInAPackage("com.ulticode.app..")
+                    .or().resideInAPackage("com.ulticode.modules..")
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "com.ulticode.auth.adapter.in.web..",
+                            "com.ulticode.auth.permission.mapper..",
+                            "com.ulticode.auth.permission.adapter..",
+                            "com.ulticode.auth.permission.service..")
+                    .because("P2-RBAC-001: Auth's internal role/permission classes "
+                            + "are not part of the published API. Use "
+                            + "AccountAdministrationService via Dubbo RPC.");
 }

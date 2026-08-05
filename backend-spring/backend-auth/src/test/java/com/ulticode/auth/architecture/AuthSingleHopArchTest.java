@@ -63,4 +63,42 @@ public class AuthSingleHopArchTest {
                     .because("§6.5: a Dubbo Provider class must not also hold a "
                             + "@DubboReference, which would make it a Consumer "
                             + "and create a controller → dubbo A → dubbo B chain.");
+
+    /**
+     * P2-RBAC-001 (migrated from legacy OwnerBoundaryArchTest R5):
+     * Foreign modules must not depend on auth's internal role/permission
+     * admin surface. These classes implement the sole write path for
+     * {@code users.role} and {@code user_permissions}; callers must use
+     * the published Dubbo contract ({@code AccountAdministrationService}
+     * in backend-auth-api) instead.
+     *
+     * <p>This rule scans all classes visible on the auth test classpath
+     * (backend-common, backend-web-security, backend-auth-api). App and
+     * Admin classes are not on this classpath, so the rule's full power
+     * is realized in combination with the consumer-side guards in
+     * {@code AppSingleHopArchTest} and {@code AdminBoundaryArchTest}.
+     */
+    @ArchTest
+    static final ArchRule AUTH_RBAC_ADMIN_SURFACE_MUST_NOT_BE_IMPORTED_BY_FOREIGN_MODULES =
+            noClasses()
+                    .that().resideOutsideOfPackage("com.ulticode.auth..")
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "com.ulticode.auth.adapter.in.web.RoleAdministrationController",
+                            "com.ulticode.auth.adapter.in.web.RoleAdministrationController..",
+                            "com.ulticode.auth.permission.service.RoleAdministrationService",
+                            "com.ulticode.auth.permission.service.RoleAdministrationService..",
+                            "com.ulticode.auth.permission.mapper.UserRoleMapper",
+                            "com.ulticode.auth.permission.mapper.UserRoleMapper..",
+                            "com.ulticode.auth.permission.mapper.UserPermissionMapper",
+                            "com.ulticode.auth.permission.mapper.UserPermissionMapper..",
+                            "com.ulticode.auth.permission.mapper.RolePermissionMapper",
+                            "com.ulticode.auth.permission.mapper.RolePermissionMapper..",
+                            "com.ulticode.auth.permission.port.UserRoleWritePort",
+                            "com.ulticode.auth.permission.port.UserRoleWritePort..",
+                            "com.ulticode.auth.permission.adapter.UserRoleWriteAdapter",
+                            "com.ulticode.auth.permission.adapter.UserRoleWriteAdapter..")
+                    .because("P2-RBAC-001: backend-auth is the sole owner of the "
+                            + "users.role / user_permissions / role_permissions write "
+                            + "path. Foreign modules must use AccountAdministrationService "
+                            + "via Dubbo RPC, not the internal implementation classes.");
 }

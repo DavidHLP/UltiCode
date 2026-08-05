@@ -13,7 +13,7 @@ import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.impl.UserManagementServiceImpl;
-import com.ulticode.modules.user.port.UserProfilePort;
+import com.ulticode.admin.port.UserProfilePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

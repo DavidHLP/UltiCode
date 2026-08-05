@@ -67,7 +67,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 @ComponentScan.Filter(
                         type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.queue\\.pipeline\\..*"),
                 @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.sandbox\\..*")
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.sandbox\\..*"),
+                // submission.service + submission.controller form the judge/problem-run
+                // execution chain. sandbox is excluded above, so CodeExecutionService
+                // cannot wire its SandboxExecutor dependency and would abort context
+                // startup. Admin reaches submission via Dubbo RPC (and via @MapperScan
+                // for mappers), so exclude these app-side beans to keep the partial
+                // judge path out of the admin context.
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.service\\..*"),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.controller\\..*")
         }
 )
 @MapperScan({

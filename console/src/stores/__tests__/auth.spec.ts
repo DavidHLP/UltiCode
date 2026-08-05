@@ -131,9 +131,19 @@ describe("useAuthStore", () => {
       // Simulate a hard refresh with the sentinel cookie still in the jar
       // (the in-memory csrfManager would be empty here, by design).
       document.cookie = "csrf_token=valid-csrf; path=/";
-      vi.mocked(apiGet).mockResolvedValue({
-        user: mockUser,
-        csrfToken: "csrf-refreshed",
+      // /auth/me returns identity (no avatar); the transport merges the
+      // avatar from /users/me (profile-domain) onto the identity user.
+      vi.mocked(apiGet).mockImplementation((url) => {
+        if (url === "/auth/me") {
+          return Promise.resolve({
+            user: mockUser,
+            csrfToken: "csrf-refreshed",
+          });
+        }
+        if (url === "/users/me") {
+          return Promise.resolve({ avatar: "https://cdn.example.com/a.png" });
+        }
+        return Promise.resolve(undefined);
       });
 
       const store = useAuthStore();
@@ -142,7 +152,13 @@ describe("useAuthStore", () => {
       expect(apiGet).toHaveBeenCalledWith("/auth/me", {
         skipErrorHandler: true,
       });
-      expect(store.user).toEqual(mockUser);
+      expect(apiGet).toHaveBeenCalledWith("/users/me", {
+        skipErrorHandler: true,
+      });
+      expect(store.user).toEqual({
+        ...mockUser,
+        avatar: "https://cdn.example.com/a.png",
+      });
       expect(store.status).toBe("ready");
       expect(store.isAuthenticated).toBe(true);
     });
@@ -156,6 +172,23 @@ describe("useAuthStore", () => {
 
       expect(store.status).toBe("ready");
       expect(store.user).toBeNull();
+    });
+
+    it("keeps identity user when /users/me fails (avatar is best-effort)", async () => {
+      document.cookie = "csrf_token=valid-csrf; path=/";
+      vi.mocked(apiGet).mockImplementation((url) => {
+        if (url === "/auth/me") {
+          return Promise.resolve({ user: mockUser, csrfToken: "csrf" });
+        }
+        // /users/me fails — avatar merge is swallowed, identity survives
+        return Promise.reject(new Error("App unavailable"));
+      });
+
+      const store = useAuthStore();
+      await store.initialize();
+
+      expect(store.user).toEqual(mockUser);
+      expect(store.isAuthenticated).toBe(true);
     });
 
     it("deduplicates concurrent initialize calls", async () => {
@@ -181,8 +214,8 @@ describe("useAuthStore", () => {
         store.initialize(),
       ]);
 
-      // apiGet should only be called once (deduplicated)
-      expect(apiGet).toHaveBeenCalledTimes(1);
+      // One deduplicated bootstrap round: /auth/me + /users/me (avatar merge)
+      expect(apiGet).toHaveBeenCalledTimes(2);
       expect(result1).toBeUndefined();
       expect(result2).toBeUndefined();
     });
@@ -196,11 +229,11 @@ describe("useAuthStore", () => {
 
       const store = useAuthStore();
       await store.initialize();
-      expect(apiGet).toHaveBeenCalledTimes(1);
+      expect(apiGet).toHaveBeenCalledTimes(2);
 
       // Second call should skip
       await store.initialize();
-      expect(apiGet).toHaveBeenCalledTimes(1);
+      expect(apiGet).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -271,7 +304,7 @@ describe("useAuthStore", () => {
       // Re-initialize should work (not be deduplicated)
       await store.initialize();
       expect(store.status).toBe("ready");
-      expect(apiGet).toHaveBeenCalledTimes(2);
+      expect(apiGet).toHaveBeenCalledTimes(4);
     });
 
     it("calls csrfManager.clearToken", () => {

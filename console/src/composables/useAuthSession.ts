@@ -32,16 +32,60 @@ function hasCsrfCookie(): boolean {
  * console-specific CSRF-cookie sentinel. The store reads the returned refs and
  * layers its own computed selectors on top.
  */
+/**
+ * Merge the current user's profile avatar onto the identity user.
+ *
+ * `avatar` is profile-domain data (App-owned, served by `GET /users/me`)
+ * and is intentionally absent from `/auth/me`, which the migration guide
+ * (MICROSERVICE_MIGRATION_GUIDE § Compatibility Strategy) keeps
+ * identity-only. The auth session only carries identity, but every surface
+ * that reads `authStore.user.avatar` expects a URL, so we best-effort fetch
+ * it here and merge it onto the identity user.
+ *
+ * Failures are swallowed: losing the avatar must never lose the identity.
+ */
+async function withProfileAvatar(user: User): Promise<User> {
+  try {
+    const profile = await apiGet<{ avatar?: string | null }>("/users/me", {
+      skipErrorHandler: true,
+    });
+    return profile?.avatar ? { ...user, avatar: profile.avatar } : user;
+  } catch {
+    return user;
+  }
+}
+
 export function useAuthSession() {
   return createSessionAuthStore<User>({
-    fetchCurrentUser: () =>
-      apiGet<{ user: User; csrfToken?: string }>("/auth/me", {
+    fetchCurrentUser: async () => {
+      const res = await apiGet<{ user: User; csrfToken?: string }>("/auth/me", {
         skipErrorHandler: true,
-      }),
-    login: (credentials) =>
-      apiPost<{ user: User; csrfToken?: string }>("/auth/login", credentials),
-    register: (data) =>
-      apiPost<{ user: User; csrfToken?: string }>("/auth/register", data),
+      });
+      if (res?.user) {
+        res.user = await withProfileAvatar(res.user);
+      }
+      return res;
+    },
+    login: async (credentials) => {
+      const res = await apiPost<{ user: User; csrfToken?: string }>(
+        "/auth/login",
+        credentials,
+      );
+      if (res?.user) {
+        res.user = await withProfileAvatar(res.user);
+      }
+      return res;
+    },
+    register: async (data) => {
+      const res = await apiPost<{ user: User; csrfToken?: string }>(
+        "/auth/register",
+        data,
+      );
+      if (res?.user) {
+        res.user = await withProfileAvatar(res.user);
+      }
+      return res;
+    },
     logout: () => apiPost<void>("/auth/logout"),
     loadPermissions: () =>
       apiGet<string[]>("/auth/permissions", { skipErrorHandler: true }),

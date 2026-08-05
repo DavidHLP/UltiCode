@@ -82,8 +82,10 @@ describe("auth-refresh integration — T6 regression (10-minute hang)", () => {
   });
 
   it("user clicks after 10 min: stale CSRF is replaced + replay succeeds + user stays logged in", async () => {
+    // rawAxios returns the raw Result envelope (no interceptors), so the
+    // csrfToken is nested under data.data — matching the real backend shape.
     vi.mocked(rawAxios.post).mockResolvedValueOnce({
-      data: { csrfToken: "fresh-csrf" },
+      data: { code: 0, data: { csrfToken: "fresh-csrf" } },
     });
     vi.mocked(rawAxios.request).mockResolvedValueOnce({
       status: 200,

@@ -17,6 +17,19 @@ export interface RefreshResponse {
   [key: string]: unknown;
 }
 
+/**
+ * Result envelope wrapping every backend response. `rawAxios` deliberately
+ * mounts no interceptors (it must stay loop-free so /auth/refresh can never
+ * re-enter the 401 handler), so the coordinator receives this raw envelope,
+ * not the unwrapped inner payload that the main axios instance produces.
+ */
+interface ResultEnvelope<T> {
+  code: number;
+  data: T;
+  message?: string;
+  traceId?: string;
+}
+
 let inFlight: Promise<RefreshResponse> | null = null;
 
 export function createRefreshAccessToken(
@@ -26,11 +39,21 @@ export function createRefreshAccessToken(
     if (inFlight) return inFlight;
     inFlight = (async () => {
       try {
-        const { data } = await rawAxios.post<RefreshResponse>('/auth/refresh');
-        if (data && typeof data.csrfToken === 'string') {
-          csrfManager.refreshFromResponse(data);
+        const { data } = await rawAxios.post<ResultEnvelope<RefreshResponse>>(
+          '/auth/refresh',
+        );
+        // `data` is the raw Result envelope; csrfToken lives in
+        // `data.data`, NOT at the top level. Reading `data.csrfToken`
+        // (the old code) always saw undefined, so the csrfManager was
+        // never updated after refresh — every subsequent write carried a
+        // stale CSRF value whose Redis grace (5min) eventually expired,
+        // producing a 403 and a forced logout. This is the root cause of
+        // the "前台不会续约，到点必须重新登录" symptom.
+        const inner = data?.data;
+        if (inner && typeof inner.csrfToken === 'string') {
+          csrfManager.refreshFromResponse(inner);
         }
-        return data;
+        return inner ?? {};
       } finally {
         inFlight = null;
       }

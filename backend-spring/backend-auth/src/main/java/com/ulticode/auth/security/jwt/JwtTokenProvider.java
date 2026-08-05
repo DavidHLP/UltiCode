@@ -25,6 +25,7 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     private final JwtProperties jwtProperties;
+    private final RsaKeyManager rsaKeyManager;
 
     /**
      * Generate the secret key from the configured secret string.
@@ -50,14 +51,22 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtProperties.getAccessTokenExpiration());
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userId)
                 .claim("username", username)
                 .claim("role", role)
                 .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+                .expiration(expiryDate);
+
+        // AUTH-COMP-006: use RS256 when enabled, otherwise HS256 (overlap period).
+        if (rsaKeyManager.isRsaEnabled() && rsaKeyManager.getPrivateKey() != null) {
+            builder.header().keyId(rsaKeyManager.getKeyId()).and()
+                    .signWith(rsaKeyManager.getPrivateKey(),
+                            Jwts.SIG.RS256);
+        } else {
+            builder.signWith(getSigningKey());
+        }
+        return builder.compact();
     }
 
     /**

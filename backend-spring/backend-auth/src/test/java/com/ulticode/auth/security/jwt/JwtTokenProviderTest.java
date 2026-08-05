@@ -28,7 +28,8 @@ class JwtTokenProviderTest {
         properties.setSecret(SECRET);
         properties.getAccessToken().setExpiration(60_000L);
         properties.getRefreshToken().setExpiration(120_000L);
-        return new JwtTokenProvider(properties);
+        RsaKeyManager rsa = new RsaKeyManager();
+        return new JwtTokenProvider(properties, rsa);
     }
 
     @Nested
@@ -122,7 +123,7 @@ class JwtTokenProviderTest {
             otherProps.setSecret("other-secret-32-chars-or-more-yes!!!");
             otherProps.getAccessToken().setExpiration(60_000L);
             otherProps.getRefreshToken().setExpiration(120_000L);
-            JwtTokenProvider verifier = new JwtTokenProvider(otherProps);
+            JwtTokenProvider verifier = new JwtTokenProvider(otherProps, new RsaKeyManager());
 
             String token = signer.generateAccessToken("user-4", "carol", "USER");
             assertThat(verifier.validateToken(token)).isFalse();
@@ -141,7 +142,7 @@ class JwtTokenProviderTest {
             props.setSecret(SECRET);
             props.getAccessToken().setExpiration(-1L);
             props.getRefreshToken().setExpiration(-1L);
-            JwtTokenProvider provider = new JwtTokenProvider(props);
+            JwtTokenProvider provider = new JwtTokenProvider(props, new RsaKeyManager());
 
             String token = provider.generateAccessToken("user-5", "dave", "USER");
             assertThat(provider.isTokenExpired(token)).isTrue();

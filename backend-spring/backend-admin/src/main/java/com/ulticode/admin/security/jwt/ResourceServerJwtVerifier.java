@@ -3,22 +3,33 @@ package com.ulticode.admin.security.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
 
 /**
  * Resource server offline JWT verifier for backend-admin (P2-AUTH-002).
  * Validates Auth-issued tokens locally without making synchronous RPC calls.
+ *
+ * <p>AUTH-COMP-007: supports both HS256 (overlap fallback) and RS256.
+ * Mirrors backend-app's verifier exactly.
  */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class ResourceServerJwtVerifier {
 
     private static final Set<String> ALLOWED_ALGORITHMS = Set.of("HS256", "RS256");
+
+    private final JwksPublicKeyProvider jwksProvider;
 
     @Value("${jwt.secret:test-secret-key-must-be-at-least-256-bits-long-for-testing}")
     private String jwtSecret;
@@ -31,13 +42,25 @@ public class ResourceServerJwtVerifier {
             throw new IllegalArgumentException("JWT token must not be null or blank");
         }
 
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        String alg = extractAlgorithm(token);
+        Claims claims;
 
-        Claims claims = Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        if ("RS256".equals(alg)) {
+            String kid = extractKid(token);
+            RSAPublicKey rsaKey = jwksProvider.getKey(kid);
+            if (rsaKey != null) {
+                claims = Jwts.parser()
+                        .verifyWith(rsaKey)
+                        .build()
+                        .parseSignedClaims(token)
+                        .getPayload();
+            } else {
+                log.warn("RS256 token presented but no JWKS key for kid={}; falling back to HS256", kid);
+                claims = verifyWithHmac(token);
+            }
+        } else {
+            claims = verifyWithHmac(token);
+        }
 
         Date now = new Date();
         if (claims.getExpiration() != null && claims.getExpiration().before(now)) {
@@ -54,6 +77,40 @@ public class ResourceServerJwtVerifier {
         }
 
         return claims;
+    }
+
+    private Claims verifyWithHmac(String token) {
+        SecretKey hmacKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.parser()
+                .verifyWith(hmacKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    private String extractAlgorithm(String token) {
+        return extractHeaderField(token, "alg");
+    }
+
+    private String extractKid(String token) {
+        return extractHeaderField(token, "kid");
+    }
+
+    private String extractHeaderField(String token, String field) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2) return null;
+            String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
+            int fieldIdx = headerJson.indexOf("\"" + field + "\"");
+            if (fieldIdx < 0) return null;
+            int colonIdx = headerJson.indexOf(':', fieldIdx);
+            int quoteStart = headerJson.indexOf('"', colonIdx + 1);
+            int quoteEnd = headerJson.indexOf('"', quoteStart + 1);
+            if (quoteStart < 0 || quoteEnd < 0) return null;
+            return headerJson.substring(quoteStart + 1, quoteEnd);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public String getUserId(Claims claims) {

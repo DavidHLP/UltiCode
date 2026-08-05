@@ -19,12 +19,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ResourceServerJwtVerifierTest {
 
     private ResourceServerJwtVerifier verifier;
+    private JwksPublicKeyProvider jwksProvider;
     private static final String TEST_SECRET = "test-secret-key-must-be-at-least-256-bits-long-for-testing";
     private SecretKey key;
 
     @BeforeEach
     void setUp() {
-        verifier = new ResourceServerJwtVerifier();
+        jwksProvider = org.mockito.Mockito.mock(JwksPublicKeyProvider.class);
+        org.mockito.Mockito.when(jwksProvider.getKey(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(null);
+        verifier = new ResourceServerJwtVerifier(jwksProvider);
         ReflectionTestUtils.setField(verifier, "jwtSecret", TEST_SECRET);
         ReflectionTestUtils.setField(verifier, "expectedIssuer", "ulticode-auth");
         key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));

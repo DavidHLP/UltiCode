@@ -58,7 +58,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 @ComponentScan.Filter(
                         type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.user\\..*"),
                 @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.auth\\..*")
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.auth\\..*"),
+                // Admin must NOT load JudgeWorkerProcessor — its @Scheduled pollAndProcess
+                // steals judge jobs from the app's queue (both connect to the same Redis).
+                // Also exclude the sandbox executor and pipeline to avoid partial judge runs.
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.queue\\.processor\\..*"),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.queue\\.pipeline\\..*"),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.sandbox\\..*")
         }
 )
 @MapperScan({

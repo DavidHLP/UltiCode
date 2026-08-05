@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import SubmissionsListView from "./SubmissionsListView.vue";
 import SubmissionsDetail from "./SubmissionsDetail.vue";
 import type {
@@ -26,7 +27,8 @@ const props = defineProps<{
 const { handleError } = useErrorHandler();
 const { onSubmissionResult } = useSocket();
 const authStore = useAuthStore();
-
+const route = useRoute();
+const router = useRouter();
 const submissions = ref<SubmissionRecord[]>([]);
 const isLoading = ref(true);
 const selectedSubmissionId = ref<string | null>(null);
@@ -125,6 +127,30 @@ watch(
   { immediate: true },
 );
 
+watch(
+  [() => submissions.value, () => route.query.submissionId, () => route.query.resubmit],
+  ([currentSubmissions, querySubId, resubmit]) => {
+    const rawSubId = Array.isArray(querySubId) ? querySubId[0] : querySubId;
+    const rawResubmit = Array.isArray(resubmit) ? resubmit[0] : resubmit;
+
+    if (rawSubId && typeof rawSubId === "string") {
+      selectedSubmissionId.value = rawSubId;
+    } else if (
+      rawResubmit === "true" &&
+      currentSubmissions &&
+      currentSubmissions.length > 0 &&
+      !selectedSubmissionId.value
+    ) {
+      const targetSub =
+        currentSubmissions.find(
+          (s) => s.status === "System Error" || s.status === "Sandbox Error",
+        ) ?? currentSubmissions[0];
+      selectedSubmissionId.value = targetSub.id;
+    }
+  },
+  { immediate: true },
+);
+
 // WebSocket: Listen for submission results and refresh list
 let unsubscribe: (() => void) | null = null;
 
@@ -152,6 +178,16 @@ const handleSelect = (submission: SubmissionRecord) => {
 const handleBack = () => {
   selectedSubmissionId.value = null;
 };
+
+const handleResubmitted = async () => {
+  selectedSubmissionId.value = null;
+  if (route.query.resubmit) {
+    const query = { ...route.query };
+    delete query.resubmit;
+    await router.replace({ query });
+  }
+  await loadSubmissions();
+};
 </script>
 
 <template>
@@ -167,6 +203,7 @@ const handleBack = () => {
       :submission="selectedSubmission"
       :status-meta-by-key="statusMetaByKey"
       @back="handleBack"
+      @resubmitted="handleResubmitted"
     />
     <SubmissionsListView
       v-else

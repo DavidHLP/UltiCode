@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -12,7 +13,8 @@ import SubmissionTestResults from "./components/SubmissionTestResults.vue";
 import SubmissionCodeBlock from "./components/SubmissionCodeBlock.vue";
 import SubmissionPerformancePanel from "./components/SubmissionPerformancePanel.vue";
 import { useSubmissionDetail } from "./composables/useSubmissionDetail";
-
+import { createSubmission, resolveSubmissionProblemId } from "@/api/submission";
+import { toast } from "vue-sonner";
 const props = defineProps({
   submission: {
     type: Object as () => SubmissionRecord,
@@ -25,6 +27,7 @@ const props = defineProps({
 
 const emit = defineEmits<{
   (e: "back"): void;
+  (e: "resubmitted"): void;
 }>();
 
 const { t } = useI18n();
@@ -55,13 +58,35 @@ const {
   () => props.statusMetaByKey,
 );
 
-const handleResubmit = () => {
-  if (props.submission?.problem_id) {
-    router.push({
-      name: "problem-detail",
-      params: { id: props.submission.problem_id },
-      query: { resubmit: "true" },
+const isResubmitting = ref(false);
+
+const handleResubmit = async () => {
+  const sub = props.submission;
+  if (!sub) return;
+  const problemId = resolveSubmissionProblemId(sub);
+
+  if (!problemId) {
+    toast.error(t("problem.submissions.error.loadFailed"));
+    console.error("Resubmit failed: missing valid problem_id", sub);
+    return;
+  }
+  if (!sub.code || !sub.language) {
+    toast.error(t("problem.submissions.error.loadFailed"));
+    return;
+  }
+  isResubmitting.value = true;
+  try {
+    const result = await createSubmission(problemId, {
+      language: sub.language,
+      code: sub.code,
     });
+    toast.success(`${t("problem.editor.submit")} ${result.status}!`);
+    emit("resubmitted");
+  } catch (e) {
+    toast.error(t("problem.problemList.messages.saveFailed"));
+    console.error(e);
+  } finally {
+    isResubmitting.value = false;
   }
 };
 
@@ -168,8 +193,10 @@ const handleWriteSolution = () => {
           variant="outline"
           size="sm"
           class="h-7 text-xs rounded-none"
+          :disabled="isResubmitting"
           @click="handleResubmit"
         >
+          <Loader2 v-if="isResubmitting" class="mr-1 h-3 w-3 animate-spin" />
           {{ t("problem.submissions.resubmit") }}
         </Button>
       </div>

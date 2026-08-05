@@ -9,11 +9,17 @@ import {
   mapRunResult,
   mapSubmission,
   mapSubmissionStatus,
+  resolveSubmissionProblemId,
 } from "@/api/projection";
 
 // Re-export the decoders so existing call sites that import them from
 // "@/api/submission" keep compiling.
-export { mapDistributionBins, mapRunResult, mapSubmission };
+export {
+  mapDistributionBins,
+  mapRunResult,
+  mapSubmission,
+  resolveSubmissionProblemId,
+};
 
 // Re-export `mapSubmissionStatus` for tests / future callers; the public
 // `fetchSubmissionStatuses` already routes through it below.

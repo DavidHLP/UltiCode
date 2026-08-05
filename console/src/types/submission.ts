@@ -41,6 +41,7 @@ export interface ContestSubmissionInfo {
 export interface SubmissionRecord {
   id: string;
   problem_id: number;
+  problemId?: number; // alias
   status: SubmissionStatusKey;
   language: string;
   runtime: number;

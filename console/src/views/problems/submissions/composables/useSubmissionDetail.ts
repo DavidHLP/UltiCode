@@ -180,7 +180,11 @@ export function useSubmissionDetail(
   const isPending = computed(() =>
     submission() ? isPendingStatus(submission()!.status) : false,
   );
-  const isStuck = computed(() => submission()?.status === "System Error");
+  const isStuck = computed(
+    () =>
+      submission()?.status === "System Error" ||
+      submission()?.status === "Sandbox Error",
+  );
 
   // Pending timer
   const pendingSeconds = ref(0);

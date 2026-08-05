@@ -2,7 +2,7 @@ package com.ulticode;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
+import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * P1-INFRA-005: App service placeholder boot entry.
  *
@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * profile can exclude database-backed mapper factories while production
  * profiles still scan every App-owned mapper package.</p>
  */
+@EnableScheduling
 @SpringBootApplication
 public class BackendAppApplication {
 

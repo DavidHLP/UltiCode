@@ -133,12 +133,30 @@ export function mapDistributionBins(raw: unknown): number[] {
 // Submission decoders
 // ============================================================================
 
+export function resolveSubmissionProblemId(sub: unknown): number | undefined {
+  if (!sub || typeof sub !== 'object') return undefined
+  const s = sub as Record<string, unknown>
+  const problemObj =
+    s.problem && typeof s.problem === 'object'
+      ? (s.problem as Record<string, unknown>)
+      : null
+  return (
+    readNumber(s, 'problemId', 'problem_id') ??
+    (problemObj ? readNumber(problemObj, 'id', 'id') : undefined)
+  )
+}
+
 // Helper to map backend snake_case to frontend camelCase
 export function mapSubmission(sub: unknown): SubmissionRecord {
   if (!sub || typeof sub !== 'object') return sub as SubmissionRecord
   const s = sub as Record<string, unknown>
+  const problemIdVal = resolveSubmissionProblemId(sub)
+
   return {
     ...(s as unknown as SubmissionRecord),
+    ...(problemIdVal !== undefined
+      ? { problem_id: problemIdVal, problemId: problemIdVal }
+      : {}),
     created_at: readString(s, 'createdAt', 'created_at', '') ?? '',
     submittedAt: readString(
       s,

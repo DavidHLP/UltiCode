@@ -104,6 +104,23 @@ describe("mapSubmission", () => {
     expect(result.created_at).toBe("2026-06-10T00:00:00");
     expect(result.runtimePercentile).toBe(75.0);
   });
+  it("normalizes camelCase problemId to problem_id and problemId", () => {
+    const result = mapSubmission({
+      id: "s2",
+      problemId: 42,
+    });
+    expect(result.problem_id).toBe(42);
+    expect(result.problemId).toBe(42);
+  });
+
+  it("extracts problemId from nested problem object fallback", () => {
+    const result = mapSubmission({
+      id: "s3",
+      problem: { id: 99, slug: "test-slug" },
+    });
+    expect(result.problem_id).toBe(99);
+    expect(result.problemId).toBe(99);
+  });
 
   it("normalizes dist bins from legacy JSON string", () => {
     const result = mapSubmission({ memory_dist_bins_mb: "[8, 16, 32]" });

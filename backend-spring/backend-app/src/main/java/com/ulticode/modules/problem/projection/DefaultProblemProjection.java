@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.error.ProblemErrorCode;
@@ -503,9 +504,25 @@ public class DefaultProblemProjection implements ProblemProjection {
             return Collections.emptyList();
         }
         try {
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+            JsonNode node = objectMapper.readTree(json);
+            // Some legacy data stores arrays wrapped in an object, e.g.
+            // {"constraints": [...]}. Unwrap to the first array field so the
+            // raw array form ([...]) and the wrapped form both parse.
+            if (node.isObject()) {
+                for (JsonNode child : node) {
+                    if (child.isArray()) {
+                        node = child;
+                        break;
+                    }
+                }
+            }
+            if (!node.isArray()) {
+                log.warn("Failed to parse JSON array (not an array): {}", json);
+                return Collections.emptyList();
+            }
+            return objectMapper.convertValue(node, new TypeReference<List<String>>() {});
         } catch (JsonProcessingException e) {
-            log.warn("Failed to parse JSON array: {}", json, e);
+            log.warn("Failed to parse JSON array: {}", json);
             return Collections.emptyList();
         }
     }

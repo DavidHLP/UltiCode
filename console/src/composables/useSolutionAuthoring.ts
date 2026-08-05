@@ -15,7 +15,11 @@ import {
   updateSolution,
 } from "@/api/solution";
 import { fetchProblemById } from "@/api/problem";
-import { fetchBestSubmission, fetchSubmission } from "@/api/submission";
+import {
+  fetchBestSubmission,
+  fetchSubmission,
+  resolveSubmissionProblemId,
+} from "@/api/submission";
 import type { SubmissionRecord, SubmissionStatusKey } from "@/types/submission";
 import type { SolutionFeedItem } from "@/types/solution";
 import type { SolutionTopic } from "@/types/topic";
@@ -285,7 +289,13 @@ ${code}
       toast.error(t("solution.messages.acceptedRequired"));
       options.onGateFailure({
         problemSlug:
-          resolvedProblemSlug.value || String(submission.problem_id),
+          resolvedProblemSlug.value ||
+          String(
+            submission.problem_id ??
+              submission.problemId ??
+              submission.problem?.id ??
+              "",
+          ),
       });
     }
     return false;
@@ -344,7 +354,11 @@ ${code}
     if (!requireAcceptedSubmission(submission, { explicit: true })) return;
 
     if (!resolvedProblemId.value) {
-      resolvedProblemId.value = submission.problem_id.toString();
+      const rawId =
+        submission.problem_id ??
+        submission.problemId ??
+        submission.problem?.id;
+      resolvedProblemId.value = rawId != null ? String(rawId) : "";
     }
     const lang = submission.language.toLowerCase();
     language.value = lang;

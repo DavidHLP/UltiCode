@@ -49,4 +49,20 @@ public class RefreshToken {
      */
     @TableField("is_revoked")
     private Boolean isRevoked;
+
+    /**
+     * AUTH-COMP-005: opaque id grouping all rotation-chain siblings from one login.
+     * NULL for legacy tokens that predate family tracking.
+     */
+    private String familyId;
+
+    /**
+     * AUTH-COMP-005: id of the sibling row that replaced this one (rotation forward link).
+     */
+    private String replacedByTokenId;
+
+    /**
+     * AUTH-COMP-005: id of the sibling row that preceded this one (rotation backward link).
+     */
+    private String previousTokenId;
 }

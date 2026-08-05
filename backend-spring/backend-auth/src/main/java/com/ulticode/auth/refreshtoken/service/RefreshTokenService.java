@@ -53,9 +53,22 @@ public class RefreshTokenService {
      * @return the generated refresh token
      */
     public String createToken(String userId) {
+        return createToken(userId, null, null);
+    }
+
+    /**
+     * Create a refresh token, optionally inheriting a family and previous token.
+     *
+     * @param userId      the user ID
+     * @param familyId    family id; null creates a new family (login), non-null reuses it (rotation)
+     * @param previousId  id of the token being rotated out; null on initial login
+     * @return the generated refresh token
+     */
+    public String createToken(String userId, String familyId, String previousId) {
         String tokenId = IdUtil.fastSimpleUUID();
         String token = jwtTokenProvider.generateRefreshToken(userId);
         String tokenHash = DigestUtil.sha256Hex(token);
+        String effectiveFamilyId = (familyId != null) ? familyId : tokenId;
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setId(tokenId);
@@ -65,9 +78,11 @@ public class RefreshTokenService {
             jwtProperties.getRefreshTokenExpiration() * 1_000_000));
         refreshToken.setCreatedAt(LocalDateTime.now(clock));
         refreshToken.setIsRevoked(false);
+        refreshToken.setFamilyId(effectiveFamilyId);
+        refreshToken.setPreviousTokenId(previousId);
 
         refreshTokenMapper.insert(refreshToken);
-        log.debug("Created refresh token for user: {}", userId);
+        log.debug("Created refresh token for user: {} (family: {})", userId, effectiveFamilyId);
 
         return token;
     }
@@ -92,7 +107,6 @@ public class RefreshTokenService {
         RefreshToken storedToken = refreshTokenMapper.selectOne(
             new LambdaQueryWrapper<RefreshToken>()
                 .eq(RefreshToken::getTokenHash, tokenHash)
-                .eq(RefreshToken::getIsRevoked, false)
         );
 
         if (storedToken == null) {
@@ -101,6 +115,20 @@ public class RefreshTokenService {
         }
         if (!userId.equals(storedToken.getUserId())) {
             throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        // AUTH-COMP-005: reuse detection — a revoked token being presented again
+        // indicates theft. Revoke the entire family and reject.
+        if (Boolean.TRUE.equals(storedToken.getIsRevoked())) {
+            log.warn("Refresh token reuse detected for user: {}, family: {}",
+                    storedToken.getUserId(), storedToken.getFamilyId());
+            if (storedToken.getFamilyId() != null) {
+                int familyRevoked = refreshTokenMapper.revokeFamily(storedToken.getFamilyId());
+                log.warn("Revoked {} tokens in family {} due to reuse detection",
+                        familyRevoked, storedToken.getFamilyId());
+            }
+            throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED,
+                    "Refresh token has been revoked — possible token theft");
         }
 
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
@@ -113,8 +141,24 @@ public class RefreshTokenService {
             throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Refresh token has already been used");
         }
 
-        log.info("Rotating refresh token for user: {}", storedToken.getUserId());
-        return new RotationResult(storedToken.getUserId(), createToken(storedToken.getUserId()));
+        // AUTH-COMP-005: create the rotation sibling in the same family and
+        // write the forward/backward chain links.
+        String familyId = storedToken.getFamilyId() != null
+                ? storedToken.getFamilyId() : storedToken.getId();
+        String newToken = createToken(storedToken.getUserId(), familyId, storedToken.getId());
+
+        // Write forward link: old token -> new token
+        String newTokenHash = DigestUtil.sha256Hex(newToken);
+        RefreshToken newRecord = refreshTokenMapper.selectOne(
+            new LambdaQueryWrapper<RefreshToken>()
+                .eq(RefreshToken::getTokenHash, newTokenHash)
+        );
+        if (newRecord != null) {
+            refreshTokenMapper.setReplacedBy(storedToken.getId(), newRecord.getId());
+        }
+
+        log.info("Rotating refresh token for user: {} (family: {})", storedToken.getUserId(), familyId);
+        return new RotationResult(storedToken.getUserId(), newToken);
     }
 
     public void revokePresentedToken(String token) {

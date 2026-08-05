@@ -30,8 +30,8 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${DB_USER:ulticode}
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useDBAuthPlugin=mysql_native_password
+    username: ${DB_USER:auth_rw}
     password: ${DB_PASSWORD:}
 
   data:
@@ -55,7 +55,7 @@ spring:
   # Flyway Configuration - shared migrations live in init-db/migrations/
   flyway:
     enabled: true
-    locations: filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations}
+    locations: filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations},filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations/auth}
     baseline-on-migrate: true
     baseline-version: 20260322
     baseline-description: Initial baseline

@@ -24,6 +24,15 @@ public class JwtProperties {
     private String secret;
 
     /**
+     * Issuer claim (iss) written into every access and refresh token minted by
+     * backend-auth. Resource servers in backend-app and backend-admin require
+     * this value via {@code jwt.expected-issuer} and reject any token whose
+     * issuer is missing or different. Changing this value is a coordinated
+     * contract change with both resource verifiers.
+     */
+    private String issuer = "ulticode-auth";
+
+    /**
      * Validate JWT secret at application startup.
      * - Refuses to start if secret is null, empty, or blank
      * - Warns if secret is shorter than 32 characters (insecure for HS256)

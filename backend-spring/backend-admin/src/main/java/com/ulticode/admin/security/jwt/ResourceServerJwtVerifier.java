@@ -51,6 +51,7 @@ public class ResourceServerJwtVerifier {
             if (rsaKey != null) {
                 claims = Jwts.parser()
                         .verifyWith(rsaKey)
+                        .requireIssuer(expectedIssuer)
                         .build()
                         .parseSignedClaims(token)
                         .getPayload();
@@ -83,6 +84,7 @@ public class ResourceServerJwtVerifier {
         SecretKey hmacKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.parser()
                 .verifyWith(hmacKey)
+                .requireIssuer(expectedIssuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

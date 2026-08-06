@@ -82,6 +82,9 @@ spring:
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:}
+  # Issuer claim (iss) stamped onto every access and refresh token. Must match
+  # jwt.expected-issuer in backend-app and backend-admin application.yml.
+  issuer: ${JWT_ISSUER:ulticode-auth}
   access-token:
     expiration: 900000 # 15 minutes in milliseconds
   refresh-token:

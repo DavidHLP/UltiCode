@@ -129,6 +129,24 @@ class JwtTokenProviderTest {
             assertThat(verifier.validateToken(token)).isFalse();
             assertThat(verifier.parseToken(token)).isNull();
         }
+
+        @Test
+        @DisplayName("access token carries the configured issuer claim")
+        void accessTokenStampsIssuer() {
+            JwtTokenProvider provider = newProvider();
+            String token = provider.generateAccessToken("user-7", "alice", "USER");
+            Claims claims = provider.parseToken(token);
+            assertThat(claims.getIssuer()).isEqualTo("ulticode-auth");
+        }
+
+        @Test
+        @DisplayName("refresh token carries the configured issuer claim")
+        void refreshTokenStampsIssuer() {
+            JwtTokenProvider provider = newProvider();
+            String refresh = provider.generateRefreshToken("user-8");
+            Claims claims = provider.parseToken(refresh);
+            assertThat(claims.getIssuer()).isEqualTo("ulticode-auth");
+        }
     }
 
     @Nested

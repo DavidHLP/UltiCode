@@ -55,6 +55,7 @@ public class JwtTokenProvider {
                 .subject(userId)
                 .claim("username", username)
                 .claim("role", role)
+                .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)
                 .expiration(expiryDate);
 
@@ -83,6 +84,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .id(java.util.UUID.randomUUID().toString()) // jti: prevents deterministic hash collision on same-millisecond generation
                 .subject(userId)
+                .issuer(jwtProperties.getIssuer())
                 .claim("type", "refresh")
                 .issuedAt(now)
                 .expiration(expiryDate)

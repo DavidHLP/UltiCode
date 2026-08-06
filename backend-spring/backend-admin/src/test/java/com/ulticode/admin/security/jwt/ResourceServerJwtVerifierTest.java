@@ -44,6 +44,7 @@ class ResourceServerJwtVerifierTest {
                 .subject("admin-123")
                 .claim("username", "admin")
                 .claim("role", "ADMIN")
+                .issuer("ulticode-auth")
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
@@ -64,6 +65,7 @@ class ResourceServerJwtVerifierTest {
 
         String refreshToken = Jwts.builder()
                 .subject("admin-123")
+                .issuer("ulticode-auth")
                 .claim("type", "refresh")
                 .issuedAt(now)
                 .expiration(expiry)
@@ -84,11 +86,51 @@ class ResourceServerJwtVerifierTest {
                 .subject("admin-123")
                 .claim("username", "admin")
                 .claim("role", "ADMIN")
+                .issuer("ulticode-auth")
                 .expiration(past)
                 .signWith(key)
                 .compact();
 
         assertThatThrownBy(() -> verifier.verifyAndParse(expiredToken))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("rejects tokens whose issuer does not match jwt.expected-issuer")
+    void rejectsWrongIssuer() {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + 3600_000);
+
+        String token = Jwts.builder()
+                .subject("admin-123")
+                .claim("username", "admin")
+                .claim("role", "ADMIN")
+                .issuer("evil-issuer")
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
+                .compact();
+
+        assertThatThrownBy(() -> verifier.verifyAndParse(token))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("rejects tokens that omit the issuer claim")
+    void rejectsMissingIssuer() {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + 3600_000);
+
+        String token = Jwts.builder()
+                .subject("admin-123")
+                .claim("username", "admin")
+                .claim("role", "ADMIN")
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
+                .compact();
+
+        assertThatThrownBy(() -> verifier.verifyAndParse(token))
                 .isInstanceOf(Exception.class);
     }
 }

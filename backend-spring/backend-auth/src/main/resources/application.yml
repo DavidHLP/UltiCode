@@ -89,6 +89,17 @@ jwt:
   # jwt.expected-audience in backend-app and backend-admin application.yml.
   # Refresh tokens do not carry this claim.
   audience: ${JWT_AUDIENCE:ulticode-api}
+  # RS256 asymmetric signing (opt-in). When enabled, access tokens are signed
+  # with RS256 instead of HS256. The private key must be provided as a
+  # base64-encoded PKCS8 PEM string. All Auth replicas MUST share the same
+  # key material so that resource servers can verify via the JWKS endpoint.
+  # Key rotation: set jwt.rsa.previous-private-key to the old key, update
+  # jwt.rsa.private-key to the new key, and restart. Old tokens remain valid
+  # until they expire (default 15 minutes).
+  rsa:
+    enabled: ${JWT_RSA_ENABLED:false}
+    private-key: ${JWT_RSA_PRIVATE_KEY:}
+    previous-private-key: ${JWT_RSA_PREVIOUS_PRIVATE_KEY:}
   access-token:
     expiration: 900000 # 15 minutes in milliseconds
   refresh-token:

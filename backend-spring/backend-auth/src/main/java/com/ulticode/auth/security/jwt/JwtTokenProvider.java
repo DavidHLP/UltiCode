@@ -66,7 +66,7 @@ public class JwtTokenProvider {
                     .signWith(rsaKeyManager.getPrivateKey(),
                             Jwts.SIG.RS256);
         } else {
-            builder.signWith(getSigningKey());
+            builder.signWith(getSigningKey(), Jwts.SIG.HS256);
         }
         return builder.compact();
     }
@@ -89,7 +89,7 @@ public class JwtTokenProvider {
                 .claim("type", "refresh")
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 

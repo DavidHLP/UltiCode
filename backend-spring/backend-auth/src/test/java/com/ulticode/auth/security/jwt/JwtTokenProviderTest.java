@@ -188,4 +188,30 @@ class JwtTokenProviderTest {
             assertThat(claims.getIssuedAt().getTime() / 1000L).isBetween(before, after);
         }
     }
+
+    @Nested
+    @DisplayName("algorithm pinning")
+    class AlgorithmPinning {
+
+        @Test
+        @DisplayName("long secret (>= 48 chars) still signs as HS256, not HS384/HS512")
+        void longSecretSignsAsHs256() {
+            // A 64-char secret would trigger HS512 via jjwt auto-selection
+            // unless the signer explicitly pins HS256.
+            String longSecret = "a".repeat(64);
+            JwtProperties props = new JwtProperties();
+            props.setSecret(longSecret);
+            props.getAccessToken().setExpiration(60_000L);
+            props.getRefreshToken().setExpiration(120_000L);
+            JwtTokenProvider provider = new JwtTokenProvider(props, new RsaKeyManager());
+
+            String token = provider.generateAccessToken("user-10", "alice", "USER");
+
+            // Decode header to verify alg is HS256
+            String headerB64 = token.split("\\.")[0];
+            String headerJson = new String(java.util.Base64.getUrlDecoder().decode(headerB64));
+            assertThat(headerJson).contains("\"alg\":\"HS256\"");
+            assertThat(headerJson).doesNotContain("HS384").doesNotContain("HS512");
+        }
+    }
 }

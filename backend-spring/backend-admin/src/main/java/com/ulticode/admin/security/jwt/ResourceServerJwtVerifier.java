@@ -51,20 +51,21 @@ public class ResourceServerJwtVerifier {
         if ("RS256".equals(alg)) {
             String kid = extractKid(token);
             RSAPublicKey rsaKey = jwksProvider.getKey(kid);
-            if (rsaKey != null) {
-                claims = Jwts.parser()
-                        .verifyWith(rsaKey)
-                        .requireIssuer(expectedIssuer)
-                        .requireAudience(expectedAudience)
-                        .build()
-                        .parseSignedClaims(token)
-                        .getPayload();
-            } else {
-                log.warn("RS256 token presented but no JWKS key for kid={}; falling back to HS256", kid);
-                claims = verifyWithHmac(token);
+            if (rsaKey == null) {
+                throw new IllegalArgumentException(
+                        "RS256 token rejected: no JWKS public key for kid=" + kid);
             }
-        } else {
+            claims = Jwts.parser()
+                    .verifyWith(rsaKey)
+                    .requireIssuer(expectedIssuer)
+                    .requireAudience(expectedAudience)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } else if ("HS256".equals(alg)) {
             claims = verifyWithHmac(token);
+        } else {
+            throw new IllegalArgumentException("Unsupported JWT algorithm: " + alg);
         }
 
         Date now = new Date();

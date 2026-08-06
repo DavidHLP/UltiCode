@@ -56,6 +56,7 @@ public class JwtTokenProvider {
                 .claim("username", username)
                 .claim("role", role)
                 .issuer(jwtProperties.getIssuer())
+                .audience().add(jwtProperties.getAudience()).and()
                 .issuedAt(now)
                 .expiration(expiryDate);
 

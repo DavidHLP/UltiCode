@@ -33,6 +33,15 @@ public class JwtProperties {
     private String issuer = "ulticode-auth";
 
     /**
+     * Platform audience claim (aud) written into every access token minted by
+     * backend-auth. Both resource servers (backend-app, backend-admin) require
+     * this value via {@code jwt.expected-audience} so a token minted for the
+     * UltiCode platform cannot be replayed against a different audience.
+     * Refresh tokens do not carry this claim.
+     */
+    private String audience = "ulticode-api";
+
+    /**
      * Validate JWT secret at application startup.
      * - Refuses to start if secret is null, empty, or blank
      * - Warns if secret is shorter than 32 characters (insecure for HS256)

@@ -85,6 +85,10 @@ jwt:
   # Issuer claim (iss) stamped onto every access and refresh token. Must match
   # jwt.expected-issuer in backend-app and backend-admin application.yml.
   issuer: ${JWT_ISSUER:ulticode-auth}
+  # Audience claim (aud) stamped onto every access token. Must match
+  # jwt.expected-audience in backend-app and backend-admin application.yml.
+  # Refresh tokens do not carry this claim.
+  audience: ${JWT_AUDIENCE:ulticode-api}
   access-token:
     expiration: 900000 # 15 minutes in milliseconds
   refresh-token:

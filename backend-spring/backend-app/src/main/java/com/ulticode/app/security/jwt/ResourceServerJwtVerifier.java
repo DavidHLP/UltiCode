@@ -40,6 +40,9 @@ public class ResourceServerJwtVerifier {
     @Value("${jwt.expected-issuer:ulticode-auth}")
     private String expectedIssuer;
 
+    @Value("${jwt.expected-audience:ulticode-api}")
+    private String expectedAudience;
+
     public Claims verifyAndParse(String token) {
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("JWT token must not be null or blank");
@@ -55,6 +58,7 @@ public class ResourceServerJwtVerifier {
                 claims = Jwts.parser()
                         .verifyWith(rsaKey)
                         .requireIssuer(expectedIssuer)
+                        .requireAudience(expectedAudience)
                         .build()
                         .parseSignedClaims(token)
                         .getPayload();
@@ -88,6 +92,7 @@ public class ResourceServerJwtVerifier {
         return Jwts.parser()
                 .verifyWith(hmacKey)
                 .requireIssuer(expectedIssuer)
+                .requireAudience(expectedAudience)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

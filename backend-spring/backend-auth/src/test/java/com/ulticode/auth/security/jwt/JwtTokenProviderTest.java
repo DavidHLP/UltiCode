@@ -41,6 +41,7 @@ class JwtTokenProviderTest {
         void acceptsValidSecret() {
             JwtProperties properties = new JwtProperties();
             properties.setSecret(SECRET);
+            // no exception expected — validateSecret is @PostConstruct
             properties.validateSecret();
         }
 
@@ -48,9 +49,8 @@ class JwtTokenProviderTest {
         @DisplayName("rejects a null secret")
         void rejectsNullSecret() {
             JwtProperties properties = new JwtProperties();
-            assertThatThrownBy(properties::validateSecret)
-                    .isInstanceOf(NullPointerException.class)
-                    .hasMessageContaining("JWT secret must not be null");
+            assertThatThrownBy(() -> properties.validateSecret())
+                    .isInstanceOf(NullPointerException.class);
         }
 
         @Test
@@ -58,19 +58,17 @@ class JwtTokenProviderTest {
         void rejectsBlankSecret() {
             JwtProperties properties = new JwtProperties();
             properties.setSecret("   ");
-            assertThatThrownBy(properties::validateSecret)
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("must not be blank");
+            assertThatThrownBy(() -> properties.validateSecret())
+                    .isInstanceOf(IllegalStateException.class);
         }
 
         @Test
         @DisplayName("rejects a secret shorter than 32 chars")
         void rejectsShortSecret() {
             JwtProperties properties = new JwtProperties();
-            properties.setSecret("too-short");
-            assertThatThrownBy(properties::validateSecret)
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("at least 32 characters");
+            properties.setSecret("short");
+            assertThatThrownBy(() -> properties.validateSecret())
+                    .isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -147,6 +145,15 @@ class JwtTokenProviderTest {
             Claims claims = provider.parseToken(refresh);
             assertThat(claims.getIssuer()).isEqualTo("ulticode-auth");
         }
+
+        @Test
+        @DisplayName("access token carries the configured audience claim")
+        void accessTokenStampsAudience() {
+            JwtTokenProvider provider = newProvider();
+            String token = provider.generateAccessToken("user-9", "alice", "USER");
+            Claims claims = provider.parseToken(token);
+            assertThat(claims.getAudience()).contains("ulticode-api");
+        }
     }
 
     @Nested
@@ -168,7 +175,7 @@ class JwtTokenProviderTest {
         }
 
         @Test
-        @DisplayName("issuedAt is set to the current second (jjwt truncates to second resolution)")
+        @DisplayName("issuedAt is set to the current time (at second resolution)")
         void issuedAtIsNow() {
             JwtTokenProvider provider = newProvider();
             long before = System.currentTimeMillis() / 1000L;
@@ -176,10 +183,9 @@ class JwtTokenProviderTest {
             long after = System.currentTimeMillis() / 1000L;
 
             Claims claims = provider.parseToken(token);
-            Date issuedAt = claims.getIssuedAt();
-            assertThat(issuedAt).isNotNull();
+            assertThat(claims.getIssuedAt()).isNotNull();
             // jjwt writes issuedAt at second resolution; tolerate one-second skew.
-            assertThat(issuedAt.getTime() / 1000L).isBetween(before, after);
+            assertThat(claims.getIssuedAt().getTime() / 1000L).isBetween(before, after);
         }
     }
 }

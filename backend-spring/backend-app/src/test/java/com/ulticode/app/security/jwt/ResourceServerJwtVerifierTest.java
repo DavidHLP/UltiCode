@@ -31,6 +31,7 @@ class ResourceServerJwtVerifierTest {
         verifier = new ResourceServerJwtVerifier(jwksProvider);
         ReflectionTestUtils.setField(verifier, "jwtSecret", TEST_SECRET);
         ReflectionTestUtils.setField(verifier, "expectedIssuer", "ulticode-auth");
+        ReflectionTestUtils.setField(verifier, "expectedAudience", "ulticode-api");
         key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -45,6 +46,7 @@ class ResourceServerJwtVerifierTest {
                 .claim("username", "alice")
                 .claim("role", "USER")
                 .issuer("ulticode-auth")
+                .audience().add("ulticode-api").and()
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
@@ -66,6 +68,7 @@ class ResourceServerJwtVerifierTest {
         String refreshToken = Jwts.builder()
                 .subject("user-123")
                 .issuer("ulticode-auth")
+                .audience().add("ulticode-api").and()
                 .claim("type", "refresh")
                 .issuedAt(now)
                 .expiration(expiry)
@@ -87,6 +90,7 @@ class ResourceServerJwtVerifierTest {
                 .claim("username", "alice")
                 .claim("role", "USER")
                 .issuer("ulticode-auth")
+                .audience().add("ulticode-api").and()
                 .expiration(past)
                 .signWith(key)
                 .compact();
@@ -106,6 +110,7 @@ class ResourceServerJwtVerifierTest {
                 .claim("username", "alice")
                 .claim("role", "USER")
                 .issuer("evil-issuer")
+                .audience().add("ulticode-api").and()
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
@@ -125,6 +130,48 @@ class ResourceServerJwtVerifierTest {
                 .subject("user-123")
                 .claim("username", "alice")
                 .claim("role", "USER")
+                .audience().add("ulticode-api").and()
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
+                .compact();
+
+        assertThatThrownBy(() -> verifier.verifyAndParse(token))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("rejects tokens whose audience does not match jwt.expected-audience")
+    void rejectsWrongAudience() {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + 3600_000);
+
+        String token = Jwts.builder()
+                .subject("user-123")
+                .claim("username", "alice")
+                .claim("role", "USER")
+                .issuer("ulticode-auth")
+                .audience().add("evil-audience").and()
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
+                .compact();
+
+        assertThatThrownBy(() -> verifier.verifyAndParse(token))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("rejects access tokens that omit the audience claim")
+    void rejectsMissingAudience() {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + 3600_000);
+
+        String token = Jwts.builder()
+                .subject("user-123")
+                .claim("username", "alice")
+                .claim("role", "USER")
+                .issuer("ulticode-auth")
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)

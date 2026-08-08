@@ -1,0 +1,64 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "../../packages/auth-ui/src/**/*",
+    "../../packages/auth-ui/src/**/*.vue",
+    "../../packages/auth-core/src/**/*",
+    "../../packages/sidebar-menu/src/**/*",
+    "../../packages/sidebar-menu/src/**/*.vue",
+    "../../packages/markdown-utils/src/**/*",
+    "../../packages/http-client/src/**/*",
+    "../../packages/locale-preference/src/**/*",
+    "../../packages/datetime-utils/src/**/*",
+    "../../packages/badge-config/src/**/*",
+    "../../packages/domain-types/src/**/*",
+    "../../packages/i18n-completeness/src/**/*",
+    "../../packages/design-system/src/**/*",
+    "../../packages/design-system/src/**/*.vue",
+    "../../packages/app-bootstrap/src/**/*"
+  ],
+  "exclude": [
+    "src/**/__tests__/*"
+  ],
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/lib/utils": [
+        "../../packages/auth-core/src/utils"
+      ],
+      "@/shared/*": [
+        "../../packages/*"
+      ],
+      "vue": [
+        "./node_modules/vue"
+      ],
+      "vue-router": [
+        "./node_modules/vue-router"
+      ],
+      "vue-i18n": [
+        "./node_modules/vue-i18n"
+      ],
+      "axios": [
+        "./node_modules/axios"
+      ],
+      "clsx": [
+        "./node_modules/clsx"
+      ],
+      "tailwind-merge": [
+        "./node_modules/tailwind-merge"
+      ],
+      "lucide-vue-next": [
+        "./node_modules/lucide-vue-next"
+      ],
+      "reka-ui": [
+        "./node_modules/reka-ui"
+      ]
+    }
+  }
+}

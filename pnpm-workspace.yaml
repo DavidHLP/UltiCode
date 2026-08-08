@@ -1,13 +1,25 @@
 # ---------------------------------------------------------------------------
-# pnpm workspace — UltiCode frontends + shared packages
+# pnpm workspace — UltiCode frontends (apps) + shared packages
 #
-# Adding a new shared package: drop it under `shared/<name>/` and add the
-# glob to `packages` below. Consumers reference it via `workspace:*`.
+# Adding a new shared package: drop it under `packages/<name>/`.
+# Consumers reference it via `workspace:*`.
 # ---------------------------------------------------------------------------
 packages:
-  - "shared/*"
-  - "console"
-  - "management"
+  - "apps/*"
+  - "packages/*"
+overrides:
+  dompurify: 3.4.5
+  lodash-es: 4.18.1
+  protocol-buffers-schema: 3.6.1
+  vite: ^8.0.16
+  form-data: ^4.0.6
+ignoredBuiltDependencies:
+  - esbuild
+  - maplibre-gl
+  - msw
+  - vue-demi
 allowBuilds:
+  esbuild: true
   maplibre-gl: true
+  msw: true
   vue-demi: true

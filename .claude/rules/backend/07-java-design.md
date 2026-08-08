@@ -1,6 +1,7 @@
 ---
 paths:
-  - "backend-spring/src/main/**/*.java"
+  - "services/**/src/main/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/**/*.java"
 kind: rules
 summary: 'Java design patterns and architectural rules.'
 ---

@@ -1,7 +1,9 @@
 ---
 paths:
-  - "backend-spring/src/**/*.java"
-  - "backend-spring/src/main/resources/**/*.{yml,yaml,properties}"
+  - "services/**/src/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/**/*.java"
+  - "services/**/src/main/resources/**/*.{yml,yaml,properties}"
+  - "{backend-auth,backend-admin,backend-app}/src/main/resources/**/*.{yml,yaml,properties}"
 kind: rules
 summary: 'Java security rules: auth, validation, secrets.'
 ---

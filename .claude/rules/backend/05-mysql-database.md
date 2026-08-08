@@ -1,9 +1,13 @@
 ---
 paths:
-  - "backend-spring/src/main/java/**/*Mapper.java"
-  - "backend-spring/src/main/java/**/mapper/**/*.java"
-  - "backend-spring/src/main/java/**/entity/**/*.java"
-  - "backend-spring/src/main/java/**/service/**/*.java"
+  - "services/**/src/main/java/**/*Mapper.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/*Mapper.java"
+  - "services/**/src/main/java/**/mapper/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/mapper/**/*.java"
+  - "services/**/src/main/java/**/entity/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/entity/**/*.java"
+  - "services/**/src/main/java/**/service/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/service/**/*.java"
 kind: rules
 summary: 'MyBatis-Plus mapper and entity rules for MySQL.'
 ---

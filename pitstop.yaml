@@ -4,9 +4,9 @@ project:
   name: "UltiCode"
 
 services:
-  backend-spring:
+  services:
     type: springboot
-    path: "C:\\admin\\Code\\Project\\OJ\\UltiCode\\backend-spring"
+    path: "C:\\admin\\Code\\Project\\OJ\\UltiCode\\services"
     command: "powershell -NoProfile -ExecutionPolicy Bypass -File ..\\scripts\\pitstop-start-backend.ps1"
     port: 9001
     health_check: "http://localhost:9001/actuator/health"

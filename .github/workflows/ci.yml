@@ -39,25 +39,31 @@ jobs:
         with:
           filters: |
             backend:
-              - 'backend-spring/**'
+              - 'services/**'
+              - 'services/auth/**'
+              - 'services/admin/**'
+              - 'services/app/**'
               - 'init-db/migrations/**'
               - '.github/workflows/ci.yml'
             console:
-              - 'console/**'
-              - 'shared/**'
+              - 'apps/console/**'
+              - 'packages/**'
               - '.github/workflows/ci.yml'
             management:
-              - 'management/**'
-              - 'shared/**'
+              - 'apps/management/**'
+              - 'packages/**'
               - '.github/workflows/ci.yml'
             docker:
-              - 'backend-spring/Dockerfile'
-              - 'console/Dockerfile'
-              - 'management/Dockerfile'
+              - 'services/**'
+              - 'services/auth/**'
+              - 'services/admin/**'
+              - 'services/app/**'
+              - 'apps/console/Dockerfile'
+              - 'apps/management/Dockerfile'
               - 'docker-compose*.yml'
               - '.dockerignore'
-              - 'console/nginx.conf'
-              - 'management/nginx.conf'
+              - 'apps/console/nginx.conf'
+              - 'apps/management/nginx.conf'
               - '.github/workflows/ci.yml'
 
   # --- Backend: Build ---
@@ -78,10 +84,10 @@ jobs:
           cache: 'maven'
 
       - name: Grant Maven wrapper execute permission
-        run: chmod +x backend-spring/mvnw
+        run: chmod +x services/mvnw
 
       - name: Build with Maven
-        run: cd backend-spring && ./mvnw compile -B
+        run: cd services && ./mvnw compile -B
 
   # --- Backend: Test ---
   backend-test:
@@ -134,17 +140,18 @@ jobs:
           cache: 'maven'
 
       - name: Grant Maven wrapper execute permission
-        run: chmod +x backend-spring/mvnw
+        run: chmod +x services/mvnw
 
       - name: Run tests with CI profile
-        run: cd backend-spring && ./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B
+        run: cd services && ./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B
 
       - name: Upload test results on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: test-results-backend
-          path: backend-spring/**/target/surefire-reports/
+          path: |
+            services/**/target/surefire-reports/
           retention-days: 7
 
   # --- Backend: Test under feature flag matrix (ADR-005 §4 #4) ---
@@ -215,7 +222,7 @@ jobs:
           cache: 'maven'
 
       - name: Grant Maven wrapper execute permission
-        run: chmod +x backend-spring/mvnw
+        run: chmod +x services/mvnw
 
       # 5 个产品 flag 由 matrix.features 决定 on/off, 通过 env 注入到 step.
       # Spring profile 同时追加 features-${{ matrix.features }}, 与 yml profile
@@ -237,14 +244,15 @@ jobs:
           fi
 
       - name: Run tests with features-${{ matrix.features }} profile
-        run: cd backend-spring && ./mvnw test -Dspring.profiles.active=ci,features-${{ matrix.features }} -Dtest='!*IT' -B
+        run: cd services && ./mvnw test -Dspring.profiles.active=ci,features-${{ matrix.features }} -Dtest='!*IT' -B
 
       - name: Upload test results on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: test-results-backend-features-${{ matrix.features }}
-          path: backend-spring/**/target/surefire-reports/
+          path: |
+            services/**/target/surefire-reports/
           retention-days: 7
 
   # --- Backend: Validate Migrations ---
@@ -507,10 +515,10 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: shared/auth-core/pnpm-lock.yaml
       - name: Install dependencies
-        working-directory: shared/auth-core
+        working-directory: packages/auth-core
         run: pnpm install --frozen-lockfile
       - name: Test and type-check
-        working-directory: shared/auth-core
+        working-directory: packages/auth-core
         run: pnpm test && pnpm type-check
 
   # --- Frontend: i18n Check (management only) ---
@@ -559,19 +567,19 @@ jobs:
       matrix:
         service:
           - name: backend-auth
-            dockerfile: ./backend-spring/Dockerfile
+            dockerfile: ./services/Dockerfile
             module: backend-auth
             artifact: app.jar
             port: 9101
             health_path: /api/v1/auth/health
           - name: backend-admin
-            dockerfile: ./backend-spring/Dockerfile
+            dockerfile: ./services/Dockerfile
             module: backend-admin
             artifact: app-exec.jar
             port: 9102
             health_path: /api/v1/admin/health
           - name: backend-app
-            dockerfile: ./backend-spring/Dockerfile
+            dockerfile: ./services/Dockerfile
             module: backend-app
             artifact: app-exec.jar
             port: 9103

@@ -9,10 +9,10 @@
 <div align="center">
 
 [![MIT License](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](backend-spring/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?logo=springboot&logoColor=white)](services/)
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](https://adoptium.net/)
-[![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vuedotjs&logoColor=white)](console/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](console/)
+[![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vuedotjs&logoColor=white)](apps/console/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](apps/console/)
 [![MySQL](https://img.shields.io/badge/MySQL-9.1-4479A1?logo=mysql&logoColor=white)](https://dev.mysql.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![PM2](https://img.shields.io/badge/PM2-Process-2B037A?logo=pm2&logoColor=white)](ecosystem.config.cjs)
@@ -163,10 +163,16 @@
 
 ```
 UltiCode/
-├── backend-spring/   # Spring Boot 3.2.5 owner services — 9101/9102/9103
-├── console/          # Vue 3 用户前端 — 端口 9002
-├── management/       # Vue 3 管理后台 — 端口 9003
-├── shared/           # 共享包 (auth-core · auth-ui · badge-config · design-system · sandbox-types · theme)
+├── services/         # 后端 Maven reactor（platform · api · auth · admin · app）
+│   ├── platform/     # 共享平台层（common · web-security）
+│   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api）
+│   ├── auth/         # Auth owner — 9101
+│   ├── admin/        # Admin owner — 9102
+│   └── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
+├── apps/
+│   ├── console/      # Vue 3 用户前端 — 端口 9002
+│   └── management/   # Vue 3 管理后台 — 端口 9003
+├── packages/         # 共享包 (auth-core · auth-ui · badge-config · design-system · sandbox-types · theme)
 ├── init-db/          # Flyway 数据库迁移
 ├── docker/           # Docker 初始化脚本 (Nacos SQL · Sandbox harness)
 ├── assets/           # README 截图等二进制资源
@@ -219,41 +225,31 @@ UltiCode/
 
 ## 项目结构
 
-### 后端模块 (`backend-spring/src/main/java/com/ulticode/modules/`)
+### 后端 owner 服务与共享 reactor
 
-每个模块遵循 `controller → service → mapper (MyBatis-Plus) → entity` 分层，DTO 转换由 MapStruct 完成。
+`services/auth/`、`services/admin/`、`services/app/` 是三个可独立运行的 owner 服务；`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和 owner 服务。
 
-| 模块 | 职责 |
-|------|------|
-| `auth` | 登录 / 注册 / OAuth / 找回密码 / 刷新 token |
-| `user` | 用户资料 / 关注 / 实名 |
-| `problem` | 题目 / 测试用例 / SPJ |
-| `problemlist` | 题单 / 收藏夹 |
-| `submission` | 提交记录 / 判题 / Replay |
-| `solution` | 题解 / 评论 / 点赞 |
-| `contest` | 比赛 / 榜单 / 注册 |
-| `forum` | 帖子 / 评论 / 板块 |
-| `vote` | 点赞 / 点踩 |
-| `notification` | 站内通知 / 邮件 / 推送 |
-| `achievement` | 成就 / 徽章 / 解题连击 |
-| `subscription` | 订阅 / 支付 / 订单 |
-| `moderation` | 审核队列 / 举报 / 申诉 |
-| `search` | 全文 / 向量检索 |
-| `i18n` | 翻译键托管 |
-| `bookmark` · `follow` | 收藏 / 关注 |
-| `email` | 邮件模板 / 队列 |
-| `admin` · `permission` | 角色 / 权限 / 审计 |
-| `monitoring` · `backup` | 监控 / 备份 |
-| `edgeoperations` · `queue` | 边缘任务 / 异步队列 (Outbox + Fencing) |
-| `websocket` · `refreshtoken` | WebSocket 鉴权 / Token 轮换 |
-| `backup` | 数据备份与恢复 |
+| Owner / 模块 | 主代码路径 | 职责 |
+|------|------|------|
+| `services/auth` | `services/auth/src/main/java/com/ulticode/auth/` | 登录 / 注册 / OAuth / 找回密码 / refresh token / 账号状态 / RBAC |
+| `services/admin` | `services/admin/src/main/java/com/ulticode/admin/`、`services/admin/src/main/java/com/ulticode/modules/admin/` | 管理端 BFF / 审核 / 审计 / 设置 / 监控 / 备份 |
+| `services/app` | `services/app/app-web/src/main/java/com/ulticode/app/`、`services/app/app-web/src/main/java/com/ulticode/modules/` | 用户画像 / 题目 / 提交判题 / 竞赛 / 题解 / 论坛 / 通知 / 搜索 / WebSocket |
+
+共享 reactor 的主要模块：
+
+- `services/platform/common/`、`services/platform/web-security/`
+- `services/api/auth-api/`、`services/api/admin-api/`、`services/api/app-api/`
+- `services/app/modules/contest/`、`services/app/modules/moderation/`、`services/app/modules/notification/`
+- `services/app/modules/problem/`、`services/app/modules/submission/`
+
+各 owner 内部继续遵循 `controller → service/projection/port → mapper → entity` 分层；跨 owner 访问使用公开 contract 或 consumer-owned port，不直接依赖另一个 owner 的 Mapper / Entity。
 
 ### 前端视图
 
 - **Console** (用户端) — 题目 · 题单 · 提交 · 竞赛 · 论坛 · 成就 · 个人主页 · Dashboard
 - **Management** (管理端) — Dashboard · 用户 · 题目 · 提交 · 竞赛 · 论坛 · 审核 · 通知 · 订阅 · 标签 · 系统 · 审计 · Help
 
-### 共享包 (`shared/`)
+### 共享包 (`packages/`)
 
 | 包 | 说明 |
 |-----|------|
@@ -264,7 +260,7 @@ UltiCode/
 | `sandbox-types` | OJ 沙箱契约类型（与 `docker/sandbox/` 跨语言通信） |
 | `theme` | 主题系统：State / Tokens / Primitives / Bootstrap |
 
-> 改动 `shared/` 必须在 `shared/auth-core` 跑 `pnpm test` + `pnpm type-check`，并在 console / management 双端验证。
+> 改动 `packages/` 必须在 `packages/auth-core` 跑 `pnpm test` + `pnpm type-check`，并在 apps/console / apps/management 双端验证。
 
 ---
 
@@ -333,7 +329,9 @@ dev 数据库会自动创建固定管理员账号：
 
 ## 开发指南
 
-### 后端 (`backend-spring/`)
+### 后端 owner 服务与共享 reactor
+
+`services/auth/`、`services/admin/`、`services/app/` 是三个可独立运行的 owner 服务；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
 
 ```bash
 # 通过 PM2（完整三 owner 后端）
@@ -341,49 +339,50 @@ pm2 restart ulticode-auth ulticode-admin ulticode-app
 pm2 logs ulticode-auth
 
 # 直接启动单个 owner
-./mvnw -pl backend-auth -am spring-boot:run -Dmaven.test.skip=true
-./mvnw -pl backend-admin -am spring-boot:run -Dmaven.test.skip=true
-./mvnw -pl backend-app -am spring-boot:run -Dmaven.test.skip=true
+(cd services && ./mvnw -pl auth -am spring-boot:run -Dmaven.test.skip=true)
+(cd services && ./mvnw -pl admin -am spring-boot:run -Dmaven.test.skip=true)
+(cd services && ./mvnw -pl app/app-web -am spring-boot:run -Dmaven.test.skip=true)
 
 # 编译 / 测试 / 集成
-./mvnw compile -B
-./mvnw test -B                  # 排除 *IT.java
-./mvnw -Dtest='*IT' test -B     # Testcontainers 集成
-./mvnw verify -B                # 含 JaCoCo 校验
-./mvnw package -DskipTests
+(cd services && ./mvnw compile -B)
+(cd services && ./mvnw test -B)                  # 排除 *IT.java
+(cd services && ./mvnw -Dtest='*IT' test -B)     # Testcontainers 集成
+(cd services && ./mvnw verify -B)                # 含 JaCoCo 校验
+(cd services && ./mvnw package -DskipTests)
 ```
 
-### 用户前端 (`console/`)
+### 用户前端 (`apps/console/`)
 
 ```bash
-pnpm install
-pnpm dev              # lint + type-check + format + test + Vite dev
-pnpm build            # type-check + Vite build
-pnpm type-check       # vue-tsc --build
-pnpm lint             # eslint . --fix --cache
-pnpm format           # prettier --write src/
-pnpm test             # vitest --run
-pnpm test:coverage
+pnpm --dir apps/console install
+pnpm --dir apps/console dev              # lint + type-check + format + test + Vite dev
+pnpm --dir apps/console build            # type-check + Vite build
+pnpm --dir apps/console type-check       # vue-tsc --build
+pnpm --dir apps/console lint             # eslint . --fix --cache
+pnpm --dir apps/console test             # vitest --run
+pnpm --dir apps/console test:coverage
 ```
 
-### 管理后台 (`management/`)
+### 管理后台 (`apps/management/`)
 
 ```bash
-# 与 console 相同的命令
-pnpm dev / pnpm build / pnpm test
-
-# 额外：i18n key 完整性检查
-pnpm validate:i18n-keys
+pnpm --dir apps/management install
+pnpm --dir apps/management dev
+pnpm --dir apps/management build
+pnpm --dir apps/management type-check
+pnpm --dir apps/management lint
+pnpm --dir apps/management test
+pnpm --dir apps/management validate:i18n-keys
 ```
 
-### 共享包 (`shared/auth-core/`)
+### 共享包 (`packages/auth-core/`)
 
 ```bash
-pnpm test
-pnpm type-check
+pnpm --dir packages/auth-core test
+pnpm --dir packages/auth-core type-check
 ```
 
-> 修改 `shared/auth-core` 必须在 console / management 双端验证。详见 [docs/CONTRIBUTING.md §6](docs/CONTRIBUTING.md)。
+> 修改 `packages/auth-core` 必须在 apps/console / apps/management 双端验证。详见 [docs/CONTRIBUTING.md §6](docs/CONTRIBUTING.md)。
 
 ### 数据库迁移 (`init-db/`)
 
@@ -432,12 +431,12 @@ docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
 
 | 触碰面 | 跑这套 |
 |--------|--------|
-| 后端 | `./mvnw compile test -B` |
-| 后端集成 | `./mvnw -Dtest='*IT' test -B` |
-| Console | `pnpm lint && pnpm type-check && pnpm test && pnpm build` |
-| Management | `pnpm lint && pnpm type-check && pnpm test && pnpm validate:i18n-keys && pnpm build` |
-| 共享包 | `cd shared/auth-core && pnpm test && pnpm type-check` |
-| 迁移 / 配置 | `docker compose ... config >/dev/null` · `git diff --check` |
+| 后端 | `(cd services && ./mvnw compile test -B)` |
+| 后端集成 | `(cd services && ./mvnw -Dtest='*IT' test -B)` |
+| Console | `pnpm --dir apps/console lint && pnpm --dir apps/console type-check && pnpm --dir apps/console test && pnpm --dir apps/console build` |
+| Management | `pnpm --dir apps/management lint && pnpm --dir apps/management type-check && pnpm --dir apps/management test && pnpm --dir apps/management validate:i18n-keys && pnpm --dir apps/management build` |
+| 共享包 | `pnpm --dir packages/auth-core test && pnpm --dir packages/auth-core type-check` |
+| 迁移 / 配置 | `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null` · `git diff --check` |
 
 ---
 
@@ -447,15 +446,15 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 
 | Job | 触发条件 | 内容 |
 |-----|---------|------|
-| Backend | `backend-spring/**` | Maven 构建 + 单测 + Flyway 校验 |
-| Console | `console/**` | lint + type-check + test |
-| Management | `management/**` | lint + type-check + test + i18n 校验 |
-| Docker | Dockerfile 变更 | 多阶段构建验证 |
+| Backend | `services/**`, `init-db/migrations/**` | Maven 构建 + 单测 + Flyway 校验 |
+| Console | `apps/console/**`, `packages/**` | lint + type-check + test |
+| Management | `apps/management/**`, `packages/**` | lint + type-check + test + i18n 校验 |
+| Docker | `services/**`、`apps/**`、Dockerfile / Compose 输入 | 多阶段构建验证 |
 | Integration | 定时 / 手动 | Testcontainers（MySQL 9.1 + Redis 7） |
 | CD Deploy | `workflow_dispatch` | 滚动发布到指定环境 |
 | CD Rollback | `workflow_dispatch` | 一键回滚到指定 image tag |
 
-部署 Runbook 见 [wiki/overview/dev-environment-overview.md](../wiki/overview/dev-environment-overview.md) § 启动 / 部署章节。
+部署 Runbook 见 [`scripts/dev/up.sh`](scripts/dev/up.sh) 与 [`scripts/dev/doctor.sh`](scripts/dev/doctor.sh)。
 
 ---
 
@@ -525,7 +524,7 @@ pm2 save && pm2 resurrect        # 持久化与恢复
 | 提交格式 | `<type>: <description>` · 类型: `feat` `fix` `refactor` `docs` `test` `chore` `perf` `ci` |
 | 提交前自检 | `git diff` · `git diff --check` |
 | Prettier | 无分号 · 单引号 · 100 字符行宽 |
-| 集成测试 | `*IT.java` 后缀，从 `./mvnw test` 排除；用 `./mvnw -Dtest='*IT' test` 或 `./scripts/dev/test.sh integration` |
+| 集成测试 | `*IT.java` 后缀，从 `(cd services && ./mvnw test -B)` 排除；用 `(cd services && ./mvnw -Dtest='*IT' test -B)` 或 `./scripts/dev/test.sh integration` |
 | 迁移命名 | `V{N}__{description}.sql`，置于 `init-db/migrations/` |
 | Docker 容器 | 非 root `appuser:appgroup` · 多阶段构建 |
 | 后端 DTO 枚举 | 后端 DTO 字段使用 `String`（前端用 TS enum）；**新代码优先推进后端 enum 化** |

@@ -3,14 +3,14 @@
 # typography-guard.sh — enforce shared typography across console/ and management/
 #
 # Both frontends MUST source font families, sizes, line heights, weights, and
-# letter spacing from shared/theme/src/typography.css. Custom values are not
+# letter spacing from packages/theme/src/typography.css. Custom values are not
 # allowed except:
 #   1. References to the --uc-* / --font-* / --text-* / --leading-* / --tracking-*
 #      tokens that typography.css (or its @theme inline aliases) exposes.
 #   2. Color and surface tokens (--silver-*, --solarized-*, etc.).
 #   3. Third-party code under node_modules / dist / coverage.
-#   4. The canonical surface in shared/theme/src/typography.css and
-#      shared/design-system/style.css.
+#   4. The canonical surface in packages/theme/src/typography.css and
+#      packages/design-system/style.css.
 #
 # See docs/SHARED_TYPOGRAPHY_DESIGN.md §13 (Phase 6 guardrails).
 #
@@ -101,8 +101,8 @@ done
 
 # --- post-filter ------------------------------------------------------------
 # Use python to:
-#   1. Drop the canonical shared surface (shared/theme/typography.css,
-#      shared/design-system/style.css) — those legitimately own these patterns.
+#   1. Drop the canonical shared surface (packages/theme/typography.css,
+#      packages/design-system/style.css) — those legitimately own these patterns.
 #   2. Drop lines that are pure var(--uc-*) or var(--font-*) / var(--text-*) etc.
 #      references — they ARE shared tokens, not custom font state.
 #   3. Drop highlight.js third-party output inside .hljs-* rule blocks.
@@ -112,8 +112,8 @@ python3 - "$violations_file" "$final_file" <<'PY'
 import re, sys
 
 CANONICAL_PREFIXES = (
-    'shared/theme/src/typography.css:',
-    'shared/design-system/style.css:',
+    'packages/theme/src/typography.css:',
+    'packages/design-system/style.css:',
 )
 # var(--token-name) references count as compliant — they consume the shared
 # token system. We also allow arbitrary CSS values inside var() like
@@ -188,7 +188,7 @@ if [[ "$count" -eq 0 ]]; then
 fi
 
 echo "✗ typography-guard: $count custom font declaration(s) found in ${SCAN_PATHS[*]}"
-echo "  (typography tokens live in shared/theme/src/typography.css)"
+echo "  (typography tokens live in packages/theme/src/typography.css)"
 echo "  (see docs/SHARED_TYPOGRAPHY_DESIGN.md §13 Phase 6 for the allowed list)"
 echo
 echo "Hits (file:line:snippet):"

@@ -1,12 +1,12 @@
 ---
 paths:
-  - "console/vitest.config.ts"
-  - "console/test/**/*.ts"
-  - "console/src/**/{__tests__,test,tests}/**/*.{spec,test}.ts"
-  - "management/vitest.config.ts"
-  - "management/src/{api,components,composables,i18n,lib,stores,utils,views}/**/*.{spec,test}.ts"
-  - "shared/*/vitest.config.ts"
-  - "shared/*/{src,__tests__,test,tests}/**/*.{spec,test}.ts"
+  - "apps/console/vitest.config.ts"
+  - "apps/console/test/**/*.ts"
+  - "apps/console/src/**/{__tests__,test,tests}/**/*.{spec,test}.ts"
+  - "apps/management/vitest.config.ts"
+  - "apps/management/src/{api,components,composables,i18n,lib,stores,utils,views}/**/*.{spec,test}.ts"
+  - "packages/*/vitest.config.ts"
+  - "packages/*/{src,__tests__,test,tests}/**/*.{spec,test}.ts"
 kind: rules
 summary: 'Vitest testing conventions for frontend.'
 ---

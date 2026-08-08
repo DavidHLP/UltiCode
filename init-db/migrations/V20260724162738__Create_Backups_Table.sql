@@ -1,6 +1,6 @@
 -- Create canonical `backups` table for /admin/backups.
 -- ------------------------------------------------------------
--- Background: backend-spring/src/main/java/com/ulticode/modules/backup/**
+-- Background: backend-admin/src/main/java/com/ulticode/modules/backup/**
 --   (Backup entity with @TableName("backups"), BackupMapper, BackupService,
 --   BackupController, BackupReadProjection) reads and writes the `backups`
 --   table, but `init-db/migrations/` never defines it. CI does not allow

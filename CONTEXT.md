@@ -131,8 +131,11 @@
   `SystemTimeSource` (prod `@Component`) and `FakeTimeSource` (test,
   not a bean). Static utility call sites (`TraceIdUtil.current()`)
   reach it through `TimeSourceHolder`, installed at startup by
-  `TimeConfig`. Complements the `Clock` seam (`backend-spring/.../common/config/ClockConfig.java`)
-  which covers `LocalDateTime.now()`; wall millis + monotonic nanos were the
+  `TimeConfig`. Complements the owner-local `Clock` seams in
+  `services/auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java`,
+  `services/admin/src/main/java/com/ulticode/admin/config/AdminClockConfig.java`,
+  and `services/app/app-web/src/main/java/com/ulticode/app/config/AppClockConfig.java`,
+  which cover `LocalDateTime.now()`; wall millis + monotonic nanos were the
   two remaining JVM-time primitives.
 
 ## Design invariants
@@ -154,6 +157,7 @@
 - 2026-07-09: the `wiki/concepts/` ADR + concept-page layer was retired
   (see `wiki/log.md` 2026-07-09 entry). The "why" behind the in-progress
   refactor lives in commit messages, source Javadoc on the affected classes
-  (`backend-spring/.../common/config/ClockConfig.java`, `backend-spring/.../common/ratelimiter/RateLimiter.java`,
-  `backend-spring/.../common/time/TimeSource.java`), and the related
-  Flyway migration comments.
+  (`services/auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java`,
+  `services/platform/web-security/src/main/java/com/ulticode/websecurity/ratelimiter/RateLimiter.java`,
+  `services/platform/common/src/main/java/com/ulticode/common/time/TimeSource.java`),
+  and the related Flyway migration comments.

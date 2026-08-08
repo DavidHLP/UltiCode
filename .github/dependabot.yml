@@ -52,7 +52,7 @@ updates:
     rebase-strategy: "disabled"
 
   - package-ecosystem: "maven"
-    directory: "/backend-spring"
+    directory: "/services"
     schedule:
       interval: "weekly"
     groups:

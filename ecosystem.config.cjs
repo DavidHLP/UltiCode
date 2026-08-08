@@ -1,7 +1,7 @@
 const path = require('path')
 
 const ROOT = __dirname
-const BACKEND_CWD = path.join(ROOT, 'backend-spring')
+const BACKEND_CWD = path.join(ROOT, 'services')
 const BACKEND_ENV_FILE = path.join(ROOT, '.env')
 
 module.exports = {
@@ -10,7 +10,7 @@ module.exports = {
       name: 'ulticode-auth',
       cwd: BACKEND_CWD,
       script: 'mvn',
-      args: '-f backend-auth/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      args: '-f auth/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -28,7 +28,7 @@ module.exports = {
       name: 'ulticode-admin',
       cwd: BACKEND_CWD,
       script: 'mvn',
-      args: '-f backend-admin/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      args: '-f admin/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: { SERVER_PORT: '9102' },
@@ -42,7 +42,7 @@ module.exports = {
       name: 'ulticode-app',
       cwd: BACKEND_CWD,
       script: 'mvn',
-      args: '-f backend-app/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      args: '-f app/app-web/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -58,7 +58,7 @@ module.exports = {
     },
     {
       name: 'ulticode-9002',
-      cwd: path.join(ROOT, 'console'),
+      cwd: path.join(ROOT, 'apps', 'console'),
       script: 'pnpm',
       args: 'dev',
       interpreter: 'none',
@@ -71,7 +71,7 @@ module.exports = {
     },
     {
       name: 'ulticode-9003',
-      cwd: path.join(ROOT, 'management'),
+      cwd: path.join(ROOT, 'apps', 'management'),
       script: 'pnpm',
       args: 'dev',
       interpreter: 'none',

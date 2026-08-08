@@ -1,7 +1,7 @@
 ---
 description: UltiCode Vue 3 frontend project rules
 alwaysApply: true
-globs: ["console/**/*.ts", "console/**/*.vue", "management/**/*.ts", "management/**/*.vue"]
+globs: ["apps/console/**/*.ts", "apps/console/**/*.vue", "apps/management/**/*.ts", "apps/management/**/*.vue"]
 ---
 
 # UltiCode Vue 3 前端项目规则

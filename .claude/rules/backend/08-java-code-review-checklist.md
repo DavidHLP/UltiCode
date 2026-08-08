@@ -1,6 +1,7 @@
 ---
 paths:
-  - "backend-spring/src/**/*.java"
+  - "services/**/src/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/**/*.java"
   - "docker/sandbox/harness/java/src/**/*.java"
 kind: rules
 summary: 'Java code review checklist for Spring Boot.'

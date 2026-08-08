@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // ---------------------------------------------------------------------------
 // sync-theme-bootstrap.mjs — regenerate the two public FOUC bootstrap copies
-// from the canonical source shared/theme/bootstrap.js.
+// from the canonical source packages/theme/bootstrap.js.
 //
-// The copies at console/public/theme-bootstrap.js and
-// management/public/theme-bootstrap.js are GENERATED artifacts — edit the
+// The copies at apps/console/public/theme-bootstrap.js and
+// apps/management/public/theme-bootstrap.js are GENERATED artifacts — edit the
 // source, then run this script (or `pnpm sync:theme-bootstrap`).
 // `verify:theme-sync` guards the equality in CI.
 //
@@ -17,10 +17,10 @@ import { dirname, join } from 'node:path'
 const __filename = fileURLToPath(import.meta.url)
 const ROOT = dirname(dirname(__filename))
 
-const SOURCE = join(ROOT, 'shared/theme/bootstrap.js')
+const SOURCE = join(ROOT, 'packages/theme/bootstrap.js')
 const TARGETS = [
-  join(ROOT, 'console/public/theme-bootstrap.js'),
-  join(ROOT, 'management/public/theme-bootstrap.js'),
+  join(ROOT, 'apps/console/public/theme-bootstrap.js'),
+  join(ROOT, 'apps/management/public/theme-bootstrap.js'),
 ]
 
 let src
@@ -28,7 +28,7 @@ try {
   src = readFileSync(SOURCE, 'utf8')
 } catch (e) {
   console.error(`✘ Cannot read canonical source ${SOURCE}: ${e.message}`)
-  console.error('  Did you create shared/theme/bootstrap.js?')
+  console.error('  Did you create packages/theme/bootstrap.js?')
   process.exit(1)
 }
 

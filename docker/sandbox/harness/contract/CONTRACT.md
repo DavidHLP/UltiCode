@@ -257,7 +257,7 @@ any user code runs:
 
 ### 8.1 JVM conformance test (no Docker)
 
-`backend-spring/src/test/java/com/ulticode/modules/submission/contract/DFormEnvelopeContractTest.java`
+`services/app/app-web/src/test/java/com/ulticode/modules/submission/contract/DFormEnvelopeContractTest.java`
 
 * Loads `golden/envelope.json` from the contract dir (path relative to the
   harness contract, mirrored into `src/test/resources` for the build).

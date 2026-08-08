@@ -13,11 +13,11 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 echo Starting UltiCode...
 echo.
-REM --- backend-spring ---
-echo   Starting [backend-spring]...
-cd /d "%SCRIPT_DIR%\\C:\admin\Code\Project\OJ\UltiCode\backend-spring"
-start /b cmd /c "mvn spring-boot:run" > "%LOG_DIR%\\backend-spring.log" 2>&1
-echo !ERRORLEVEL! > "%PID_DIR%\\backend-spring.pid"
+REM --- services ---
+echo   Starting [services]...
+cd /d "%SCRIPT_DIR%\\C:\admin\Code\Project\OJ\UltiCode\services"
+start /b cmd /c "mvn spring-boot:run" > "%LOG_DIR%\\services.log" 2>&1
+echo !ERRORLEVEL! > "%PID_DIR%\\services.pid"
 echo     PID: !ERRORLEVEL!
 
 REM --- console ---

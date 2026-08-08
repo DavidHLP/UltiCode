@@ -36,6 +36,7 @@
 !/pnpm-workspace.yaml
 !/pitstop.yaml
 !/ecosystem.config.cjs
+!/.dockerignore
 !/docker-compose.yml
 !/docker-compose.dev.yml
 !/docker-compose.prod.yml
@@ -47,38 +48,71 @@
 # =====================================================================
 # 3. 后端 (Spring Boot / Java 17)
 # =====================================================================
-!backend-spring/**
-backend-spring/**/target/
-backend-spring/arthas-output/
-backend-spring/*.jar
-backend-spring/*.class
-backend-spring/.settings/
-backend-spring/.classpath
-backend-spring/.factorypath
-backend-spring/.project
-backend-spring/*.iml
+!services/**
+services/**/target/
+services/arthas-output/
+services/com/
+services/*.jar
+services/*.class
+services/.settings/
+services/.classpath/
+services/.factorypath/
+services/.project/
+services/*.iml
+services/auth/**/target/
+services/auth/**/uploads/
+services/auth/**/arthas-output/
+services/auth/**/*.jar
+services/auth/**/*.class
+services/admin/**/target/
+services/admin/**/uploads/
+services/admin/**/arthas-output/
+services/admin/**/*.jar
+services/admin/**/*.class
+services/app/**/target/
+services/app/**/uploads/
+services/app/**/arthas-output/
+services/app/**/*.jar
+services/app/**/*.class
 
 # =====================================================================
-# 4. 用户端前端 (Vue 3 / console)
+# 3a. Owner secret material exclusion (owners now under services/)
 # =====================================================================
-!console/**
-console/dist/
-console/node_modules/
-console/*.local
+services/**/.env*
+services/**/*.pem
+services/**/*.key
+services/**/*.p12
+services/**/*.jks
+services/**/*.secret
+services/**/secrets/
+services/**/credentials/
 
 # =====================================================================
-# 5. 管理端前端 (Vue 3 / management)
+# 4. 用户端前端 (Vue 3 / apps/console)
 # =====================================================================
-!management/**
-management/dist/
-management/node_modules/
-management/*.local
+!apps/**
+apps/*/dist/
+apps/*/node_modules/
+apps/*/*.local
+apps/*/.vite/
+apps/*/.cache/
+apps/*/.vitest/
+apps/*/coverage/
+apps/*/.eslintcache
+apps/*/.stylelintcache
+apps/*/.tsbuildinfo
+apps/*/dist-ssr/
 
 # =====================================================================
-# 6. 共享包 (shared/)
+# 5. 共享包 (packages/)
 # =====================================================================
-!shared/**
-shared/*/node_modules/
+!packages/**
+packages/*/node_modules/
+packages/*/dist/
+packages/*/coverage/
+packages/*/.vite/
+packages/*/.vitest/
+packages/*/.tsbuildinfo
 
 # =====================================================================
 # 7. 数据库迁移 (init-db/)
@@ -204,35 +238,6 @@ worktrees/
 .worktrees/
 
 # =====================================================================
-# 19b. 前端构建 / 测试缓存（pnpm + Vite + vitest）— 必须显式列入
-#     反选法下，console/** / management/** / shared/** 已被放行；这些
-#     工具默认产物不在目录命名约定内，需要逐棵点名。
-# =====================================================================
-console/.vite/
-console/.cache/
-console/.vitest/
-console/coverage/
-console/.eslintcache
-console/.stylelintcache
-console/.tsbuildinfo
-console/dist-ssr/
-
-management/.vite/
-management/.cache/
-management/.vitest/
-management/coverage/
-management/.eslintcache
-management/.stylelintcache
-management/.tsbuildinfo
-management/dist-ssr/
-
-shared/*/dist/
-shared/*/coverage/
-shared/*/.vite/
-shared/*/.vitest/
-shared/*/.tsbuildinfo
-
-# =====================================================================
 # 19c. Obsidian vault volatile state（防止多开发者工作区布局冲突）
 # =====================================================================
 wiki/.obsidian/workspace.json
@@ -275,6 +280,8 @@ dist-ssr/
 *.local
 *.log.gz
 .help.md
+# Maven reactor 根级编译产物泄漏（异常输出到 cwd 而非 target/）
+backend-spring/com/
 
 # =====================================================================
 # 23. 杂项
@@ -292,6 +299,4 @@ __pycache__/
 venv/
 .env/
 .venv/
-disposable-verify/.env.verify
-!/disposable-verify/
-!/disposable-verify/docker-compose.verify.yml
+disposable-verify/

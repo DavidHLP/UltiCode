@@ -4,24 +4,24 @@
     {
       "name": "ulticode-auth-9101",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Project/UltiCode/backend-spring/start.cjs"],
-      "env": {"SERVICE_MODULE": "backend-auth", "SERVER_PORT": "9101"},
+      "runtimeArgs": ["services/start.cjs"],
+      "env": {"SERVICE_MODULE": "auth", "SERVER_PORT": "9101"},
       "port": 9101,
       "autoPort": false
     },
     {
       "name": "ulticode-admin-9102",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Project/UltiCode/backend-spring/start.cjs"],
-      "env": {"SERVICE_MODULE": "backend-admin", "SERVER_PORT": "9102"},
+      "runtimeArgs": ["services/start.cjs"],
+      "env": {"SERVICE_MODULE": "admin", "SERVER_PORT": "9102"},
       "port": 9102,
       "autoPort": false
     },
     {
       "name": "ulticode-app-9103",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Project/UltiCode/backend-spring/start.cjs"],
-      "env": {"SERVICE_MODULE": "backend-app", "SERVER_PORT": "9103"},
+      "runtimeArgs": ["services/start.cjs"],
+      "env": {"SERVICE_MODULE": "app/app-web", "SERVER_PORT": "9103"},
       "port": 9103,
       "autoPort": false
     },

@@ -1,8 +1,10 @@
 ---
 paths:
   - "init-db/migrations/**/*.sql"
-  - "backend-spring/src/main/java/**/*Mapper.java"
-  - "backend-spring/src/main/java/**/mapper/**/*.java"
+  - "services/**/src/main/java/**/*Mapper.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/*Mapper.java"
+  - "services/**/src/main/java/**/mapper/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/mapper/**/*.java"
 kind: rules
 summary: 'MySQL coding standards for mappers and migrations.'
 ---

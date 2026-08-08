@@ -3,7 +3,7 @@
 -- the frontend (e.g. "algorithms") to the matching problem_tags row via its
 -- namespaced slug, joined through problem_tag_relations:
 --   WHERE pt.slug = CONCAT('problem-category-', <category>)
--- (see backend-spring/.../service/impl/ProblemServiceImpl.java).
+-- (see backend-app/src/main/java/com/ulticode/modules/problem/service/impl/ProblemServiceImpl.java).
 --
 -- Front-end constants live at console/src/constants/problem-categories.ts
 -- (values: all / algorithms / database / shell / concurrency). The "all"

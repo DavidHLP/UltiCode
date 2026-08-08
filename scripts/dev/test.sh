@@ -75,10 +75,10 @@ export SPRINGDOC_ENABLED=false
 MIGRATION_DB_NAME="$TEST_DB_NAME" "$ROOT_DIR/scripts/dev/migrate.sh" migrate
 
 echo "Running backend tests..."
-(cd "$ROOT_DIR/backend-spring" && ./mvnw test -B)
+(cd "$ROOT_DIR/services" && ./mvnw test -B)
 
 echo "Running shared authentication tests..."
-(cd "$ROOT_DIR/shared/auth-core" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+(cd "$ROOT_DIR/packages/auth-core" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
 
 echo "Running console tests..."
 (cd "$ROOT_DIR/console" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
@@ -102,7 +102,7 @@ if [[ "$MODE" == "integration" ]]; then
     docker build -t "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" "$ROOT_DIR/docker/sandbox"
   fi
   echo "Running Testcontainers and sandbox integration tests..."
-  (cd "$ROOT_DIR/backend-spring" && ./mvnw -Dtest='*IT' test -B)
+  (cd "$ROOT_DIR/services" && ./mvnw -Dtest='*IT' test -B)
 fi
 
 echo "All $MODE checks passed."

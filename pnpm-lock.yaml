@@ -4,6 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  dompurify: 3.4.5
+  lodash-es: 4.18.1
+  protocol-buffers-schema: 3.6.1
+  vite: ^8.0.16
+  form-data: ^4.0.6
+
 importers:
 
   .:
@@ -31,7 +38,7 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@25.9.4)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  console:
+  apps/console:
     dependencies:
       '@internationalized/date':
         specifier: ^3.12.1
@@ -79,8 +86,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       dompurify:
-        specifier: ^3.4.5
-        version: 3.4.11
+        specifier: 3.4.5
+        version: 3.4.5
       echarts:
         specifier: ^6.1.0
         version: 6.1.0
@@ -236,7 +243,7 @@ importers:
         specifier: ^3.3.1
         version: 3.3.5(typescript@6.0.3)
 
-  management:
+  apps/management:
     dependencies:
       '@dnd-kit/abstract':
         specifier: ^0.1.21
@@ -293,8 +300,8 @@ importers:
         specifier: ^0.0.2
         version: 0.0.2(vue@3.5.38(typescript@6.0.3))
       dompurify:
-        specifier: ^3.4.5
-        version: 3.4.11
+        specifier: 3.4.5
+        version: 3.4.5
       echarts:
         specifier: ^6.1.0
         version: 6.1.0
@@ -411,7 +418,7 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.0.14
+        specifier: ^8.0.16
         version: 8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
       vite-plugin-vue-devtools:
         specifier: ^8.1.2
@@ -423,7 +430,7 @@ importers:
         specifier: ^3.3.1
         version: 3.3.5(typescript@6.0.3)
 
-  shared/app-bootstrap:
+  packages/app-bootstrap:
     devDependencies:
       typescript:
         specifier: ~5.9.3
@@ -435,7 +442,7 @@ importers:
         specifier: ^3.5.0
         version: 3.5.38(typescript@5.9.3)
 
-  shared/auth-core:
+  packages/auth-core:
     dependencies:
       axios:
         specifier: ^1.16.1
@@ -457,7 +464,7 @@ importers:
         specifier: ^3.5.0
         version: 3.5.38(typescript@5.9.3)
 
-  shared/auth-ui:
+  packages/auth-ui:
     dependencies:
       clsx:
         specifier: ^2.1.1
@@ -488,7 +495,7 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
       vite:
-        specifier: ^8.0.0
+        specifier: ^8.0.16
         version: 8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.4
@@ -503,13 +510,13 @@ importers:
         specifier: ^2.1.10
         version: 2.2.12(typescript@5.9.3)
 
-  shared/badge-config:
+  packages/badge-config:
     dependencies:
       vue:
         specifier: ^3.5.0
         version: 3.5.38(typescript@6.0.3)
 
-  shared/datetime-utils:
+  packages/datetime-utils:
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -521,7 +528,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/design-system:
+  packages/design-system:
     dependencies:
       '@vueuse/core':
         specifier: ^14.1.0
@@ -546,7 +553,7 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
       vite:
-        specifier: ^8.0.0
+        specifier: ^8.0.16
         version: 8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
       vue:
         specifier: ^3.5.0
@@ -555,7 +562,7 @@ importers:
         specifier: ^2.1.10
         version: 2.2.12(typescript@5.9.3)
 
-  shared/domain-types:
+  packages/domain-types:
     devDependencies:
       typescript:
         specifier: ~5.9.3
@@ -564,7 +571,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@25.9.4)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/http-client:
+  packages/http-client:
     dependencies:
       '@ulticode/auth-core':
         specifier: workspace:*
@@ -583,7 +590,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/i18n-completeness:
+  packages/i18n-completeness:
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -595,7 +602,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/locale-preference:
+  packages/locale-preference:
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
@@ -610,14 +617,14 @@ importers:
         specifier: ^3.5.0
         version: 3.5.38(typescript@5.9.3)
 
-  shared/markdown-utils:
+  packages/markdown-utils:
     dependencies:
       '@mdit/plugin-katex':
         specifier: ^0.25.2
         version: 0.25.2(markdown-it@14.2.0)
       dompurify:
-        specifier: ^3.4.5
-        version: 3.4.11
+        specifier: 3.4.5
+        version: 3.4.5
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
@@ -644,7 +651,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@25.0.1(supports-color@7.2.0))(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/sandbox-types:
+  packages/sandbox-types:
     devDependencies:
       typescript:
         specifier: ~5.9.3
@@ -653,7 +660,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@25.9.4)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/sidebar-menu:
+  packages/sidebar-menu:
     dependencies:
       clsx:
         specifier: ^2.1.1
@@ -684,7 +691,7 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
       vite:
-        specifier: ^8.0.0
+        specifier: ^8.0.16
         version: 8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.4
@@ -696,7 +703,7 @@ importers:
         specifier: ^2.1.10
         version: 2.2.12(typescript@5.9.3)
 
-  shared/submission-status:
+  packages/submission-status:
     dependencies:
       '@ulticode/badge-config':
         specifier: workspace:*
@@ -712,7 +719,7 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@25.9.4)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@25.9.4)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
-  shared/theme:
+  packages/theme:
     devDependencies:
       '@vue/test-utils':
         specifier: ^2.4.10
@@ -2312,7 +2319,7 @@ packages:
   '@tailwindcss/vite@4.3.1':
     resolution: {integrity: sha512-hItDHuIIlEV61R+faXu66s1K36aTurO/Qw0e45Vskz57gXl9pWOT6eg3zmcEui6CZXddbN7zd41bwmvag4JGwQ==}
     peerDependencies:
-      vite: ^5.2.0 || ^6 || ^7 || ^8
+      vite: ^8.0.16
 
   '@tanstack/table-core@8.21.3':
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
@@ -2645,14 +2652,14 @@ packages:
     resolution: {integrity: sha512-jIAsvHOEtWpslLOI2MeElGFxH7M8pM83BU/Tor4RLyiwH0FM4nUW3xdvbw20EeU9wc5IspQwMq225K3CMnJEpA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
       vue: ^3.0.0
 
   '@vitejs/plugin-vue@6.0.7':
     resolution: {integrity: sha512-km+p+XdSz9Sxm5rqUbqcSfZYaAniKxWBj1KURl+Jr7UaPvvX7BmaWMdP69I5rrFDeQGyxAG7NXdc57vz+snhWg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
       vue: ^3.2.25
 
   '@vitest/coverage-v8@4.1.9':
@@ -2671,7 +2678,7 @@ packages:
     resolution: {integrity: sha512-EVkXzBjrPGM+cK8/ANWgBrkUCfJfb38/EfTSO8h7pWvKkyPkpWxvR7BkD2MyItMF62C97zAEoqdpUixwR/e+Rw==}
     peerDependencies:
       msw: ^2.4.9
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
     peerDependenciesMeta:
       msw:
         optional: true
@@ -2945,10 +2952,6 @@ packages:
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
-
-  agent-base@7.0.2:
-    resolution: {integrity: sha512-k2/tQ1+8Zf50dEUJWklUP80LcE/+Ph+OJ6cf2Ff2fD/c/TtCe6ofnCoNMz9UnyxOQYlaAALZtEWETzn+1JjfHg==}
-    engines: {node: '>= 14'}
 
   agent-base@7.1.0:
     resolution: {integrity: sha512-o/zjMZRhJxny7OyEF+Op8X+efiELC7k7yOjMzgfzVqOzXqkBkWI79YoTdOtsuWd5BWhAGAuOY/Xa6xpiaWXiNg==}
@@ -3462,11 +3465,8 @@ packages:
     peerDependencies:
       vue: ^3.3.0
 
-  dompurify@3.2.7:
-    resolution: {integrity: sha512-WhL/YuveyGXJaerVlMYGWhvQswa7myDG17P7Vu65EWC05o8vfeNbvNf4d/BOvH99+ZW+LlQsc1GDKMa1vNK6dw==}
-
-  dompurify@3.4.11:
-    resolution: {integrity: sha512-zhlUV12GsaRzMsf9q5M254YhA4+VuF0fG+QFqu6aYpoGlKtz+w8//jBcGVYBgQkR5GHjUomejY84AV+/uPbWdw==}
+  dompurify@3.4.5:
+    resolution: {integrity: sha512-OrwIBKsdNSVEeubdJ1HBv/wNENRM9ytAVCv7YXt//A3vPdVMNuACRqK9mXCGCBW2ln7BT/A4X0jXHo2Gu89miA==}
 
   dotenv@17.4.2:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
@@ -5369,19 +5369,19 @@ packages:
   vite-dev-rpc@2.0.0:
     resolution: {integrity: sha512-yKwbTwdHKSD2k/aGqyWpPHepo45OQc8lH3/6IfT4ZqeKE26ooKvi4WIEKzqWav8v+9Is8u1k8q54hvOmqASazA==}
     peerDependencies:
-      vite: ^2.9.0 || ^3.0.0-0 || ^4.0.0-0 || ^5.0.0-0 || ^6.0.1 || ^7.0.0-0 || ^8.0.0
+      vite: ^8.0.16
 
   vite-hot-client@2.2.0:
     resolution: {integrity: sha512-76Zs9zrHbH7M7wqeyooGQKdX+yg0pQ0xuQ1PbFp4z5a0Lzn2e5IPFoCswnmqZ4GiwqB4Jo3WcDAMO9jARTJl8w==}
     peerDependencies:
-      vite: ^2.6.0 || ^3.0.0 || ^4.0.0 || ^5.0.0-0 || ^6.0.0-0 || ^7.0.0-0 || ^8.0.0
+      vite: ^8.0.16
 
   vite-plugin-inspect@11.4.1:
     resolution: {integrity: sha512-ShOFe2PURXGvRS5OrgmOLZOCwDTD7dEBVt0tMpFPKb9AsvqXKCRGM8QgKrUbRbJYFXScHvDPpGRd28rYidC0tA==}
     engines: {node: '>=14'}
     peerDependencies:
       '@nuxt/kit': '*'
-      vite: ^6.0.0 || ^7.0.0-0 || ^8.0.0-0
+      vite: ^8.0.16
     peerDependenciesMeta:
       '@nuxt/kit':
         optional: true
@@ -5391,7 +5391,7 @@ packages:
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@vite-pwa/assets-generator': ^1.0.0
-      vite: ^3.1.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
       workbox-build: ^7.4.1
       workbox-window: ^7.4.1
     peerDependenciesMeta:
@@ -5402,12 +5402,12 @@ packages:
     resolution: {integrity: sha512-KBTUhbTXvY+GsCdShnCHG4WdijEV74KIDxhF8erfSs5g5mS13g/cPRUf4mLpD10qr5FqHYosNt0j6rP5kpiS1Q==}
     engines: {node: '>=v14.21.3'}
     peerDependencies:
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
 
   vite-plugin-vue-inspector@6.0.0:
     resolution: {integrity: sha512-OpyITJLgZNibxlrik1EmRtvXHDjLRxNPsWkGFTERZs2LgMEdG4W0WoFt5GIgp3a3jRou+eJR8U1zOBk/XQgEbw==}
     peerDependencies:
-      vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
 
   vite@8.0.16:
     resolution: {integrity: sha512-h9bXPmJichP5fLmVQo3PyaGSDE2n3aPuomeAlVRm0JLmt4rY6zmPKd59HYI4LNW8oTK7tlTsuC7l/m7awx9Jcw==}
@@ -5468,7 +5468,7 @@ packages:
       '@vitest/ui': 4.1.9
       happy-dom: '*'
       jsdom: '*'
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -5542,7 +5542,7 @@ packages:
       '@pinia/colada': '>=0.21.2'
       '@vue/compiler-sfc': ^3.5.34
       pinia: ^3.0.4
-      vite: ^7.0.0 || ^8.0.0
+      vite: ^8.0.16
       vue: ^3.5.34
     peerDependenciesMeta:
       '@pinia/colada':
@@ -7531,7 +7531,7 @@ snapshots:
 
   '@types/dompurify@3.2.0':
     dependencies:
-      dompurify: 3.4.11
+      dompurify: 3.4.5
 
   '@types/esrecurse@4.3.1': {}
 
@@ -8293,12 +8293,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  agent-base@7.0.2(supports-color@7.2.0):
-    dependencies:
-      debug: 4.4.3(supports-color@7.2.0)
-    transitivePeerDependencies:
-      - supports-color
-
   agent-base@7.1.0(supports-color@7.2.0):
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
@@ -8845,11 +8839,7 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
 
-  dompurify@3.2.7:
-    optionalDependencies:
-      '@types/trusted-types': 2.0.7
-
-  dompurify@3.4.11:
+  dompurify@3.4.5:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -9382,7 +9372,7 @@ snapshots:
 
   https-proxy-agent@7.0.5(supports-color@7.2.0):
     dependencies:
-      agent-base: 7.0.2(supports-color@7.2.0)
+      agent-base: 7.1.0(supports-color@7.2.0)
       debug: 4.4.3(supports-color@7.2.0)
     transitivePeerDependencies:
       - supports-color
@@ -9938,7 +9928,7 @@ snapshots:
 
   monaco-editor@0.55.1:
     dependencies:
-      dompurify: 3.2.7
+      dompurify: 3.4.5
       marked: 14.0.0
 
   mrmime@2.0.1: {}

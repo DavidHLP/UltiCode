@@ -1,0 +1,5 @@
+@import "../../../packages/design-system/style.css";
+@import "../../../packages/sidebar-menu/src/styles/sidebar-menu.css";
+@import "./assets/charts.css";
+
+@plugin "@tailwindcss/typography";

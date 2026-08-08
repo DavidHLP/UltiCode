@@ -43,7 +43,7 @@ The layout follows the [Claude Code rules documentation](https://code.claude.com
 ├── operations/runtime-and-infrastructure.md
 ├── operations/shell-scripting.md
 ├── security/trust-boundaries.md
-└── shared/packages.md
+└── packages/packages.md
 ```
 
 ## Design standard

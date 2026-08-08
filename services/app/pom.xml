@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.ulticode</groupId>
+		<artifactId>ulticode-backend</artifactId>
+		<version>1.0.0</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>backend-app</artifactId>
+	<packaging>pom</packaging>
+	<name>UltiCode Backend (app service parent)</name>
+	<description>Parent for the app owner service: boot shell (app-web) plus private domain modules.</description>
+
+	<modules>
+		<module>modules/problem</module>
+		<module>modules/contest</module>
+		<module>modules/submission</module>
+		<module>modules/notification</module>
+		<module>modules/moderation</module>
+		<module>app-web</module>
+	</modules>
+</project>

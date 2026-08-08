@@ -6,7 +6,7 @@ services:
     image: ulticode-backend-auth:latest
     build:
       context: .
-      dockerfile: backend-spring/Dockerfile
+      dockerfile: services/Dockerfile
       args:
         SERVICE_MODULE: backend-auth
         SERVICE_ARTIFACT: app.jar
@@ -17,7 +17,7 @@ services:
     image: ulticode-backend-admin:latest
     build:
       context: .
-      dockerfile: backend-spring/Dockerfile
+      dockerfile: services/Dockerfile
       args:
         SERVICE_MODULE: backend-admin
         SERVICE_ARTIFACT: app-exec.jar
@@ -28,7 +28,7 @@ services:
     image: ulticode-backend-app:latest
     build:
       context: .
-      dockerfile: backend-spring/Dockerfile
+      dockerfile: services/Dockerfile
       args:
         SERVICE_MODULE: backend-app
         SERVICE_ARTIFACT: app-exec.jar

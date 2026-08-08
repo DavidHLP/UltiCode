@@ -12,12 +12,12 @@ mkdir -p "$PID_DIR" "$LOG_DIR"
 
 echo "🏁 Starting UltiCode..."
 echo ""
-# --- backend-spring ---
-echo "  Starting [backend-spring]..."
-cd "$SCRIPT_DIR/C:\admin\Code\Project\OJ\UltiCode\backend-spring"
-nohup mvn spring-boot:run > "$LOG_DIR/backend-spring.log" 2>&1 &
-echo $! > "$PID_DIR/backend-spring.pid"
-echo "    PID: $(cat "$PID_DIR/backend-spring.pid") → $LOG_DIR/backend-spring.log"
+# --- services ---
+echo "  Starting [services]..."
+cd "$SCRIPT_DIR/C:\admin\Code\Project\OJ\UltiCode\services"
+nohup mvn spring-boot:run > "$LOG_DIR/services.log" 2>&1 &
+echo $! > "$PID_DIR/services.pid"
+echo "    PID: $(cat "$PID_DIR/services.pid") → $LOG_DIR/services.log"
 
 # --- console ---
 echo "  Starting [console]..."

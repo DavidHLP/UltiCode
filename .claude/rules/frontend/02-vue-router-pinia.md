@@ -1,10 +1,10 @@
 ---
 paths:
-  - "console/src/router/**/*.ts"
-  - "console/src/stores/**/*.ts"
-  - "management/src/router/**/*.ts"
-  - "management/src/stores/**/*.ts"
-  - "shared/**/*{router,store}*.ts"
+  - "apps/console/src/router/**/*.ts"
+  - "apps/console/src/stores/**/*.ts"
+  - "apps/management/src/router/**/*.ts"
+  - "apps/management/src/stores/**/*.ts"
+  - "packages/**/*{router,store}*.ts"
 kind: rules
 summary: 'Vue Router and Pinia store conventions.'
 ---

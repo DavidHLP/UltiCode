@@ -152,7 +152,7 @@ fi
 
 echo "--- 3a. Installing backend-common into the local repo ---"
 (
-  cd "$ROOT_DIR/backend-spring"
+  cd "$ROOT_DIR/services"
   ./mvnw -pl backend-common -am -DskipTests -B install \
     >"$LOG_DIR/backend-common-install.log" 2>&1 \
     || { echo "backend-common install failed (see $LOG_DIR/backend-common-install.log)" >&2; tail -50 "$LOG_DIR/backend-common-install.log" >&2; exit 1; }
@@ -160,10 +160,10 @@ echo "--- 3a. Installing backend-common into the local repo ---"
 
 echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
 (
-  cd "$ROOT_DIR/backend-spring"
+  cd "$ROOT_DIR/services"
   SERVER_PORT=9101 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 240 ./mvnw -pl backend-auth -am \
+      timeout --kill-after=15 240 ./mvnw -pl ../backend-auth -am \
         -Dspring-boot.run.profiles=dev \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \

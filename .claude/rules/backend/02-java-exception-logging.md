@@ -1,6 +1,7 @@
 ---
 paths:
-  - "backend-spring/src/**/*.java"
+  - "services/**/src/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/**/*.java"
 kind: rules
 summary: 'Exception handling and logging rules for backend Java.'
 ---

@@ -8,19 +8,22 @@ UltiCode is an online-judge platform with these main surfaces:
 
 | Path | Responsibility |
 | --- | --- |
-| `backend-spring/` | Java 17 / Spring Boot 3.2.5 API; domain modules live under `com.ulticode.modules` |
-| `console/` | Vue 3 user application |
-| `management/` | Vue 3 administrator application |
-| `shared/` | Focused frontend packages shared by both applications |
+| `services/auth/` | Auth owner service: credentials, OAuth, sessions, JWT, RBAC |
+| `services/admin/` | Admin owner service: governance, audit, settings, monitoring, backup |
+| `services/app/` | App owner service: OJ and general user business (parent of `app-web/` boot shell + `modules/` private domains) |
+| `services/` | Java 17 / Spring Boot 3.2.5 Maven parent/reactor; `platform/` (common, web-security), `api/` (Dubbo contracts), and three owner services |
+| `apps/console/` | Vue 3 user application |
+| `apps/management/` | Vue 3 administrator application |
+| `packages/` | Focused frontend packages shared by both applications |
 | `init-db/migrations/` | Canonical Flyway migrations |
 | `docker/` | Runtime infrastructure and judge sandbox |
 | `scripts/dev/` | Supported local startup, migration, and verification entry points |
 | `wiki/` | Architecture and domain reference; implementation and configuration remain authoritative |
 
-Read the nearest guide before editing `backend-spring/`, `console/`, `management/`, or `shared/`.
+Read the nearest guide before editing `services/`, `apps/console/`, `apps/management/`, or `packages/`.
 
 - Preserve the backend flow `controller -> service -> mapper -> entity` and existing domain-module boundaries. Do not introduce a parallel architecture for a local change.
-- Shared frontend code should own one coherent seam. If stable behavior is duplicated across both apps, extract or extend a focused package under `shared/`; do not force app-specific behavior into a shared abstraction.
+- Shared frontend code should own one coherent seam. If stable behavior is duplicated across both apps, extract or extend a focused package under `packages/`; do not force app-specific behavior into a shared abstraction.
 - Keep request/response contracts aligned across backend, shared types, and both frontends. Preserve the existing `Result` envelope and established field-name mappings.
 
 ## Working rules
@@ -29,7 +32,7 @@ Read the nearest guide before editing `backend-spring/`, `console/`, `management
 - Keep changes scoped. Preserve unrelated work in a dirty worktree and do not rewrite generated or historical files without a task-specific reason.
 - Validate inputs at system boundaries, use typed DTOs and parameterized database access, and follow existing error-handling patterns.
 - Add or update tests for changed behavior and important failure paths. Security-sensitive rendering and URL handling require malicious-input regressions.
-- Only `shared/theme` may write the `data-theme` attribute; `useThemeForceUpdate` is test-only.
+- Only `packages/theme` may write the `data-theme` attribute; `useThemeForceUpdate` is test-only.
 - Use existing project skills when the task matches them, especially database migration, API-contract, cross-stack DTO, operations, and security workflows.
 - Before review or completion, inspect the diff for correctness, security, concurrency/resource handling, error paths, compatibility, performance, coverage, unrelated changes, and documentation drift. Use the available `code-review` skill for a formal review.
 
@@ -40,7 +43,7 @@ Read the nearest guide before editing `backend-spring/`, `console/`, `management
 - OAuth state remains bound to an HttpOnly cookie and is consumed atomically from Redis.
 - WebSocket authentication accepts only the `access_token` cookie, never query, URL, or client-controlled STOMP tokens.
 - `/admin/**` and privileged methods require `ADMIN` or `SUPER_ADMIN`. Audit identity comes from the authenticated principal, not request data.
-- Markdown and KaTeX HTML must pass through `shared/markdown-utils`; do not bypass DOMPurify or send unsanitized output to `v-html`.
+- Markdown and KaTeX HTML must pass through `packages/markdown-utils`; do not bypass DOMPurify or send unsanitized output to `v-html`.
 - Base and production Compose configurations must not publish MySQL, Redis, Nacos, or backend ports. Development exposure belongs only in `docker-compose.dev.yml` and must bind to loopback. Keep Nacos authentication enabled and its default account disabled.
 - Do not add usable default users or passwords to migrations. Initial administrator provisioning remains opt-in.
 
@@ -64,24 +67,30 @@ Run checks proportional to the changed surface. Prefer the supported wrapper for
 Targeted checks:
 
 ```bash
-# backend-spring/
-./mvnw compile -B
-./mvnw test -B
-./mvnw -Dtest='*IT' test -B   # Surefire excludes *IT by default
-./mvnw verify -B              # includes JaCoCo report and thresholds
+# services/ Maven reactor; run from repository root
+(cd services && ./mvnw compile -B)
+(cd services && ./mvnw test -B)
+(cd services && ./mvnw -Dtest='*IT' test -B)   # Surefire excludes *IT by default
+(cd services && ./mvnw verify -B)              # includes JaCoCo report and thresholds
 
-# console/ or management/
-pnpm lint
-pnpm type-check
-pnpm test
-pnpm build
+# apps/console/
+(cd apps/console && pnpm lint)
+(cd apps/console && pnpm type-check)
+(cd apps/console && pnpm test)
+(cd apps/console && pnpm build)
 
-# management/ when translations change
-pnpm validate:i18n-keys
+# apps/management/
+(cd apps/management && pnpm lint)
+(cd apps/management && pnpm type-check)
+(cd apps/management && pnpm test)
+(cd apps/management && pnpm build)
+
+# apps/management/ when translations change
+(cd apps/management && pnpm validate:i18n-keys)
 
 # a changed shared package, when the scripts exist in its package.json
-pnpm type-check
-pnpm test
+pnpm --dir packages/<package> type-check
+pnpm --dir packages/<package> test
 ```
 
 For Compose or migration changes, also validate both configurations and whitespace:

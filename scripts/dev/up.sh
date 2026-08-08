@@ -242,8 +242,14 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   # 否则 Dubbo 注册中心鉴权失败 (错误码 5-10), 消费者发现不到 auth provider。
   # DUBBO_PROTOCOL_PORT=-1: bootstrap 只需消费 RPC, 随机端口避免与 PM2 admin
   # 或残留 bootstrap JVM 抢 20882 (BindException: 地址已在使用)。
+  # SecurityAutoConfiguration is excluded by backend-admin application.yml.
+  # In WebApplicationType.NONE, SecurityFilterAutoConfiguration is skipped too,
+  # so exclude UserDetailsServiceAutoConfiguration to avoid its missing
+  # SecurityProperties dependency before DevUserBootstrapRunner can execute.
+  # Keep the complete exclusion list because the command-line list replaces the
+  # YAML list instead of appending to it.
   (
-    cd "$ROOT_DIR/backend-spring"
+    cd "$ROOT_DIR/services"
     DUBBO_REGISTRY_USERNAME="$NACOS_USERNAME" \
     DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD" \
     DUBBO_PROTOCOL_PORT=-1 \
@@ -254,10 +260,10 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DEV_SEED_ADMIN_ROLE="$DEV_SEED_ADMIN_ROLE" \
     SERVER_PORT=9102 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 90 mvn -f backend-admin/pom.xml spring-boot:run \
+      timeout --kill-after=15 90 mvn -f admin/pom.xml spring-boot:run \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \
-        -Dspring-boot.run.arguments='--spring.main.web-application-type=none' \
+        -Dspring-boot.run.arguments='--spring.main.web-application-type=none --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration' \
         -B
   ) || bootstrap_rc=$?
   case "${bootstrap_rc:-0}" in
@@ -278,7 +284,7 @@ fi
 if [[ "$SKIP_INSTALL" != true ]]; then
   echo "Installing frontend and shared dependencies..."
   # node_modules 缺失时跳过 --frozen-lockfile (该 flag 在全新/残缺环境会因 lockfile 未解析而失败)
-  for package in console management shared/auth-core; do
+  for package in console management packages/auth-core; do
     if [[ ! -d "$ROOT_DIR/$package/node_modules" ]]; then
       echo "  $package: node_modules missing, running pnpm install..."
       (cd "$ROOT_DIR/$package" && pnpm install)

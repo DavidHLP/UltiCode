@@ -1,7 +1,10 @@
 ---
 paths:
-  - "backend-spring/pom.xml"
-  - "backend-spring/src/**/*.{java,yml,yaml,properties}"
+  - "services/pom.xml"
+  - "services/**/pom.xml"
+  - "{backend-auth,backend-admin,backend-app}/pom.xml"
+  - "services/**/src/**/*.{java,yml,yaml,properties}"
+  - "{backend-auth,backend-admin,backend-app}/src/**/*.{java,yml,yaml,properties}"
 kind: rules
 summary: 'Spring Boot backend conventions for the UltiCode API.'
 ---

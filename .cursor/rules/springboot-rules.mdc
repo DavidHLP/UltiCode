@@ -1,23 +1,19 @@
 ---
 description: UltiCode Spring Boot backend project rules
 alwaysApply: true
-globs: ["backend-spring/**/*.java"]
+globs: ["services/**/src/**/*.java", "{backend-auth,backend-admin,backend-app}/**/*.java"]
 ---
 
 # UltiCode Spring Boot 项目规则
 
 ## 架构分层
 
-项目遵循 `Controller → Service → Mapper (MyBatis-Plus) → Entity` 分层：
+三个 root-level owner 服务遵循 `Controller → Service/Projection/Port → Mapper → Entity` 分层，但入口 package 不同：
+- `services/auth/`：`com.ulticode.auth`，HTTP 入口在 `adapter/in/web/`，账号/session/security 由 owner 自持。
+- `services/admin/`：`com.ulticode.admin` 与 `com.ulticode.modules.admin`，管理 BFF 和治理能力由 owner 自持。
+- `services/app/`：`com.ulticode.app` 与 `com.ulticode.modules.*`，OJ 和普通用户业务由 owner 自持。
 
-```
-com.ulticode.modules.{module}/
-├── controller/      # REST 端点，参数校验
-├── service/         # 业务逻辑接口 + impl/
-├── mapper/          # MyBatis-Plus Mapper 接口
-├── entity/          # DO 类（与数据库表对应）
-└── dto/             # DTO/VO 类
-```
+`services/` shared modules (platform, api) and app-private domains (app/modules/) continue the same controller/service/projection/port/mapper/entity seams; do not infer a root-owner package from the shared reactor layout.
 
 ## 响应封装
 

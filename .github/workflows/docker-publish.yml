@@ -25,27 +25,27 @@ jobs:
       matrix:
         service:
           - name: backend-auth
-            dockerfile: ./backend-spring/Dockerfile
-            module: backend-auth
+            dockerfile: ./services/Dockerfile
+            module: auth
             artifact: app.jar
             port: 9101
             health_path: /api/v1/auth/health
           - name: backend-admin
-            dockerfile: ./backend-spring/Dockerfile
-            module: backend-admin
+            dockerfile: ./services/Dockerfile
+            module: admin
             artifact: app-exec.jar
             port: 9102
             health_path: /api/v1/admin/health
           - name: backend-app
-            dockerfile: ./backend-spring/Dockerfile
-            module: backend-app
+            dockerfile: ./services/Dockerfile
+            module: app/app-web
             artifact: app-exec.jar
             port: 9103
             health_path: /api/v1/app/health
           - name: console
-            dockerfile: ./console/Dockerfile
+            dockerfile: ./apps/console/Dockerfile
           - name: management
-            dockerfile: ./management/Dockerfile
+            dockerfile: ./apps/management/Dockerfile
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

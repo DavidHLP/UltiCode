@@ -1,7 +1,10 @@
 ---
 paths:
-  - "backend-spring/pom.xml"
-  - "backend-spring/src/**/*.java"
+  - "services/pom.xml"
+  - "services/**/pom.xml"
+  - "{backend-auth,backend-admin,backend-app}/pom.xml"
+  - "services/**/src/**/*.java"
+  - "{backend-auth,backend-admin,backend-app}/src/**/*.java"
 kind: rules
 summary: 'Java project structure and module layout.'
 ---
@@ -9,7 +12,7 @@ summary: 'Java project structure and module layout.'
 # Java project-structure rules
 
 - Place new production code in the existing domain module that owns the behavior. Do not create a parallel top-level architecture for a local feature.
-- Preserve the dependency direction and roles defined by `backend-spring/AGENTS.md`; controllers, services, mappers, entities, projections, and ports are not interchangeable.
+- Preserve the dependency direction and roles defined by the root `AGENTS.md` and, for shared reactor modules, `services/AGENTS.md`; controllers, services, mappers, entities, projections, and ports are not interchangeable.
 - Cross-module dependencies **MUST** use an existing public seam or a consumer-owned port. Do not import another module's implementation or persistence internals.
 - Use the narrowest visibility compatible with framework binding/proxying and the module contract. Fields are private unless an established framework or API contract requires otherwise; classes, constructors, and methods outside an external contract **SHOULD NOT** be public or widened for test convenience.
 - One source file **SHOULD** contain one public top-level type with a matching filename. Keep helpers package-private when they are not part of the module API.

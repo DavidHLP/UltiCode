@@ -1,11 +1,11 @@
 ---
 paths:
-  - "console/*.{ts,mts,cts,vue}"
-  - "console/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
-  - "management/*.{ts,mts,cts,vue}"
-  - "management/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
-  - "shared/*/*.{ts,mts,cts,vue}"
-  - "shared/*/{src,test,tests,__tests__}/**/*.{ts,mts,cts,vue}"
+  - "apps/console/*.{ts,mts,cts,vue}"
+  - "apps/console/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
+  - "apps/management/*.{ts,mts,cts,vue}"
+  - "apps/management/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
+  - "packages/*/*.{ts,mts,cts,vue}"
+  - "packages/*/{src,test,tests,__tests__}/**/*.{ts,mts,cts,vue}"
 kind: rules
 summary: 'Vue 3 + TypeScript conventions for both apps.'
 ---

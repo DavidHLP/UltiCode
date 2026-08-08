@@ -1,5 +1,5 @@
 -- ADR-004 M4a: Notification delivery ledger.
--- Typed dispatcher + per-channel ledger: see backend-spring/.../modules/notification/{intent,channel,ledger}/
+-- Typed dispatcher + per-channel ledger: see backend-app/src/main/java/com/ulticode/modules/notification/{intent,channel,ledger}/
 -- Per (intent_id, channel_id) UNIQUE = physical idempotency even on multi-replica
 -- or pm2 reload. tryClaim() uses INSERT ... ON DUPLICATE KEY UPDATE id=id so the
 -- claim itself is atomic; subsequent markDelivered / markFailed transitions the

@@ -116,7 +116,7 @@ MEILISEARCH_ENABLED=false
 # CLAUDE.md § Sandbox Harness. SANDBOX_ENABLED has NO effect on execution
 # (the executor keys off sandbox.executor, default docker); it is a historical
 # placeholder, keep false. SANDBOX_SECCOMP_PROFILE resolves against the backend
-# cwd (backend-spring/), hence the ../ prefix — a bare docker/sandbox/... here
+# cwd (services/), hence the ../ prefix — a bare docker/sandbox/... here
 # silently breaks every judge call with a masked "Runtime Error".
 SANDBOX_ENABLED=false
 SANDBOX_IMAGE=ulticode-sandbox:latest

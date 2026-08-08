@@ -8,7 +8,7 @@
 //    fixes."
 //
 // Both apps (console, management) MUST source their typography from
-// shared/theme/src/typography.css — either via the shared utility classes
+// packages/theme/src/typography.css — either via the shared utility classes
 // (`uc-type-*`, `font-mono`, `terminal-label`, ...) or via the
 // `--uc-*` / `--text-*` CSS variables. A new raw override is treated
 // as a regression and fails this check.
@@ -45,18 +45,18 @@ const FILE_EXTENSIONS = new Set(['.vue', '.ts', '.tsx', '.js', '.mjs', '.cjs', '
 // raw declaration; do NOT add app files here without a written reason.
 const ALLOWED_PATH_PATTERNS = [
   // The shared source of truth owns the canonical declarations.
-  'shared/theme/src/typography.css',
-  // shared/design-system/style.css imports the shared typography
-  // module and is the one place outside shared/theme that can
+  'packages/theme/src/typography.css',
+  // packages/design-system/style.css imports the shared typography
+  // module and is the one place outside packages/theme that can
   // re-anchor the Tailwind aliases. The script's regex matches
   // `--text-sm` only when it is preceded by a raw rem value, so the
   // shared aliases are safe.
-  'shared/design-system/style.css',
+  'packages/design-system/style.css',
   // The app-level style.css files are allowed to import the shared
   // foundation and define app-wide layout adjustments (e.g. terminal
   // table padding, header button height). They MUST NOT introduce new
   // raw font-size/font-family values — if you need a new typography
-  // token, add it to shared/theme/src/typography.css instead.
+  // token, add it to packages/theme/src/typography.css instead.
   'console/src/style.css',
   'management/src/style.css',
   // The chart / markdown asset CSS files in console ship with the
@@ -216,7 +216,7 @@ if (violations.length > 0) {
   console.error('Raw typography overrides detected. Apps must consume shared tokens.')
   console.error('Allowed declaration sites are listed in scripts/verify-typography-tokens.mjs')
   console.error('(ALLOWED_PATH_PATTERNS). Add new typography tokens to')
-  console.error('shared/theme/src/typography.css instead of redeclaring them locally.')
+  console.error('packages/theme/src/typography.css instead of redeclaring them locally.')
   console.error('')
   // Group by file for compact output
   const byFile = new Map()

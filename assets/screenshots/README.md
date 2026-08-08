@@ -2,7 +2,7 @@
 
 > 仓库主 `README.md` 界面预览区引用的全部截图。视口统一 1496×933 桌面端。
 >
-> 主题：项目使用 `shared/theme` 维护 light/dark/system 三态。下表「主题」列
+> 主题：项目使用 `packages/theme` 维护 light/dark/system 三态。下表「主题」列
 > 表示截图实际渲染的主题。
 
 ## Console · 用户端 (9002)

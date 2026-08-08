@@ -9,7 +9,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.common.util.PartialUpdate;
+import com.ulticode.admin.config.MybatisPlusPartialUpdate;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
@@ -218,9 +218,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                     .eq(Notification::getCategory, SYSTEM_CATEGORY)
                     .set(Notification::getTitle, request.getTitle())
                     .set(Notification::getBody, request.getContent());
-            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
                     UpdateSystemNotificationRequest::getType, Notification::getType);
-            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
                     UpdateSystemNotificationRequest::getCategory, Notification::getCategory);
             updatedCount = notificationMapper.update(null, updateWrapper);
         } else {
@@ -233,9 +233,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             if (notification.getCreatedAt() != null) {
                 updateWrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
             }
-            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
                     UpdateSystemNotificationRequest::getType, Notification::getType);
-            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
                     UpdateSystemNotificationRequest::getCategory, Notification::getCategory);
             updatedCount = notificationMapper.update(null, updateWrapper);
         }

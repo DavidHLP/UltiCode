@@ -29,6 +29,18 @@ if [[ -n "$DB_NAME_OVERRIDE" ]]; then
   export DB_NAME="$DB_NAME_OVERRIDE"
 fi
 
+# Optional privileged migration account override.
+# The per-owner shadow-user migrations (CREATE USER, cross-schema GRANT) require
+# DBA-level privileges that the runtime application account must NOT hold.
+# MICROSERVICE_MIGRATION_GUIDE.md documents a dedicated root migration account for
+# the Phase 5-6 transition. Callers already running with sufficient privileges (or
+# older migration chains that need none) leave MIGRATION_DB_USER unset and get the
+# default DB_USER from .env, preserving existing behavior.
+: "${MIGRATION_DB_USER:=$DB_USER}"
+: "${MIGRATION_DB_PASSWORD:=$DB_PASSWORD}"
+export DB_USER="$MIGRATION_DB_USER"
+export DB_PASSWORD="$MIGRATION_DB_PASSWORD"
+
 : "${DB_HOST:?DB_HOST is required}"
 : "${DB_PORT:?DB_PORT is required}"
 : "${DB_USER:?DB_USER is required}"

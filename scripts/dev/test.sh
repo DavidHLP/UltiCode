@@ -72,6 +72,13 @@ export MEILISEARCH_ENABLED=false
 export SANDBOX_ENABLED=false
 export SPRINGDOC_ENABLED=false
 
+# The shadow-user migrations issue CREATE USER and cross-schema GRANTs that the
+# runtime app account (DB_USER) cannot perform. Run the test migration as the
+# privileged root account, matching the Phase 5-6 model in
+# services/docs/MICROSERVICE_MIGRATION_GUIDE.md. Runtime app connections still use
+# DB_USER; only the migration step elevates.
+export MIGRATION_DB_USER=root
+export MIGRATION_DB_PASSWORD="$MYSQL_ROOT_PASSWORD"
 MIGRATION_DB_NAME="$TEST_DB_NAME" "$ROOT_DIR/scripts/dev/migrate.sh" migrate
 
 echo "Running backend tests..."
@@ -81,10 +88,10 @@ echo "Running shared authentication tests..."
 (cd "$ROOT_DIR/packages/auth-core" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
 
 echo "Running console tests..."
-(cd "$ROOT_DIR/console" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+(cd "$ROOT_DIR/apps/console" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
 
 echo "Running management tests..."
-(cd "$ROOT_DIR/management" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+(cd "$ROOT_DIR/apps/management" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
 
 if [[ "$MODE" == "full" ]]; then
   echo "Running production builds and dependency audits..."
@@ -93,8 +100,8 @@ if [[ "$MODE" == "full" ]]; then
   # ERR_PNPM_AUDIT_ENDPOINT_NOT_EXISTS. Warn and continue rather than
   # failing the whole suite on an environment/registry limitation.
   # Production CI SHOULD use a registry that supports audit.
-  (cd "$ROOT_DIR/console" && pnpm build && { pnpm audit --prod --audit-level high || echo "WARN: pnpm audit unavailable; skipped" >&2; })
-  (cd "$ROOT_DIR/management" && pnpm validate:i18n-keys && pnpm build && { pnpm audit --prod --audit-level high || echo "WARN: pnpm audit unavailable; skipped" >&2; })
+  (cd "$ROOT_DIR/apps/console" && pnpm build && { pnpm audit --prod --audit-level high || echo "WARN: pnpm audit unavailable; skipped" >&2; })
+  (cd "$ROOT_DIR/apps/management" && pnpm validate:i18n-keys && pnpm build && { pnpm audit --prod --audit-level high || echo "WARN: pnpm audit unavailable; skipped" >&2; })
 fi
 
 if [[ "$MODE" == "integration" ]]; then

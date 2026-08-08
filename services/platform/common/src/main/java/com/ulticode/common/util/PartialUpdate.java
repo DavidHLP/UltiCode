@@ -1,6 +1,5 @@
 package com.ulticode.common.util;
 
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import org.springframework.util.StringUtils;
 import java.io.Serializable;
 
@@ -8,9 +7,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Copy non-null DTO fields onto an entity (or into a MyBatis-Plus
- * {@code LambdaUpdateWrapper}) without the {@code if (dto.getX() != null)
- * entity.setX(dto.getX())} boilerplate that pollutes admin/service impls.
+ * Copy non-null DTO fields onto an entity without the
+ * {@code if (dto.getX() != null) entity.setX(dto.getX())} boilerplate that
+ * pollutes admin/service impls.
  *
  * <p>Two patterns were duplicated 30+ times across
  * {@code AdminProblemListServiceImpl}, {@code AdminContestServiceImpl},
@@ -24,6 +23,12 @@ import java.util.function.Function;
  * (callers wrap the call inside their own {@code AuditContext} block —
  * the audit policy is service-level, the field-copy policy is generic).
  *
+ * <p>This class is intentionally free of MyBatis-Plus references so
+ * backend-common stays reusable by every Dubbo contract module (enforced by
+ * {@code BackendCommonArchTest#COMMON_MUST_NOT_DEPEND_ON_MYBATIS}). The
+ * {@code LambdaUpdateWrapper} variants live in
+ * {@code com.ulticode.admin.config.MybatisPlusPartialUpdate}.
+ *
  * <h2>Examples</h2>
  * <pre>{@code
  * // In-memory entity update
@@ -32,10 +37,6 @@ import java.util.function.Function;
  *
  * // String-typed field (use hasText so an empty string is treated as "absent")
  * PartialUpdate.setIfPresentText(dto, AdminUpdateUserDTO::getUsername, user::setUsername);
- *
- * // LambdaUpdateWrapper (SQL-level update, no entity in memory)
- * PartialUpdate.setIfPresentWrapper(wrapper, dto, AdminUpdateUserDTO::getUsername, User::getUsername);
- * PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getUsername, User::getUsername);
  * }</pre>
  */
 public final class PartialUpdate implements Serializable {
@@ -67,40 +68,6 @@ public final class PartialUpdate implements Serializable {
         String value = getter.apply(dto);
         if (StringUtils.hasText(value)) {
             setter.accept(value);
-        }
-    }
-
-    /**
-     * {@code LambdaUpdateWrapper} variant of {@link #setIfPresent} for
-     * SQL-level partial updates. The wrapper accumulates the set clauses
-     * until the caller invokes {@code mapper.update(null, wrapper)}.
-     *
-     * @param wrapper the MyBatis-Plus update wrapper to mutate
-     * @param dto     the DTO carrying the partial-update intent
-     * @param getter  extracts the field value from the DTO
-     * @param column  the MyBatis-Plus column reference (e.g. {@code User::getUsername})
-     * @param <E>     entity type
-     * @param <D>     DTO type
-     */
-    public static <E, D, V> void setIfPresentWrapper(
-            com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<E> wrapper,
-            D dto, Function<D, V> getter, SFunction<E, V> column) {
-        V value = getter.apply(dto);
-        if (value != null) {
-            wrapper.set(column, value);
-        }
-    }
-
-    /**
-     * {@code LambdaUpdateWrapper} variant of {@link #setIfPresentText} for
-     * {@code String} columns. Skips empty / blank values.
-     */
-    public static <E, D> void setIfPresentTextWrapper(
-            com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<E> wrapper,
-            D dto, Function<D, String> getter, SFunction<E, String> column) {
-        String value = getter.apply(dto);
-        if (StringUtils.hasText(value)) {
-            wrapper.set(column, value);
         }
     }
 }

@@ -28,20 +28,24 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`moderation_ac
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`user_warnings` TO 'admin_rw'@'%';
 
 -- Grants for app_rw
+-- NOTE: bookmarks, problem_list_items, submission_test_details and votes have no
+-- CREATE TABLE migration (not-yet-implemented features). MySQL 8+ rejects GRANT on a
+-- non-existent table (Error 1146) and that blocked the entire Flyway chain on fresh
+-- databases, so their grants are intentionally omitted here. app_rw receives
+-- schema-wide DML on `app`.* in V20260729140000, which covers these tables once they
+-- are created. V20260804130000 mirrors this same omission on its REVOKE side.
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problems` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problem_details` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problem_examples` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problem_languages` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problem_notes` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problem_lists` TO 'app_rw'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`problem_list_items` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`test_cases` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`contests` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`contest_problems` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`contest_participants` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`contest_announcements` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`submissions` TO 'app_rw'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`submission_test_details` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`judge_outbox` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`solutions` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`solution_comments` TO 'app_rw'@'%';
@@ -52,8 +56,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`forum_communi
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`notifications` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`notification_delivery_ledger` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`achievements` TO 'app_rw'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`bookmarks` TO 'app_rw'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`votes` TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `${flyway:defaultSchema}`.`backups` TO 'app_rw'@'%';
 
 FLUSH PRIVILEGES;

@@ -576,12 +576,93 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
     // ── Seccomp resolution ─────────────────────────────────────────────────
 
+    // Cap on how far resolveSeccompProfileFilePath() walks up from user.dir
+    // while re-rooting a repository-root-relative profile path. Bounded so a
+    // pathological user.dir near the filesystem root still terminates quickly.
+    private static final int SECCOMP_REROOT_MAX_DEPTH = 10;
+
+    /**
+     * Resolve the host-side seccomp profile path that gets passed to
+     * {@code docker run --security-opt seccomp=<path>} (read by the daemon)
+     * and mounted via {@code --volume <dir>:/seccomp-profile:ro}.
+     *
+     * <p>The configured path is intentionally <b>relative</b> (no absolute
+     * paths in config — portability/design-norm). It is treated as
+     * <b>repository-root-relative</b> and re-rooted by walking up from the
+     * JVM working directory until the target exists. This is necessary
+     * because {@code user.dir} drifts per launch mode: {@code mvn
+     * spring-boot:run} forks a JVM whose {@code user.dir} is the module
+     * directory (e.g. {@code services/app/app-web}), a packaged jar uses
+     * wherever it was launched from, and PM2 sets {@code cwd = services/}.
+     * A single relative path resolved via {@code Path.toAbsolutePath()}
+     * therefore pointed at different files per launch mode and silently
+     * broke every judge call (docker exit 125 → masked "Runtime Error").
+     *
+     * <p>Resolution order:
+     * <ol>
+     *   <li>Absolute path → used verbatim.</li>
+     *   <li>{@code user.dir/<path>} if it exists → returned (fast path when
+     *       the JVM already runs from the repo root).</li>
+     *   <li>Walk up from {@code user.dir.getParent()}; the first
+     *       {@code ancestor/<path>} that exists is returned (re-root). This
+     *       is the normal path under {@code mvn spring-boot:run}, so it is
+     *       silent; a WARN fires only in the next branch.</li>
+     *   <li>Nothing matched → return the {@code user.dir}-relative path so
+     *       docker surfaces a clear "no such file" error rather than
+     *       silently weakening isolation by dropping the seccomp filter.
+     *       This is the one case that logs a WARN.</li>
+     * </ol>
+     *
+     * <p>No filename or directory constant is embedded here — the walk-up
+     * re-roots whatever relative path configuration supplied.
+     */
     private String resolveSeccompProfileFilePath() {
         String path = config.seccompProfilePath();
         if (path == null || path.isBlank()) {
             return "";
         }
-        return java.nio.file.Path.of(path).toAbsolutePath().toString();
+        String resolved = resolveSeccompProfile(path,
+                Path.of(System.getProperty("user.dir", ".")));
+        // Re-rooting under spring-boot:run is the normal path (no log). Warn
+        // only when the resolved file does not exist — that is the one case
+        // where docker will reject the run (exit 125). The classifier now
+        // surfaces that as SANDBOX_ERROR instead of masking it as a user
+        // "Runtime Error", and this log pinpoints the misconfiguration.
+        if (!Files.exists(Path.of(resolved))) {
+            log.warn("Seccomp profile '{}' could not be resolved from user.dir ({}); "
+                            + "returning {} — docker will reject the run with a clear error.",
+                    path, System.getProperty("user.dir"), resolved);
+        }
+        return resolved;
+    }
+
+    /**
+     * Pure resolution logic, extracted for unit testing. Resolves a
+     * repository-root-relative {@code configuredPath} by walking up from
+     * {@code userDir} until the target exists. See
+     * {@link #resolveSeccompProfileFilePath()} for the full rationale.
+     */
+    static String resolveSeccompProfile(String configuredPath, Path userDir) {
+        Path configured = Path.of(configuredPath);
+        if (configured.isAbsolute()) {
+            return configured.toString();
+        }
+        Path direct = userDir.resolve(configured).normalize();
+        if (Files.exists(direct)) {
+            return direct.toString();
+        }
+        Path ancestor = userDir.getParent();
+        for (int depth = 0; ancestor != null && depth < SECCOMP_REROOT_MAX_DEPTH; depth++) {
+            Path candidate = ancestor.resolve(configured).normalize();
+            if (Files.exists(candidate)) {
+                return candidate.toString();
+            }
+            ancestor = ancestor.getParent();
+        }
+        // Nothing matched: return the user.dir-relative path so docker
+        // surfaces a clear "no such file" error instead of silently
+        // weakening isolation by dropping the seccomp filter.
+        return direct.toString();
     }
 
     private String resolveSeccompProfileDirectoryPath() {

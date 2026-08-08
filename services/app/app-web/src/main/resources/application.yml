@@ -139,7 +139,7 @@ code-execution:
     cpus: ${SANDBOX_CPUS:1.0}
     timeout: ${SANDBOX_TIMEOUT:10}
     pids-limit: ${SANDBOX_PIDS_LIMIT:128}
-    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:../../docker/sandbox/seccomp-profile.json}
+    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
     d-form:
       enabled: ${SANDBOX_DFORM_ENABLED:true}
       harness-root: ${SANDBOX_DFORM_HARNESS_ROOT:/opt/harness}

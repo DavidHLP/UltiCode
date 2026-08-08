@@ -62,6 +62,31 @@ class SandboxOutcomeClassifierTest {
         }
 
         @Test
+        @DisplayName("exit 125 (docker never started container) is OCI_ERROR — seccomp profile missing")
+        void exit125_seccompProfileMissing_ociError() {
+            // Real fingerprint from docker when --security-opt seccomp=<path>
+            // points at a non-existent file. Previously masked as user RE.
+            String evidence = "docker: opening seccomp profile (/repo/docker/sandbox/seccomp-profile.json) "
+                    + "failed: open .../seccomp-profile.json: no such file or directory";
+            assertThat(classifier.classify(125, evidence, null, false))
+                    .isEqualTo(SandboxInfraFailure.OCI_ERROR);
+        }
+
+        @Test
+        @DisplayName("exit 125 with empty output is still OCI_ERROR (125 is unambiguous infra)")
+        void exit125_emptyOutput_ociError() {
+            assertThat(classifier.classify(125, "", null, false))
+                    .isEqualTo(SandboxInfraFailure.OCI_ERROR);
+        }
+
+        @Test
+        @DisplayName("exit 125 outranks a compile signal (infra before user-code classification)")
+        void exit125_outranksCompile() {
+            assertThat(classifier.classify(125, "Solution.java:1: error", null, /* compile */ true))
+                    .isEqualTo(SandboxInfraFailure.OCI_ERROR);
+        }
+
+        @Test
         @DisplayName("'Cannot fork' in stdout is FORK_LIMIT")
         void cannotFork_forkLimit() {
             assertThat(classifier.classify(1, "sh: 0: Cannot fork", null, false))

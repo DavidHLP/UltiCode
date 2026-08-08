@@ -107,6 +107,19 @@ public class SandboxOutcomeClassifier {
             return SandboxInfraFailure.OUT_OF_MEMORY;
         }
 
+        // 3a) docker exit 125 means the daemon never created the container
+        //    (bad --security-opt / seccomp profile, unknown flag, daemon
+        //    config error). It is unambiguous infrastructure, never user
+        //    code — the user process can't run because the container was
+        //    rejected before start. Previously this fell through to the
+        //    RUNTIME_ERROR catch-all, masking every docker-config breakage
+        //    (e.g. an unresolvable seccomp profile path) as a generic
+        //    "Runtime Error" + memory 0. Classify as OCI_ERROR so it
+        //    surfaces as SANDBOX_ERROR with the real evidence.
+        if (exitCode == 125) {
+            return SandboxInfraFailure.OCI_ERROR;
+        }
+
         // 4) Sandbox-side fork / pids-limit / RLIMIT_NPROC exhaustion.
         if (containsAny(s,
                 "Cannot fork",

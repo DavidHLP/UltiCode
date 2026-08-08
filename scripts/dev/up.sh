@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Sanitize NODE_OPTIONS for this script and every PM2-managed process it
+# launches. A polluted NODE_OPTIONS (e.g. a stale `--import` of a hook shim
+# that no longer exists) makes every node/pm2 CLI invocation crash with
+# ERR_MODULE_NOT_FOUND. The PM2 daemon forks managed apps from ITS own env,
+# so they are unaffected — but the pm2 CLI this script drives is a node
+# process that inherits the launcher shell's env. Dropping NODE_OPTIONS here
+# keeps the supported startup path (`./scripts/dev/up.sh`) runnable from any
+# shell, regardless of what the launcher exported.
+unset NODE_OPTIONS
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
 

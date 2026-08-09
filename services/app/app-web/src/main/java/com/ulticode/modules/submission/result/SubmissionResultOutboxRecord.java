@@ -56,6 +56,12 @@ public class SubmissionResultOutboxRecord {
     @TableField("created_at")
     private LocalDateTime createdAt;
 
+    @TableField("claimed_at")
+    private LocalDateTime claimedAt;
+
+    @TableField("claim_owner")
+    private String claimOwner;
+
     @TableField("delivered_at")
     private LocalDateTime deliveredAt;
 

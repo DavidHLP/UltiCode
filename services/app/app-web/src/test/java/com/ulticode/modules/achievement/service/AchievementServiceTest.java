@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Clock;
 import java.util.*;
@@ -269,6 +270,22 @@ class AchievementServiceTest {
 
             assertTrue(awarded.isEmpty());
             verify(userAchievementMapper, never()).insert(any(UserAchievement.class));
+        }
+
+        @Test
+        @DisplayName("concurrent duplicate award is treated as idempotent")
+        void duplicateAwardDoesNotFailOrPublish() {
+            Achievement achievement = createTestAchievement();
+            when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
+            when(userAchievementMapper.insert(any(UserAchievement.class)))
+                    .thenThrow(new DuplicateKeyException("duplicate award"));
+
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(
+                    USER_ID, AchievementType.PROBLEMS_SOLVED, 1);
+
+            assertTrue(awarded.isEmpty());
+            verify(eventPublisher, never()).publishEvent(any(AchievementEarnedEvent.class));
         }
 
         @Test

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.testcontainers.containers.MySQLContainer;
@@ -18,6 +19,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,10 +71,12 @@ class IntegrationOutboxDispatcherIT {
                   `stream_id`          varchar(80)  DEFAULT NULL,
                   `created_at`         datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                   `claimed_at`         datetime(3)  DEFAULT NULL,
+                  `claim_owner`        varchar(80)   DEFAULT NULL,
                   `delivered_at`       datetime(3)  DEFAULT NULL,
                   `next_retry_at`      datetime(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                   PRIMARY KEY (`event_id`),
-                  KEY `idx_outbox_state_retry` (`state`, `next_retry_at`)
+                  KEY `idx_outbox_state_retry` (`state`, `next_retry_at`),
+                  KEY `idx_outbox_claim_owner` (`state`, `claim_owner`, `created_at`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
                 """);
         }
@@ -106,20 +110,28 @@ class IntegrationOutboxDispatcherIT {
             IntegrationOutboxRecord record = makeRecord("evt-happy-001", "UserRegistered", 0);
 
             IntegrationOutboxMapper mapper = mock(IntegrationOutboxMapper.class);
-            when(mapper.claimPending(anyInt())).thenReturn(1);
-            when(mapper.selectClaimed()).thenReturn(List.of(record));
+            when(mapper.claimPending(anyString(), anyInt())).thenReturn(1);
+            when(mapper.selectClaimed(anyString())).thenReturn(List.of(record));
 
             StringRedisTemplate redis = mock(StringRedisTemplate.class);
             StreamOperations<String, Object, Object> streamOps = mock(StreamOperations.class);
             when(redis.opsForStream()).thenReturn((StreamOperations) streamOps);
             when(streamOps.add(any(MapRecord.class))).thenReturn(RecordId.of("1234567890-0"));
 
+            when(mapper.markDelivered(anyString(), anyString(), anyString())).thenReturn(1);
+
             IntegrationOutboxDispatcher dispatcher = new IntegrationOutboxDispatcher(mapper, redis);
             int published = dispatcher.dispatch();
 
             assertThat(published).isEqualTo(1);
-            verify(mapper).markDelivered("evt-happy-001", "1234567890-0");
-            verify(mapper, never()).markFailed(anyString(), anyString(), anyInt());
+            verify(mapper).reclaimStaleClaimed();
+            verify(mapper).markDelivered(eq("evt-happy-001"), anyString(), eq("1234567890-0"));
+            verify(mapper, never()).markFailed(anyString(), anyString(), anyString(), anyInt());
+
+            ArgumentCaptor<MapRecord> streamRecord = ArgumentCaptor.forClass(MapRecord.class);
+            verify(streamOps).add(streamRecord.capture());
+            Map<?, ?> streamFields = (Map<?, ?>) streamRecord.getValue().getValue();
+            assertThat(streamFields.get("aggregateVersion")).isEqualTo("0");
         }
     }
 
@@ -133,8 +145,8 @@ class IntegrationOutboxDispatcherIT {
             IntegrationOutboxRecord record = makeRecord("evt-poison-001", "PoisonEvent", 4);
 
             IntegrationOutboxMapper mapper = mock(IntegrationOutboxMapper.class);
-            when(mapper.claimPending(anyInt())).thenReturn(1);
-            when(mapper.selectClaimed()).thenReturn(List.of(record));
+            when(mapper.claimPending(anyString(), anyInt())).thenReturn(1);
+            when(mapper.selectClaimed(anyString())).thenReturn(List.of(record));
 
             StringRedisTemplate redis = mock(StringRedisTemplate.class);
             StreamOperations<String, Object, Object> streamOps = mock(StreamOperations.class);
@@ -146,8 +158,9 @@ class IntegrationOutboxDispatcherIT {
             dispatcher.dispatch();
 
             // markFailed with maxAttempts=5 (IntegrationOutboxDispatcher.MAX_ATTEMPTS)
-            verify(mapper).markFailed(eq("evt-poison-001"), contains("Redis connection refused"), eq(5));
-            verify(mapper, never()).markDelivered(anyString(), anyString());
+            verify(mapper).markFailed(
+                    eq("evt-poison-001"), anyString(), contains("Redis connection refused"), eq(5));
+            verify(mapper, never()).markDelivered(anyString(), anyString(), anyString());
         }
 
         @Test
@@ -156,8 +169,8 @@ class IntegrationOutboxDispatcherIT {
             IntegrationOutboxRecord record = makeRecord("evt-retry-001", "RetryEvent", 0);
 
             IntegrationOutboxMapper mapper = mock(IntegrationOutboxMapper.class);
-            when(mapper.claimPending(anyInt())).thenReturn(1);
-            when(mapper.selectClaimed()).thenReturn(List.of(record));
+            when(mapper.claimPending(anyString(), anyInt())).thenReturn(1);
+            when(mapper.selectClaimed(anyString())).thenReturn(List.of(record));
 
             StringRedisTemplate redis = mock(StringRedisTemplate.class);
             StreamOperations<String, Object, Object> streamOps = mock(StreamOperations.class);
@@ -169,8 +182,9 @@ class IntegrationOutboxDispatcherIT {
             dispatcher.dispatch();
 
             // Should call markFailed (which internally transitions to PENDING since 0+1 < 5)
-            verify(mapper).markFailed(eq("evt-retry-001"), contains("Transient failure"), eq(5));
-            verify(mapper, never()).markDelivered(anyString(), anyString());
+            verify(mapper).markFailed(
+                    eq("evt-retry-001"), anyString(), contains("Transient failure"), eq(5));
+            verify(mapper, never()).markDelivered(anyString(), anyString(), anyString());
         }
     }
 

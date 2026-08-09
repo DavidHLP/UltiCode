@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -119,6 +120,65 @@ class NotificationDispatcherTest {
         verify(channelA).send(intent);
         verify(channelB).send(intent);
         verify(channelC).send(intent);
+    }
+    @Test
+    @DisplayName("durable retry propagates a post-delivery ledger failure")
+    void durableRetryPropagatesLedgerFailure() {
+        when(channelA.channelId()).thenReturn("a");
+        when(channelB.channelId()).thenReturn("b");
+        when(channelC.channelId()).thenReturn("c");
+        when(channelA.supports(any())).thenReturn(true);
+        when(channelB.supports(any())).thenReturn(true);
+        when(channelC.supports(any())).thenReturn(true);
+        org.mockito.Mockito.doThrow(new RuntimeException("ledger down"))
+                .when(ledgerMapper).markDelivered(anyString(), eq("a"));
+
+        NotificationIntent intent = sampleIntent("user-1");
+
+        assertThatThrownBy(() -> dispatcher.dispatchForDurableRetry(intent))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(intent.intentId());
+        verify(channelA).send(intent);
+        verify(channelB).send(intent);
+        verify(channelC).send(intent);
+    }
+
+    @Test
+    @DisplayName("durable retry propagates an outstanding claimed ledger row")
+    void durableRetryPropagatesOutstandingClaim() {
+        when(channelA.channelId()).thenReturn("a");
+        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString())).thenReturn(0);
+        when(ledgerMapper.findByIntentAndChannel(anyString(), eq("a")))
+                .thenReturn(NotificationDeliveryLedger.builder()
+                        .deliveryState(DeliveryState.CLAIMED)
+                        .build());
+
+        NotificationIntent intent = sampleIntent("user-1");
+
+        assertThatThrownBy(() -> dispatcher.dispatchForDurableRetry(intent))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(intent.intentId());
+        verify(channelA, never()).send(any());
+        verify(ledgerMapper, never()).markFailed(anyString(), eq("a"), anyString());
+    }
+
+    @Test
+    @DisplayName("durable retry propagates an exhausted FAILED ledger row")
+    void durableRetryPropagatesExhaustedFailure() {
+        when(channelA.channelId()).thenReturn("a");
+        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString())).thenReturn(0);
+        when(ledgerMapper.findByIntentAndChannel(anyString(), eq("a")))
+                .thenReturn(NotificationDeliveryLedger.builder()
+                        .deliveryState(DeliveryState.FAILED)
+                        .build());
+
+        NotificationIntent intent = sampleIntent("user-1");
+
+        assertThatThrownBy(() -> dispatcher.dispatchForDurableRetry(intent))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(intent.intentId());
+        verify(channelA, never()).send(any());
+        verify(ledgerMapper, never()).markFailed(anyString(), eq("a"), anyString());
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.ulticode.modules.queue.processor;
 
-import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.app.api.service.SubmissionFencePort;
 import com.ulticode.app.api.service.SubmissionWritePort;
@@ -10,7 +9,6 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
-import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.submission.entity.Submission;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -48,11 +46,6 @@ class DefaultJudgeAttemptExecutorTest {
     @Mock
     private SubmissionWritePort submissionWritePort;
 
-    @Mock
-    private SubmissionResultPushPort submissionResultPushPort;
-
-    @Mock
-    private ContestSubmissionPort contestSubmissionPort;
 
     @Mock
     private JudgeExecutionPipeline executionPipeline;
@@ -85,8 +78,6 @@ class DefaultJudgeAttemptExecutorTest {
     void setUp() {
         executor = new DefaultJudgeAttemptExecutor(
                 submissionWritePort,
-                submissionResultPushPort,
-                contestSubmissionPort,
                 executionPipeline,
                 submissionFencePort,
                 featureFlags,
@@ -101,7 +92,7 @@ class DefaultJudgeAttemptExecutorTest {
     }
 
     @Test
-    @DisplayName("fenced verdict serializes details, writes with fence, then emits notification")
+    @DisplayName("fenced verdict serializes details and writes through the fenced port")
     void fencedVerdictWritesDetailsBeforeNotification() throws Exception {
         Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
         detail.setCaseId("case-1");
@@ -114,18 +105,15 @@ class DefaultJudgeAttemptExecutorTest {
         when(submissionWritePort.updateSubmissionResultFenced(
                 eq("submission-1"), eq(SubmissionStatus.ACCEPTED), eq(37), eq(12.5), any(String.class),
                 eq(3L), eq("attempt-1"))).thenReturn(true);
-        when(contestSubmissionPort.findContestId("submission-1")).thenReturn("contest-1");
 
         executor.runAttempt(job(), null, null);
 
         ArgumentCaptor<String> details = ArgumentCaptor.forClass(String.class);
-        InOrder sideEffects = inOrder(submissionWritePort, contestSubmissionPort, submissionResultPushPort);
+        InOrder sideEffects = inOrder(submissionWritePort);
         sideEffects.verify(submissionWritePort).updateSubmissionResultFenced(
                 eq("submission-1"), eq(SubmissionStatus.ACCEPTED), eq(37), eq(12.5), details.capture(),
                 eq(3L), eq("attempt-1"));
         assertThat(details.getValue()).contains("\"caseId\":\"case-1\"");
-        sideEffects.verify(contestSubmissionPort).findContestId("submission-1");
-        sideEffects.verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), any());
         verify(heartbeatTask).cancel(false);
     }
 
@@ -141,8 +129,6 @@ class DefaultJudgeAttemptExecutorTest {
 
         executor.runAttempt(job(), null, null);
 
-        verify(submissionResultPushPort, never()).emitSubmissionResult(any(), any());
-        verify(contestSubmissionPort, never()).findContestId(any());
     }
 
     @Test
@@ -169,7 +155,6 @@ class DefaultJudgeAttemptExecutorTest {
         verify(submissionWritePort, never()).updateSubmissionResultFenced(
                 any(), any(), anyInt(), any(), any(), anyLong(), any());
         verify(submissionFencePort, never()).currentGeneration(any());
-        verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), any());
     }
 
     @Test
@@ -182,7 +167,6 @@ class DefaultJudgeAttemptExecutorTest {
         verify(executionPipeline, never()).execute(any(), any(), anyLong(), any(), any());
         verify(submissionWritePort, never()).updateSubmissionResultFenced(
                 any(), any(), anyInt(), any(), any(), anyLong(), any());
-        verify(submissionResultPushPort, never()).emitSubmissionResult(any(), any());
     }
 
     @Test

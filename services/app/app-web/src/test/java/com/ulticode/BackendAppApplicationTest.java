@@ -187,10 +187,6 @@ class BackendAppApplicationTest {
     private com.ulticode.app.api.service.JudgeEnqueuePort judgeEnqueuePort;
     @MockBean
     private com.ulticode.app.api.service.ContestSubmissionPort contestSubmissionPort;
-    @MockBean
-    private com.ulticode.app.api.service.AchievementTriggerPort achievementTriggerPort;
-    @MockBean
-    private com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher judgedNotificationDispatcher;
     // FeatureFlagsProperties is a real @ConfigurationProperties bean; must NOT be mocked
     @MockBean
     private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
@@ -206,8 +202,6 @@ class BackendAppApplicationTest {
     private com.ulticode.app.api.service.SubmissionStreakPort submissionStreakPort;
     @MockBean
     private com.ulticode.app.api.service.JudgeConfigPort judgeConfigPort;
-    @MockBean
-    private com.ulticode.app.api.service.SubmissionNotificationPort submissionNotificationPort;
     @MockBean
     private com.ulticode.app.api.service.SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
     @MockBean

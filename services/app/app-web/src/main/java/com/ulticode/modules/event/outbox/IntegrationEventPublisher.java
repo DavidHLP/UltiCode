@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -22,6 +24,7 @@ public class IntegrationEventPublisher {
 
     private final IntegrationOutboxMapper outboxMapper;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     /**
      * Record an event in the integration outbox within the current transaction.
@@ -65,11 +68,49 @@ public class IntegrationEventPublisher {
         record.setPayload(payload);
         record.setState("PENDING");
         record.setAttempts(0);
+        record.setCreatedAt(LocalDateTime.now(clock));
 
         outboxMapper.insert(record);
 
         log.debug("Integration event recorded: type={}, aggregate={}, eventId={}",
                 eventType, aggregateId, record.getEventId());
         return record.getEventId();
+    }
+
+    /**
+     * Record an event with a caller-owned idempotency key.
+     *
+     * <p>Use this for a durable source row that may be retried after the
+     * integration outbox insert has committed but before the source row is
+     * acknowledged.
+     */
+    @Transactional
+    public String publishWithId(String eventId, String owner, String eventType,
+                                String aggregateId, long aggregateVersion,
+                                String causationId, String traceId,
+                                Map<String, Object> payload) {
+        IntegrationOutboxRecord record = new IntegrationOutboxRecord();
+        record.setEventId(eventId);
+        record.setOwner(owner);
+        record.setEventType(eventType);
+        record.setAggregateId(aggregateId);
+        record.setAggregateVersion(aggregateVersion);
+        record.setCausationId(causationId);
+        record.setTraceId(traceId);
+        record.setSchemaVersion(1);
+        record.setPayload(payload);
+        record.setState("PENDING");
+        record.setAttempts(0);
+        record.setCreatedAt(LocalDateTime.now(clock));
+
+        outboxMapper.insertIfAbsent(record);
+        // A prior source retry may have left the same idempotent event in the
+        // integration DLQ. Requeue only that terminal row; PENDING/CLAIMED/
+        // DELIVERED rows remain untouched.
+        outboxMapper.requeueDead(eventId);
+
+        log.debug("Integration event recorded idempotently: type={}, aggregate={}, eventId={}",
+                eventType, aggregateId, eventId);
+        return eventId;
     }
 }

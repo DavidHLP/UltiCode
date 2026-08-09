@@ -128,8 +128,13 @@ class InboxConsumerIT {
             int reclaimed;
             try (var ps = conn.prepareStatement(
                     "UPDATE consumer_inbox SET state='PROCESSING', lease_owner=?, lease_expires_at=DATE_ADD(NOW(3), INTERVAL 30 SECOND) " +
-                    "WHERE id IN (SELECT id FROM (SELECT id FROM consumer_inbox " +
-                    "WHERE (state='PENDING' AND next_retry_at <= NOW(3)) OR (state='PROCESSING' AND lease_expires_at < NOW(3)) " +
+                    "WHERE consumer='App' " +
+                    "AND ((state='PENDING' AND next_retry_at <= NOW(3)) " +
+                    "OR (state='PROCESSING' AND lease_expires_at < NOW(3))) " +
+                    "AND id IN (SELECT id FROM (SELECT id FROM consumer_inbox " +
+                    "WHERE consumer='App' " +
+                    "AND ((state='PENDING' AND next_retry_at <= NOW(3)) " +
+                    "OR (state='PROCESSING' AND lease_expires_at < NOW(3))) " +
                     "ORDER BY created_at LIMIT 50) AS c)")) {
                 ps.setString(1, "new-pid");
                 reclaimed = ps.executeUpdate();
@@ -158,8 +163,9 @@ class InboxConsumerIT {
             record.setState("PROCESSING");
             record.setAttempts(0);
 
-            when(mapper.claimLease(anyString(), anyInt())).thenReturn(1);
-            when(mapper.selectLeased(anyString())).thenReturn(java.util.List.of(record));
+            when(mapper.claimLease(anyString(), eq("App"), anyInt())).thenReturn(1);
+            when(mapper.selectLeased(anyString(), eq("App"))).thenReturn(java.util.List.of(record));
+            when(mapper.markProcessed(eq("happy-1"), eq("App"), anyString())).thenReturn(1);
 
             java.util.concurrent.atomic.AtomicBoolean handlerCalled = new java.util.concurrent.atomic.AtomicBoolean(false);
             consumer.registerHandler("UserRegistered", payload -> {
@@ -171,7 +177,7 @@ class InboxConsumerIT {
 
             assertThat(processed).isEqualTo(1);
             assertThat(handlerCalled.get()).as("Handler should have been called").isTrue();
-            verify(mapper).markProcessed("happy-1");
+            verify(mapper).markProcessed(eq("happy-1"), eq("App"), anyString());
         }
 
         @Test
@@ -186,8 +192,8 @@ class InboxConsumerIT {
             record.setState("PROCESSING");
             record.setAttempts(0);
 
-            when(mapper.claimLease(anyString(), anyInt())).thenReturn(1);
-            when(mapper.selectLeased(anyString())).thenReturn(java.util.List.of(record));
+            when(mapper.claimLease(anyString(), eq("App"), anyInt())).thenReturn(1);
+            when(mapper.selectLeased(anyString(), eq("App"))).thenReturn(java.util.List.of(record));
 
             consumer.registerHandler("RiskyEvent", payload -> {
                 throw new RuntimeException("Handler exploded");
@@ -195,8 +201,9 @@ class InboxConsumerIT {
 
             consumer.consume();
 
-            verify(mapper).markFailed(eq("fail-1"), contains("Handler exploded"), eq(5));
-            verify(mapper, never()).markProcessed("fail-1");
+            verify(mapper).markFailed(
+                    eq("fail-1"), eq("App"), anyString(), contains("Handler exploded"), eq(5));
+            verify(mapper, never()).markProcessed(eq("fail-1"), eq("App"), anyString());
         }
     }
 }

@@ -3,6 +3,8 @@ package com.ulticode.modules.notification.dispatcher;
 import com.ulticode.modules.notification.channel.NotificationChannel;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.intent.NotificationIntent;
+import com.ulticode.modules.notification.ledger.DeliveryState;
+import com.ulticode.modules.notification.ledger.entity.NotificationDeliveryLedger;
 import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -66,21 +68,42 @@ public class NotificationDispatcher {
     private final MeterRegistry meterRegistry;
 
     /**
-     * Dispatch the given intent to all applicable channels.
+     * Dispatch the given intent to all applicable channels without propagating
+     * channel failures. This preserves the legacy synchronous caller contract.
      *
      * @param intent the typed intent (sealed interface, see
      *               {@link NotificationIntent}); must be non-null
      */
     public void dispatch(NotificationIntent intent) {
+        dispatchInternal(intent, false);
+    }
+
+    /**
+     * Dispatch an intent for a durable inbox consumer.
+     *
+     * <p>All channels are still attempted, but a channel failure or an
+     * inability to record a successful delivery is propagated after the
+     * fan-out so the inbox can retain the event for retry.
+     */
+    public void dispatchForDurableRetry(NotificationIntent intent) {
+        Exception failure = dispatchInternal(intent, true);
+        if (failure != null) {
+            throw new IllegalStateException(
+                    "Notification delivery failed for intent " + intent.intentId(), failure);
+        }
+    }
+
+    private Exception dispatchInternal(NotificationIntent intent, boolean propagateLedgerFailures) {
         if (!isCategoryEnabled(intent)) {
             log.debug("Notification suppressed by preference: user={} category={}",
                     intent.userId(), intent.category());
             incrementCounter("notification.dispatch.suppressed",
                     "category", intent.category().name());
-            return;
+            return null;
         }
 
         String intentType = intent.wireType();
+        Exception firstFailure = null;
         for (NotificationChannel channel : channels) {
             try {
                 int claimed = ledgerMapper.tryClaim(
@@ -89,6 +112,25 @@ public class NotificationDispatcher {
                         intent.userId(),
                         intentType);
                 if (claimed == 0) {
+                    if (propagateLedgerFailures) {
+                        NotificationDeliveryLedger existing =
+                                ledgerMapper.findByIntentAndChannel(
+                                        intent.intentId(), channel.channelId());
+                        if (existing == null
+                                || (existing.getDeliveryState() != DeliveryState.DELIVERED
+                                && existing.getDeliveryState() != DeliveryState.SKIPPED)) {
+                            if (firstFailure == null) {
+                                String state = existing == null
+                                        ? "missing"
+                                        : existing.getDeliveryState().name();
+                                firstFailure = new IllegalStateException(
+                                        "Notification ledger claim was not available for intent "
+                                                + intent.intentId() + " channel "
+                                                + channel.channelId() + " (state=" + state + ")");
+                            }
+                            continue;
+                        }
+                    }
                     log.debug("intent {} channel {} already delivered, skip",
                             intent.intentId(), channel.channelId());
                     continue;
@@ -98,33 +140,76 @@ public class NotificationDispatcher {
                     ledgerMapper.markSkipped(intent.intentId(), channel.channelId());
                     continue;
                 }
-
                 channel.send(intent);
-                markDelivered(intent, channel, intentType);
+                Exception ledgerFailure = markDelivered(
+                        intent, channel, intentType, propagateLedgerFailures);
+                if (ledgerFailure != null && firstFailure == null) {
+                    firstFailure = ledgerFailure;
+                }
             } catch (Exception e) {
+                if (firstFailure == null) {
+                    firstFailure = e;
+                }
                 // Failure isolation (ADR-004 §2.3): record the failure and let
                 // the loop continue. markFailed wraps its own ledger/counter/log
-                // calls so a broken ledger (the likely root cause) cannot escape
-                // here and poison the remaining channels.
+                // calls so a broken ledger cannot escape here.
                 markFailed(intent, channel, intentType, e);
             }
         }
+        return firstFailure;
     }
 
     /**
-     * Record a successful delivery. The ledger write and counter increment are
-     * wrapped so a metrics or ledger hiccup after a successful {@code send}
-     * cannot abort the remaining channels (ADR-004 §2.3 failure isolation).
+     * Record a successful delivery.
+     *
+     * <p>A synchronous caller keeps the legacy failure-isolation contract.
+     * The durable inbox path receives a ledger failure so it can retry the
+     * event instead of acknowledging it as processed. Metrics remain
+     * best-effort in both modes.
      */
-    private void markDelivered(NotificationIntent intent, NotificationChannel channel, String intentType) {
+    private Exception markDelivered(NotificationIntent intent, NotificationChannel channel,
+                                    String intentType, boolean propagateLedgerFailures) {
         try {
-            ledgerMapper.markDelivered(intent.intentId(), channel.channelId());
+            int updated = ledgerMapper.markDelivered(intent.intentId(), channel.channelId());
+            if (updated == 0 && propagateLedgerFailures) {
+                NotificationDeliveryLedger existing = ledgerMapper.findByIntentAndChannel(
+                        intent.intentId(), channel.channelId());
+                if (existing == null || existing.getDeliveryState() != DeliveryState.DELIVERED) {
+                    Exception failure = new IllegalStateException(
+                            "Notification delivery state was not confirmed for intent "
+                                    + intent.intentId() + " channel " + channel.channelId());
+                    recoverClaim(intent, channel, failure);
+                    return failure;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("post-delivery ledger update failed for intent {} channel {}: {}",
+                    intent.intentId(), channel.channelId(), e.getMessage());
+            recoverClaim(intent, channel, e);
+            return propagateLedgerFailures ? e : null;
+        }
+
+        try {
             meterRegistry.counter("notification.dispatch.delivered",
                     "channel", channel.channelId(),
                     "intent", intentType).increment();
         } catch (Exception e) {
-            log.warn("post-delivery ledger/counter update failed for intent {} channel {}: {}",
+            log.warn("post-delivery counter update failed for intent {} channel {}: {}",
                     intent.intentId(), channel.channelId(), e.getMessage());
+        }
+        return null;
+    }
+
+    private void recoverClaim(NotificationIntent intent, NotificationChannel channel,
+                               Exception cause) {
+        try {
+            ledgerMapper.markFailed(
+                    intent.intentId(),
+                    channel.channelId(),
+                    truncate("post-delivery ledger update failed: " + cause.getMessage()));
+        } catch (Exception recoveryFailure) {
+            log.warn("failed to recover CLAIMED ledger row for intent {} channel {}: {}",
+                    intent.intentId(), channel.channelId(), recoveryFailure.getMessage());
         }
     }
 

@@ -1,7 +1,7 @@
 package com.ulticode.modules.event.inbox;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import java.util.UUID;
 /**
  * Consumer for the {@code consumer_inbox} table (P6-INBOX-001).
  *
@@ -21,15 +22,36 @@ import java.util.function.Consumer;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class InboxConsumer {
 
-    private static final String CONSUMER_NAME = "App";
     private static final int BATCH_SIZE = 50;
     private static final int MAX_ATTEMPTS = 5;
-
     private final ConsumerInboxMapper inboxMapper;
-    private final Map<String, Consumer<Map<String, Object>>> handlers = new java.util.concurrent.ConcurrentHashMap<>();
+    private final String consumerName;
+    private final String instanceId = UUID.randomUUID().toString();
+    private final Map<String, Consumer<Map<String, Object>>> handlers =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Spring-managed default consumer for app-wide events that do not have a
+     * more specific owner binding.
+     */
+    @Autowired
+    public InboxConsumer(ConsumerInboxMapper inboxMapper) {
+        this(inboxMapper, "App");
+    }
+
+    /**
+     * Build a worker for a specific durable consumer binding.
+     *
+     * <p>Each binding gets its own database deduplication key and Redis group.
+     * This lets Notification and Achievement independently retry the same
+     * {@code SubmissionJudged} event.
+     */
+    public InboxConsumer(ConsumerInboxMapper inboxMapper, String consumerName) {
+        this.inboxMapper = inboxMapper;
+        this.consumerName = consumerName;
+    }
 
     /**
      * Register a handler for a specific event type.
@@ -41,13 +63,13 @@ public class InboxConsumer {
     @Scheduled(fixedDelayString = "${integration.inbox.consumer.interval-ms:2000}",
                initialDelayString = "5000")
     public int consume() {
-        int leased = inboxMapper.claimLease(CONSUMER_NAME + ":" + ProcessHandle.current().pid(), BATCH_SIZE);
+        String leaseOwner = consumerName + ":" + instanceId;
+        int leased = inboxMapper.claimLease(leaseOwner, consumerName, BATCH_SIZE);
         if (leased == 0) {
             return 0;
         }
 
-        List<ConsumerInboxRecord> records = inboxMapper.selectLeased(
-                CONSUMER_NAME + ":" + ProcessHandle.current().pid());
+        List<ConsumerInboxRecord> records = inboxMapper.selectLeased(leaseOwner, consumerName);
         int processed = 0;
 
         for (ConsumerInboxRecord record : records) {
@@ -56,14 +78,21 @@ public class InboxConsumer {
                 if (handler != null) {
                     handler.accept(record.getPayload());
                 } else {
-                    log.warn("No handler registered for event type {}, marking as processed", record.getEventType());
+                    log.warn("No handler registered for event type {}, marking as processed",
+                            record.getEventType());
                 }
-                inboxMapper.markProcessed(record.getId());
-                processed++;
+                if (inboxMapper.markProcessed(record.getId(), consumerName, leaseOwner) > 0) {
+                    processed++;
+                }
             } catch (Exception e) {
                 log.error("Failed to process inbox event {} (type={}): {}",
                         record.getEventId(), record.getEventType(), e.getMessage(), e);
-                inboxMapper.markFailed(record.getId(), truncate(e.getMessage(), 500), MAX_ATTEMPTS);
+                inboxMapper.markFailed(
+                        record.getId(),
+                        consumerName,
+                        leaseOwner,
+                        truncate(e.getMessage(), 500),
+                        MAX_ATTEMPTS);
             }
         }
 

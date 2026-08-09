@@ -12,9 +12,8 @@ import org.springframework.stereotype.Component;
  * (ADR-004 M4d-1 finding #4). Without this reaper, a dispatcher that
  * claimed a row but died before transitioning it would permanently block
  * future dispatches for the same {@code (intent_id, channel_id)} pair,
- * because {@code tryClaim}'s {@code ON DUPLICATE KEY UPDATE id=id} returns
- * 0 for the existing stuck row and the dispatcher treats 0 as
- * "already delivered, skip".
+ * because an existing {@code CLAIMED} row would otherwise make
+ * {@code tryClaim} return 0 and be treated as already delivered.
  *
  * <p>Cadence: every 5 minutes. With a 10-minute grace period, a stuck
  * row is usually fixed within 1-2 reaper cycles.
@@ -23,19 +22,17 @@ import org.springframework.stereotype.Component;
  * <ol>
  *   <li>{@code reapStaleClaimed} transitions stuck rows to {@code FAILED}
  *       with a clear {@code failure_reason}.</li>
- *   <li>The counter {@code notification.ledger.reaper.reaped} exposes the
- *       reaped count for ops dashboards. A non-zero value indicates the
- *       dispatcher (or one of the channels) crashed mid-delivery.</li>
+ *   <li>{@code reclaimFailedLegacy} clears the retry marker for eligible
+ *       legacy rows; the next synchronous dispatch calls {@code tryClaim} and
+ *       owns the new lease.</li>
+ *   <li>Durable submission intents are retried by their owning inbox
+ *       consumer.</li>
+ *   <li>The counters {@code notification.ledger.reaper.reaped} and
+ *       {@code notification.ledger.reaper.reclaimed} expose both paths.</li>
  * </ol>
  *
- * <p>This is a minimal stop-gap; the durable retry path (ADR-007) is the
- * long-term answer. For now, transitioning the stuck row to {@code FAILED}
- * is safer than leaving it as {@code CLAIMED} forever — a future
- * outbox-style retry can still re-attempt the original intent via
- * {@code NotificationDispatcher.dispatch(intent)}, which will see the
- * existing {@code FAILED} row, not skip it (the tryClaim is keyed on
- * {@code (intent_id, channel_id)}; the existing row's state is
- * informational).
+ * <p>Durable submission rows are excluded from the global FAILED reclaim so
+ * the inbox consumer remains the sole owner of their retry lease.
  *
  * <p>Reference: notification/ledger/reaper/NotificationLedgerReaper + the
  * (intent_id, channel_id) UNIQUE index in
@@ -60,13 +57,15 @@ public class NotificationLedgerReaper {
                         reaped);
                 meterRegistry.counter("notification.ledger.reaper.reaped").increment(reaped);
             }
-
-            // P6-INBOX-001: reclaim FAILED rows for bounded retry
-            int reclaimed = ledgerMapper.reclaimFailed();
+            int reclaimed = ledgerMapper.reclaimFailedLegacy();
             if (reclaimed > 0) {
-                log.info("Reaper reclaimed {} FAILED rows for retry (bounded at 5 attempts)", reclaimed);
+                log.info("Reaper marked {} legacy FAILED rows eligible for retry "
+                        + "(bounded at 5 attempts)", reclaimed);
                 meterRegistry.counter("notification.ledger.reaper.reclaimed").increment(reclaimed);
             }
+
+            // Durable inbox retries and legacy synchronous dispatches call
+            // tryClaim to acquire their own lease; the reaper never owns it.
         } catch (Exception e) {
             log.warn("NotificationLedgerReaper.reap failed: {}", e.getMessage());
         }

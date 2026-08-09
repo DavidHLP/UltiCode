@@ -602,7 +602,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 - 当前 feature flag 默认仍可走 DB + legacy Redis 双写。迁移前完成 `judge_outbox + generation fence + JudgeQueue port` 受控切换并删除 Legacy 双写；
 - `judge_outbox` 只覆盖“送去判题”，不覆盖“verdict 已落库”。新增 result outbox，避免 commit 后 JVM 崩溃丢失 Contest/Notification/Achievement；
-- Notification ledger 当前已存在 row 后不会 reclaim FAILED/stale CLAIMED。增加 attempt、lease owner/expiry、next retry，只有 DELIVERED 终止；
+- Notification ledger 支持 stale `CLAIMED` 回收和有上限的 `FAILED` 重试；`DELIVERED`、`SKIPPED` 及达到重试上限的 `FAILED` 为终态；integration outbox 的 stale lease 回收、投递确认和失败回写必须按 `claim_owner` 做 CAS fencing；
 - SMTP 从事务内发送改为 email intent/outbox worker；
 - Follow 只有真正插入成功才发布事件，避免并发重复通知；
 - Subscription 增加 active natural uniqueness 与 status CAS；

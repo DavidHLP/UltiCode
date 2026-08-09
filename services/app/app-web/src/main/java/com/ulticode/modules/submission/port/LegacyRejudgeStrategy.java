@@ -9,17 +9,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Map;
 
-/**
- * The legacy (pre-ADR-003) non-transactional rejudge path.
- *
- * <p>Preserved verbatim so flag-off deployments observe no behavior change.
- */
+ /**
+  * The legacy (pre-ADR-003) rejudge path. It retains the non-fenced enqueue
+  * flow, but advances the persisted generation so durable result events keep a
+  * distinct identity for every rejudge.
+  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class LegacyRejudgeStrategy {
+
+    private static final int MAX_GENERATION_BUMP_RETRIES = 3;
 
     private final SubmissionMapper submissionMapper;
     private final JudgeEnqueuePort judgeEnqueuePort;
@@ -34,24 +35,27 @@ public class LegacyRejudgeStrategy {
     public RejudgeResult rejudge(Submission submission, RejudgeResult result) {
         String id = submission.getId();
         try {
-            submission.setStatus("Pending");
-            submission.setRetryCount(
-                    submission.getRetryCount() != null ? submission.getRetryCount() + 1 : 1);
-            submissionMapper.updateById(submission);
+            Submission enqueueTarget = advanceGeneration(submission);
+            enqueueTarget.setStatus("Pending");
+            int retryCount = enqueueTarget.getRetryCount() != null
+                    ? enqueueTarget.getRetryCount() + 1
+                    : 1;
+            submissionMapper.bumpRetryCount(id, 1);
+            enqueueTarget.setRetryCount(retryCount);
 
             judgeEnqueuePort.enqueueJudgeJob(
-                    submission.getId(),
-                    String.valueOf(submission.getProblemId()),
-                    submission.getUserId(),
-                    submission.getLanguage(),
-                    submission.getCode());
+                    enqueueTarget.getId(),
+                    String.valueOf(enqueueTarget.getProblemId()),
+                    enqueueTarget.getUserId(),
+                    enqueueTarget.getLanguage(),
+                    enqueueTarget.getCode());
 
             result.setSuccess(true);
             result.setNewStatus("Pending");
             result.setRejudgedAt(Instant.now());
-            result.setRetryCount(submission.getRetryCount());
+            result.setRetryCount(enqueueTarget.getRetryCount());
             log.info("Rejudge initiated for submission: {} (retryCount={})",
-                    id, submission.getRetryCount());
+                    id, enqueueTarget.getRetryCount());
         } catch (Exception e) {
             log.error("Failed to enqueue rejudge for submission: {}", id, e);
             result.setSuccess(false);
@@ -60,5 +64,29 @@ public class LegacyRejudgeStrategy {
 
         // AuditContext not available in backend-app; audit context stripped during relocation
         return result;
+    }
+
+    private Submission advanceGeneration(Submission submission) {
+        Submission candidate = submission;
+        for (int attempt = 0; attempt < MAX_GENERATION_BUMP_RETRIES; attempt++) {
+            long expectedGeneration = candidate.getGeneration() != null
+                    ? candidate.getGeneration()
+                    : 1L;
+            long newGeneration = expectedGeneration + 1L;
+            if (submissionMapper.bumpGenerationAndReset(
+                    candidate.getId(), expectedGeneration, newGeneration) == 1) {
+                candidate.setGeneration(newGeneration);
+                return candidate;
+            }
+
+            candidate = submissionMapper.selectById(candidate.getId());
+            if (candidate == null) {
+                throw new IllegalStateException(
+                        "Submission " + submission.getId() + " disappeared during rejudge");
+            }
+        }
+        throw new IllegalStateException(
+                "Concurrent generation changes prevented rejudge for submission "
+                        + submission.getId());
     }
 }

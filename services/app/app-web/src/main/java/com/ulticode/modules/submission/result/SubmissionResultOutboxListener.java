@@ -1,6 +1,8 @@
 package com.ulticode.modules.submission.result;
 
 import com.ulticode.app.api.event.SubmissionJudgedEvent;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,11 +21,17 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 @RequiredArgsConstructor
 public class SubmissionResultOutboxListener {
-
     private final SubmissionResultOutboxWriter outboxWriter;
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void onSubmissionJudged(SubmissionJudgedEvent event) {
+        SubmissionStatus status = SubmissionStatusCodec.fromWire(event.getVerdict());
+        if (!status.isTerminal()) {
+            log.debug("Skipping non-terminal result outbox event for submission {}: {}",
+                    event.getSubmissionId(), event.getVerdict());
+            return;
+        }
+
         outboxWriter.recordVerdictResult(
                 event.getSubmissionId(),
                 event.getGeneration() > 0 ? event.getGeneration() : 1L,

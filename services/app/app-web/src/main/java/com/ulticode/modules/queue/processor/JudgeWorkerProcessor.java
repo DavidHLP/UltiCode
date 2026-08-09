@@ -26,8 +26,9 @@ import java.util.Map;
 /**
  * Judge worker that polls the Redis judge queue and processes submissions.
  *
- * <p>Wires together QueueService, CodeExecutionService, SubmissionWritePort,
- * and SubmissionResultPushPort to form the complete judging pipeline:
+ * <p>Wires together QueueService, CodeExecutionService, and SubmissionWritePort
+ * to form the judging pipeline. Post-verdict effects are consumed from the
+ * durable SubmissionJudged event after the verdict transaction commits:
  *
  * <ol>
  *   <li>Poll job from Redis queue
@@ -36,8 +37,7 @@ import java.util.Map;
  *   <li>Determine verdict via {@link VerdictResolver#reduceWire} aggregating each case's wire value
  *       into a single {@code SubmissionStatus} (ADR-001; severity priority encoded in
  *       {@code SubmissionStatus#getSeverity()}, replacing the old stringly-typed priority comparison)
- *   <li>Write result to Submission entity
- *   <li>Push WebSocket notification to user
+ *   <li>Write result to Submission entity and its durable result event
  * </ol>
  */
 @Slf4j
@@ -166,8 +166,8 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private void processJobFromPort(JudgeQueue port, JudgeJobHandle handle) {
         // Reconstruct a JudgeJob from the leased envelope and hand it to
         // the executor. The executor owns claim / heartbeat / verdict /
-        // push / release; this adapter only translates the queue-specific
-        // envelope shape.
+        // release; this adapter only translates the queue-specific envelope
+        // shape.
         JudgeJobEnvelope envelope = handle.envelope();
         JudgeJob job = new JudgeJob();
         job.setId(envelope.id());
@@ -180,7 +180,8 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     /**
-     * Process a judge job: execute code, determine verdict, write result, push WebSocket.
+     * Process a judge job: execute code, determine verdict, write result, and
+     * persist the durable post-verdict event.
      *
      * <p>Branches on {@code app.features.use-generation-fence}:
      * <ul>

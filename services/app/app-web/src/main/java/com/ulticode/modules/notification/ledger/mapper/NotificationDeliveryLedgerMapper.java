@@ -11,13 +11,11 @@ import org.apache.ibatis.annotations.Update;
 /**
  * MyBatis mapper for {@link NotificationDeliveryLedger} (ADR-004 M4a).
  *
- * <p>The {@code tryClaim} query uses {@code INSERT ... ON DUPLICATE KEY UPDATE
- * id = id} which makes the claim atomic and idempotent: MySQL returns
- * {@code affected = 1} on a new row and {@code affected = 0} when an existing
- * (intent_id, channel_id) row was already present. The dispatcher treats
- * {@code affected = 0} as "already delivered, skip" without reading the row
- * back — that information is sufficient for the success path. Tests that need
- * to assert ledger state call {@link #findByIntentAndChannel} explicitly.
+ * <p>The {@code tryClaim} query uses {@code INSERT ... ON DUPLICATE KEY UPDATE}
+ * to atomically claim a new row or a bounded-retry {@code FAILED} row. MySQL
+ * returns a positive affected-row count for either claim and zero when an
+ * existing {@code CLAIMED}, {@code DELIVERED}, or {@code SKIPPED} row remains
+ * owned by another attempt or is terminal.
  *
  * <p>Marking DELIVERED / FAILED updates only the state and (optionally)
  * failure_reason; {@code updated_at} is bumped automatically by the column's
@@ -30,23 +28,26 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      * Atomically claim a delivery slot for {@code (intentId, channelId)}.
      * <p>Returns:
      * <ul>
-     *   <li>{@code 1} — new row inserted (this caller owns the slot and
-     *       should call {@code send()} then {@link #markDelivered} or
-     *       {@link #markFailed}).</li>
-     *   <li>{@code 0} — an existing row already exists for this pair; the
-     *       caller should skip the channel entirely (idempotent retry).</li>
+     *   <li>a positive count — new row or retryable FAILED row claimed by this
+     *       caller; it should call {@link #markDelivered} or {@link #markFailed}.</li>
+     *   <li>{@code 0} — an existing CLAIMED/DELIVERED/SKIPPED row remains
+     *       idempotently protected, or the retry budget is exhausted.</li>
      * </ul>
      *
      * @param intentId   {@link com.ulticode.modules.notification.intent.NotificationIntent#intentId()}
      * @param channelId  {@code "in_app"} / {@code "email"} / {@code "websocket"}
      * @param userId     recipient (denormalized for ops queries)
      * @param intentType record class simpleName (e.g. {@code "SubmissionCompletedIntent"})
-     * @return affected rows (1 = new claim, 0 = already exists)
+     * @return positive affected rows when this caller owns the slot, otherwise 0
      */
     @org.apache.ibatis.annotations.Insert("INSERT INTO notification_delivery_ledger "
-            + "(intent_id, channel_id, user_id, intent_type, delivery_state) "
-            + "VALUES (#{intentId}, #{channelId}, #{userId}, #{intentType}, 'CLAIMED') "
-            + "ON DUPLICATE KEY UPDATE id = id")
+            + "(intent_id, channel_id, user_id, intent_type, delivery_state, delivered_at) "
+            + "VALUES (#{intentId}, #{channelId}, #{userId}, #{intentType}, 'CLAIMED', CURRENT_TIMESTAMP(3)) "
+            + "ON DUPLICATE KEY UPDATE "
+            + "delivered_at = IF(delivery_state = 'FAILED' AND reclaim_attempts < 5, "
+            + "CURRENT_TIMESTAMP(3), delivered_at), "
+            + "delivery_state = IF(delivery_state = 'FAILED' AND reclaim_attempts < 5, "
+            + "'CLAIMED', delivery_state)")
     int tryClaim(@Param("intentId") String intentId,
                  @Param("channelId") String channelId,
                  @Param("userId") String userId,
@@ -61,7 +62,7 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      * @return affected rows (1 on success)
      */
     @Update("UPDATE notification_delivery_ledger "
-            + "SET delivery_state = 'DELIVERED' "
+            + "SET delivery_state = 'DELIVERED', failure_reason = NULL "
             + "WHERE intent_id = #{intentId} AND channel_id = #{channelId} "
             + "  AND delivery_state = 'CLAIMED'")
     int markDelivered(@Param("intentId") String intentId,
@@ -78,7 +79,8 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      * @return affected rows (1 on success)
      */
     @Update("UPDATE notification_delivery_ledger "
-            + "SET delivery_state = 'FAILED', failure_reason = #{failureReason} "
+            + "SET delivery_state = 'FAILED', failure_reason = #{failureReason}, "
+            + "    reclaim_attempts = LEAST(reclaim_attempts + 1, 5) "
             + "WHERE intent_id = #{intentId} AND channel_id = #{channelId} "
             + "  AND delivery_state = 'CLAIMED'")
     int markFailed(@Param("intentId") String intentId,
@@ -122,10 +124,8 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      * Reap stuck {@code CLAIMED} rows — i.e. dispatcher reserved a slot
      * but the JVM was killed (pm2 reload, OOM, pod eviction) before the
      * channel could transition the row to {@code DELIVERED} / {@code FAILED}.
-     * Without this reaper (ADR-004 M4d-1 finding #4), the next
-     * {@link #tryClaim} call for the same {@code (intent_id, channel_id)}
-     * pair sees an existing row and returns 0 → the user permanently
-     * misses that channel's delivery.
+     * Without this reaper, an existing CLAIMED row would make a retry return
+     * 0 and permanently block that channel until the process was restarted.
      *
      * <p>Default grace is 10 minutes: long enough for slow SMTP responses
      * (the Email channel is the slowest), short enough that a stuck row
@@ -136,22 +136,30 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      */
     @Update("UPDATE notification_delivery_ledger "
             + "SET delivery_state = 'FAILED', "
-            + "    failure_reason = CONCAT('CLAIMED > 10min; reaped at ', NOW()) "
+            + "    failure_reason = CONCAT('CLAIMED > 10min; reaped at ', NOW()), "
+            + "    reclaim_attempts = LEAST(reclaim_attempts + 1, 5) "
             + "WHERE delivery_state = 'CLAIMED' "
             + "  AND delivered_at < (NOW() - INTERVAL 10 MINUTE)")
     int reapStaleClaimed();
+
     /**
-     * Reclaim FAILED rows for retry (P6-INBOX-001).
-     * Resets delivery_state to CLAIMED so the dispatcher can re-attempt.
-     * Bounded: only reclaims rows with fewer than MAX_RECLAIM_ATTEMPTS (5)
-     * prior transitions to FAILED, to prevent infinite retry loops on
-     * permanently-failing deliveries (e.g., deleted user target).
+     * Mark FAILED legacy rows eligible for the next synchronous retry
+     * (P6-INBOX-001).
+     *
+     * <p>This method must not transition rows to {@code CLAIMED}: only the
+     * caller that executes {@link #tryClaim} owns that lease. Durable
+     * submission rows are excluded by both the current wire type
+     * ({@code SUBMISSION}) and the historical class simple name
+     * ({@code SubmissionCompletedIntent}); their owning inbox consumer
+     * performs the retry through {@link #tryClaim}.
      */
-    @Update("UPDATE notification_delivery_ledger "
-            + "SET delivery_state = 'CLAIMED', failure_reason = NULL, "
-            + "    reclaim_attempts = reclaim_attempts + 1 "
-            + "WHERE delivery_state = 'FAILED'"
-            + "  AND reclaim_attempts < 5"
-            + "  AND updated_at < (NOW() - INTERVAL 5 MINUTE)")
-    int reclaimFailed();
+    @Update("""
+        UPDATE notification_delivery_ledger
+        SET failure_reason = NULL
+        WHERE delivery_state = 'FAILED'
+          AND intent_type NOT IN ('SUBMISSION', 'SubmissionCompletedIntent')
+          AND reclaim_attempts < 5
+          AND updated_at < (NOW() - INTERVAL 5 MINUTE)
+        """)
+    int reclaimFailedLegacy();
 }

@@ -68,11 +68,15 @@ public class IntegrationOutboxRecord {
     @TableField("stream_id")
     private String streamId;
 
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
     @TableField("claimed_at")
     private LocalDateTime claimedAt;
+
+    /** Dispatcher instance that currently owns the CLAIMED lease. */
+    @TableField("claim_owner")
+    private String claimOwner;
 
     @TableField("delivered_at")
     private LocalDateTime deliveredAt;

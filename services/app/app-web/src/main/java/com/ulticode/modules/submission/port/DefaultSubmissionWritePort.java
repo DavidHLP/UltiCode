@@ -4,7 +4,6 @@ import com.ulticode.app.api.dto.CreateSubmissionDTO;
 import com.ulticode.app.api.dto.PerformanceStats;
 import com.ulticode.app.api.dto.SubmissionVO;
 import com.ulticode.app.api.event.SubmissionJudgedEvent;
-import com.ulticode.app.api.service.AchievementTriggerPort;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.app.api.service.ProblemFactsPort;
@@ -18,10 +17,10 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.codec.TestCaseDetailCodec;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
-import com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
+import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +46,6 @@ import java.util.Map;
  * {@code com.ulticode.app.api.service}. The production adapter wires:
  * <ul>
  *   <li>{@code JudgeEnqueuePort} → delegates to {@code QueueService}</li>
- *   <li>{@code AchievementTriggerPort} → delegates to {@code AchievementTriggerService}</li>
  *   <li>{@code UserExistencePort} → delegates to {@code UserMapper}</li>
  * </ul>
  *
@@ -66,11 +64,10 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private final SubmissionPerformanceStats performanceStats;
     private final JudgeEnqueuePort judgeEnqueuePort;
     private final ContestSubmissionPort contestSubmissionPort;
-    private final AchievementTriggerPort achievementTriggerPort;
-    private final JudgedNotificationDispatcher judgedNotificationDispatcher;
     private final JudgeOutboxMapper judgeOutboxMapper;
     private final FeatureFlagsProperties featureFlags;
     private final MeterRegistry meterRegistry;
+    private final SubmissionResultOutboxWriter resultOutboxWriter;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
@@ -176,22 +173,11 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
 
-        if (status == SubmissionStatus.ACCEPTED) {
-            boolean isVirtual = contestSubmissionPort.isVirtualParticipation(submissionId);
-            if (isVirtual) {
-                log.info("R6.3 / F-08: skipping achievement triggers for virtual submission {}",
-                        submissionId);
-            } else {
-                triggerAchievements(submission);
-            }
-        }
-
-        judgedNotificationDispatcher.dispatch(submission, status, runtime, memory);
-
         publishContestScoringEvent(submission, status,
                 submission.getGeneration() != null ? submission.getGeneration() : 1L,
                 runtime, memory != null ? memory : 0,
                 contestSubmissionPort.findContestId(submissionId));
+
     }
 
     @Override
@@ -232,11 +218,6 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             log.warn("Fenced verdict wrote but submission {} not found on re-read", submissionId);
             return true;
         }
-        log.info("Updated submission {} (fenced) status={}, runtime={}ms, memory={}",
-                submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
-
-        triggerPostVerdictSideEffects(submission, status);
-
         publishContestScoringEvent(submission, status,
                 generation, runtime, memory != null ? memory : 0,
                 contestSubmissionPort.findContestId(submissionId));
@@ -246,10 +227,10 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private void publishContestScoringEvent(Submission submission, SubmissionStatus status,
                                             long generation, int runtimeMs, double memoryMb,
                                             String contestId) {
-        if (applicationEventPublisher == null) {
-            return;
-        }
         try {
+            if (applicationEventPublisher == null) {
+                throw new IllegalStateException("ApplicationEventPublisher unavailable");
+            }
             SubmissionJudgedEvent event = new SubmissionJudgedEvent(
                     this,
                     submission.getId(),
@@ -268,6 +249,17 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         } catch (Exception e) {
             log.warn("Failed to publish SubmissionJudgedEvent for submission {}: {}",
                     submission.getId(), e.getMessage());
+            if (status.isTerminal()) {
+                resultOutboxWriter.recordVerdictResult(
+                        submission.getId(),
+                        generation > 0 ? generation : 1L,
+                        submission.getUserId(),
+                        String.valueOf(submission.getProblemId()),
+                        SubmissionStatusCodec.toWire(status),
+                        runtimeMs,
+                        memoryMb,
+                        contestId);
+            }
         }
     }
 
@@ -289,29 +281,6 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         }
     }
 
-    private void triggerAchievements(Submission submission) {
-        try {
-            achievementTriggerPort.triggerOnSubmission(
-                    submission.getUserId(),
-                    submission.getProblemId(),
-                    true,
-                    submission.getId());
-        } catch (Exception e) {
-            log.warn("Failed to trigger achievements for submission {}: {}",
-                    submission.getId(), e.getMessage());
-        }
-    }
-
-    private void triggerPostVerdictSideEffects(Submission submission, SubmissionStatus status) {
-        if (status == SubmissionStatus.ACCEPTED) {
-            triggerAchievements(submission);
-        }
-        Integer runtimeVal = submission.getRuntime();
-        Double memMb = submission.getMemory();
-        long elapsed = runtimeVal == null ? 0L : runtimeVal.longValue();
-        judgedNotificationDispatcher.dispatch(submission, status, elapsed, memMb);
-    }
-
     private void applyPerformanceStatsToEntity(Submission entity, PerformanceStats stats) {
         if (stats == null) {
             return;
@@ -321,4 +290,5 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         entity.setMemoryPercentile(stats.memoryPercentile());
         entity.setMemoryDistBinsMb(stats.memoryDistBinsMb());
     }
+
 }

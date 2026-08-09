@@ -11,6 +11,7 @@ import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -78,7 +79,12 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
                     userAchievement.setUserId(userId);
                     userAchievement.setAchievementId(achievement.getId());
                     userAchievement.setEarnedAt(LocalDateTime.now(clock));
-                    userAchievementMapper.insert(userAchievement);
+                    try {
+                        userAchievementMapper.insert(userAchievement);
+                    } catch (DuplicateKeyException duplicate) {
+                        earnedAchievementIds.add(achievement.getId());
+                        continue;
+                    }
 
                     awardedIds.add(achievement.getId());
 

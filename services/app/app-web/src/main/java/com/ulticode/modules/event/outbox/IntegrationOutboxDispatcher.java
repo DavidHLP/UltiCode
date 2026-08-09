@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.UUID;
 /**
  * Dispatcher for the {@code integration_outbox} table (P6-OUTBOX-001).
  *
@@ -34,6 +34,8 @@ public class IntegrationOutboxDispatcher {
     private static final int BATCH_SIZE = 50;
     private static final int MAX_ATTEMPTS = 5;
 
+    private final String claimOwner = "integration-outbox-" + UUID.randomUUID();
+
     private final IntegrationOutboxMapper outboxMapper;
     private final StringRedisTemplate redisTemplate;
 
@@ -45,23 +47,30 @@ public class IntegrationOutboxDispatcher {
     @Scheduled(fixedDelayString = "${integration.outbox.dispatcher.interval-ms:2000}",
                initialDelayString = "5000")
     public int dispatch() {
-        int claimed = outboxMapper.claimPending(BATCH_SIZE);
+        outboxMapper.reclaimStaleClaimed();
+        int claimed = outboxMapper.claimPending(claimOwner, BATCH_SIZE);
         if (claimed == 0) {
             return 0;
         }
 
-        List<IntegrationOutboxRecord> records = outboxMapper.selectClaimed();
+        List<IntegrationOutboxRecord> records = outboxMapper.selectClaimed(claimOwner);
         int published = 0;
 
         for (IntegrationOutboxRecord record : records) {
             try {
                 String streamId = publishToStream(record);
-                outboxMapper.markDelivered(record.getEventId(), streamId);
-                published++;
-                log.debug("Published event {} to {} as {}", record.getEventId(), STREAM_KEY, streamId);
+                if (outboxMapper.markDelivered(record.getEventId(), claimOwner, streamId) > 0) {
+                    published++;
+                    log.debug("Published event {} to {} as {}",
+                            record.getEventId(), STREAM_KEY, streamId);
+                } else {
+                    log.debug("Event {} was reclaimed before delivery confirmation",
+                            record.getEventId());
+                }
             } catch (Exception e) {
                 log.error("Failed to publish event {}: {}", record.getEventId(), e.getMessage(), e);
-                outboxMapper.markFailed(record.getEventId(), truncate(e.getMessage(), 500), MAX_ATTEMPTS);
+                outboxMapper.markFailed(
+                        record.getEventId(), claimOwner, truncate(e.getMessage(), 500), MAX_ATTEMPTS);
             }
         }
 
@@ -80,6 +89,7 @@ public class IntegrationOutboxDispatcher {
         fields.put("eventId", record.getEventId());
         fields.put("owner", record.getOwner());
         fields.put("aggregateId", record.getAggregateId());
+        fields.put("aggregateVersion", String.valueOf(record.getAggregateVersion()));
         fields.put("eventType", record.getEventType());
         fields.put("schemaVersion", String.valueOf(record.getSchemaVersion()));
         if (record.getCausationId() != null) {

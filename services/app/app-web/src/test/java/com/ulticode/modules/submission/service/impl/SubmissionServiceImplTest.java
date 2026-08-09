@@ -18,9 +18,7 @@ import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.UserExistencePort;
-import com.ulticode.app.api.service.AchievementTriggerPort;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +37,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -55,11 +54,10 @@ class SubmissionServiceImplTest {
     @Mock private Clock clock;
     @Mock private JudgeEnqueuePort judgeEnqueuePort;
     @Mock private ContestSubmissionPort contestSubmissionPort;
-    @Mock private AchievementTriggerPort achievementTriggerPort;
-    @Mock private JudgedNotificationDispatcher judgedNotificationDispatcher;
     @Mock private SubmissionProjection submissionProjection;
     @Mock private JudgeOutboxMapper judgeOutboxMapper;
     @Mock private ApplicationEventPublisher applicationEventPublisher;
+    @Mock private com.ulticode.modules.submission.result.SubmissionResultOutboxWriter resultOutboxWriter;
     @Mock private UuidGenerator uuidGenerator;
 
     private SubmissionServiceImpl submissionService;
@@ -83,10 +81,8 @@ class SubmissionServiceImplTest {
                         submissionMapper, problemFacts, userExistencePort, objectMapper,
                         submissionProjection, performanceStats,
                         judgeEnqueuePort, contestSubmissionPort,
-                        achievementTriggerPort,
-                        judgedNotificationDispatcher,
-                        judgeOutboxMapper, flags, null, applicationEventPublisher, clock,
-                        uuidGenerator);
+                        judgeOutboxMapper, flags, null, resultOutboxWriter,
+                        applicationEventPublisher, clock, uuidGenerator);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
         lenient().when(submissionProjection.toVO(any(com.ulticode.modules.submission.entity.Submission.class)))
@@ -465,8 +461,8 @@ class SubmissionServiceImplTest {
         }
 
         @Test
-        @DisplayName("notification dispatcher is invoked on accepted verdict")
-        void updateSubmissionResult_Accepted_invokesDispatcher() {
+        @DisplayName("accepted result does not perform post-verdict delivery in the transaction")
+        void updateSubmissionResult_Accepted_doesNotDispatchDelivery() {
             Submission submission = createValidSubmission();
             submission.setStatus("Pending");
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
@@ -474,8 +470,26 @@ class SubmissionServiceImplTest {
 
             writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, null);
 
-            verify(judgedNotificationDispatcher).dispatch(any(), eq(SubmissionStatus.ACCEPTED), anyLong(), any());
             verify(submissionMapper).updateById(submission);
+        }
+
+        @Test
+        @DisplayName("post-verdict event delivery failure does not roll back the local result")
+        void updateSubmissionResult_eventPublicationFailure_doesNotRollbackResult() {
+            Submission submission = createValidSubmission();
+            submission.setStatus("Pending");
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            doThrow(new IllegalStateException("event bus unavailable"))
+                    .when(applicationEventPublisher).publishEvent(any());
+
+            assertDoesNotThrow(() -> writePort.updateSubmissionResult(
+                    "sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, null));
+
+            verify(submissionMapper).updateById(submission);
+            assertThat(submission.getStatus()).isEqualTo("Wrong Answer");
+            verify(resultOutboxWriter).recordVerdictResult(
+                    eq("sub-123"), eq(1L), eq(USER_ID), eq(String.valueOf(PROBLEM_ID)),
+                    eq("Wrong Answer"), eq(50), eq(128.0), isNull());
         }
     }
 }

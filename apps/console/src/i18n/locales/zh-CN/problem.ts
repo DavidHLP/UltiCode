@@ -213,6 +213,7 @@ export default {
     savedMsg: "笔记已保存",
     failedToSave: "保存笔记失败",
     failedToFetch: "获取笔记失败",
+    unavailable: "笔记功能暂不可用。",
   },
 
   // Save/Bookmark
@@ -422,6 +423,7 @@ export default {
     showMoreTags: "显示更多标签",
     noProblemsAvailable: "暂无题目可用。",
     failedToPickRandom: "随机选择题目失败。",
+    failedToLoad: "题目加载失败。",
     status: "状态",
     difficulty: "难度",
     premium: "会员",

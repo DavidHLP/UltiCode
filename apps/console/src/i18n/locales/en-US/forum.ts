@@ -70,6 +70,10 @@ export default {
     hiring: "Hiring",
   },
 
+  author: {
+    op: "OP",
+  },
+
   // Comments
   comments: {
     title: "Comments",
@@ -82,7 +86,9 @@ export default {
     delete: "Delete",
     loadMore: "Load more comments",
     loadReplies: "Load {count} replies",
+    replies: "replies",
     submit: "Comment",
+    submitFailed: "Failed to post comment.",
     collapsed: "(collapsed)",
     edited: "edited",
     joinConversation: "Join the conversation...",

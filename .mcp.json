@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "arthas-mcp": {
-      "type": "http",
-      "url": "http://localhost:8563/mcp"
-    }
-  }
-}

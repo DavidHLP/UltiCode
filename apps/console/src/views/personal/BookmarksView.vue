@@ -166,7 +166,7 @@ async function confirmDelete() {
     toast.success(t("personal.messages.folderDeleted"));
   } catch (error) {
     console.error("Failed to delete folder:", error);
-    toast.error(t("personal.messages.saveFailed"));
+    toast.error(t("personal.messages.mutationFailed"));
   } finally {
     showDeleteDialog.value = false;
     deletingFolder.value = null;
@@ -180,7 +180,7 @@ async function handleRemoveItem(bookmarkId: string) {
     toast.success(t("personal.messages.bookmarkRemoved"));
   } catch (error) {
     console.error("Failed to remove item", error);
-    toast.error(t("personal.messages.saveFailed"));
+    toast.error(t("personal.messages.mutationFailed"));
   }
 }
 

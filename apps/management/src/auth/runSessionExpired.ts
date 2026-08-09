@@ -19,7 +19,11 @@ export function runSessionExpired(): void {
   if (authStore.isAuthenticated) {
     authStore.clearUser()
   }
-  if (router.currentRoute.value.name !== 'login') {
-    router.push('/login')
+  const currentRoute = router.currentRoute.value
+  if (currentRoute.name !== 'login') {
+    router.push({
+      name: 'login',
+      query: { redirect: currentRoute.fullPath },
+    })
   }
 }

@@ -192,6 +192,7 @@ export default {
     details: "DETAILS",
     edit: "Edit",
     delete: "Delete",
+    deleteConfirm: "Delete this solution? This action cannot be undone.",
     view: "View",
     noTags: "No tags",
   },
@@ -247,7 +248,7 @@ export default {
     },
     categories: {
       uncategorized: "Uncategorized",
-      listCount: "{count} LIST{s}",
+      listCount: "{count} LIST(S)",
     },
     dialogs: {
       createList: "Create New List",
@@ -463,6 +464,7 @@ export default {
     bookmarkAdded: "Added to bookmarks",
     bookmarkRemoved: "Removed from bookmarks",
     mutationFailed: "Operation failed, please retry",
+    saveFailed: "Failed to save changes.",
     loadFailed: "Failed to load problem lists",
     notificationsCleared: "Notifications cleared",
     notificationsMarkedRead: "All notifications marked as read",

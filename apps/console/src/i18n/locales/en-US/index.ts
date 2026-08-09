@@ -5,6 +5,7 @@ import problem from "./problem";
 import contest from "./contest";
 import forum from "./forum";
 import personal from "./personal";
+import profile from "./profile";
 import submission from "./submission";
 import errors from "./errors";
 import bookmark from "./bookmark";
@@ -22,6 +23,7 @@ export default {
   contest,
   forum,
   personal,
+  profile,
   submission,
   errors,
   bookmark,

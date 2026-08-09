@@ -106,6 +106,8 @@ export default {
     guest: "Guest",
     admin: "Admin",
     new: "New",
+    name: "Name",
+    selectTab: "Select tab",
   },
 
   // Pagination

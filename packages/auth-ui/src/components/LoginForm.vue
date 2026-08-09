@@ -63,6 +63,15 @@ const password = ref("");
 const error = ref("");
 const loading = ref(false);
 
+function resolveInternalRedirect(value: unknown): string | null {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (typeof candidate !== "string") return null;
+  if (!candidate.startsWith("/")) return null;
+  if (candidate.startsWith("//")) return null;
+  if (candidate.includes("\\")) return null;
+  return candidate;
+}
+
 async function handleSubmit(event: Event) {
   event.preventDefault();
   error.value = "";
@@ -76,7 +85,9 @@ async function handleSubmit(event: Event) {
       });
     }
     const target =
-      props.redirectAfter || (route.query.redirect as string) || "/";
+      resolveInternalRedirect(props.redirectAfter) ??
+      resolveInternalRedirect(route.query.redirect) ??
+      "/";
     await router.push(target);
   } catch (err: unknown) {
     error.value =

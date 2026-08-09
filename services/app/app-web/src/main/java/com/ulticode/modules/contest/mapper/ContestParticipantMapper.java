@@ -213,9 +213,10 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, "
             + "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, "
             + "cp.registered_at, cp.updated_at, cp.virtual_session_id, "
-            + "u.username, u.name, u.avatar "
+            + "u.username, p.name, p.avatar "
             + "FROM contest_participants cp "
             + "LEFT JOIN users u ON cp.user_id = u.id "
+            + "LEFT JOIN user_profiles p ON cp.user_id = p.account_id "
             + "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 "
             + "AND cp.final_rank IS NOT NULL "
             + "<choose>"
@@ -342,9 +343,10 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
             "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
             "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
-            "u.username, u.name, u.avatar " +
+            "u.username, p.name, p.avatar " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
+            "LEFT JOIN user_profiles p ON cp.user_id = p.account_id " +
             "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC")
     List<ContestParticipantWithUser> selectParticipantsWithUserByContestId(@Param("contestId") String contestId);
@@ -377,9 +379,10 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
             "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
             "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
-            "u.username, u.name, u.avatar " +
+            "u.username, p.name, p.avatar " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
+            "LEFT JOIN user_profiles p ON cp.user_id = p.account_id " +
             "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 AND cp.final_rank IS NOT NULL " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC " +
             "LIMIT #{limit} OFFSET #{offset}")

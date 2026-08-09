@@ -106,6 +106,8 @@ export default {
     guest: "访客",
     admin: "管理员",
     new: "新",
+    name: "名称",
+    selectTab: "选择标签页",
   },
 
   // Pagination

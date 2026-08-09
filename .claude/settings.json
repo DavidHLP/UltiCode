@@ -2,27 +2,5 @@
   "statusLine": {
     "type": "command",
     "command": "bash ${CLAUDE_PROJECT_DIR}/scripts/statusline/statusline.sh"
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PROJECT_DIR}/scripts/arthas-session-start.sh"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PROJECT_DIR}/scripts/arthas-session-end.sh"
-          }
-        ]
-      }
-    ]
   }
 }

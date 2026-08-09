@@ -24,10 +24,10 @@ const { t } = useI18n();
       <RefreshCw class="h-5 w-5 text-primary" />
       <div class="flex-1">
         <p class="text-sm font-medium">
-          {{ t("pwa.updateAvailable") }}
+          {{ t("common.pwa.updateAvailable") }}
         </p>
         <p class="text-xs text-muted-foreground">
-          {{ t("pwa.updateDescription") }}
+          {{ t("common.pwa.updateDescription") }}
         </p>
       </div>
       <div class="flex gap-2">
@@ -35,7 +35,7 @@ const { t } = useI18n();
           class="rounded-none bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           @click="updateServiceWorker"
         >
-          {{ t("pwa.update") }}
+          {{ t("common.pwa.update") }}
         </button>
         <button
           class="rounded-none px-2 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

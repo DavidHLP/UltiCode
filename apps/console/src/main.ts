@@ -39,10 +39,24 @@ bootstrapApp({
     );
     initializeAuthContext();
     onSessionExpired(() => {
+      const currentRoute = router.currentRoute.value;
+      if (currentRoute.name === "login") return;
+      const redirect = currentRoute.fullPath;
       setTimeout(() => {
-        if (router.currentRoute.value.meta.requiresAuth !== true) {
-          router.push("/login");
+        const routeAfterDelay = router.currentRoute.value;
+        if (routeAfterDelay.name === "login") {
+          if (!routeAfterDelay.query.redirect) {
+            router.replace({
+              name: "login",
+              query: { redirect },
+            });
+          }
+          return;
         }
+        router.push({
+          name: "login",
+          query: { redirect },
+        });
       }, 100);
     });
   },

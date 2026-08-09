@@ -468,7 +468,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |
 | 9003 | `ulticode-9003` | Management (Vite) | dev: Vite · prod: 静态服务 |
 | — | `ulticode-init-db` | Flyway 一次性任务 | `stopped` 是**预期终态** |
-| 8563 | `ulticode-arthas` | Arthas MCP wrapper | STATELESS 协议 |
+| 8563 | `arthas-diagnostics` 插件 | Arthas MCP | 插件显式 attach，不由 PM2 管理 |
 
 ### 常用命令
 
@@ -484,6 +484,16 @@ pm2 logs ulticode-admin --nostream --lines 200
 pm2 logs ulticode-app --nostream --lines 200
 pm2 save && pm2 resurrect        # 持久化与恢复
 ```
+
+### Arthas MCP
+
+```bash
+node /home/davidhlp/project/arthas-diagnostics/bin/arthas-diagnostics.mjs doctor --port 9103
+node /home/davidhlp/project/arthas-diagnostics/bin/arthas-diagnostics.mjs start --port 9103
+node /home/davidhlp/project/arthas-diagnostics/bin/arthas-diagnostics.mjs tools
+```
+
+Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式 attach。
 
 1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
 2. `pm2 restart ulticode-init-db`（跑 Flyway）

@@ -111,8 +111,6 @@ pid_owner() {
   cmd="$(pid_cmdline "$pid")"
   if [[ "$cmd" == *pm2* || "$cmd" == *PM2* ]]; then
     printf 'pm2'
-  elif [[ "$cmd" == *start-arthas* || "$cmd" == *arthas* ]]; then
-    printf 'arthas-wrapper'
   elif [[ "$cmd" == *vite* ]]; then
     printf 'preview/vite'
   elif [[ "$cmd" == *spring-boot* || "$cmd" == *java* ]]; then
@@ -137,7 +135,7 @@ port_status_line() {
   # First PID is enough for the owner label; mention others.
   pid="${pids%%,*}"
   owner="$(pid_owner "$pid")"
-  if [[ "$owner" == "pm2" || "$owner" == "arthas-wrapper" ]]; then
+  if [[ "$owner" == "pm2" ]]; then
     printf '  %s  %-7s %-30s  pid=%s (%s) [+%s]\n' \
       "$(color green '[USED ]')" "$port" "$label" "$pid" "$owner" "$pids"
   elif [[ "$owner" == "preview/vite" ]]; then
@@ -268,7 +266,7 @@ recommend() {
       ports_busy=$((ports_busy + 1))
       pid="${pids%%,*}"
       own="$(pid_owner "$pid")"
-      if [[ "$own" == "pm2" || "$own" == "arthas-wrapper" ]]; then
+      if [[ "$own" == "pm2" ]]; then
         ports_pm2=$((ports_pm2 + 1))
       fi
       if [[ "$own" == "preview/vite" ]]; then

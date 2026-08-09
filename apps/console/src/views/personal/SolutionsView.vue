@@ -70,7 +70,7 @@ const handleDelete = async (solutionId: string) => {
     solutions.value = solutions.value.filter((s) => s.id !== solutionId);
   } catch (error) {
     console.error("Failed to delete solution", error);
-    toast.error(t("personal.messages.saveFailed"));
+    toast.error(t("personal.messages.mutationFailed"));
   }
 };
 

@@ -19,7 +19,7 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find ranking by user ID
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id WHERE g.user_id = #{userId} LIMIT 1")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id WHERE g.user_id = #{userId} LIMIT 1")
     Optional<GlobalRanking> findByUserId(@Param("userId") String userId);
 
     /**
@@ -28,8 +28,8 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
      * inside the rating Elo calculation. Backed by the {@code idx_global_rankings_user_id_rating}
      * covering index added in V20260617_120000.
      */
-    @Select("<script>SELECT g.*, u.name FROM global_rankings g " +
-            "LEFT JOIN users u ON g.user_id = u.id " +
+    @Select("<script>SELECT g.*, p.name FROM global_rankings g " +
+            "LEFT JOIN user_profiles p ON g.user_id = p.account_id " +
             "WHERE g.user_id IN " +
             "<foreach item='id' collection='userIds' open='(' separator=',' close=')'>" +
             "#{id}</foreach></script>")
@@ -38,19 +38,19 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find ranking by username
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id WHERE g.username = #{username} LIMIT 1")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id WHERE g.username = #{username} LIMIT 1")
     Optional<GlobalRanking> findByUsername(@Param("username") String username);
 
     /**
      * Find top N rankings by global rank
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id ORDER BY g.global_rank ASC LIMIT #{limit}")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id ORDER BY g.global_rank ASC LIMIT #{limit}")
     List<GlobalRanking> findTopRankings(@Param("limit") int limit);
 
     /**
      * Find rankings paginated by global rank (SQL-level pagination).
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id ORDER BY g.global_rank ASC LIMIT #{limit} OFFSET #{offset}")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id ORDER BY g.global_rank ASC LIMIT #{limit} OFFSET #{offset}")
     List<GlobalRanking> findRankingsPaginated(
             @Param("limit") int limit,
             @Param("offset") int offset
@@ -59,7 +59,7 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find rankings by rating range
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id WHERE g.rating BETWEEN #{minRating} AND #{maxRating} ORDER BY g.rating DESC")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id WHERE g.rating BETWEEN #{minRating} AND #{maxRating} ORDER BY g.rating DESC")
     List<GlobalRanking> findByRatingRange(
             @Param("minRating") int minRating,
             @Param("maxRating") int maxRating
@@ -68,7 +68,7 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find rankings around a specific rank (for user context in leaderboard)
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id WHERE g.global_rank BETWEEN #{startRank} AND #{endRank} ORDER BY g.global_rank ASC")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id WHERE g.global_rank BETWEEN #{startRank} AND #{endRank} ORDER BY g.global_rank ASC")
     List<GlobalRanking> findByRankRange(
             @Param("startRank") int startRank,
             @Param("endRank") int endRank
@@ -136,12 +136,12 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find users by rating title
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id WHERE g.rating_title = #{ratingTitle} ORDER BY g.rating DESC")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id WHERE g.rating_title = #{ratingTitle} ORDER BY g.rating DESC")
     List<GlobalRanking> findByRatingTitle(@Param("ratingTitle") String ratingTitle);
 
     /**
      * Find users by country
      */
-    @Select("SELECT g.*, u.name FROM global_rankings g LEFT JOIN users u ON g.user_id = u.id WHERE g.country = #{country} ORDER BY g.global_rank ASC")
+    @Select("SELECT g.*, p.name FROM global_rankings g LEFT JOIN user_profiles p ON g.user_id = p.account_id WHERE g.country = #{country} ORDER BY g.global_rank ASC")
     List<GlobalRanking> findByCountry(@Param("country") String country);
 }

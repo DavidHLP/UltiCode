@@ -66,7 +66,6 @@ const { t } = useI18n();
               {{
                 t("personal.problemLists.categories.listCount", {
                   count: category.lists.length,
-                  s: category.lists.length !== 1 ? "S" : "",
                 })
               }}
             </p>

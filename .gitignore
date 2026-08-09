@@ -30,7 +30,6 @@
 !/CONTEXT.md
 !/LICENSE
 !/README.md
-!/arthas.properties
 !/package.json
 !/pnpm-lock.yaml
 !/pnpm-workspace.yaml
@@ -265,7 +264,6 @@ coverage/
 .gradle/
 *.class
 *.jar
-!tools/arthas-boot.jar
 *.war
 *.ear
 

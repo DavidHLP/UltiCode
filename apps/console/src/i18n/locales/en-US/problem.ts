@@ -218,6 +218,7 @@ export default {
     savedMsg: "Note saved",
     failedToSave: "Failed to save note",
     failedToFetch: "Failed to fetch note",
+    unavailable: "Notes are currently unavailable.",
   },
 
   // Save/Bookmark
@@ -344,6 +345,7 @@ export default {
       "We found unsaved code from your last session. Would you like to restore it?",
     keepRestored: "Keep Restored Code",
     dismissRestore: "Start Fresh",
+    startFresh: "Start Fresh",
     clearSaved: "Clear saved code",
     clearSavedTooltip: "Clear the autosaved code in reset to starter",
     tooltip: "Your code is automatically saved to browser storage",
@@ -432,6 +434,7 @@ export default {
     showMoreTags: "Show more tags",
     noProblemsAvailable: "No problems available.",
     failedToPickRandom: "Failed to pick a random problem.",
+    failedToLoad: "Failed to load problems.",
     status: "Status",
     difficulty: "Difficulty",
     premium: "Premium",

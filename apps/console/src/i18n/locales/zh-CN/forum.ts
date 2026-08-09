@@ -70,6 +70,10 @@ export default {
     hiring: "招聘",
   },
 
+  author: {
+    op: "楼主",
+  },
+
   // Comments
   comments: {
     title: "评论",
@@ -82,7 +86,9 @@ export default {
     delete: "删除",
     loadMore: "加载更多评论",
     loadReplies: "加载 {count} 条回复",
+    replies: "条回复",
     submit: "评论",
+    submitFailed: "评论发表失败。",
     collapsed: "（已折叠）",
     edited: "已编辑",
     joinConversation: "加入讨论...",

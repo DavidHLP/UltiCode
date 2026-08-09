@@ -44,13 +44,6 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "init-db", "migrate"],
       "port": 0
-    },
-    {
-      "name": "ulticode-arthas",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["./scripts/start-arthas.sh"],
-      "port": 8563,
-      "autoPort": false
     }
   ]
 }

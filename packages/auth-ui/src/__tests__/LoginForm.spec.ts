@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi } from "vitest"
 import { mount, flushPromises } from "@vue/test-utils"
-import { routerPush } from "./setup"
+import { router, routerPush } from "./setup"
 import LoginForm from "../components/LoginForm.vue"
 
 describe("LoginForm", () => {
@@ -55,6 +55,63 @@ describe("LoginForm", () => {
     await wrapper.find("form").trigger("submit")
     await flushPromises()
     expect(routerPush).toHaveBeenCalledWith("/dashboard")
+  })
+
+  it("redirects to the current route's internal redirect query", async () => {
+    await router.push({
+      path: "/welcome",
+      query: { redirect: "/private?tab=solutions" },
+    })
+    routerPush.mockClear()
+
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(LoginForm, { props: { onSubmit } })
+    const inputs = wrapper.findAll("input")
+    await inputs[0].setValue("alice")
+    await inputs[1].setValue("hunter2")
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+
+    expect(routerPush).toHaveBeenCalledWith("/private?tab=solutions")
+    await router.replace("/")
+  })
+
+  it("ignores external redirect queries and falls back to the app root", async () => {
+    await router.push({
+      path: "/welcome",
+      query: { redirect: "https://evil.example/phishing" },
+    })
+    routerPush.mockClear()
+
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(LoginForm, { props: { onSubmit } })
+    const inputs = wrapper.findAll("input")
+    await inputs[0].setValue("alice")
+    await inputs[1].setValue("hunter2")
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+
+    expect(routerPush).toHaveBeenCalledWith("/")
+    await router.replace("/")
+  })
+
+  it("rejects backslash-based external redirect queries", async () => {
+    await router.push({
+      path: "/welcome",
+      query: { redirect: "/\\evil.example/phishing" },
+    })
+    routerPush.mockClear()
+
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(LoginForm, { props: { onSubmit } })
+    const inputs = wrapper.findAll("input")
+    await inputs[0].setValue("alice")
+    await inputs[1].setValue("hunter2")
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+
+    expect(routerPush).toHaveBeenCalledWith("/")
+    await router.replace("/")
   })
 
   it("shows the error message from an axios-style error (response.data.message)", async () => {

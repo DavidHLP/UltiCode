@@ -13,7 +13,7 @@
 import { join } from 'path'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
-import { formatReport, runI18nCheck } from '../../../shared/i18n-completeness'
+import { formatReport, runI18nCheck } from '../../../../packages/i18n-completeness'
 
 async function main() {
   const isJson = process.argv.includes('--json')

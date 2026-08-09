@@ -56,7 +56,7 @@ export DUBBO_REGISTRY_USERNAME="$NACOS_USERNAME"
 export DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD"
 
 SERVICE_NAME="${DUBBO_APPLICATION_NAME:-backend-auth}"
-NACOS_BASE="http://127.0.0.1:${NACOS_PORT:-28848}"
+NACOS_BASE="${NACOS_BASE:-http://${NACOS_HOST:-127.0.0.1}:${NACOS_PORT:-28848}}"
 NACOS_NAMESPACE="${DUBBO_NAMESPACE:-dev}"
 NACOS_GROUP="DEFAULT_GROUP"
 NACOS_INSTANCE_LIST_URL="${NACOS_BASE}/nacos/v1/ns/instance/list?serviceName=${SERVICE_NAME}&groupName=${NACOS_GROUP}&namespaceId=${NACOS_NAMESPACE}"
@@ -153,7 +153,7 @@ fi
 echo "--- 3a. Installing backend-common into the local repo ---"
 (
   cd "$ROOT_DIR/services"
-  ./mvnw -pl backend-common -am -DskipTests -B install \
+  ./mvnw -pl platform/common -am -DskipTests -B install \
     >"$LOG_DIR/backend-common-install.log" 2>&1 \
     || { echo "backend-common install failed (see $LOG_DIR/backend-common-install.log)" >&2; tail -50 "$LOG_DIR/backend-common-install.log" >&2; exit 1; }
 )
@@ -163,7 +163,7 @@ echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
   cd "$ROOT_DIR/services"
   SERVER_PORT=9101 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 240 ./mvnw -pl ../backend-auth -am \
+      timeout --kill-after=15 240 ./mvnw -pl auth -am \
         -Dspring-boot.run.profiles=dev \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \

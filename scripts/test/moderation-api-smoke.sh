@@ -8,9 +8,18 @@
 #   For dev: export SMOKE_USER=admin SMOKE_PASS=admin123
 
 set -euo pipefail
-trap 'rm -f /tmp/mod-smoke-cookies.txt' EXIT
 
-BASE_URL="${1:-http://localhost:9003/api}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
+ARTIFACT_ROOT=".tmp/moderation-api-smoke"
+umask 077
+mkdir -p "$ARTIFACT_ROOT"
+ARTIFACT_DIR="$(mktemp -d "$ARTIFACT_ROOT/run.XXXXXX")"
+COOKIE_JAR="$ARTIFACT_DIR/cookies.txt"
+trap 'rm -rf -- "$ARTIFACT_DIR"; rmdir "$ARTIFACT_ROOT" 2>/dev/null || true' EXIT
+
+BASE_URL="${1:-${SMOKE_BASE_URL:-http://localhost:9003/api}}"
 USERNAME="${2:-${SMOKE_USER:-}}"
 SMOKE_CRED="${3:-${SMOKE_PASS:-}}"
 
@@ -39,7 +48,7 @@ echo ""
 
 # Step 1: Login to get JWT cookie
 echo "Logging in..."
-LOGIN_RESPONSE=$(curl -s -c /tmp/mod-smoke-cookies.txt -w '\n%{http_code}' \
+LOGIN_RESPONSE=$(curl -s -c "$COOKIE_JAR" -w '\n%{http_code}' \
   -X POST "${BASE_URL}/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"username\":\"${USERNAME}\",\"password\":\"${SMOKE_CRED}\"}" 2>/dev/null || echo -e "\n000")
@@ -54,7 +63,7 @@ if [ "$LOGIN_STATUS" != "200" ]; then
 fi
 
 # Extract CSRF token from cookies
-CSRF_TOKEN=$(grep -i 'XSRF-TOKEN' /tmp/mod-smoke-cookies.txt 2>/dev/null | awk '{print $NF}' || echo "")
+CSRF_TOKEN=$(grep -i 'XSRF-TOKEN' "$COOKIE_JAR" 2>/dev/null | awk '{print $NF}' || echo "")
 if [ -n "$CSRF_TOKEN" ]; then
   echo "Login successful. CSRF token acquired."
 else
@@ -71,14 +80,14 @@ fi
 # Helper: GET request
 get_test() {
   local label="$1" url="$2" expected="$3"
-  HTTP_CODE=$(curl -s -b /tmp/mod-smoke-cookies.txt -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || echo "000")
+  HTTP_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null || echo "000")
   if [ "$HTTP_CODE" = "$expected" ]; then log_pass "$label" "$HTTP_CODE"; else log_fail "$label" "$HTTP_CODE (expected $expected)"; fi
 }
 
 # Helper: POST/PATCH request with body
 write_test() {
   local label="$1" method="$2" url="$3" body="$4" expected="$5"
-  HTTP_CODE=$(curl -s -b /tmp/mod-smoke-cookies.txt "${CSRF_ARGS[@]}" -o /dev/null -w '%{http_code}' \
+  HTTP_CODE=$(curl -s -b "$COOKIE_JAR" "${CSRF_ARGS[@]}" -o /dev/null -w '%{http_code}' \
     -X "$method" "$url" -H "Content-Type: application/json" -d "$body" 2>/dev/null || echo "000")
   if [ "$HTTP_CODE" = "$expected" ]; then log_pass "$label" "$HTTP_CODE"; else log_fail "$label" "$HTTP_CODE (expected $expected)"; fi
 }

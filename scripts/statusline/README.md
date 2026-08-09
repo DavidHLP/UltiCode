@@ -27,7 +27,7 @@ Honors `NO_COLOR` (https://no-color.org) — when set, all 256-color SGR sequenc
 ## Layout
 
 ```
-claude-opus-4-8 ·~/project/UltiCode ⎇ main ↑2 · pm2: 3/3 ●●● · arthas: ● · ctx: ████░░░░░░ 43%
+claude-opus-4-8 ·./ ⎇ main ↑2 · pm2: 3/3 ●●● · arthas: ● · ctx: ████░░░░░░ 43%
 └─ model ─┘ └─ cwd ─┘ └──── git ────┘ └───── pm2 (9001/9002/9003) ─────┘ └ arthas ┘ └──── ctx ────┘
 ```
 

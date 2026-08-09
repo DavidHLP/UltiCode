@@ -6,21 +6,21 @@ project:
 services:
   services:
     type: springboot
-    path: "C:\\admin\\Code\\Project\\OJ\\UltiCode\\services"
+    path: "services"
     command: "powershell -NoProfile -ExecutionPolicy Bypass -File ..\\scripts\\pitstop-start-backend.ps1"
     port: 9001
     health_check: "http://localhost:9001/actuator/health"
 
   console:
     type: vue
-    path: "C:\\admin\\Code\\Project\\OJ\\UltiCode\\console"
+    path: "apps\\console"
     command: "pnpm dev"
     port: 9002
     health_check: "http://localhost:9002"
 
   management:
     type: vue
-    path: "C:\\admin\\Code\\Project\\OJ\\UltiCode\\management"
+    path: "apps\\management"
     command: "pnpm dev"
     port: 9003
     health_check: "http://localhost:9003"

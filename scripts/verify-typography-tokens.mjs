@@ -32,7 +32,7 @@ const ROOT = dirname(dirname(__filename))
 
 // Apps to scan. Add new frontends here when they adopt the shared
 // typography contract.
-const SCAN_ROOTS = ['console/src', 'management/src']
+const SCAN_ROOTS = ['apps/console/src', 'apps/management/src']
 
 // File globs the guardrail inspects. .vue/.ts/.tsx/.js/.mjs/.css are
 // the only file types that can carry typography declarations in the
@@ -57,15 +57,15 @@ const ALLOWED_PATH_PATTERNS = [
   // table padding, header button height). They MUST NOT introduce new
   // raw font-size/font-family values — if you need a new typography
   // token, add it to packages/theme/src/typography.css instead.
-  'console/src/style.css',
-  'management/src/style.css',
+  'apps/console/src/style.css',
+  'apps/management/src/style.css',
   // The chart / markdown asset CSS files in console ship with the
   // chart engine; they declare typography for SVG/ECharts output that
   // cannot consume the Tailwind utility classes. They are allowed
   // because they describe the chart rendering pipeline, not the app
   // chrome. Any app-level override should go through shared tokens.
-  'console/src/assets/charts.css',
-  'console/src/assets/markdown.css',
+  'apps/console/src/assets/charts.css',
+  'apps/console/src/assets/markdown.css',
 ]
 
 // Patterns that count as raw typography declarations. The intent is

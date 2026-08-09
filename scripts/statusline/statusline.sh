@@ -78,7 +78,7 @@ CWD="$(get_json '.workspace.current_dir' '')"
 [ -z "$CWD" ] && CWD="$(get_json '.cwd' '')"
 [ -z "$CWD" ] && CWD="$(pwd)"
 # Tilde-compress ONLY for display; keep absolute path for tool calls below
-# (bash does not expand "~" inside double quotes — "git -C "~/x" fails).
+# (bash does not expand "~" inside double quotes — use "git -C \"relative/path\"" instead).
 case "$CWD" in
   "$HOME"*) SEG_CWD="${C_DIM}~${CWD#"$HOME"}${C_RESET}" ;;
   *)         SEG_CWD="${C_DIM}${CWD}${C_RESET}" ;;

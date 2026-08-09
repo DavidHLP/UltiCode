@@ -8,7 +8,7 @@ set -o pipefail
 
 # Sample inputs — same data, different palettes
 MODEL="claude-opus-4-8"
-CWD="~/project/UltiCode"
+CWD="${DEMO_CWD:-.}"
 BRANCH="main"
 DIRTY=""          # set to "*" to show dirty marker
 AHEAD="↑2"        # set to "" to hide

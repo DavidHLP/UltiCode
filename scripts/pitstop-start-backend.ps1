@@ -8,5 +8,6 @@ if (Test-Path $envFile) {
         [Environment]::SetEnvironmentVariable($key, $value, 'Process')
     }
 }
-Set-Location $PSScriptRoot\..\backend-spring
+$servicesDir = Join-Path -Path $PSScriptRoot -ChildPath '..\services'
+Set-Location -LiteralPath $servicesDir
 & mvn spring-boot:run

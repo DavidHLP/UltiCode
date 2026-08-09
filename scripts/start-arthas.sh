@@ -63,7 +63,7 @@ port_pid() {
 }
 
 # arthas 启动时读 arthas.home/lib/<version>/arthas/arthas.properties (解压后的内嵌文件),
-# **不是** ~/.arthas/arthas.properties。wrapper 在每次 attach 前 sync 项目级
+# **不是** $HOME/.arthas/arthas.properties。wrapper 在每次 attach 前 sync 项目级
 # infrastructure/arthas/arthas.properties 到 arthas.home, 保证新机器 / 升级不踩 STREAMABLE
 # 默认 (4.2.2 默认强制 mcp-session-id, 与 Claude Code 内置 MCP 客户端不维护 session 冲突)。
 PROJECT_ARTHAS_PROPS="${PROJECT_DIR}/infrastructure/arthas/arthas.properties"

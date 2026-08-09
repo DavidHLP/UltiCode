@@ -127,7 +127,9 @@ SANDBOX_CPUS=1.0
 SANDBOX_TIMEOUT=10
 SANDBOX_PIDS_LIMIT=128
 SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json
-BACKUP_DIR=/tmp/ulticode-backups
+# Repository-relative backup directory; deployment environments may override
+# BACKUP_DIR with their own relative mount point.
+BACKUP_DIR=.local/backups
 AUDIT_EXPORT_LIMIT=10000
 
 APP_BOOTSTRAP_ADMIN_ENABLED=false

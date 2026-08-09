@@ -294,7 +294,7 @@ fi
 if [[ "$SKIP_INSTALL" != true ]]; then
   echo "Installing frontend and shared dependencies..."
   # node_modules 缺失时跳过 --frozen-lockfile (该 flag 在全新/残缺环境会因 lockfile 未解析而失败)
-  for package in console management packages/auth-core; do
+  for package in apps/console apps/management packages/auth-core; do
     if [[ ! -d "$ROOT_DIR/$package/node_modules" ]]; then
       echo "  $package: node_modules missing, running pnpm install..."
       (cd "$ROOT_DIR/$package" && pnpm install)

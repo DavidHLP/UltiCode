@@ -1,6 +1,6 @@
 #!/bin/bash
 # Gateway baseline — verifies the P1-INFRA-004 hardening of the frontend
-# nginx gateways (console/nginx.conf + management/nginx.conf).
+# nginx gateways (apps/console/nginx.conf + apps/management/nginx.conf).
 #
 # Checks:
 #   1. Static inventory: each route family (auth/admin/moderation/app/ws)
@@ -38,8 +38,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-CONSOLE_CONF="$ROOT_DIR/console/nginx.conf"
-MANAGEMENT_CONF="$ROOT_DIR/management/nginx.conf"
+CONSOLE_CONF="$ROOT_DIR/apps/console/nginx.conf"
+MANAGEMENT_CONF="$ROOT_DIR/apps/management/nginx.conf"
 SNIPPET_CONF="$ROOT_DIR/infrastructure/nginx/includes/backend-proxy.conf"
 SECURITY_CONF="$ROOT_DIR/infrastructure/nginx/includes/security-headers.conf"
 COMPOSE_BASE="$ROOT_DIR/docker-compose.yml"

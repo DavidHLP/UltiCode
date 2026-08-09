@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# typography-guard.sh — enforce shared typography across console/ and management/
+# typography-guard.sh — enforce shared typography across apps/console/ and apps/management/
 #
 # Both frontends MUST source font families, sizes, line heights, weights, and
 # letter spacing from packages/theme/src/typography.css. Custom values are not
@@ -28,7 +28,7 @@ cd "$PROJECT_ROOT"
 
 # --- defaults ---------------------------------------------------------------
 MODE="report"
-SCAN_PATHS=(console/src management/src)
+SCAN_PATHS=(apps/console/src apps/management/src)
 
 # --- args -------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
@@ -145,7 +145,7 @@ with open(src) as f, open(dst, 'w') as out:
 
         # Track the most recent selector line. CSS lines that start at column 0
         # and end in `{` open a new rule. This is a heuristic but works for the
-        # hand-written styles in console/ and management/.
+        # hand-written styles in apps/console/ and apps/management/.
         stripped = line.lstrip()
         if stripped and not stripped.startswith(('*', '/', '.', '#', ':', '@')):
             # likely a selector at column 0 — could be `body {`, `.foo {`, etc.

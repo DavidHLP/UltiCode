@@ -63,6 +63,10 @@ public record RejudgeCommand(
                     "idempotency is required (use IdMetadata.mint() when "
                             + "no client token is available)");
         }
+        if (trace == null) {
+            throw new IllegalArgumentException(
+                    "trace is required (use TraceMetadata.EMPTY when unavailable)");
+        }
         if (actor == null) {
             throw new IllegalArgumentException("actor is required");
         }

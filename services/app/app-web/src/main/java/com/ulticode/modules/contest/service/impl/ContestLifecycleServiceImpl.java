@@ -4,12 +4,12 @@ import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
+import com.ulticode.modules.contest.mapper.ContestAdjudicationReceiptMapper;
+import com.ulticode.modules.contest.mapper.ContestCascadeMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
 import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
+import com.ulticode.app.error.ContestErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.api.service.ContestStatusPushPort;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
@@ -43,17 +43,16 @@ import java.util.List;
  * {@link ContestAdjudicationServiceImpl}'s job. The two share only the
  * {@link ContestRankingCacheEvictor}, because both a verdict and a cascade
  * delete can change what the ranking cache reflects. Rating recalculation is
- * handed off to {@link RatingCalculationService} once a contest is FINISHED.
+ * handed off to {@link RatingCalculationService} while a contest is FINISHING,
+ * before FINISHED is published.
  *
  * <p>Architectural boundary: this service does NOT depend on
  * {@code ContestParticipantMapper}. All {@link ContestParticipant} status
- * transitions and cascade deletes cross the
+ * transitions and participant deletion cross the
  * {@link ContestParticipantTransitions} seam so the canonical status
  * literals, input hygiene, and atomic SQL guard boundary stay in one
- * deep module. Only {@link ContestMapper} (for the contest-level
- * transitions) and the read-only
- * {@link ContestProblemMapper}/{@link ContestSubmissionMapper}/etc. for
- * the cascade delete are direct dependencies here.
+ * deep module. Contest-level locking/state writes cross {@link ContestMapper};
+ * all contest-owned relation deletes cross {@link ContestCascadeMapper}.
  */
 @Slf4j
 @Service
@@ -62,10 +61,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
 
     private final ContestMapper contestMapper;
     private final ContestParticipantTransitions participantTransitions;
-    private final ContestProblemMapper contestProblemMapper;
-    private final ContestSubmissionMapper contestSubmissionMapper;
-    private final ContestProblemResultMapper contestProblemResultMapper;
-    private final FirstSolveRecordMapper firstSolveRecordMapper;
+    private final ContestCascadeMapper contestCascadeMapper;
     private final ContestRankingCacheEvictor rankingCacheEvictor;
     private final Clock clock;
     private final ContestClock contestClock;
@@ -73,6 +69,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     private final ContestNotificationPort contestNotificationPort;
     private final RatingCalculationService ratingService;
+    private final ContestAdjudicationReceiptMapper adjudicationReceiptMapper;
 
     @Override
     @Transactional
@@ -99,30 +96,42 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
 
     @Override
     @Transactional
-    public void deleteContestCascade(String contestId) {
-        // 1. Soft-delete the parent contest row first. The soft-delete guard is
-        //    in ContestServiceImpl; here we only do the relational cleanup.
-        Contest contest = contestMapper.selectById(contestId);
-        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
-            // Soft-delete is idempotent; missing/already-deleted is not an error.
-            return;
+    public void deleteContestCascade(String contestId, String deletedBy) {
+        Contest contest = contestMapper.selectByIdIncludingDeletedForUpdate(contestId);
+        if (contest == null) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
-        // 2. Cascade: physical delete of contest-scoped rows. Preserve global
-        //    ranking rows (they reflect the user's overall history, not the
-        //    contest's lifetime).
-        contestSubmissionMapper.deleteByContestId(contestId);
-        contestProblemResultMapper.deleteByContestId(contestId);
-        firstSolveRecordMapper.deleteByContestId(contestId);
-        contestProblemMapper.deleteByContestId(contestId);
-        // Participant cascade goes through the seam (R3.6: bulk cascade
-        // delete does not need input hygiene and never touches the status
-        // column; the seam is a thin pass-through to the mapper).
+        if (!Boolean.TRUE.equals(contest.getIsDeleted())
+                && !ContestStatus.UPCOMING.name().equals(contest.getStatus())
+                && !ContestStatus.FINISHED.name().equals(contest.getStatus())) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        // Receipts must be removed before their contest_submission mapping.
+        contestCascadeMapper.deleteAdjudicationReceiptsByContestId(contestId);
+        contestCascadeMapper.deleteProblemResultsByContestId(contestId);
+        contestCascadeMapper.deleteSubmissionsByContestId(contestId);
+        contestCascadeMapper.deleteFirstSolveRecordsByContestId(contestId);
+        contestCascadeMapper.deleteRankingsByContestId(contestId);
+        contestCascadeMapper.deleteAnalyticsByContestId(contestId);
+        contestCascadeMapper.deleteAnnouncementsByContestId(contestId);
+        contestCascadeMapper.deleteRatingCalculationsByContestId(contestId);
         participantTransitions.deleteAllByContestId(contestId);
+        contestCascadeMapper.deleteVirtualSessionsByContestId(contestId);
+        contestCascadeMapper.deleteProblemsByContestId(contestId);
+
+        if (!Boolean.TRUE.equals(contest.getIsDeleted())) {
+            contest.setIsDeleted(true);
+            contest.setDeletedAt(LocalDateTime.now(clock));
+            contest.setDeletedBy(deletedBy);
+            contestMapper.updateById(contest);
+        }
         rankingCacheEvictor.evictRankingCache();
         log.info("P2-5: cascade-deleted relational rows for soft-deleted contest {}", contestId);
     }
 
     @Override
+    @Transactional
     public void tick(LocalDateTime now) {
         // Step 1: transition due UPCOMING contests to RUNNING.
         List<Contest> upcoming = contestMapper.findByStatus(ContestStatus.UPCOMING.name());
@@ -138,20 +147,52 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
             }
         }
 
-        // Step 2: transition due RUNNING contests to FINISHED.
+        // Step 2: claim due RUNNING contests as FINISHING. The claim is the
+        // only one-way state change here; all finalization work remains
+        // retryable while the row is FINISHING.
         List<Contest> running = contestMapper.findByStatus(ContestStatus.RUNNING.name());
         for (Contest contest : running) {
+            // Recovery path for a process crash after the RUNNING claim but
+            // before REGISTERED participants were batch-started.
+            try {
+                int started = batchStartParticipants(contest.getId());
+                if (started > 0) {
+                    contestStatusPushPort.emitStatus(
+                            contest.getId(), ContestStatus.RUNNING.name(),
+                            contest.getActualStartTime() == null ? null
+                                    : contest.getActualStartTime().atZone(ZoneId.systemDefault())
+                                    .toInstant().toEpochMilli(),
+                            null, null);
+                    contestRankingMarkDirtyPort.markDirty(contest.getId());
+                }
+            } catch (RuntimeException e) {
+                log.error("participant start recovery failed for contest {}", contest.getId(), e);
+                continue;
+            }
+
             LocalDateTime effectiveEndTime = contestClock.contestEndTime(contest).orElse(null);
             if (effectiveEndTime != null && !effectiveEndTime.isAfter(now)) {
                 try {
-                    transitionToFinished(contest, now);
+                    transitionToFinishing(contest, now);
                 } catch (Exception e) {
-                    log.error("transition to FINISHED failed for contest {}", contest.getId(), e);
+                    log.error("claim FINISHING failed for contest {}", contest.getId(), e);
                 }
             }
         }
 
-        // Step 3 (R3.1): auto-finish expired virtual participants whose
+        // Step 3: retry every claimed contest. This query is also the crash-
+        // recovery path: a process that died after the FINISHING claim leaves
+        // the row here for the next tick or application restart.
+        List<Contest> finishing = contestMapper.findByStatus(ContestStatus.FINISHING.name());
+        for (Contest contest : finishing) {
+            try {
+                finalizeFinishing(contest, now);
+            } catch (RuntimeException e) {
+                log.error("finalization failed for contest {}", contest.getId(), e);
+            }
+        }
+
+        // Step 4 (R3.1): auto-finish expired virtual participants whose
         // virtual_end_time has passed, even if the user is offline. Fault-
         // isolated so a virtual-finish failure never blocks the next tick.
         try {
@@ -252,66 +293,112 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
             return;
         }
 
-        // P0-2: batch-transition REGISTERED participants to STARTED so they can
-        // submit. Rethrows on failure — see method Javadoc.
-        int started = batchStartParticipants(contest.getId());
-        if (started > 0) {
-            log.info("P0-2: started {} participants for contest {}", started, contest.getId());
+        try {
+            // P0-2: batch-transition REGISTERED participants to STARTED so they can
+            // submit. Rethrows on failure — see method Javadoc.
+            int started = batchStartParticipants(contest.getId());
+            if (started > 0) {
+                log.info("P0-2: started {} participants for contest {}", started, contest.getId());
+            }
+
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setActualStartTime(now);
+            contestStatusPushPort.emitStatus(
+                    contest.getId(),
+                    ContestStatus.RUNNING.name(),
+                    now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    null,
+                    null
+            );
+
+            // Mark dirty so initial ranking appears on leaderboard
+            contestRankingMarkDirtyPort.markDirty(contest.getId());
+
+            log.info("Contest {} transitioned to RUNNING", contest.getId());
+        } catch (RuntimeException failure) {
+            // The claim is committed before this private method's side effects.
+            // Compensate so the next tick retries instead of skipping RUNNING.
+            contestMapper.revertRunningToUpcoming(contest.getId(), now);
+            throw failure;
         }
-
-        contest.setStatus(ContestStatus.RUNNING.name());
-        contest.setActualStartTime(now);
-        contestStatusPushPort.emitStatus(
-                contest.getId(),
-                ContestStatus.RUNNING.name(),
-                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                null,
-                null
-        );
-
-        // Mark dirty so initial ranking appears on leaderboard
-        contestRankingMarkDirtyPort.markDirty(contest.getId());
-
-        log.info("Contest {} transitioned to RUNNING", contest.getId());
     }
 
     /**
-     * Idempotently transition a contest to FINISHED via a conditional UPDATE
-     * (WHERE status=RUNNING). 0 affected rows → another caller already
-     * finished it; skip. On a successful claim the real (non-virtual)
-     * participants are closed (R3.1) so rating sees a stable set, the WS
-     * status is broadcast, and rating calculation is handed off. A
-     * participant-close failure is rethrown (same rationale as RUNNING).
+     * Atomically claim a due contest as FINISHING. No side effect is performed
+     * before this conditional update succeeds, so competing ticks cannot both
+     * own the transition.
      */
-    private void transitionToFinished(Contest contest, LocalDateTime now) {
-        int transitioned = contestMapper.tryTransitionToFinished(contest.getId(), now);
+    private void transitionToFinishing(Contest contest, LocalDateTime now) {
+        int transitioned = contestMapper.tryTransitionToFinishing(contest.getId(), now);
         if (transitioned == 0) {
-            log.debug("contest {} no longer RUNNING, skip FINISHED transition", contest.getId());
+            return;
+        }
+        // Keep the in-memory row aligned for deterministic tests; the
+        // persisted actual_end_time is the source of
+        // truth for retries loaded from FINISHING.
+        contest.setStatus(ContestStatus.FINISHING.name());
+        if (contest.getActualEndTime() == null) {
+            contest.setActualEndTime(now);
+        }
+    }
+
+    /**
+     * Retry-safe FINISHING finalizer. Every operation before the final
+     * conditional update is either guarded by the database (participant close
+     * and rating receipt) or is an at-least-once notification/dirty signal.
+     * FINISHED is published only after all of them return successfully, so a
+     * failure leaves the contest visible to the next tick.
+     */
+    private void finalizeFinishing(Contest contest, LocalDateTime now) {
+        // Hold the parent lock across participant close, rating, and the
+        // FINISHED claim. Adjudication takes the same lock first, so a late
+        // verdict either lands before rating or reopens the published contest
+        // for a retryable finalization pass.
+        Contest locked = contestMapper.selectByIdForUpdate(contest.getId());
+        if (locked != null) {
+            if (!ContestStatus.FINISHING.name().equals(locked.getStatus())) {
+                return;
+            }
+            contest = locked;
+        }
+        LocalDateTime endTime = contest.getActualEndTime() != null
+                ? contest.getActualEndTime()
+                : now;
+
+        // Do not publish ratings while a real contest submission is still
+        // pending or has a terminal user verdict without its receipt. The
+        // parent lock serializes this drain check with adjudication; FINISHING
+        // remains retryable until the judge pipeline has drained.
+        if (adjudicationReceiptMapper.countUnadjudicatedRealSubmissions(contest.getId()) > 0) {
             return;
         }
 
-        // R3.1: close all real (is_virtual=0) participants so the rating
-        // calculation below sees a stable, FINISHED set. Virtual participants
-        // are managed by the per-user virtual session, not the contest clock.
-        // Rethrows on failure — see method Javadoc.
-        int finished = participantTransitions.finishStartedReal(contest.getId(), now);
+        // Close real participants first. Virtual sessions have their own
+        // participant clock and are intentionally handled by step 4.
+        int finished = participantTransitions.finishStartedReal(contest.getId(), endTime);
         if (finished > 0) {
             log.info("R3.1: closed {} real participants for contest {}", finished, contest.getId());
         }
 
-        contest.setStatus(ContestStatus.FINISHED.name());
-        contest.setActualEndTime(now);
+        // RatingCalculationService owns its durable contest receipt, so a
+        // retry after a committed rating update is a no-op.
+        ratingService.calculateAndUpdate(contest.getId());
+        contestRankingMarkDirtyPort.markDirty(contest.getId());
+
+        // Emit before publishing FINISHED. A throwing adapter leaves the row
+        // FINISHING and therefore retryable; duplicate delivery on a retry is
+        // acceptable for this best-effort push seam.
         contestStatusPushPort.emitStatus(
                 contest.getId(),
                 ContestStatus.FINISHED.name(),
                 null,
-                now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
                 null
         );
 
-        // Trigger rating calculation
-        ratingService.calculateAndUpdate(contest.getId());
-
-        log.info("Contest {} transitioned to FINISHED, ratings calculated", contest.getId());
+        int transitioned = contestMapper.tryFinalizeFinished(contest.getId(), endTime);
+        if (transitioned == 0) {
+            return;
+        }
     }
 }

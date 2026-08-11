@@ -40,8 +40,10 @@ public class AdminNotificationController {
     @RateLimit(key = "admin:notification-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<AdminNotificationVO> createNotification(@Valid @RequestBody CreateSystemNotificationRequest request) {
-        return Result.success(notificationCutoverService.createSystemNotification(request));
+    public Result<AdminNotificationVO> createNotification(
+            @Valid @RequestBody CreateSystemNotificationRequest request,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        return Result.success(notificationCutoverService.createSystemNotification(request, idempotencyKey));
     }
 
     @Operation(summary = "Delete notification", description = "Delete a system notification and all related user notifications")
@@ -50,8 +52,9 @@ public class AdminNotificationController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteNotification(
             @io.swagger.v3.oas.annotations.Parameter(description = "Notification ID")
-            @PathVariable String id) {
-        notificationCutoverService.deleteNotification(id);
+            @PathVariable String id,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        notificationCutoverService.deleteNotification(id, idempotencyKey);
         return Result.success();
     }
 
@@ -62,7 +65,9 @@ public class AdminNotificationController {
     public Result<AdminNotificationVO> updateNotification(
             @io.swagger.v3.oas.annotations.Parameter(description = "Notification ID")
             @PathVariable String id,
-            @Valid @RequestBody UpdateSystemNotificationRequest request) {
-        return Result.success(notificationCutoverService.updateSystemNotification(id, request));
+            @Valid @RequestBody UpdateSystemNotificationRequest request,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        return Result.success(
+                notificationCutoverService.updateSystemNotification(id, request, idempotencyKey));
     }
 }

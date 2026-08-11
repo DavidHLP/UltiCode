@@ -36,10 +36,9 @@ import java.util.stream.Collectors;
  * {@code SystemAlertIntent}; preserving that exception is part of the
  * preservation invariant.
  *
- * <p>User resolution is provided by the {@link UserReadPort} bridge adapter
- * ({@code UserReadAdapter}) located in {@code backend-legacy}, which delegates
- * to the legacy {@code UserMapper}. This keeps {@code backend-app} free of
- * {@code com.ulticode.modules.user.*} imports.
+ * <p>User resolution is provided by the {@link UserReadPort} App owner seam.
+ * {@code ALL} recipients come from Auth's active-account query; explicit
+ * {@code USERS} recipients are verified through the same read port.
  *
  * @author ulticode
  */
@@ -139,11 +138,7 @@ public class DefaultAnnouncementBroadcaster implements AnnouncementBroadcaster {
 
     private List<String> resolveTargets(String target, List<String> userIds) {
         if (TARGET_ALL.equals(target)) {
-            // "ALL" target must be resolved by the admin BFF before calling
-            // this method; we cannot enumerate all active users without the
-            // user domain being wired. Return empty to force broadcast() to
-            // throw with a clear message.
-            return Collections.emptyList();
+            return userReadPort.findAllActiveIds();
         }
         if (TARGET_USERS.equals(target)) {
             if (userIds == null || userIds.isEmpty()) {

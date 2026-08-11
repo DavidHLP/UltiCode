@@ -1,69 +1,111 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateNotificationCommand;
 import com.ulticode.app.api.command.DeleteNotificationCommand;
 import com.ulticode.app.api.command.UpdateNotificationCommand;
+import com.ulticode.app.api.dto.NotificationAdminDTO;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.NotificationAdministrationService;
+import com.ulticode.app.api.service.NotificationAdminReadPort;
+import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.PageResult;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
+import com.ulticode.common.util.AuditContext;
+import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.ulticode.modules.admin.projection.AdminNotificationProjection;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * P4-CUTOVER-003: feature-flagged routing adapter for notification
- * administration.
+ * Admin-side adapter for the App-owned notification write contract.
  *
- * <p>When {@code app.features.notification-dubbo-cutover=false} (default),
- * delegates directly to {@link AdminNotificationService}. When the flag
- * is {@code true}, writes go through the Dubbo
- * {@link NotificationAdministrationService} Provider.
- *
- * <p>Mirrors {@link ContestCutoverService} / {@link SubmissionCutoverService}
- * in pattern.
+ * <p>The feature flag keeps the default path backward-compatible while the
+ * enabled path sends the command directly to App. Both paths receive the
+ * same client idempotency key; a supplied key is never replaced by a new
+ * UUID, so retries can be replayed by the App receipt boundary.
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationCutoverService {
 
     private final AdminNotificationService notificationService;
+    private final AdminNotificationProjection adminNotificationProjection;
+    private final NotificationAdminReadPort notificationAdminReadPort;
     private final CurrentUserProvider currentUserProvider;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
-    private NotificationAdministrationService dubboProvider;
+    /**
+     * Compatibility constructor for focused tests and legacy in-process callers
+     * that exercise only the flag-off delegation path.
+     */
+    public NotificationCutoverService(
+            AdminNotificationService notificationService,
+            CurrentUserProvider currentUserProvider) {
+        this(notificationService, null, null, currentUserProvider);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public NotificationCutoverService(
+            AdminNotificationService notificationService,
+            AdminNotificationProjection adminNotificationProjection,
+            NotificationAdminReadPort notificationAdminReadPort,
+            CurrentUserProvider currentUserProvider) {
+        this.notificationService = notificationService;
+        this.adminNotificationProjection = adminNotificationProjection;
+        this.notificationAdminReadPort = notificationAdminReadPort;
+        this.currentUserProvider = currentUserProvider;
+    }
 
     @Value("${app.features.notification-dubbo-cutover:false}")
     private boolean dubboEnabled;
 
-    @Transactional
+    @DubboReference(group = "backend-app", version = "1.0.0",
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
+    private NotificationAdministrationService dubboProvider;
+
+    public PageResult<AdminNotificationVO> listSystemNotifications(AdminNotificationQueryDTO queryDTO) {
+        return notificationService.listSystemNotifications(queryDTO);
+    }
+
+    @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
+        return createSystemNotification(request, null);
+    }
+
+    @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
+    public AdminNotificationVO createSystemNotification(
+            CreateSystemNotificationRequest request, String idempotencyKey) {
         if (!dubboEnabled) {
-            return notificationService.createSystemNotification(request);
+            return notificationService.createSystemNotification(request, idempotencyKey);
         }
-        String actorId = safeActorId();
+
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        String category = request.getCategory() == null ? "SYSTEM" : request.getCategory();
         RpcResult<NotificationAdminViewDTO> result = dubboProvider.createNotification(
                 new CreateNotificationCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover notification create"),
-                        TraceMetadata.EMPTY,
+                        commandId("create", idempotency),
+                        idempotency,
+                        new ActorDelegation(actorType(), actorId, actorId, "admin notification create"),
+                        trace(),
                         actorId,
                         request.getTitle(),
                         request.getContent(),
@@ -74,86 +116,195 @@ public class NotificationCutoverService {
         if (!result.success()) {
             throw mapError(result);
         }
-        return readBack(result.data().notificationId());
+        NotificationAdminViewDTO dto = result.data();
+        String effectiveCategory = dto.category() == null || dto.category().isBlank()
+                ? category : dto.category();
+        AuditContext.setNewValues(Map.of(
+                "title", request.getTitle() != null ? request.getTitle() : "",
+                "type", request.getType() != null ? request.getType() : "",
+                "category", effectiveCategory,
+                "target", request.getTarget() != null ? request.getTarget() : ""
+        ));
+        AuditContext.setEntityId(dto.notificationId());
+        return readBack(dto.notificationId(), dto.announcementId(), request, effectiveCategory);
     }
 
-    @Transactional
+    @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public void deleteNotification(String id) {
+        deleteNotification(id, null);
+    }
+
+    @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
+    public void deleteNotification(String id, String idempotencyKey) {
         if (!dubboEnabled) {
-            notificationService.deleteNotification(id);
+            notificationService.deleteNotification(id, idempotencyKey);
             return;
         }
-        String actorId = safeActorId();
+
+        captureOldValues(id);
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
         RpcResult<Void> result = dubboProvider.deleteNotification(
                 new DeleteNotificationCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover notification delete"),
-                        TraceMetadata.EMPTY, id));
+                        commandId("delete", idempotency),
+                        idempotency,
+                        new ActorDelegation(actorType(), actorId, actorId, "admin notification delete"),
+                        trace(),
+                        id));
         if (!result.success()) {
             throw mapError(result);
         }
     }
 
-    @Transactional
-    public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
+    @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
+    public AdminNotificationVO updateSystemNotification(
+            String id, UpdateSystemNotificationRequest request) {
+        return updateSystemNotification(id, request, null);
+    }
+
+    @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
+    public AdminNotificationVO updateSystemNotification(
+            String id, UpdateSystemNotificationRequest request, String idempotencyKey) {
         if (!dubboEnabled) {
-            return notificationService.updateSystemNotification(id, request);
+            return notificationService.updateSystemNotification(id, request, idempotencyKey);
         }
-        String actorId = safeActorId();
+
+        captureOldValues(id);
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
         RpcResult<NotificationAdminViewDTO> result = dubboProvider.updateNotification(
                 new UpdateNotificationCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover notification update"),
-                        TraceMetadata.EMPTY, id,
-                        request.getTitle(), request.getContent(),
-                        request.getType(), request.getCategory()));
+                        commandId("update", idempotency),
+                        idempotency,
+                        new ActorDelegation(actorType(), actorId, actorId, "admin notification update"),
+                        trace(),
+                        id,
+                        request.getTitle(),
+                        request.getContent(),
+                        request.getType(),
+                        request.getCategory()));
         if (!result.success()) {
             throw mapError(result);
         }
-        return readBack(id);
+        AuditContext.setNewValues(Map.of(
+                "title", request.getTitle() != null ? request.getTitle() : "",
+                "type", request.getType() != null ? request.getType() : ""
+        ));
+        AuditContext.setEntityId(id);
+        return readBackUpdate(id, result.data(), request);
     }
 
-    // ── helpers ────────────────────────────────────────────────
-
-    /**
-     * Read-back is not on the Dubbo contract; re-fetch the full VO via
-     * the local projection to preserve the HTTP response shape.
-     */
-    private AdminNotificationVO readBack(String notificationId) {
-        // Re-read through the local service to get the full VO shape.
-        // AdminNotificationService has no getById, but the local impl
-        // can re-fetch via notificationMapper internally. For now we
-        // delegate to a lightweight local read.
-        if (notificationId == null || notificationId.isBlank()) {
+    private AdminNotificationVO readBackUpdate(
+            String notificationId,
+            NotificationAdminViewDTO result,
+            UpdateSystemNotificationRequest request) {
+        NotificationAdminDTO row = notificationAdminReadPort.selectById(notificationId);
+        if (row != null) {
+            return adminNotificationProjection.toAdminVO(row);
+        }
+        if (result == null) {
             return null;
         }
-        // The notification was just created/updated locally by the Provider
-        // (same monolith); use AdminNotificationService.listSystemNotifications
-        // is overkill — the Provider already returned the data. Construct
-        // a minimal VO from the DTO.
-        // In production this will be a local projection call.
         AdminNotificationVO vo = new AdminNotificationVO();
-        vo.setId(notificationId);
+        vo.setId(result.notificationId() != null ? result.notificationId() : notificationId);
+        vo.setAnnouncementId(result.announcementId());
+        vo.setTitle(result.title() != null ? result.title() : request.getTitle());
+        vo.setContent(request.getContent());
+        vo.setType(result.type() != null ? result.type() : request.getType());
+        vo.setCategory(result.category() != null ? result.category() : request.getCategory());
+        if (result.createdEpochMs() > 0) {
+            vo.setCreatedAt(Instant.ofEpochMilli(result.createdEpochMs())
+                    .atOffset(ZoneOffset.UTC).toLocalDateTime());
+        }
         return vo;
     }
 
-    private String safeActorId() {
-        try {
-            return currentUserProvider.getCurrentUserId();
-        } catch (Exception e) {
-            return "admin";
+    private void captureOldValues(String id) {
+        AuditContext.setEntityId(id);
+        if (notificationAdminReadPort == null) {
+            return;
+        }
+        NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);
+        if (existing != null) {
+            AuditContext.setOldValues(Map.of(
+                    "title", existing.title() != null ? existing.title() : "",
+                    "type", existing.type() != null ? existing.type() : ""
+            ));
         }
     }
 
+    private AdminNotificationVO readBack(
+            String notificationId,
+            String announcementId,
+            CreateSystemNotificationRequest fallbackRequest,
+            String category) {
+        NotificationAdminDTO row = notificationAdminReadPort.selectById(notificationId);
+        if (row == null) {
+            if (fallbackRequest != null) {
+                return adminNotificationProjection.buildAnnouncementVO(
+                        fallbackRequest, category, announcementId);
+            }
+            return null;
+        }
+        return adminNotificationProjection.toAdminVO(row);
+    }
+
+    private String currentActor() {
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(
+                    AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+        }
+        return actorId;
+    }
+
+    private String actorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+    }
+
+    private static IdMetadata idempotency(String requestedKey) {
+        String key = requestedKey == null || requestedKey.isBlank()
+                ? UUID.randomUUID().toString() : requestedKey.trim();
+        if (key.length() > 120) {
+            throw new BusinessException(
+                    AdminErrorCode.BAD_REQUEST, "Idempotency-Key must not exceed 120 characters");
+        }
+        return IdMetadata.of(key, null);
+    }
+
+    private static String commandId(String operation, IdMetadata idempotency) {
+        return UUID.nameUUIDFromBytes(
+                (operation + ":" + idempotency.idempotencyKey()).getBytes(StandardCharsets.UTF_8))
+                .toString();
+    }
+
+    private static TraceMetadata trace() {
+        return new TraceMetadata(TraceIdUtil.current(), null, null, null);
+    }
+
     private static BusinessException mapError(RpcResult<?> result) {
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+        if (result == null || result.error() == null) {
+            return new BusinessException(
+                    AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
         }
-        int code = err.code();
-        if (code == 40401) {
-            return new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
+        int code = result.error().code();
+        if (code == AppErrorCode.BAD_REQUEST.code()) {
+            return new BusinessException(AdminErrorCode.BAD_REQUEST, result.error().message());
         }
-        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
+        if (code == AppErrorCode.UNAUTHORIZED.code()) {
+            return new BusinessException(AdminErrorCode.UNAUTHORIZED, result.error().message());
+        }
+        if (code == AppErrorCode.FORBIDDEN.code()) {
+            return new BusinessException(AdminErrorCode.FORBIDDEN, result.error().message());
+        }
+        if (code == AppErrorCode.CONTENT_NOT_FOUND.code()) {
+            return new BusinessException(AdminErrorCode.NOT_FOUND, result.error().message());
+        }
+        if (code == AppErrorCode.VERSION_CONFLICT.code()
+                || code == AppErrorCode.CONTENT_STATE_CONFLICT.code()
+                || code == AppErrorCode.IDEMPOTENCY_KEY_CONFLICT.code()) {
+            return new BusinessException(AdminErrorCode.CONFLICT, result.error().message());
+        }
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, result.error().message());
     }
 }

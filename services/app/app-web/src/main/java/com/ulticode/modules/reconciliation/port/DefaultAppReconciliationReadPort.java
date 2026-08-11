@@ -3,6 +3,7 @@ package com.ulticode.modules.reconciliation.port;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
  * tables only; the users join is a permitted Q-read.
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultAppReconciliationReadPort implements AppReconciliationReadPort {
 

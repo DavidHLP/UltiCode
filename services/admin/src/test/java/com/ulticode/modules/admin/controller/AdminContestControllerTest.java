@@ -5,12 +5,8 @@ import com.ulticode.admin.error.AdminWebExceptionHandler;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.admin.service.AdminContestMutationService;
-import com.ulticode.modules.contest.dto.ContestVO;
-import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestService;
-import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.admin.dto.CreateContestDTO;
+import com.ulticode.modules.admin.service.AdminContestService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -59,19 +55,10 @@ class ContestControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private ContestService contestService;
-
-    @MockBean
-    private AdminContestMutationService adminContestMutation;
+    private AdminContestService adminContestService;
 
     @MockBean
     private com.ulticode.modules.admin.service.ContestCutoverService contestCutoverService;
-
-    @MockBean
-    private ContestProjection contestProjection;
-
-    @MockBean
-    private RankingService rankingService;
 
     @MockBean
     private CurrentUserProvider currentUserProvider;
@@ -109,7 +96,7 @@ class ContestControllerTest {
         @DisplayName("should return 200 with created contest when admin creates contest")
         void createContest_success_asAdmin() throws Exception {
             AdminContestVO adminVO = createValidAdminContestVO();
-            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
+            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString(), any()))
                     .thenReturn(adminVO);
 
             CreateContestDTO dto = createValidDTO();
@@ -132,7 +119,7 @@ class ContestControllerTest {
         @DisplayName("should return 200 with created contest when super admin creates contest")
         void createContest_success_asSuperAdmin() throws Exception {
             AdminContestVO adminVO = createValidAdminContestVO();
-            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
+            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString(), any()))
                     .thenReturn(adminVO);
 
             CreateContestDTO dto = createValidDTO();
@@ -149,7 +136,7 @@ class ContestControllerTest {
         @WithMockUser(roles = {"USER"})
         @DisplayName("should return 403 when non-admin user tries to create contest")
         void createContest_forbidden_asUser() throws Exception {
-            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
+            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString(), any()))
                     .thenThrow(new BusinessException(AdminErrorCode.FORBIDDEN));
 
             CreateContestDTO dto = createValidDTO();

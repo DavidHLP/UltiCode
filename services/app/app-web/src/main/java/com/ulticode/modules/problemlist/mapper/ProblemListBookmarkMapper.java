@@ -60,6 +60,15 @@ public interface ProblemListBookmarkMapper extends BaseMapper<ProblemListBookmar
     int deleteByUserIdAndListId(@Param("userId") String userId, @Param("listId") String listId);
 
     /**
+     * Delete all bookmarks for a problem list before the list is removed.
+     *
+     * @param listId the problem list ID
+     * @return number of rows deleted
+     */
+    @Delete("DELETE FROM problem_list_bookmarks WHERE list_id = #{listId}")
+    int deleteByListId(@Param("listId") String listId);
+
+    /**
      * Delete all bookmarks in a category.
      *
      * @param categoryId the category ID

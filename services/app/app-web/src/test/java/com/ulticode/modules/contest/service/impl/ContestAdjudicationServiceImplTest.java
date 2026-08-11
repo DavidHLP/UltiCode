@@ -6,6 +6,7 @@ import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.ContestProblemResult;
 import com.ulticode.modules.contest.entity.ContestSubmission;
 import com.ulticode.modules.contest.entity.FirstSolveRecord;
+import com.ulticode.modules.contest.mapper.ContestAdjudicationReceiptMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
@@ -14,6 +15,7 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.app.api.event.SubmissionJudgedEvent;
+import com.ulticode.common.uuid.UuidGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.lenient;
@@ -71,6 +74,8 @@ class ContestAdjudicationServiceImplTest {
     @Mock private ContestRankingCacheEvictor rankingCacheEvictor;
     @Mock private Clock clock;
     @Mock private com.ulticode.modules.contest.scoring.ScoringStrategyResolver scoringStrategyResolver;
+    @Mock private ContestAdjudicationReceiptMapper receiptMapper;
+    @Mock private UuidGenerator uuidGenerator;
 
     private ContestAdjudicationServiceImpl service;
 
@@ -82,7 +87,7 @@ class ContestAdjudicationServiceImplTest {
                 contestMapper, contestParticipantMapper, contestProblemMapper,
                 contestSubmissionMapper, contestProblemResultMapper,
                 firstSolveRecordMapper, rankingCacheEvictor, clock,
-                scoringStrategyResolver);
+                scoringStrategyResolver, receiptMapper, uuidGenerator);
         // R4: the service loads the parent contest for scoringMode/penalty
         // config. Provide a default ICPC contest so the existing tests (which
         // assume ICPC semantics: 20-min penalty per WA) continue to hold.
@@ -97,13 +102,22 @@ class ContestAdjudicationServiceImplTest {
         lenient().when(scoringStrategyResolver.resolveFromString(
                 org.mockito.ArgumentMatchers.argThat(s -> s == null || !"ICPC".equals(s))))
                 .thenReturn(new com.ulticode.modules.contest.scoring.ScoreStrategy());
+        lenient().when(contestMapper.selectByIdForUpdate(anyString()))
+                .thenAnswer(invocation -> contestMapper.selectById(invocation.getArgument(0)));
+        lenient().when(contestSubmissionMapper.findBySubmissionId(anyString()))
+                .thenAnswer(invocation -> contestSubmissionMapper
+                        .findBySubmissionIdForUpdate(invocation.getArgument(0)));
+        lenient().when(receiptMapper.findMaxGenerationForSubmissionForUpdate(anyString()))
+                .thenReturn(Optional.empty());
+        lenient().when(receiptMapper.insertIfAbsent(
+                any(), anyString(), anyLong(), anyString(), anyBoolean())).thenReturn(1);
     }
 
     /** P0-1: apply judge result for a non-contest submission is a no-op. */
     @Test
     @DisplayName("P0-1: non-contest submission is a no-op (no mapper calls)")
     void applyJudgeResult_nonContestSubmission_noOp() {
-        when(contestSubmissionMapper.findBySubmissionId(SUBMISSION_ID))
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID))
                 .thenReturn(Optional.empty());
         SubmissionJudgedEvent event = newEvent(false, 100);
 
@@ -113,21 +127,69 @@ class ContestAdjudicationServiceImplTest {
         verify(contestParticipantMapper, never()).updateById(any(ContestParticipant.class));
     }
 
+    @Test
+    @DisplayName("CONTEST-002: infrastructure verdict is not scored")
+    void applyJudgeResult_infrastructureVerdict_isNoOp() {
+        SubmissionJudgedEvent event = new SubmissionJudgedEvent(
+                new Object(), SUBMISSION_ID, USER_ID, PROBLEM_LONG_ID,
+                "Sandbox Error", false, null, LocalDateTime.now(),
+                1L, 0, 0, CONTEST_ID);
+
+        service.applyJudgeResult(event);
+
+        verify(contestSubmissionMapper, never()).findBySubmissionIdForUpdate(anyString());
+        verify(receiptMapper, never()).insertIfAbsent(
+                any(), anyString(), anyLong(), anyString(), anyBoolean());
+    }
+
+    @Test
+    @DisplayName("CONTEST-002: duplicate receipt does not replay scoring")
+    void applyJudgeResult_duplicateReceipt_isNoOp() {
+        ContestSubmission cs = newContestSubmission(0);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID))
+                .thenReturn(Optional.of(cs));
+        when(receiptMapper.findMaxGenerationForSubmissionForUpdate(SUBMISSION_ID))
+                .thenReturn(Optional.of(1L));
+
+        service.applyJudgeResult(newEvent(true, 100, 1L));
+
+        verify(receiptMapper, never()).insertIfAbsent(
+                any(), anyString(), anyLong(), anyString(), anyBoolean());
+        verify(contestSubmissionMapper, never()).markAcceptedBySubmissionId(anyString(), anyBoolean());
+        verify(contestParticipantMapper, never()).selectByIdForUpdate(anyString());
+    }
+
+    @Test
+    @DisplayName("CONTEST-002: stale generation does not overwrite newer receipt")
+    void applyJudgeResult_staleGeneration_isNoOp() {
+        ContestSubmission cs = newContestSubmission(0);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID))
+                .thenReturn(Optional.of(cs));
+        when(receiptMapper.findMaxGenerationForSubmissionForUpdate(SUBMISSION_ID))
+                .thenReturn(Optional.of(2L));
+
+        service.applyJudgeResult(newEvent(true, 100, 1L));
+
+        verify(receiptMapper, never()).insertIfAbsent(
+                any(), anyString(), anyLong(), anyString(), anyBoolean());
+        verify(contestSubmissionMapper, never()).markAcceptedBySubmissionId(anyString(), anyBoolean());
+    }
+
     /** P0-1: AC writes is_accepted, increments score, creates cpr row, evicts cache. */
     @Test
     @DisplayName("P0-1: AC verdict writes is_accepted and increments totalScore")
     void applyJudgeResult_accepted_writesIsAcceptedAndIncrementsScore() {
         ContestParticipant participant = newParticipant(0, 0, 0);
         ContestProblem cp = newContestProblem(100);
-        ContestSubmission cs = newContestSubmission(0);
-        when(contestSubmissionMapper.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(cs));
-        when(contestParticipantMapper.selectById(PARTICIPANT_ID)).thenReturn(participant);
+        ContestSubmission cs = newContestSubmission(600);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID)).thenReturn(Optional.of(cs));
+        when(contestParticipantMapper.selectByIdForUpdate(PARTICIPANT_ID)).thenReturn(participant);
         when(contestProblemMapper.selectById(PROBLEM_ID)).thenReturn(cp);
-        when(contestProblemResultMapper.findByParticipantIdAndContestProblemId(PARTICIPANT_ID, PROBLEM_ID))
+        when(contestProblemResultMapper.findByParticipantIdAndContestProblemIdForUpdate(PARTICIPANT_ID, PROBLEM_ID))
                 .thenReturn(Optional.empty());
         when(firstSolveRecordMapper.insert(any(FirstSolveRecord.class))).thenReturn(1);
 
-        SubmissionJudgedEvent event = newEvent(true, 600); // 10 min from start
+        SubmissionJudgedEvent event = newEvent(true, 600, 1L, "spoofed-user"); // 10 min from start
 
         service.applyJudgeResult(event);
 
@@ -138,12 +200,38 @@ class ContestAdjudicationServiceImplTest {
         verify(contestParticipantMapper).updateById(captor.capture());
         assertThat(captor.getValue().getTotalScore()).isEqualTo(110);
         assertThat(captor.getValue().getAttemptCount()).isEqualTo(1);
-        // first-solve record written
-        verify(firstSolveRecordMapper, times(1)).insert(any(FirstSolveRecord.class));
+        assertThat(captor.getValue().getTotalTime()).isEqualTo(600);
+        assertThat(captor.getValue().getLastSolveTime()).isEqualTo(600);
+        // first-solve record uses the locked participant's owner, not event payload data
+        ArgumentCaptor<FirstSolveRecord> firstSolveCaptor = ArgumentCaptor.forClass(FirstSolveRecord.class);
+        verify(firstSolveRecordMapper, times(1)).insert(firstSolveCaptor.capture());
+        assertThat(firstSolveCaptor.getValue().getUserId()).isEqualTo(USER_ID);
         // aggregate counters incremented
         verify(contestMapper).incrementSubmissionCount(CONTEST_ID);
         // ranking cache evicted so the fresh aggregate is visible
         verify(rankingCacheEvictor).evictRankingCache();
+    }
+
+    @Test
+    @DisplayName("CONTEST-002: delayed submissions still increment participant count on first adjudication")
+    void applyJudgeResult_firstAdjudicationWithMultipleRows_incrementsParticipantCount() {
+        ContestParticipant participant = newParticipant(0, 0, 0);
+        ContestProblem cp = newContestProblem(100);
+        ContestSubmission cs = newContestSubmission(0);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID)).thenReturn(Optional.of(cs));
+        when(contestParticipantMapper.selectByIdForUpdate(PARTICIPANT_ID)).thenReturn(participant);
+        when(contestProblemMapper.selectById(PROBLEM_ID)).thenReturn(cp);
+        when(contestProblemResultMapper.findByParticipantIdAndContestProblemIdForUpdate(PARTICIPANT_ID, PROBLEM_ID))
+                .thenReturn(Optional.empty());
+        when(firstSolveRecordMapper.insert(any(FirstSolveRecord.class))).thenReturn(1);
+        // Two already-submitted rows must not hide that this is the first
+        // adjudicated attempt for the locked participant.
+        when(contestSubmissionMapper.findByContestIdAndParticipantId(CONTEST_ID, PARTICIPANT_ID))
+                .thenReturn(List.of(newContestSubmission(0), newContestSubmission(1)));
+
+        service.applyJudgeResult(newEvent(true, 60));
+
+        verify(contestMapper).incrementParticipantCount(CONTEST_ID);
     }
 
     /** P0-1: WA verdict does not write is_accepted=true, but increments penalty + attempts. */
@@ -153,8 +241,8 @@ class ContestAdjudicationServiceImplTest {
         ContestParticipant participant = newParticipant(0, 0, 0);
         ContestProblem cp = newContestProblem(100);
         ContestSubmission cs = newContestSubmission(0);
-        when(contestSubmissionMapper.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(cs));
-        when(contestParticipantMapper.selectById(PARTICIPANT_ID)).thenReturn(participant);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID)).thenReturn(Optional.of(cs));
+        when(contestParticipantMapper.selectByIdForUpdate(PARTICIPANT_ID)).thenReturn(participant);
         when(contestProblemMapper.selectById(PROBLEM_ID)).thenReturn(cp);
         when(contestSubmissionMapper.findByContestIdAndParticipantId(CONTEST_ID, PARTICIPANT_ID))
                 .thenReturn(List.of(cs));
@@ -179,10 +267,10 @@ class ContestAdjudicationServiceImplTest {
         ContestParticipant participant = newParticipant(0, 0, 0);
         ContestProblem cp = newContestProblem(100);
         ContestSubmission cs = newContestSubmission(0);
-        when(contestSubmissionMapper.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(cs));
-        when(contestParticipantMapper.selectById(PARTICIPANT_ID)).thenReturn(participant);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID)).thenReturn(Optional.of(cs));
+        when(contestParticipantMapper.selectByIdForUpdate(PARTICIPANT_ID)).thenReturn(participant);
         when(contestProblemMapper.selectById(PROBLEM_ID)).thenReturn(cp);
-        when(contestProblemResultMapper.findByParticipantIdAndContestProblemId(PARTICIPANT_ID, PROBLEM_ID))
+        when(contestProblemResultMapper.findByParticipantIdAndContestProblemIdForUpdate(PARTICIPANT_ID, PROBLEM_ID))
                 .thenReturn(Optional.empty());
         // First-solve insert hits the unique key — race lost.
         when(firstSolveRecordMapper.insert(any(FirstSolveRecord.class)))
@@ -258,8 +346,8 @@ class ContestAdjudicationServiceImplTest {
         ContestParticipant participant = newParticipant(0, 0, 0);
         ContestProblem cp = newContestProblem(100);
         ContestSubmission cs = newContestSubmission(0);
-        when(contestSubmissionMapper.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(cs));
-        when(contestParticipantMapper.selectById(PARTICIPANT_ID)).thenReturn(participant);
+        when(contestSubmissionMapper.findBySubmissionIdForUpdate(SUBMISSION_ID)).thenReturn(Optional.of(cs));
+        when(contestParticipantMapper.selectByIdForUpdate(PARTICIPANT_ID)).thenReturn(participant);
         when(contestProblemMapper.selectById(PROBLEM_ID)).thenReturn(cp);
         when(contestSubmissionMapper.findByContestIdAndParticipantId(CONTEST_ID, PARTICIPANT_ID))
                 .thenReturn(List.of(cs));
@@ -267,15 +355,29 @@ class ContestAdjudicationServiceImplTest {
     }
 
     private static SubmissionJudgedEvent newEvent(boolean accepted, Integer runtimeSeconds) {
+        return newEvent(accepted, runtimeSeconds, 1L);
+    }
+
+    private static SubmissionJudgedEvent newEvent(
+            boolean accepted, Integer runtimeSeconds, long generation) {
+        return newEvent(accepted, runtimeSeconds, generation, USER_ID);
+    }
+
+    private static SubmissionJudgedEvent newEvent(
+            boolean accepted, Integer runtimeSeconds, long generation, String userId) {
         return new SubmissionJudgedEvent(
                 new Object(),
                 SUBMISSION_ID,
-                USER_ID,
+                userId,
                 PROBLEM_LONG_ID,
                 accepted ? "Accepted" : "Wrong Answer",
                 accepted,
                 runtimeSeconds,
-                LocalDateTime.now());
+                LocalDateTime.now(),
+                generation,
+                0,
+                0,
+                CONTEST_ID);
     }
 
     private static ContestParticipant newParticipant(int score, int penalty, int attempts) {

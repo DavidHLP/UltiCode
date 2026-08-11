@@ -1,5 +1,6 @@
 package com.ulticode.modules.contest.service.impl;
 import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.error.ContestErrorCode;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -12,6 +13,7 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.scoring.ContestRankingComparator;
 import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.common.exception.BusinessException;
@@ -23,6 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Default implementation of {@link RankingService}. The live-ranking
@@ -43,6 +46,34 @@ public class RankingServiceImpl implements RankingService {
     private final ContestParticipantMapper participantMapper;
     private final ContestMapper contestMapper;
     private final ScoringStrategyResolver scoringStrategyResolver;
+
+    /**
+     * Public ranking read. Invisible contests are indistinguishable from
+     * missing contests; admin uses {@link #getContestRanking} instead.
+     */
+    @Override
+    public PageResult<ContestRankingVO> getPublicContestRanking(
+            String contestId, Integer page, Integer limit) {
+        requirePublicContest(contestId);
+        return getContestRanking(contestId, page, limit);
+    }
+
+    /**
+     * Public live ranking read with the same visibility rule as the catalog.
+     */
+    public List<LiveRankingEntryVO> readPublicLiveRanking(String contestId, int limit) {
+        requirePublicContest(contestId);
+        return readLiveRanking(contestId, limit);
+    }
+
+    private void requirePublicContest(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null
+                || Boolean.TRUE.equals(contest.getIsDeleted())
+                || !Boolean.TRUE.equals(contest.getIsVisible())) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
+        }
+    }
 
     @Override
     public PageResult<ContestRankingVO> getContestRanking(String contestId, Integer page, Integer limit) {
@@ -77,22 +108,54 @@ public class RankingServiceImpl implements RankingService {
         int currentLimit = (limit > 0) ? limit : DEFAULT_LIVE_LIMIT;
         currentLimit = Math.min(currentLimit, MAX_LIVE_LIMIT);
 
-        List<ContestParticipantMapper.ContestParticipantWithUser> allParticipants =
-                participantMapper.selectParticipantsWithUserByContestId(contestId);
-        Comparator<ContestParticipantMapper.ContestParticipantWithUser> comparator =
-                scoringStrategyResolver.resolveFromString(loadScoringMode(contestId)).getRankingComparator();
-
-        return allParticipants.stream()
-                .filter(p -> p.totalScore() != null)
-                .sorted(comparator)
-                .limit(currentLimit)
-                .map(this::toLiveRankingEntryVO)
+        List<ContestParticipantMapper.ContestParticipantWithUser> ranked = rankAll(contestId);
+        int count = Math.min(currentLimit, ranked.size());
+        return IntStream.range(0, count)
+                .mapToObj(index -> toLiveRankingEntryVO(ranked.get(index), index + 1))
                 .collect(Collectors.toList());
     }
 
-    private String loadScoringMode(String contestId) {
+    /**
+     * Paginated live ranking read. Unlike {@link #readLiveRanking(String, int)}
+     * (hard-capped), the returned page reports the full ranked participant
+     * count as total and assigns ranks as {@code offset + index + 1}, so
+     * admin pagination stays stable and complete.
+     */
+    public PageResult<LiveRankingEntryVO> readLiveRankingPage(String contestId, int page, int limit) {
+        if (contestId == null || contestId.isBlank()) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "contestId is required");
+        }
+        PaginationRequest pageRequest = PaginationRequest.of(page, limit, 50);
+        int currentPage = pageRequest.page();
+        int currentLimit = pageRequest.pageSize();
+
+        List<ContestParticipantMapper.ContestParticipantWithUser> ranked = rankAll(contestId);
+        long total = ranked.size();
+        long offset = pageRequest.offset();
+        int from = (int) Math.min(offset, ranked.size());
+        int to = (int) Math.min(offset + currentLimit, ranked.size());
+        List<LiveRankingEntryVO> items = IntStream.range(from, to)
+                .mapToObj(index -> toLiveRankingEntryVO(ranked.get(index), index + 1))
+                .collect(Collectors.toList());
+        return PageResult.of(items, total, currentPage, currentLimit);
+    }
+
+    /**
+     * Rank every scored participant of a contest (no cap), using the
+     * contest's scoring mode and tie breaker.
+     */
+    private List<ContestParticipantMapper.ContestParticipantWithUser> rankAll(String contestId) {
+        List<ContestParticipantMapper.ContestParticipantWithUser> allParticipants =
+                participantMapper.selectParticipantsWithUserByContestId(contestId);
         Contest contest = contestMapper.selectById(contestId);
-        return contest == null ? null : contest.getScoringMode();
+        Comparator<ContestParticipantMapper.ContestParticipantWithUser> comparator =
+                scoringStrategyResolver.resolveFromString(contest == null ? null : contest.getScoringMode())
+                        .getRankingComparator(ContestRankingComparator.resolveTieBreaker(
+                                contest == null ? null : contest.getTieBreaker()));
+        return allParticipants.stream()
+                .filter(p -> p.totalScore() != null)
+                .sorted(comparator)
+                .toList();
     }
 
     @Override
@@ -114,9 +177,19 @@ public class RankingServiceImpl implements RankingService {
                 .toList();
         Map<String, Contest> contestsById = contestMapper.selectBatchIds(contestIds).stream()
                 .collect(Collectors.toMap(Contest::getId, c -> c, (a, b) -> a));
+        List<String> participantIds = participants.stream()
+                .map(ContestParticipant::getId)
+                .toList();
+        Map<String, Integer> solvedByParticipantId = participantMapper
+                .countSolvedByParticipantIds(participantIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row.get("participantId"),
+                        row -> ((Number) row.get("solvedCount")).intValue(),
+                        (a, b) -> a));
 
         return participants.stream()
-                .map(p -> toUserContestHistoryVO(p, contestsById.get(p.getContestId())))
+                .map(p -> toUserContestHistoryVO(
+                        p, contestsById.get(p.getContestId()), solvedByParticipantId.getOrDefault(p.getId(), 0)))
                 .collect(Collectors.toList());
     }
 
@@ -133,7 +206,7 @@ public class RankingServiceImpl implements RankingService {
         vo.setUserId(participant.getUserId());
         vo.setScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
         vo.setPenalty(participant.getTotalPenalty() != null ? participant.getTotalPenalty().longValue() : null);
-        vo.setProblemsSolved(participant.getAttemptCount() != null ? participant.getAttemptCount() : 0);
+        vo.setProblemsSolved(null);
         vo.setIsParticipating(true);
         return vo;
     }
@@ -151,7 +224,7 @@ public class RankingServiceImpl implements RankingService {
         vo.setUserId(participant.userId());
         vo.setScore(participant.totalScore() != null ? participant.totalScore().longValue() : null);
         vo.setPenalty(participant.totalPenalty() != null ? participant.totalPenalty().longValue() : null);
-        vo.setProblemsSolved(participant.attemptCount() != null ? participant.attemptCount() : 0);
+        vo.setProblemsSolved(participant.problemsSolved());
         vo.setIsParticipating(true);
         vo.setUsername(participant.username());
         vo.setName(participant.name());
@@ -162,19 +235,20 @@ public class RankingServiceImpl implements RankingService {
     /**
      * Convert ContestParticipantWithUser to LiveRankingEntryVO.
      */
-    private LiveRankingEntryVO toLiveRankingEntryVO(ContestParticipantMapper.ContestParticipantWithUser participant) {
+    private LiveRankingEntryVO toLiveRankingEntryVO(
+            ContestParticipantMapper.ContestParticipantWithUser participant, int rank) {
         if (participant == null) {
             return null;
         }
         LiveRankingEntryVO vo = new LiveRankingEntryVO();
-        vo.setRank(null); // rank is computed dynamically for live ranking
+        vo.setRank(rank);
         vo.setUserId(participant.userId());
         vo.setUsername(participant.username());
         vo.setName(participant.name());
         vo.setAvatar(participant.avatar());
         vo.setScore(participant.totalScore() != null ? participant.totalScore().longValue() : null);
         vo.setPenalty(participant.totalPenalty() != null ? participant.totalPenalty().longValue() : null);
-        vo.setProblemsSolved(participant.attemptCount() != null ? participant.attemptCount() : 0);
+        vo.setProblemsSolved(participant.problemsSolved());
         vo.setIsCurrentUser(null); // set by controller if needed
         return vo;
     }
@@ -182,7 +256,8 @@ public class RankingServiceImpl implements RankingService {
     /**
      * Convert ContestParticipant and Contest to UserContestHistoryVO.
      */
-    private UserContestHistoryVO toUserContestHistoryVO(ContestParticipant participant, Contest contest) {
+    private UserContestHistoryVO toUserContestHistoryVO(
+            ContestParticipant participant, Contest contest, int problemsSolved) {
         if (participant == null) {
             return null;
         }
@@ -195,7 +270,7 @@ public class RankingServiceImpl implements RankingService {
                 participant.getFinalRank(),
                 participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null,
                 participant.getTotalPenalty() != null ? participant.getTotalPenalty().longValue() : null,
-                participant.getAttemptCount() != null ? participant.getAttemptCount() : 0,
+                problemsSolved,
                 null, // totalParticipants not readily available
                 contest != null ? contest.getIsRated() : null
         );

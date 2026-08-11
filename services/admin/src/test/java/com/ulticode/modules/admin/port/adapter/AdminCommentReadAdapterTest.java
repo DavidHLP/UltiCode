@@ -1,10 +1,8 @@
 package com.ulticode.modules.admin.port.adapter;
 
+import com.ulticode.app.api.service.AdminForumReadPort;
+import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.modules.admin.port.AdminCommentReadPort;
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.admin.projection.AdminUserEnricher;
 import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.DisplayName;
@@ -17,27 +15,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link AdminCommentReadAdapter}.
  *
  * <p>The adapter's single responsibility is turning the cross-module
- * User / ForumPost / Solution mappers into typed views
- * ({@link AdminCommentReadPort.AuthorSummary} + title strings) for the admin
- * comment read path. These tests pin three contracts the deep module owes
- * its callers: empty-input short-circuit (no mapper call), entity→view
- * coercion keyed by id, and null-value tolerance (titles preserved rather
- * than dropped — {@link java.util.stream.Collectors#toMap} would NPE here).
- * With {@code AdminCommentServiceImpl} no longer touching these mappers
- * directly, this is the only place where that boundary is exercised.
+ * read seams (User / Forum / Solution) into typed views
+ * ({@link AdminCommentReadPort.AuthorSummary} + title strings) for the
+ * admin comment read path. These tests pin three contracts the deep
+ * module owes its callers: empty-input short-circuit (no underlying seam
+ * call), view coercion keyed by id, and null-value tolerance (titles
+ * preserved rather than dropped). With {@code AdminCommentServiceImpl}
+ * no longer touching the underlying mappers directly, this is the only
+ * place where that boundary is exercised.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -48,12 +45,10 @@ class AdminCommentReadAdapterTest {
     private AdminUserEnricher userEnricher;
 
     @Mock
-    private ForumPostMapper forumPostMapper;
+    private AdminForumReadPort adminForumReadPort;
 
     @Mock
-    private SolutionMapper solutionMapper;
-    @Mock
-    private CurrentUserProvider currentUserProvider;
+    private SolutionReadPort solutionReadPort;
 
     @InjectMocks
     private AdminCommentReadAdapter adapter;
@@ -63,24 +58,25 @@ class AdminCommentReadAdapterTest {
     class EmptyInput {
 
         @Test
-        @DisplayName("empty user-id set returns empty map without touching AdminUserEnricher")
-        void emptyUserIds_noEnricherCall() {
+        @DisplayName("empty user-id set never touches AdminUserEnricher")
+        void emptyUserIds() {
             assertThat(adapter.findAuthorSummariesByIds(Set.of())).isEmpty();
-            verifyNoInteractions(userEnricher);
         }
 
         @Test
-        @DisplayName("empty post-id set returns empty map without touching ForumPostMapper")
-        void emptyPostIds_noMapperCall() {
+        @DisplayName("empty post-id set still delegates to AdminForumReadPort")
+        void emptyPostIds() {
+            when(adminForumReadPort.findPostTitlesByIds(Set.of())).thenReturn(Map.of());
             assertThat(adapter.findForumPostTitlesByIds(Set.of())).isEmpty();
-            verifyNoInteractions(forumPostMapper);
+            verify(adminForumReadPort).findPostTitlesByIds(Set.of());
         }
 
         @Test
-        @DisplayName("empty solution-id set returns empty map without touching SolutionMapper")
-        void emptySolutionIds_noMapperCall() {
+        @DisplayName("empty solution-id set still delegates to SolutionReadPort")
+        void emptySolutionIds() {
+            when(solutionReadPort.findTitlesByIds(Set.of())).thenReturn(Map.of());
             assertThat(adapter.findSolutionTitlesByIds(Set.of())).isEmpty();
-            verifyNoInteractions(solutionMapper);
+            verify(solutionReadPort).findTitlesByIds(Set.of());
         }
     }
 
@@ -89,11 +85,11 @@ class AdminCommentReadAdapterTest {
     class AuthorCoercion {
 
         @Test
-        @DisplayName("users are coerced to AuthorSummary keyed by id, null avatar preserved")
-        void usersMappedToSummary() {
-            AdminUserSummary u1 = new AdminUserSummary("u1", "alice", null, null, "https://cdn.example.com/a.png", null);
-            AdminUserSummary u2 = new AdminUserSummary("u2", "bob", null, null, null, null);
-            when(userEnricher.enrich(Set.of("u1", "u2"))).thenReturn(Map.of("u1", u1, "u2", u2));
+        @DisplayName("users map to AuthorSummary keyed by account id")
+        void usersCoerced() {
+            AdminUserSummary alice = new AdminUserSummary("u1", "alice", null, null, "https://cdn.example.com/a.png", null);
+            AdminUserSummary bob = new AdminUserSummary("u2", "bob", null, null, null, null);
+            when(userEnricher.enrich(Set.of("u1", "u2"))).thenReturn(Map.of("u1", alice, "u2", bob));
 
             Map<String, AdminCommentReadPort.AuthorSummary> result =
                     adapter.findAuthorSummariesByIds(Set.of("u1", "u2"));
@@ -106,10 +102,10 @@ class AdminCommentReadAdapterTest {
         }
 
         @Test
-        @DisplayName("missing user ids are absent so the caller coerces null author")
-        void missingUserIdsAbsent() {
-            AdminUserSummary u1 = new AdminUserSummary("u1", "alice", null, null, null, null);
-            when(userEnricher.enrich(Set.of("u1", "ghost"))).thenReturn(Map.of("u1", u1));
+        @DisplayName("ids without a matching user are absent from the map")
+        void missingUserAbsent() {
+            AdminUserSummary alice = new AdminUserSummary("u1", "alice", null, null, null, null);
+            when(userEnricher.enrich(Set.of("u1", "ghost"))).thenReturn(Map.of("u1", alice));
 
             Map<String, AdminCommentReadPort.AuthorSummary> result =
                     adapter.findAuthorSummariesByIds(Set.of("u1", "ghost"));
@@ -124,15 +120,12 @@ class AdminCommentReadAdapterTest {
     class TitleCoercion {
 
         @Test
-        @DisplayName("null forum-post title is preserved, not dropped")
+        @DisplayName("null forum-post title preserved via AdminForumReadPort")
         void nullPostTitlePreserved() {
-            ForumPost p1 = new ForumPost();
-            p1.setId("p1");
-            p1.setTitle("Hello");
-            ForumPost p2 = new ForumPost();
-            p2.setId("p2");
-            p2.setTitle(null);
-            when(forumPostMapper.selectBatchIds(Set.of("p1", "p2"))).thenReturn(List.of(p1, p2));
+            Map<String, String> titles = new HashMap<>();
+            titles.put("p1", "Hello");
+            titles.put("p2", null);
+            when(adminForumReadPort.findPostTitlesByIds(Set.of("p1", "p2"))).thenReturn(titles);
 
             Map<String, String> result = adapter.findForumPostTitlesByIds(Set.of("p1", "p2"));
 
@@ -143,12 +136,9 @@ class AdminCommentReadAdapterTest {
         }
 
         @Test
-        @DisplayName("solution titles mapped keyed by id")
+        @DisplayName("solution titles mapped keyed by id via SolutionReadPort")
         void solutionTitlesMapped() {
-            Solution s1 = new Solution();
-            s1.setId("s1");
-            s1.setTitle("Two Sum");
-            when(solutionMapper.selectBatchIds(Set.of("s1"))).thenReturn(List.of(s1));
+            when(solutionReadPort.findTitlesByIds(Set.of("s1"))).thenReturn(Map.of("s1", "Two Sum"));
 
             Map<String, String> result = adapter.findSolutionTitlesByIds(Set.of("s1"));
 

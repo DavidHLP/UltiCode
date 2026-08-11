@@ -56,7 +56,7 @@ public enum AdminErrorCode implements NamespacedErrorCode {
 
     // Problem list module (9xxxx)
     PROBLEM_LIST_NOT_FOUND(90001, "Problem list not found", HttpStatus.NOT_FOUND),
-
+    PROBLEM_LIST_PROBLEM_DUPLICATE(90004, "This problem is already in the list", HttpStatus.CONFLICT),
     // Settings module (20xxxx)
     SETTING_INVALID_VALUE(200002, "Invalid setting value", HttpStatus.BAD_REQUEST),
     SETTING_PERSISTENCE_FAILED(200003, "Failed to persist setting", HttpStatus.INTERNAL_SERVER_ERROR),

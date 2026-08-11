@@ -11,9 +11,10 @@ import java.io.Serializable;
  * consumer re-fetches the full VO via local projection for the HTTP
  * response shape (same pattern as {@link ContestAdminViewDTO}).
  *
- * @param notificationId  the persisted notification id (representative row)
- * @param announcementId  the announcement group id; null when every
- *                        recipient opted out (no row persisted)
+ * @param notificationId  the persisted notification id (representative row),
+ *                        or the generated announcement id when every
+ *                        recipient opted out and no row was persisted
+ * @param announcementId  the announcement group id
  * @param title           notification title
  * @param type            notification type
  * @param category        notification category

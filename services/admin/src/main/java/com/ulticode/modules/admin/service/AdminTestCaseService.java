@@ -1,44 +1,50 @@
 package com.ulticode.modules.admin.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.testcase.BulkImportResponse;
 import com.ulticode.modules.admin.dto.testcase.BulkImportTestCasesDTO;
 import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
 import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
-import com.ulticode.modules.problem.entity.TestCase;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.app.api.dto.ProblemAdminTestCaseDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.app.api.service.TestCaseOwnerPort;
+import com.ulticode.app.api.service.TestCaseOwnerPort.TestCaseOrder;
 import com.ulticode.app.api.service.TestCaseOwnerPort.TestCaseWrite;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Admin service for test case CRUD operations.
+ *
+ * <p>ADMIN-003: every test-case read (list / get / export) and the owning
+ * problem existence check flow through the public {@link ProblemAdminReadPort}
+ * contract; writes stay on {@link TestCaseOwnerPort}. The App-private
+ * {@code TestCaseMapper}/{@code ProblemMapper}/{@code TestCase} entity
+ * imports are gone — the row shape is the entity-free
+ * {@link ProblemAdminTestCaseDTO}.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminTestCaseService {
 
-    private final TestCaseMapper testCaseMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemAdminReadPort problemReadPort;
     private final TestCaseOwnerPort testCaseOwnerPort;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -46,41 +52,23 @@ public class AdminTestCaseService {
 
     /** Fail fast with PROBLEM_NOT_FOUND when the owning problem does not exist. */
     private void requireProblem(Long problemId) {
-        if (problemMapper.selectById(problemId) == null) {
+        if (problemReadPort.findProblem(problemId) == null) {
             throw new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND);
         }
     }
 
-    public PageResult<TestCase> listTestCases(Long problemId, Boolean isSample, Boolean isHidden,
-                                               Integer page, Integer limit) {
+    public PageResult<ProblemAdminTestCaseDTO> listTestCases(Long problemId, Boolean isSample, Boolean isHidden,
+                                                              Integer page, Integer limit) {
         requireProblem(problemId);
-
-        LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TestCase::getProblemId, problemId);
-        if (isSample != null) {
-            wrapper.eq(TestCase::getIsSample, isSample);
-        }
-        if (isHidden != null) {
-            wrapper.eq(TestCase::getIsHidden, isHidden);
-        }
-        wrapper.orderByAsc(TestCase::getTestOrder);
-
         PaginationRequest pageRequest = PaginationRequest.of(page, limit);
-        int currentPage = pageRequest.page();
-        int currentLimit = pageRequest.pageSize();
-
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<TestCase> pageParam =
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, currentLimit);
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<TestCase> result =
-                testCaseMapper.selectPage(pageParam, wrapper);
-
-        return PageResult.of(result.getRecords(), result.getTotal(), currentPage, currentLimit);
+        return problemReadPort.listTestCases(problemId, isSample, isHidden,
+                pageRequest.page(), pageRequest.pageSize());
     }
 
-    public TestCase getTestCase(Long problemId, String testCaseId) {
+    public ProblemAdminTestCaseDTO getTestCase(Long problemId, String testCaseId) {
         requireProblem(problemId);
-        TestCase testCase = testCaseMapper.selectById(testCaseId);
-        if (testCase == null || !testCase.getProblemId().equals(problemId)) {
+        ProblemAdminTestCaseDTO testCase = problemReadPort.getTestCase(problemId, testCaseId);
+        if (testCase == null) {
             throw new BusinessException(AdminErrorCode.TEST_CASE_NOT_FOUND);
         }
         return testCase;
@@ -97,8 +85,7 @@ public class AdminTestCaseService {
         }
     }
 
-    @Transactional
-    public TestCase createTestCase(Long problemId, CreateTestCaseDTO dto) {
+    public ProblemAdminTestCaseDTO createTestCase(Long problemId, CreateTestCaseDTO dto) {
         requireProblem(problemId);
         return persistNewTestCase(problemId, dto);
     }
@@ -108,31 +95,35 @@ public class AdminTestCaseService {
      * the owning problem exists; bulk import checks once for the whole batch
      * rather than re-querying on every item.
      */
-    private TestCase persistNewTestCase(Long problemId, CreateTestCaseDTO dto) {
+    private TestCaseWrite buildNewTestCaseWrite(Long problemId, CreateTestCaseDTO dto) {
         validateInputsJson(dto.getInputs());
         boolean[] scope = resolveCaseScopeFlags(dto.getIsSample(), dto.getIsHidden());
         boolean isSample = scope[0];
         boolean isHidden = scope[1];
+        LocalDateTime now = LocalDateTime.now(clock);
 
-        TestCase testCase = new TestCase();
-        testCase.setId(uuidGenerator.newId().replace("-", ""));
-        testCase.setProblemId(problemId);
-        testCase.setIsSample(isSample);
-        testCase.setIsHidden(isHidden);
-        testCase.setTestOrder(dto.getTestOrder() != null ? dto.getTestOrder() : 0);
-        testCase.setInputText(dto.getInputText());
-        testCase.setOutputText(dto.getOutputText());
-        testCase.setExplanation(dto.getExplanation());
-        testCase.setConstraints(dto.getConstraints());
-        testCase.setInputs(dto.getInputs());
-        testCase.setCreatedAt(LocalDateTime.now(clock));
-        testCase.setUpdatedAt(LocalDateTime.now(clock));
+        return new TestCaseWrite(
+                uuidGenerator.newId().replace("-", ""),
+                problemId,
+                isSample,
+                isHidden,
+                dto.getTestOrder() != null ? dto.getTestOrder() : 0,
+                dto.getInputText(),
+                dto.getOutputText(),
+                dto.getExplanation(),
+                dto.getConstraints(),
+                dto.getInputs(),
+                now,
+                now);
+    }
 
+    private ProblemAdminTestCaseDTO persistNewTestCase(Long problemId, CreateTestCaseDTO dto) {
+        TestCaseWrite write = buildNewTestCaseWrite(problemId, dto);
         // P3-BURNDOWN-001: write routed through the problem-module owner port;
-        // TestCaseMapper stays read-only inside the admin module.
-        testCaseOwnerPort.insertTestCase(toWriteCommand(testCase));
-        log.info("Test case created: {} for problem {}" , testCase.getId(), problemId);
-        return testCase;
+        // no local TestCaseMapper touch.
+        testCaseOwnerPort.insertTestCase(write);
+        log.info("Test case created: {} for problem {}", write.id(), problemId);
+        return toDto(write);
     }
 
     /**
@@ -155,110 +146,128 @@ public class AdminTestCaseService {
         return new boolean[]{sample, hidden};
     }
 
-    /**
-     * Map a fully-built {@link TestCase} row onto the owner-port write command.
-     * Callers guarantee {@code is_sample} / {@code is_hidden} are non-null
-     * (insert resolves the XOR pair; update merges onto a persisted row).
-     */
-    private TestCaseWrite toWriteCommand(TestCase testCase) {
-        return new TestCaseWrite(
-                testCase.getId(),
-                testCase.getProblemId(),
-                Boolean.TRUE.equals(testCase.getIsSample()),
-                Boolean.TRUE.equals(testCase.getIsHidden()),
-                testCase.getTestOrder() != null ? testCase.getTestOrder() : 0,
-                testCase.getInputText(),
-                testCase.getOutputText(),
-                testCase.getExplanation(),
-                testCase.getConstraints(),
-                testCase.getInputs(),
-                testCase.getCreatedAt(),
-                testCase.getUpdatedAt());
+    /** Map a write command onto the read projection shape (live row: no soft-delete). */
+    private static ProblemAdminTestCaseDTO toDto(TestCaseWrite write) {
+        return new ProblemAdminTestCaseDTO(
+                write.id(), write.problemId(), write.isSample(), write.isHidden(), write.testOrder(),
+                write.inputText(), write.outputText(), write.inputs(), write.explanation(),
+                write.constraints(), write.createdAt(), write.updatedAt(), null, null);
     }
 
-    @Transactional
-    public TestCase updateTestCase(Long problemId, String testCaseId, UpdateTestCaseDTO dto) {
-        TestCase existing = getTestCase(problemId, testCaseId);
+    public ProblemAdminTestCaseDTO updateTestCase(Long problemId, String testCaseId, UpdateTestCaseDTO dto) {
+        ProblemAdminTestCaseDTO existing = getTestCase(problemId, testCaseId);
         // Validate the supplied JSON before any partial writes touch the row.
         validateInputsJson(dto.getInputs());
 
-        PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getIsSample, existing::setIsSample);
-        PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getIsHidden, existing::setIsHidden);
+        // PartialUpdate merge semantics preserved: present fields win, absent
+        // (or blank for text) fields keep the persisted value.
+        boolean isSample = dto.getIsSample() != null ? dto.getIsSample() : existing.isSample();
+        boolean isHidden = dto.getIsHidden() != null ? dto.getIsHidden() : existing.isHidden();
         // The judging pipeline only certifies XOR (is_sample XOR is_hidden) rows,
         // so every partial update must still leave the row in SAMPLE or HIDDEN
         // scope. Reject any merge that lands on the disallowed (false,false)
         // "draft" or the illegal (true,true) combination before it persists.
-        // The frontend always emits both flags together via the CaseScope seam,
-        // but alternate admin callers (scripts, future UIs) reach this endpoint
-        // too — this guard makes the invariant server-side enforced.
-        if (Boolean.TRUE.equals(existing.getIsSample()) == Boolean.TRUE.equals(existing.getIsHidden())) {
+        if (isSample == isHidden) {
             throw new BusinessException(AdminErrorCode.TEST_CASE_INVALID_SCOPE);
         }
-        PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getTestOrder, existing::setTestOrder);
-        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputText, existing::setInputText);
-        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getOutputText, existing::setOutputText);
-        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getExplanation, existing::setExplanation);
-        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getConstraints, existing::setConstraints);
-        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputs, existing::setInputs);
-        existing.setUpdatedAt(LocalDateTime.now(clock));
+        Integer testOrder = dto.getTestOrder() != null ? dto.getTestOrder()
+                : (existing.testOrder() != null ? existing.testOrder() : 0);
+        String inputText = hasText(dto.getInputText()) ? dto.getInputText() : existing.inputText();
+        String outputText = hasText(dto.getOutputText()) ? dto.getOutputText() : existing.outputText();
+        String explanation = hasText(dto.getExplanation()) ? dto.getExplanation() : existing.explanation();
+        String constraints = hasText(dto.getConstraints()) ? dto.getConstraints() : existing.constraints();
+        String inputs = hasText(dto.getInputs()) ? dto.getInputs() : existing.inputs();
+        LocalDateTime now = LocalDateTime.now(clock);
 
-        testCaseOwnerPort.updateTestCase(toWriteCommand(existing));
+        TestCaseWrite write = new TestCaseWrite(
+                existing.id(), problemId, isSample, isHidden, testOrder,
+                inputText, outputText, explanation, constraints, inputs,
+                existing.createdAt(), now);
+
+        testCaseOwnerPort.updateTestCase(write);
         log.info("Test case updated: {} for problem {}", testCaseId, problemId);
-        return existing;
+        return toDto(write);
     }
 
-    @Transactional
+    private static boolean hasText(String value) {
+        return value != null && StringUtils.hasText(value);
+    }
+
     public void deleteTestCase(Long problemId, String testCaseId) {
-        TestCase existing = getTestCase(problemId, testCaseId);
-        testCaseOwnerPort.deleteTestCase(existing.getId());
+        ProblemAdminTestCaseDTO existing = getTestCase(problemId, testCaseId);
+        testCaseOwnerPort.deleteTestCase(existing.id());
         log.info("Test case deleted: {} for problem {}", testCaseId, problemId);
     }
 
     /**
      * Bulk-import test cases. When {@code replaceExisting} is true, every existing
-     * test case for the problem is deleted within this transaction before the new
-     * batch is inserted, so a failed import never leaves the problem with a mix of
-     * old and partial-new cases.
+     * test case for the problem is replaced by one owner-side transaction, so a
+     * failed import never leaves the problem with a mix of old and partial-new cases.
      */
-    @Transactional
     public BulkImportResponse bulkImportTestCases(Long problemId, BulkImportTestCasesDTO dto) {
         requireProblem(problemId);
 
         boolean replace = Boolean.TRUE.equals(dto.getReplaceExisting());
-        if (replace) {
-            testCaseOwnerPort.deleteAllForProblem(problemId);
-        }
 
         List<CreateTestCaseDTO> dtos = dto.getTestCases();
-        List<TestCase> created = new ArrayList<>(dtos.size());
+        List<TestCaseWrite> writes = new ArrayList<>(dtos.size());
         for (CreateTestCaseDTO createDto : dtos) {
-            created.add(persistNewTestCase(problemId, createDto));
+            // Build and validate every row before asking the owner to delete
+            // anything. Replacement itself is one owner-side transaction.
+            writes.add(buildNewTestCaseWrite(problemId, createDto));
+        }
+
+        if (replace) {
+            testCaseOwnerPort.replaceAllForProblem(problemId, writes);
+        }
+
+        List<ProblemAdminTestCaseDTO> created = new ArrayList<>(writes.size());
+        for (TestCaseWrite write : writes) {
+            if (!replace) {
+                testCaseOwnerPort.insertTestCase(write);
+            }
+            created.add(toDto(write));
         }
         log.info("Bulk imported {} test cases for problem {} (replace={})",
                 created.size(), problemId, replace);
         return new BulkImportResponse(created.size());
     }
 
-    @Transactional
     public void reorderTestCases(Long problemId, List<String> testCaseIds) {
         requireProblem(problemId);
         Set<String> uniqueIds = new HashSet<>(testCaseIds);
         if (uniqueIds.size() != testCaseIds.size()) {
             throw new BusinessException(AdminErrorCode.BAD_REQUEST, "Duplicate test case IDs");
         }
-        for (int i = 0; i < testCaseIds.size(); i++) {
-            TestCase existing = getTestCase(problemId, testCaseIds.get(i));
-            testCaseOwnerPort.updateTestOrder(existing.getId(), i, LocalDateTime.now(clock));
+
+        List<ProblemAdminTestCaseDTO> existingCases =
+                problemReadPort.findTestCasesByIds(problemId, testCaseIds);
+        Map<String, ProblemAdminTestCaseDTO> casesById = new HashMap<>();
+        if (existingCases != null) {
+            for (ProblemAdminTestCaseDTO existing : existingCases) {
+                if (existing != null && problemId.equals(existing.problemId())) {
+                    casesById.put(existing.id(), existing);
+                }
+            }
         }
+        for (String testCaseId : testCaseIds) {
+            if (!casesById.containsKey(testCaseId)) {
+                throw new BusinessException(AdminErrorCode.TEST_CASE_NOT_FOUND);
+            }
+        }
+
+        LocalDateTime updatedAt = LocalDateTime.now(clock);
+        List<TestCaseOrder> commands = new ArrayList<>(testCaseIds.size());
+        for (int i = 0; i < testCaseIds.size(); i++) {
+            commands.add(new TestCaseOrder(casesById.get(testCaseIds.get(i)).id(), i, updatedAt));
+        }
+        testCaseOwnerPort.updateTestOrders(commands);
         log.info("Reordered {} test cases for problem {}", testCaseIds.size(), problemId);
     }
 
-    public List<TestCase> exportTestCases(Long problemId) {
+    public List<ProblemAdminTestCaseDTO> exportTestCases(Long problemId) {
         requireProblem(problemId);
-        LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TestCase::getProblemId, problemId);
-        wrapper.orderByAsc(TestCase::getTestOrder);
-        return testCaseMapper.selectList(wrapper);
+        return problemReadPort.exportTestCases(problemId);
     }
 
     /**
@@ -272,8 +281,8 @@ public class AdminTestCaseService {
     public String exportTestCasesAsJson(Long problemId) {
         // Reuse exportTestCases() — it already pre-checks problem existence and
         // throws BusinessException(PROBLEM_NOT_FOUND) on miss, so we don't need
-        // a duplicate problemMapper lookup here.
-        List<TestCase> cases = exportTestCases(problemId);
+        // a duplicate problem lookup here.
+        List<ProblemAdminTestCaseDTO> cases = exportTestCases(problemId);
         try {
             return objectMapper.writeValueAsString(cases);
         } catch (Exception e) {

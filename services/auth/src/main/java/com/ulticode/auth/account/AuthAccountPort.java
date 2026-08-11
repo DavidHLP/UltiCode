@@ -10,6 +10,8 @@ public interface AuthAccountPort {
     Optional<AuthAccountRecord> findByEmail(String email);
     Optional<AuthAccountRecord> findById(String userId);
     List<AuthAccountRecord> findByIds(Set<String> userIds);
+    /** Returns active, non-banned, non-deleted account ids for internal fan-out. */
+    List<String> findActiveAccountIds();
     AuthAccountRecord create(AuthAccountRecord record);
     void updateLastLoginAt(String userId);
     void updatePassword(String userId, String hashedPassword);

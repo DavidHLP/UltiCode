@@ -16,12 +16,11 @@ import com.ulticode.common.rpc.RpcResult;
  * App-owned per {@code TABLE_OWNERS.md}; the Admin BFF must route
  * writes through this contract so that App is the sole writer.
  *
- * <p>Three write methods mirror the Admin BFF's
- * {@code AdminNotificationService} interface. The provider delegates
- * to the existing {@code AdminNotificationService} impl and the
- * {@code AnnouncementBroadcaster} seam (architecture-review candidate
- * #4) for recipient resolution, preference filtering, and batch row
- * insert.
+ * Three write methods mirror the Admin BFF's
+ * {@code AdminNotificationService} interface. The App provider delegates
+ * through its owner-local domain service and write port to the
+ * {@code AnnouncementBroadcaster} seam for recipient resolution,
+ * preference filtering, and batch row insert.
  *
  * <p>This interface is contract-only; no ServiceImpl lives in this
  * module. The provider implementation belongs to {@code backend-app}.

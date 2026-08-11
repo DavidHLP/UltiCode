@@ -1,21 +1,25 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.dto.tag.CreateTagDTO;
 import com.ulticode.modules.admin.dto.tag.MergeTagDTO;
 import com.ulticode.modules.admin.dto.tag.TagQueryDTO;
 import com.ulticode.modules.admin.dto.tag.TagVO;
 import com.ulticode.modules.admin.dto.tag.UpdateTagDTO;
-import com.ulticode.modules.forum.entity.ForumTag;
-import com.ulticode.modules.forum.mapper.ForumTagMapper;
-import com.ulticode.modules.problem.entity.ProblemTag;
-import com.ulticode.modules.problem.mapper.ProblemTagMapper;
+import com.ulticode.app.api.dto.ProblemAdminTagDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.ProblemTagOwnerPort;
+import com.ulticode.app.api.service.ForumTagAdministrationService;
+import com.ulticode.app.api.service.ForumTagReadPort;
+import com.ulticode.app.api.service.ForumTagReadPort.ForumTagPage;
+import com.ulticode.app.api.service.ForumTagReadPort.ForumTagRow;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.service.handler.ForumTagHandler;
 import com.ulticode.modules.admin.service.handler.ProblemTagHandler;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +36,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -53,13 +58,20 @@ import static org.mockito.Mockito.when;
 class AdminTagServiceImplTest {
 
     @Mock
-    private ProblemTagMapper problemTagMapper;
+    private ProblemAdminReadPort problemReadPort;
 
     @Mock
-    private ProblemTagRelationMapper problemTagRelationMapper;
+    private ProblemTagOwnerPort problemTagOwnerPort;
 
     @Mock
-    private ForumTagMapper forumTagMapper;
+    private ForumTagReadPort forumTagReadPort;
+
+    @Mock
+    private ForumTagAdministrationService forumTagAdministrationService;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
+
     @Mock
     private Clock clock;
 
@@ -68,11 +80,12 @@ class AdminTagServiceImplTest {
     @BeforeEach
     void setUp() {
         FixedUuidGenerator uuidGenerator = new FixedUuidGenerator();
-        ProblemTagHandler problemHandler = new ProblemTagHandler(problemTagMapper, problemTagRelationMapper, clock, uuidGenerator);
-        ForumTagHandler forumHandler = new ForumTagHandler(forumTagMapper, clock, uuidGenerator);
+        ProblemTagHandler problemHandler = new ProblemTagHandler(problemReadPort, problemTagOwnerPort, clock, uuidGenerator);
+        ForumTagHandler forumHandler = new ForumTagHandler(forumTagReadPort, forumTagAdministrationService, currentUserProvider);
         service = new AdminTagServiceImpl(problemHandler, forumHandler);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("admin-001");
     }
 
     private static TagQueryDTO q(String type) {
@@ -83,13 +96,8 @@ class AdminTagServiceImplTest {
         return q;
     }
 
-    private static ProblemTag problemTag(String id, String label, int usage) {
-        ProblemTag t = new ProblemTag();
-        t.setId(id);
-        t.setLabel(label);
-        t.setSlug(label.toLowerCase());
-        t.setUsageCount(usage);
-        return t;
+    private static ProblemAdminTagDTO problemTag(String id, String label, int usage) {
+        return new ProblemAdminTagDTO(id, label, label.toLowerCase(), null, null, usage, null, null);
     }
 
     @Nested
@@ -115,18 +123,20 @@ class AdminTagServiceImplTest {
         @Test
         @DisplayName("accepts lowercase 'problem' (case-insensitive)")
         void acceptsLowercaseProblem() {
-            when(problemTagMapper.selectPage(any(Page.class), any())).thenReturn(new Page<>());
+            when(problemReadPort.listTags(any(), anyInt(), anyInt(), any(), any()))
+                    .thenReturn(PageResult.of(List.of(), 0L, 1, 20));
             // Should NOT throw
             service.getTags(q("problem"));
-            verify(problemTagMapper).selectPage(any(Page.class), any());
+            verify(problemReadPort).listTags(any(), anyInt(), anyInt(), any(), any());
         }
 
         @Test
         @DisplayName("accepts mixed-case 'Forum' (case-insensitive)")
         void acceptsMixedCaseForum() {
-            when(forumTagMapper.selectPage(any(Page.class), any())).thenReturn(new Page<>());
+            when(forumTagReadPort.page(any(), anyInt(), anyInt(), any(), any()))
+                    .thenReturn(new ForumTagPage(List.of(), 0));
             service.getTags(q("Forum"));
-            verify(forumTagMapper).selectPage(any(Page.class), any());
+            verify(forumTagReadPort).page(any(), anyInt(), anyInt(), any(), any());
         }
 
         @Test
@@ -137,8 +147,8 @@ class AdminTagServiceImplTest {
             dto.setType("WRONG");
             assertThatThrownBy(() -> service.createTag(dto))
                     .isInstanceOf(BusinessException.class);
-            verify(problemTagMapper, never()).insert(any(ProblemTag.class));
-            verify(forumTagMapper, never()).insert(any(ForumTag.class));
+            verify(problemTagOwnerPort, never()).createTag(any());
+            verify(forumTagAdministrationService, never()).mutate(any());
         }
 
         @Test
@@ -146,8 +156,8 @@ class AdminTagServiceImplTest {
         void deleteTagRejectsUnknownType() {
             assertThatThrownBy(() -> service.deleteTag("id", "WRONG"))
                     .isInstanceOf(BusinessException.class);
-            verify(problemTagMapper, never()).deleteById(anyString());
-            verify(forumTagMapper, never()).deleteById(anyString());
+            verify(problemTagOwnerPort, never()).deleteTag(anyString());
+            verify(forumTagAdministrationService, never()).mutate(any());
         }
 
         @Test
@@ -155,8 +165,8 @@ class AdminTagServiceImplTest {
         void getTagRejectsUnknownType() {
             assertThatThrownBy(() -> service.getTag("id", "WRONG"))
                     .isInstanceOf(BusinessException.class);
-            verify(problemTagMapper, never()).selectById(anyString());
-            verify(forumTagMapper, never()).selectById(anyString());
+            verify(problemReadPort, never()).getTagById(anyString());
+            verify(forumTagReadPort, never()).getById(anyString());
         }
 
         @Test
@@ -168,8 +178,8 @@ class AdminTagServiceImplTest {
             dto.setType("WRONG");
             assertThatThrownBy(() -> service.mergeTag(dto))
                     .isInstanceOf(BusinessException.class);
-            verify(problemTagMapper, never()).deleteById(anyString());
-            verify(forumTagMapper, never()).deleteById(anyString());
+            verify(problemTagOwnerPort, never()).deleteTag(anyString());
+            verify(forumTagAdministrationService, never()).mutate(any());
         }
     }
 
@@ -180,40 +190,32 @@ class AdminTagServiceImplTest {
         @Test
         @DisplayName("getTags returns PROBLEM list with sortBy defaulting to label")
         void problemDefaultSortByLabel() {
-            Page<ProblemTag> page = new Page<>();
-            page.setRecords(List.of(
-                    problemTag("a", "alpha", 5),
-                    problemTag("b", "bravo", 10)));
-            page.setTotal(2);
-            when(problemTagMapper.selectPage(any(Page.class), any())).thenReturn(page);
+            when(problemReadPort.listTags(any(), anyInt(), anyInt(), any(), any()))
+                    .thenReturn(PageResult.of(List.of(
+                            problemTag("a", "alpha", 5),
+                            problemTag("b", "bravo", 10)), 2L, 1, 20));
 
             var resp = service.getTags(q("PROBLEM"));
 
             assertThat(resp.getTotal()).isEqualTo(2);
             assertThat(resp.getData()).extracting(TagVO::getName)
                     .containsExactly("alpha", "bravo");
-            verify(problemTagMapper).selectPage(any(Page.class), any());
+            verify(problemReadPort).listTags(any(), anyInt(), anyInt(), any(), any());
         }
 
         @Test
         @DisplayName("getTags routes FORUM when type=FORUM")
         void routesForumCorrectly() {
-            Page<ForumTag> page = new Page<>();
-            ForumTag ft = new ForumTag();
-            ft.setId("f1");
-            ft.setName("forum-tag");
-            ft.setSlug("forum-tag");
-            ft.setUsageCount(3);
-            page.setRecords(List.of(ft));
-            page.setTotal(1);
-            when(forumTagMapper.selectPage(any(Page.class), any())).thenReturn(page);
+            ForumTagRow ft = new ForumTagRow("f1", "forum-tag", "forum-tag", null, null, 3, null);
+            when(forumTagReadPort.page(any(), anyInt(), anyInt(), any(), any()))
+                    .thenReturn(new ForumTagPage(List.of(ft), 1));
 
             var resp = service.getTags(q("FORUM"));
 
             assertThat(resp.getTotal()).isEqualTo(1);
             assertThat(resp.getData()).hasSize(1);
             assertThat(resp.getData().get(0).getType()).isEqualTo("FORUM");
-            verify(problemTagMapper, never()).selectPage(any(Page.class), any());
+            verify(problemReadPort, never()).listTags(any(), anyInt(), anyInt(), any(), any());
         }
     }
 
@@ -242,7 +244,7 @@ class AdminTagServiceImplTest {
             dto.setTargetTagId("exists");
             dto.setType("PROBLEM");
 
-            when(problemTagMapper.selectById("no-such")).thenReturn(null);
+            when(problemReadPort.getTagById("no-such")).thenReturn(null);
 
             assertThatThrownBy(() -> service.mergeTag(dto))
                     .isInstanceOf(BusinessException.class)
@@ -257,11 +259,14 @@ class AdminTagServiceImplTest {
             dto.setTargetTagId("missing");
             dto.setType("FORUM");
 
-            ForumTag src = new ForumTag();
-            src.setId("src");
-            src.setName("src");
-            when(forumTagMapper.selectById("src")).thenReturn(src);
-            when(forumTagMapper.selectById("missing")).thenReturn(null);
+            // The service reads the source tag for audit oldValues before the
+            // merge; the merge itself is delegated to the owner administration
+            // service, and a missing target surfaces as an RPC NOT_FOUND error
+            // mapped to FORUM_TAG_NOT_FOUND by the handler.
+            ForumTagRow src = new ForumTagRow("src", "src", null, null, null, 0, null);
+            when(forumTagReadPort.getById("src")).thenReturn(src);
+            when(forumTagAdministrationService.mutate(any())).thenReturn(RpcResult.failure(
+                    new RpcResult.ErrorPayload("app", 40401, "tag not found"), "t-1"));
 
             assertThatThrownBy(() -> service.mergeTag(dto))
                     .isInstanceOf(BusinessException.class)
@@ -281,7 +286,7 @@ class AdminTagServiceImplTest {
 
             assertThatThrownBy(() -> service.updateTag("id", dto))
                     .isInstanceOf(BusinessException.class);
-            verify(problemTagMapper, never()).updateById(any(ProblemTag.class));
+            verify(problemTagOwnerPort, never()).updateTag(any());
         }
 
         @Test
@@ -290,7 +295,7 @@ class AdminTagServiceImplTest {
             UpdateTagDTO dto = new UpdateTagDTO();
             dto.setType("PROBLEM");
 
-            when(problemTagMapper.selectById("missing")).thenReturn(null);
+            when(problemReadPort.getTagById("missing")).thenReturn(null);
 
             assertThatThrownBy(() -> service.updateTag("missing", dto))
                     .isInstanceOf(BusinessException.class)

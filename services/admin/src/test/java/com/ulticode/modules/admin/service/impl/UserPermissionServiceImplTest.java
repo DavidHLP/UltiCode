@@ -69,6 +69,7 @@ class UserPermissionServiceImplTest {
                 userEnricher,
                 adminUserProjection, clock, currentUserProvider);
         ReflectionTestUtils.setField(userPermissionService, "accountAdministrationService", accountAdministrationService);
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("admin-001");
     }
 
     @AfterEach

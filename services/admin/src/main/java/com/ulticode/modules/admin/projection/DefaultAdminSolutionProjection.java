@@ -1,76 +1,97 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.service.SolutionAdminReadPort;
+import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminQuery;
+import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminRow;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
+import com.ulticode.app.api.dto.ProblemAdminRowDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Default (and only) adapter for {@link AdminSolutionProjection}. Owns every
- * entity-to-VO projection rule and read-side query builder for the admin
+ * row-to-VO projection rule and read-side query translation for the admin
  * solution surface &mdash; see the interface javadoc for why this is a deep
  * module.
  *
- * <p>All methods are pure reads; none mutate solution state. Batch-loads
- * cross-module enrichment (user + problem) via {@code selectBatchIds} to
- * keep the paginated list read N+1-safe (mirrors WR-05 /
- * {@code DefaultAdminSubmissionProjection}).
+ * <p>All methods are pure reads; none mutate solution state. Solution row
+ * data crosses the seam as entity-free {@link SolutionAdminRow} values from
+ * {@link SolutionAdminReadPort} (ADMIN-006); the admin module no longer
+ * imports the solution entity or mapper. Batch-loads cross-module
+ * enrichment (user + problem) to keep the paginated list read N+1-safe
+ * (mirrors WR-05 / {@code DefaultAdminSubmissionProjection}).
  *
- * <p>Cross-module entity imports ({@link User}, {@link Problem} and their
- * mappers) live here and only here &mdash; the admin solution service no
- * longer imports them after the ADR-0011 Stage 2 extraction.
- *
- * <p>The two read branches (active via {@code LambdaQueryWrapper} +
- * soft-deleted via the raw-SQL {@code selectDeletedSolutions} pair) are kept
- * intact and byte-for-byte behaviour-equivalent to the inline blocks they
- * replace from {@code AdminSolutionServiceImpl}.
+ * <p>Branch routing (active via the provider's MyBatis-Plus path vs
+ * soft-deleted via the provider's raw-SQL pair) is expressed as the
+ * {@code includeDeleted} flag on the query, keeping the two read branches
+ * byte-for-byte behaviour-equivalent to the inline blocks they replace from
+ * the pre-cutover {@code AdminSolutionServiceImpl}.
  *
  * @author ulticode
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
 public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
 
-    private final SolutionMapper solutionMapper;
+    private final SolutionAdminReadPort solutionAdminReadPort;
     private final AdminUserEnricher userEnricher;
-    private final ProblemMapper problemMapper;
+    private final ProblemAdminReadPort problemReadPort;
 
     // ------------------------------------------------------------------
-    // Paginated list read (query build + batch enrichment, two branches)
+    // Paginated list read (query translation + batch enrichment)
     // ------------------------------------------------------------------
 
     @Override
     public PageResult<AdminSolutionListItemVO> getSolutions(AdminSolutionQueryDTO query) {
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
-        // When isDeleted=true, bypass MyBatis-Plus filtering via raw SQL
-        if (Boolean.TRUE.equals(query.getIsDeleted())) {
-            return getSolutionsDeletedBranch(query, pageRequest.page(), pageRequest.pageSize());
-        }
-        return getSolutionsActiveBranch(query, pageRequest.page(), pageRequest.pageSize());
+        SolutionAdminQuery portQuery = new SolutionAdminQuery(
+                query.getSearch(),
+                query.getProblemId(),
+                query.getUserId(),
+                query.getIsFlagged(),
+                query.getIsPublished(),
+                // When isDeleted=true, bypass MyBatis-Plus filtering via the
+                // provider's raw-SQL branch.
+                Boolean.TRUE.equals(query.getIsDeleted()),
+                query.getSortBy(),
+                query.getSortOrder(),
+                pageRequest.page(),
+                pageRequest.pageSize());
+
+        SolutionAdminReadPort.SolutionAdminPage page = solutionAdminReadPort.page(portQuery);
+
+        Set<String> userIds = page.rows().stream()
+                .map(SolutionAdminRow::userId)
+                .collect(Collectors.toSet());
+        Set<Long> problemIds = page.rows().stream()
+                .map(SolutionAdminRow::problemId)
+                .collect(Collectors.toSet());
+
+        Map<String, AdminUserSummary> userMap = batchLoadUsers(userIds);
+        Map<Long, ProblemAdminRowDTO> problemMap = batchLoadProblems(problemIds);
+
+        List<AdminSolutionListItemVO> voList = page.rows().stream()
+                .map(s -> toListItemVO(s, userMap, problemMap))
+                .toList();
+
+        return PageResult.of(voList, page.total(), pageRequest.page(), pageRequest.pageSize());
     }
 
     // ------------------------------------------------------------------
@@ -102,118 +123,11 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
 
     @Override
     public AdminSolutionVO getSolution(String id) {
-        Solution solution = solutionMapper.selectById(id);
-        if (solution == null) {
+        SolutionAdminRow row = solutionAdminReadPort.getById(id);
+        if (row == null) {
             throw new BusinessException(AdminErrorCode.SOLUTION_NOT_FOUND);
         }
-        return toAdminVO(solution);
-    }
-
-    // ------------------------------------------------------------------
-    // Branch A — active rows via MyBatis-Plus LambdaQueryWrapper
-    // ------------------------------------------------------------------
-
-    private PageResult<AdminSolutionListItemVO> getSolutionsActiveBranch(AdminSolutionQueryDTO query,
-                                                                         int page, int limit) {
-        LambdaQueryWrapper<Solution> wrapper = new LambdaQueryWrapper<>();
-
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = "%" + query.getSearch() + "%";
-            wrapper.and(w -> w
-                    .like(Solution::getTitle, search)
-                    .or()
-                    .like(Solution::getContent, search));
-        }
-
-        if (query.getProblemId() != null) {
-            wrapper.eq(Solution::getProblemId, query.getProblemId());
-        }
-
-        if (StringUtils.hasText(query.getUserId())) {
-            wrapper.eq(Solution::getUserId, query.getUserId());
-        }
-
-        if (query.getIsFlagged() != null) {
-            wrapper.eq(Solution::getIsFlagged, query.getIsFlagged());
-        }
-
-        if (query.getIsPublished() != null) {
-            wrapper.eq(Solution::getIsPublished, query.getIsPublished());
-        }
-
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        switch (sortBy) {
-            case "title" -> wrapper.orderBy(true, isAsc, Solution::getTitle);
-            case "views" -> wrapper.orderBy(true, isAsc, Solution::getViews);
-            case "createdAt" -> wrapper.orderBy(true, isAsc, Solution::getCreatedAt);
-            case "updatedAt" -> wrapper.orderBy(true, isAsc, Solution::getUpdatedAt);
-            default -> wrapper.orderBy(true, isAsc, Solution::getCreatedAt);
-        }
-
-        Page<Solution> pageResult = new Page<>(page, limit);
-        Page<Solution> result = solutionMapper.selectPage(pageResult, wrapper);
-
-        Set<String> userIds = result.getRecords().stream()
-                .map(Solution::getUserId)
-                .collect(Collectors.toSet());
-        Set<Long> problemIds = result.getRecords().stream()
-                .map(Solution::getProblemId)
-                .collect(Collectors.toSet());
-
-        Map<String, AdminUserSummary> userMap = batchLoadUsers(userIds);
-        Map<Long, Problem> problemMap = batchLoadProblems(problemIds);
-
-        List<AdminSolutionListItemVO> voList = result.getRecords().stream()
-                .map(s -> toListItemVO(s, userMap, problemMap))
-                .toList();
-
-        return PageResult.of(voList, result.getTotal(), page, limit);
-    }
-
-    // ------------------------------------------------------------------
-    // Branch B — soft-deleted rows via the raw-SQL mapper pair
-    // ------------------------------------------------------------------
-
-    private PageResult<AdminSolutionListItemVO> getSolutionsDeletedBranch(AdminSolutionQueryDTO query,
-                                                                          int page, int limit) {
-        int offset = (page - 1) * limit;
-        String search = StringUtils.hasText(query.getSearch()) ? query.getSearch() : null;
-        String userId = StringUtils.hasText(query.getUserId()) ? query.getUserId() : null;
-
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        String sortColumn = switch (sortBy) {
-            case "title" -> "title";
-            case "views" -> "views";
-            case "updatedAt" -> "updated_at";
-            default -> "created_at";
-        };
-        String sortOrder = isAsc ? "ASC" : "DESC";
-
-        List<Solution> deletedSolutions = solutionMapper.selectDeletedSolutions(
-                search, query.getProblemId(), userId,
-                query.getIsFlagged(), query.getIsPublished(),
-                sortColumn, sortOrder, limit, offset);
-        long total = solutionMapper.countDeletedSolutions(
-                search, query.getProblemId(), userId,
-                query.getIsFlagged(), query.getIsPublished());
-
-        Set<String> userIds = deletedSolutions.stream()
-                .map(Solution::getUserId)
-                .collect(Collectors.toSet());
-        Set<Long> problemIds = deletedSolutions.stream()
-                .map(Solution::getProblemId)
-                .collect(Collectors.toSet());
-
-        Map<String, AdminUserSummary> userMap = batchLoadUsers(userIds);
-        Map<Long, Problem> problemMap = batchLoadProblems(problemIds);
-
-        List<AdminSolutionListItemVO> voList = deletedSolutions.stream()
-                .map(s -> toListItemVO(s, userMap, problemMap))
-                .toList();
-
-        return PageResult.of(voList, total, page, limit);
+        return toAdminVO(row);
     }
 
     // ------------------------------------------------------------------
@@ -227,87 +141,88 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
         return userEnricher.enrich(userIds);
     }
 
-    private Map<Long, Problem> batchLoadProblems(Set<Long> problemIds) {
+    private Map<Long, ProblemAdminRowDTO> batchLoadProblems(Set<Long> problemIds) {
         if (problemIds.isEmpty()) {
             return new HashMap<>();
         }
-        return problemMapper.selectBatchIds(problemIds).stream()
-                .collect(Collectors.toMap(Problem::getId, p -> p));
+        return problemReadPort.findProblemsByIds(problemIds).stream()
+                .collect(Collectors.toMap(ProblemAdminRowDTO::id, p -> p));
     }
 
     // ------------------------------------------------------------------
-    // Projection helpers (entity &rarr; VO)
+    // Projection helpers (row &rarr; VO)
     // ------------------------------------------------------------------
 
     /**
-     * Build a list-view {@link AdminSolutionListItemVO} from a Solution using
-     * pre-loaded batch maps. Used by the paginated list read path.
+     * Build a list-view {@link AdminSolutionListItemVO} from a
+     * {@link SolutionAdminRow} using pre-loaded batch maps. Used by the
+     * paginated list read path.
      */
-    private AdminSolutionListItemVO toListItemVO(Solution solution, Map<String, AdminUserSummary> userMap,
-                                                  Map<Long, Problem> problemMap) {
+    private AdminSolutionListItemVO toListItemVO(SolutionAdminRow solution, Map<String, AdminUserSummary> userMap,
+                                                  Map<Long, ProblemAdminRowDTO> problemMap) {
         if (solution == null) {
             return null;
         }
 
-        AdminUserSummary author = userMap.get(solution.getUserId());
+        AdminUserSummary author = userMap.get(solution.userId());
         AdminSolutionListItemVO.AuthorInfo authorInfo = author != null
                 ? new AdminSolutionListItemVO.AuthorInfo(author.accountId(), author.username(),
                         author.name(), author.email())
                 : null;
 
-        Problem problem = problemMap.get(solution.getProblemId());
+        ProblemAdminRowDTO problem = problemMap.get(solution.problemId());
         AdminSolutionListItemVO.ProblemInfo problemInfo = problem != null
-                ? new AdminSolutionListItemVO.ProblemInfo(problem.getId().toString(), problem.getSlug(),
-                        problem.getTitle(), problem.getDifficulty())
+                ? new AdminSolutionListItemVO.ProblemInfo(problem.id().toString(), problem.slug(),
+                        problem.title(), problem.difficulty())
                 : null;
 
         return new AdminSolutionListItemVO(
-                solution.getId(),
-                solution.getTitle(),
-                solution.getLanguage(),
-                solution.getViews(),
-                solution.getIsPublished(),
-                solution.getIsFlagged(),
-                solution.getIsDeleted(),
-                solution.getCreatedAt(),
+                solution.id(),
+                solution.title(),
+                solution.language(),
+                solution.views(),
+                solution.isPublished(),
+                solution.isFlagged(),
+                solution.isDeleted(),
+                solution.createdAt(),
                 authorInfo,
                 problemInfo
         );
     }
 
     /**
-     * Build a detail-view {@link AdminSolutionVO} from a Solution. Used by the
-     * single-detail read path where the row volume is 1, so enrichment is
-     * inline rather than batch-loaded.
+     * Build a detail-view {@link AdminSolutionVO} from a
+     * {@link SolutionAdminRow}. Used by the single-detail read path where the
+     * row volume is 1, so enrichment is inline rather than batch-loaded.
      */
-    private AdminSolutionVO toAdminVO(Solution solution) {
+    private AdminSolutionVO toAdminVO(SolutionAdminRow solution) {
         if (solution == null) {
             return null;
         }
 
         AdminSolutionVO vo = new AdminSolutionVO();
-        vo.setId(solution.getId());
-        vo.setProblemId(solution.getProblemId());
-        vo.setUserId(solution.getUserId());
-        vo.setTitle(solution.getTitle());
-        vo.setContent(solution.getContent());
-        vo.setSummary(solution.getSummary());
-        vo.setLanguage(solution.getLanguage());
-        vo.setTags(solution.getTags());
-        vo.setViews(solution.getViews());
-        vo.setIsPublished(solution.getIsPublished());
-        vo.setPublishedAt(solution.getPublishedAt());
-        vo.setPublishedBy(solution.getPublishedBy());
-        vo.setIsFlagged(solution.getIsFlagged());
-        vo.setFlaggedReason(solution.getFlaggedReason());
-        vo.setFlaggedAt(solution.getFlaggedAt());
-        vo.setIsDeleted(solution.getIsDeleted());
-        vo.setDeletedAt(solution.getDeletedAt());
-        vo.setDeletedBy(solution.getDeletedBy());
-        vo.setCreatedAt(solution.getCreatedAt());
-        vo.setUpdatedAt(solution.getUpdatedAt());
+        vo.setId(solution.id());
+        vo.setProblemId(solution.problemId());
+        vo.setUserId(solution.userId());
+        vo.setTitle(solution.title());
+        vo.setContent(solution.content());
+        vo.setSummary(solution.summary());
+        vo.setLanguage(solution.language());
+        vo.setTags(solution.tags());
+        vo.setViews(solution.views());
+        vo.setIsPublished(solution.isPublished());
+        vo.setPublishedAt(solution.publishedAt());
+        vo.setPublishedBy(solution.publishedBy());
+        vo.setIsFlagged(solution.isFlagged());
+        vo.setFlaggedReason(solution.flaggedReason());
+        vo.setFlaggedAt(solution.flaggedAt());
+        vo.setIsDeleted(solution.isDeleted());
+        vo.setDeletedAt(solution.deletedAt());
+        vo.setDeletedBy(solution.deletedBy());
+        vo.setCreatedAt(solution.createdAt());
+        vo.setUpdatedAt(solution.updatedAt());
 
-        AdminUserSummary author = userEnricher.enrichOne(solution.getUserId());
+        AdminUserSummary author = userEnricher.enrichOne(solution.userId());
         if (author != null) {
             AdminSolutionVO.AuthorInfo authorInfo = new AdminSolutionVO.AuthorInfo();
             authorInfo.setId(author.accountId());
@@ -317,13 +232,13 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
             vo.setAuthor(authorInfo);
         }
 
-        Problem problem = problemMapper.selectById(solution.getProblemId());
+        ProblemAdminRowDTO problem = problemReadPort.findProblem(solution.problemId());
         if (problem != null) {
             AdminSolutionVO.ProblemInfo problemInfo = new AdminSolutionVO.ProblemInfo();
-            problemInfo.setId(problem.getId().toString());
-            problemInfo.setSlug(problem.getSlug());
-            problemInfo.setTitle(problem.getTitle());
-            problemInfo.setDifficulty(problem.getDifficulty());
+            problemInfo.setId(problem.id().toString());
+            problemInfo.setSlug(problem.slug());
+            problemInfo.setTitle(problem.title());
+            problemInfo.setDifficulty(problem.difficulty());
             vo.setProblem(problemInfo);
         }
 

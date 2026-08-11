@@ -8,6 +8,7 @@ import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
+import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.ContestParticipantTransitions;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -96,6 +98,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         Contest c = new Contest();
         c.setId(CONTEST_ID);
         c.setTitle("Test Contest");
+        c.setIsVisible(true);
         c.setDurationMinutes(DURATION_MIN);
         return c;
     }
@@ -259,7 +262,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     @Test
     @DisplayName("registerForContest inserts participant and fires participation achievement")
     void registerForContest_successTriggersAchievement() {
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(buildUpcomingContest());
         when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
         when(participantMapper.countByUserId(USER_ID)).thenReturn(3L);
 
@@ -272,23 +275,40 @@ class ContestParticipationServiceImplVirtualSessionTest {
     }
 
     @Test
-    @DisplayName("registerForContest throws CONTEST_FULL and skips insert when capacity increment fails")
+    @DisplayName("registerForContest rejects hidden contests before touching capacity")
+    void registerForContest_hiddenContest() {
+        Contest hidden = buildUpcomingContest();
+        hidden.setIsVisible(false);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(hidden);
+
+        assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_FOUND);
+
+        verify(contestMapper, never()).tryIncrementRegisteredCount(any());
+        verify(participantTransitions, never()).registerRealParticipant(any());
+    }
+
+    @Test
+    @DisplayName("registerForContest throws CONTEST_FULL after capacity claim fails")
     void registerForContest_full() {
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(buildUpcomingContest());
         when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(0);
 
         assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_FULL);
 
-        verify(participantTransitions, never()).registerRealParticipant(any(ContestParticipant.class));
+        // The enclosing transaction rolls this insert back when the conditional
+        // capacity claim returns zero.
+        verify(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
         verify(achievementTriggerPort, never()).triggerContestParticipation(any(), anyInt());
     }
 
     @Test
     @DisplayName("registerForContest maps duplicate insert to CONTEST_ALREADY_REGISTERED, no achievement")
     void registerForContest_duplicate() {
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(buildUpcomingContest());
         when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
         doThrow(new org.springframework.dao.DuplicateKeyException("dup"))
                 .when(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
@@ -298,6 +318,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
                 .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ALREADY_REGISTERED);
 
         verify(achievementTriggerPort, never()).triggerContestParticipation(any(), anyInt());
+        verify(contestMapper, never()).tryIncrementRegisteredCount(any());
     }
 
     @Test
@@ -305,7 +326,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void registerForContest_notUpcoming() {
         Contest c = buildContest();
         c.setStatus(com.ulticode.modules.contest.entity.enums.ContestStatus.RUNNING.name());
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(c);
 
         assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
                 .isInstanceOf(BusinessException.class)
@@ -317,7 +338,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     @Test
     @DisplayName("registerForContest swallows achievement failure — registration still succeeds")
     void registerForContest_achievementFailureDoesNotRollBack() {
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(buildUpcomingContest());
         when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
         when(participantMapper.countByUserId(USER_ID)).thenReturn(1L);
         doThrow(new RuntimeException("achievement service down"))
@@ -327,6 +348,45 @@ class ContestParticipationServiceImplVirtualSessionTest {
         service.registerForContest(CONTEST_ID, USER_ID);
 
         verify(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
+    }
+
+    @Test
+    @DisplayName("unregisterFromContest locks contest and participant before deleting")
+    void unregisterForContest_locksLifecycleRows() {
+        ContestParticipant participant = buildVirtualParticipant("not-a-session");
+        participant.setIsVirtual(false);
+        participant.setStatus(ContestParticipantStatus.REGISTERED.wireValue());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(participantMapper.findByContestIdAndUserIdForUpdate(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(participant));
+        when(participantTransitions.deleteById(participant.getId())).thenReturn(1);
+
+        service.unregisterFromContest(CONTEST_ID, USER_ID);
+
+        verify(contestMapper).selectByIdForUpdate(CONTEST_ID);
+        verify(participantMapper).findByContestIdAndUserIdForUpdate(CONTEST_ID, USER_ID);
+        verify(participantTransitions).deleteById(participant.getId());
+        verify(contestMapper).decrementRegisteredCount(CONTEST_ID);
+    }
+
+    @Test
+    @DisplayName("unregisterFromContest rejects a lifecycle transition observed after locking")
+    void unregisterForContest_rejectsRunningContestWithoutDelete() {
+        Contest running = buildUpcomingContest();
+        running.setStatus(ContestStatus.RUNNING.name());
+        ContestParticipant participant = buildVirtualParticipant("not-a-session");
+        participant.setIsVirtual(false);
+        participant.setStatus(ContestParticipantStatus.REGISTERED.wireValue());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(running);
+        when(participantMapper.findByContestIdAndUserIdForUpdate(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(participant));
+
+        assertThatThrownBy(() -> service.unregisterFromContest(CONTEST_ID, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+
+        verify(participantTransitions, never()).deleteById(anyString());
+        verify(contestMapper, never()).decrementRegisteredCount(anyString());
     }
 
     // ============================================================
@@ -339,6 +399,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         Contest c = buildContest();
         c.setStatus("FINISHED");
         when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(c);
         when(participantMapper.findActiveVirtualSessionForUpdate(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.empty());
 
@@ -372,11 +433,29 @@ class ContestParticipationServiceImplVirtualSessionTest {
     // ============================================================
 
     @Test
+    @DisplayName("startVirtualContest rejects hidden contests before creating a session")
+    void startVirtualContest_hiddenContest() {
+        Contest hidden = buildContest();
+        hidden.setStatus("FINISHED");
+        hidden.setIsVisible(false);
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(hidden);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(hidden);
+
+        assertThatThrownBy(() -> service.startVirtualContest(CONTEST_ID, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_FOUND);
+
+        verify(participantMapper, never()).findActiveVirtualSessionForUpdate(any(), any());
+        verify(participantTransitions, never()).startVirtualParticipant(any());
+    }
+
+    @Test
     @DisplayName("startVirtualContest DuplicateKeyException returns existing session without error")
     void startVirtualContest_dupKey_returnsExistingSession() {
         Contest c = buildContest();
         c.setStatus("FINISHED");
         when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(c);
         when(participantMapper.findActiveVirtualSessionForUpdate(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.empty());
 

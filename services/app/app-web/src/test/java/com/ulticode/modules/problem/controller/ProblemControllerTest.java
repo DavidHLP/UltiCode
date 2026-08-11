@@ -1,6 +1,7 @@
 package com.ulticode.modules.problem.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.app.security.AppTestSecurityConfig;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.ProblemVO;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -37,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * authorization behavior is covered by integration tests.
  */
 @WebMvcTest(controllers = ProblemController.class)
+@Import(AppTestSecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("ProblemController")
 class ProblemControllerTest {

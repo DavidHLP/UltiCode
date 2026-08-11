@@ -23,6 +23,16 @@ public interface ContestProblemResultMapper extends BaseMapper<ContestProblemRes
             @Param("contestProblemId") String contestProblemId
     );
 
+    /**
+     * Lock an existing per-problem result while an accepted verdict changes it.
+     */
+    @Select("SELECT * FROM contest_problem_results WHERE participant_id = #{participantId} "
+            + "AND contest_problem_id = #{contestProblemId} LIMIT 1 FOR UPDATE")
+    Optional<ContestProblemResult> findByParticipantIdAndContestProblemIdForUpdate(
+            @Param("participantId") String participantId,
+            @Param("contestProblemId") String contestProblemId
+    );
+
     @Select("SELECT * FROM contest_problem_results WHERE contest_id = #{contestId}")
     List<ContestProblemResult> findByContestId(@Param("contestId") String contestId);
 

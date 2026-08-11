@@ -23,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -51,7 +50,6 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     private AccountAdministrationService accountAdministrationService;
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.GRANT_PERMISSION,
              entityType = AuditVocabulary.ENTITY_PERMISSION,
              userIdFrom = "id")
@@ -63,7 +61,6 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.REVOKE_PERMISSION,
              entityType = AuditVocabulary.ENTITY_PERMISSION,
              userIdFrom = "id")
@@ -93,7 +90,10 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         AuditContext.setOldValues(oldValues);
 
         if (accountAdministrationService != null) {
-            String actorId = currentUserProvider != null ? currentUserProvider.getCurrentUserId() : "admin";
+            String actorId = currentUserProvider == null ? null : currentUserProvider.getCurrentUserId();
+            if (actorId == null || actorId.isBlank()) {
+                throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+            }
             ActorDelegation actor = new ActorDelegation("ADMIN", actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
 
             // Compute target full replacement permission set

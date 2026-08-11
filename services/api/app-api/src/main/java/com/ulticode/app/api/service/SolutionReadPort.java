@@ -43,4 +43,18 @@ public interface SolutionReadPort {
      * @return count of solutions authored by the user
      */
     long countByUserId(String userId);
+
+    /**
+     * Batch-load solution titles for the given solution ids.
+     *
+     * <p>Consumed by the Admin service's comment enrichment
+     * ({@code AdminCommentReadAdapter}, ADMIN-006) which previously imported
+     * {@code SolutionMapper} directly. Batch {@code selectBatchIds}
+     * semantics: logical-deleted rows are excluded.
+     *
+     * @param solutionIds candidate solution IDs
+     * @return map keyed by solution id; ids with no matching solution are
+     *         absent from the map. Empty input returns an empty map.
+     */
+    java.util.Map<String, String> findTitlesByIds(java.util.Set<String> solutionIds);
 }

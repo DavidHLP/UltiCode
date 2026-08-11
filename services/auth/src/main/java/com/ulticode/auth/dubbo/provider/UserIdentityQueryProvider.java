@@ -64,6 +64,11 @@ public class UserIdentityQueryProvider implements IdentityQueryService {
         return RpcResult.success(dtos, "t-system");
     }
 
+    @Override
+    public RpcResult<List<String>> findActiveAccountIds() {
+        return RpcResult.success(authAccountPort.findActiveAccountIds(), "t-system");
+    }
+
     private UserIdentityDTO toDto(AuthAccountRecord record) {
         return new UserIdentityDTO(
                 record.id(),

@@ -31,6 +31,9 @@ public interface AuthAccountMapper {
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
     List<AuthAccountEntity> findByIds(@Param("ids") Set<String> ids);
 
+    @Select("SELECT id FROM users WHERE is_active = 1 AND is_banned = 0 AND is_deleted = 0")
+    List<String> findActiveAccountIds();
+
     @Insert("INSERT INTO users (id, username, email, password, role, is_active, is_banned, "
             + "banned_until, joined_at, authz_version) VALUES (#{id}, #{username}, #{email}, "
             + "#{password}, #{role}, #{active}, #{banned}, #{bannedUntil}, #{joinedAt}, #{authzVersion})")

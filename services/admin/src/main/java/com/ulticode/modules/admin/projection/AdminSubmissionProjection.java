@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
+import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;
 import com.ulticode.common.exception.BusinessException;
@@ -67,7 +67,7 @@ public interface AdminSubmissionProjection {
      * @param query query parameters including filters, pagination, and sorting
      * @return paginated result of admin submission VOs (list view shape)
      */
-    PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query);
+    PageResult<AdminSubmissionVO> getSubmissions(SubmissionAdminQueryDTO query);
 
     /**
      * Get a single submission by ID with full detail fields (code, notes,

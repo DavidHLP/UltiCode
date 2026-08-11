@@ -6,18 +6,17 @@ import com.ulticode.app.api.command.DeleteContestCommand;
 import com.ulticode.app.api.command.EndContestCommand;
 import com.ulticode.app.api.command.StartContestCommand;
 import com.ulticode.app.api.command.UpdateContestCommand;
+import com.ulticode.app.api.dto.ContestAdminDTO;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.api.service.ContestAdminReadPort;
+import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.UpdateContestDTO;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.enums.ContestStatus;
-import com.ulticode.modules.contest.service.ContestAdministrationDomainService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.modules.contest.port.ContestOwnerPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,142 +42,132 @@ import static org.mockito.Mockito.when;
 class ContestAdministrationProviderTest {
 
     @Mock
-    private ContestAdministrationDomainService domainService;
+    private ContestOwnerPort ownerPort;
+
+    @Mock
+    private ContestAdminReadPort readPort;
+
+    @Mock
+    private AppCommandReceiptMapper receiptMapper;
 
     private ContestAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
-        provider = new ContestAdministrationProvider(domainService);
+        provider = new ContestAdministrationProvider(ownerPort, readPort, receiptMapper, new ObjectMapper());
     }
 
     private static ActorDelegation adminActor() {
         return new ActorDelegation("ADMIN", "admin-1", null, null);
     }
 
-    private static Contest contestEntity(String id, String slug, String title, ContestStatus status) {
-        Contest c = new Contest();
-        c.setId(id);
-        c.setSlug(slug);
-        c.setTitle(title);
-        c.setStatus(status.name());
-        return c;
+    private static ActorDelegation userActor() {
+        return new ActorDelegation("USER", "user-1", null, null);
     }
 
     private static TraceMetadata trace() {
         return new TraceMetadata("t-12345", null, null, null);
     }
 
+    private static IdMetadata idempotency(String key) {
+        return IdMetadata.of(key, "fingerprint");
+    }
+
+    private static ContestAdminDTO contestView(String id, String title, String status) {
+        ContestAdminDTO view = new ContestAdminDTO();
+        view.setId(id);
+        view.setTitle(title);
+        view.setStatus(status);
+        return view;
+    }
+
     @Nested
-    @DisplayName("createContest")
-    class Create {
+    @DisplayName("owner command routing")
+    class Routing {
 
         @Test
-        @DisplayName("successful creation returns admin view")
-        void success() {
+        @DisplayName("create forwards creator and returns owner confirmation")
+        void create() {
             CreateContestCommand command = new CreateContestCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
+                    UUID.randomUUID().toString(), idempotency("create-key"), adminActor(), trace(),
                     "weekly-1", "Weekly 1", "author-1", "ICPC", "SCORE", null, "desc",
                     System.currentTimeMillis() + 3600000L, 120);
-
-            Contest entity = contestEntity("c-100", "weekly-1", "Weekly 1", ContestStatus.UPCOMING);
-            when(domainService.createContest(any(CreateContestDTO.class), eq("author-1")))
-                    .thenReturn(entity);
+            when(ownerPort.createContest(any())).thenReturn("c-100");
+            when(readPort.selectById("c-100")).thenReturn(contestView("c-100", "Weekly 1", "UPCOMING"));
 
             RpcResult<ContestAdminViewDTO> result = provider.createContest(command);
 
             assertThat(result.success()).isTrue();
-            assertThat(result.data().contestId()).isEqualTo("c-100");
-            assertThat(result.data().title()).isEqualTo("Weekly 1");
+            assertThat(result.data()).isEqualTo(new ContestAdminViewDTO("c-100", "Weekly 1", "UPCOMING"));
+            verify(ownerPort).createContest(any());
         }
 
         @Test
-        @DisplayName("domain conflict exception maps to CONTENT_STATE_CONFLICT")
-        void conflict() {
-            CreateContestCommand command = new CreateContestCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
-                    "dup", "Duplicate", "author-1", "ICPC", "SCORE", null, "desc",
-                    System.currentTimeMillis() + 3600000L, 120);
-
-            when(domainService.createContest(any(CreateContestDTO.class), any()))
-                    .thenThrow(new BusinessException(BaseErrorCode.CONFLICT, "Slug duplicate"));
-
-            RpcResult<ContestAdminViewDTO> result = provider.createContest(command);
-
-            assertThat(result.success()).isFalse();
-            assertThat(result.error().code()).isEqualTo(AppErrorCode.CONTENT_STATE_CONFLICT.code());
-        }
-    }
-
-    @Nested
-    @DisplayName("updateContest")
-    class Update {
-
-        @Test
-        @DisplayName("successful update returns admin view")
-        void success() {
+        @DisplayName("update forwards editable fields to owner")
+        void update() {
             UpdateContestCommand command = new UpdateContestCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
+                    UUID.randomUUID().toString(), idempotency("update-key"), adminActor(), trace(),
                     "c-10", 1L, "New Title", System.currentTimeMillis(), 180, "rationale");
-
-            Contest entity = contestEntity("c-10", "weekly-1", "New Title", ContestStatus.UPCOMING);
-            when(domainService.updateContest(eq("c-10"), any(UpdateContestDTO.class), eq("admin-1")))
-                    .thenReturn(entity);
+            when(readPort.selectById("c-10")).thenReturn(contestView("c-10", "New Title", "UPCOMING"));
 
             RpcResult<ContestAdminViewDTO> result = provider.updateContest(command);
 
             assertThat(result.success()).isTrue();
-            assertThat(result.data().contestId()).isEqualTo("c-10");
+            verify(ownerPort).updateContest(any());
+        }
+
+        @Test
+        @DisplayName("lifecycle and delete commands use owner port")
+        void lifecycle() {
+            when(readPort.selectById("c-10")).thenReturn(contestView("c-10", "Weekly", "RUNNING"));
+            StartContestCommand start = new StartContestCommand(
+                    UUID.randomUUID().toString(), idempotency("start-key"), adminActor(), trace(),
+                    "c-10", 1L, "starting");
+            EndContestCommand end = new EndContestCommand(
+                    UUID.randomUUID().toString(), idempotency("end-key"), adminActor(), trace(),
+                    "c-10", 1L, "ending");
+            DeleteContestCommand delete = new DeleteContestCommand(
+                    UUID.randomUUID().toString(), idempotency("delete-key"), adminActor(), trace(),
+                    "c-10", 1L, "deleting");
+
+            assertThat(provider.startContest(start).success()).isTrue();
+            assertThat(provider.endContest(end).success()).isTrue();
+            assertThat(provider.deleteContest(delete).success()).isTrue();
+
+            verify(ownerPort).startContest("c-10");
+            verify(ownerPort).endContest("c-10");
+            verify(ownerPort).deleteContest("c-10", "admin-1");
         }
     }
 
-    @Nested
-    @DisplayName("lifecycle commands")
-    class Lifecycle {
+    @Test
+    @DisplayName("non-admin actor is rejected before owner mutation")
+    void rejectsNonAdminActor() {
+        StartContestCommand command = new StartContestCommand(
+                UUID.randomUUID().toString(), idempotency("forbidden-key"), userActor(), trace(),
+                "c-10", 1L, "starting");
 
-        @Test
-        @DisplayName("startContest delegates to domainService")
-        void start() {
-            StartContestCommand command = new StartContestCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
-                    "c-10", 1L, "starting");
+        RpcResult<ContestAdminViewDTO> result = provider.startContest(command);
 
-            Contest entity = contestEntity("c-10", "weekly-1", "Weekly 1", ContestStatus.RUNNING);
-            when(domainService.startContest("c-10", "admin-1")).thenReturn(entity);
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        verifyNoInteractions(ownerPort, readPort);
+    }
 
-            RpcResult<ContestAdminViewDTO> result = provider.startContest(command);
+    @Test
+    @DisplayName("contest lifecycle error maps explicitly to bad request")
+    void mapsLifecycleError() {
+        StartContestCommand command = new StartContestCommand(
+                UUID.randomUUID().toString(), idempotency("state-key"), adminActor(), trace(),
+                "c-10", 1L, "starting");
+        org.mockito.Mockito.doThrow(new BusinessException(
+                        com.ulticode.app.error.ContestErrorCode.CONTEST_NOT_STARTED))
+                .when(ownerPort).startContest("c-10");
 
-            assertThat(result.success()).isTrue();
-            verify(domainService).startContest("c-10", "admin-1");
-        }
+        RpcResult<ContestAdminViewDTO> result = provider.startContest(command);
 
-        @Test
-        @DisplayName("endContest delegates to domainService")
-        void end() {
-            EndContestCommand command = new EndContestCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
-                    "c-10", 1L, "ending");
-
-            Contest entity = contestEntity("c-10", "weekly-1", "Weekly 1", ContestStatus.FINISHED);
-            when(domainService.endContest("c-10", "admin-1")).thenReturn(entity);
-
-            RpcResult<ContestAdminViewDTO> result = provider.endContest(command);
-
-            assertThat(result.success()).isTrue();
-            verify(domainService).endContest("c-10", "admin-1");
-        }
-
-        @Test
-        @DisplayName("deleteContest delegates to domainService")
-        void delete() {
-            DeleteContestCommand command = new DeleteContestCommand(
-                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
-                    "c-10", 1L, "deleting");
-
-            RpcResult<Void> result = provider.deleteContest(command);
-
-            assertThat(result.success()).isTrue();
-            verify(domainService).deleteContest("c-10", "admin-1");
-        }
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+        verifyNoInteractions(readPort);
     }
 }

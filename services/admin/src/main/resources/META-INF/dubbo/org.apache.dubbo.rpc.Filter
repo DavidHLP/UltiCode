@@ -1,0 +1,1 @@
+delegationAssertionConsumer=com.ulticode.admin.security.DelegationAssertionConsumerFilter

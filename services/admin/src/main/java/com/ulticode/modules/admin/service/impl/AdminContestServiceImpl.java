@@ -51,11 +51,11 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    public List<ContestRankingEntryDTO> getRankings(String contestId) {
-        ContestAdminDTO contest = contestAdminReadPort.selectById(contestId);
+    public PageResult<ContestRankingEntryDTO> getRankings(String contestId, int page, int limit) {
+        ContestAdminDTO contest = contestAdminReadPort.selectByIdOrSlug(contestId);
         if (contest == null) {
             throw new BusinessException(BaseErrorCode.NOT_FOUND, "Contest not found");
         }
-        return liveRankingReadPort.readLiveRanking(contestId, 100);
+        return liveRankingReadPort.readLiveRankingPage(contest.getId(), page, limit);
     }
 }

@@ -5,10 +5,13 @@ import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * P3-BURNDOWN-001: default {@link TestCaseOwnerPort} implementation.
@@ -22,6 +25,7 @@ import java.time.LocalDateTime;
  */
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultTestCaseOwnerPort implements com.ulticode.app.api.service.TestCaseOwnerPort {
 
@@ -60,6 +64,24 @@ public class DefaultTestCaseOwnerPort implements com.ulticode.app.api.service.Te
 
     @Override
     @Transactional
+    public void replaceAllForProblem(Long problemId, List<TestCaseWrite> commands) {
+        LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TestCase::getProblemId, problemId);
+        testCaseMapper.delete(wrapper);
+        if (commands != null) {
+            for (TestCaseWrite command : commands) {
+                if (command == null || !Objects.equals(problemId, command.problemId())) {
+                    throw new IllegalArgumentException("test case problemId does not match replacement owner");
+                }
+                testCaseMapper.insert(toEntity(command));
+            }
+        }
+        log.info("TestCaseOwnerPort.replaceAllForProblem problemId={} count={}",
+                problemId, commands == null ? 0 : commands.size());
+    }
+
+    @Override
+    @Transactional
     public void updateTestOrder(String id, int testOrder, LocalDateTime updatedAt) {
         // Shell update: only test_order + updated_at move, matching the
         // legacy reorder loop where the loaded row changed nothing else.
@@ -69,6 +91,23 @@ public class DefaultTestCaseOwnerPort implements com.ulticode.app.api.service.Te
         shell.setUpdatedAt(updatedAt);
         testCaseMapper.updateById(shell);
         log.debug("TestCaseOwnerPort.updateTestOrder id={} testOrder={}", id, testOrder);
+    }
+
+    @Override
+    @Transactional
+    public void updateTestOrders(List<TestCaseOrder> commands) {
+        if (commands == null || commands.isEmpty()) {
+            return;
+        }
+        for (TestCaseOrder command : commands) {
+            if (command == null || command.id() == null || command.id().isBlank()) {
+                throw new IllegalArgumentException("test case order command id is required");
+            }
+        }
+        for (TestCaseOrder command : commands) {
+            updateTestOrder(command.id(), command.testOrder(), command.updatedAt());
+        }
+        log.debug("TestCaseOwnerPort.updateTestOrders count={}", commands.size());
     }
 
     private static TestCase toEntity(TestCaseWrite command) {

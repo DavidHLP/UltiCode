@@ -72,6 +72,14 @@ management:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
       timeout: 5s
 
+security:
+  internal-delegation:
+    # Prefer a dedicated secret in production; JWT_SECRET is a compatibility fallback.
+    secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
+    issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-app}
+    ttl-seconds: ${INTERNAL_DELEGATION_TTL_SECONDS:30}
+
 dubbo:
   application:
     name: ${DUBBO_APPLICATION_NAME:backend-admin}
@@ -110,6 +118,8 @@ dubbo:
     # that inherits retry=0 is merely conservative (safe, suboptimal).
     timeout: 3000
     retries: 0
+    # Signed caller identity is verified by backend-app before privileged writes.
+    filter: default,delegationAssertionConsumer
   provider:
     filter: default
   cloud:

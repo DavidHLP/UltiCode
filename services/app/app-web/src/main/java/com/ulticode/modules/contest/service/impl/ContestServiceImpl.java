@@ -35,6 +35,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Write-side facade for contest operations. After the admin-contest mutation
@@ -76,39 +77,61 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     @Transactional
-    public SubmissionVO submitContestProblem(String contestId, Long problemId, String userId, CreateSubmissionDTO createDTO) {
+    public SubmissionVO submitContestProblem(String contestId, Long problemId, String userId,
+                                             CreateSubmissionDTO createDTO) {
+        if (createDTO == null) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Submission payload is required");
+        }
+
         Contest contest = getContestOrThrow(contestId);
-        if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
+        getContestProblemOrThrow(contestId, problemId);
+
+        String virtualSessionId = createDTO.getVirtualSessionId();
+        Optional<ContestParticipant> participantOpt = virtualSessionId == null || virtualSessionId.isBlank()
+                ? participantMapper.findRealForSubmissionAdmission(contestId, userId)
+                : participantMapper.findVirtualForSubmissionAdmission(contestId, userId, virtualSessionId);
+        ContestParticipant participant = participantOpt
+                .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED));
+        boolean virtual = Boolean.TRUE.equals(participant.getIsVirtual());
+        if (virtual) {
+            // Virtual replays start only after the parent contest is published
+            // as FINISHED; their own session clock remains authoritative.
+            if (!ContestStatus.FINISHED.name().equals(contest.getStatus())) {
+                throw new BusinessException(ContestErrorCode.CONTEST_ENDED,
+                        "Virtual contest is not available");
+            }
+        } else if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED, "Contest is not running");
         }
-        // P1-2 fix: enforce contest end time. Admin must call endContest at end_time,
-        // but if they forget, submissions past end_time would otherwise slip through.
-        if (contest.getEndTime() != null && LocalDateTime.now(clock).isAfter(contest.getEndTime())) {
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!virtual && contest.getEndTime() != null && now.isAfter(contest.getEndTime())) {
             throw new BusinessException(ContestErrorCode.CONTEST_ENDED, "Contest end time has passed");
         }
 
-        getContestProblemOrThrow(contestId, problemId);
-
-        ContestParticipant participant = participantMapper.findByContestIdAndUserId(contestId, userId)
-                .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED));
         if (!ContestParticipantStatus.STARTED.name().equals(participant.getStatus())) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED, "Contest participation has not started");
+            throw new BusinessException(virtual
+                    ? ContestErrorCode.CONTEST_ENDED
+                    : ContestErrorCode.CONTEST_NOT_STARTED,
+                    "Contest participation has not started");
         }
 
-        // R6.2 / F-07: virtual sessions get a hard deadline based on
-        // started_at + duration_minutes. Without this gate, a user could
-        // submit well after their virtual replay should have ended; the
-        // scheduler's auto-finish only kicks in on the next 10s tick, leaving
-        // a window where late submissions sneak through.
-        LocalDateTime virtualEnd = contestClock.effectiveEndTime(participant, contest).orElse(null);
-        if (Boolean.TRUE.equals(participant.getIsVirtual())
-                && virtualEnd != null
-                && LocalDateTime.now(clock).isAfter(virtualEnd)) {
-            throw new BusinessException(ContestErrorCode.CONTEST_ENDED,
-                    "Virtual contest duration has passed");
+        // Virtual sessions use their own started_at + duration window. The
+        // adapter repeats this check under row locks before inserting the
+        // contest mapping, closing the check/insert race.
+        if (virtual) {
+            LocalDateTime virtualEnd = contestClock.effectiveEndTime(participant, contest).orElse(null);
+            if (virtualEnd == null || now.isAfter(virtualEnd)) {
+                throw new BusinessException(ContestErrorCode.CONTEST_ENDED,
+                        "Virtual contest duration has passed");
+            }
         }
 
+        // The path contest is the sole source of ownership. Do not let a
+        // client-supplied context redirect the submission to another contest.
         createDTO.setProblemId(problemId);
+        createDTO.setContestId(contestId);
+        createDTO.setVirtualSessionId(virtual ? participant.getVirtualSessionId() : null);
         return submissionWritePort.submit(userId, createDTO);
     }
 
@@ -161,6 +184,10 @@ public class ContestServiceImpl implements ContestService {
         if (cp == null) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Problem not found in this contest");
         }
+        if (contestProblemMapper.hasContestOwnedResults(cp.getId())) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Cannot remove a problem after contest submissions or results exist");
+        }
         contestProblemMapper.deleteById(cp.getId());
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("removedProblemId", problemId);
@@ -178,7 +205,7 @@ public class ContestServiceImpl implements ContestService {
      * guard (previously inlined as {@code findById(id).filter(!isDeleted).orElseThrow}).
      */
     private Contest getContestOrThrow(String contestId) {
-        Contest contest = contestMapper.selectById(contestId);
+        Contest contest = contestMapper.selectByIdForUpdate(contestId);
         if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }

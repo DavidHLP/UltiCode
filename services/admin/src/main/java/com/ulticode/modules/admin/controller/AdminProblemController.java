@@ -15,13 +15,8 @@ import com.ulticode.modules.admin.service.ProblemCutoverService;
 import com.ulticode.modules.admin.service.ProblemExportService;
 import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.admin.service.impl.ExportPayload;
-import com.ulticode.modules.problem.dto.CreateProblemDTO;
-import com.ulticode.modules.problem.dto.ProblemQueryDTO;
-import com.ulticode.modules.problem.dto.ProblemVO;
-import com.ulticode.modules.problem.dto.UpdateProblemDTO;
-import com.ulticode.modules.problem.projection.ProblemProjection;
-import com.ulticode.modules.problem.service.ProblemService;
-import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.app.api.dto.ProblemAdminQueryDTO;
+import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -40,9 +35,7 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "Bearer")
 public class AdminProblemController {
 
-    private final ProblemService problemService;
     private final ProblemCutoverService problemCutoverService;
-    private final ProblemProjection problemProjection;
     private final AdminProblemService adminProblemService;
     private final ProblemExportService problemExportService;
     private final ProblemImportService problemImportService;
@@ -50,14 +43,14 @@ public class AdminProblemController {
     @Operation(summary = "Get problems list", description = "Get paginated list of problems with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<ProblemVO>> getProblems(ProblemQueryDTO query) {
-        return Result.success(problemProjection.listProblems(query));
+    public Result<PageResult<ProblemAdminVO>> getProblems(ProblemAdminQueryDTO query) {
+        return Result.success(adminProblemService.listProblems(query));
     }
 
     @Operation(summary = "Export problems", description = "Export problems as JSON or CSV file")
     @GetMapping("/export")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public void exportProblems(ProblemQueryDTO query,
+    public void exportProblems(ProblemAdminQueryDTO query,
                                @RequestParam(defaultValue = "json") String format,
                                HttpServletResponse response) throws IOException {
         // All shaping (format validation, size cap, CSV header/escape, date
@@ -77,15 +70,15 @@ public class AdminProblemController {
     @Operation(summary = "Get problem by ID", description = "Get detailed problem information")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> getProblemById(@PathVariable Long id) {
-        return Result.success(problemService.getProblemById(id));
+    public Result<ProblemAdminVO> getProblemById(@PathVariable Long id) {
+        return Result.success(adminProblemService.getProblemById(id));
     }
 
     @Operation(summary = "Create problem", description = "Create a new problem")
     @RateLimit(key = "admin:problem-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> createProblem(@Valid @RequestBody CreateProblemDTO createDTO) {
+    public Result<ProblemAdminVO> createProblem(@Valid @RequestBody CreateProblemDTO createDTO) {
         return Result.success(problemCutoverService.createProblem(createDTO));
     }
 
@@ -93,7 +86,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-update", limit = 30, period = 60)
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> updateProblem(
+    public Result<ProblemAdminVO> updateProblem(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProblemDTO updateDTO) {
         return Result.success(problemCutoverService.updateProblem(id, updateDTO));
@@ -112,7 +105,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-publish", limit = 30, period = 60)
     @PostMapping("/{id}/publish")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> publishProblem(@PathVariable Long id) {
+    public Result<ProblemAdminVO> publishProblem(@PathVariable Long id) {
         return Result.success(problemCutoverService.publishProblem(id));
     }
 
@@ -120,7 +113,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-unpublish", limit = 30, period = 60)
     @PostMapping("/{id}/unpublish")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> unpublishProblem(@PathVariable Long id) {
+    public Result<ProblemAdminVO> unpublishProblem(@PathVariable Long id) {
         return Result.success(problemCutoverService.unpublishProblem(id));
     }
 
@@ -136,7 +129,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-flag", limit = 30, period = 60)
     @PostMapping("/{id}/flag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> flagProblem(@PathVariable Long id, @RequestBody @Valid FlagProblemRequestDTO request) {
+    public Result<ProblemAdminVO> flagProblem(@PathVariable Long id, @RequestBody @Valid FlagProblemRequestDTO request) {
         return Result.success(adminProblemService.flagProblem(id, request.getReason()));
     }
 
@@ -144,7 +137,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-moderate", limit = 30, period = 60)
     @PostMapping("/{id}/moderate")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> moderateProblem(@PathVariable Long id, @RequestBody @Valid ModerateProblemRequestDTO request) {
+    public Result<ProblemAdminVO> moderateProblem(@PathVariable Long id, @RequestBody @Valid ModerateProblemRequestDTO request) {
         return Result.success(adminProblemService.moderateProblem(id, request.getStatus(), request.getNotes()));
     }
 
@@ -152,7 +145,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-flagged", limit = 60, period = 60)
     @GetMapping("/flagged")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<ProblemVO>> getFlaggedProblems(
+    public Result<PageResult<ProblemAdminVO>> getFlaggedProblems(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer limit) {
@@ -171,7 +164,7 @@ public class AdminProblemController {
     @RateLimit(key = "admin:problem-submissions", limit = 60, period = 60)
     @GetMapping("/{id}/submissions")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<Submission>> getProblemSubmissions(
+    public Result<PageResult<SubmissionAdminRowDTO>> getProblemSubmissions(
             @PathVariable Long id,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer limit) {

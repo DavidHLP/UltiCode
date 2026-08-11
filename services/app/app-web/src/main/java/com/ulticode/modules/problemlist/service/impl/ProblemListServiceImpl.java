@@ -35,7 +35,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Write-side facade for problem-list operations. Owns the list state machine
@@ -190,6 +192,7 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
 
         // Delete all problem relations
         problemListProblemMapper.deleteByListId(id);
+        problemListBookmarkMapper.deleteByListId(id);
 
         // Delete the list
         problemListMapper.deleteById(id);
@@ -505,15 +508,28 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Override
     @Transactional
     public void adminReplaceListProblems(String id, UpdateProblemListProblemsDTO dto) {
-        ProblemList list = problemListMapper.findById(id)
+        problemListMapper.findById(id)
                 .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
-        problemListProblemMapper.deleteByListId(id);
-
-        if (dto.getProblems() == null) {
+        if (dto == null || dto.getProblems() == null) {
             throw new BusinessException(BaseErrorCode.VALIDATION_FAILED, "Problems list is required");
         }
 
+        Set<Long> problemIds = new HashSet<>();
+        for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
+            if (entry == null || entry.getProblemId() == null || entry.getSortOrder() == null) {
+                throw new BusinessException(BaseErrorCode.VALIDATION_FAILED,
+                        "Problem ID and sort order are required");
+            }
+            if (!problemIds.add(entry.getProblemId())) {
+                throw new BusinessException(ProblemListErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
+            }
+            if (!problemExistencePort.exists(entry.getProblemId())) {
+                throw new BusinessException(ProblemErrorCode.PROBLEM_NOT_FOUND);
+            }
+        }
+
+        problemListProblemMapper.deleteByListId(id);
         for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
             ProblemListProblemRelation relation = new ProblemListProblemRelation();
             relation.setListId(id);
@@ -526,10 +542,11 @@ public class ProblemListServiceImpl implements ProblemListService, ProblemListAd
     @Override
     @Transactional
     public void adminDeleteProblemList(String id) {
-        ProblemList list = problemListMapper.findById(id)
+        problemListMapper.findById(id)
                 .orElseThrow(() -> new BusinessException(ProblemListErrorCode.PROBLEM_LIST_NOT_FOUND));
 
         problemListProblemMapper.deleteByListId(id);
+        problemListBookmarkMapper.deleteByListId(id);
         problemListMapper.deleteById(id);
     }
 }

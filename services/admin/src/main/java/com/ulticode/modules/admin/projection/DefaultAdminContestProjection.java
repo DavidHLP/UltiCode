@@ -40,7 +40,8 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         int limit = pageRequest.pageSize();
 
         PageResult<ContestAdminDTO> result = contestAdminReadPort.selectPage(
-                page, limit, query.getSearch(), query.getStatus(), query.getType());
+                page, limit, query.getSearch(), query.getStatus(), query.getType(),
+                query.getSortBy(), query.getSortOrder());
 
         List<AdminContestVO> vos = result.getItems().stream()
                 .map(this::toAdminVO)
@@ -51,7 +52,7 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
 
     @Override
     public AdminContestVO getContest(String id) {
-        ContestAdminDTO contest = contestAdminReadPort.selectById(id);
+        ContestAdminDTO contest = contestAdminReadPort.selectByIdOrSlug(id);
         if (contest == null) {
             throw new BusinessException(BaseErrorCode.NOT_FOUND, "Contest not found");
         }
@@ -75,6 +76,7 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         vo.setEndTime(contest.getEndTime());
         vo.setDurationMinutes(contest.getDurationMinutes());
         vo.setIsVisible(contest.getIsVisible());
+        vo.setParticipantCount(contest.getRegisteredCount());
         vo.setCreatedAt(contest.getCreatedAt());
         vo.setUpdatedAt(contest.getUpdatedAt());
         vo.setProblemCount((int) contestAdminReadPort.countProblemsByContestId(contest.getId()));

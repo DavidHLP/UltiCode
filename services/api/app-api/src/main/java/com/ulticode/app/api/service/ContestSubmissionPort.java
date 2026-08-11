@@ -14,19 +14,23 @@ package com.ulticode.app.api.service;
 public interface ContestSubmissionPort {
 
     /**
-     * If the user is participating in a RUNNING contest that contains the
-     * supplied problem with a STARTED participation, record a
-     * {@code ContestSubmission} row for it.
+     * Record contest effects only when an explicit contest context is present.
+     * A missing {@code contestId} means an ordinary submission and is a no-op;
+     * this port must never scan currently running contests to infer ownership.
      *
-     * <p><b>Fire-and-forget semantics</b>: the caller wraps the call in a
-     * try/catch so a contest-recording failure is logged but never breaks
-     * the main submission.
+     * <p>With a contest context, admission failures are propagated so the
+     * caller's submission transaction rolls back. The adapter validates the
+     * contest, problem, participant, virtual session and deadline while holding
+     * the contest/participant locks.
      *
      * @param submissionId the just-created submission id
-     * @param userId       the submitting user id
-     * @param problemId    the problem id the submission targets
+     * @param userId the submitting user id
+     * @param problemId the problem id the submission targets
+     * @param contestId explicit contest context, or {@code null}
+     * @param virtualSessionId explicit virtual session context, or {@code null}
      */
-    void recordSubmissionIfNeeded(String submissionId, String userId, Long problemId);
+    void recordSubmissionIfNeeded(String submissionId, String userId, Long problemId,
+                                  String contestId, String virtualSessionId);
 
     /**
      * Whether the supplied submission belongs to a virtual-contest replay.
@@ -37,6 +41,14 @@ public interface ContestSubmissionPort {
      * @return {@code true} if virtual-contest replay; {@code false} otherwise
      */
     boolean isVirtualParticipation(String submissionId);
+
+    /**
+     * Whether the submission has an explicit contest mapping.
+     *
+     * <p>This lookup is strict: failures propagate so the submission rejudge
+     * policy cannot silently bypass the contest safety rule.</p>
+     */
+    boolean isContestSubmission(String submissionId);
 
     /**
      * Resolve the contest a submission belongs to, if any. Used by the judge

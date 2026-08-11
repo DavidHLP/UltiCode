@@ -1,173 +1,248 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.command.CreateNotificationCommand;
+import com.ulticode.app.api.dto.NotificationAdminDTO;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.api.service.NotificationAdminReadPort;
 import com.ulticode.app.api.service.NotificationAdministrationService;
-import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
-import com.ulticode.app.api.dto.RejudgeResultDTO;
-import com.ulticode.app.api.service.SubmissionAdministrationService;
+import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
-import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
-import com.ulticode.modules.admin.service.AdminNotificationService;
-import com.ulticode.modules.admin.service.AdminSubmissionService;
-import com.ulticode.modules.admin.service.NotificationCutoverService;
-import com.ulticode.modules.admin.service.SubmissionCutoverService;
+import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
+import com.ulticode.modules.admin.projection.AdminNotificationProjection;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("NotificationCutoverService + SubmissionCutoverService.batchRejudge")
+@DisplayName("NotificationCutoverService")
 class NotificationCutoverServiceTest {
 
-    @Mock private AdminNotificationService notificationService;
-    @Mock private CurrentUserProvider currentUserProvider;
-    @Mock private NotificationAdministrationService notificationDubbo;
-    @Mock private AdminSubmissionService adminSubmissionService;
-    @Mock private SubmissionAdministrationService submissionDubbo;
+    @Mock
+    private AdminNotificationService notificationService;
 
-    private NotificationCutoverService notificationCutover;
-    private SubmissionCutoverService submissionCutover;
+    @Mock
+    private AdminNotificationProjection projection;
+
+    @Mock
+    private NotificationAdminReadPort readPort;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
+
+    @Mock
+    private NotificationAdministrationService dubboProvider;
+
+    private NotificationCutoverService cutoverService;
 
     @BeforeEach
     void setUp() {
-        notificationCutover = new NotificationCutoverService(notificationService, currentUserProvider);
-        ReflectionTestUtils.setField(notificationCutover, "dubboProvider", notificationDubbo);
-        ReflectionTestUtils.setField(notificationCutover, "dubboEnabled", false);
-
-        submissionCutover = new SubmissionCutoverService(adminSubmissionService);
-        ReflectionTestUtils.setField(submissionCutover, "dubboProvider", submissionDubbo);
-        ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", false);
+        cutoverService = new NotificationCutoverService(
+                notificationService, projection, readPort, currentUserProvider);
+        ReflectionTestUtils.setField(cutoverService, "dubboProvider", dubboProvider);
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(false);
+    }
+    @AfterEach
+    void clearAuditContext() {
+        AuditContext.clear();
     }
 
-    // ── NotificationCutoverService ─────────────────────────────
+    @Test
+    @DisplayName("keeps the supplied key on the default service path")
+    void forwardsKeyWhenFlagIsDisabled() {
+        CreateSystemNotificationRequest request = request();
+        AdminNotificationVO expected = new AdminNotificationVO();
+        when(notificationService.createSystemNotification(request, "retry-1"))
+                .thenReturn(expected);
 
-    @Nested @DisplayName("flag=off (Notification)")
-    class NotificationLocal {
-        @Test @DisplayName("createSystemNotification delegates to local service")
-        void createLocal() {
-            CreateSystemNotificationRequest req = new CreateSystemNotificationRequest();
-            req.setTitle("Test");
-            req.setContent("Body");
-            req.setType("SYSTEM");
-            req.setTarget("ALL");
-            AdminNotificationVO vo = new AdminNotificationVO();
-            vo.setId("n1");
-            when(notificationService.createSystemNotification(req)).thenReturn(vo);
+        AdminNotificationVO result = cutoverService.createSystemNotification(request, "retry-1");
 
-            AdminNotificationVO result = notificationCutover.createSystemNotification(req);
-            assertThat(result).isSameAs(vo);
-            verify(notificationDubbo, never()).createNotification(any());
-        }
-
-        @Test @DisplayName("deleteNotification delegates to local service")
-        void deleteLocal() {
-            notificationCutover.deleteNotification("n1");
-            verify(notificationService).deleteNotification("n1");
-            verify(notificationDubbo, never()).deleteNotification(any());
-        }
+        assertThat(result).isSameAs(expected);
+        verify(notificationService).createSystemNotification(request, "retry-1");
     }
 
-    @Nested @DisplayName("flag=on (Notification)")
-    class NotificationDubbo {
-        @BeforeEach void flagOn() {
-            ReflectionTestUtils.setField(notificationCutover, "dubboEnabled", true);
-            when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
-        }
+    @Test
+    @DisplayName("uses a stable command id when the same key is retried")
+    void usesStableCommandIdForRetries() {
+        ReflectionTestUtils.setField(cutoverService, "dubboEnabled", true);
+        NotificationAdminViewDTO dto = new NotificationAdminViewDTO(
+                "row-1", "ann-1", "Title", "SYSTEM", "SYSTEM", 1000L);
+        AdminNotificationVO expected = new AdminNotificationVO();
+        when(dubboProvider.createNotification(any())).thenReturn(RpcResult.success(dto, "t-1"));
+        when(readPort.selectById("row-1")).thenReturn(new NotificationAdminDTO(
+                "row-1", "ann-1", "Title", "Body", "SYSTEM", "SYSTEM",
+                LocalDateTime.of(2026, 8, 11, 0, 0), "admin-1"));
+        when(projection.toAdminVO(any())).thenReturn(expected);
 
-        @Test @DisplayName("createSystemNotification writes via Dubbo")
-        void createViaDubbo() {
-            CreateSystemNotificationRequest req = new CreateSystemNotificationRequest();
-            req.setTitle("Test");
-            req.setContent("Body");
-            req.setType("SYSTEM");
-            req.setTarget("ALL");
-            when(notificationDubbo.createNotification(any())).thenReturn(
-                    RpcResult.success(new NotificationAdminViewDTO("n1", "ann-1", "Test", "SYSTEM", "SYSTEM", 0L), "t-1"));
+        cutoverService.createSystemNotification(request(), "retry-1");
+        cutoverService.createSystemNotification(request(), "retry-1");
 
-            AdminNotificationVO result = notificationCutover.createSystemNotification(req);
-            verify(notificationDubbo).createNotification(any());
-            verify(notificationService, never()).createSystemNotification(any());
-            assertThat(result.getId()).isEqualTo("n1");
-        }
-
-        @Test @DisplayName("deleteNotification writes via Dubbo")
-        void deleteViaDubbo() {
-            when(notificationDubbo.deleteNotification(any())).thenReturn(RpcResult.success("t-1"));
-            notificationCutover.deleteNotification("n1");
-            verify(notificationDubbo).deleteNotification(any());
-            verify(notificationService, never()).deleteNotification(anyString());
-        }
-
-        @Test @DisplayName("RPC error CONTENT_NOT_FOUND maps to BusinessException")
-        void mapsError() {
-            when(notificationDubbo.deleteNotification(any())).thenReturn(
-                    RpcResult.failure(new RpcResult.ErrorPayload("app", 40401, "not found"), "t-1"));
-            assertThatThrownBy(() -> notificationCutover.deleteNotification("n1"))
-                    .isInstanceOf(BusinessException.class);
-        }
+        ArgumentCaptor<CreateNotificationCommand> captor =
+                ArgumentCaptor.forClass(CreateNotificationCommand.class);
+        verify(dubboProvider, org.mockito.Mockito.times(2)).createNotification(captor.capture());
+        List<CreateNotificationCommand> commands = captor.getAllValues();
+        assertThat(commands.get(0).idempotency().idempotencyKey()).isEqualTo("retry-1");
+        assertThat(commands.get(1).idempotency().idempotencyKey()).isEqualTo("retry-1");
+        assertThat(AuditContext.getNewValues())
+                .containsEntry("title", "Title")
+                .containsEntry("type", "SYSTEM")
+                .containsEntry("category", "SYSTEM")
+                .containsEntry("target", "ALL");
+        assertThat(AuditContext.getEntityId()).isEqualTo("row-1");
+        assertThat(commands.get(1).commandId()).isEqualTo(commands.get(0).commandId());
     }
 
-    // ── SubmissionCutoverService.batchRejudge ──────────────────
+    @Test
+    @DisplayName("keeps audit annotations on all write entrypoints")
+    void keepsAuditAnnotationsOnWriteEntrypoints() throws NoSuchMethodException {
+        assertThat(NotificationCutoverService.class
+                .getDeclaredMethod("createSystemNotification",
+                        CreateSystemNotificationRequest.class, String.class)
+                .getAnnotation(Audited.class).action())
+                .isEqualTo(AuditVocabulary.CREATE_NOTIFICATION);
+        assertThat(NotificationCutoverService.class
+                .getDeclaredMethod("deleteNotification", String.class, String.class)
+                .getAnnotation(Audited.class).action())
+                .isEqualTo(AuditVocabulary.DELETE_NOTIFICATION);
+        assertThat(NotificationCutoverService.class
+                .getDeclaredMethod("updateSystemNotification",
+                        String.class, UpdateSystemNotificationRequest.class, String.class)
+                .getAnnotation(Audited.class).action())
+                .isEqualTo(AuditVocabulary.UPDATE_NOTIFICATION);
+    }
 
-    @Nested @DisplayName("batchRejudge")
-    class BatchRejudge {
-        @Test @DisplayName("flag=off delegates to local service")
-        void localBatch() {
-            BatchRejudgeResponse resp = new BatchRejudgeResponse();
-            resp.setTotal(2);
-            resp.setSuccessful(2);
-            resp.setFailed(0);
-            when(adminSubmissionService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
+    @Test
+    @DisplayName("captures old values for an enabled delete")
+    void capturesOldValuesForEnabledDelete() {
+        ReflectionTestUtils.setField(cutoverService, "dubboEnabled", true);
+        when(readPort.selectById("n-1")).thenReturn(new NotificationAdminDTO(
+                "n-1", "a-1", "Title", "Body", "SYSTEM", "SYSTEM",
+                LocalDateTime.of(2026, 8, 11, 0, 0), "admin-1"));
+        when(dubboProvider.deleteNotification(any())).thenReturn(RpcResult.success("t-1"));
 
-            BatchRejudgeResponse result = submissionCutover.batchRejudge(List.of("s1", "s2"), false);
+        cutoverService.deleteNotification("n-1", "delete-retry");
 
-            assertThat(result.getTotal()).isEqualTo(2);
-            verify(submissionDubbo, never()).batchRejudge(any());
-        }
+        assertThat(AuditContext.getOldValues())
+                .containsEntry("title", "Title")
+                .containsEntry("type", "SYSTEM");
+        assertThat(AuditContext.getEntityId()).isEqualTo("n-1");
+    }
 
-        @Test @DisplayName("flag=on routes through Dubbo")
-        void dubboBatch() {
-            ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", true);
-            when(submissionDubbo.batchRejudge(any())).thenReturn(
-                    RpcResult.success(new BatchRejudgeResultDTO(2, 1, 1,
-                            List.of(new RejudgeResultDTO("s1", "Pending", Instant.now().toEpochMilli(), 0))),
-                            "t-1"));
+    @Test
+    @DisplayName("captures old and new values for an enabled update")
+    void capturesOldAndNewValuesForEnabledUpdate() {
+        ReflectionTestUtils.setField(cutoverService, "dubboEnabled", true);
+        when(readPort.selectById("n-1")).thenReturn(new NotificationAdminDTO(
+                "n-1", "a-1", "Old title", "Old body", "SYSTEM", "SYSTEM",
+                LocalDateTime.of(2026, 8, 11, 0, 0), "admin-1"));
+        when(dubboProvider.updateNotification(any())).thenReturn(RpcResult.success(
+                new NotificationAdminViewDTO(
+                        "n-1", "a-1", "New title", "SYSTEM", "SYSTEM", 1000L),
+                "t-1"));
+        UpdateSystemNotificationRequest update = new UpdateSystemNotificationRequest();
+        update.setTitle("New title");
+        update.setContent("New body");
+        update.setType("SYSTEM");
+        update.setCategory("SYSTEM");
 
-            BatchRejudgeResponse result = submissionCutover.batchRejudge(List.of("s1", "s2"), false);
+        cutoverService.updateSystemNotification("n-1", update, "update-retry");
 
-            verify(submissionDubbo).batchRejudge(any());
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
-            assertThat(result.getTotal()).isEqualTo(2);
-            assertThat(result.getSuccessful()).isEqualTo(1);
-            assertThat(result.getFailed()).isEqualTo(1);
-            assertThat(result.getResults()).hasSize(1);
-        }
+        assertThat(AuditContext.getOldValues()).containsEntry("title", "Old title");
+        assertThat(AuditContext.getNewValues())
+                .containsEntry("title", "New title")
+                .containsEntry("type", "SYSTEM");
+        assertThat(AuditContext.getEntityId()).isEqualTo("n-1");
+    }
+
+    @Test
+    @DisplayName("keyed update replays from the owner receipt when the row is gone")
+    void keyedUpdateReplaysFromOwnerReceiptWhenRowIsGone() {
+        ReflectionTestUtils.setField(cutoverService, "dubboEnabled", true);
+        when(readPort.selectById("n-1")).thenReturn(null);
+        when(dubboProvider.updateNotification(any())).thenReturn(RpcResult.success(
+                new NotificationAdminViewDTO(
+                        "n-1", "a-1", "New title", "SYSTEM", "SYSTEM", 1000L),
+                "t-1"));
+        UpdateSystemNotificationRequest update = new UpdateSystemNotificationRequest();
+        update.setTitle("New title");
+        update.setContent("New body");
+        update.setType("SYSTEM");
+
+        AdminNotificationVO result = cutoverService.updateSystemNotification(
+                "n-1", update, "update-retry");
+
+        assertThat(result.getId()).isEqualTo("n-1");
+        assertThat(result.getAnnouncementId()).isEqualTo("a-1");
+        assertThat(result.getContent()).isEqualTo("New body");
+    }
+
+    @Test
+    @DisplayName("maps a forbidden App response to the Admin error contract")
+    void mapsForbiddenResponse() {
+        ReflectionTestUtils.setField(cutoverService, "dubboEnabled", true);
+        when(dubboProvider.createNotification(any())).thenReturn(
+                RpcResult.failure(
+                        new RpcResult.ErrorPayload(
+                                "app", AppErrorCode.FORBIDDEN.code(), "Forbidden"),
+                        "t-1"));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cutoverService.createSystemNotification(request(), "retry-1"));
+
+        assertThat(exception.getErrorCode()).isEqualTo(AdminErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("maps an idempotency conflict to the Admin conflict contract")
+    void mapsIdempotencyConflictResponse() {
+        ReflectionTestUtils.setField(cutoverService, "dubboEnabled", true);
+        when(dubboProvider.createNotification(any())).thenReturn(
+                RpcResult.failure(
+                        new RpcResult.ErrorPayload(
+                                "app", AppErrorCode.IDEMPOTENCY_KEY_CONFLICT.code(), "Conflict"),
+                        "t-1"));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> cutoverService.createSystemNotification(request(), "retry-1"));
+
+        assertThat(exception.getErrorCode()).isEqualTo(AdminErrorCode.CONFLICT);
+    }
+
+    private static CreateSystemNotificationRequest request() {
+        CreateSystemNotificationRequest request = new CreateSystemNotificationRequest();
+        request.setTitle("Title");
+        request.setContent("Body");
+        request.setType("SYSTEM");
+        request.setCategory("SYSTEM");
+        request.setTarget("ALL");
+        return request;
     }
 }

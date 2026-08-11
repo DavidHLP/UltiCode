@@ -1,34 +1,19 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.dto.ProblemAdminRowDTO;
+import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PaginationRequest;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.AdminSubmissionVO;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.LanguageOption;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.StatusOption;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.SubmissionStatistics;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
+import com.ulticode.modules.admin.dto.AdminSubmissionVO;
+import com.ulticode.modules.admin.dto.LanguageOption;
+import com.ulticode.modules.admin.dto.StatusOption;
+import com.ulticode.modules.admin.dto.SubmissionStatistics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,16 +31,16 @@ import java.util.stream.Collectors;
 /**
  * Default (and only) adapter for {@link AdminSubmissionProjection}. Owns every
  * entity-to-VO projection rule and read-side aggregation for the admin
- * submission surface &mdash; see the interface javadoc for why this is a deep
+ * submission surface — see the interface javadoc for why this is a deep
  * module.
  *
  * <p>All methods are pure reads; none mutate submission state. Batch-loads
- * cross-module enrichment (user + problem) via {@code selectBatchIds} to keep
- * the paginated list read N+1-safe (WR-05).
- *
- * <p>Cross-module entity imports ({@link User}, {@link Problem} and their
- * mappers) live here and only here &mdash; the admin submission service no
- * longer imports them after the ADR-0011 Stage 2 extraction.
+ * cross-module enrichment (user + problem) via the public
+ * {@link SubmissionAdminReadPort} / {@link ProblemAdminReadPort} contracts
+ * to keep the paginated list read N+1-safe (WR-05). The submission seam is
+ * entity-free: {@code SubmissionAdminRowDTO} replaces the former
+ * {@code Submission} entity import, and problem display data comes from
+ * {@link ProblemAdminReadPort} rather than the App problem mapper.
  *
  * @author ulticode
  */
@@ -64,9 +49,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultAdminSubmissionProjection implements AdminSubmissionProjection {
 
-    private final AdminSubmissionReadPort submissionReadPort;
+    private final SubmissionAdminReadPort submissionReadPort;
     private final AdminUserEnricher userEnricher;
-    private final ProblemMapper problemMapper;
+    private final ProblemAdminReadPort problemReadPort;
     private final Clock clock;
 
     // ------------------------------------------------------------------
@@ -74,35 +59,35 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
     // ------------------------------------------------------------------
 
     @Override
-    public PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query) {
+    public PageResult<AdminSubmissionVO> getSubmissions(SubmissionAdminQueryDTO query) {
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
-        PageResult<Submission> result = submissionReadPort.searchSubmissions(
+        PageResult<SubmissionAdminRowDTO> result = submissionReadPort.search(
                 query, pageRequest.page(), pageRequest.pageSize());
 
         // Batch-load users and problems to avoid N+1 queries (WR-05)
         Map<String, AdminUserSummary> userMap = new HashMap<>();
-        Map<Long, Problem> problemMap = new HashMap<>();
+        Map<Long, ProblemAdminRowDTO> problemMap = new HashMap<>();
         if (!result.getItems().isEmpty()) {
             Set<String> userIds = result.getItems().stream()
-                    .map(Submission::getUserId)
+                    .map(SubmissionAdminRowDTO::userId)
                     .collect(Collectors.toSet());
             Set<Long> problemIds = result.getItems().stream()
-                    .map(Submission::getProblemId)
+                    .map(SubmissionAdminRowDTO::problemId)
                     .collect(Collectors.toSet());
 
             if (!userIds.isEmpty()) {
                 userMap = userEnricher.enrich(userIds);
             }
             if (!problemIds.isEmpty()) {
-                problemMap = problemMapper.selectBatchIds(problemIds).stream()
-                        .collect(Collectors.toMap(Problem::getId, p -> p));
+                problemMap = problemReadPort.findProblemsByIds(problemIds).stream()
+                        .collect(Collectors.toMap(ProblemAdminRowDTO::id, p -> p));
             }
         }
 
         // Enrich with user and problem information using batch-loaded maps
         Map<String, AdminUserSummary> finalUserMap = userMap;
-        Map<Long, Problem> finalProblemMap = problemMap;
+        Map<Long, ProblemAdminRowDTO> finalProblemMap = problemMap;
         List<AdminSubmissionVO> vos = result.getItems().stream()
                 .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
                 .collect(Collectors.toList());
@@ -121,7 +106,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public AdminSubmissionVO getSubmission(String id) {
-        Submission submission = submissionReadPort.findById(id);
+        SubmissionAdminRowDTO submission = submissionReadPort.findById(id);
         if (submission == null) {
             throw new BusinessException(AdminErrorCode.SUBMISSION_NOT_FOUND);
         }
@@ -232,96 +217,94 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
     }
 
     // ------------------------------------------------------------------
-    // Projection helpers (entity &rarr; AdminSubmissionVO)
+    // Projection helpers (row &rarr; AdminSubmissionVO)
     // ------------------------------------------------------------------
 
     /**
-     * Convert a Submission entity to a list-view AdminSubmissionVO using
+     * Convert a submission row to a list-view AdminSubmissionVO using
      * pre-loaded batch maps (avoids N+1 on the paginated read path).
      */
-    private AdminSubmissionVO toAdminVO(Submission submission, Map<String, AdminUserSummary> userMap, Map<Long, Problem> problemMap) {
+    private AdminSubmissionVO toAdminVO(SubmissionAdminRowDTO submission, Map<String, AdminUserSummary> userMap, Map<Long, ProblemAdminRowDTO> problemMap) {
         if (submission == null) {
             return null;
         }
 
         AdminSubmissionVO vo = new AdminSubmissionVO();
-        vo.setId(submission.getId());
-        vo.setProblemId(submission.getProblemId());
-        vo.setUserId(submission.getUserId());
-        vo.setLanguage(submission.getLanguage());
-        vo.setStatus(submission.getStatus());
-        vo.setRuntime(submission.getRuntime());
-        vo.setMemory(submission.getMemory());
-        vo.setCreatedAt(submission.getCreatedAt());
-        vo.setCodeLength(submission.getCode() != null ? submission.getCode().length() : 0);
+        vo.setId(submission.id());
+        vo.setProblemId(submission.problemId());
+        vo.setUserId(submission.userId());
+        vo.setLanguage(submission.language());
+        vo.setStatus(submission.status());
+        vo.setRuntime(submission.runtime());
+        vo.setMemory(submission.memory());
+        vo.setCreatedAt(submission.createdAt());
+        vo.setCodeLength(submission.codeLength());
 
-        AdminUserSummary user = userMap.get(submission.getUserId());
+        AdminUserSummary user = userMap.get(submission.userId());
         if (user != null) {
             vo.setUsername(user.username());
         }
 
-        Problem problem = problemMap.get(submission.getProblemId());
+        ProblemAdminRowDTO problem = problemMap.get(submission.problemId());
         if (problem != null) {
-            vo.setProblemTitle(problem.getTitle());
-            vo.setProblemSlug(problem.getSlug());
+            vo.setProblemTitle(problem.title());
+            vo.setProblemSlug(problem.slug());
         }
 
         return vo;
     }
 
     /**
-     * Convert a Submission entity to a detail-view AdminSubmissionVO (single
+     * Convert a submission row to a detail-view AdminSubmissionVO (single
      * fetch path — enriches user + problem inline since the volume is 1).
      */
-    private AdminSubmissionVO toAdminVOWithDetails(Submission submission) {
+    private AdminSubmissionVO toAdminVOWithDetails(SubmissionAdminRowDTO submission) {
         // Build the list-view shape first, then layer detail fields on top.
         AdminSubmissionVO vo = toAdminVOInline(submission);
         if (vo != null) {
-            vo.setCode(submission.getCode());
-            vo.setNotes(submission.getNotes());
-            vo.setRuntimePercentile(submission.getRuntimePercentile());
-            vo.setMemoryPercentile(submission.getMemoryPercentile());
-            vo.setTestDetails(submission.getTestDetails());
-            vo.setMemoryDistBinsMb(submission.getMemoryDistBinsMb());
-            vo.setRuntimeDistBinsMs(submission.getRuntimeDistBinsMs());
+            vo.setCode(submission.code());
+            vo.setNotes(submission.notes());
+            vo.setRuntimePercentile(submission.runtimePercentile());
+            vo.setMemoryPercentile(submission.memoryPercentile());
+            vo.setTestDetails(submission.testDetails());
+            vo.setMemoryDistBinsMb(submission.memoryDistBinsMb());
+            vo.setRuntimeDistBinsMs(submission.runtimeDistBinsMs());
         }
         return vo;
     }
 
     /**
-     * Convert a Submission entity to a list-view AdminSubmissionVO using
+     * Convert a submission row to a list-view AdminSubmissionVO using
      * inline (single-row) user + problem fetches. Used only by the detail
      * read path where the row volume is 1.
      */
-    private AdminSubmissionVO toAdminVOInline(Submission submission) {
+    private AdminSubmissionVO toAdminVOInline(SubmissionAdminRowDTO submission) {
         if (submission == null) {
             return null;
         }
 
         AdminSubmissionVO vo = new AdminSubmissionVO();
-        vo.setId(submission.getId());
-        vo.setProblemId(submission.getProblemId());
-        vo.setUserId(submission.getUserId());
-        vo.setLanguage(submission.getLanguage());
-        vo.setStatus(submission.getStatus());
-        vo.setRuntime(submission.getRuntime());
-        vo.setMemory(submission.getMemory());
-        vo.setCreatedAt(submission.getCreatedAt());
-
-        // Calculate code length
-        vo.setCodeLength(submission.getCode() != null ? submission.getCode().length() : 0);
+        vo.setId(submission.id());
+        vo.setProblemId(submission.problemId());
+        vo.setUserId(submission.userId());
+        vo.setLanguage(submission.language());
+        vo.setStatus(submission.status());
+        vo.setRuntime(submission.runtime());
+        vo.setMemory(submission.memory());
+        vo.setCreatedAt(submission.createdAt());
+        vo.setCodeLength(submission.codeLength());
 
         // Fetch user info (single-row detail path — no batch needed)
-        AdminUserSummary user = userEnricher.enrichOne(submission.getUserId());
+        AdminUserSummary user = userEnricher.enrichOne(submission.userId());
         if (user != null) {
             vo.setUsername(user.username());
         }
 
         // Fetch problem info (single-row detail path)
-        Problem problem = problemMapper.selectById(submission.getProblemId());
+        ProblemAdminRowDTO problem = problemReadPort.findProblem(submission.problemId());
         if (problem != null) {
-            vo.setProblemTitle(problem.getTitle());
-            vo.setProblemSlug(problem.getSlug());
+            vo.setProblemTitle(problem.title());
+            vo.setProblemSlug(problem.slug());
         }
 
         return vo;

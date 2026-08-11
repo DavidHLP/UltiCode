@@ -7,9 +7,13 @@ import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Adapter implementing {@link SolutionReadPort} from backend-app-api.
@@ -23,6 +27,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultSolutionReadAdapter implements SolutionReadPort {
 
@@ -63,5 +68,20 @@ public class DefaultSolutionReadAdapter implements SolutionReadPort {
     public long countByUserId(String userId) {
         Long count = solutionMapper.countByUserId(userId);
         return count != null ? count : 0L;
+    }
+
+    @Override
+    public Map<String, String> findTitlesByIds(Set<String> solutionIds) {
+        if (solutionIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> result = new HashMap<>();
+        // selectBatchIds respects MyBatis-Plus logical-delete filtering;
+        // null titles are preserved so callers can distinguish "missing"
+        // from "present with null title".
+        for (Solution s : solutionMapper.selectBatchIds(solutionIds)) {
+            result.put(s.getId(), s.getTitle());
+        }
+        return result;
     }
 }

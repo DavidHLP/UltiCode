@@ -4,6 +4,10 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Admin-shell architecture rules.
@@ -54,6 +58,38 @@ class AdminBoundaryArchTest {
                 + "Common types (BusinessException, BaseErrorCode) in "
                 + "com.ulticode.common.exception are NOT affected.");
     /**
+     * Admin is a Consumer of the App-owned contest contract. It must not
+     * import contest entities, mappers, or services directly.
+     */
+    @ArchTest
+    static final ArchRule ADMIN_MUST_NOT_IMPORT_CONTEST_INTERNALS =
+        com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses()
+            .that().resideInAPackage("com.ulticode.admin..")
+            .or().resideInAPackage("com.ulticode.modules.admin..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                "com.ulticode.modules.contest..",
+                "com.ulticode.modules.problem..",
+                "com.ulticode.modules.problemlist..",
+                "com.ulticode.modules.submission..",
+                "com.ulticode.modules.solution..",
+                "com.ulticode.modules.forum..",
+                "com.ulticode.modules.vote..",
+                "com.ulticode.modules.notification..")
+            .because("App-owned business families must be reached through backend-app-api "
+                + "contracts; Admin must not import App-private internals.");
+
+    @Test
+    void adminContestRuleRejectsContestDependencyFixture() {
+        var imported = new ClassFileImporter().importClasses(
+            com.ulticode.modules.admin.architecture.AdminContestConsumerFixture.class,
+            com.ulticode.modules.contest.architecture.ContestDependencyFixture.class);
+
+        assertThatThrownBy(() -> ADMIN_MUST_NOT_IMPORT_CONTEST_INTERNALS.check(imported))
+            .isInstanceOf(AssertionError.class)
+            .hasMessageContaining("AdminContestConsumerFixture");
+    }
+
+    /**
      * P2-RBAC-001 (consumer-side guard): Admin classes must not import
      * Auth's internal role/permission admin surface. Callers must use
      * the published Dubbo contract {@code AccountAdministrationService}
@@ -73,5 +109,22 @@ class AdminBoundaryArchTest {
             .because("P2-RBAC-001: Auth's internal role/permission classes "
                 + "are not part of the published API. Use "
                 + "AccountAdministrationService via Dubbo RPC.");
+
+    /**
+     * ADMIN-008 (consumer-side guard): Admin classes must not import
+     * App-owned notification entities, mappers, or dispatchers. Reads go
+     * through {@code NotificationAdminReadPort} and writes through
+     * {@code NotificationAdministrationService} (both in backend-app-api).
+     */
+    @ArchTest
+    static final ArchRule ADMIN_MUST_NOT_IMPORT_NOTIFICATION_INTERNALS =
+        com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses()
+            .that().resideInAPackage("com.ulticode.admin..")
+            .or().resideInAPackage("com.ulticode.modules.admin..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                "com.ulticode.modules.notification..")
+            .because("ADMIN-008: Notification is App-owned; Admin must use "
+                + "backend-app-api contracts and never import App-private "
+                + "notification internals.");
 
 }

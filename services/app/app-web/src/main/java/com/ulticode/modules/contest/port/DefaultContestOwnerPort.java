@@ -1,12 +1,15 @@
 package com.ulticode.modules.contest.port;
-import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.api.command.AddContestProblemCommand;
+import com.ulticode.app.api.command.CreateContestCommand;
+import com.ulticode.app.api.command.RemoveContestProblemCommand;
+import com.ulticode.app.api.command.UpdateContestCommand;
+import com.ulticode.app.api.dto.ContestProblemAdminDTO;
+import com.ulticode.app.api.dto.ContestProblemInputDTO;
 import com.ulticode.app.error.ContestErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.contest.dto.AddContestProblemDTO;
-import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.entity.ContestProblem;
@@ -14,6 +17,7 @@ import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.service.ContestLifecycleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,6 +62,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
+    private final ContestLifecycleService contestLifecycleService;
     private final UuidGenerator uuidGenerator;
     private final Clock clock;
 
@@ -63,130 +70,111 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
 
     @Override
     @Transactional
-    public String createContest(CreateContestDTO command, String userId) {
+    public String createContest(CreateContestCommand command) {
         final Contest contest = new Contest();
         contest.setId(uuidGenerator.newId());
-        contest.setTitle(command.getTitle());
-        contest.setDescription(command.getDescription());
-        contest.setStartTime(command.getStartTime());
-        contest.setDurationMinutes(command.getDuration());
-        contest.setEndTime(command.getStartTime().plusMinutes(command.getDuration()));
-        contest.setMaxParticipants(command.getMaxParticipants());
-        contest.setIsVisible(command.getIsPublished() != null && command.getIsPublished());
-        contest.setCreatedBy(userId);
+        contest.setTitle(command.title());
+        contest.setDescription(command.description());
+        final LocalDateTime startTime = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(command.startEpochMs()), ZoneOffset.UTC);
+        contest.setStartTime(startTime);
+        contest.setDurationMinutes(command.durationMinutes());
+        contest.setEndTime(startTime.plusMinutes(command.durationMinutes()));
+        contest.setMaxParticipants(command.maxParticipants());
+        contest.setIsVisible(command.isPublished() != null && command.isPublished());
+        contest.setCreatedBy(command.creatorAccountId());
+        contest.setContestType(command.contestType());
+        contest.setScoringMode(command.scoringMode() != null ? command.scoringMode() : "SCORE");
+        contest.setScoringRuleId(command.scoringRuleId());
         contest.setStatus(ContestStatus.UPCOMING.name());
         contest.setRegisteredCount(0);
         contest.setParticipantCount(0);
         contest.setSubmissionCount(0);
         contest.setIsDeleted(false);
 
-        final String slug = StringUtils.hasText(command.getSlug())
-                ? command.getSlug().trim()
-                : generateSlug(command.getTitle());
+        final String slug = StringUtils.hasText(command.slug())
+                ? command.slug().trim()
+                : generateSlug(command.title());
         contest.setSlug(slug);
 
         try {
             contestMapper.insert(contest);
         } catch (DataIntegrityViolationException e) {
-            // P0-5 / H2: uk_contest_slug rejected.
             throw new BusinessException(ContestErrorCode.CONTEST_SLUG_EXISTS,
                     "Contest slug '" + slug + "' already exists");
         }
 
-        // Bulk-insert scored contest problems atomically with the contest
-        // row. A failure here rolls back the whole @Transactional create.
         final List<ContestProblem> contestProblems = buildScoredContestProblems(
-                contest.getId(), command.getProblems(), command.getProblemIds());
+                contest.getId(), command.problems(), command.problemIds());
         if (!contestProblems.isEmpty()) {
             contestProblemMapper.batchInsert(contestProblems);
         }
-
-        log.info("ContestOwnerPort.createContest id={} by user={}", contest.getId(), userId);
         return contest.getId();
     }
 
     @Override
     @Transactional
-    public void updateContest(String id, UpdateContestDTO command) {
-        final Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
-        }
-
+    public void updateContest(UpdateContestCommand command) {
+        final Contest contest = lockContestOrThrow(command.contestId());
         if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
             throw new BusinessException(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
 
-        if (command.getTitle() != null) {
-            contest.setTitle(command.getTitle());
+        if (command.title() != null) {
+            contest.setTitle(command.title());
         }
-        if (command.getDescription() != null) {
-            contest.setDescription(command.getDescription());
+        if (command.description() != null) {
+            contest.setDescription(command.description());
         }
-        if (command.getStartTime() != null) {
-            contest.setStartTime(command.getStartTime());
+        final LocalDateTime requestedStart = command.startEpochMs() == null
+                ? null
+                : LocalDateTime.ofInstant(Instant.ofEpochMilli(command.startEpochMs()), ZoneOffset.UTC);
+        if (requestedStart != null) {
+            contest.setStartTime(requestedStart);
         }
-        // Duration has a coupled side effect (recompute endTime) so it
-        // stays inline. We don't have a setIfPresent helper here; the
-        // explicit guard mirrors the original admin logic.
-        if (command.getDuration() != null) {
-            contest.setDurationMinutes(command.getDuration());
-            final LocalDateTime base = command.getStartTime() != null
-                    ? command.getStartTime()
-                    : contest.getStartTime();
-            contest.setEndTime(base.plusMinutes(command.getDuration()));
+        if (command.durationMinutes() != null) {
+            contest.setDurationMinutes(command.durationMinutes());
+            final LocalDateTime base = requestedStart != null ? requestedStart : contest.getStartTime();
+            contest.setEndTime(base.plusMinutes(command.durationMinutes()));
         }
-        if (command.getMaxParticipants() != null) {
-            contest.setMaxParticipants(command.getMaxParticipants());
+        if (command.maxParticipants() != null) {
+            contest.setMaxParticipants(command.maxParticipants());
         }
-        if (command.getIsPublished() != null) {
-            contest.setIsVisible(command.getIsPublished());
+        if (command.isPublished() != null) {
+            contest.setIsVisible(command.isPublished());
+        }
+        if (command.slug() != null) {
+            contest.setSlug(command.slug().trim());
+        }
+        if (command.contestType() != null) {
+            contest.setContestType(command.contestType());
+        }
+        if (command.scoringRuleId() != null) {
+            contest.setScoringRuleId(command.scoringRuleId());
         }
 
-        // Replace contest problems when scored problems or legacy
-        // problemIds are provided. The delete + scored bulk-insert
-        // runs in this @Transactional update, so a mid-list failure
-        // rolls back the whole update.
-        if (command.getProblems() != null || command.getProblemIds() != null) {
-            contestProblemMapper.deleteByContestId(id);
+        if (command.problems() != null || command.problemIds() != null) {
+            contestProblemMapper.deleteByContestId(command.contestId());
             final List<ContestProblem> contestProblems = buildScoredContestProblems(
-                    id, command.getProblems(), command.getProblemIds());
+                    command.contestId(), command.problems(), command.problemIds());
             if (!contestProblems.isEmpty()) {
                 contestProblemMapper.batchInsert(contestProblems);
             }
         }
-
         contestMapper.updateById(contest);
-
-        log.info("ContestOwnerPort.updateContest id={}", id);
     }
 
     @Override
     @Transactional
     public void deleteContest(String id, String deletedBy) {
-        final Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        final String status = contest.getStatus();
-        if (!ContestStatus.UPCOMING.name().equals(status)
-                && !ContestStatus.FINISHED.name().equals(status)) {
-            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        contest.setIsDeleted(true);
-        contest.setDeletedAt(LocalDateTime.now(clock));
-        contest.setDeletedBy(deletedBy);
-        contestMapper.updateById(contest);
-
+        contestLifecycleService.deleteContestCascade(id, deletedBy);
         log.info("ContestOwnerPort.deleteContest id={} by user={}", id, deletedBy);
     }
 
     @Override
     @Transactional
     public void startContest(String id) {
-        final Contest contest = contestMapper.selectById(id);
+        final Contest contest = lockContestOrThrow(id);
         if (contest == null) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
@@ -208,7 +196,9 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
         }
 
         contest.setStatus(ContestStatus.RUNNING.name());
+        contest.setActualStartTime(LocalDateTime.now(clock));
         contestMapper.updateById(contest);
+        contestLifecycleService.batchStartParticipants(id);
 
         log.info("ContestOwnerPort.startContest id={}", id);
     }
@@ -216,7 +206,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     @Override
     @Transactional
     public void endContest(String id) {
-        final Contest contest = contestMapper.selectById(id);
+        final Contest contest = lockContestOrThrow(id);
         if (contest == null) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
@@ -225,10 +215,64 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
             throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
         }
 
-        contest.setStatus(ContestStatus.FINISHED.name());
-        contestMapper.updateById(contest);
+        // End commands enter the same recoverable lifecycle as the scheduler.
+        // A conditional claim prevents an admin request from overwriting a
+        // concurrent FINISHING row and losing its pending side effects.
+        int transitioned = contestMapper.tryTransitionToFinishing(id, LocalDateTime.now(clock));
+        if (transitioned == 0) {
+            throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
+        }
 
         log.info("ContestOwnerPort.endContest id={}", id);
+    }
+
+    @Override
+    @Transactional
+    public ContestProblemAdminDTO addProblem(AddContestProblemCommand command) {
+        ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(
+                command.contestId(), command.problem().problemId());
+        if (existing != null) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Problem already exists in this contest");
+        }
+        lockContestOrThrow(command.contestId());
+        long count = contestProblemMapper.countByContestId(command.contestId());
+        ContestProblem problem = new ContestProblem();
+        problem.setContestId(command.contestId());
+        problem.setProblemId(command.problem().problemId());
+        problem.setProblemIndex(problemIndex((int) count));
+        int score = command.problem().score() != null
+                ? command.problem().score() : DEFAULT_PROBLEM_SCORE;
+        problem.setScore(score);
+        problem.setBaseScore(score);
+        problem.setSolvedCount(0);
+        problem.setSubmissionCount(0);
+        contestProblemMapper.insert(problem);
+        return toProblemDTO(problem);
+    }
+
+    @Override
+    @Transactional
+    public void removeProblem(RemoveContestProblemCommand command) {
+        lockContestOrThrow(command.contestId());
+        ContestProblem problem = contestProblemMapper.findByContestIdAndProblemId(
+                command.contestId(), command.problemId());
+        if (problem == null) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Problem not found in this contest");
+        }
+        if (contestProblemMapper.hasContestOwnedResults(problem.getId())) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Cannot remove a problem after contest submissions or results exist");
+        }
+        contestProblemMapper.deleteById(problem.getId());
+    }
+
+    private static ContestProblemAdminDTO toProblemDTO(ContestProblem problem) {
+        return new ContestProblemAdminDTO(
+                problem.getId(), problem.getContestId(), problem.getProblemId(),
+                problem.getProblemIndex(), problem.getScore(), problem.getPenaltyPerWrong(),
+                null, null, null, problem.getSolvedCount(), problem.getSubmissionCount(), null);
     }
 
     // ─── Announcement writes ────────────────────────────────────
@@ -236,7 +280,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     @Override
     @Transactional
     public String createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
-        final Contest contest = contestMapper.selectById(contestId);
+        final Contest contest = lockContestOrThrow(contestId);
         if (contest == null) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
@@ -259,6 +303,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     @Transactional
     public void updateAnnouncement(String contestId, String announcementId,
                                   String title, String content, Boolean isPinned) {
+        lockContestOrThrow(contestId);
         final ContestAnnouncement announcement = contestAnnouncementMapper
                 .findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
@@ -284,6 +329,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
     @Override
     @Transactional
     public void deleteAnnouncement(String contestId, String announcementId) {
+        lockContestOrThrow(contestId);
         final ContestAnnouncement announcement = contestAnnouncementMapper
                 .findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
@@ -298,6 +344,14 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
 
     // ─── Private helpers ───────────────────────────────────────
 
+    private Contest lockContestOrThrow(String contestId) {
+        final Contest contest = contestMapper.selectByIdForUpdate(contestId);
+        if (contest == null) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
+        }
+        return contest;
+    }
+
     /**
      * Build the scored {@link ContestProblem} list for a contest
      * from the request's {@code problems} (preferred, scored) or
@@ -308,33 +362,35 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
      * {@code ContestServiceImpl}), and zeroed counters.
      */
     private List<ContestProblem> buildScoredContestProblems(
-            String contestId, List<AddContestProblemDTO> problems, List<Long> problemIds) {
-        final List<AddContestProblemDTO> source;
+            String contestId, List<ContestProblemInputDTO> problems, List<Long> problemIds) {
+        final List<ContestProblemInputDTO> source;
         if (problems != null && !problems.isEmpty()) {
             source = problems;
         } else if (problemIds != null && !problemIds.isEmpty()) {
             source = new ArrayList<>(problemIds.size());
             for (Long pid : problemIds) {
-                AddContestProblemDTO item = new AddContestProblemDTO();
-                item.setProblemId(pid);
-                source.add(item);
+                source.add(new ContestProblemInputDTO(pid, null));
             }
         } else {
             return List.of();
         }
 
         final List<ContestProblem> list = new ArrayList<>(source.size());
+        final LocalDateTime now = LocalDateTime.now(clock);
         for (int i = 0; i < source.size(); i++) {
-            AddContestProblemDTO item = source.get(i);
-            int score = item.getScore() != null ? item.getScore() : DEFAULT_PROBLEM_SCORE;
+            ContestProblemInputDTO item = source.get(i);
+            int score = item.score() != null ? item.score() : DEFAULT_PROBLEM_SCORE;
             ContestProblem cp = new ContestProblem();
+            cp.setId(uuidGenerator.newId());
             cp.setContestId(contestId);
-            cp.setProblemId(item.getProblemId());
+            cp.setProblemId(item.problemId());
             cp.setProblemIndex(problemIndex(i));
             cp.setScore(score);
             cp.setBaseScore(score);
             cp.setSolvedCount(0);
             cp.setSubmissionCount(0);
+            cp.setCreatedAt(now);
+            cp.setUpdatedAt(now);
             list.add(cp);
         }
         return list;

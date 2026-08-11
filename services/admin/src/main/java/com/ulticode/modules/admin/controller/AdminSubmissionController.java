@@ -3,8 +3,7 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
-import com.ulticode.modules.submission.dto.RejudgeResult;
+import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
@@ -39,7 +38,7 @@ public class AdminSubmissionController {
     @Operation(summary = "Get submissions", description = "Get paginated list of submissions with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<AdminSubmissionVO>> getSubmissions(AdminSubmissionQueryDTO query) {
+    public Result<PageResult<AdminSubmissionVO>> getSubmissions(SubmissionAdminQueryDTO query) {
         return Result.success(adminSubmissionProjection.getSubmissions(query));
     }
 
@@ -77,16 +76,26 @@ public class AdminSubmissionController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<RejudgeResult> rejudge(
             @PathVariable String id,
-            @Valid @RequestBody RejudgeRequest request) {
-        return Result.success(submissionCutoverService.rejudge(id, request.getNotifyUser()));
+            @Valid @RequestBody RejudgeRequest request,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        RejudgeResult result = idempotencyKey == null || idempotencyKey.isBlank()
+                ? submissionCutoverService.rejudge(id, request.getNotifyUser())
+                : submissionCutoverService.rejudge(id, request.getNotifyUser(), idempotencyKey);
+        return Result.success(result);
     }
 
     @Operation(summary = "Batch rejudge", description = "Rejudge multiple submissions")
     @RateLimit(key = "admin:submission-batch-rejudge", limit = 5, period = 60)
     @PostMapping("/batch-rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<BatchRejudgeResponse> batchRejudge(@Valid @RequestBody BatchRejudgeRequest request) {
-        return Result.success(submissionCutoverService.batchRejudge(
-            request.getSubmissionIds(), request.getNotifyUsers()));
+    public Result<BatchRejudgeResponse> batchRejudge(
+            @Valid @RequestBody BatchRejudgeRequest request,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        BatchRejudgeResponse result = idempotencyKey == null || idempotencyKey.isBlank()
+                ? submissionCutoverService.batchRejudge(
+                        request.getSubmissionIds(), request.getNotifyUsers())
+                : submissionCutoverService.batchRejudge(
+                        request.getSubmissionIds(), request.getNotifyUsers(), idempotencyKey);
+        return Result.success(result);
     }
 }

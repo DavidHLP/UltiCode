@@ -37,7 +37,8 @@ import java.util.stream.Collectors;
  * {@link ContestParticipantTransitions} for every status transition and for
  * the register / start / delete operations on {@code contest_participants}.
  * The single-row read lookups
- * ({@link ContestParticipantMapper#findByContestIdAndUserId(String, String)}
+ * ({@link ContestParticipantMapper#findByContestIdAndUserId(String, String)},
+ * {@link ContestParticipantMapper#findByContestIdAndUserIdForUpdate(String, String)},
  * and {@link ContestParticipantMapper#findActiveVirtualSessionForUpdate(String, String)})
  * stay on the mapper because they are pure lookups with no transition
  * policy — the seam only owns write paths and read-then-write composites.
@@ -77,25 +78,27 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Override
     @Transactional
     public void registerForContest(String contestId, String userId) {
-        Contest contest = contestMapper.selectById(contestId);
+        // Hold the contest row across the registration insert and capacity claim.
+        // This closes the lifecycle TOCTOU: a scheduler cannot publish RUNNING or
+        // soft-delete the contest after the UPCOMING check has passed.
+        Contest contest = contestMapper.selectByIdForUpdate(contestId);
         if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
         if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
             throw new BusinessException(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+        }
+        if (!Boolean.TRUE.equals(contest.getIsVisible())) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         LocalDateTime now = LocalDateTime.now(clock);
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
             throw new BusinessException(ContestErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
 
-        // P1-3 (TOCTOU fix): drop the read-then-insert existsBy check. The DB unique
-        // key (contest_id, user_id, virtual_session_id) is the source of truth:
-        // two concurrent inserts race; one will lose on the DB constraint, which
-        // we catch below. The tryIncrementRegisteredCount happens BEFORE the
-        // insert so a failing insert rolls back the increment (same transaction).
-        int updated = contestMapper.tryIncrementRegisteredCount(contestId);
-        if (updated == 0) throw new BusinessException(ContestErrorCode.CONTEST_FULL);
-
+        // P1-3 (TOCTOU fix): insert first and let the DB unique key decide whether
+        // this user already has a real registration. Capacity is claimed only after
+        // the insert succeeds, so a duplicate on a full contest still reports the
+        // identity conflict instead of being misreported as CONTEST_FULL.
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
         participant.setUserId(userId);
@@ -103,10 +106,15 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         try {
             participantTransitions.registerRealParticipant(participant);
         } catch (org.springframework.dao.DuplicateKeyException e) {
-            // Race lost: another transaction inserted the same (contest, user)
-            // row. The transaction will roll back the registeredCount increment.
+            // Race lost: another transaction inserted the same (contest, user) row.
             throw new BusinessException(ContestErrorCode.CONTEST_ALREADY_REGISTERED);
         }
+
+        // The conditional UPDATE serializes capacity claims. If another
+        // transaction filled the last slot first, this transaction rolls back the
+        // participant insert together with the failed registration.
+        int updated = contestMapper.tryIncrementRegisteredCount(contestId);
+        if (updated == 0) throw new BusinessException(ContestErrorCode.CONTEST_FULL);
         log.info("User {} registered for contest {}", userId, contestId);
 
         // Fire the contest participation achievement. Internal side effect of
@@ -122,10 +130,14 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Override
     @Transactional
     public void unregisterFromContest(String contestId, String userId) {
-        Contest contest = contestMapper.selectById(contestId);
+        // Lock the contest first, matching registration's lock order. A scheduler
+        // either commits RUNNING before this check or waits until unregister commits;
+        // it cannot transition between validation and delete.
+        Contest contest = contestMapper.selectByIdForUpdate(contestId);
         if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
-        ContestParticipant participant = participantMapper.findByContestIdAndUserId(contestId, userId)
+        ContestParticipant participant = participantMapper
+                .findByContestIdAndUserIdForUpdate(contestId, userId)
                 .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED));
 
         if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
@@ -138,9 +150,11 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
             throw new BusinessException(ContestErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
-        participantTransitions.deleteById(participant.getId());
-        contestMapper.decrementRegisteredCount(contestId);
-        log.info("User {} unregistered from contest {}", userId, contestId);
+        int deleted = participantTransitions.deleteById(participant.getId());
+        if (deleted == 1) {
+            contestMapper.decrementRegisteredCount(contestId);
+            log.info("User {} unregistered from contest {}", userId, contestId);
+        }
     }
 
     @Override
@@ -154,7 +168,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         status.setStartTime(contest.getStartTime());
         status.setEndTime(contest.getEndTime());
 
-        Optional<ContestParticipant> participantOpt = participantMapper.findByContestIdAndUserId(contestId, userId);
+        Optional<ContestParticipant> participantOpt = participantMapper.findRealByContestIdAndUserId(contestId, userId);
         if (participantOpt.isEmpty()) {
             status.setStatus("not_participated");
             status.setHasStarted(false);
@@ -194,11 +208,17 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Override
     @Transactional
     public ParticipationStatusDTO startVirtualContest(String contestId, String userId) {
-        Contest contest = contestMapper.selectById(contestId);
+        // Lock the parent before validating and inserting the virtual participant.
+        // Contest deletion takes the same parent lock first, so it cannot commit
+        // an orphan participant after this transaction has passed validation.
+        Contest contest = contestMapper.selectByIdForUpdate(contestId);
         if (contest == null) throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
 
         if (!ContestStatus.FINISHED.name().equals(contest.getStatus())) {
             throw new BusinessException(ContestErrorCode.CONTEST_ENDED);
+        }
+        if (!Boolean.TRUE.equals(contest.getIsVisible())) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
 
         // R3.3: idempotent start. Use FOR UPDATE to serialize concurrent calls

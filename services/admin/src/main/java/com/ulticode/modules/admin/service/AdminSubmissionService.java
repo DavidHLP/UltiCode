@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
-import com.ulticode.modules.submission.dto.RejudgeResult;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
+import com.ulticode.modules.admin.dto.RejudgeResult;
 
 import java.util.List;
 

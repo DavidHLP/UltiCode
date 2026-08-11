@@ -7,10 +7,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Read port for looking up user info needed by notification and email modules.
- * Promoted from backend-app for P7-INFRA-S4-COMMS: legacy adapters need to implement it.
+ * Read port for user info and Auth-owned recipient resolution needed by
+ * notification and email modules.
  */
 public interface UserReadPort {
     NotificationUserInfo findById(String userId);
     List<NotificationUserInfo> findByIds(Collection<String> userIds);
+
+    /**
+     * Return Auth-authoritative recipients for an {@code ALL} broadcast.
+     */
+    List<String> findAllActiveIds();
 }

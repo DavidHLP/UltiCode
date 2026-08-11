@@ -1,14 +1,10 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.dto.AdminForumPostPage;
+import com.ulticode.app.api.dto.AdminForumPostQuery;
+import com.ulticode.app.api.dto.AdminForumPostRowDTO;
+import com.ulticode.app.api.service.AdminForumReadPort;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumCommentMapper;
-import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,10 +19,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultAdminForumProjection} &mdash; the read-side
@@ -34,9 +27,11 @@ import com.ulticode.common.auth.CurrentUserProvider;
  *
  * <p>Covers the read paths that previously lived on
  * {@code AdminForumServiceImplTest}: {@code getPosts} real comment count
- * enrichment (batch-loaded from {@code forum_comments}) and the zero-comments
- * fallback. These cases were migrated verbatim when the read cluster moved
- * behind the projection seam.
+ * enrichment (batch-loaded from {@code forum_comments}) and the
+ * zero-comments fallback. After ADMIN-007 the underlying data comes from
+ * the App-owned {@link AdminForumReadPort} (Dubbo), which composes the
+ * comment counts and vote counts; these tests pin the projection's
+ * VO-shaping contract against that port.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -44,29 +39,26 @@ import com.ulticode.common.auth.CurrentUserProvider;
 class AdminForumProjectionTest {
 
     @Mock
-    private CurrentUserProvider currentUserProvider;
+    private AdminForumReadPort adminForumReadPort;
 
-    @Mock private ForumPostMapper forumPostMapper;
-    @Mock private ForumCommentMapper forumCommentMapper;
-    @Mock private ForumCommunityMapper forumCommunityMapper;
-    @Mock private AdminUserEnricher userEnricher;
-    @Mock private EdgeOperationMapper edgeOperationMapper;
+    @Mock
+    private AdminUserEnricher userEnricher;
 
     private DefaultAdminForumProjection projection;
 
-    private ForumPost testPost;
+    private AdminForumPostRowDTO testPost;
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultAdminForumProjection(
-                forumPostMapper, forumCommentMapper, forumCommunityMapper,
-                edgeOperationMapper, userEnricher);
+        projection = new DefaultAdminForumProjection(adminForumReadPort, userEnricher);
 
-        testPost = new ForumPost();
+        testPost = new AdminForumPostRowDTO();
         testPost.setId("post-test-001");
         testPost.setTitle("Test Post");
         testPost.setUserId("user-001");
         testPost.setCommunityId("community-001");
+        testPost.setCommunityName("General");
+        testPost.setCommunitySlug("general");
         testPost.setViews(100);
         testPost.setIsPinned(false);
         testPost.setIsLocked(false);
@@ -75,18 +67,14 @@ class AdminForumProjectionTest {
     }
 
     @Test
-    @DisplayName("getPosts returns real comment count from forum_comments table")
+    @DisplayName("getPosts returns real comment and vote counts from the read port")
     void getPosts_returnsRealCommentCount() {
-        Page<ForumPost> mockPage = new Page<>();
-        mockPage.setRecords(List.of(testPost));
-        mockPage.setTotal(1L);
-        when(forumPostMapper.selectPage(any(Page.class), any())).thenReturn(mockPage);
-        when(forumCommentMapper.countByPostIds(anyList())).thenReturn(
-                List.of(Map.of("post_id", "post-test-001", "cnt", 5L)));
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_UP"))).thenReturn(
-                List.of(Map.of("target_id", "post-test-001", "cnt", 10)));
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_DOWN"))).thenReturn(
-                List.of(Map.of("target_id", "post-test-001", "cnt", 2)));
+        testPost.setCommentCount(5);
+        testPost.setUpvotes(10);
+        testPost.setDownvotes(2);
+        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class)))
+                .thenReturn(new AdminForumPostPage(List.of(testPost), 1));
+        when(userEnricher.enrich(any())).thenReturn(Map.of());
 
         var result = projection.getPosts(createDefaultQuery());
 
@@ -94,18 +82,18 @@ class AdminForumProjectionTest {
         assertThat(result.getItems().get(0).getCommentCount()).isEqualTo(5);
         assertThat(result.getItems().get(0).getUpvotes()).isEqualTo(10);
         assertThat(result.getItems().get(0).getDownvotes()).isEqualTo(2);
+        assertThat(result.getItems().get(0).getCommunityName()).isEqualTo("General");
     }
 
     @Test
-    @DisplayName("getPosts returns zero when no comments exist")
+    @DisplayName("getPosts returns zero when no comments or votes exist")
     void getPosts_returnsZeroCommentCountWhenNoComments() {
-        Page<ForumPost> mockPage = new Page<>();
-        mockPage.setRecords(List.of(testPost));
-        mockPage.setTotal(1L);
-        when(forumPostMapper.selectPage(any(Page.class), any())).thenReturn(mockPage);
-        when(forumCommentMapper.countByPostIds(anyList())).thenReturn(List.of());
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_UP"))).thenReturn(List.of());
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_DOWN"))).thenReturn(List.of());
+        testPost.setCommentCount(0);
+        testPost.setUpvotes(0);
+        testPost.setDownvotes(0);
+        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class)))
+                .thenReturn(new AdminForumPostPage(List.of(testPost), 1));
+        when(userEnricher.enrich(any())).thenReturn(Map.of());
 
         var result = projection.getPosts(createDefaultQuery());
 
@@ -115,12 +103,10 @@ class AdminForumProjectionTest {
     }
 
     @Test
-    @DisplayName("getPosts handles empty result page without calling enrichment mappers")
+    @DisplayName("getPosts handles empty result page without touching the enricher")
     void getPosts_emptyPageSkipsEnrichment() {
-        Page<ForumPost> mockPage = new Page<>();
-        mockPage.setRecords(List.of());
-        mockPage.setTotal(0L);
-        when(forumPostMapper.selectPage(any(Page.class), any())).thenReturn(mockPage);
+        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class)))
+                .thenReturn(new AdminForumPostPage(List.of(), 0));
 
         var result = projection.getPosts(createDefaultQuery());
 
@@ -132,6 +118,8 @@ class AdminForumProjectionTest {
         AdminForumPostQueryDTO dto = new AdminForumPostQueryDTO();
         dto.setPage(1);
         dto.setLimit(10);
+        dto.setSortBy("createdAt");
+        dto.setSortOrder("desc");
         return dto;
     }
 }

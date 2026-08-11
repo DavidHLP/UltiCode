@@ -1,22 +1,31 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.api.command.CreateProblemListCommand;
+import com.ulticode.app.api.command.DeleteProblemListCommand;
+import com.ulticode.app.api.command.ReplaceListProblemsCommand;
+import com.ulticode.app.api.command.UpdateBannerCommand;
+import com.ulticode.app.api.command.UpdateBasicInfoCommand;
+import com.ulticode.app.api.command.UpdateProblemListCommand;
+import com.ulticode.app.api.command.UpdateVisibilityCommand;
+import com.ulticode.app.api.command.WriteCommand;
+import com.ulticode.app.api.dto.ProblemListDetailDTO;
+import com.ulticode.app.api.dto.ProblemListSummaryDTO;
+import com.ulticode.app.api.service.ProblemListAdministrationService;
+import com.ulticode.app.api.service.ProblemListChainReadPort;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
-import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
-import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
-import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
-import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
-import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
-import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
-import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
-import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
-import com.ulticode.modules.problemlist.entity.ProblemList;
+import com.ulticode.modules.admin.dto.CreateProblemListRequest;
+import com.ulticode.modules.admin.dto.UpdateBannerRequest;
+import com.ulticode.modules.admin.dto.UpdateBasicInfoRequest;
+import com.ulticode.modules.admin.dto.UpdateProblemListRequest;
+import com.ulticode.modules.admin.dto.UpdateProblemsRequest;
+import com.ulticode.modules.admin.dto.UpdateVisibilityRequest;
 import com.ulticode.modules.admin.projection.AdminProblemListProjection;
-import com.ulticode.modules.problemlist.service.ProblemListAdminService;
-import com.ulticode.modules.problemlist.service.ProblemListService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,22 +48,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link AdminProblemListServiceImpl} after the seam
- * extraction (architecture-review candidate #1).
+ * Unit tests for {@link AdminProblemListServiceImpl} after the
+ * ADMIN-005 rewiring.
  *
  * <p>Verifies the architectural contract:
  * <ul>
- *   <li>Every mutation path delegates to {@link ProblemListAdminService};
- *       the admin service holds no direct *Mapper dependency for
- *       mutation.</li>
+ *   <li>Every mutation path issues a {@link WriteCommand} carrying
+ *       commandId / idempotency / actor / trace metadata against
+ *       {@link ProblemListAdministrationService} and maps the
+ *       {@link RpcResult} onto admin error semantics.</li>
+ *   <li>Pre-state audit snapshots come from the remote
+ *       {@link ProblemListChainReadPort#findSummary} (404 on missing).</li>
  *   <li>{@link AuditContext} receives both old and new value snapshots for
- *       every audited mutation so {@code AuditAspect} can persist them.</li>
- *   <li>Read paths (paginated list + single detail) keep using the mapper /
- *       projection directly, as documented in the service header.</li>
+ *       every audited mutation.</li>
+ *   <li>Read paths (paginated list + single detail) keep delegating to the
+ *       admin projection.</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -66,8 +79,8 @@ class AdminProblemListServiceImplTest {
     private static final String AUTHOR_ID = "user-author";
     private static final String ADMIN_USER_ID = "admin-001";
 
-    @Mock private ProblemListService problemListService;
-    @Mock private ProblemListAdminService problemListAdminService;
+    @Mock private ProblemListAdministrationService problemListAdministrationService;
+    @Mock private ProblemListChainReadPort problemListChainReadPort;
     @Mock private AdminProblemListProjection adminProblemListProjection;
 
     private AdminProblemListServiceImpl service;
@@ -75,8 +88,8 @@ class AdminProblemListServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AdminProblemListServiceImpl(
-                problemListService,
-                problemListAdminService,
+                problemListAdministrationService,
+                problemListChainReadPort,
                 adminProblemListProjection);
     }
 
@@ -85,88 +98,62 @@ class AdminProblemListServiceImplTest {
         AuditContext.clear();
     }
 
-    private ProblemList createList() {
-        ProblemList list = new ProblemList();
-        list.setId(LIST_ID);
-        list.setName("Original Name");
-        list.setDescription("Original Description");
-        list.setAuthorId(AUTHOR_ID);
-        list.setIsPublic(false);
-        list.setIsFeatured(false);
-        list.setBannerTag("original-tag");
-        list.setBannerIcon("original-icon");
-        list.setBannerTheme("original-theme");
-        list.setBannerOrder(1);
-        list.setCreatedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
-        list.setUpdatedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
-        return list;
+    private ProblemListSummaryDTO createSummary() {
+        ProblemListSummaryDTO dto = new ProblemListSummaryDTO();
+        dto.setId(LIST_ID);
+        dto.setName("Original Name");
+        dto.setDescription("Original Description");
+        dto.setAuthorId(AUTHOR_ID);
+        dto.setIsPublic(false);
+        dto.setIsFeatured(false);
+        dto.setBannerTag("original-tag");
+        dto.setBannerIcon("original-icon");
+        dto.setBannerTheme("original-theme");
+        dto.setBannerOrder(1);
+        dto.setCreatedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
+        dto.setUpdatedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
+        return dto;
     }
 
-    private ProblemListSummaryVO createSummary() {
-        ProblemListSummaryVO vo = new ProblemListSummaryVO();
-        vo.setId(LIST_ID);
-        vo.setName("Updated Name");
-        vo.setDescription("Updated Description");
-        vo.setIsPublic(true);
-        vo.setIsFeatured(true);
-        vo.setBannerTag("updated-tag");
-        vo.setBannerTheme("updated-theme");
-        vo.setBannerOrder(2);
-        return vo;
+    private ProblemListSummaryDTO updatedSummary() {
+        ProblemListSummaryDTO dto = createSummary();
+        dto.setName("Updated Name");
+        dto.setDescription("Updated Description");
+        dto.setIsPublic(true);
+        dto.setIsFeatured(true);
+        dto.setBannerTag("updated-tag");
+        dto.setBannerTheme("updated-theme");
+        dto.setBannerOrder(2);
+        return dto;
     }
 
-    private ProblemListSummaryVO echoedSummary(ProblemList list) {
-        ProblemListSummaryVO vo = new ProblemListSummaryVO();
-        vo.setId(list.getId());
-        vo.setName(list.getName());
-        vo.setDescription(list.getDescription());
-        vo.setIsPublic(list.getIsPublic());
-        vo.setIsFeatured(list.getIsFeatured());
-        vo.setBannerTag(list.getBannerTag());
-        vo.setBannerTheme(list.getBannerTheme());
-        vo.setBannerOrder(list.getBannerOrder());
-        return vo;
-    }
-
-    // ==================== getProblemLists (read path: mapper retained) ====================
+    // ==================== getProblemLists (read path: projection) ====================
 
     @Nested
     @DisplayName("getProblemLists()")
     class GetProblemListsTests {
 
         @Test
-        @DisplayName("should delegate the page read to ProblemListProjection.findAdminLists")
+        @DisplayName("should delegate the page read to AdminProblemListProjection.findAdminLists")
         void delegatesToProjectionFindAdminLists() {
             AdminProblemListQueryDTO query = new AdminProblemListQueryDTO();
-            query.setPage(1);
-            query.setLimit(10);
-
-            ProblemListSummaryVO vo = createSummary();
-            PageResult<ProblemListSummaryVO> projectionResult =
+            ProblemListSummaryDTO vo = updatedSummary();
+            PageResult<ProblemListSummaryDTO> projectionResult =
                     PageResult.of(List.of(vo), 1L, 1, 10);
             when(adminProblemListProjection.findAdminLists(query)).thenReturn(projectionResult);
 
             var result = service.getProblemLists(query);
 
-            // Thin pass-through after the candidate #3 rewire: the admin
-            // service owns audit context, the projection owns page assembly
-            // + entity→VO projection. The returned envelope is the
-            // projection's, unchanged.
             assertThat(result.getTotal()).isEqualTo(1L);
             assertThat(result.getItems()).containsExactly(vo);
             verify(adminProblemListProjection).findAdminLists(query);
         }
 
         @Test
-        @DisplayName("should default sort to createdAt when sortBy is blank (regression: projection still receives the raw query)")
-        void defaultsSortBy() {
+        @DisplayName("should return an empty page when the projection finds nothing")
+        void emptyPage() {
             AdminProblemListQueryDTO query = new AdminProblemListQueryDTO();
-            query.setPage(1);
-            query.setLimit(10);
-            query.setSortBy(null);
-            query.setSortOrder(null);
-
-            PageResult<ProblemListSummaryVO> empty =
+            PageResult<ProblemListSummaryDTO> empty =
                     PageResult.of(Collections.emptyList(), 0L, 1, 10);
             when(adminProblemListProjection.findAdminLists(query)).thenReturn(empty);
 
@@ -177,27 +164,23 @@ class AdminProblemListServiceImplTest {
         }
     }
 
-    // ==================== getProblemList (read path: mapper retained) ====================
+    // ==================== getProblemList (read path: projection) ====================
 
     @Nested
     @DisplayName("getProblemList()")
     class GetProblemListTests {
 
         @Test
-        @DisplayName("should delegate the detail read to ProblemListProjection.getAdminListDetail")
+        @DisplayName("should delegate the detail read to AdminProblemListProjection.getAdminListDetail")
         void delegatesToProjectionGetAdminListDetail() {
-            ProblemListDetailVO detail = new ProblemListDetailVO();
+            ProblemListDetailDTO detail = new ProblemListDetailDTO();
             when(adminProblemListProjection.getAdminListDetail(LIST_ID)).thenReturn(detail);
 
-            ProblemListDetailVO result = service.getProblemList(LIST_ID);
+            ProblemListDetailDTO result = service.getProblemList(LIST_ID);
 
-            // Intent-level read after the candidate #3 rewire: the projection
-            // owns the entity load (404 on missing) + admin-detail shaping.
-            // The admin service no longer calls findEntityById or any
-            // conversion helper.
             assertThat(result).isSameAs(detail);
             verify(adminProblemListProjection).getAdminListDetail(LIST_ID);
-            verify(problemListAdminService, never()).findEntityById(any());
+            verify(problemListChainReadPort, never()).findSummary(any());
         }
 
         @Test
@@ -213,49 +196,111 @@ class AdminProblemListServiceImplTest {
         }
     }
 
-    // ==================== createProblemList (delegates to user-owned seam) ====================
+    // ==================== createProblemList (remote command) ====================
 
     @Nested
     @DisplayName("createProblemList()")
     class CreateProblemListTests {
 
         @Test
-        @DisplayName("should delegate to ProblemListService.createList")
-        void delegatesToCreateList() {
-            CreateProblemListDTO dto = new CreateProblemListDTO();
-            dto.setName("New");
-            ProblemListSummaryVO vo = createSummary();
-            when(problemListService.createList(ADMIN_USER_ID, dto)).thenReturn(vo);
+        @DisplayName("should issue a CreateProblemListCommand with write metadata and return the payload")
+        void issuesCommandAndMapsResult() {
+            CreateProblemListRequest request = new CreateProblemListRequest();
+            request.setName("New List");
+            request.setDescription("desc");
+            request.setIsPublic(true);
+            request.setBannerTag("tag");
+            request.setBannerTheme("blue");
+            request.setBannerOrder(3);
 
-            ProblemListSummaryVO result = service.createProblemList(dto, ADMIN_USER_ID);
+            ProblemListSummaryDTO vo = updatedSummary();
+            when(problemListAdministrationService.createProblemList(any(CreateProblemListCommand.class)))
+                    .thenReturn(RpcResult.success(vo, "t-1"));
+
+            ProblemListSummaryDTO result = service.createProblemList(request, ADMIN_USER_ID);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListService).createList(ADMIN_USER_ID, dto);
+            ArgumentCaptor<CreateProblemListCommand> captor =
+                    ArgumentCaptor.forClass(CreateProblemListCommand.class);
+            verify(problemListAdministrationService).createProblemList(captor.capture());
+            CreateProblemListCommand cmd = captor.getValue();
+            assertThat(cmd.name()).isEqualTo("New List");
+            assertThat(cmd.isPublic()).isTrue();
+            assertThat(cmd.commandId()).isNotBlank();
+            assertThat(cmd.idempotency().hasKey()).isTrue();
+            assertThat(cmd.actor().actorId()).isEqualTo(ADMIN_USER_ID);
+            assertThat(cmd.actor().actorType()).isEqualTo("ADMIN");
+            assertThat(cmd.trace()).isNotNull();
+            // Confirmed review finding: commands must propagate a real
+            // request trace id, never TraceMetadata.EMPTY (null traceId).
+            assertThat(cmd.trace().hasTraceId()).isTrue();
+            assertThat(cmd.trace().traceId()).startsWith("t-");
+        }
+
+        @Test
+        @DisplayName("should preserve a caller idempotency key and derive a stable command id")
+        void preservesProvidedIdempotencyKey() {
+            CreateProblemListRequest request = new CreateProblemListRequest();
+            request.setName("Retryable List");
+            when(problemListAdministrationService.createProblemList(any(CreateProblemListCommand.class)))
+                    .thenReturn(RpcResult.success(updatedSummary(), "t-1"));
+
+            service.createProblemList(request, ADMIN_USER_ID, "problem-list-retry-1");
+            service.createProblemList(request, ADMIN_USER_ID, "problem-list-retry-1");
+
+            ArgumentCaptor<CreateProblemListCommand> captor =
+                    ArgumentCaptor.forClass(CreateProblemListCommand.class);
+            verify(problemListAdministrationService, times(2)).createProblemList(captor.capture());
+            List<CreateProblemListCommand> commands = captor.getAllValues();
+            assertThat(commands).allMatch(command ->
+                    command.idempotency().idempotencyKey().equals("problem-list-retry-1"));
+            assertThat(commands.get(0).commandId()).isEqualTo(commands.get(1).commandId());
+        }
+
+        @Test
+        @DisplayName("should map a provider failure onto the admin error code")
+        void mapsProviderFailure() {
+            CreateProblemListRequest request = new CreateProblemListRequest();
+            request.setName("New List");
+            when(problemListAdministrationService.createProblemList(any(CreateProblemListCommand.class)))
+                    .thenReturn(RpcResult.failure(
+                            new com.ulticode.common.rpc.RpcResult.ErrorPayload("app", 40000, "Bad request"),
+                            "t-1"));
+
+            assertThatThrownBy(() -> service.createProblemList(request, ADMIN_USER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AdminErrorCode.VALIDATION_FAILED));
         }
     }
 
-    // ==================== updateProblemList (seam delegation + audit context) ====================
+    // ==================== updateProblemList (pre-state + remote command + audit) ====================
 
     @Nested
     @DisplayName("updateProblemList()")
     class UpdateProblemListTests {
 
         @Test
-        @DisplayName("should read pre-state via service, delegate mutation, and capture audit snapshot")
-        void delegatesMutationToService() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            ProblemListSummaryVO vo = createSummary();
-            when(problemListAdminService.adminUpdateProblemList(eq(LIST_ID), any(UpdateProblemListDTO.class)))
-                    .thenReturn(vo);
+        @DisplayName("should read pre-state, issue command, and capture audit snapshot")
+        void issuesCommandAndAudits() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            ProblemListSummaryDTO vo = updatedSummary();
+            when(problemListAdministrationService.updateProblemList(any(UpdateProblemListCommand.class)))
+                    .thenReturn(RpcResult.success(vo, "t-1"));
 
-            UpdateProblemListDTO dto = new UpdateProblemListDTO();
-            dto.setName("Updated Name");
-            ProblemListSummaryVO result = service.updateProblemList(LIST_ID, dto, ADMIN_USER_ID);
+            UpdateProblemListRequest request = new UpdateProblemListRequest();
+            request.setName("Updated Name");
+
+            ProblemListSummaryDTO result = service.updateProblemList(LIST_ID, request, ADMIN_USER_ID);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListAdminService).findEntityById(LIST_ID);
-            verify(problemListAdminService).adminUpdateProblemList(LIST_ID, dto);
+            ArgumentCaptor<UpdateProblemListCommand> captor =
+                    ArgumentCaptor.forClass(UpdateProblemListCommand.class);
+            verify(problemListAdministrationService).updateProblemList(captor.capture());
+            assertThat(captor.getValue().listId()).isEqualTo(LIST_ID);
+            assertThat(captor.getValue().name()).isEqualTo("Updated Name");
+            assertThat(captor.getValue().actor().actorId()).isEqualTo(ADMIN_USER_ID);
+            assertThat(captor.getValue().trace().hasTraceId()).isTrue();
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
@@ -269,38 +314,78 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when service findEntityById rejects")
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when pre-state read returns null")
         void notFoundBubbles() {
-            when(problemListAdminService.findEntityById(LIST_ID))
-                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(null);
 
-            UpdateProblemListDTO dto = new UpdateProblemListDTO();
-            dto.setName("X");
+            UpdateProblemListRequest request = new UpdateProblemListRequest();
+            request.setName("X");
 
-            assertThatThrownBy(() -> service.updateProblemList(LIST_ID, dto, ADMIN_USER_ID))
+            assertThatThrownBy(() -> service.updateProblemList(LIST_ID, request, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
-            verify(problemListAdminService, never()).adminUpdateProblemList(any(), any());
+            verify(problemListAdministrationService, never()).updateProblemList(any());
+        }
+
+        @Test
+        @DisplayName("should let a keyed update reach the provider when the pre-state is already gone")
+        void keyedUpdateReachesProviderWhenPreStateMissing() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(null);
+            ProblemListSummaryDTO vo = updatedSummary();
+            when(problemListAdministrationService.updateProblemList(any(UpdateProblemListCommand.class)))
+                    .thenReturn(RpcResult.success(vo, "t-1"));
+
+            UpdateProblemListRequest request = new UpdateProblemListRequest();
+            request.setName("Updated Name");
+
+            ProblemListSummaryDTO result =
+                    service.updateProblemList(LIST_ID, request, ADMIN_USER_ID, "problem-list-update-retry-1");
+
+            assertThat(result).isSameAs(vo);
+            verify(problemListAdministrationService).updateProblemList(any(UpdateProblemListCommand.class));
+        }
+
+        @Test
+        @DisplayName("should map provider CONTENT_NOT_FOUND onto PROBLEM_LIST_NOT_FOUND")
+        void mapsProviderNotFound() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            when(problemListAdministrationService.updateProblemList(any(UpdateProblemListCommand.class)))
+                    .thenReturn(RpcResult.failure(
+                            new com.ulticode.common.rpc.RpcResult.ErrorPayload("app", 40401, "Content not found"),
+                            "t-1"));
+
+            UpdateProblemListRequest request = new UpdateProblemListRequest();
+            request.setName("X");
+
+            assertThatThrownBy(() -> service.updateProblemList(LIST_ID, request, ADMIN_USER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
         }
     }
 
-    // ==================== deleteProblemList (seam delegation + audit context) ====================
+    // ==================== deleteProblemList (pre-state + remote command + audit) ====================
 
     @Nested
     @DisplayName("deleteProblemList()")
     class DeleteProblemListTests {
 
         @Test
-        @DisplayName("should read entity via service, capture audit snapshot, and delegate delete")
-        void delegatesMutationToService() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+        @DisplayName("should read pre-state, capture audit snapshot, and issue delete command")
+        void issuesCommandAndAudits() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            when(problemListAdministrationService.deleteProblemList(any(DeleteProblemListCommand.class)))
+                    .thenReturn(RpcResult.success("t-1"));
 
             service.deleteProblemList(LIST_ID, ADMIN_USER_ID);
 
-            verify(problemListAdminService).findEntityById(LIST_ID);
-            verify(problemListAdminService).adminDeleteProblemList(LIST_ID);
+            ArgumentCaptor<DeleteProblemListCommand> captor =
+                    ArgumentCaptor.forClass(DeleteProblemListCommand.class);
+            verify(problemListAdministrationService).deleteProblemList(captor.capture());
+            assertThat(captor.getValue().listId()).isEqualTo(LIST_ID);
+            assertThat(captor.getValue().actor().actorId()).isEqualTo(ADMIN_USER_ID);
+            assertThat(captor.getValue().trace().hasTraceId()).isTrue();
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
@@ -308,147 +393,204 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when entity missing")
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when pre-state read returns null")
         void notFoundBubbles() {
-            when(problemListAdminService.findEntityById(LIST_ID))
-                    .thenThrow(new BusinessException(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(null);
 
             assertThatThrownBy(() -> service.deleteProblemList(LIST_ID, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(AdminErrorCode.PROBLEM_LIST_NOT_FOUND));
-            verify(problemListAdminService, never()).adminDeleteProblemList(any());
+            verify(problemListAdministrationService, never()).deleteProblemList(any());
+        }
+
+        @Test
+        @DisplayName("should let a keyed delete reach the provider when the pre-state is already gone")
+        void keyedDeleteReachesProviderWhenPreStateMissing() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(null);
+            when(problemListAdministrationService.deleteProblemList(any(DeleteProblemListCommand.class)))
+                    .thenReturn(RpcResult.success("t-1"));
+
+            service.deleteProblemList(LIST_ID, ADMIN_USER_ID, "problem-list-delete-retry-1");
+
+            verify(problemListAdministrationService).deleteProblemList(any(DeleteProblemListCommand.class));
         }
     }
 
-    // ==================== updateListProblems (seam delegation + audit context) ====================
+    // ==================== updateListProblems (validation + remote command + audit) ====================
 
     @Nested
     @DisplayName("updateListProblems()")
     class UpdateListProblemsTests {
 
         @Test
-        @DisplayName("should validate problems, delegate replace to service, capture count in audit context")
-        void delegatesReplaceToService() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+        @DisplayName("should validate, issue replace command, capture count in audit context")
+        void issuesReplaceCommandAndAudits() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            when(problemListAdministrationService.replaceListProblems(any(ReplaceListProblemsCommand.class)))
+                    .thenReturn(RpcResult.success("t-1"));
 
-            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
-            UpdateProblemListProblemsDTO.ProblemEntry e1 = new UpdateProblemListProblemsDTO.ProblemEntry();
+            UpdateProblemsRequest dto = new UpdateProblemsRequest();
+            UpdateProblemsRequest.ProblemEntry e1 = new UpdateProblemsRequest.ProblemEntry();
             e1.setProblemId(1L);
             e1.setSortOrder(0);
-            UpdateProblemListProblemsDTO.ProblemEntry e2 = new UpdateProblemListProblemsDTO.ProblemEntry();
+            UpdateProblemsRequest.ProblemEntry e2 = new UpdateProblemsRequest.ProblemEntry();
             e2.setProblemId(2L);
             e2.setSortOrder(1);
             dto.setProblems(List.of(e1, e2));
 
             service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID);
 
-            verify(problemListAdminService).findEntityById(LIST_ID);
-            verify(problemListAdminService).adminReplaceListProblems(LIST_ID, dto);
+            ArgumentCaptor<ReplaceListProblemsCommand> captor =
+                    ArgumentCaptor.forClass(ReplaceListProblemsCommand.class);
+            verify(problemListAdministrationService).replaceListProblems(captor.capture());
+            assertThat(captor.getValue().listId()).isEqualTo(LIST_ID);
+            assertThat(captor.getValue().problems()).hasSize(2);
+            assertThat(captor.getValue().problems().get(0).problemId()).isEqualTo(1L);
+            assertThat(captor.getValue().actor().actorId()).isEqualTo(ADMIN_USER_ID);
+            assertThat(captor.getValue().trace().hasTraceId()).isTrue();
 
             Map<String, Object> newValues = AuditContext.getNewValues();
             assertThat(newValues).containsEntry("updatedProblems", 2);
         }
 
         @Test
-        @DisplayName("should reject null problems before delegating to the seam")
+        @DisplayName("should reject null problems before issuing the remote command")
         void rejectsNullProblems() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
 
-            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
+            UpdateProblemsRequest dto = new UpdateProblemsRequest();
             dto.setProblems(null);
 
             assertThatThrownBy(() -> service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(AdminErrorCode.VALIDATION_FAILED));
-            verify(problemListAdminService, never()).adminReplaceListProblems(any(), any());
+            verify(problemListAdministrationService, never()).replaceListProblems(any());
+        }
+        @Test
+        @DisplayName("should preserve missing problem error from the App owner")
+        void preservesMissingProblemError() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            when(problemListAdministrationService.replaceListProblems(any(ReplaceListProblemsCommand.class)))
+                    .thenReturn(RpcResult.failure(AppErrorCode.PROBLEM_NOT_FOUND, "t-1"));
+
+            UpdateProblemsRequest dto = problems(1L, 0);
+
+            assertThatThrownBy(() -> service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AdminErrorCode.PROBLEM_NOT_FOUND));
         }
 
         @Test
-        @DisplayName("should delegate replace-problems via ProblemListAdminService without direct mapper mutation")
-        void noDirectProblemMapperMutation() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+        @DisplayName("should preserve duplicate problem error from the App owner")
+        void preservesDuplicateProblemError() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            when(problemListAdministrationService.replaceListProblems(any(ReplaceListProblemsCommand.class)))
+                    .thenReturn(RpcResult.failure(
+                            AppErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE, "t-1"));
 
-            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
-            dto.setProblems(Collections.emptyList());
+            UpdateProblemsRequest dto = problems(1L, 0);
 
-            service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID);
-
-            // Confirm no direct interaction with the user-facing mappers — they are
-            // not even injected into AdminProblemListServiceImpl after the seam
-            // extraction; this assertion documents the seam contract.
-            verify(problemListAdminService).adminReplaceListProblems(LIST_ID, dto);
+            assertThatThrownBy(() -> service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AdminErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE));
         }
+
+        @Test
+        @DisplayName("should reject null problem entries before issuing the remote command")
+        void rejectsNullProblemEntry() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+
+            UpdateProblemsRequest dto = new UpdateProblemsRequest();
+            dto.setProblems(Collections.singletonList(null));
+
+            assertThatThrownBy(() -> service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(AdminErrorCode.VALIDATION_FAILED));
+            verify(problemListAdministrationService, never()).replaceListProblems(any());
+        }
+
+        private UpdateProblemsRequest problems(Long problemId, Integer sortOrder) {
+            UpdateProblemsRequest.ProblemEntry entry = new UpdateProblemsRequest.ProblemEntry();
+            entry.setProblemId(problemId);
+            entry.setSortOrder(sortOrder);
+            UpdateProblemsRequest dto = new UpdateProblemsRequest();
+            dto.setProblems(List.of(entry));
+            return dto;
+        }
+
     }
 
-    // ==================== updateBasicInfo (seam delegation + audit context) ====================
+    // ==================== updateBasicInfo (pre-state + remote command + audit) ====================
 
     @Nested
     @DisplayName("updateBasicInfo()")
     class UpdateBasicInfoTests {
 
         @Test
-        @DisplayName("should capture pre-state, delegate mutation, capture new state in audit context")
-        void delegatesAndAudits() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            ProblemListSummaryVO vo = echoedSummary(existing);
-            vo.setName("Admin Name");
-            vo.setDescription("Admin Description");
-            when(problemListAdminService.adminUpdateBasicInfo(eq(LIST_ID), any(UpdateBasicInfoDTO.class)))
-                    .thenReturn(vo);
+        @DisplayName("should capture pre-state, issue command, capture new state in audit context")
+        void issuesCommandAndAudits() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            ProblemListSummaryDTO vo = updatedSummary();
+            when(problemListAdministrationService.updateBasicInfo(any(UpdateBasicInfoCommand.class)))
+                    .thenReturn(RpcResult.success(vo, "t-1"));
 
-            UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
-            dto.setName("Admin Name");
-            dto.setDescription("Admin Description");
+            UpdateBasicInfoRequest dto = new UpdateBasicInfoRequest();
+            dto.setName("Updated Name");
+            dto.setDescription("Updated Description");
 
-            ProblemListSummaryVO result = service.updateBasicInfo(LIST_ID, ADMIN_USER_ID, dto);
+            ProblemListSummaryDTO result = service.updateBasicInfo(LIST_ID, ADMIN_USER_ID, dto);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListAdminService).adminUpdateBasicInfo(LIST_ID, dto);
+            ArgumentCaptor<UpdateBasicInfoCommand> captor =
+                    ArgumentCaptor.forClass(UpdateBasicInfoCommand.class);
+            verify(problemListAdministrationService).updateBasicInfo(captor.capture());
+            assertThat(captor.getValue().listId()).isEqualTo(LIST_ID);
+            assertThat(captor.getValue().name()).isEqualTo("Updated Name");
+            assertThat(captor.getValue().trace().hasTraceId()).isTrue();
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
             assertThat(oldValues).containsEntry("description", "Original Description");
 
             Map<String, Object> newValues = AuditContext.getNewValues();
-            assertThat(newValues).containsEntry("name", "Admin Name");
-            assertThat(newValues).containsEntry("description", "Admin Description");
+            assertThat(newValues).containsEntry("name", "Updated Name");
+            assertThat(newValues).containsEntry("description", "Updated Description");
         }
     }
 
-    // ==================== updateVisibility (seam delegation + audit context) ====================
+    // ==================== updateVisibility (pre-state + remote command + audit) ====================
 
     @Nested
     @DisplayName("updateVisibility()")
     class UpdateVisibilityTests {
 
         @Test
-        @DisplayName("should capture pre-state, delegate mutation, capture new state in audit context")
-        void delegatesAndAudits() {
-            ProblemList existing = createList();
-            existing.setIsPublic(false);
-            existing.setIsFeatured(false);
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+        @DisplayName("should capture pre-state, issue command, capture new state in audit context")
+        void issuesCommandAndAudits() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            ProblemListSummaryDTO vo = updatedSummary();
+            when(problemListAdministrationService.updateVisibility(any(UpdateVisibilityCommand.class)))
+                    .thenReturn(RpcResult.success(vo, "t-1"));
 
-            ProblemListSummaryVO vo = createSummary();
-            vo.setIsPublic(true);
-            vo.setIsFeatured(true);
-            when(problemListAdminService.adminUpdateVisibility(eq(LIST_ID), any(UpdateVisibilityDTO.class)))
-                    .thenReturn(vo);
-
-            UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
+            UpdateVisibilityRequest dto = new UpdateVisibilityRequest();
             dto.setIsPublic(true);
             dto.setIsFeatured(true);
 
-            ProblemListSummaryVO result = service.updateVisibility(LIST_ID, ADMIN_USER_ID, dto);
+            ProblemListSummaryDTO result = service.updateVisibility(LIST_ID, ADMIN_USER_ID, dto);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListAdminService).adminUpdateVisibility(LIST_ID, dto);
+            ArgumentCaptor<UpdateVisibilityCommand> captor =
+                    ArgumentCaptor.forClass(UpdateVisibilityCommand.class);
+            verify(problemListAdministrationService).updateVisibility(captor.capture());
+            assertThat(captor.getValue().listId()).isEqualTo(LIST_ID);
+            assertThat(captor.getValue().isPublic()).isTrue();
+            assertThat(captor.getValue().isFeatured()).isTrue();
+            assertThat(captor.getValue().trace().hasTraceId()).isTrue();
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("isPublic", false);
@@ -460,30 +602,34 @@ class AdminProblemListServiceImplTest {
         }
     }
 
-    // ==================== updateBanner (seam delegation + audit context) ====================
+    // ==================== updateBanner (pre-state + remote command + audit) ====================
 
     @Nested
     @DisplayName("updateBanner()")
     class UpdateBannerTests {
 
         @Test
-        @DisplayName("should capture pre-state, delegate mutation, capture new state in audit context")
-        void delegatesAndAudits() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            ProblemListSummaryVO vo = createSummary();
-            when(problemListAdminService.adminUpdateBanner(eq(LIST_ID), any(UpdateBannerDTO.class)))
-                    .thenReturn(vo);
+        @DisplayName("should capture pre-state, issue command, capture new state in audit context")
+        void issuesCommandAndAudits() {
+            when(problemListChainReadPort.findSummary(LIST_ID)).thenReturn(createSummary());
+            ProblemListSummaryDTO vo = updatedSummary();
+            when(problemListAdministrationService.updateBanner(any(UpdateBannerCommand.class)))
+                    .thenReturn(RpcResult.success(vo, "t-1"));
 
-            UpdateBannerDTO dto = new UpdateBannerDTO();
+            UpdateBannerRequest dto = new UpdateBannerRequest();
             dto.setBannerTag("updated-tag");
             dto.setBannerTheme("updated-theme");
             dto.setBannerOrder(2);
 
-            ProblemListSummaryVO result = service.updateBanner(LIST_ID, ADMIN_USER_ID, dto);
+            ProblemListSummaryDTO result = service.updateBanner(LIST_ID, ADMIN_USER_ID, dto);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListAdminService).adminUpdateBanner(LIST_ID, dto);
+            ArgumentCaptor<UpdateBannerCommand> captor =
+                    ArgumentCaptor.forClass(UpdateBannerCommand.class);
+            verify(problemListAdministrationService).updateBanner(captor.capture());
+            assertThat(captor.getValue().listId()).isEqualTo(LIST_ID);
+            assertThat(captor.getValue().bannerTag()).isEqualTo("updated-tag");
+            assertThat(captor.getValue().trace().hasTraceId()).isTrue();
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("bannerTag", "original-tag");
@@ -497,27 +643,17 @@ class AdminProblemListServiceImplTest {
         }
     }
 
-    // ==================== Architectural invariant test ====================
+    // ==================== Architectural invariant tests ====================
 
     @Test
-    @DisplayName("AdminProblemListServiceImpl must not hold a ProblemListProblemMapper dependency")
-    void architecturalInvariant_noProblemMapperDependency() throws NoSuchMethodException {
-        // The seam extraction removes ProblemListProblemMapper AND
-        // ProblemListMapper from the admin service constructor entirely.
-        // This test pins that contract: the admin side depends only on
-        // ProblemListService (createList), ProblemListAdminService (mutation
-        // bypass seam with audit snapshots), and AdminProblemListProjection
-        // (read-side intent reads) — never the problem-relation mapper nor
-        // the raw ProblemListMapper.
+    @DisplayName("AdminProblemListServiceImpl must depend only on the app-api seams and the admin projection")
+    void architecturalInvariant_noPrivateModuleDependency() {
         java.lang.reflect.Constructor<?> ctor = AdminProblemListServiceImpl.class.getDeclaredConstructors()[0];
         Class<?>[] paramTypes = ctor.getParameterTypes();
         assertThat(paramTypes).containsOnly(
-                ProblemListService.class,
-                ProblemListAdminService.class,
+                ProblemListAdministrationService.class,
+                ProblemListChainReadPort.class,
                 AdminProblemListProjection.class);
-        assertThat(paramTypes).doesNotContain(
-                com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper.class,
-                com.ulticode.modules.problemlist.mapper.ProblemListMapper.class);
     }
 
     @Test
@@ -546,12 +682,12 @@ class AdminProblemListServiceImplTest {
 
     private static Class<?>[] parameterTypes(String methodName) {
         return switch (methodName) {
-            case "updateProblemList" -> new Class<?>[]{String.class, UpdateProblemListDTO.class, String.class};
+            case "updateProblemList" -> new Class<?>[]{String.class, UpdateProblemListRequest.class, String.class};
             case "deleteProblemList" -> new Class<?>[]{String.class, String.class};
-            case "updateListProblems" -> new Class<?>[]{String.class, UpdateProblemListProblemsDTO.class, String.class};
-            case "updateBasicInfo" -> new Class<?>[]{String.class, String.class, UpdateBasicInfoDTO.class};
-            case "updateVisibility" -> new Class<?>[]{String.class, String.class, UpdateVisibilityDTO.class};
-            case "updateBanner" -> new Class<?>[]{String.class, String.class, UpdateBannerDTO.class};
+            case "updateListProblems" -> new Class<?>[]{String.class, UpdateProblemsRequest.class, String.class};
+            case "updateBasicInfo" -> new Class<?>[]{String.class, String.class, UpdateBasicInfoRequest.class};
+            case "updateVisibility" -> new Class<?>[]{String.class, String.class, UpdateVisibilityRequest.class};
+            case "updateBanner" -> new Class<?>[]{String.class, String.class, UpdateBannerRequest.class};
             default -> throw new IllegalArgumentException("unknown method: " + methodName);
         };
     }

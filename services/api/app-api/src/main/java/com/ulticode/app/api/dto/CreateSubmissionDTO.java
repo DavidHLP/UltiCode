@@ -19,4 +19,16 @@ public class CreateSubmissionDTO implements Serializable {
 
     @NotBlank(message = "Code cannot be empty")
     private String code;
+
+    /**
+     * Explicit contest context. When absent, this is an ordinary submission
+     * and it must not be inferred from currently running contests.
+     */
+    private String contestId;
+
+    /**
+     * Virtual session context, supplied by the contest admission seam for
+     * virtual submissions. Real submissions leave this null.
+     */
+    private String virtualSessionId;
 }

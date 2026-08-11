@@ -1,97 +1,79 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.app.userprofile.entity.UserProfile;
-import com.ulticode.app.userprofile.mapper.UserProfileMapper;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.user.dto.UpdateUserDTO;
-import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.admin.port.UserProfilePort;
+import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.app.api.command.UpdateProfileCommand;
+import com.ulticode.app.api.command.UploadAvatarCommand;
+import com.ulticode.app.api.dto.ProfileWriteResult;
+import com.ulticode.app.api.service.ProfileWriteService;
+import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
+import com.ulticode.common.uuid.UuidGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.UUID;
 
 /**
  * Admin-shell adapter for {@link UserProfilePort}.
  *
- * <p>Profile mutations write exclusively to the App-owned
- * {@code user_profiles} table (canonical source).
+ * <p>Profile mutations are issued as App-owned commands to the public
+ * {@link ProfileWriteService} (backend-app), the sole write owner of the
+ * {@code user_profiles} table (canonical source). No local transaction wraps
+ * the remote writes; provider unavailability or RPC failure fails closed with
+ * an explicit {@link BusinessException} mapping the App error code.
  *
  * <p>Avatar upload preserves the legacy file-storage semantics (uploads
- * directory, UUID filename, content-type + size + extension validation).
+ * directory, UUID filename, content-type + size + extension validation);
+ * the stored URL is then pushed via {@code ProfileWriteService.uploadAvatar}.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AdminUserProfileAdapter implements UserProfilePort {
 
-    private final UserProfileMapper userProfileMapper;
+    private static final String ACTOR_TYPE = "ADMIN";
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-app", version = "1.0.0",
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
+    private ProfileWriteService profileWriteService;
+
     private final UuidGenerator uuidGenerator;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
-    @Transactional
     @CacheEvict(value = "userStats", allEntries = true)
-    public UserVO updateProfile(String userId, UpdateUserDTO updateDTO) {
-        if (userId == null) {
+    public ProfileWriteResult updateProfile(UpdateProfileCommand command) {
+        if (command == null || command.accountId() == null) {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED);
         }
 
-        UserProfile profile = userProfileMapper.selectById(userId);
-        boolean isNew = profile == null;
-        if (isNew) {
-            profile = new UserProfile();
-            profile.setAccountId(userId);
+        RpcResult<ProfileWriteResult> result = invoke(() -> profileWriteService.updateProfile(command));
+        if (result == null || !result.success() || result.data() == null) {
+            throw rpcFailure("Profile update failed on App provider", result);
         }
 
-        if (updateDTO.getName() != null) {
-            profile.setName(updateDTO.getName());
-        }
-        if (updateDTO.getAvatar() != null) {
-            profile.setAvatar(updateDTO.getAvatar());
-        }
-        if (updateDTO.getBio() != null) {
-            profile.setBio(updateDTO.getBio());
-        }
-        if (updateDTO.getCompany() != null) {
-            profile.setCompany(updateDTO.getCompany());
-        }
-        if (updateDTO.getGithub() != null) {
-            profile.setGithub(updateDTO.getGithub());
-        }
-        if (updateDTO.getLocation() != null) {
-            profile.setLocation(updateDTO.getLocation());
-        }
-        if (updateDTO.getTwitter() != null) {
-            profile.setTwitter(updateDTO.getTwitter());
-        }
-        if (updateDTO.getWebsite() != null) {
-            profile.setWebsite(updateDTO.getWebsite());
-        }
-        if (updateDTO.getPreferredLanguage() != null) {
-            profile.setPreferredLanguage(updateDTO.getPreferredLanguage());
-        }
-
-        if (isNew) {
-            userProfileMapper.insert(profile);
-        } else {
-            userProfileMapper.updateById(profile);
-        }
-
-        log.info("User profile updated: {}", userId);
-        return toVO(profile);
+        log.info("User profile updated: {}", command.accountId());
+        return result.data();
     }
 
     @Override
-    @Transactional
     public String uploadAvatar(String userId, MultipartFile file) {
         if (userId == null) {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED);
@@ -125,9 +107,9 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         String filename = uuidGenerator.newId() + ext;
 
         Path uploadDir = Paths.get("uploads/avatars");
+        Path filePath = uploadDir.resolve(filename);
         try {
             Files.createDirectories(uploadDir);
-            Path filePath = uploadDir.resolve(filename);
             file.transferTo(filePath.toFile());
         } catch (IOException e) {
             log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
@@ -135,45 +117,99 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         }
 
         String avatarUrl = "/uploads/avatars/" + filename;
-        updateAvatarUrl(userId, avatarUrl);
+        try {
+            updateAvatarUrl(userId, avatarUrl);
+        } catch (RuntimeException e) {
+            try {
+                Files.deleteIfExists(filePath);
+            } catch (Exception cleanupException) {
+                log.warn("Failed to clean up avatar file after profile update failure: {}",
+                        filePath, cleanupException);
+            }
+            throw e;
+        }
 
         log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
         return avatarUrl;
     }
 
     @Override
-    @Transactional
     public void updateAvatarUrl(String userId, String avatarUrl) {
         if (userId == null) {
             return;
         }
-        UserProfile profile = userProfileMapper.selectById(userId);
-        if (profile == null) {
-            profile = new UserProfile();
-            profile.setAccountId(userId);
-            profile.setAvatar(avatarUrl);
-            userProfileMapper.insert(profile);
-        } else {
-            profile.setAvatar(avatarUrl);
-            userProfileMapper.updateById(profile);
+        UploadAvatarCommand command = new UploadAvatarCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                actor("admin avatar update"),
+                trace(),
+                userId,
+                avatarUrl);
+        RpcResult<ProfileWriteResult> result = invoke(() -> profileWriteService.uploadAvatar(command));
+        if (result == null || !result.success() || result.data() == null) {
+            throw rpcFailure("Avatar update failed on App provider", result);
         }
     }
 
-    private UserVO toVO(UserProfile profile) {
-        if (profile == null) {
-            return null;
+    /**
+     * Fail closed on provider unavailability or transport exceptions, applied
+     * to every remote profile write path.
+     */
+    private RpcResult<ProfileWriteResult> invoke(RemoteCall call) {
+        if (profileWriteService == null) {
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "ProfileWriteService unavailable");
         }
-        UserVO vo = new UserVO();
-        vo.setId(profile.getAccountId());
-        vo.setName(profile.getName());
-        vo.setAvatar(profile.getAvatar());
-        vo.setBio(profile.getBio());
-        vo.setCompany(profile.getCompany());
-        vo.setGithub(profile.getGithub());
-        vo.setLocation(profile.getLocation());
-        vo.setTwitter(profile.getTwitter());
-        vo.setWebsite(profile.getWebsite());
-        vo.setPreferredLanguage(profile.getPreferredLanguage());
-        return vo;
+        try {
+            return call.call();
+        } catch (BusinessException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            log.warn("ProfileWriteService RPC failed: {}", e.getMessage());
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "Profile write RPC failed");
+        }
+    }
+
+    /**
+     * Map an explicit App provider error payload onto the Admin error surface.
+     */
+    private BusinessException rpcFailure(String fallbackMessage, RpcResult<ProfileWriteResult> result) {
+        if (result != null && result.error() != null) {
+            int code = result.error().code();
+            String message = result.error().message();
+            String detail = message != null && !message.isBlank() ? message : fallbackMessage;
+            AdminErrorCode adminCode = switch (code) {
+                case 40000 -> AdminErrorCode.BAD_REQUEST;
+                case 40100 -> AdminErrorCode.UNAUTHORIZED;
+                case 40300 -> AdminErrorCode.FORBIDDEN;
+                case 40401 -> AdminErrorCode.USER_NOT_FOUND;
+                case 40901, 40902, 40903 -> AdminErrorCode.CONFLICT;
+                case 50001 -> AdminErrorCode.UNKNOWN_ERROR;
+                default -> AdminErrorCode.UNKNOWN_ERROR;
+            };
+            log.warn("Profile write rejected by App provider: code={} message={}", code, detail);
+            return new BusinessException(adminCode, detail);
+        }
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, fallbackMessage);
+    }
+
+    private ActorDelegation actor(String rationale) {
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+        }
+        return new ActorDelegation(ACTOR_TYPE, actorId, actorId, rationale);
+    }
+
+    private TraceMetadata trace() {
+        String reqId = TraceIdUtil.current();
+        if (reqId == null || reqId.isBlank()) {
+            reqId = "t-" + UUID.randomUUID();
+        }
+        return new TraceMetadata(reqId, null, null, null);
+    }
+
+    @FunctionalInterface
+    private interface RemoteCall {
+        RpcResult<ProfileWriteResult> call();
     }
 }

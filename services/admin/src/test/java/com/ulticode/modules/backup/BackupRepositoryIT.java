@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -37,7 +38,6 @@ import org.testcontainers.utility.MountableFile;
 @SpringBootTest(properties = "spring.autoconfigure.exclude="
         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-        + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
@@ -53,6 +53,11 @@ class BackupRepositoryIT {
             .withCopyFileToContainer(
                     MountableFile.forHostPath(canonicalMigrationPath().toString()),
                     "/docker-entrypoint-initdb.d/V20260724162738__Create_Backups_Table.sql");
+
+    @Container
+    private static final GenericContainer<?> REDIS =
+            new GenericContainer<>("redis:7.2-alpine")
+                    .withExposedPorts(6379);
 
     private static Path canonicalMigrationPath() {
         Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
@@ -73,6 +78,9 @@ class BackupRepositoryIT {
         registry.add("spring.datasource.username", MYSQL::getUsername);
         registry.add("spring.datasource.password", MYSQL::getPassword);
         registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+        registry.add("spring.data.redis.password", () -> "");
     }
 
     @Autowired

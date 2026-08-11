@@ -55,6 +55,8 @@ public interface NotificationMapper extends BaseMapper<Notification> {
 
  /**
  * Paginated query for deduplicated system announcements by announcement_id.
+ * Only broadcast copies with a non-null announcement_id are eligible; a
+ * personal notification may share the category but is not an announcement.
  * Returns one representative notification per announcement group.
  */
  @Select("<script>"
@@ -62,7 +64,7 @@ public interface NotificationMapper extends BaseMapper<Notification> {
  + "INNER JOIN ("
  + " SELECT announcement_id, MIN(id) AS representative_id "
  + " FROM notifications "
- + " WHERE category = #{category} AND is_deleted = 0 "
++ " WHERE category = #{category} AND announcement_id IS NOT NULL AND is_deleted = 0 "
  + " <if test='keyword != null and keyword != \"\"'> AND title LIKE CONCAT('%', #{keyword}, '%') </if>"
  + " <if test='type != null and type != \"\"'> AND type = #{type} </if>"
  + " <if test='announcementId != null and announcementId != \"\"'> AND announcement_id = #{announcementId} </if>"
@@ -89,4 +91,35 @@ public interface NotificationMapper extends BaseMapper<Notification> {
  @Param("announcementId") String announcementId,
  @Param("sortBy") String sortBy,
  @Param("sortOrder") String sortOrder);
+
+ /** Soft-delete one notification or every user copy in its announcement group. */
+ @Update("<script>UPDATE notifications SET is_deleted = 1, updated_at = NOW(3) "
+ + "WHERE is_deleted = 0 AND "
+ + "<choose>"
++ " <when test='announcementId != null and announcementId != \"\"'>announcement_id = #{announcementId}</when>"
++ " <otherwise>id = #{notificationId} AND announcement_id IS NOT NULL</otherwise>"
+ + "</choose></script>")
+ int softDeleteAnnouncement(@Param("notificationId") String notificationId,
+ @Param("announcementId") String announcementId);
+
+ /** Update the shared announcement fields on every user copy in the group. */
+ @Update("<script>UPDATE notifications SET "
+ + "<if test='title != null'>title = #{title}, </if>"
+ + "<if test='body != null'>body = #{body}, </if>"
+ + "<if test='type != null and type.trim() != \"\"'>type = #{type}, </if>"
+ + "<if test='newCategory != null and newCategory != \"\"'>category = #{newCategory}, </if>"
+ + "updated_at = NOW(3) WHERE is_deleted = 0 AND "
+ + "<choose>"
++ " <when test='announcementId != null and announcementId != \"\"'>announcement_id = #{announcementId}"
++ " <if test='existingCategory != null and existingCategory != \"\"'> AND category = #{existingCategory}</if>"
++ "</when>"
++ " <otherwise>id = #{notificationId} AND announcement_id IS NOT NULL</otherwise>"
+ + "</choose></script>")
+ int updateAnnouncement(@Param("notificationId") String notificationId,
+ @Param("announcementId") String announcementId,
+ @Param("existingCategory") String existingCategory,
+ @Param("title") String title,
+ @Param("body") String body,
+ @Param("type") String type,
+ @Param("newCategory") String newCategory);
 }

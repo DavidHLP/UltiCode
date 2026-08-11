@@ -4,7 +4,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.modules.notification.entity.Notification;
+import com.ulticode.app.api.dto.NotificationAdminDTO;
 
 /**
  * Read-side deep module for the admin system-notification surface &mdash;
@@ -40,7 +40,7 @@ import com.ulticode.modules.notification.entity.Notification;
  *       system announcements, broadcast preference gating). Write paths
  *       that return {@code AdminNotificationVO} ({@code createSystemNotification},
  *       {@code updateSystemNotification}) call
- *       {@link #toAdminVO(com.ulticode.modules.notification.entity.Notification)}
+ *       {@link #toAdminVO(com.ulticode.app.api.dto.NotificationAdminDTO)}
  *       so the controller contract is unchanged &mdash; the shape rule no
  *       longer lives in the service.</li>
  *   <li>Future admins or port-driven consumers depend on this projection for
@@ -78,22 +78,22 @@ public interface AdminNotificationProjection {
     PageResult<AdminNotificationVO> getSystemNotifications(AdminNotificationQueryDTO query);
 
     /**
-     * Project a {@link Notification} entity to the
+     * Project a {@link NotificationAdminDTO} to the
      * {@link AdminNotificationVO} shape, including the nested
      * {@code creator} enrichment. Pure shape rule &mdash; performs a
-     * {@code UserMapper.selectById} only when the input carries a
-     * {@code metadata.createdBy} entry.
+     * user lookup only when the input carries a
+     * {@code createdBy} entry.
      *
      * <p>Convenience overload for the write path
      * ({@code createSystemNotification} /
-     * {@code updateSystemNotification}) which already holds a single entity
+     * {@code updateSystemNotification}) which already holds a single DTO
      * and wants to round-trip the VO without a list batch-load.
      *
-     * @param notification source entity (may be {@code null})
+     * @param notification source DTO (may be {@code null})
      * @return projected admin notification VO, or {@code null} when the
      *         input is {@code null}
      */
-    AdminNotificationVO toAdminVO(Notification notification);
+    AdminNotificationVO toAdminVO(NotificationAdminDTO notification);
 
     /**
      * Build a lightweight VO for an announcement that produced zero

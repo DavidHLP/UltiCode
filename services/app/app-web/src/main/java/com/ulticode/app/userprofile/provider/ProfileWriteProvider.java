@@ -232,7 +232,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             receipt.setRequestFingerprint(fingerprint);
             receipt.setStatus("SUCCESS");
             receipt.setResultPayload(objectMapper.writeValueAsString(result));
-            receipt.setActorType("USER");
+            receipt.setActorType(command.actor() != null ? command.actor().actorType() : null);
             receipt.setActorId(command.actor() != null ? command.actor().actorId() : null);
             receipt.setTraceId(traceId);
             receiptMapper.insert(receipt);
@@ -257,7 +257,7 @@ public class ProfileWriteProvider implements ProfileWriteService {
             receipt.setRequestFingerprint(fingerprint);
             receipt.setStatus("SUCCESS");
             receipt.setResultPayload(objectMapper.writeValueAsString(result));
-            receipt.setActorType("USER");
+            receipt.setActorType(command.actor() != null ? command.actor().actorType() : null);
             receipt.setActorId(command.actor() != null ? command.actor().actorId() : null);
             receipt.setTraceId(traceId);
             receiptMapper.insert(receipt);

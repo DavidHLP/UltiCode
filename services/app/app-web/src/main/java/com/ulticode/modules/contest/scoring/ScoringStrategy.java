@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.scoring;
 
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestScoringMode;
+import com.ulticode.modules.contest.entity.enums.ContestTieBreaker;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 
 import java.util.Comparator;
@@ -23,8 +24,8 @@ import java.util.Comparator;
  * <ul>
  *   <li>{@link #applyWrongSubmission(ContestParticipant, int)} — only
  *       ICPC adds a wrong-submission penalty; SCORE and IOI are no-ops.</li>
- *   <li>{@link #getRankingComparator()} — mode-aware sort for live and
- *       snapshot ranking reads.</li>
+ *   <li>{@link #getRankingComparator(ContestTieBreaker)} — mode-aware sort for
+ *       live ranking reads with the contest tie-break policy.</li>
  *   <li>{@link #getMode()} — the enum key the resolver used to look up
  *       this strategy.</li>
  * </ul>
@@ -58,10 +59,9 @@ public interface ScoringStrategy {
     void applyWrongSubmission(ContestParticipant participant, int penaltyPerWrong);
 
     /**
-     * @return the comparator used to rank participants of this mode.
-     *         Higher = better (descending score); nulls last on every
-     *         secondary key so an unfinished participant never wins a
-     *         tie against a finished one.
+     * @param tieBreaker the contest tie-break policy
+     * @return the comparator used to rank live participants of this mode
      */
-    Comparator<ContestParticipantMapper.ContestParticipantWithUser> getRankingComparator();
+    Comparator<ContestParticipantMapper.ContestParticipantWithUser> getRankingComparator(
+            ContestTieBreaker tieBreaker);
 }

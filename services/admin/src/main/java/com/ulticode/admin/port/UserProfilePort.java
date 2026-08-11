@@ -1,7 +1,7 @@
 package com.ulticode.admin.port;
 
-import com.ulticode.modules.user.dto.UpdateUserDTO;
-import com.ulticode.modules.user.dto.UserVO;
+import com.ulticode.app.api.command.UpdateProfileCommand;
+import com.ulticode.app.api.dto.ProfileWriteResult;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -9,23 +9,24 @@ import org.springframework.web.multipart.MultipartFile;
  *
  * <p>Replaces the former {@code com.ulticode.modules.user.port.UserProfilePort}
  * from backend-legacy. The admin shell owns this interface; its implementation
- * ({@code AdminUserProfileAdapter}) writes to the App-owned
- * {@code user_profiles} table (canonical source).
+ * ({@code AdminUserProfileAdapter}) issues App-owned
+ * {@link UpdateProfileCommand} commands to the public
+ * {@code ProfileWriteService} (backend-app), which is the sole writer of the
+ * App-owned {@code user_profiles} table (canonical source).
  *
- * <p>DTO types ({@link UpdateUserDTO}, {@link UserVO}) remain in
- * {@code com.ulticode.modules.user.dto} (backend-app) and are shared across
- * the App/Admin boundary at the same FQN.
+ * <p>All carrier types are public backend-app-api contracts
+ * ({@link UpdateProfileCommand}, {@link ProfileWriteResult}); no App-private
+ * DTO/entity/mapper types cross this seam.
  */
 public interface UserProfilePort {
 
     /**
      * Update profile attributes for a user (name, bio, github, location, etc.).
      *
-     * @param userId the user ID to update
-     * @param updateDTO the profile update data
-     * @return the updated user view object
+     * @param command the profile update command (carries accountId + fields)
+     * @return the post-update profile write result
      */
-    UserVO updateProfile(String userId, UpdateUserDTO updateDTO);
+    ProfileWriteResult updateProfile(UpdateProfileCommand command);
 
     /**
      * Upload and update avatar for a user.

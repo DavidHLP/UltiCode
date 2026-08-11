@@ -1,9 +1,13 @@
 package com.ulticode.app.architecture;
 
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -47,6 +51,21 @@ public class AppSingleHopArchTest {
                             + "(for identity cache-miss), but never Admin.");
 
     /**
+     * Contest is an App-owned Provider; it must not reach back into Admin
+     * implementation packages even when those packages are visible on a
+     * shared test/runtime classpath.
+     */
+    @ArchTest
+    static final ArchRule CONTEST_PROVIDER_MUST_NOT_IMPORT_ADMIN_INTERNALS =
+            noClasses()
+                    .that().resideInAPackage("com.ulticode.modules.contest..")
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "com.ulticode.modules.admin..",
+                            "com.ulticode.admin..")
+                    .because("Contest ownership is in App; the Provider must not depend "
+                            + "on Admin implementation classes or create a reverse hop.");
+
+    /**
      * No class annotated with {@code @DubboService} may declare a field
      * annotated with {@code @DubboReference}.
      */
@@ -58,6 +77,17 @@ public class AppSingleHopArchTest {
                     .because("§6.5: a Dubbo Provider class must not also hold a "
                             + "@DubboReference, which would make it a Consumer "
                             + "and create a controller → dubbo A → dubbo B chain.");
+
+    @Test
+    void contestProviderRuleRejectsAdminDependencyFixture() {
+        var imported = new ClassFileImporter().importClasses(
+                com.ulticode.modules.contest.architecture.ContestProviderFixture.class,
+                com.ulticode.modules.admin.architecture.AdminDependencyFixture.class);
+
+        assertThatThrownBy(() -> CONTEST_PROVIDER_MUST_NOT_IMPORT_ADMIN_INTERNALS.check(imported))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("ContestProviderFixture");
+    }
 
     /**
      * P2-RBAC-001 (consumer-side guard): App classes must not import

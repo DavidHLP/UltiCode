@@ -18,13 +18,14 @@ import java.util.stream.Collectors;
 /**
  * App-side adapter for {@link UserReadPort} — backed by
  * {@link UserProfileMapper} (App-owned name/avatar) and
- * {@link IdentityQueryService} (Auth-owned username via Dubbo).
+ * {@link IdentityQueryService} (Auth-owned username and active-recipient
+ * enumeration via Dubbo).
  *
  * <p>P7-RELOCATE-PROBLEMLIST-001: the problem-list projection needs
  * author display name + username. {@code name} comes from the App-owned
  * {@code user_profiles} table; {@code username} from the Auth-owned
- * {@code users} table via the identity RPC — preserving the owner
- * boundary without a cross-owner SQL join.
+ * {@code users} table via the identity RPC — preserving the owner boundary
+ * without a cross-owner SQL join.
  */
 @Slf4j
 @Component
@@ -84,5 +85,25 @@ public class DefaultUserReadPort implements UserReadPort {
             }
         }
         return result;
+    }
+
+    @Override
+    public List<String> findAllActiveIds() {
+        if (identityQueryService == null) {
+            return Collections.emptyList();
+        }
+        try {
+            RpcResult<List<String>> response = identityQueryService.findActiveAccountIds();
+            if (response == null || !response.success() || response.data() == null) {
+                throw new IllegalStateException("Auth active-account lookup failed");
+            }
+            return response.data().stream()
+                    .filter(Objects::nonNull)
+                    .filter(id -> !id.isBlank())
+                    .distinct()
+                    .toList();
+        } catch (Exception e) {
+            throw new IllegalStateException("Auth active-account lookup failed", e);
+        }
     }
 }

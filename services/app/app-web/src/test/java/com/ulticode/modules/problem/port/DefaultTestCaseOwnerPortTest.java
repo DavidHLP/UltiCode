@@ -2,6 +2,7 @@ package com.ulticode.modules.problem.port;
 
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.app.api.service.TestCaseOwnerPort.TestCaseOrder;
 import com.ulticode.app.api.service.TestCaseOwnerPort.TestCaseWrite;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,9 +14,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -132,6 +137,34 @@ class DefaultTestCaseOwnerPortTest {
             // Columns outside the reorder must stay untouched (null in shell).
             assertThat(shell.getProblemId()).isNull();
             assertThat(shell.getInputText()).isNull();
+        }
+        @Test
+        @DisplayName("updates every order in the owner-side batch")
+        void batchShellUpdate() {
+            LocalDateTime now = LocalDateTime.parse("2026-07-28T02:00:00");
+
+            port.updateTestOrders(List.of(
+                    new TestCaseOrder("tc-1", 0, now),
+                    new TestCaseOrder("tc-2", 1, now)));
+
+            ArgumentCaptor<TestCase> captor = ArgumentCaptor.forClass(TestCase.class);
+            verify(testCaseMapper, times(2)).updateById(captor.capture());
+            assertThat(captor.getAllValues()).extracting(TestCase::getId)
+                    .containsExactly("tc-1", "tc-2");
+            assertThat(captor.getAllValues()).extracting(TestCase::getTestOrder)
+                    .containsExactly(0, 1);
+            assertThat(captor.getAllValues()).extracting(TestCase::getUpdatedAt)
+                    .containsExactly(now, now);
+        }
+
+        @Test
+        @DisplayName("rejects a blank order id before any row update")
+        void rejectsBlankIdBeforeWrite() {
+            assertThatThrownBy(() -> port.updateTestOrders(List.of(
+                    new TestCaseOrder(" ", 0, LocalDateTime.now())))
+            ).isInstanceOf(IllegalArgumentException.class);
+
+            verify(testCaseMapper, never()).updateById(any(TestCase.class));
         }
     }
 }

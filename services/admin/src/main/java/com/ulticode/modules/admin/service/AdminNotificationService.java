@@ -24,6 +24,29 @@ public interface AdminNotificationService {
      *         persisted and the VO carries only the announcement metadata
      */
     AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request);
+    /**
+     * Key-aware create overload used by the HTTP cutover seam. The default
+     * keeps existing in-process callers source-compatible.
+     */
+    default AdminNotificationVO createSystemNotification(
+            CreateSystemNotificationRequest request, String idempotencyKey) {
+        return createSystemNotification(request);
+    }
+
+    /**
+     * Key-aware delete overload used by the HTTP cutover seam.
+     */
+    default void deleteNotification(String id, String idempotencyKey) {
+        deleteNotification(id);
+    }
+
+    /**
+     * Key-aware update overload used by the HTTP cutover seam.
+     */
+    default AdminNotificationVO updateSystemNotification(
+            String id, UpdateSystemNotificationRequest request, String idempotencyKey) {
+        return updateSystemNotification(id, request);
+    }
 
     void deleteNotification(String id);
 

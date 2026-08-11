@@ -10,9 +10,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -20,7 +23,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(properties = "spring.autoconfigure.exclude="
         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-        + "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"
         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
@@ -33,12 +35,19 @@ class BackendAdminDatasourceContextIT {
             .withUsername("test")
             .withPassword("test");
 
+    @Container
+    private static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7.2-alpine")
+            .withExposedPorts(6379);
+
     @DynamicPropertySource
     static void configureDatasource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
         registry.add("spring.datasource.username", MYSQL::getUsername);
         registry.add("spring.datasource.password", MYSQL::getPassword);
         registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+        registry.add("spring.data.redis.password", () -> "");
     }
 
     @Autowired
@@ -49,6 +58,8 @@ class BackendAdminDatasourceContextIT {
 
     @Autowired
     private SqlSessionFactory sqlSessionFactory;
+    @Autowired
+    private RedisConnectionFactory redisConnectionFactory;
 
     @Autowired
     private AdminDatasourceCanaryMapper canaryMapper;
@@ -64,5 +75,9 @@ class BackendAdminDatasourceContextIT {
             assertThat(connection.getMetaData().getDatabaseProductName()).containsIgnoringCase("MySQL");
         }
         assertThat(canaryMapper.selectOne()).isEqualTo(1);
+
+        try (RedisConnection connection = redisConnectionFactory.getConnection()) {
+            assertThat(connection.ping()).isEqualTo("PONG");
+        }
     }
 }

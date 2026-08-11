@@ -43,7 +43,11 @@ public class DefaultForumCommentOwnerPort implements ForumCommentOwnerPort {
         boolean previousIsFlagged = Boolean.TRUE.equals(comment.getIsFlagged());
         String previousReason = comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "";
 
-        forumCommentMapper.updateFlagStatus(commentId, true, reason != null ? reason : "");
+        int updated = forumCommentMapper.updateFlagStatus(
+                commentId, true, reason != null ? reason : "");
+        if (updated == 0) {
+            return null;
+        }
         log.info("Flagged forum comment {}", commentId);
 
         return new FlagResult(comment.getAuthorId(), previousIsFlagged, previousReason);
@@ -60,7 +64,10 @@ public class DefaultForumCommentOwnerPort implements ForumCommentOwnerPort {
         boolean previousIsFlagged = Boolean.TRUE.equals(comment.getIsFlagged());
         String previousReason = comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "";
 
-        forumCommentMapper.updateFlagStatus(commentId, false, null);
+        int updated = forumCommentMapper.updateFlagStatus(commentId, false, null);
+        if (updated == 0) {
+            return null;
+        }
         log.info("Unflagged forum comment {}", commentId);
 
         return new FlagResult(comment.getAuthorId(), previousIsFlagged, previousReason);
@@ -70,5 +77,24 @@ public class DefaultForumCommentOwnerPort implements ForumCommentOwnerPort {
     public String resolveAuthorId(String commentId) {
         ForumComment comment = forumCommentMapper.selectById(commentId);
         return comment != null ? comment.getAuthorId() : null;
+    }
+
+    @Override
+    @Transactional
+    public DeleteResult deleteComment(String commentId, String deletedBy) {
+        ForumComment comment = forumCommentMapper.selectByIdIgnoreDeleted(commentId);
+        if (comment == null) {
+            return null;
+        }
+
+        boolean previousIsDeleted = Boolean.TRUE.equals(comment.getIsDeleted());
+
+        int updated = forumCommentMapper.softDelete(commentId, deletedBy);
+        if (updated == 0) {
+            return null;
+        }
+        log.info("Deleted forum comment {} by {}", commentId, deletedBy);
+
+        return new DeleteResult(comment.getAuthorId(), previousIsDeleted);
     }
 }

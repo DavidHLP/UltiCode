@@ -47,7 +47,26 @@ public interface SolutionCommentOwnerPort {
     String resolveSolutionId(String commentId);
 
     /**
+     * Soft-delete a solution comment, stamping the acting admin's user id.
+     *
+     * <p>Consumed by the Admin service's {@code SolutionCommentModerator}
+     * (ADMIN-006) which previously reached for
+     * {@code SolutionCommentMapper} directly.
+     *
+     * @param commentId target comment ID
+     * @param deletedBy admin user ID performing the deletion
+     * @return result wrapper with author id + pre-mutation deleted state, or
+     *         {@code null} when the comment does not exist
+     */
+    DeleteResult deleteComment(String commentId, String deletedBy);
+
+    /**
      * Result wrapper holding the author user ID and pre-mutation flag state.
      */
     record FlagResult(String authorUserId, boolean previousIsFlagged, String previousFlaggedReason) {}
+
+    /**
+     * Result wrapper holding the author user ID and pre-mutation deleted state.
+     */
+    record DeleteResult(String authorUserId, boolean previousIsDeleted) {}
 }

@@ -1,34 +1,38 @@
 package com.ulticode.modules.admin.service.handler;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.tag.*;
-import com.ulticode.modules.problem.entity.ProblemTag;
-import com.ulticode.modules.problem.entity.ProblemTagRelation;
-import com.ulticode.modules.problem.mapper.ProblemTagMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
+import com.ulticode.app.api.dto.ProblemAdminTagDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.ProblemTagOwnerPort;
+import com.ulticode.app.api.service.ProblemTagOwnerPort.TagWrite;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Admin tag-domain handler for {@code PROBLEM} tags.
+ *
+ * <p>ADMIN-003: both the reads (list / getById / uniqueness conflict
+ * checks) and the writes (create / update / delete / merge) flow through
+ * the public {@link ProblemAdminReadPort} / {@link ProblemTagOwnerPort}
+ * owner contracts; the App-private tag entities and mappers are no longer
+ * imported.
+ */
 @Component
 @RequiredArgsConstructor
 public class ProblemTagHandler implements TagDomainHandler {
 
-    private final ProblemTagMapper problemTagMapper;
-    private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final ProblemAdminReadPort problemReadPort;
+    private final ProblemTagOwnerPort problemTagOwnerPort;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
 
@@ -39,29 +43,15 @@ public class ProblemTagHandler implements TagDomainHandler {
 
     @Override
     public TagListResponse list(String search, int pageNum, int pageSize, String sortBy, String sortOrder) {
-        LambdaQueryWrapper<ProblemTag> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(search)) {
-            wrapper.like(ProblemTag::getLabel, search).or().like(ProblemTag::getSlug, search);
-        }
-        boolean isAsc = "asc".equalsIgnoreCase(sortOrder);
-        if ("usageCount".equalsIgnoreCase(sortBy) || "usage_count".equalsIgnoreCase(sortBy)) {
-            wrapper.orderBy(true, isAsc, ProblemTag::getUsageCount);
-        } else if ("createdAt".equalsIgnoreCase(sortBy) || "created_at".equalsIgnoreCase(sortBy)) {
-            wrapper.orderBy(true, isAsc, ProblemTag::getCreatedAt);
-        } else if ("slug".equalsIgnoreCase(sortBy)) {
-            wrapper.orderBy(true, isAsc, ProblemTag::getSlug);
-        } else {
-            wrapper.orderBy(true, isAsc, ProblemTag::getLabel);
-        }
-        IPage<ProblemTag> page = new Page<>(pageNum, pageSize);
-        IPage<ProblemTag> result = problemTagMapper.selectPage(page, wrapper);
-        List<TagVO> data = result.getRecords().stream().map(this::toTagVO).collect(Collectors.toList());
+        PageResult<ProblemAdminTagDTO> result =
+                problemReadPort.listTags(search, pageNum, pageSize, sortBy, sortOrder);
+        List<TagVO> data = result.getItems().stream().map(this::toTagVO).collect(Collectors.toList());
         return TagListResponse.of(data, result.getTotal(), pageNum, pageSize);
     }
 
     @Override
     public TagVO getById(String id) {
-        ProblemTag tag = problemTagMapper.selectById(id);
+        ProblemAdminTagDTO tag = problemReadPort.getTagById(id);
         if (tag == null) {
             throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
@@ -72,107 +62,92 @@ public class ProblemTagHandler implements TagDomainHandler {
     public TagVO create(CreateTagDTO dto, String slug) {
         checkNameConflict(dto.getName());
         checkSlugConflict(slug);
-        ProblemTag tag = new ProblemTag();
-        tag.setId(uuidGenerator.newId());
-        tag.setLabel(dto.getName());
-        tag.setSlug(slug);
-        tag.setDescription(dto.getDescription());
-        tag.setColor(dto.getColor());
-        tag.setUsageCount(0);
-        tag.setCreatedAt(LocalDateTime.now(clock));
-        tag.setUpdatedAt(LocalDateTime.now(clock));
-        problemTagMapper.insert(tag);
-        return toTagVO(tag);
+        LocalDateTime now = LocalDateTime.now(clock);
+        TagWrite write = new TagWrite(
+                uuidGenerator.newId(), dto.getName(), slug, dto.getDescription(),
+                dto.getColor(), 0, now, now);
+        problemTagOwnerPort.createTag(write);
+        return toTagVO(toDto(write));
     }
 
     @Override
     public TagVO update(String id, UpdateTagDTO dto) {
-        ProblemTag existing = problemTagMapper.selectById(id);
+        ProblemAdminTagDTO existing = problemReadPort.getTagById(id);
         if (existing == null) {
             throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
-        if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.getLabel())) {
+        String label = existing.label();
+        String slug = existing.slug();
+        String description = existing.description();
+        String color = existing.color();
+        if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.label())) {
             checkNameConflict(dto.getName());
-            existing.setLabel(dto.getName());
+            label = dto.getName();
         }
-        if (StringUtils.hasText(dto.getSlug()) && !dto.getSlug().equals(existing.getSlug())) {
+        if (StringUtils.hasText(dto.getSlug()) && !dto.getSlug().equals(existing.slug())) {
             checkSlugConflict(dto.getSlug());
-            existing.setSlug(dto.getSlug());
+            slug = dto.getSlug();
         }
         if (dto.getDescription() != null) {
-            existing.setDescription(dto.getDescription());
+            description = dto.getDescription();
         }
         if (dto.getColor() != null) {
-            existing.setColor(dto.getColor());
+            color = dto.getColor();
         }
-        existing.setUpdatedAt(LocalDateTime.now(clock));
-        problemTagMapper.updateById(existing);
-        return toTagVO(existing);
+        TagWrite write = new TagWrite(
+                id, label, slug, description, color, existing.usageCount(),
+                existing.createdAt(), LocalDateTime.now(clock));
+        problemTagOwnerPort.updateTag(write);
+        return toTagVO(toDto(write));
     }
 
     @Override
     public void delete(String id) {
-        if (problemTagMapper.selectById(id) == null) {
+        if (problemReadPort.getTagById(id) == null) {
             throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
-        problemTagMapper.deleteById(id);
+        problemTagOwnerPort.deleteTag(id);
     }
 
     @Override
     public void merge(MergeTagDTO dto) {
-        ProblemTag source = problemTagMapper.selectById(dto.getSourceId());
-        ProblemTag target = problemTagMapper.selectById(dto.getTargetTagId());
+        ProblemAdminTagDTO source = problemReadPort.getTagById(dto.getSourceId());
+        ProblemAdminTagDTO target = problemReadPort.getTagById(dto.getTargetTagId());
         if (source == null || target == null) {
             throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
-        LambdaUpdateWrapper<ProblemTagRelation> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(ProblemTagRelation::getTagId, dto.getSourceId())
-                .set(ProblemTagRelation::getTagId, dto.getTargetTagId());
-        problemTagRelationMapper.update(updateWrapper);
-        problemTagMapper.deleteById(dto.getSourceId());
-        LambdaQueryWrapper<ProblemTagRelation> countWrapper = new LambdaQueryWrapper<>();
-        countWrapper.eq(ProblemTagRelation::getTagId, dto.getTargetTagId());
-        target.setUsageCount(Math.toIntExact(problemTagRelationMapper.selectCount(countWrapper)));
-        target.setUpdatedAt(LocalDateTime.now(clock));
-        problemTagMapper.updateById(target);
-    }
-
-    public Map<String, Object> auditValues(ProblemTag tag) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("name", tag.getLabel());
-        values.put("slug", tag.getSlug());
-        values.put("description", tag.getDescription());
-        values.put("color", tag.getColor());
-        return values;
+        problemTagOwnerPort.mergeTags(dto.getSourceId(), dto.getTargetTagId());
     }
 
     private void checkNameConflict(String name) {
-        LambdaQueryWrapper<ProblemTag> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ProblemTag::getLabel, name);
-        if (problemTagMapper.selectCount(wrapper) > 0) {
+        if (problemReadPort.tagNameExists(name)) {
             throw new BusinessException(AdminErrorCode.PROBLEM_TAG_NAME_EXISTS);
         }
     }
 
     private void checkSlugConflict(String slug) {
-        LambdaQueryWrapper<ProblemTag> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ProblemTag::getSlug, slug);
-        if (problemTagMapper.selectCount(wrapper) > 0) {
+        if (problemReadPort.tagSlugExists(slug)) {
             throw new BusinessException(AdminErrorCode.PROBLEM_TAG_SLUG_EXISTS);
         }
     }
 
-    private TagVO toTagVO(ProblemTag tag) {
+    private static ProblemAdminTagDTO toDto(TagWrite write) {
+        return new ProblemAdminTagDTO(
+                write.id(), write.label(), write.slug(), write.description(), write.color(),
+                write.usageCount(), write.createdAt(), write.updatedAt());
+    }
+
+    private TagVO toTagVO(ProblemAdminTagDTO tag) {
         TagVO vo = new TagVO();
-        vo.setId(tag.getId());
-        vo.setName(tag.getLabel());
-        vo.setSlug(tag.getSlug());
-        vo.setDescription(tag.getDescription());
-        vo.setColor(tag.getColor());
-        vo.setUsageCount(tag.getUsageCount());
+        vo.setId(tag.id());
+        vo.setName(tag.label());
+        vo.setSlug(tag.slug());
+        vo.setDescription(tag.description());
+        vo.setColor(tag.color());
+        vo.setUsageCount(tag.usageCount());
         vo.setType(TagTypes.PROBLEM);
-        vo.setCreatedAt(tag.getCreatedAt());
-        vo.setUpdatedAt(tag.getUpdatedAt());
+        vo.setCreatedAt(tag.createdAt());
+        vo.setUpdatedAt(tag.updatedAt());
         return vo;
     }
 }

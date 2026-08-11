@@ -1,17 +1,13 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.response.PageResult;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.api.dto.ContestAdminDTO;
+import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
+import com.ulticode.modules.admin.dto.AdminContestVO;
 
 /**
  * Read-side deep module for the admin contest management surface &mdash; owns
- * every entity-to-{@code AdminContestVO} projection rule, the paginated
+ * every owner-DTO-to-{@code AdminContestVO} projection rule, the paginated
  * list-query builder, the single-detail read and the contest-slug generator
  * that previously lived inline on
  * {@link com.ulticode.modules.admin.service.AdminContestService}.
@@ -24,41 +20,33 @@ import com.ulticode.app.api.dto.ContestAdminDTO;
  *   <li>The 494-line {@code AdminContestServiceImpl} mixed the write state
  *       machine (create / update / soft-delete / start / end /
  *       announcement CRUD / problem-add) with read-side concerns.</li>
- *   <li>{@code toAdminVO(Contest)} lived inside the service and was called by
+ *   <li>{@code toAdminVO(ContestAdminDTO)} lived inside the service and was called by
  *       both reads and write paths &mdash; so every shape tweak had to land in
  *       the same file as the write state machine.</li>
  *   <li>{@code generateSlug(String)} (URL-friendly contest slug) sat next to
  *       the announcement CRUD &mdash; with no obvious locality.</li>
- *   <li>The {@code ContestProblemMapper.countByContestId} read that powers the
- *       {@code problemCount} field on the VO leaked across the admin seam
- *       into the orchestration service.</li>
+ *   <li>The owner-contract read that powers the {@code problemCount} field on
+ *       the VO leaked into the orchestration service.</li>
  * </ul>
  *
  * <p>After the deepening:
  * <ul>
- *   <li>{@link com.ulticode.modules.admin.service.AdminContestService} keeps
- *       the write state machine only (create / update / soft-delete /
- *       start / end, announcement CRUD, problem-add, live-ranking passthrough).
- *       Its {@code createContest} / {@code updateContest} /
- *       {@code startContest} / {@code endContest} write paths return
- *       {@code AdminContestVO} via
- *       {@link #toAdminVO(com.ulticode.modules.contest.entity.Contest)} so
- *       the controller contract is unchanged; the shape rule no longer lives
- *       in the service.</li>
+ *   <li>{@link com.ulticode.modules.admin.service.AdminContestService} remains
+ *       the read facade, while {@code ContestCutoverService} owns the write
+ *       commands and their App-owner contract. This projection owns the
+ *       admin read shape and its {@code problemCount} enrichment.</li>
  *   <li>Future admins or port-driven consumers depend on this projection for
- *       reads and on the service for writes &mdash; mirroring the
- *       AdminSubmissionProjection / -ModerationProjection pattern documented
- *       in the deep-modules index of {@code backend-spring/AGENTS.md}.</li>
+ *       reads &mdash; mirroring the AdminSubmissionProjection /
+ *       -ModerationProjection pattern documented in the deep-modules index of
+ *       {@code backend-spring/AGENTS.md}.</li>
  * </ul>
  *
- * <p>Cross-module read access ({@code ContestProblemMapper} for the
- * {@code problemCount} field) lives behind this seam; the orchestration
- * service no longer imports it for read enrichment.
+ * <p>The owner-contract read for {@code problemCount} lives behind this seam;
+ * the orchestration service no longer reaches into App-private mappers.
  *
  * @author ulticode
  * @see com.ulticode.modules.admin.projection.AdminSubmissionProjection
  * @see com.ulticode.modules.admin.projection.ProblemListProjection
- * @see com.ulticode.modules.contest.projection.ContestProjection
  */
 public interface AdminContestProjection {
 
@@ -86,14 +74,13 @@ public interface AdminContestProjection {
     AdminContestVO getContest(String id);
 
     /**
-     * Project a {@link Contest} entity to the admin-side
+     * Project an owner {@link ContestAdminDTO} to the admin-side
      * {@link AdminContestVO} shape, including the derived
-     * {@code problemCount} field. Pure shape rule &mdash; no IO other than the
-     * single {@code ContestProblemMapper.countByContestId} read used for the
-     * count enrichment. Used by both projection read paths and write paths
+     * {@code problemCount} field. The implementation may use the owner read
+     * contract for that derived field. Used by both projection read paths and write paths
      * that return the resulting contest as a VO.
      *
-     * @param contest source entity (may be {@code null})
+     * @param contest source owner DTO (may be {@code null})
      * @return projected admin contest VO, or {@code null} when the input is
      *         {@code null}
      */

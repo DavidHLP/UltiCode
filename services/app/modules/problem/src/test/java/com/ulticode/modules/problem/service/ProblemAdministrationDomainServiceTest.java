@@ -1,5 +1,6 @@
 package com.ulticode.modules.problem.service;
 
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
@@ -237,6 +238,48 @@ class ProblemAdministrationDomainServiceTest {
 
             verify(writePort, never()).updateById(any());
         }
+
+        @Test
+        @DisplayName("stale expected version fails before any write or side effect")
+        void staleVersion() {
+            Problem existing = new Problem();
+            existing.setId(10L);
+            existing.setVersion(4);
+            when(writePort.selectById(10L)).thenReturn(existing);
+
+            UpdateProblemDTO dto = new UpdateProblemDTO();
+            dto.setTitle("New Title");
+
+            assertThatThrownBy(() -> service.updateProblem(10L, dto, ACTOR_ID, 3L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AppErrorCode.VERSION_CONFLICT);
+
+            verify(writePort, never()).updateById(any(Problem.class), any());
+            verify(detailPort, never()).applyDetailUpdate(any(), any(), any());
+            verify(versionPort, never()).createVersion(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("zero conditional update rows fails without detail or version side effects")
+        void zeroAffectedRows() {
+            Problem existing = new Problem();
+            existing.setId(10L);
+            existing.setVersion(4);
+            when(writePort.selectById(10L)).thenReturn(existing);
+            when(writePort.updateById(any(Problem.class), eq(4L))).thenReturn(0);
+
+            UpdateProblemDTO dto = new UpdateProblemDTO();
+            dto.setTitle("New Title");
+
+            assertThatThrownBy(() -> service.updateProblem(10L, dto, ACTOR_ID, 4L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AppErrorCode.VERSION_CONFLICT);
+
+            verify(detailPort, never()).applyDetailUpdate(any(), any(), any());
+            verify(versionPort, never()).createVersion(any(), any(), any(), any());
+        }
     }
 
     // ── deleteProblem ───────────────────────────────────────────────────────
@@ -255,6 +298,20 @@ class ProblemAdministrationDomainServiceTest {
             service.deleteProblem(5L, ACTOR_ID);
 
             verify(writePort).deleteById(5L);
+        }
+
+        @Test
+        @DisplayName("conditional delete forwards expected version and accepts one affected row")
+        void conditionalDelete() {
+            Problem existing = new Problem();
+            existing.setId(5L);
+            existing.setVersion(6);
+            when(writePort.selectById(5L)).thenReturn(existing);
+            when(writePort.deleteById(5L, 6L)).thenReturn(1);
+
+            service.deleteProblem(5L, ACTOR_ID, 6L);
+
+            verify(writePort).deleteById(5L, 6L);
         }
 
         @Test
@@ -311,6 +368,22 @@ class ProblemAdministrationDomainServiceTest {
             assertThat(result.getPublishedAt()).isEqualTo(LocalDateTime.of(2026, 1, 1, 0, 0));
             assertThat(result.getPublishedBy()).isEqualTo("original-actor");
             verify(writePort).updateById(existing);
+        }
+
+        @Test
+        @DisplayName("zero conditional publish rows returns VERSION_CONFLICT")
+        void zeroAffectedRows() {
+            Problem existing = new Problem();
+            existing.setId(7L);
+            existing.setVersion(2);
+            existing.setIsPublished(false);
+            when(writePort.selectById(7L)).thenReturn(existing);
+            when(writePort.updateById(any(Problem.class), eq(2L))).thenReturn(0);
+
+            assertThatThrownBy(() -> service.publishProblem(7L, ACTOR_ID, 2L))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AppErrorCode.VERSION_CONFLICT);
         }
 
         @Test

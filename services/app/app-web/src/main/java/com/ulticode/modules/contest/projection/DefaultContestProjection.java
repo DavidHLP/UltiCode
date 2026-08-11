@@ -130,12 +130,31 @@ public class DefaultContestProjection implements ContestProjection {
 
     @Override
     public ContestVO getContestById(String idOrSlug, String userId) {
+        return toVO(resolveContest(idOrSlug), userId);
+    }
+
+    @Override
+    public ContestVO getPublicContestById(String idOrSlug, String userId) {
+        Contest contest = resolveContest(idOrSlug);
+        if (!isPubliclyVisible(contest)) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
+        }
+        return toVO(contest, userId);
+    }
+
+    private Contest resolveContest(String idOrSlug) {
         Contest contest = findById(idOrSlug).orElse(null);
         if (contest == null) {
             contest = findBySlug(idOrSlug)
                     .orElseThrow(() -> new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND));
         }
-        return toVO(contest, userId);
+        return contest;
+    }
+
+    private boolean isPubliclyVisible(Contest contest) {
+        return contest != null
+                && !Boolean.TRUE.equals(contest.getIsDeleted())
+                && Boolean.TRUE.equals(contest.getIsVisible());
     }
 
     @Override
@@ -216,7 +235,7 @@ public class DefaultContestProjection implements ContestProjection {
     @Override
     public List<ContestProblemVO> getContestProblems(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null || contest.getIsDeleted()) {
+        if (!isPubliclyVisible(contest)) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         return contestProblemMapper.findByContestId(contestId).stream()
@@ -239,7 +258,7 @@ public class DefaultContestProjection implements ContestProjection {
     @Override
     public List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
+        if (!isPubliclyVisible(contest)) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
@@ -256,7 +275,7 @@ public class DefaultContestProjection implements ContestProjection {
     @Override
     public List<ContestAnnouncement> getContestAnnouncements(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
-        if (contest == null || contest.getIsDeleted()) {
+        if (!isPubliclyVisible(contest)) {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
         }
         return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
@@ -402,7 +421,10 @@ public class DefaultContestProjection implements ContestProjection {
         int p = Math.max(page != null ? page : 1, 1);
         int ps = Math.min(pageSize != null && pageSize > 0 ? pageSize : 10, 50);
         LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
-        qw.eq(Contest::getIsDeleted, false).eq(Contest::getStatus, ContestStatus.FINISHED.name()).orderByDesc(Contest::getEndTime);
+        qw.eq(Contest::getIsDeleted, false)
+          .eq(Contest::getIsVisible, true)
+          .eq(Contest::getStatus, ContestStatus.FINISHED.name())
+          .orderByDesc(Contest::getEndTime);
         Page<Contest> result = contestMapper.selectPage(new Page<>(p, ps), qw);
         var enrichment = batchEnrich(result.getRecords(), userId);
         List<ContestListVO> items = result.getRecords().stream()
@@ -500,7 +522,8 @@ public class DefaultContestProjection implements ContestProjection {
         vo.setAvatar(ranking.getAvatar());
         vo.setName(ranking.getName());
         vo.setScore(ranking.getRating().longValue());
-        vo.setProblemsSolved(ranking.getContestsAttended());
+        // Global ranking counts contests, not solved contest problems.
+        vo.setProblemsSolved(null);
         vo.setCountry(ranking.getCountry());
         vo.setMaxRating(ranking.getMaxRating());
         vo.setRatingTitle(ranking.getRatingTitle());
@@ -518,6 +541,10 @@ public class DefaultContestProjection implements ContestProjection {
         vo.setUsername(p.username());
         vo.setName(p.name());
         vo.setAvatar(p.avatar());
+        vo.setScore(p.totalScore() != null ? p.totalScore().longValue() : null);
+        vo.setPenalty(p.totalPenalty() != null ? p.totalPenalty().longValue() : null);
+        vo.setProblemsSolved(p.problemsSolved());
+        vo.setIsParticipating(true);
         return vo;
     }
 }

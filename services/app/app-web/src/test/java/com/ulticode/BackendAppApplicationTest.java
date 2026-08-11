@@ -8,6 +8,7 @@ import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
 import com.ulticode.app.security.AppTestSecurityConfig;
+import com.ulticode.app.security.jwt.ResourceServerJwtVerifier;
 import com.ulticode.modules.bookmark.projection.BookmarkProjection;
 import com.ulticode.modules.bookmark.service.BookmarkService;
 import com.ulticode.modules.follow.inspector.FollowInspector;
@@ -39,6 +40,8 @@ class BackendAppApplicationTest {
 
     @Autowired
     private TestRestTemplate rest;
+    @Autowired
+    private ResourceServerJwtVerifier resourceServerJwtVerifier;
 
 
     @Autowired
@@ -87,6 +90,12 @@ class BackendAppApplicationTest {
 
     @MockBean
     private com.ulticode.modules.solution.service.SolutionTopicService solutionTopicService;
+
+    @MockBean
+    private com.ulticode.modules.solution.mapper.SolutionMapper solutionMapper;
+
+    @MockBean
+    private com.ulticode.modules.solution.mapper.SolutionCommentMapper solutionCommentMapper;
 
     @MockBean
     private com.ulticode.app.api.service.ProblemExistencePort problemExistencePort;
@@ -191,6 +200,8 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
     @MockBean
+    private com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper appCommandReceiptMapper;
+    @MockBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
     @MockBean
     private com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
@@ -255,7 +266,10 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
     @MockBean private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
     @MockBean private com.ulticode.modules.contest.mapper.ContestProblemResultMapper contestProblemResultMapper;
+@MockBean private com.ulticode.modules.contest.mapper.ContestAdjudicationReceiptMapper contestAdjudicationReceiptMapper;
     @MockBean private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
+@MockBean private com.ulticode.modules.contest.mapper.ContestRatingCalculationMapper contestRatingCalculationMapper;
+@MockBean private com.ulticode.modules.contest.mapper.ContestCascadeMapper contestCascadeMapper;
     @MockBean private com.ulticode.modules.contest.mapper.FirstSolveRecordMapper firstSolveRecordMapper;
     @MockBean private com.ulticode.modules.contest.mapper.GlobalRankingMapper globalRankingMapper;
     @MockBean private com.ulticode.modules.contest.mapper.ScoringRuleMapper scoringRuleMapper;
@@ -328,6 +342,12 @@ class BackendAppApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"status\":\"UP\"");
+    }
+
+    @Test
+    @DisplayName("ResourceServerJwtVerifier uses real test JWKS wiring")
+    void resourceServerJwtVerifierIsWired() {
+        assertThat(resourceServerJwtVerifier).isNotNull();
     }
 
     @Test

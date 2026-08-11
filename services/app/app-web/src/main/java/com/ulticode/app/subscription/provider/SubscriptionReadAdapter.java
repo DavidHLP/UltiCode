@@ -8,7 +8,7 @@ import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.apache.dubbo.config.annotation.DubboService;
 
 /**
  * App-side implementation of {@link SubscriptionReadPort}.
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  * and never touches {@link SubscriptionMapper} or {@link Subscription}
  * directly.
  */
-@Component
+@DubboService(group = "backend-app", version = "1.0.0")
 @RequiredArgsConstructor
 public class SubscriptionReadAdapter implements SubscriptionReadPort {
 

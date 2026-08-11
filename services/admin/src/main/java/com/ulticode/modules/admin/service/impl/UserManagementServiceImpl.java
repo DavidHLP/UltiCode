@@ -1,6 +1,5 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
 import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.command.CreateAccountCommand;
@@ -16,6 +15,7 @@ import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
@@ -29,13 +29,12 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.admin.port.UserProfilePort;
-import com.ulticode.modules.user.dto.UpdateUserDTO;
+import com.ulticode.app.api.command.UpdateProfileCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -64,9 +63,9 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final UserProfilePort userProfilePort;
     private final AuditRecorder auditRecorder;
     private final AdminUserProjection adminUserProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.CREATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "#result.id")
     public AdminUserVO createUser(AdminCreateUserDTO dto) {
         checkQueryServiceAvailable();
@@ -89,8 +88,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         CreateAccountCommand createCmd = new CreateAccountCommand(
                 commandId,
                 IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "admin create user"),
-                TraceMetadata.EMPTY,
+                authActor("admin create user"),
+                currentTrace(),
                 dto.getUsername(),
                 dto.getEmail(),
                 dto.getPassword() != null ? dto.getPassword() : "DefaultPass123",
@@ -105,9 +104,14 @@ public class UserManagementServiceImpl implements UserManagementService {
         String newUserId = createResult.data().accountId();
 
         if (StringUtils.hasText(dto.getName())) {
-            UpdateUserDTO profileDTO = new UpdateUserDTO();
-            profileDTO.setName(dto.getName());
-            userProfilePort.updateProfile(newUserId, profileDTO);
+            UpdateProfileCommand profileCmd = new UpdateProfileCommand(
+                    UUID.randomUUID().toString(),
+                    IdMetadata.mint(),
+                    appActor("admin create user"),
+                    currentTrace(),
+                    newUserId,
+                    dto.getName(), null, null, null, null, null, null, null, null);
+            userProfilePort.updateProfile(profileCmd);
         }
 
         log.info("User created: {} by admin", newUserId);
@@ -115,7 +119,6 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.UPDATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO updateUser(String id, AdminUpdateUserDTO dto) {
         checkQueryServiceAvailable();
@@ -154,38 +157,38 @@ public class UserManagementServiceImpl implements UserManagementService {
         UpdateAccountCredentialsCommand updateCredsCmd = new UpdateAccountCredentialsCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "admin update credentials"),
-                TraceMetadata.EMPTY,
+                authActor("admin update credentials"),
+                currentTrace(),
                 id,
                 newUsername,
                 newEmail
         );
         accountManagementService.updateCredentials(updateCredsCmd);
 
-        UpdateUserDTO profileDTO = new UpdateUserDTO();
-        profileDTO.setName(dto.getName());
-        profileDTO.setAvatar(dto.getAvatar());
-        profileDTO.setBio(dto.getBio());
-        profileDTO.setCompany(dto.getCompany());
-        profileDTO.setGithub(dto.getGithub());
-        profileDTO.setWebsite(dto.getWebsite());
-        profileDTO.setLocation(dto.getLocation());
-        profileDTO.setTwitter(dto.getTwitter());
-        profileDTO.setPreferredLanguage(dto.getPreferredLanguage());
-        userProfilePort.updateProfile(id, profileDTO);
+        UpdateProfileCommand profileCmd = new UpdateProfileCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                appActor("admin update user"),
+                currentTrace(),
+                id,
+                dto.getName(),
+                dto.getAvatar(),
+                dto.getBio(),
+                dto.getCompany(),
+                dto.getGithub(),
+                dto.getLocation(),
+                dto.getTwitter(),
+                dto.getWebsite(),
+                dto.getPreferredLanguage());
+        userProfilePort.updateProfile(profileCmd);
 
         if (StringUtils.hasText(dto.getRole()) && !dto.getRole().equals(current.role())) {
             try {
                 if (accountAdministrationService != null) {
-                    ActorDelegation actor = new ActorDelegation("ADMIN", "admin", "admin", "admin user update");
-                    String reqId = TraceIdUtil.current();
-                    if (reqId == null || reqId.isBlank()) {
-                        reqId = "t-" + UUID.randomUUID().toString();
-                    }
-                    String stableKey = "auth-role-update-" + reqId + "-" + id;
+                    String stableKey = "auth-role-update-" + currentTrace().traceId() + "-" + id;
                     String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
                     ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                            commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(reqId, null, null, null),
+                            commandId, IdMetadata.of(stableKey, null), authActor("admin user update"), currentTrace(),
                             id, current.authzVersion(), dto.getRole(), Collections.emptySet(), "update user role"
                     );
                     accountAdministrationService.changeAuthorization(command);
@@ -209,7 +212,6 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.BAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO banUser(String id, String reason, String until) {
         checkQueryServiceAvailable();
@@ -218,8 +220,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         ChangeAccountStateCommand command = new ChangeAccountStateCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "admin ban user"),
-                TraceMetadata.EMPTY,
+                authActor("admin ban user"),
+                currentTrace(),
                 id,
                 current.authzVersion(),
                 ChangeAccountStateCommand.AccountStateAction.BAN,
@@ -231,7 +233,6 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.UNBAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO unbanUser(String id) {
         checkQueryServiceAvailable();
@@ -240,8 +241,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         ChangeAccountStateCommand command = new ChangeAccountStateCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "admin unban user"),
-                TraceMetadata.EMPTY,
+                authActor("admin unban user"),
+                currentTrace(),
                 id,
                 current.authzVersion(),
                 ChangeAccountStateCommand.AccountStateAction.UNBAN,
@@ -253,15 +254,14 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.DELETE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void deleteUser(String id) {
         checkManagementServiceAvailable();
         DeleteAccountCommand command = new DeleteAccountCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "admin delete user"),
-                TraceMetadata.EMPTY,
+                authActor("admin delete user"),
+                currentTrace(),
                 id,
                 "admin delete user"
         );
@@ -270,7 +270,6 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.RESET_PASSWORD, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void resetPassword(String id, String newPassword) {
         checkManagementServiceAvailable();
@@ -280,8 +279,8 @@ public class UserManagementServiceImpl implements UserManagementService {
         ResetPasswordCommand command = new ResetPasswordCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "admin reset password"),
-                TraceMetadata.EMPTY,
+                authActor("admin reset password"),
+                currentTrace(),
                 id,
                 newPassword,
                 "admin reset password"
@@ -368,5 +367,31 @@ public class UserManagementServiceImpl implements UserManagementService {
         if (accountManagementService == null) {
             throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "AccountManagementService unavailable");
         }
+    }
+
+    private com.ulticode.auth.api.command.ActorDelegation authActor(String rationale) {
+        String actorId = currentActorId();
+        return new com.ulticode.auth.api.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
+    }
+
+    private com.ulticode.app.api.command.ActorDelegation appActor(String rationale) {
+        String actorId = currentActorId();
+        return new com.ulticode.app.api.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
+    }
+
+    private String currentActorId() {
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+        }
+        return actorId;
+    }
+
+    private TraceMetadata currentTrace() {
+        String reqId = TraceIdUtil.current();
+        if (reqId == null || reqId.isBlank()) {
+            reqId = "t-" + UUID.randomUUID();
+        }
+        return new TraceMetadata(reqId, null, null, null);
     }
 }

@@ -19,8 +19,7 @@ import java.util.Map;
  * The deprecated {@code AuditHelper} shim now delegates here, and the five
  * policy / bulk callers ({@code ForumFlagPolicyImpl},
  * {@code ForumPostFieldToggleImpl}, {@code UserManagementServiceImpl.bulkDelete},
- * the dead injection in {@code AdminContestMutationServiceImpl}, and the
- * {@code AdminForumServiceImpl.deletePost} direct write) cross this seam.
+ *  * {@code AdminForumServiceImpl.deletePost} direct write) cross this seam.
  *
  * <p>Thread-safe; {@link AuditSinkPort} implementations are responsible for
  * cross-process serialization.

@@ -5,6 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
+import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.RankingService;
@@ -16,12 +17,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Comparator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,10 +46,6 @@ class RankingServiceImplTest {
         rankingService = new RankingServiceImpl(participantMapper, contestMapper, scoringStrategyResolver);
         org.mockito.Mockito.lenient().when(scoringStrategyResolver.resolveFromString(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(scoringStrategy);
-        org.mockito.Mockito.lenient().when(scoringStrategy.getRankingComparator())
-                .thenReturn(Comparator.comparing(
-                        com.ulticode.modules.contest.mapper.ContestParticipantMapper.ContestParticipantWithUser::totalScore,
-                        Comparator.nullsLast(Comparator.reverseOrder())));
     }
 
     private ContestParticipantMapper.ContestParticipantWithUser createParticipant(String userId, int rank, int score) {
@@ -67,8 +64,27 @@ class RankingServiceImplTest {
                 null,
                 "user-" + userId,
                 "User " + userId,
-                "https://avatar.example.com/" + userId + ".png"
+                "https://avatar.example.com/" + userId + ".png",
+                30,
+                2
         );
+    }
+
+    @Test
+    @DisplayName("public ranking hides soft-deleted contests")
+    void getPublicContestRanking_deletedContest_throwsNotFound() {
+        Contest deleted = new Contest();
+        deleted.setId("contest-123");
+        deleted.setIsVisible(true);
+        deleted.setIsDeleted(true);
+        when(contestMapper.selectById("contest-123")).thenReturn(deleted);
+
+        assertThatThrownBy(() -> ((RankingServiceImpl) rankingService)
+                .getPublicContestRanking("contest-123", 1, 20))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_FOUND);
+
+        verify(participantMapper, never()).countRankedParticipantsByContestId("contest-123");
     }
 
     @Nested
@@ -101,6 +117,7 @@ class RankingServiceImplTest {
             assertThat(first.getUsername()).isEqualTo("user-u1");
             assertThat(first.getName()).isEqualTo("User u1");
             assertThat(first.getAvatar()).isEqualTo("https://avatar.example.com/u1.png");
+            assertThat(first.getProblemsSolved()).isEqualTo(2);
 
             ContestRankingVO second = result.getItems().get(1);
             assertThat(second.getRank()).isEqualTo(2);

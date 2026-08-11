@@ -361,17 +361,17 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
 
     /**
      * Top active users by submission count (replaces load-all + Java groupBy + N user lookups).
-     * Groups submissions by user_id and returns top N submitters.
+     * Groups submissions by user_id and returns top N submitters with their latest activity timestamp.
      *
      * @param startDate start of analysis period
      * @param limit     max number of users to return
-     * @return list of rows with user_id, submission_count
+     * @return list of rows with user_id, submission_count, and last_active
      */
-    @Select("SELECT user_id, COUNT(*) as submission_count "
+    @Select("SELECT user_id, COUNT(*) as submission_count, MAX(created_at) as last_active "
             + "FROM submissions "
             + "WHERE created_at >= #{startDate} "
             + "GROUP BY user_id "
-            + "ORDER BY submission_count DESC "
+            + "ORDER BY submission_count DESC, user_id ASC "
             + "LIMIT #{limit}")
     List<TopActiveUserCount> findTopActiveUsers(
             @Param("startDate") LocalDateTime startDate,
@@ -621,6 +621,10 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
                                     @Param("memoryPercentile") Double memoryPercentile,
                                     @Param("runtimeDistBinsJson") String runtimeDistBinsJson,
                                     @Param("memoryDistBinsJson") String memoryDistBinsJson);
+
+    /** Read the source generation under the same row lock used by rejudge. */
+    @Select("SELECT generation FROM submissions WHERE id = #{id} FOR UPDATE")
+    Long findGenerationForUpdate(@Param("id") String id);
 
     /**
      * Bump generation and reset a submission back to Pending (ADR-003 §2.2).

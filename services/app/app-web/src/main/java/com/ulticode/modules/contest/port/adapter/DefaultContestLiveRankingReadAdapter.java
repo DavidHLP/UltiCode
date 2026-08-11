@@ -2,8 +2,10 @@ package com.ulticode.modules.contest.port.adapter;
 
 import com.ulticode.app.api.dto.ContestRankingEntryDTO;
 import com.ulticode.app.api.service.ContestLiveRankingReadPort;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
 import com.ulticode.modules.contest.service.impl.RankingServiceImpl;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.List;
  * @author ulticode
  */
 @Component
+@Primary
 public class DefaultContestLiveRankingReadAdapter implements ContestLiveRankingReadPort {
 
     private final RankingServiceImpl rankingServiceImpl;
@@ -31,6 +34,15 @@ public class DefaultContestLiveRankingReadAdapter implements ContestLiveRankingR
         return rankingServiceImpl.readLiveRanking(contestId, limit).stream()
                 .map(DefaultContestLiveRankingReadAdapter::toDTO)
                 .toList();
+    }
+
+    @Override
+    public PageResult<ContestRankingEntryDTO> readLiveRankingPage(String contestId, int page, int limit) {
+        PageResult<LiveRankingEntryVO> result = rankingServiceImpl.readLiveRankingPage(contestId, page, limit);
+        List<ContestRankingEntryDTO> items = result.getItems().stream()
+                .map(DefaultContestLiveRankingReadAdapter::toDTO)
+                .toList();
+        return PageResult.of(items, result.getTotal(), result.getPage(), result.getPageSize());
     }
 
     private static ContestRankingEntryDTO toDTO(LiveRankingEntryVO vo) {

@@ -27,6 +27,21 @@ public interface ContestMapper extends BaseMapper<Contest> {
     List<Contest> findByStatus(@Param("status") String status);
 
     /**
+     * Lock a contest row while validating submission admission. The lock keeps
+     * a concurrent lifecycle transition from changing the status between the
+     * admission check and the contest-submission insert.
+     */
+    @Select("SELECT * FROM contests WHERE id = #{id} AND is_deleted = 0 FOR UPDATE")
+    Contest selectByIdForUpdate(@Param("id") String id);
+
+    /**
+     * Lock a contest for the owner deletion seam, including an already
+     * soft-deleted row so a retry can finish relational cleanup.
+     */
+    @Select("SELECT * FROM contests WHERE id = #{id} LIMIT 1 FOR UPDATE")
+    Contest selectByIdIncludingDeletedForUpdate(@Param("id") String id);
+
+    /**
      * Find contests by creator.
      *
      * @param createdBy the user ID of the creator
@@ -100,17 +115,39 @@ public interface ContestMapper extends BaseMapper<Contest> {
     int tryTransitionToRunning(@Param("id") String id, @Param("now") LocalDateTime now);
 
     /**
-     * Atomically claim the RUNNING → FINISHED transition. Same affected-row
-     * contract as {@link #tryTransitionToRunning}; 0 means another caller
-     * already finished the contest.
+     * Return a partially-started contest to UPCOMING when a post-claim side
+     * effect fails. The actual start timestamp fences this compensation from
+     * a later state transition.
+     */
+    @Update("UPDATE contests SET status = 'UPCOMING', actual_start_time = NULL, updated_at = NOW() "
+            + "WHERE id = #{id} AND status = 'RUNNING' AND is_deleted = 0 "
+            + "AND actual_start_time = #{now}")
+    int revertRunningToUpcoming(@Param("id") String id, @Param("now") LocalDateTime now);
+
+    /**
+     * Atomically claim the RUNNING → FINISHING transition. The intermediate
+     * state keeps a claimed contest visible to the retry loop until every
+     * finalization side effect succeeds.
      *
      * @param id  the contest ID
      * @param now the actual end time to stamp
      * @return 1 if this caller claimed the transition, 0 if it was already moved
      */
-    @Update("UPDATE contests SET status = 'FINISHED', actual_end_time = #{now}, updated_at = NOW() "
-            + "WHERE id = #{id} AND status = 'RUNNING' AND is_deleted = 0")
-    int tryTransitionToFinished(@Param("id") String id, @Param("now") LocalDateTime now);
+    @Update("UPDATE contests SET status = 'FINISHING', actual_end_time = COALESCE(actual_end_time, #{now}), "
+            + "updated_at = NOW() WHERE id = #{id} AND status = 'RUNNING' AND is_deleted = 0")
+    int tryTransitionToFinishing(@Param("id") String id, @Param("now") LocalDateTime now);
+
+    /**
+     * Publish FINISHED only after the retry-safe finalizer has completed all
+     * participant, ranking, notification and rating side effects.
+     *
+     * @param id  the contest ID
+     * @param now fallback end time for rows created before the claim timestamp
+     * @return 1 if this caller published FINISHED, 0 if another retry did so
+     */
+    @Update("UPDATE contests SET status = 'FINISHED', actual_end_time = COALESCE(actual_end_time, #{now}), "
+            + "updated_at = NOW() WHERE id = #{id} AND status = 'FINISHING' AND is_deleted = 0")
+    int tryFinalizeFinished(@Param("id") String id, @Param("now") LocalDateTime now);
 
     /**
      * Atomically increment registered count.

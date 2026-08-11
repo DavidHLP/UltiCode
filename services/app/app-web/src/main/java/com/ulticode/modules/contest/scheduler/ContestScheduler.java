@@ -31,9 +31,10 @@ public class ContestScheduler {
     private final Clock clock;
 
     /**
-     * 10-second heartbeat: advance due UPCOMING→RUNNING and RUNNING→FINISHED
-     * contests, then auto-finish expired virtual participants. All policy and
-     * fault isolation live in {@link ContestLifecycleService#tick}.
+     * 10-second heartbeat: advance due UPCOMING→RUNNING, claim and finalize
+     * due contests through FINISHING, then auto-finish expired virtual
+     * participants. All policy and fault isolation live in
+     * {@link ContestLifecycleService#tick}.
      */
     @Scheduled(fixedRate = 10_000)
     public void run() {
@@ -41,21 +42,17 @@ public class ContestScheduler {
     }
 
     /**
-     * R7.2 / F-31: sweep expired virtual sessions on app start so
-     * crash-recovery leaves the participant table clean. Idempotent: the 10s
-     * tick will keep this state fresh anyway, so a failure here never blocks
-     * startup.
+     * R7.2 / F-31: run one recovery heartbeat on app start. This covers both
+     * expired virtual sessions and contests left in FINISHING after a process
+     * crash; the normal 10-second tick retries either path.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void sweepOnStartup() {
         try {
-            int swept = contestLifecycleService.autoFinishVirtualParticipants();
-            if (swept > 0) {
-                log.info("R7.2 / F-31: startup sweep closed {} expired virtual sessions", swept);
-            }
+            contestLifecycleService.tick(LocalDateTime.now(clock));
         } catch (Exception e) {
-            // Never block startup; scheduler tick will retry.
-            log.warn("R7.2 / F-31: startup sweep failed, will retry on next 10s tick: {}",
+            // Never block startup; the scheduled tick will retry.
+            log.warn("R7.2 / F-31: startup lifecycle sweep failed, will retry on next 10s tick: {}",
                     e.getMessage());
         }
     }

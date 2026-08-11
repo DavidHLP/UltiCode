@@ -1,188 +1,263 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.command.AddContestProblemCommand;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.command.DeleteContestCommand;
 import com.ulticode.app.api.command.EndContestCommand;
+import com.ulticode.app.api.command.RemoveContestProblemCommand;
 import com.ulticode.app.api.command.StartContestCommand;
 import com.ulticode.app.api.command.UpdateContestCommand;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
+import com.ulticode.app.api.dto.ContestProblemAdminDTO;
+import com.ulticode.app.api.dto.ContestProblemInputDTO;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestAdministrationService;
-import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.util.TraceIdUtil;
+import com.ulticode.modules.admin.dto.AddContestProblemDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
+import com.ulticode.modules.admin.dto.CreateContestDTO;
+import com.ulticode.modules.admin.dto.UpdateContestDTO;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
-import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
-/**
- * P4-CUTOVER-002: feature-flagged routing adapter for contest lifecycle.
- *
- * <p>When {@code app.features.contest-dubbo-cutover=false} (default),
- * delegates directly to {@link AdminContestMutationService}. When the flag
- * is {@code true}, writes go through the Dubbo
- * {@link ContestAdministrationService} Provider; read-back (returning
- * {@link AdminContestVO}) still uses the local service.
- *
- * <p>Mirrors {@link ProblemCutoverService} in pattern. Contest IDs are
- * String UUID, matching the Dubbo contract directly (no Long↔String
- * conversion needed unlike Problem).
- */
-@Slf4j
+/** Admin-side adapter for the App-owned contest write contract. */
 @Service
 @RequiredArgsConstructor
 public class ContestCutoverService {
 
-    private final AdminContestMutationService mutationService;
     private final AdminContestProjection adminContestProjection;
     private final CurrentUserProvider currentUserProvider;
+
+    @Value("${app.features.contest-dubbo-cutover:false}")
+    private boolean dubboEnabled;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = 3000, retries = 0, check = false)
     private ContestAdministrationService dubboProvider;
 
-    @Value("${app.features.contest-dubbo-cutover:false}")
-    private boolean dubboEnabled;
-
-    @Transactional
     public AdminContestVO createContest(CreateContestDTO dto, String userId) {
-        if (!dubboEnabled) {
-            return mutationService.createContest(dto, userId);
-        }
-        String actorId = userId != null ? userId : "admin";
-        long startEpochMs = dto.getStartTime() != null
-                ? dto.getStartTime().toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
-                : System.currentTimeMillis();
-        int duration = dto.getDuration() != null ? dto.getDuration() : 0;
+        return createContest(dto, userId, null);
+    }
+
+    public AdminContestVO createContest(CreateContestDTO dto, String userId, String idempotencyKey) {
+        ensureDubboEnabled();
+        String actorId = requireActor(userId);
+        IdMetadata idempotency = idempotency(idempotencyKey);
         RpcResult<ContestAdminViewDTO> result = dubboProvider.createContest(
                 new CreateContestCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover create"),
-                        TraceMetadata.EMPTY,
-                        dto.getSlug(), dto.getTitle(), actorId,
-                        dto.getContestType(),
-                        null, // scoringMode: provider applies DB default
-                        dto.getScoringRuleId(), dto.getDescription(),
-                        startEpochMs, duration));
+                        commandId("create", idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest create"),
+                        trace(), dto.getSlug(), dto.getTitle(), actorId,
+                        contestType(dto.getContestType()), "SCORE", dto.getScoringRuleId(), dto.getDescription(),
+                        epochMs(dto.getStartTime()), dto.getDuration(), dto.getMaxParticipants(),
+                        dto.getIsPremium(), dto.getIsPublished(), dto.getProblemIds(),
+                        toProblemInputs(dto.getProblems())));
         if (!result.success()) {
             throw mapError(result);
         }
-        // Read-back: fetch full VO by the returned contestId
         return adminContestProjection.getContest(result.data().contestId());
     }
 
-    @Transactional
     public AdminContestVO updateContest(String id, UpdateContestDTO dto) {
-        if (!dubboEnabled) {
-            return mutationService.updateContest(id, dto);
-        }
-        String actorId = safeActorId();
-        Long startEpochMs = dto.getStartTime() != null
-                ? dto.getStartTime().toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
-                : null;
+        return updateContest(id, dto, null);
+    }
+
+    public AdminContestVO updateContest(String id, UpdateContestDTO dto, String idempotencyKey) {
+        ensureDubboEnabled();
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
         RpcResult<ContestAdminViewDTO> result = dubboProvider.updateContest(
                 new UpdateContestCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover update"),
-                        TraceMetadata.EMPTY,
-                        id, 0L, dto.getTitle(), startEpochMs, dto.getDuration(),
-                        "cutover update"));
+                        commandId("update", idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest update"),
+                        trace(), id, 0L, dto.getTitle(), epochMsOrNull(dto.getStartTime()),
+                        dto.getDuration(), "contest update", dto.getDescription(),
+                        dto.getMaxParticipants(), dto.getIsPremium(), dto.getIsPublished(),
+                        dto.getSlug(), dto.getContestType(), dto.getScoringRuleId(),
+                        dto.getProblemIds(), toProblemInputs(dto.getProblems())));
         if (!result.success()) {
             throw mapError(result);
         }
         return adminContestProjection.getContest(id);
     }
 
-    @Transactional
     public void deleteContest(String id) {
-        if (!dubboEnabled) {
-            mutationService.deleteContest(id);
-            return;
-        }
-        String actorId = safeActorId();
+        deleteContest(id, null);
+    }
+
+    public void deleteContest(String id, String idempotencyKey) {
+        ensureDubboEnabled();
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
         RpcResult<Void> result = dubboProvider.deleteContest(
                 new DeleteContestCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover delete"),
-                        TraceMetadata.EMPTY,
-                        id, 0L, "cutover delete"));
+                        commandId("delete", idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest delete"),
+                        trace(), id, 0L, "contest delete"));
         if (!result.success()) {
             throw mapError(result);
         }
     }
 
-    @Transactional
     public AdminContestVO startContest(String id) {
-        if (!dubboEnabled) {
-            return mutationService.startContest(id);
-        }
-        return doTransition(id, true);
+        return startContest(id, null);
     }
 
-    @Transactional
+    public AdminContestVO startContest(String id, String idempotencyKey) {
+        return transition(id, true, idempotencyKey);
+    }
+
     public AdminContestVO endContest(String id) {
-        if (!dubboEnabled) {
-            return mutationService.endContest(id);
-        }
-        return doTransition(id, false);
+        return endContest(id, null);
     }
 
-    // ── helpers ────────────────────────────────────────────────
+    public AdminContestVO endContest(String id, String idempotencyKey) {
+        return transition(id, false, idempotencyKey);
+    }
 
-    private AdminContestVO doTransition(String id, boolean start) {
-        String actorId = safeActorId();
-        RpcResult<ContestAdminViewDTO> result;
-        if (start) {
-            result = dubboProvider.startContest(
-                    new StartContestCommand(
-                            UUID.randomUUID().toString(), IdMetadata.mint(),
-                            new ActorDelegation("ADMIN", actorId, actorId, "cutover start"),
-                            TraceMetadata.EMPTY, id, 0L, "cutover start"));
-        } else {
-            result = dubboProvider.endContest(
-                    new EndContestCommand(
-                            UUID.randomUUID().toString(), IdMetadata.mint(),
-                            new ActorDelegation("ADMIN", actorId, actorId, "cutover end"),
-                            TraceMetadata.EMPTY, id, 0L, "cutover end"));
+    public ContestProblemAdminDTO addProblem(String id, AddContestProblemDTO dto, String idempotencyKey) {
+        ensureDubboEnabled();
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        RpcResult<ContestProblemAdminDTO> result = dubboProvider.addProblem(
+                new AddContestProblemCommand(
+                        commandId("add-problem", idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest problem add"),
+                        trace(), id, new ContestProblemInputDTO(dto.getProblemId(), dto.getScore())));
+        if (!result.success()) {
+            throw mapError(result);
         }
+        return result.data();
+    }
+
+    public void removeProblem(String id, Long problemId, String idempotencyKey) {
+        ensureDubboEnabled();
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        RpcResult<Void> result = dubboProvider.removeProblem(
+                new RemoveContestProblemCommand(
+                        commandId("remove-problem", idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest problem remove"),
+                        trace(), id, problemId));
+        if (!result.success()) {
+            throw mapError(result);
+        }
+    }
+
+    private AdminContestVO transition(String id, boolean start, String idempotencyKey) {
+        ensureDubboEnabled();
+        String actorId = currentActor();
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        String operation = start ? "start" : "end";
+        RpcResult<ContestAdminViewDTO> result = start
+                ? dubboProvider.startContest(new StartContestCommand(
+                        commandId(operation, idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest start"),
+                        trace(), id, 0L, "contest start"))
+                : dubboProvider.endContest(new EndContestCommand(
+                        commandId(operation, idempotency), idempotency,
+                        new ActorDelegation("ADMIN", actorId, actorId, "contest end"),
+                        trace(), id, 0L, "contest end"));
         if (!result.success()) {
             throw mapError(result);
         }
         return adminContestProjection.getContest(id);
     }
 
-    private String safeActorId() {
-        try {
-            return currentUserProvider.getCurrentUserId();
-        } catch (Exception e) {
-            return "admin";
+    private String currentActor() {
+        return requireActor(currentUserProvider.getCurrentUserId());
+    }
+
+    private void ensureDubboEnabled() {
+        if (!dubboEnabled) {
+            throw new BusinessException(AdminErrorCode.CONFLICT,
+                    "Contest Dubbo cutover is disabled");
         }
+    }
+
+    private static String requireActor(String actorId) {
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED,
+                    "Authenticated admin actor is required");
+        }
+        return actorId;
+    }
+
+    private static String contestType(String value) {
+        return value == null || value.isBlank() ? "ICPC" : value;
+    }
+
+    private static List<ContestProblemInputDTO> toProblemInputs(List<AddContestProblemDTO> problems) {
+        return problems == null ? null : problems.stream()
+                .map(problem -> new ContestProblemInputDTO(problem.getProblemId(), problem.getScore()))
+                .toList();
+    }
+
+    private static long epochMs(java.time.LocalDateTime value) {
+        return value.toInstant(ZoneOffset.UTC).toEpochMilli();
+    }
+
+    private static Long epochMsOrNull(java.time.LocalDateTime value) {
+        return value == null ? null : epochMs(value);
+    }
+
+    private static IdMetadata idempotency(String requestedKey) {
+        String key = requestedKey == null || requestedKey.isBlank()
+                ? UUID.randomUUID().toString() : requestedKey.trim();
+        if (key.length() > 120) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
+                    "Idempotency-Key must not exceed 120 characters");
+        }
+        return IdMetadata.of(key, null);
+    }
+
+    private static String commandId(String operation, IdMetadata idempotency) {
+        return UUID.nameUUIDFromBytes(
+                (operation + ":" + idempotency.idempotencyKey()).getBytes(StandardCharsets.UTF_8))
+                .toString();
+    }
+
+    private static TraceMetadata trace() {
+        return new TraceMetadata(TraceIdUtil.current(), null, null, null);
     }
 
     private static BusinessException mapError(RpcResult<?> result) {
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+        if (result == null || result.error() == null) {
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "RPC failed without error payload");
         }
-        int code = err.code();
-        if (code == 40401) {
-            return new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND, err.message());
+        int code = result.error().code();
+        if (code == AppErrorCode.CONTENT_NOT_FOUND.code()) {
+            return new BusinessException(AdminErrorCode.CONTEST_NOT_FOUND, result.error().message());
         }
-        if (code == 40901 || code == 40902) {
-            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
+        if (code == AppErrorCode.BAD_REQUEST.code()) {
+            return new BusinessException(AdminErrorCode.BAD_REQUEST, result.error().message());
         }
-        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
+        if (code == AppErrorCode.UNAUTHORIZED.code()) {
+            return new BusinessException(AdminErrorCode.UNAUTHORIZED, result.error().message());
+        }
+        if (code == AppErrorCode.FORBIDDEN.code()) {
+            return new BusinessException(AdminErrorCode.FORBIDDEN, result.error().message());
+        }
+        if (code == AppErrorCode.VERSION_CONFLICT.code()
+                || code == AppErrorCode.CONTENT_STATE_CONFLICT.code()) {
+            return new BusinessException(AdminErrorCode.CONFLICT, result.error().message());
+        }
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, result.error().message());
     }
 }

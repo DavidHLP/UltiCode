@@ -257,4 +257,29 @@ class DefaultProblemOwnerPortTest {
             verify(problemMapper, never()).updateById(any(Problem.class));
         }
     }
+
+    @Nested
+    @DisplayName("applyImportedBatch()")
+    class ApplyImportedBatch {
+
+        @Test
+        @DisplayName("captures one item failure and still writes later items")
+        void isolatesItemFailure() {
+            when(problemMapper.selectById(1L)).thenThrow(new RuntimeException("boom"));
+            ProblemOwnerPort.ImportWriteRequest bad = new ProblemOwnerPort.ImportWriteRequest(
+                    "0", false, 1L, "bad", "Bad", "Easy", null, null, null);
+            ProblemOwnerPort.ImportWriteRequest good = new ProblemOwnerPort.ImportWriteRequest(
+                    "1", true, null, "good", "Good", "Easy", null, null, null);
+
+            List<ProblemOwnerPort.ImportWriteResult> results =
+                    port.applyImportedBatch(List.of(bad, good));
+
+            assertThat(results).extracting(ProblemOwnerPort.ImportWriteResult::key)
+                    .containsExactly("0", "1");
+            assertThat(results.get(0).success()).isFalse();
+            assertThat(results.get(0).error()).isEqualTo("boom");
+            assertThat(results.get(1).success()).isTrue();
+            verify(problemMapper).insert(any(Problem.class));
+        }
+    }
 }

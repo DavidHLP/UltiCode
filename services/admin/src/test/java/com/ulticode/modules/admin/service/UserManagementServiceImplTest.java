@@ -31,6 +31,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +45,7 @@ class UserManagementServiceImplTest {
     @Mock private UserProfilePort userProfilePort;
     @Mock private AuditRecorder auditRecorder;
     @Mock private AdminUserProjection adminUserProjection;
+    @Mock private com.ulticode.common.auth.CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private UserManagementServiceImpl service;
@@ -55,6 +58,7 @@ class UserManagementServiceImplTest {
         ReflectionTestUtils.setField(service, "accountManagementService", accountManagementService);
         ReflectionTestUtils.setField(service, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(service, "accountAdministrationService", accountAdministrationService);
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
 
         sampleAccount = new AuthAccountDTO(
                 "user-100", "alice", "alice@example.com", "USER",
@@ -96,6 +100,38 @@ class UserManagementServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo("user-100");
         assertThat(result.getUsername()).isEqualTo("alice");
+    }
+
+    @Test
+    @DisplayName("createUser with name issues UpdateProfileCommand carrying created accountId")
+    void createUserWithNameIssuesProfileCommand() {
+        AdminCreateUserDTO dto = new AdminCreateUserDTO();
+        dto.setUsername("bob");
+        dto.setEmail("bob@example.com");
+        dto.setPassword("pass12345");
+        dto.setRole("USER");
+        dto.setName("Bob Builder");
+
+        when(accountQueryService.getAccountByUsername("bob"))
+                .thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t-123"));
+        when(accountQueryService.getAccountByEmail("bob@example.com"))
+                .thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t-123"));
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-user-1");
+
+        AccountMutationDTO mutationDTO = new AccountMutationDTO(
+                "user-200", "bob", "bob@example.com", "USER", true, false, 0L, false);
+        when(accountManagementService.createAccount(any())).thenReturn(RpcResult.success(mutationDTO, "t-123"));
+        when(adminUserProjection.getUserById("user-200")).thenReturn(sampleVO);
+
+        service.createUser(dto);
+
+        verify(userProfilePort).updateProfile(argThat(cmd ->
+                "user-200".equals(cmd.accountId())
+                        && "Bob Builder".equals(cmd.name())
+                        && "admin-user-1".equals(cmd.actor().actorId())
+                        && cmd.idempotency() != null
+                        && cmd.commandId() != null
+                        && cmd.trace() != null));
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.app.api.service.SubmissionUserStatsPort;
 import com.ulticode.app.api.dto.DifficultyCountDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
  * cross-module callers depend on the port.
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class SubmissionUserStatsMapperAdapter implements SubmissionUserStatsPort {
 

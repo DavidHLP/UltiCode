@@ -4,6 +4,7 @@ import com.ulticode.app.api.service.ContestParticipantReadPort;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
  * @author ulticode
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultContestParticipantReadAdapter implements ContestParticipantReadPort {
 

@@ -1,6 +1,7 @@
 package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.contest.dto.ContestVO;
@@ -89,6 +90,8 @@ class ContestServiceImplTest {
                 contestClock,
                 clock,
                 new FixedUuidGenerator(), currentUserProvider);
+        org.mockito.Mockito.lenient().when(contestMapper.selectByIdForUpdate(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> contestMapper.selectById(invocation.getArgument(0)));
         org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(LocalDateTime.of(2024, 6, 1, 0, 0).atZone(ZoneId.systemDefault()).toInstant());
         org.mockito.Mockito.lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     }
@@ -182,7 +185,7 @@ class ContestServiceImplTest {
             when(contestMapper.selectById("contest-1")).thenReturn(contest);
             when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
                     .thenReturn(contestProblem);
-            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+            when(participantMapper.findRealForSubmissionAdmission("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
             when(submissionWritePort.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
 
@@ -191,6 +194,8 @@ class ContestServiceImplTest {
 
             assertThat(result.getId()).isEqualTo("submission-1");
             assertThat(dto.getProblemId()).isEqualTo(42L);
+            assertThat(dto.getContestId()).isEqualTo("contest-1");
+            assertThat(dto.getVirtualSessionId()).isNull();
         }
 
         @Test
@@ -219,7 +224,7 @@ class ContestServiceImplTest {
             when(contestMapper.selectById("contest-1")).thenReturn(contest);
             when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
                     .thenReturn(contestProblem);
-            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+            when(participantMapper.findRealForSubmissionAdmission("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
 
             assertThatThrownBy(() -> contestService.submitContestProblem(
@@ -231,8 +236,8 @@ class ContestServiceImplTest {
         }
 
         /** R6.2 / F-07: virtual sessions are rejected once the participant
-         *  has been playing longer than contest.durationMinutes, even if
-         *  the contest itself is still RUNNING. Locks the server-side
+         *  has been playing longer than contest.durationMinutes. Locks the
+         *  server-side
          *  hard cutoff so the auto-finish scheduler lag (10s tick) can't
          *  leak late submissions through. */
         @Test
@@ -240,7 +245,7 @@ class ContestServiceImplTest {
         void submitContestProblem_virtualSessionPastDuration_rejected() {
             Contest contest = new Contest();
             contest.setId("contest-1");
-            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setStatus(ContestStatus.FINISHED.name());
             contest.setIsDeleted(false);
             contest.setDurationMinutes(60);
             contest.setEndTime(java.time.LocalDateTime.now().plusHours(2));
@@ -266,9 +271,10 @@ class ContestServiceImplTest {
             when(contestMapper.selectById("contest-1")).thenReturn(contest);
             when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
                     .thenReturn(contestProblem);
-            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+            when(participantMapper.findVirtualForSubmissionAdmission("contest-1", REGULAR_USER_ID, "session-1"))
                     .thenReturn(java.util.Optional.of(participant));
 
+            dto.setVirtualSessionId("session-1");
             when(contestClock.effectiveEndTime(any(), any()))
                     .thenReturn(java.util.Optional.of(LocalDateTime.of(2024, 6, 1, 0, 0).minusMinutes(30)));
 
@@ -287,7 +293,7 @@ class ContestServiceImplTest {
         void submitContestProblem_virtualSessionWithinDuration_accepted() {
             Contest contest = new Contest();
             contest.setId("contest-1");
-            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setStatus(ContestStatus.FINISHED.name());
             contest.setIsDeleted(false);
             contest.setDurationMinutes(60);
             contest.setEndTime(java.time.LocalDateTime.now().plusHours(2));
@@ -303,6 +309,7 @@ class ContestServiceImplTest {
             participant.setUserId(REGULAR_USER_ID);
             participant.setStatus(ContestParticipantStatus.STARTED.name());
             participant.setIsVirtual(true);
+            participant.setVirtualSessionId("session-1");
             // Started 10 min ago: well within the 60-min virtual budget.
             participant.setStartedAt(java.time.LocalDateTime.now().minusMinutes(10));
 
@@ -316,13 +323,45 @@ class ContestServiceImplTest {
             when(contestMapper.selectById("contest-1")).thenReturn(contest);
             when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
                     .thenReturn(contestProblem);
-            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+            when(participantMapper.findVirtualForSubmissionAdmission("contest-1", REGULAR_USER_ID, "session-1"))
                     .thenReturn(java.util.Optional.of(participant));
+            dto.setVirtualSessionId("session-1");
+            when(contestClock.effectiveEndTime(any(), any()))
+                    .thenReturn(java.util.Optional.of(LocalDateTime.of(2026, 1, 1, 0, 0)));
             when(submissionWritePort.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);
             assertThat(result.getId()).isEqualTo("submission-1");
+            assertThat(dto.getContestId()).isEqualTo("contest-1");
+            assertThat(dto.getVirtualSessionId()).isEqualTo("session-1");
+        }
+    }
+
+    @Nested
+    @DisplayName("removeProblem()")
+    class RemoveProblemTests {
+
+        @Test
+        @DisplayName("rejects removing a problem referenced by contest submissions or results")
+        void rejectsReferencedProblem() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setIsDeleted(false);
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(contestProblemMapper.hasContestOwnedResults("contest-problem-1")).thenReturn(true);
+
+            assertThatThrownBy(() -> contestService.removeProblem("contest-1", 42L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.BAD_REQUEST);
+            verify(contestProblemMapper, never()).deleteById("contest-problem-1");
         }
     }
 }

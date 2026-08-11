@@ -11,10 +11,9 @@ import java.util.Set;
  * required by other modules.
  *
  * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.1
- * as one of {@code backend-auth}'s three Dubbo providers. Per &sect;6.2
- * the interface signature mirrors the migration guide example
- * exactly: one-by-one and batch reads only; batch takes precedence
- * to avoid N+1 fan-out from the Admin dashboard and App enrichments.
+ * as one of {@code backend-auth}'s Dubbo providers. It exposes minimal
+ * identity validation plus the Auth-owned active-recipient query needed by
+ * App notification broadcasts.
  *
  * <p>This interface is contract-only; no ServiceImpl lives in this
  * module. The provider implementation belongs to {@code backend-auth}.
@@ -43,4 +42,15 @@ public interface IdentityQueryService {
      *                   empty success list rather than an error
      */
     RpcResult<List<UserIdentityDTO>> batchGetIdentity(Set<String> accountIds);
+
+    /**
+     * Return account ids eligible for an {@code ALL} notification broadcast.
+     *
+     * <p>The Auth owner applies the authoritative active, non-banned and
+     * non-deleted predicates; callers must not reconstruct them from
+     * profile data.
+     *
+     * @return success with eligible account ids
+     */
+    RpcResult<List<String>> findActiveAccountIds();
 }

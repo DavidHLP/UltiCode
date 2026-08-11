@@ -40,6 +40,19 @@ public record BatchRejudgeCommand(
             throw new IllegalArgumentException(
                     "submissionIds size must not exceed 50");
         }
+        if (submissionIds.stream().distinct().count() != submissionIds.size()) {
+            throw new IllegalArgumentException(
+                    "submissionIds must not contain duplicates");
+        }
+        if (submissionIds.stream().anyMatch(id -> id == null || id.isBlank())) {
+            throw new IllegalArgumentException(
+                    "submissionIds must contain only non-blank IDs");
+        }
+        if (trace == null) {
+            throw new IllegalArgumentException(
+                    "trace is required (use TraceMetadata.EMPTY when unavailable)");
+        }
+        submissionIds = List.copyOf(submissionIds);
         if (idempotency == null) {
             throw new IllegalArgumentException(
                     "idempotency is required (use IdMetadata.mint())");

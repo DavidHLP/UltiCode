@@ -1,22 +1,29 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.app.user.port.UserReadMapper;
-import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.app.api.dto.DailyActiveUserCount;
 import com.ulticode.app.api.dto.HourlyActiveUserCount;
 import com.ulticode.app.api.dto.TopActiveUserCount;
 import com.ulticode.app.api.dto.WeeklyActiveUserCount;
 import com.ulticode.app.api.service.SubmissionActivityAnalyticsPort;
+import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.rpc.RpcPolicy;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.UserActivityReportVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -30,10 +37,12 @@ import java.util.stream.Collectors;
  * ({@code countDailyActiveUsers}, {@code countWeeklyActiveUsers},
  * {@code countActiveUsersByHour}, {@code findTopActiveUsers},
  * {@code countDistinctUsersInRange}) — the N+1 paths no longer exist on the
- * hot path. The single remaining per-row user lookup inside
- * {@code buildTopActiveUsers} is the small inner
- * ({@code findTopActiveUsers(startDate, 10)} already caps the outer size at 10,
- * so the user enrichment is bounded).
+ * hot path. Top-active-user username enrichment is a single batch RPC
+ * via the public Auth {@code IdentityQueryService#batchGetIdentity} seam
+ * (outer {@code findTopActiveUsers(startDate, 10)} caps the batch at 10
+ * ids); an Auth provider outage degrades to "Unknown" usernames rather
+ * than failing the whole report. {@code lastActive} comes from the
+ * App-owned submission aggregation window, while Auth only supplies usernames.
  *
  * @author ulticode
  */
@@ -43,7 +52,12 @@ import java.util.stream.Collectors;
 public class DefaultUserActivityAnalyticsProjection implements UserActivityAnalyticsProjection {
 
     private final Clock clock;
-    private final UserReadMapper userReadMapper;
+
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private IdentityQueryService identityQueryService;
+
     private final SubmissionActivityAnalyticsPort submissionActivityAnalytics;
 
     @Override
@@ -100,16 +114,35 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
         // Top active users - single aggregation query replacing load-all + Java groupBy + N user lookups
         List<UserActivityReportVO.TopActiveUser> topUsers = new ArrayList<>();
         List<TopActiveUserCount> topUserCounts = submissionActivityAnalytics.findTopActiveUsers(startDate, 10);
-        for (TopActiveUserCount row : topUserCounts) {
-            String userId = row.getUserId();
-            int count = row.getSubmissionCount() != null ? row.getSubmissionCount().intValue() : 0;
-            UserSummaryView user = userReadMapper.selectById(userId);
-            topUsers.add(new UserActivityReportVO.TopActiveUser(
-                    userId,
-                    user != null ? user.username() : "Unknown",
-                    count,
-                    user != null ? user.lastLoginAt() : null
-            ));
+        if (!topUserCounts.isEmpty()) {
+            // One batch RPC via the public Auth identity seam (bounded at 10 ids);
+            // lastActive comes from the App-owned submission aggregation, not Auth identity.
+            Map<String, String> usernamesById = new HashMap<>();
+            if (identityQueryService != null) {
+                Set<String> userIds = topUserCounts.stream()
+                        .map(TopActiveUserCount::getUserId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+                RpcResult<List<UserIdentityDTO>> identities = null;
+                try {
+                    identities = identityQueryService.batchGetIdentity(userIds);
+                } catch (RuntimeException e) {
+                    log.warn("IdentityQueryService.batchGetIdentity failed for {} ids: {}", userIds.size(), e.getMessage());
+                }
+                if (identities != null && identities.success() && identities.data() != null) {
+                    for (UserIdentityDTO identity : identities.data()) {
+                        if (identity != null && identity.accountId() != null) {
+                            usernamesById.put(identity.accountId(), identity.username());
+                        }
+                    }
+                }
+            }
+            for (TopActiveUserCount row : topUserCounts) {
+                String userId = row.getUserId();
+                int count = row.getSubmissionCount() != null ? row.getSubmissionCount().intValue() : 0;
+                String username = userId != null ? usernamesById.getOrDefault(userId, "Unknown") : "Unknown";
+                topUsers.add(new UserActivityReportVO.TopActiveUser(userId, username, count, row.getLastActive()));
+            }
         }
         report.setTopActiveUsers(topUsers);
 

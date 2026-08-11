@@ -5,10 +5,9 @@ import com.ulticode.app.api.event.SubmissionJudgedEvent;
 /**
  * Deep Contest adjudication module — the single owner of verdict application.
  *
- * <p>One seam: a judged submission event flows in (from the AFTER_COMMIT
- * {@link com.ulticode.modules.contest.listener.ContestAdjudicationListener}),
- * and this module applies every contest-scoring invariant that follows a
- * verdict:
+ * <p>One seam: a judged submission event flows in from the durable contest
+ * inbox consumer, and this module applies every contest-scoring invariant that
+ * follows a verdict:
  * <ul>
  *   <li><b>Idempotency</b> — safe to replay for the same submission without
  *       double-counting, because the upstream {@code submissions} row is
@@ -27,8 +26,8 @@ import com.ulticode.app.api.event.SubmissionJudgedEvent;
  * auto-finish) and contest cleanup (cascade delete) live in the
  * {@link ContestLifecycleService}; this module does not touch them.
  *
- * <p>Preserves D-04 (AFTER_COMMIT post-judge scoring) and ADR-006 (scoring
- * mode + penalty-keyed wrong-submission handling).
+ * <p>Preserves durable post-judge scoring and ADR-006 (scoring mode +
+ * penalty-keyed wrong-submission handling).
  */
 public interface ContestAdjudicationService {
 

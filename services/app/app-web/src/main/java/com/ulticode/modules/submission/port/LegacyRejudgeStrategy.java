@@ -1,12 +1,15 @@
 package com.ulticode.modules.submission.port;
 
 import com.ulticode.app.api.dto.RejudgeResult;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 
@@ -43,13 +46,7 @@ public class LegacyRejudgeStrategy {
             submissionMapper.bumpRetryCount(id, 1);
             enqueueTarget.setRetryCount(retryCount);
 
-            judgeEnqueuePort.enqueueJudgeJob(
-                    enqueueTarget.getId(),
-                    String.valueOf(enqueueTarget.getProblemId()),
-                    enqueueTarget.getUserId(),
-                    enqueueTarget.getLanguage(),
-                    enqueueTarget.getCode());
-
+            enqueueAfterCommit(enqueueTarget);
             result.setSuccess(true);
             result.setNewStatus("Pending");
             result.setRejudgedAt(Instant.now());
@@ -60,11 +57,38 @@ public class LegacyRejudgeStrategy {
             log.error("Failed to enqueue rejudge for submission: {}", id, e);
             result.setSuccess(false);
             result.setError(e.getMessage());
+            result.setErrorCode(AppErrorCode.UNEXPECTED_APP_STATE.code());
         }
 
         // AuditContext not available in backend-app; audit context stripped during relocation
         return result;
     }
+
+    private void enqueueAfterCommit(Submission submission) {
+        Runnable enqueue = () -> judgeEnqueuePort.enqueueJudgeJob(
+                submission.getId(),
+                String.valueOf(submission.getProblemId()),
+                submission.getUserId(),
+                submission.getLanguage(),
+                submission.getCode());
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            enqueue.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            enqueue.run();
+                        } catch (Exception e) {
+                            log.warn("Post-commit legacy rejudge enqueue failed for submission {}: {}",
+                                    submission.getId(), e.getMessage());
+                        }
+                    }
+                });
+    }
+
 
     private Submission advanceGeneration(Submission submission) {
         Submission candidate = submission;

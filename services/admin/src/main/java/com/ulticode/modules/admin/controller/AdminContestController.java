@@ -1,20 +1,21 @@
 package com.ulticode.modules.admin.controller;
+
+import com.ulticode.app.api.dto.ContestProblemAdminDTO;
+import com.ulticode.app.api.dto.ContestRankingEntryDTO;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.error.BaseErrorCode;
-
-
-import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.modules.admin.dto.AddContestProblemDTO;
+import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.admin.service.AdminContestMutationService;
+import com.ulticode.modules.admin.dto.CreateContestDTO;
+import com.ulticode.modules.admin.dto.UpdateContestDTO;
+import com.ulticode.modules.admin.service.AdminContestService;
 import com.ulticode.modules.admin.service.ContestCutoverService;
-import com.ulticode.modules.contest.dto.*;
-import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.websecurity.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,164 +24,147 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Admin - Contests", description = "Contest management endpoints for admin dashboard")
 @RestController
 @RequestMapping("/admin/contest")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
+@Tag(name = "Admin - Contests", description = "Contest management endpoints for admin dashboard")
 public class AdminContestController {
 
-    private final ContestService contestService;
-    private final AdminContestMutationService adminContestMutation;
+    private final AdminContestService adminContestService;
     private final ContestCutoverService contestCutoverService;
-    private final ContestProjection contestProjection;
     private final CurrentUserProvider currentUserProvider;
 
-    @Operation(summary = "List all contests (admin)", description = "Get all contests including drafts and invisible ones")
-    @ApiResponse(responseCode = "200", description = "Contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
+    @Operation(summary = "List all contests (admin)")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping
-    public Result<PageResult<ContestListVO>> listContests(
-            @Parameter(description = "Page number (1-based)") @RequestParam(required = false) Integer page,
-            @Parameter(description = "Number of items per page") @RequestParam(required = false) Integer pageSize,
-            @Parameter(description = "Filter by status") @RequestParam(required = false) String status,
-            @Parameter(description = "Filter by contest type") @RequestParam(required = false) String contestType,
-            @Parameter(description = "Search by ID, title, or slug") @RequestParam(required = false) String search,
-            @Parameter(description = "Sort by field") @RequestParam(required = false) String sort,
-            @Parameter(description = "Sort direction") @RequestParam(required = false) String direction) {
-
-        ContestQueryDTO query = new ContestQueryDTO();
+    public Result<PageResult<AdminContestVO>> listContests(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String contestType,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
+        AdminContestQueryDTO query = new AdminContestQueryDTO();
         query.setPage(page);
-        query.setPageSize(pageSize);
+        query.setLimit(pageSize);
         query.setStatus(status);
-        query.setContestType(contestType);
+        query.setType(contestType);
         query.setSearch(search);
-        query.setSort(sort);
-        query.setDirection(direction);
-
-        String userId = currentUserProvider.getCurrentUserId();
-        return Result.success(contestProjection.findAllAdmin(query, userId));
+        query.setSortBy(sort);
+        query.setSortOrder(direction);
+        return Result.success(adminContestService.getContests(query));
     }
 
-    @Operation(summary = "Get contest details (admin)", description = "Get contest details by ID")
-    @ApiResponse(responseCode = "200", description = "Contest retrieved", content = @Content(schema = @Schema(implementation = ContestVO.class)))
+    @Operation(summary = "Get contest details (admin)")
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/{id}")
-    public Result<ContestVO> getContest(
-            @Parameter(description = "Contest ID") @PathVariable String id) {
-
-        String userId = currentUserProvider.getCurrentUserId();
-        return Result.success(contestProjection.getContestById(id, userId));
+    public Result<AdminContestVO> getContest(@PathVariable String id) {
+        return Result.success(adminContestService.getContest(id));
     }
 
-    @Operation(summary = "Create contest", description = "Create a new contest")
-    @ApiResponse(responseCode = "200", description = "Contest created", content = @Content(schema = @Schema(implementation = ContestVO.class)))
-    @ApiResponse(responseCode = "400", description = "Validation error")
+    @Operation(summary = "Create contest")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:create", limit = 30, period = 60)
     @PostMapping
-    public Result<AdminContestVO> createContest(@Valid @RequestBody CreateContestDTO dto) {
+    public Result<AdminContestVO> createContest(
+            @Valid @RequestBody CreateContestDTO dto,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         rejectUnsafeTitleChars(dto.getTitle());
-        String userId = getCurrentUserIdOrThrow();
-        return Result.success(contestCutoverService.createContest(dto, userId));
+        return Result.success(contestCutoverService.createContest(
+                dto, getCurrentUserIdOrThrow(), idempotencyKey));
     }
 
-    @Operation(summary = "Update contest (partial)", description = "Partially update a contest")
-    @ApiResponse(responseCode = "200", description = "Contest updated", content = @Content(schema = @Schema(implementation = ContestVO.class)))
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @Operation(summary = "Update contest")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:update", limit = 30, period = 60)
     @PatchMapping("/{id}")
     public Result<AdminContestVO> updateContest(
-            @Parameter(description = "Contest ID") @PathVariable String id,
-            @Valid @RequestBody UpdateContestDTO dto) {
+            @PathVariable String id,
+            @Valid @RequestBody UpdateContestDTO dto,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         rejectUnsafeTitleChars(dto.getTitle());
-        return Result.success(contestCutoverService.updateContest(id, dto));
+        return Result.success(contestCutoverService.updateContest(id, dto, idempotencyKey));
     }
 
-    @Operation(summary = "Delete contest", description = "Soft delete a contest")
-    @ApiResponse(responseCode = "200", description = "Contest deleted")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @Operation(summary = "Delete contest")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     public Result<Void> deleteContest(
-            @Parameter(description = "Contest ID") @PathVariable String id) {
-
-        contestCutoverService.deleteContest(id);
+            @PathVariable String id,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        contestCutoverService.deleteContest(id, idempotencyKey);
         return Result.success();
     }
 
-    @Operation(summary = "Add problem to contest", description = "Add a problem to a contest")
-    @ApiResponse(responseCode = "200", description = "Problem added", content = @Content(schema = @Schema(implementation = ContestProblemVO.class)))
-    @ApiResponse(responseCode = "400", description = "Problem already in contest")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @Operation(summary = "Add problem to contest")
+    @ApiResponse(responseCode = "200", description = "Problem added",
+            content = @Content(schema = @Schema(implementation = ContestProblemAdminDTO.class)))
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:add-problem", limit = 30, period = 60)
     @PostMapping("/{id}/problems")
-    public Result<ContestProblemVO> addProblem(
-            @Parameter(description = "Contest ID") @PathVariable String id,
-            @Valid @RequestBody AddContestProblemDTO dto) {
-
-        return Result.success(contestService.addProblem(id, dto));
+    public Result<ContestProblemAdminDTO> addProblem(
+            @PathVariable String id,
+            @Valid @RequestBody AddContestProblemDTO dto,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        return Result.success(contestCutoverService.addProblem(id, dto, idempotencyKey));
     }
 
-    @Operation(summary = "Remove problem from contest", description = "Remove a problem from a contest")
-    @ApiResponse(responseCode = "200", description = "Problem removed")
-    @ApiResponse(responseCode = "400", description = "Problem not in contest")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @Operation(summary = "Remove problem from contest")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:remove-problem", limit = 30, period = 60)
     @DeleteMapping("/{id}/problems/{problemId}")
     public Result<Void> removeProblem(
-            @Parameter(description = "Contest ID") @PathVariable String id,
-            @Parameter(description = "Problem ID") @PathVariable Long problemId) {
-
-        contestService.removeProblem(id, problemId);
+            @PathVariable String id,
+            @PathVariable Long problemId,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        contestCutoverService.removeProblem(id, problemId, idempotencyKey);
         return Result.success();
     }
 
-    @Operation(summary = "Get contest rankings (admin)", description = "Get rankings for a specific contest")
-    @ApiResponse(responseCode = "200", description = "Rankings retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
+    @Operation(summary = "Get contest rankings (admin)")
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/{id}/rankings")
-    public Result<PageResult<ContestRankingVO>> getRankings(
-            @Parameter(description = "Contest ID") @PathVariable String id,
-            @Parameter(description = "Page number (1-based)") @RequestParam(required = false, defaultValue = "1") Integer page,
-            @Parameter(description = "Number of items per page") @RequestParam(required = false, defaultValue = "50") Integer limit) {
-
-        return Result.success(contestProjection.getAdminContestRanking(id, page, limit));
+    public Result<PageResult<ContestRankingEntryDTO>> getRankings(
+            @PathVariable String id,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "50") Integer limit) {
+        return Result.success(adminContestService.getRankings(id, page, limit));
     }
 
-    @Operation(summary = "Start contest", description = "Transition a contest from DRAFT/UPCOMING to RUNNING")
-    @ApiResponse(responseCode = "200", description = "Contest started", content = @Content(schema = @Schema(implementation = ContestVO.class)))
-    @ApiResponse(responseCode = "400", description = "Invalid contest status for starting")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @Operation(summary = "Start contest")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:start", limit = 30, period = 60)
     @PostMapping("/{id}/start")
     public Result<AdminContestVO> startContest(
-            @Parameter(description = "Contest ID") @PathVariable String id) {
-
-        return Result.success(contestCutoverService.startContest(id));
+            @PathVariable String id,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        return Result.success(contestCutoverService.startContest(id, idempotencyKey));
     }
 
-    @Operation(summary = "End contest", description = "Transition a contest from RUNNING to FINISHED")
-    @ApiResponse(responseCode = "200", description = "Contest ended", content = @Content(schema = @Schema(implementation = ContestVO.class)))
-    @ApiResponse(responseCode = "400", description = "Contest is not running")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @Operation(summary = "End contest")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:end", limit = 30, period = 60)
     @PostMapping("/{id}/end")
     public Result<AdminContestVO> endContest(
-            @Parameter(description = "Contest ID") @PathVariable String id) {
-
-        return Result.success(contestCutoverService.endContest(id));
+            @PathVariable String id,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        return Result.success(contestCutoverService.endContest(id, idempotencyKey));
     }
 
     private String getCurrentUserIdOrThrow() {
@@ -191,17 +175,10 @@ public class AdminContestController {
         return userId;
     }
 
-    /**
-     * Defense-in-depth guard against HTML angle-bracket characters in titles.
-     * The {@code @Pattern} on {@code CreateContestDTO.title} accepts {@code \\p{P}}
-     * (Unicode punctuation), which includes {@code <} and {@code >}. While the
-     * rendering layer applies OWASP Encoder, the principle of "reject at the
-     * boundary" is enforced here so the stored value cannot contain
-     * HTML-significant characters regardless of downstream rendering.
-     */
-    private void rejectUnsafeTitleChars(String title) {
+    private static void rejectUnsafeTitleChars(String title) {
         if (title != null && (title.contains("<") || title.contains(">"))) {
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Title must not contain < or >");
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Title must not contain < or >");
         }
     }
 }

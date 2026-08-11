@@ -36,6 +36,10 @@ public class RejudgeResult {
     /** Error message if {@link #success} is {@code false}. */
     @Schema(description = "Error message if rejudge failed")
     private String error;
+    /** Stable App error code when the RPC reports a failed item. */
+    @Schema(description = "App error code if rejudge failed")
+    private Integer errorCode;
+
 
     /** Wall-clock time when the rejudge was initiated. ISO-8601 UTC. */
     @Schema(description = "When the rejudge was initiated (ISO-8601 UTC)")

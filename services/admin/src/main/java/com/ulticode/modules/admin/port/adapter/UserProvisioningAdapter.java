@@ -14,6 +14,7 @@ import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.port.UserProvisioningPort;
 import lombok.RequiredArgsConstructor;
@@ -145,7 +146,7 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
                 commandId,
                 IdMetadata.of(idempotencyKey, null),
                 actor,
-                TraceMetadata.EMPTY,
+                currentTrace(),
                 spec.username(),
                 spec.email(),
                 spec.rawPassword(),
@@ -177,7 +178,7 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
         String commandId = UUID.randomUUID().toString();
         String idempotencyKey = uuidGenerator.newId();
         ActorDelegation actor = new ActorDelegation("ADMIN", "bootstrap", "bootstrap", "restore admin");
-        TraceMetadata trace = TraceMetadata.EMPTY;
+        TraceMetadata trace = currentTrace();
 
         // Update credentials
         UpdateAccountCredentialsCommand credsCmd = new UpdateAccountCredentialsCommand(
@@ -226,12 +227,20 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
                 UUID.randomUUID().toString(),
                 IdMetadata.of(uuidGenerator.newId(), null),
                 new ActorDelegation("ADMIN", "bootstrap", "bootstrap", "restore admin"),
-                TraceMetadata.EMPTY,
+                currentTrace(),
                 id, expectedVersion, action, "admin restore");
         RpcResult<?> result = accountAdministrationService.changeState(command);
         if (result == null || !result.success()) {
             throw new IllegalStateException("Failed to " + action + " administrator " + id
                     + (result != null && result.error() != null ? ": " + result.error().message() : ""));
         }
+    }
+
+    private static TraceMetadata currentTrace() {
+        String reqId = TraceIdUtil.current();
+        if (reqId == null || reqId.isBlank()) {
+            reqId = "t-" + UUID.randomUUID();
+        }
+        return new TraceMetadata(reqId, null, null, null);
     }
 }

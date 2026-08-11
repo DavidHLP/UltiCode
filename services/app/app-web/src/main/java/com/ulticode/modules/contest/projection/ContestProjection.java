@@ -78,6 +78,16 @@ public interface ContestProjection {
     ContestVO getContestById(String idOrSlug, String userId);
 
     /**
+     * Get a contest by id-or-slug for the public catalog. Invisible contests
+     * are reported as not found; admin reads use {@link #getContestById}.
+     *
+     * @param idOrSlug the contest id or slug
+     * @param userId   the current user id (optional, for participation enrichment)
+     * @return the publicly visible contest view object
+     */
+    ContestVO getPublicContestById(String idOrSlug, String userId);
+
+    /**
      * Project a {@link Contest} entity into a {@link ContestVO}. Exposed so the
      * write-side service can shape its return values without re-implementing the
      * projection rules (problem-count lookup, participation enrichment, derived

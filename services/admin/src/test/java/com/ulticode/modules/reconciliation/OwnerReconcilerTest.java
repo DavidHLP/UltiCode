@@ -65,10 +65,8 @@ class OwnerReconcilerTest {
     class Checksum {
 
         @Test
-        @DisplayName("matching auth user count and app profile count are drift-free")
-        void matchingCountsAreDriftFree() {
-            when(authService.countActiveUsers()).thenReturn(RpcResult.success(5L, "t-system"));
-            when(appPort.countUserProfiles()).thenReturn(5L);
+        @DisplayName("closed profile dual-write window produces no count reconciliation")
+        void closedProfileDualWriteWindowProducesNoCountReconciliation() {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
@@ -79,14 +77,12 @@ class OwnerReconcilerTest {
             assertThat(run.getStatus()).isEqualTo("COMPLETED");
             assertThat(run.getDivergenceCount()).isZero();
             assertThat(run.getOrphanCount()).isZero();
-            assertThat(run.getDetail()).contains("\"drift\":false");
+            assertThat(run.getDetail()).contains("\"reconciliation\":[]");
         }
 
         @Test
-        @DisplayName("count mismatch increments divergence count")
-        void countMismatchDetectsDrift() {
-            when(authService.countActiveUsers()).thenReturn(RpcResult.success(5L, "t-system"));
-            when(appPort.countUserProfiles()).thenReturn(3L);
+        @DisplayName("profile count mismatch is not reconciled after the split is complete")
+        void profileCountMismatchIsNotReconciledAfterSplit() {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
@@ -95,8 +91,8 @@ class OwnerReconcilerTest {
             ReconciliationRun run = reconciler.runReconciliation();
 
             assertThat(run.getStatus()).isEqualTo("COMPLETED");
-            assertThat(run.getDivergenceCount()).isEqualTo(1);
-            assertThat(run.getDetail()).contains("\"drift\":true");
+            assertThat(run.getDivergenceCount()).isZero();
+            assertThat(run.getDetail()).contains("\"reconciliation\":[]");
         }
     }
 
@@ -107,8 +103,6 @@ class OwnerReconcilerTest {
         @Test
         @DisplayName("one non-zero table per owner increments orphan count once")
         void orphanTablesAreCountedPerOwner() {
-            when(authService.countActiveUsers()).thenReturn(RpcResult.success(2L, "t-system"));
-            when(appPort.countUserProfiles()).thenReturn(2L);
             when(authService.countAuthOrphans()).thenReturn(RpcResult.success(
                     new AuthReconciliationOrphanCounts(1, 0, 0, 0), "t-system"));
             when(appPort.countOrphans()).thenReturn(new ReconciliationOrphanCounts(
@@ -128,8 +122,6 @@ class OwnerReconcilerTest {
         @Test
         @DisplayName("failed auth RPC records zero auth orphans instead of failing")
         void failedAuthRpcDegradesToZero() {
-            when(authService.countActiveUsers()).thenReturn(RpcResult.success(2L, "t-system"));
-            when(appPort.countUserProfiles()).thenReturn(2L);
             when(authService.countAuthOrphans()).thenReturn(null);
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
             when(auditMapper.countOrphanAuditLogs()).thenReturn(0L);
@@ -148,7 +140,7 @@ class OwnerReconcilerTest {
         @Test
         @DisplayName("exception during aggregation persists FAILED status")
         void exceptionPersistsFailedStatus() {
-            when(authService.countActiveUsers()).thenThrow(new IllegalStateException("dubbo down"));
+            when(authService.countAuthOrphans()).thenThrow(new IllegalStateException("dubbo down"));
 
             ReconciliationRun run = reconciler.runReconciliation();
 
@@ -159,8 +151,6 @@ class OwnerReconcilerTest {
         @Test
         @DisplayName("run record is inserted with RUNNING status before execution")
         void runInsertedAsRunning() {
-            when(authService.countActiveUsers()).thenReturn(RpcResult.success(1L, "t-system"));
-            when(appPort.countUserProfiles()).thenReturn(1L);
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);

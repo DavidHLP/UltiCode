@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.dto.problem;
 
+import com.ulticode.app.api.service.ProblemOwnerPort;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -11,7 +12,7 @@ import java.util.List;
 @Schema(description = "Request to import problems")
 public class ImportProblemsRequestDTO {
 
-    public static final int MAX_IMPORT_SIZE = 500;
+    public static final int MAX_IMPORT_SIZE = ProblemOwnerPort.MAX_IMPORT_SIZE;
 
     @NotEmpty(message = "Problems list cannot be empty")
     @Size(max = MAX_IMPORT_SIZE, message = "Cannot import more than " + MAX_IMPORT_SIZE + " problems at once")

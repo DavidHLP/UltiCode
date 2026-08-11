@@ -3,18 +3,18 @@ package com.ulticode.modules.admin.controller;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import com.ulticode.websecurity.annotation.RateLimit;
+import com.ulticode.app.api.dto.ProblemListDetailDTO;
+import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
+import com.ulticode.modules.admin.dto.CreateProblemListRequest;
+import com.ulticode.modules.admin.dto.UpdateBannerRequest;
+import com.ulticode.modules.admin.dto.UpdateBasicInfoRequest;
+import com.ulticode.modules.admin.dto.UpdateProblemListRequest;
+import com.ulticode.modules.admin.dto.UpdateProblemsRequest;
+import com.ulticode.modules.admin.dto.UpdateVisibilityRequest;
 import com.ulticode.modules.admin.service.AdminProblemListService;
-import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
-import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
-import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
-import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
-import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
-import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
-import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
-import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,14 +37,14 @@ public class AdminProblemListController {
     @Operation(summary = "Get problem lists", description = "Get paginated list of problem lists with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<ProblemListSummaryVO>> getProblemLists(AdminProblemListQueryDTO query) {
+    public Result<PageResult<ProblemListSummaryDTO>> getProblemLists(AdminProblemListQueryDTO query) {
         return Result.success(adminProblemListService.getProblemLists(query));
     }
 
     @Operation(summary = "Get problem list by ID", description = "Get detailed problem list information")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemListDetailVO> getProblemListById(@PathVariable String id) {
+    public Result<ProblemListDetailDTO> getProblemListById(@PathVariable String id) {
         return Result.success(adminProblemListService.getProblemList(id));
     }
 
@@ -52,43 +52,63 @@ public class AdminProblemListController {
     @RateLimit(key = "admin:problem-list-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemListSummaryVO> createProblemList(
-            @Valid @RequestBody CreateProblemListDTO dto,
-            Principal principal) {
+    public Result<ProblemListSummaryDTO> createProblemList(
+            @Valid @RequestBody CreateProblemListRequest dto,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         String userId = principal.getName();
-        return Result.success(adminProblemListService.createProblemList(dto, userId));
+        ProblemListSummaryDTO result = hasKey(idempotencyKey)
+                ? adminProblemListService.createProblemList(dto, userId, idempotencyKey)
+                : adminProblemListService.createProblemList(dto, userId);
+        return Result.success(result);
     }
 
     @Operation(summary = "Update problem list", description = "Update an existing problem list")
     @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemListSummaryVO> updateProblemList(
+    public Result<ProblemListSummaryDTO> updateProblemList(
             @PathVariable String id,
-            @Valid @RequestBody UpdateProblemListDTO dto,
-            Principal principal) {
+            @Valid @RequestBody UpdateProblemListRequest dto,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         String userId = principal.getName();
-        return Result.success(adminProblemListService.updateProblemList(id, dto, userId));
+        ProblemListSummaryDTO result = hasKey(idempotencyKey)
+                ? adminProblemListService.updateProblemList(id, dto, userId, idempotencyKey)
+                : adminProblemListService.updateProblemList(id, dto, userId);
+        return Result.success(result);
     }
 
     @Operation(summary = "Delete problem list", description = "Delete a problem list")
     @RateLimit(key = "admin:problem-list-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<Void> deleteProblemList(@PathVariable String id, Principal principal) {
-        adminProblemListService.deleteProblemList(id, principal.getName());
+    public Result<Void> deleteProblemList(
+            @PathVariable String id,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        if (hasKey(idempotencyKey)) {
+            adminProblemListService.deleteProblemList(id, principal.getName(), idempotencyKey);
+        } else {
+            adminProblemListService.deleteProblemList(id, principal.getName());
+        }
         return Result.success();
     }
 
     @Operation(summary = "Update problem list problems", description = "Replace all problems in a problem list")
     @RateLimit(key = "admin:problem-list-update-problems", limit = 30, period = 60)
     @PostMapping("/{id}/problems")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGE_PROBLEMS')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> updateListProblems(
             @PathVariable String id,
-            @Valid @RequestBody UpdateProblemListProblemsDTO dto,
-            Principal principal) {
-        adminProblemListService.updateListProblems(id, dto, principal.getName());
+            @Valid @RequestBody UpdateProblemsRequest dto,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
+        if (hasKey(idempotencyKey)) {
+            adminProblemListService.updateListProblems(id, dto, principal.getName(), idempotencyKey);
+        } else {
+            adminProblemListService.updateListProblems(id, dto, principal.getName());
+        }
         return Result.success();
     }
 
@@ -96,35 +116,51 @@ public class AdminProblemListController {
     @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
     @PatchMapping("/{id}/basic-info")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemListSummaryVO> updateBasicInfo(
+    public Result<ProblemListSummaryDTO> updateBasicInfo(
             @PathVariable String id,
-            @Valid @RequestBody UpdateBasicInfoDTO dto,
-            Principal principal) {
+            @Valid @RequestBody UpdateBasicInfoRequest dto,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         String userId = principal.getName();
-        return Result.success(adminProblemListService.updateBasicInfo(id, userId, dto));
+        ProblemListSummaryDTO result = hasKey(idempotencyKey)
+                ? adminProblemListService.updateBasicInfo(id, userId, dto, idempotencyKey)
+                : adminProblemListService.updateBasicInfo(id, userId, dto);
+        return Result.success(result);
     }
 
     @Operation(summary = "Update problem list visibility", description = "Update public and featured status of a problem list")
     @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
     @PatchMapping("/{id}/visibility")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemListSummaryVO> updateVisibility(
+    public Result<ProblemListSummaryDTO> updateVisibility(
             @PathVariable String id,
-            @Valid @RequestBody UpdateVisibilityDTO dto,
-            Principal principal) {
+            @Valid @RequestBody UpdateVisibilityRequest dto,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         String userId = principal.getName();
-        return Result.success(adminProblemListService.updateVisibility(id, userId, dto));
+        ProblemListSummaryDTO result = hasKey(idempotencyKey)
+                ? adminProblemListService.updateVisibility(id, userId, dto, idempotencyKey)
+                : adminProblemListService.updateVisibility(id, userId, dto);
+        return Result.success(result);
     }
 
     @Operation(summary = "Update problem list banner", description = "Update banner settings of a problem list")
     @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
     @PatchMapping("/{id}/banner")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemListSummaryVO> updateBanner(
+    public Result<ProblemListSummaryDTO> updateBanner(
             @PathVariable String id,
-            @Valid @RequestBody UpdateBannerDTO dto,
-            Principal principal) {
+            @Valid @RequestBody UpdateBannerRequest dto,
+            Principal principal,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) {
         String userId = principal.getName();
-        return Result.success(adminProblemListService.updateBanner(id, userId, dto));
+        ProblemListSummaryDTO result = hasKey(idempotencyKey)
+                ? adminProblemListService.updateBanner(id, userId, dto, idempotencyKey)
+                : adminProblemListService.updateBanner(id, userId, dto);
+        return Result.success(result);
+    }
+
+    private static boolean hasKey(String key) {
+        return key != null && !key.isBlank();
     }
 }

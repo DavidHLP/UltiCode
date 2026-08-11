@@ -9,6 +9,7 @@ import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
 
@@ -71,7 +73,7 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public DeleteResult deleteSolution(String id) {
         Solution solution = loadOrThrow(id);
 

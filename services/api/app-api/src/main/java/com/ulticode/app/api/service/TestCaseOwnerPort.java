@@ -1,6 +1,8 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Owner-only write surface for the {@code test_cases} table.
@@ -34,9 +36,27 @@ public interface TestCaseOwnerPort {
     int deleteAllForProblem(Long problemId);
 
     /**
+     * Atomically replace every test case belonging to a problem.
+     *
+     * <p>The delete and inserts execute in the App owner's transaction, so a
+     * failed replacement cannot leave a partially-written batch.
+     */
+    void replaceAllForProblem(Long problemId, List<TestCaseWrite> commands);
+
+    /**
      * Update only a test case's order and timestamp.
      */
     void updateTestOrder(String id, int testOrder, LocalDateTime updatedAt);
+
+    /**
+     * Atomically update the order and timestamp of an ordered set of test cases.
+     */
+    void updateTestOrders(List<TestCaseOrder> commands);
+
+    /**
+     * Complete test-case order command. Field order is part of the contract.
+     */
+    record TestCaseOrder(String id, int testOrder, LocalDateTime updatedAt) implements Serializable {}
 
     /**
      * Complete test-case row command. Field order is part of the contract.

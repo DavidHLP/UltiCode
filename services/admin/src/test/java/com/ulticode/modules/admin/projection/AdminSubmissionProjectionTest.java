@@ -1,18 +1,16 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
-import com.ulticode.modules.admin.dto.SubmissionStatistics;
-import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.app.api.dto.LanguageCountDTO;
+import com.ulticode.app.api.dto.ProblemAdminRowDTO;
 import com.ulticode.app.api.dto.StatusCountDTO;
-import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
-
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
+import com.ulticode.modules.admin.dto.AdminSubmissionVO;
+import com.ulticode.modules.admin.dto.SubmissionStatistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,8 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,23 +38,23 @@ import static org.mockito.Mockito.when;
  * {@code getLanguages} (humanised labels), {@code getStatistics} (typed
  * read-port aggregation), and {@code getSubmissions} (paginated search delegated
  * to the read port + batch user/problem enrichment). The projection no longer
- * imports {@code SubmissionMapper}; all reads route through
- * {@link AdminSubmissionReadPort}.
+ * imports {@code SubmissionMapper}; all reads route through the public
+ * {@link SubmissionAdminReadPort} / {@link ProblemAdminReadPort} contracts.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DefaultAdminSubmissionProjection")
 class AdminSubmissionProjectionTest {
 
-    @Mock private AdminSubmissionReadPort submissionReadPort;
+    @Mock private SubmissionAdminReadPort submissionReadPort;
     @Mock private AdminUserEnricher userEnricher;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemAdminReadPort problemReadPort;
 
     private DefaultAdminSubmissionProjection projection;
 
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminSubmissionProjection(
-                submissionReadPort, userEnricher, problemMapper,
+                submissionReadPort, userEnricher, problemReadPort,
                 java.time.Clock.systemDefaultZone());
     }
 
@@ -149,49 +147,50 @@ class AdminSubmissionProjectionTest {
         @Test
         @DisplayName("enriches the port's page with batched user + problem data")
         void enrichesPortPageWithUserAndProblem() {
-            Submission s1 = new Submission();
-            s1.setId("sub-1");
-            s1.setUserId("u1");
-            s1.setProblemId(100L);
-            s1.setLanguage("cpp");
-            s1.setStatus("Accepted");
-            s1.setCode("int main(){}");
-            s1.setCreatedAt(LocalDateTime.now());
-            Submission s2 = new Submission();
-            s2.setId("sub-2");
-            s2.setUserId("u2");
-            s2.setProblemId(200L);
-            s2.setLanguage("python");
-            s2.setStatus("Wrong Answer");
-            s2.setCode("print(1)");
-            s2.setCreatedAt(LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            SubmissionAdminRowDTO s1 = row("sub-1", "u1", 100L, "cpp", "Accepted", "int main(){}", now);
+            SubmissionAdminRowDTO s2 = row("sub-2", "u2", 200L, "python", "Wrong Answer", "print(1)", now);
 
-            when(submissionReadPort.searchSubmissions(any(AdminSubmissionQueryDTO.class), anyInt(), anyInt()))
+            when(submissionReadPort.search(any(SubmissionAdminQueryDTO.class), anyInt(), anyInt()))
                 .thenReturn(PageResult.of(List.of(s1, s2), 2L, 1, 10));
 
             when(userEnricher.enrich(anySet())).thenReturn(Map.of(
                     "u1", new AdminUserSummary("u1", "alice", "role1", "Alice", "avatar1", "alice@example.com"),
                     "u2", new AdminUserSummary("u2", "bob", "role2", "Bob", "avatar2", "bob@example.com")));
 
-            Problem p1 = new Problem(); p1.setId(100L); p1.setTitle("Two Sum"); p1.setSlug("two-sum");
-            Problem p2 = new Problem(); p2.setId(200L); p2.setTitle("Add Two Numbers"); p2.setSlug("add-two-numbers");
-            when(problemMapper.selectBatchIds(any())).thenReturn(List.of(p1, p2));
+            ProblemAdminRowDTO p1 = problemRow(100L, "two-sum", "Two Sum");
+            ProblemAdminRowDTO p2 = problemRow(200L, "add-two-numbers", "Add Two Numbers");
+            when(problemReadPort.findProblemsByIds(anySet())).thenReturn(List.of(p1, p2));
 
-            AdminSubmissionQueryDTO query = new AdminSubmissionQueryDTO();
+            SubmissionAdminQueryDTO query = new SubmissionAdminQueryDTO();
             query.setPage(1);
             query.setLimit(10);
 
-            var result = projection.getSubmissions(query);
+            PageResult<AdminSubmissionVO> result = projection.getSubmissions(query);
 
             assertThat(result.getItems()).hasSize(2);
             assertThat(result.getTotal()).isEqualTo(2L);
-            var first = result.getItems().get(0);
+            AdminSubmissionVO first = result.getItems().get(0);
             assertThat(first.getUsername()).isEqualTo("alice");
             assertThat(first.getProblemTitle()).isEqualTo("Two Sum");
             assertThat(first.getProblemSlug()).isEqualTo("two-sum");
-            assertThat(first.getCodeLength()).isEqualTo(s1.getCode().length());
-            // The whole query (filters + sort + search pre-fetch) was handed to the port.
+            assertThat(first.getCodeLength()).isEqualTo("int main(){}".length());
             assertThat(first.getId()).isEqualTo("sub-1");
+        }
+
+        private SubmissionAdminRowDTO row(String id, String userId, Long problemId, String language,
+                                          String status, String code, LocalDateTime createdAt) {
+            return new SubmissionAdminRowDTO(
+                    id, problemId, userId, language, status,
+                    10, 5.0, createdAt, code == null ? 0 : code.length(),
+                    null, null, null, null, List.of(), null, null);
+        }
+
+        private ProblemAdminRowDTO problemRow(Long id, String slug, String title) {
+            return new ProblemAdminRowDTO(
+                    id, slug, title, "Medium", null, null, null, null,
+                    null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null);
         }
     }
 }

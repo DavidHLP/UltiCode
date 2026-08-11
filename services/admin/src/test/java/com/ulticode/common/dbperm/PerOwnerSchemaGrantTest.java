@@ -3,7 +3,6 @@ package com.ulticode.common.dbperm;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
@@ -72,11 +71,16 @@ class PerOwnerSchemaGrantTest {
     }
 
     private static void assertManifestOwner(Set<String> tables, String owner) throws IOException {
-        File manifest = resolveFile(".auto-flow/TABLE_OWNERS.md");
-        List<String> lines = Files.readAllLines(manifest.toPath());
+        File guide = resolveFile("services/docs/MICROSERVICE_MIGRATION_GUIDE.md");
+        String[] rows = Files.readString(guide.toPath()).split("\\R");
         for (String table : tables) {
-            assertThat(lines).anyMatch(line -> line.contains("`" + table + "`")
-                && line.contains("| " + owner + " |"));
+            String[] columns = java.util.Arrays.stream(rows)
+                .map(line -> line.split("\\|", -1))
+                .filter(candidate -> candidate.length > 3
+                    && candidate[1].contains("`" + table + "`"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Missing owner row for " + table));
+            assertThat(columns[3].trim()).as("target owner for %s", table).contains(owner);
         }
     }
 

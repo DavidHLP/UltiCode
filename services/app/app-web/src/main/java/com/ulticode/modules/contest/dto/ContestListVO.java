@@ -16,7 +16,7 @@ public record ContestListVO(
         @Schema(description = "Contest unique identifier") String id,
         @Schema(description = "URL-friendly identifier for the contest") String slug,
         @Schema(description = "Contest title") String title,
-        @Schema(description = "Contest status: DRAFT, UPCOMING, RUNNING, FINISHED, CANCELLED") String status,
+        @Schema(description = "Contest status: DRAFT, UPCOMING, RUNNING, FINISHING, FINISHED, CANCELLED") String status,
         @Schema(description = "Contest start time") @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime startTime,
         @Schema(description = "Contest end time") @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime endTime,
         @Schema(description = "Contest duration in minutes") Integer duration,

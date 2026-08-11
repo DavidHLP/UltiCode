@@ -5,6 +5,7 @@ import com.ulticode.app.api.service.ContestAnnouncementReadPort;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
  * @author ulticode
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultContestAnnouncementReadAdapter implements ContestAnnouncementReadPort {
 

@@ -13,7 +13,6 @@ import com.ulticode.app.api.service.SolutionOwnerPort.FlagResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -42,7 +41,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     private final AdminBulkExecutor bulkExecutor;
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.FLAG_SOLUTION, entityType = AuditVocabulary.ENTITY_SOLUTION)
     public AdminSolutionVO flagSolution(String id, String reason) {
         LocalDateTime now = LocalDateTime.now(clock);
@@ -64,7 +62,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.UNFLAG_SOLUTION, entityType = AuditVocabulary.ENTITY_SOLUTION)
     public AdminSolutionVO unflagSolution(String id) {
         FlagResult res = solutionOwnerPort.unflagSolution(id);
@@ -85,7 +82,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.DELETE_SOLUTION, entityType = AuditVocabulary.ENTITY_SOLUTION)
     public void deleteSolution(String id) {
         DeleteResult res = solutionOwnerPort.deleteSolution(id);
@@ -100,7 +96,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.BULK_SOLUTION_ACTION, entityType = AuditVocabulary.ENTITY_SOLUTION, captureNewState = false)
     public List<BulkActionResult> bulkAction(List<String> ids, String action) {
         AuditContext.setEntityId(String.join(",", ids));

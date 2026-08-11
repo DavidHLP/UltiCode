@@ -51,7 +51,7 @@ public class ContentModerationWriteAdapter implements ContentModerationWritePort
 
         return switch (contentType) {
             case "forum_post", "forum" -> {
-                forumOwnerPort.deletePost(command.contentId());
+                forumOwnerPort.deletePost(command.contentId(), command.actor().actorId());
                 yield ContentLifecycleState.DELETED;
             }
             case "solution" -> {

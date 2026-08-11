@@ -37,6 +37,15 @@ public class DefaultNotificationAdministrationWriteAdapter implements Notificati
     @Override
     @Transactional
     public NotificationAdminViewDTO createNotification(CreateNotificationCommand command) {
+        String target = command.target() == null ? "" : command.target().trim().toUpperCase();
+        if (!"ALL".equals(target) && !"USERS".equals(target)) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Notification target must be ALL or USERS");
+        }
+        if ("USERS".equals(target) && (command.userIds() == null || command.userIds().isEmpty())) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "userIds are required when target is USERS");
+        }
         NotificationCategory category = NotificationCategory.SYSTEM;
         if (command.category() != null && !command.category().isBlank()) {
             try {
@@ -45,16 +54,26 @@ public class DefaultNotificationAdministrationWriteAdapter implements Notificati
             }
         }
 
-        AnnouncementBroadcaster.Outcome outcome = broadcaster.broadcast(
-                command.title(),
-                command.content(),
-                command.type(),
-                category,
-                command.target(),
-                command.userIds(),
-                java.util.Collections.emptyMap(),
-                null
-        );
+        AnnouncementBroadcaster.Outcome outcome;
+        try {
+            outcome = broadcaster.broadcast(
+                    command.title(),
+                    command.content(),
+                    command.type(),
+                    category,
+                    target,
+                    command.userIds(),
+                    java.util.Map.of(
+                            "createdBy", command.actor().actorId(),
+                            "isSystemAnnouncement", true),
+                    null
+            );
+        } catch (IllegalArgumentException exception) {
+            if ("No target users found".equals(exception.getMessage())) {
+                throw new BusinessException(BaseErrorCode.BAD_REQUEST, exception.getMessage());
+            }
+            throw exception;
+        }
 
         long nowEpochMs = clock.instant().toEpochMilli();
         return new NotificationAdminViewDTO(
@@ -71,27 +90,36 @@ public class DefaultNotificationAdministrationWriteAdapter implements Notificati
     @Transactional
     public void deleteNotification(DeleteNotificationCommand command) {
         Notification n = notificationMapper.selectById(command.notificationId());
-        if (n == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Notification not found: " + command.notificationId());
+        if (n == null || n.getAnnouncementId() == null || n.getAnnouncementId().isBlank()) {
+            throw new BusinessException(BaseErrorCode.NOT_FOUND,
+                    "System notification not found: " + command.notificationId());
         }
-        notificationMapper.deleteById(command.notificationId());
-        log.info("Notification deleted: {}", command.notificationId());
+        notificationMapper.softDeleteAnnouncement(command.notificationId(), n.getAnnouncementId());
+        log.info("Notification announcement deleted: {}", command.notificationId());
     }
 
     @Override
     @Transactional
     public NotificationAdminViewDTO updateNotification(UpdateNotificationCommand command) {
         Notification n = notificationMapper.selectById(command.notificationId());
-        if (n == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Notification not found: " + command.notificationId());
+        if (n == null || n.getAnnouncementId() == null || n.getAnnouncementId().isBlank()) {
+            throw new BusinessException(BaseErrorCode.NOT_FOUND,
+                    "System notification not found: " + command.notificationId());
         }
-        if (command.title() != null && !command.title().isBlank()) {
-            n.setTitle(command.title());
+        String newCategory = null;
+        if (command.category() != null && !command.category().isBlank()) {
+            try {
+                newCategory = NotificationCategory.valueOf(command.category().trim().toUpperCase()).name();
+            } catch (IllegalArgumentException exception) {
+                throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                        "Invalid notification category: " + command.category());
+            }
         }
-        if (command.content() != null && !command.content().isBlank()) {
-            n.setBody(command.content());
-        }
-        notificationMapper.updateById(n);
+        String newType = command.type() != null && !command.type().isBlank()
+                ? command.type() : null;
+        notificationMapper.updateAnnouncement(
+                n.getId(), n.getAnnouncementId(), n.getCategory(),
+                command.title(), command.content(), newType, newCategory);
 
         long epochMs = n.getCreatedAt() != null
                 ? n.getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli()
@@ -99,11 +127,11 @@ public class DefaultNotificationAdministrationWriteAdapter implements Notificati
 
         return new NotificationAdminViewDTO(
                 n.getId(),
-                null,
-                n.getTitle() != null ? n.getTitle() : "",
-                n.getType() != null ? n.getType() : "",
-                n.getCategory() != null ? n.getCategory() : "",
-                epochMs
-        );
+                n.getAnnouncementId(),
+                command.title(),
+                newType != null ? newType : n.getType(),
+                newCategory != null ? newCategory : n.getCategory(),
+                epochMs);
+
     }
 }

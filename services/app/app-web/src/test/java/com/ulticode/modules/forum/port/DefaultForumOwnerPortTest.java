@@ -1,7 +1,7 @@
 package com.ulticode.modules.forum.port;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,16 +9,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,17 +47,15 @@ class DefaultForumOwnerPortTest {
         @DisplayName("flagPost sets isFlagged=true and stores reason")
         void flagPost_setsFlaggedAndReason() {
             ForumPost post = createPost("p-1", "u-1");
-            when(forumPostMapper.selectById("p-1")).thenReturn(post);
-            when(forumPostMapper.updateById(any(ForumPost.class))).thenReturn(1);
+            LocalDateTime flaggedAt = LocalDateTime.now();
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+            when(forumPostMapper.updateFlagStatusAt("p-1", true, "spam", flaggedAt)).thenReturn(1);
 
-            var result = forumOwnerPort.flagPost("p-1", "spam", LocalDateTime.now());
+            var result = forumOwnerPort.flagPost("p-1", "spam", flaggedAt);
 
             assertThat(result.authorUserId()).isEqualTo("u-1");
             assertThat(result.previousIsFlagged()).isFalse();
-            ArgumentCaptor<ForumPost> captor = ArgumentCaptor.forClass(ForumPost.class);
-            verify(forumPostMapper).updateById(captor.capture());
-            assertThat(captor.getValue().getIsFlagged()).isTrue();
-            assertThat(captor.getValue().getFlaggedReason()).isEqualTo("spam");
+            verify(forumPostMapper).updateFlagStatusAt("p-1", true, "spam", flaggedAt);
         }
 
         @Test
@@ -69,10 +64,11 @@ class DefaultForumOwnerPortTest {
             ForumPost post = createPost("p-1", "u-1");
             post.setIsFlagged(true);
             post.setFlaggedReason("old-reason");
-            when(forumPostMapper.selectById("p-1")).thenReturn(post);
-            when(forumPostMapper.updateById(any(ForumPost.class))).thenReturn(1);
+            LocalDateTime flaggedAt = LocalDateTime.now();
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+            when(forumPostMapper.updateFlagStatusAt("p-1", true, "new-reason", flaggedAt)).thenReturn(1);
 
-            var result = forumOwnerPort.flagPost("p-1", "new-reason", LocalDateTime.now());
+            var result = forumOwnerPort.flagPost("p-1", "new-reason", flaggedAt);
 
             assertThat(result.previousIsFlagged()).isTrue();
             assertThat(result.previousReason()).isEqualTo("old-reason");
@@ -89,16 +85,13 @@ class DefaultForumOwnerPortTest {
             ForumPost post = createPost("p-1", "u-1");
             post.setIsFlagged(true);
             post.setFlaggedReason("spam");
-            when(forumPostMapper.selectById("p-1")).thenReturn(post);
-            when(forumPostMapper.updateById(any(ForumPost.class))).thenReturn(1);
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+            when(forumPostMapper.updateFlagStatusAt("p-1", false, null, null)).thenReturn(1);
 
             var result = forumOwnerPort.unflagPost("p-1");
 
             assertThat(result.authorUserId()).isEqualTo("u-1");
-            ArgumentCaptor<ForumPost> captor = ArgumentCaptor.forClass(ForumPost.class);
-            verify(forumPostMapper).updateById(captor.capture());
-            assertThat(captor.getValue().getIsFlagged()).isFalse();
-            assertThat(captor.getValue().getFlaggedReason()).isNull();
+            verify(forumPostMapper).updateFlagStatusAt("p-1", false, null, null);
         }
     }
 
@@ -109,9 +102,22 @@ class DefaultForumOwnerPortTest {
         @Test
         @DisplayName("setPinned throws NOT_FOUND when post missing")
         void setPinned_throwsWhenMissing() {
-            when(forumPostMapper.selectById("missing")).thenReturn(null);
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("missing")).thenReturn(null);
 
             assertThatThrownBy(() -> forumOwnerPort.setPinned("missing", true))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(BaseErrorCode.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("setPinned rejects a logically deleted post")
+        void setPinned_rejectsDeletedPost() {
+            ForumPost post = createPost("p-1", "u-1");
+            post.setIsDeleted(true);
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+
+            assertThatThrownBy(() -> forumOwnerPort.setPinned("p-1", true))
                     .isInstanceOf(BusinessException.class)
                     .extracting(e -> ((BusinessException) e).getErrorCode())
                     .isEqualTo(BaseErrorCode.NOT_FOUND);
@@ -122,12 +128,78 @@ class DefaultForumOwnerPortTest {
         void setLocked_capturesPrevious() {
             ForumPost post = createPost("p-1", "u-1");
             post.setIsLocked(false);
-            when(forumPostMapper.selectById("p-1")).thenReturn(post);
-            when(forumPostMapper.updateById(any(ForumPost.class))).thenReturn(1);
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+            when(forumPostMapper.updateLockStatus("p-1", true)).thenReturn(1);
 
             var result = forumOwnerPort.setLocked("p-1", true);
 
             assertThat(result.previousState()).isFalse();
+            verify(forumPostMapper).updateLockStatus("p-1", true);
+        }
+    }
+
+    @Nested
+    @DisplayName("deletePost tests")
+    class DeletePostTests {
+
+        @Test
+        @DisplayName("deletePost rejects a missing post")
+        void deletePost_rejectsMissingPost() {
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("missing")).thenReturn(null);
+
+            assertThatThrownBy(() -> forumOwnerPort.deletePost("missing", "admin-1"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(BaseErrorCode.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("deletePost rejects an already deleted post")
+        void deletePost_rejectsAlreadyDeletedPost() {
+            ForumPost post = createPost("p-1", "u-1");
+            post.setIsDeleted(true);
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+
+            assertThatThrownBy(() -> forumOwnerPort.deletePost("p-1", "admin-1"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(BaseErrorCode.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("deletePost rejects a soft-delete race")
+        void deletePost_rejectsSoftDeleteRace() {
+            ForumPost post = createPost("p-1", "u-1");
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1"))
+                    .thenReturn(post)
+                    .thenReturn(deletedPost("p-1", "u-1"));
+            when(forumPostMapper.softDelete("p-1", "admin-1")).thenReturn(0);
+
+            assertThatThrownBy(() -> forumOwnerPort.deletePost("p-1", "admin-1"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting(e -> ((BusinessException) e).getErrorCode())
+                    .isEqualTo(BaseErrorCode.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("deletePost returns the owner snapshot after a successful delete")
+        void deletePost_returnsSnapshotAfterSuccess() {
+            ForumPost post = createPost("p-1", "u-1");
+            post.setTitle("Title");
+            when(forumPostMapper.selectByIdForUpdateIgnoreDeleted("p-1")).thenReturn(post);
+            when(forumPostMapper.softDelete("p-1", "admin-1")).thenReturn(1);
+
+            var result = forumOwnerPort.deletePost("p-1", "admin-1");
+
+            assertThat(result.authorUserId()).isEqualTo("u-1");
+            assertThat(result.title()).isEqualTo("Title");
+            verify(forumPostMapper).softDelete("p-1", "admin-1");
+        }
+
+        private ForumPost deletedPost(String id, String userId) {
+            ForumPost post = createPost(id, userId);
+            post.setIsDeleted(true);
+            return post;
         }
     }
 }

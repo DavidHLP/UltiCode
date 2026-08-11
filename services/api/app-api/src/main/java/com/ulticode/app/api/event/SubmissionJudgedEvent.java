@@ -8,11 +8,9 @@ import java.time.LocalDateTime;
 /**
  * Event published when a submission's verdict has been finalized by the judge worker.
  *
- * <p>Consumed by multiple listeners at different transaction phases:
- * <ul>
- *   <li>{@code BEFORE_COMMIT}: result outbox listener.</li>
- *   <li>{@code AFTER_COMMIT}: contest scoring and achievement listeners.</li>
- * </ul>
+ * <p>The source transaction writes the durable result outbox in
+ * {@code BEFORE_COMMIT}. Contest, notification, achievement, and WebSocket
+ * consumers process the published durable event after commit.</p>
  */
 public class SubmissionJudgedEvent extends ApplicationEvent implements Serializable {
 

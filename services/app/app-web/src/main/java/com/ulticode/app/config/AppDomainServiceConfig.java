@@ -1,8 +1,5 @@
 package com.ulticode.app.config;
 
-import com.ulticode.modules.contest.port.ContestWritePort;
-import com.ulticode.modules.contest.service.ContestAdministrationDomainService;
-import com.ulticode.modules.contest.service.impl.ContestAdministrationDomainServiceImpl;
 import com.ulticode.modules.moderation.port.ContentModerationWritePort;
 import com.ulticode.modules.moderation.service.ContentModerationDomainService;
 import com.ulticode.modules.moderation.service.impl.ContentModerationDomainServiceImpl;
@@ -59,12 +56,6 @@ public class AppDomainServiceConfig {
             ProblemVersionPort versionPort,
             Clock clock) {
         return new ProblemAdministrationDomainServiceImpl(writePort, detailPort, versionPort, clock);
-    }
-
-    @Bean
-    public ContestAdministrationDomainService contestAdministrationDomainService(
-            ContestWritePort writePort, Clock clock) {
-        return new ContestAdministrationDomainServiceImpl(writePort, clock);
     }
 
     @Bean

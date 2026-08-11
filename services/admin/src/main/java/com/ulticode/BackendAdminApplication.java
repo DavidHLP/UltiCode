@@ -1,6 +1,5 @@
 package com.ulticode;
 
-import com.ulticode.app.audit.AppAuditSinkAdapter;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
@@ -49,8 +48,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ComponentScan(
         basePackages = "com.ulticode",
         excludeFilters = {
-                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = BackendAppApplication.class),
-                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = AppAuditSinkAdapter.class),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.BackendAppApplication"),
+                @ComponentScan.Filter(
+                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.audit\\.AppAuditSinkAdapter"),
                 @ComponentScan.Filter(
                         type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.config\\..*"),
                 @ComponentScan.Filter(
@@ -71,8 +72,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 // submission.service + submission.controller form the judge/problem-run
                 // execution chain. sandbox is excluded above, so CodeExecutionService
                 // cannot wire its SandboxExecutor dependency and would abort context
-                // startup. Admin reaches submission via Dubbo RPC (and via @MapperScan
-                // for mappers), so exclude these app-side beans to keep the partial
+                // startup. Admin reaches submission via Dubbo RPC; keep the partial
                 // judge path out of the admin context.
                 @ComponentScan.Filter(
                         type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.service\\..*"),
@@ -85,32 +85,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.ulticode.modules.admin.outbox.mapper",
         "com.ulticode.modules.backup.mapper",
         "com.ulticode.modules.reconciliation",
-        "com.ulticode.modules.follow.mapper",
-        "com.ulticode.modules.bookmark.mapper",
-        "com.ulticode.modules.solution.mapper",
-        "com.ulticode.modules.forum.mapper",
-        "com.ulticode.modules.problem.mapper",
-        "com.ulticode.modules.contest.mapper",
-        "com.ulticode.modules.vote.mapper",
-        "com.ulticode.modules.moderation.mapper",
-        "com.ulticode.modules.achievement.mapper",
-        "com.ulticode.modules.notification.mapper",
-        "com.ulticode.modules.email.mapper",
-        "com.ulticode.modules.notification.ledger.mapper",
-        "com.ulticode.modules.event.outbox",
-        "com.ulticode.modules.event.inbox",
-        "com.ulticode.modules.problemlist.mapper",
-        "com.ulticode.modules.reconciliation.port",
-        "com.ulticode.modules.search.port",
-        "com.ulticode.modules.submission.mapper",
-        "com.ulticode.modules.submission.result",
-        "com.ulticode.modules.submission.outbox.mapper",
-        "com.ulticode.modules.subscription.mapper",
-        "com.ulticode.app.userprofile.mapper",
-        "com.ulticode.app.audit",
-        "com.ulticode.app.user.port",
-        "com.ulticode.app.i18n.mapper",
-        "com.ulticode.app.idempotency.mapper",
 })
 @EnableAsync
 @EnableScheduling

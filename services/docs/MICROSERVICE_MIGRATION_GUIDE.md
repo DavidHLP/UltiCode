@@ -339,6 +339,7 @@ Judge Worker 和 Realtime 初期是 `backend-app` 内的独立 package/profile�
 | `notification_delivery_ledger` | notification dispatcher/reaper | App/Notification | Admin 运维读 | App I；Admin Q |
 | `notification_preferences` | notification | App/Notification | App | I |
 | `notifications` | notification 与 admin 多写 | App/Notification | Admin、WebSocket | App I；Admin C/E |
+| `oauth_provider_identities` | Auth OAuth workflow/mapper；provider + provider_user_id 的账号绑定 | Auth | Auth | I；唯一约束保证同一 provider identity 只绑定一个账号 |
 | `password_resets` | 仅 migration；实际 hash 存 `users.password_reset_*` | Auth（R 候选） | Auth | 核数据后 R；保留 hash-only 流程 |
 | `problem_details` | problem；admin 直接读写 | App | Admin | App I；Admin C/Q |
 | `problem_examples` | problem/admin；judge fallback 读 | App | Judge worker、Admin | App I；versioned case snapshot/Q |
@@ -478,7 +479,7 @@ public interface ContentModerationService {
 Auth 抽离前必须单独修复并测试：
 
 - OAuth state 虽写 HttpOnly cookie，但 callback 没有读取并比较 cookie，只验证 Redis 中全局 state。Phase 0 必须让 callback 读取 cookie、与回调 state 做恒定时间比较，再原子消费 Redis state 并清除 cookie；
-- OAuth 没有 provider identity 表，按 email 自动合并；Google 未验证 verified email，GitHub email 可空，`users.email` 无数据库唯一约束；
+- OAuth provider identity 表已由 `V20260724165931__Create_OAuth_Provider_Identities.sql` 补齐，登录优先按 provider + provider_user_id 绑定；未绑定的历史账号仍按 email fallback。Google 未验证 verified email，GitHub email 可空，`users.email` 无数据库唯一约束；
 - `/auth/permissions` 会合并已过期 direct permission，且这些 permission 当前并不参与服务端授权；
 - WebSocket 缺失 session user 时部分 SEND/SUBSCRIBE 路径只 log 后 return；使用第二套 JWT validator，CONNECT 不校验 active/ban，长连接不重验 expiry/revocation。Phase 0 必须在 principal/session 缺失时抛出认证异常，并让 CONNECT 校验 active/ban、长连接响应封禁事件和 token 到期；
 - access-token blacklist 有读取端但源码内没有完整写入链。

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.admin.error.AdminWebExceptionHandler;
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.LanguageOption;
-import com.ulticode.modules.submission.dto.RejudgeResult;
+import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.dto.StatusOption;
 import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
@@ -203,6 +203,24 @@ class AdminSubmissionControllerTest {
                 .andExpect(jsonPath("$.data.submissionId").value("sub-1"))
                 .andExpect(jsonPath("$.data.rejudgedAt").value("2026-06-09T10:00:00Z"))
                 .andExpect(jsonPath("$.data.retryCount").value(2));
+        }
+
+        @Test
+        @DisplayName("forwards Idempotency-Key to the cutover service")
+        void forwardsIdempotencyKey() throws Exception {
+            RejudgeResult result = new RejudgeResult();
+            result.setSubmissionId("sub-1");
+            when(submissionCutoverService.rejudge("sub-1", false, "key-1"))
+                .thenReturn(result);
+
+            mockMvc.perform(post("/admin/submissions/sub-1/rejudge")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("Idempotency-Key", "key-1")
+                    .content("{\"notifyUser\": false}"))
+                .andExpect(status().isOk());
+
+            verify(submissionCutoverService)
+                .rejudge("sub-1", false, "key-1");
         }
     }
 

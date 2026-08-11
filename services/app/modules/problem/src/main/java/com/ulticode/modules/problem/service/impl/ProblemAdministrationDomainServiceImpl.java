@@ -1,5 +1,6 @@
 package com.ulticode.modules.problem.service.impl;
 
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
@@ -84,9 +85,10 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
     }
 
     @Override
-    public Problem updateProblem(Long id, UpdateProblemDTO dto, String actorId) {
+    public Problem updateProblem(Long id, UpdateProblemDTO dto, String actorId, Long expectedVersion) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
+        requireExpectedVersion(problem, expectedVersion);
 
         if (dto.getSlug() != null && !dto.getSlug().equals(problem.getSlug())) {
             Optional<Problem> existingProblem = findBySlug(dto.getSlug());
@@ -115,7 +117,12 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
             problem.setHasSolution(dto.getHasSolution());
         }
 
-        writePort.updateById(problem);
+        if (expectedVersion == null) {
+            writePort.updateById(problem);
+        } else {
+            requireAffected(writePort.updateById(problem, expectedVersion));
+            problem.setVersion(nextVersion(expectedVersion));
+        }
         detailPort.applyDetailUpdate(id, problem, dto);
         versionPort.createVersion(id, "UPDATE", null, actorId);
 
@@ -124,38 +131,76 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
     }
 
     @Override
-    public void deleteProblem(Long id, String actorId) {
+    public void deleteProblem(Long id, String actorId, Long expectedVersion) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
+        requireExpectedVersion(problem, expectedVersion);
 
-        writePort.deleteById(id);
+        if (expectedVersion == null) {
+            writePort.deleteById(id);
+        } else {
+            requireAffected(writePort.deleteById(id, expectedVersion));
+        }
         log.info("Problem deleted: {} by user {}", id, actorId);
     }
 
     @Override
-    public Problem publishProblem(Long id, String actorId) {
+    public Problem publishProblem(Long id, String actorId, Long expectedVersion) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
+        requireExpectedVersion(problem, expectedVersion);
 
         problem.setIsPublished(true);
         if (problem.getPublishedAt() == null) {
             problem.setPublishedAt(LocalDateTime.now(clock));
             problem.setPublishedBy(actorId);
         }
+        persistPublishedState(problem, expectedVersion);
 
-        writePort.updateById(problem);
         log.info("Problem published: {} by user {}", id, actorId);
         return problem;
     }
 
     @Override
-    public Problem unpublishProblem(Long id, String actorId) {
+    public Problem unpublishProblem(Long id, String actorId, Long expectedVersion) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
+        requireExpectedVersion(problem, expectedVersion);
 
         problem.setIsPublished(false);
-        writePort.updateById(problem);
+        persistPublishedState(problem, expectedVersion);
         log.info("Problem unpublished: {} by user {}", id, actorId);
         return problem;
+    }
+
+    private void persistPublishedState(Problem problem, Long expectedVersion) {
+        if (expectedVersion == null) {
+            writePort.updateById(problem);
+        } else {
+            requireAffected(writePort.updateById(problem, expectedVersion));
+            problem.setVersion(nextVersion(expectedVersion));
+        }
+    }
+
+    private static void requireExpectedVersion(Problem problem, Long expectedVersion) {
+        if (expectedVersion != null
+                && (problem.getVersion() == null
+                || problem.getVersion().longValue() != expectedVersion.longValue())) {
+            throw versionConflict();
+        }
+    }
+
+    private static void requireAffected(int affectedRows) {
+        if (affectedRows != 1) {
+            throw versionConflict();
+        }
+    }
+
+    private static Integer nextVersion(Long expectedVersion) {
+        return Math.toIntExact(Math.addExact(expectedVersion, 1L));
+    }
+
+    private static BusinessException versionConflict() {
+        return new BusinessException(AppErrorCode.VERSION_CONFLICT, "Problem version conflict");
     }
 }

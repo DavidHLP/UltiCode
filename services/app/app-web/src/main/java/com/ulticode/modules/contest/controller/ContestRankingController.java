@@ -66,7 +66,7 @@ public class ContestRankingController {
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @RequestParam(required = false, defaultValue = "50") Integer limit) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        return Result.success(rankingService.getContestRanking(resolvedId, page, limit));
+        return Result.success(rankingService.getPublicContestRanking(resolvedId, page, limit));
     }
 
     @Operation(summary = "Get live ranking",
@@ -79,6 +79,6 @@ public class ContestRankingController {
             @RequestParam(required = false, defaultValue = "100") Integer limit) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
         int effectiveLimit = (limit != null) ? limit : 100;
-        return Result.success(rankingService.readLiveRanking(resolvedId, effectiveLimit));
+        return Result.success(rankingService.readPublicLiveRanking(resolvedId, effectiveLimit));
     }
 }

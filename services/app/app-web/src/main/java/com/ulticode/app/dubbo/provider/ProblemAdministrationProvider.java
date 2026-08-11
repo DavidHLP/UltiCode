@@ -1,6 +1,7 @@
 package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.app.api.command.CreateProblemCommand;
+import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
@@ -61,7 +62,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle(command.title());
             String actorId = command.actor() != null ? command.actor().actorId() : null;
-            Problem entity = domainService.updateProblem(id, dto, actorId);
+            Problem entity = domainService.updateProblem(id, dto, actorId, command.expectedVersion());
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
@@ -83,15 +84,35 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
         try {
             String actorId = command.actor() != null ? command.actor().actorId() : null;
             if (command.publish()) {
-                domainService.publishProblem(id, actorId);
+                domainService.publishProblem(id, actorId, command.expectedVersion());
             } else {
-                domainService.unpublishProblem(id, actorId);
+                domainService.unpublishProblem(id, actorId, command.expectedVersion());
             }
             return RpcResult.success(command.trace().traceId());
         } catch (BusinessException e) {
             return toFailure(e, command.trace().traceId());
         } catch (Exception e) {
             log.error("ProblemAdministrationProvider.publishProblem unexpected error id={}", id, e);
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+        }
+    }
+
+    @Override
+    public RpcResult<Void> deleteProblem(DeleteProblemCommand command) {
+        Long id = parseId(command.problemId(), command.trace().traceId());
+        if (id == null) {
+            return RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, command.trace().traceId());
+        }
+        log.info("ProblemAdministrationProvider.deleteProblem id={} commandId={} actor={}",
+                id, command.commandId(), command.actor() != null ? command.actor().actorId() : null);
+        try {
+            String actorId = command.actor() != null ? command.actor().actorId() : null;
+            domainService.deleteProblem(id, actorId, command.expectedVersion());
+            return RpcResult.success(command.trace().traceId());
+        } catch (BusinessException e) {
+            return toFailure(e, command.trace().traceId());
+        } catch (Exception e) {
+            log.error("ProblemAdministrationProvider.deleteProblem unexpected error id={}", id, e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
         }
     }
@@ -124,6 +145,8 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
         AppErrorCode mapped;
         if (code == BaseErrorCode.NOT_FOUND.code() || code == 30001) {
             mapped = AppErrorCode.CONTENT_NOT_FOUND;
+        } else if (code == AppErrorCode.VERSION_CONFLICT.code()) {
+            mapped = AppErrorCode.VERSION_CONFLICT;
         } else if (code == BaseErrorCode.CONFLICT.code() || code == 40900) {
             mapped = AppErrorCode.CONTENT_STATE_CONFLICT;
         } else {

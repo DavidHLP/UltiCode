@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 import java.util.Map;
@@ -40,8 +41,22 @@ public interface ContestProblemMapper extends BaseMapper<ContestProblem> {
             @Param("id") String id
     );
 
+    @Select("SELECT EXISTS (SELECT 1 FROM contest_submissions WHERE contest_problem_id = #{contestProblemId}) "
+            + "OR EXISTS (SELECT 1 FROM contest_problem_results WHERE contest_problem_id = #{contestProblemId})")
+    boolean hasContestOwnedResults(@Param("contestProblemId") String contestProblemId);
+
     @Select("SELECT COUNT(*) FROM contest_problems WHERE contest_id = #{contestId}")
     long countByContestId(@Param("contestId") String contestId);
+
+    /** Count every terminal submission for this contest problem atomically. */
+    @Update("UPDATE contest_problems SET submission_count = submission_count + 1, "
+            + "updated_at = NOW() WHERE id = #{contestProblemId}")
+    int incrementSubmissionCount(@Param("contestProblemId") String contestProblemId);
+
+    /** Count a participant's first accepted result for this contest problem. */
+    @Update("UPDATE contest_problems SET solved_count = solved_count + 1, "
+            + "updated_at = NOW() WHERE id = #{contestProblemId}")
+    int incrementSolvedCount(@Param("contestProblemId") String contestProblemId);
 
     @Select("<script>SELECT contest_id as contestId, COUNT(*) as cnt FROM contest_problems WHERE contest_id IN <foreach item='item' collection='contestIds' open='(' separator=',' close=')'>#{item}</foreach> GROUP BY contest_id</script>")
     List<Map<String, Object>> countByContestIds(@Param("contestIds") List<String> contestIds);

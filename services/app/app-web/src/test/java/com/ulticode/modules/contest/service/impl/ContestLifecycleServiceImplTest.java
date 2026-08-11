@@ -6,11 +6,9 @@ import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
+import com.ulticode.modules.contest.mapper.ContestAdjudicationReceiptMapper;
+import com.ulticode.modules.contest.mapper.ContestCascadeMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
 import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
 import com.ulticode.app.api.service.ContestStatusPushPort;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
@@ -40,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -66,10 +65,7 @@ class ContestLifecycleServiceImplTest {
 
     @Mock private ContestMapper contestMapper;
     @Mock private ContestParticipantTransitions participantTransitions;
-    @Mock private ContestProblemMapper contestProblemMapper;
-    @Mock private ContestSubmissionMapper contestSubmissionMapper;
-    @Mock private ContestProblemResultMapper contestProblemResultMapper;
-    @Mock private FirstSolveRecordMapper firstSolveRecordMapper;
+    @Mock private ContestCascadeMapper contestCascadeMapper;
     @Mock private ContestRankingCacheEvictor rankingCacheEvictor;
     @Mock private Clock clock;
     @Mock private ContestClock contestClock;
@@ -77,6 +73,7 @@ class ContestLifecycleServiceImplTest {
     @Mock private ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     @Mock private RatingCalculationService ratingService;
     @Mock private ContestNotificationPort contestNotificationPort;
+    @Mock private ContestAdjudicationReceiptMapper adjudicationReceiptMapper;
 
     private ContestLifecycleServiceImpl service;
 
@@ -85,11 +82,10 @@ class ContestLifecycleServiceImplTest {
         lenient().when(clock.instant()).thenReturn(NOW.toInstant(ZoneOffset.UTC));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         service = new ContestLifecycleServiceImpl(
-                contestMapper, participantTransitions, contestProblemMapper,
-                contestSubmissionMapper, contestProblemResultMapper,
-                firstSolveRecordMapper, rankingCacheEvictor, clock,
-                contestClock, contestStatusPushPort, contestRankingMarkDirtyPort,
-                contestNotificationPort, ratingService);
+                contestMapper, participantTransitions, contestCascadeMapper,
+                rankingCacheEvictor, clock, contestClock, contestStatusPushPort,
+                contestRankingMarkDirtyPort, contestNotificationPort, ratingService,
+                adjudicationReceiptMapper);
     }
 
     /** P0-2: batchStartParticipants crosses the seam and returns its count. */
@@ -139,26 +135,93 @@ class ContestLifecycleServiceImplTest {
         verify(contestRankingMarkDirtyPort).markDirty(CONTEST_ID);
     }
 
-    /** tick: a due RUNNING contest transitions to FINISHED, closes real participants, hands off rating. */
     @Test
-    @DisplayName("tick: due RUNNING contest transitions to FINISHED + closes participants + rates")
-    void tick_dueRunning_transitionsToFinished() {
-        Contest contest = newContest(ContestStatus.RUNNING.name());
-        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
-        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of(contest));
-        when(contestClock.contestEndTime(contest)).thenReturn(Optional.of(NOW.minusMinutes(1)));
-        when(contestMapper.tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
-        when(participantTransitions.finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class)))
-                .thenReturn(5);
+    @DisplayName("tick: failed RUNNING side effect compensates the claim for retry")
+    void tick_runningSideEffectFailure_revertsClaim() {
+        Contest contest = newContest(ContestStatus.UPCOMING.name());
+        contest.setStartTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of(contest));
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of());
+        when(contestMapper.tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+        doThrow(new IllegalStateException("push unavailable"))
+                .when(contestStatusPushPort)
+                .emitStatus(eq(CONTEST_ID), eq(ContestStatus.RUNNING.name()), any(), any(), any());
 
         service.tick(NOW);
 
-        verify(contestMapper).tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class));
+        verify(contestMapper).revertRunningToUpcoming(eq(CONTEST_ID), eq(NOW));
+        verify(contestRankingMarkDirtyPort, never()).markDirty(anyString());
+    }
+
+    /** tick: a due RUNNING contest is claimed as FINISHING, then finalized and rated. */
+    @Test
+    @DisplayName("tick: due RUNNING contest claims FINISHING, closes participants, and rates")
+    void tick_dueRunning_transitionsToFinished() {
+        Contest contest = newContest(ContestStatus.RUNNING.name());
+        Contest finishing = newContest(ContestStatus.FINISHING.name());
+        finishing.setActualEndTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of(contest));
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
+        when(contestClock.contestEndTime(contest)).thenReturn(Optional.of(NOW.minusMinutes(1)));
+        when(contestMapper.tryTransitionToFinishing(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+        when(participantTransitions.finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class)))
+                .thenReturn(5);
+        when(contestMapper.tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+
+        service.tick(NOW);
+
+        verify(contestMapper).tryTransitionToFinishing(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(participantTransitions)
                 .finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED.name()),
                 argThat(java.util.Objects::isNull), any(), argThat(java.util.Objects::isNull));
+        verify(contestRankingMarkDirtyPort).markDirty(CONTEST_ID);
+        verify(contestMapper).tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(ratingService).calculateAndUpdate(CONTEST_ID);
+    }
+
+    @Test
+    @DisplayName("tick: FINISHING waits for real contest adjudication to drain")
+    void tick_finishingWaitsForAdjudicationDrain() {
+        Contest finishing = newContest(ContestStatus.FINISHING.name());
+        finishing.setActualEndTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
+        when(adjudicationReceiptMapper.countUnadjudicatedRealSubmissions(CONTEST_ID))
+                .thenReturn(1L);
+
+        service.tick(NOW);
+
+        verify(participantTransitions, never())
+                .finishStartedReal(anyString(), any(LocalDateTime.class));
+        verify(ratingService, never()).calculateAndUpdate(anyString());
+        verify(contestMapper, never()).tryFinalizeFinished(anyString(), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("tick: FINISHING rating failure remains retryable and later publishes FINISHED")
+    void tick_finishingFailure_isRetried() {
+        Contest finishing = newContest(ContestStatus.FINISHING.name());
+        finishing.setActualEndTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
+        when(participantTransitions.finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class)))
+                .thenReturn(0);
+        org.mockito.Mockito.doThrow(new IllegalStateException("rating unavailable"))
+                .doNothing().when(ratingService).calculateAndUpdate(CONTEST_ID);
+        when(contestMapper.tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+
+        service.tick(NOW);
+        verify(contestMapper, never()).tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class));
+
+        service.tick(NOW);
+        verify(contestMapper).tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class));
+        verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED.name()),
+                argThat(java.util.Objects::isNull), any(), argThat(java.util.Objects::isNull));
     }
 
     /** tick: an UPCOMING contest whose start is still in the future is left alone. */
@@ -192,7 +255,7 @@ class ContestLifecycleServiceImplTest {
         // tryTransitionToRunning is invoked but the conditional UPDATE finds
         // status != UPCOMING (affected=0), so the transition is a no-op.
         verify(contestMapper).tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class));
-        verify(contestMapper, never()).updateById(any(Contest.class));
+        verify(contestMapper, never()).updateById((Contest) any());
         verify(contestStatusPushPort, never()).emitStatus(anyString(), any(), any(), any(), any());
     }
 
@@ -243,38 +306,57 @@ class ContestLifecycleServiceImplTest {
         verify(contestNotificationPort, never()).notifyContestStarting(any(), any(), any(), any(), any());
     }
 
-    /** P2-5: deleteContestCascade is idempotent on missing/soft-deleted contests. */
+    /** P2-5: a retry cleans any leftover children after a committed soft-delete. */
     @Test
-    @DisplayName("P2-5: deleteContestCascade is a no-op when contest is already soft-deleted")
-    void deleteContestCascade_alreadyDeleted_isNoOp() {
+    @DisplayName("P2-5: deleteContestCascade retries cleanup for an already soft-deleted contest")
+    void deleteContestCascade_alreadyDeleted_retriesCleanup() {
         Contest deleted = new Contest();
         deleted.setId(CONTEST_ID);
         deleted.setIsDeleted(true);
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(deleted);
+        when(contestMapper.selectByIdIncludingDeletedForUpdate(CONTEST_ID)).thenReturn(deleted);
 
-        service.deleteContestCascade(CONTEST_ID);
+        service.deleteContestCascade(CONTEST_ID, "admin-1");
 
-        verify(contestSubmissionMapper, never()).deleteByContestId(anyString());
-        verify(participantTransitions, never()).deleteAllByContestId(anyString());
-        verify(rankingCacheEvictor, never()).evictRankingCache();
+        verify(contestCascadeMapper).deleteAdjudicationReceiptsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteProblemResultsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteSubmissionsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteFirstSolveRecordsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteRankingsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteAnalyticsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteVirtualSessionsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteAnnouncementsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteRatingCalculationsByContestId(CONTEST_ID);
+        verify(participantTransitions).deleteAllByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteProblemsByContestId(CONTEST_ID);
+        verify(contestMapper, never()).updateById((Contest) any());
+        verify(rankingCacheEvictor).evictRankingCache();
     }
 
-    /** P2-5: deleteContestCascade physically deletes 5 tables and evicts the ranking cache. */
+    /** P2-5: one owner transaction covers every contest-owned relation. */
     @Test
-    @DisplayName("P2-5: deleteContestCascade deletes submissions/cpr/first-solve/participants/problems")
+    @DisplayName("P2-5: deleteContestCascade deletes all contest-owned relations")
     void deleteContestCascade_deletesAllRelatedTables() {
         Contest c = new Contest();
         c.setId(CONTEST_ID);
+        c.setStatus(ContestStatus.UPCOMING.name());
         c.setIsDeleted(false);
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        when(contestMapper.selectByIdIncludingDeletedForUpdate(CONTEST_ID)).thenReturn(c);
 
-        service.deleteContestCascade(CONTEST_ID);
+        service.deleteContestCascade(CONTEST_ID, "admin-1");
 
-        verify(contestSubmissionMapper).deleteByContestId(CONTEST_ID);
-        verify(contestProblemResultMapper).deleteByContestId(CONTEST_ID);
-        verify(firstSolveRecordMapper).deleteByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteAdjudicationReceiptsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteProblemResultsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteSubmissionsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteFirstSolveRecordsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteRankingsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteAnalyticsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteVirtualSessionsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteAnnouncementsByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteRatingCalculationsByContestId(CONTEST_ID);
         verify(participantTransitions).deleteAllByContestId(CONTEST_ID);
-        verify(contestProblemMapper).deleteByContestId(CONTEST_ID);
+        verify(contestCascadeMapper).deleteProblemsByContestId(CONTEST_ID);
+        verify(contestMapper).updateById((Contest) argThat((Contest row) ->
+                Boolean.TRUE.equals(row.getIsDeleted()) && "admin-1".equals(row.getDeletedBy())));
         verify(rankingCacheEvictor).evictRankingCache();
     }
 

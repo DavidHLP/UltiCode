@@ -6,6 +6,8 @@ import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.entity.enums.RatingTitle;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.mapper.ContestRatingCalculationMapper;
+import com.ulticode.modules.contest.scoring.ContestRankingComparator;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RatingCalculationService;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +19,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Codeforces-style Elo rating calculation implementation.
+ * A durable contest receipt makes the whole calculation retry-safe after a
+ * lifecycle finalization failure.
  * Updates global_rankings and contest_participants.final_rank after contest ends.
  */
 @Slf4j
@@ -32,6 +37,7 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     /** R6.1 / F-03: needed for the isRated gate (also reused for the F-10
      *  decision record; see ADR-007 §7). */
     private final ContestMapper contestMapper;
+    private final ContestRatingCalculationMapper ratingCalculationMapper;
 
     /** Default Elo rating assigned to participants without a global_ranking record. */
     private static final int DEFAULT_RATING = 1500;
@@ -39,20 +45,16 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     @Override
     @Transactional
     public void calculateAndUpdate(String contestId) {
-        // R6.1 / F-03: isRated gate. Non-rated contests (practice / unranked)
-        // never update Elo. The contest lookup below is the same one used by
-        // the participant fetch, so this is a zero-extra-query guard. Note:
-        // F-10 (finishVirtual does NOT trigger recalc) is also a consequence
-        // of this gate — see ADR-007 §7 for the full decision record.
-        Contest contest = contestMapper.selectById(contestId);
+        // R6.1 / F-03: isRated controls Elo mutation. Non-rated contests
+        // (practice / unranked) still receive final ranks for usable history.
+        // F-10 (finishVirtual does NOT trigger recalc) remains unchanged — see
+        // ADR-007 §7 for the full decision record.
+        Contest contest = contestMapper.selectByIdForUpdate(contestId);
         if (contest == null) {
             log.info("R6.1: contest {} not found, skip rating", contestId);
             return;
         }
-        if (!Boolean.TRUE.equals(contest.getIsRated())) {
-            log.info("R6.1: contest {} isRated=false, skip rating update", contestId);
-            return;
-        }
+        boolean rated = Boolean.TRUE.equals(contest.getIsRated());
 
         // 1. Fetch all real (non-virtual) participants for this contest.
         //    R3.2 fix: filter by is_virtual = 0 directly, not by status=STARTED.
@@ -67,21 +69,21 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
             return;
         }
 
-        // 2. Sort by score (DESC) then penalty (ASC) to determine rank.
-        //    Wrap in a new ArrayList because the upstream filter used Stream.toList()
-        //    which returns an immutable List (Java 16+); List.sort() on an immutable
-        //    list throws UnsupportedOperationException. Defensive copy is cheap
-        //    relative to the sort itself (N log N).
+        // Claim the contest calculation in the same transaction as all rating
+        // writes. A failure rolls the receipt back; a retry after commit is a
+        // no-op and cannot increment contests_attended twice.
+        int claimed = ratingCalculationMapper.insertIfAbsent(UUID.randomUUID().toString(), contestId);
+        if (claimed == 0) {
+            return;
+        }
+
+        // 2. Use the same mode and tie-break policy as live ranking.
+        //    Wrap in a new ArrayList because the mapper may return an immutable
+        //    list; List.sort() requires a mutable copy.
         participants = new java.util.ArrayList<>(participants);
-        participants.sort((a, b) -> {
-            int scoreCmp = Double.compare(
-                    b.getTotalScore() != null ? b.getTotalScore() : 0,
-                    a.getTotalScore() != null ? a.getTotalScore() : 0);
-            if (scoreCmp != 0) return scoreCmp;
-            return Integer.compare(
-                    a.getTotalPenalty() != null ? a.getTotalPenalty() : 0,
-                    b.getTotalPenalty() != null ? b.getTotalPenalty() : 0);
-        });
+        participants.sort(ContestRankingComparator.forFinal(
+                ContestRankingComparator.resolveScoringMode(contest.getScoringMode()),
+                ContestRankingComparator.resolveTieBreaker(contest.getTieBreaker())));
 
         // 3. Assign final_rank (1-based)
         for (int i = 0; i < participants.size(); i++) {
@@ -90,14 +92,22 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
             participantMapper.updateById(p);
         }
 
+        // Non-rated contests still persist final ranks, but never mutate Elo.
+        if (!rated) {
+            log.info("R6.1: contest {} isRated=false, final ranks persisted without rating update", contestId);
+            return;
+        }
+
         // 4. P1-5 fix: pre-load all opponent ratings in one query (was
         //    O(n^2) single-row SELECTs). Build a userId -> rating map for
         //    the inner Elo loop.
         List<String> userIds = participants.stream()
                 .map(ContestParticipant::getUserId)
+                .distinct()
+                .sorted()
                 .toList();
         Map<String, Integer> ratingByUserId = new HashMap<>(userIds.size() * 2);
-        for (GlobalRanking gr : globalRankingMapper.findByUserIds(userIds)) {
+        for (GlobalRanking gr : globalRankingMapper.findByUserIdsForUpdate(userIds)) {
             ratingByUserId.put(gr.getUserId(),
                     gr.getRating() != null ? gr.getRating() : DEFAULT_RATING);
         }

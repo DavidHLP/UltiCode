@@ -67,4 +67,45 @@ public interface ContestAdminReadPort {
      * @return contest DTOs
      */
     List<ContestAdminDTO> selectByStartTimeAfter(java.time.LocalDateTime afterStartTime);
+
+    /**
+     * Fetch a single contest by id or slug (admin detail views).
+     *
+     * <p>Default falls back to {@link #selectById(String)} so existing
+     * implementors keep compiling; owner and Dubbo adapters override with a
+     * real id-or-slug lookup.
+     *
+     * @param identifier contest id or slug (nullable)
+     * @return the contest DTO, or {@code null} when not found
+     */
+    default ContestAdminDTO selectByIdOrSlug(String identifier) {
+        return selectById(identifier);
+    }
+
+    /**
+     * Paginated contest listing with explicit sort control.
+     *
+     * <p>{@code sortBy} accepts only the whitelist
+     * {@code title/slug/startTime/createdAt/updatedAt/status/
+     * registeredCount/participantCount}; anything else (including
+     * {@code null}) falls back to {@code createdAt DESC}. {@code sortOrder}
+     * accepts only {@code asc}/{@code desc}; anything else falls back to
+     * {@code desc}. The default delegates to the 5-parameter
+     * {@link #selectPage(int, int, String, String, String)} so existing
+     * implementors keep compiling; owner and Dubbo adapters override with the
+     * sort-aware query.
+     *
+     * @param page        1-based page
+     * @param size        page size
+     * @param keyword     optional title/slug search (nullable)
+     * @param status      optional status filter (nullable)
+     * @param contestType optional type filter (nullable)
+     * @param sortBy      whitelisted sort field (nullable)
+     * @param sortOrder   sort direction, asc or desc (nullable)
+     * @return paginated contest DTOs
+     */
+    default PageResult<ContestAdminDTO> selectPage(int page, int size, String keyword, String status,
+            String contestType, String sortBy, String sortOrder) {
+        return selectPage(page, size, keyword, status, contestType);
+    }
 }

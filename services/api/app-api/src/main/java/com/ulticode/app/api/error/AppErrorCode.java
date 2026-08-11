@@ -10,15 +10,29 @@ import com.ulticode.common.error.NamespacedErrorCode;
  * fails. Codes are local to this namespace.
  *
  * <p>All App errors inherit the {@code "app"} namespace via
- * {@link #namespace()}. New module-specific codes continue from
- * {@link #UNEXPECTED_APP_STATE} upward; reserved gaps preserve room
- * for future expansion.
+ * {@link #namespace()}. Generic transport/state codes are complemented by
+ * legacy-compatible module codes where a consumer must preserve a domain
+ * distinction across an owner boundary.
  */
 public enum AppErrorCode implements NamespacedErrorCode {
+
+    /** Generic malformed command or invalid state transition input. */
+    BAD_REQUEST(40000, "Bad request"),
+
+    /** Caller is not authenticated. */
+    UNAUTHORIZED(40100, "Unauthorized"),
+
+    /** Caller is authenticated but lacks the contest mutation permission. */
+    FORBIDDEN(40300, "Forbidden"),
 
     /** Addressed content id (problem / submission / forum / solution) does not exist. */
     CONTENT_NOT_FOUND(40401, "Content not found"),
 
+    /** Problem-owned item referenced by an App administration mutation is missing. */
+    PROBLEM_NOT_FOUND(30001, "Problem not found"),
+
+    /** A problem is already present in the addressed problem list. */
+    PROBLEM_LIST_PROBLEM_DUPLICATE(90004, "This problem is already in the list"),
     /** Optimistic-lock conflict on a versioned App aggregate (problem version, etc.). */
     VERSION_CONFLICT(40901, "Version conflict"),
 
@@ -27,6 +41,12 @@ public enum AppErrorCode implements NamespacedErrorCode {
 
     /** Same idempotency key reused with a different request payload (fingerprint mismatch). */
     IDEMPOTENCY_KEY_CONFLICT(40903, "Idempotency key conflict"),
+
+    /** Forum tag name already exists (CREATE / UPDATE). */
+    FORUM_TAG_NAME_CONFLICT(40904, "Forum tag name already exists"),
+
+    /** Forum tag slug already exists (CREATE / UPDATE). */
+    FORUM_TAG_SLUG_CONFLICT(40905, "Forum tag slug already exists"),
 
     /** Generic unexpected app state; provider logged the underlying cause. */
     UNEXPECTED_APP_STATE(50001, "Unexpected app state");

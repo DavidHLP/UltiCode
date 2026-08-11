@@ -847,6 +847,8 @@ class ProblemListServiceTest {
         void adminReplaceListProblems_Success() {
             ProblemList existing = createProblemList();
             when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+            when(problemExistencePort.exists(10L)).thenReturn(true);
+            when(problemExistencePort.exists(11L)).thenReturn(true);
 
             UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
             UpdateProblemListProblemsDTO.ProblemEntry e1 = new UpdateProblemListProblemsDTO.ProblemEntry();
@@ -900,7 +902,7 @@ class ProblemListServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(BaseErrorCode.VALIDATION_FAILED));
-            verify(problemListProblemMapper).deleteByListId(LIST_ID);
+            verify(problemListProblemMapper, never()).deleteByListId(any());
             verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
         }
 

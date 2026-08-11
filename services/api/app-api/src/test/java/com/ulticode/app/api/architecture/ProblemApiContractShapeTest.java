@@ -5,6 +5,7 @@ import com.ulticode.app.api.dto.ProblemIndexDTO;
 import com.ulticode.app.api.dto.ProblemJudgingCaseDTO;
 import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.app.api.service.ProblemDifficultyReadPort;
 import com.ulticode.app.api.service.ProblemInteractionQueryPort;
 import com.ulticode.app.api.service.ProblemJudgingCaseReadPort;
@@ -14,6 +15,7 @@ import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.app.api.service.TestCaseOwnerPort;
 import org.junit.jupiter.api.Test;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.RecordComponent;
@@ -53,6 +55,22 @@ class ProblemApiContractShapeTest {
         assertMethod(ProblemOwnerPort.class, "applyImportedUpdate", void.class,
                 Long.class, String.class, String.class, String.class,
                 Boolean.class, Boolean.class);
+        assertMethod(ProblemOwnerPort.class, "applyImportedBatch", List.class, List.class);
+
+        assertThat(ProblemOwnerPort.ImportWriteRequest.class.isRecord()).isTrue();
+        assertThat(Serializable.class.isAssignableFrom(ProblemOwnerPort.ImportWriteRequest.class))
+                .isTrue();
+        assertThat(Arrays.stream(ProblemOwnerPort.ImportWriteRequest.class.getRecordComponents())
+                .map(RecordComponent::getName).toList())
+                .containsExactly("key", "create", "id", "slug", "title", "difficulty",
+                        "status", "isPremium", "isPublished");
+        assertThat(Arrays.stream(ProblemOwnerPort.ImportWriteRequest.class.getRecordComponents())
+                .map(RecordComponent::getType).toList())
+                .containsExactly(String.class, boolean.class, Long.class, String.class,
+                        String.class, String.class, String.class, Boolean.class, Boolean.class);
+        assertThat(ProblemOwnerPort.ImportWriteResult.class.isRecord()).isTrue();
+        assertThat(Serializable.class.isAssignableFrom(ProblemOwnerPort.ImportWriteResult.class))
+                .isTrue();
     }
 
     @Test
@@ -66,6 +84,14 @@ class ProblemApiContractShapeTest {
         assertMethod(TestCaseOwnerPort.class, "updateTestOrder", void.class,
                 String.class, int.class, LocalDateTime.class);
 
+        assertMethod(TestCaseOwnerPort.class, "updateTestOrders", void.class, List.class);
+        assertThat(TestCaseOwnerPort.TestCaseOrder.class.isRecord()).isTrue();
+        assertThat(Serializable.class.isAssignableFrom(TestCaseOwnerPort.TestCaseOrder.class))
+                .isTrue();
+        assertThat(Arrays.stream(TestCaseOwnerPort.TestCaseOrder.class.getRecordComponents())
+                .map(RecordComponent::getName).toList())
+                .containsExactly("id", "testOrder", "updatedAt");
+
         RecordComponent[] components = TestCaseOwnerPort.TestCaseWrite.class.getRecordComponents();
         assertThat(Arrays.stream(components).map(RecordComponent::getName).toList())
                 .containsExactly(
@@ -73,14 +99,17 @@ class ProblemApiContractShapeTest {
                         "inputText", "outputText", "explanation", "constraints", "inputs",
                         "createdAt", "updatedAt");
         assertThat(Arrays.stream(components).map(RecordComponent::getType).toList())
-                .containsExactly(
+                .containsExactlyElementsOf(Arrays.<Class<?>>asList(
                         String.class, Long.class, boolean.class, boolean.class, int.class,
                         String.class, String.class, String.class, String.class, String.class,
-                        LocalDateTime.class, LocalDateTime.class);
+                        LocalDateTime.class, LocalDateTime.class));
     }
 
     @Test
     void problem_read_ports_match_the_verified_consumer_seams() throws Exception {
+        assertMethod(ProblemAdminReadPort.class, "findBySlugs", List.class, Collection.class);
+        assertMethod(ProblemAdminReadPort.class, "findTestCasesByIds", List.class,
+                Long.class, Collection.class);
         assertMethod(ProblemListReadPort.class, "findByIds", List.class, Collection.class);
         assertMethod(ProblemSearchReadPort.class, "searchForIndex", List.class,
                 String.class, int.class);
@@ -103,6 +132,7 @@ class ProblemApiContractShapeTest {
                 ProblemDifficultyReadPort.class,
                 ProblemJudgingCaseReadPort.class,
                 ProblemInteractionQueryPort.class,
+                ProblemAdminReadPort.class,
                 ProblemAnalyticsReadPort.class);
 
         for (Class<?> contract : contracts) {

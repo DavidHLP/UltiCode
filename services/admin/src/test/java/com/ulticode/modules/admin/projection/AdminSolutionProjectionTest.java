@@ -1,35 +1,36 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.app.api.dto.ProblemAdminRowDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.SolutionAdminReadPort;
+import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminPage;
+import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminQuery;
+import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminRow;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.solution.entity.Solution;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
-
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,30 +45,31 @@ import static org.mockito.Mockito.when;
  *       present (single-detail path).</li>
  *   <li>{@code getFlaggedSolutions} forces {@code isFlagged=true} AND
  *       {@code isDeleted=false} regardless of caller input (BUG-Q9).</li>
- *   <li>{@code getSolutions(isDeleted=true)} takes the raw-SQL deleted-branch
- *       and never calls {@code selectPage}; conversely the default branch
- *       never calls {@code selectDeletedSolutions}.</li>
+ *   <li>{@code getSolutions(isDeleted=true)} passes {@code includeDeleted}
+ *       to {@link SolutionAdminReadPort} so the provider takes the raw-SQL
+ *       deleted branch; otherwise the active branch is requested.</li>
  * </ul>
  *
- * <p>The existing {@code AdminSolutionServiceImplTest} continues to cover the
- * four write methods ({@code flagSolution}, {@code unflagSolution},
- * {@code deleteSolution}, {@code bulkAction}) that stayed on the service.
+ * <p>ADMIN-006: the solution entity/mapper are gone — the projection
+ * consumes the entity-free {@link SolutionAdminReadPort} seam and keeps the
+ * batch user/problem enrichment locally. The existing
+ * {@code AdminSolutionServiceImplTest} continues to cover the four write
+ * methods that stayed on the service.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("DefaultAdminSolutionProjection")
 class AdminSolutionProjectionTest {
 
-    @Mock private SolutionMapper solutionMapper;
-    @Mock private AdminUserEnricher userEnricher;
-    @Mock private ProblemMapper problemMapper;
+    @Mock
+    private SolutionAdminReadPort solutionAdminReadPort;
+    @Mock
+    private AdminUserEnricher userEnricher;
+    @Mock
+    private ProblemAdminReadPort problemReadPort;
 
+    @InjectMocks
     private DefaultAdminSolutionProjection projection;
-
-    @BeforeEach
-    void setUp() {
-        projection = new DefaultAdminSolutionProjection(solutionMapper, userEnricher, problemMapper);
-    }
 
     @Nested
     @DisplayName("getSolution(id) — single-detail read")
@@ -76,34 +78,27 @@ class AdminSolutionProjectionTest {
         @Test
         @DisplayName("throws BusinessException(SOLUTION_NOT_FOUND) when id absent")
         void throwsWhenNotFound() {
-            when(solutionMapper.selectById("sol-missing")).thenReturn(null);
+            when(solutionAdminReadPort.getById("sol-missing")).thenReturn(null);
             assertThrows(BusinessException.class, () -> projection.getSolution("sol-missing"));
         }
 
         @Test
         @DisplayName("enriches author + problem inline and copies every detail field")
         void enrichesInlineAndCopiesFields() {
-            Solution sol = new Solution();
-            sol.setId("sol-1");
-            sol.setUserId("user-1");
-            sol.setProblemId(100L);
-            sol.setTitle("Binary search explainer");
-            sol.setContent("## Walkthrough");
-            sol.setIsFlagged(true);
-            sol.setIsPublished(true);
+            SolutionAdminRow sol = row("sol-1", 100L, "user-1", "Binary search explainer",
+                    "## Walkthrough", true, true);
 
             AdminUserSummary author = new AdminUserSummary(
                     "user-1", "alice", "role1", "Alice", "avatar1", "alice@example.com");
 
-            Problem problem = new Problem();
-            problem.setId(100L);
-            problem.setSlug("binary-search");
-            problem.setTitle("Binary Search");
-            problem.setDifficulty("easy");
+            ProblemAdminRowDTO problem = new ProblemAdminRowDTO(
+                    100L, "binary-search", "Binary Search", "easy", null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null);
 
-            when(solutionMapper.selectById("sol-1")).thenReturn(sol);
+            when(solutionAdminReadPort.getById("sol-1")).thenReturn(sol);
             when(userEnricher.enrichOne("user-1")).thenReturn(author);
-            when(problemMapper.selectById(100L)).thenReturn(problem);
+            when(problemReadPort.findProblem(100L)).thenReturn(problem);
 
             AdminSolutionVO vo = projection.getSolution("sol-1");
 
@@ -123,14 +118,11 @@ class AdminSolutionProjectionTest {
         @Test
         @DisplayName("returns VO with null author / problem when enrichment rows are missing")
         void returnsVoWithNullEnrichmentWhenRowsMissing() {
-            Solution sol = new Solution();
-            sol.setId("sol-2");
-            sol.setUserId("user-orphan");
-            sol.setProblemId(999L);
+            SolutionAdminRow sol = row("sol-2", 999L, "user-orphan", "Orphan", null, null, null);
 
-            when(solutionMapper.selectById("sol-2")).thenReturn(sol);
+            when(solutionAdminReadPort.getById("sol-2")).thenReturn(sol);
             when(userEnricher.enrichOne("user-orphan")).thenReturn(null);
-            when(problemMapper.selectById(999L)).thenReturn(null);
+            when(problemReadPort.findProblem(999L)).thenReturn(null);
 
             AdminSolutionVO vo = projection.getSolution("sol-2");
 
@@ -153,19 +145,19 @@ class AdminSolutionProjectionTest {
             query.setPage(1);
             query.setLimit(10);
 
-            // Active branch should be taken (isDeleted=false). selectPage must be
-            // called; the deleted-branch raw-SQL methods must never be called.
-            when(solutionMapper.selectPage(any(), any())).thenReturn(emptySolutionPage());
+            when(solutionAdminReadPort.page(any())).thenReturn(emptyPage());
             when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
-            when(problemMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+            when(problemReadPort.findProblemsByIds(anyCollection())).thenReturn(Collections.emptyList());
 
             projection.getFlaggedSolutions(query);
 
-            verify(solutionMapper).selectPage(any(), any());
-            verify(solutionMapper, never()).selectDeletedSolutions(
-                    any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt());
-            verify(solutionMapper, never()).countDeletedSolutions(
-                    any(), any(), any(), any(), any());
+            ArgumentCaptor<SolutionAdminQuery> captor =
+                    ArgumentCaptor.forClass(SolutionAdminQuery.class);
+            verify(solutionAdminReadPort).page(captor.capture());
+            // Active branch (includeDeleted=false) must be requested regardless
+            // of the caller's isDeleted=true.
+            assertThat(captor.getValue().includeDeleted()).isFalse();
+            assertThat(captor.getValue().isFlagged()).isTrue();
         }
     }
 
@@ -174,46 +166,48 @@ class AdminSolutionProjectionTest {
     class GetSolutionsBranchRouting {
 
         @Test
-        @DisplayName("isDeleted=true routes to the raw-SQL deleted-branch (selectDeletedSolutions)")
+        @DisplayName("isDeleted=true passes includeDeleted=true (provider raw-SQL deleted branch)")
         void isDeletedTrue_routesToDeletedBranch() {
             AdminSolutionQueryDTO query = new AdminSolutionQueryDTO();
             query.setIsDeleted(true);
             query.setPage(1);
             query.setLimit(10);
 
-            when(solutionMapper.selectDeletedSolutions(
-                    any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt()))
-                .thenReturn(Collections.emptyList());
-            when(solutionMapper.countDeletedSolutions(any(), any(), any(), any(), any()))
-                .thenReturn(0L);
+            when(solutionAdminReadPort.page(any())).thenReturn(emptyPage());
             when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
-            when(problemMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+            when(problemReadPort.findProblemsByIds(anyCollection())).thenReturn(Collections.emptyList());
 
             PageResult<AdminSolutionListItemVO> result = projection.getSolutions(query);
 
             assertThat(result).isNotNull();
             assertThat(result.getItems()).isEmpty();
-            verify(solutionMapper, never()).selectPage(any(), any());
+
+            ArgumentCaptor<SolutionAdminQuery> captor =
+                    ArgumentCaptor.forClass(SolutionAdminQuery.class);
+            verify(solutionAdminReadPort).page(captor.capture());
+            assertThat(captor.getValue().includeDeleted()).isTrue();
         }
 
         @Test
-        @DisplayName("isDeleted unset routes to the active LambdaQueryWrapper branch (selectPage)")
+        @DisplayName("isDeleted unset passes includeDeleted=false (provider active wrapper branch)")
         void isDeletedUnset_routesToActiveBranch() {
             AdminSolutionQueryDTO query = new AdminSolutionQueryDTO();
             query.setPage(1);
             query.setLimit(10);
 
-            when(solutionMapper.selectPage(any(), any())).thenReturn(emptySolutionPage());
+            when(solutionAdminReadPort.page(any())).thenReturn(emptyPage());
             when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
-            when(problemMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+            when(problemReadPort.findProblemsByIds(anyCollection())).thenReturn(Collections.emptyList());
 
             PageResult<AdminSolutionListItemVO> result = projection.getSolutions(query);
 
             assertThat(result).isNotNull();
             assertThat(result.getItems()).isEmpty();
-            verify(solutionMapper).selectPage(any(), any());
-            verify(solutionMapper, never()).selectDeletedSolutions(
-                    any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt());
+
+            ArgumentCaptor<SolutionAdminQuery> captor =
+                    ArgumentCaptor.forClass(SolutionAdminQuery.class);
+            verify(solutionAdminReadPort).page(captor.capture());
+            assertThat(captor.getValue().includeDeleted()).isFalse();
         }
 
         @Test
@@ -223,12 +217,12 @@ class AdminSolutionProjectionTest {
             query.setPage(1);
             query.setLimit(10);
 
-            when(solutionMapper.selectPage(any(), any())).thenReturn(emptySolutionPage());
+            when(solutionAdminReadPort.page(any())).thenReturn(emptyPage());
 
             projection.getSolutions(query);
 
             verify(userEnricher, never()).enrich(anySet());
-            verify(problemMapper, never()).selectBatchIds(anyCollection());
+            verify(problemReadPort, never()).findProblemsByIds(anyCollection());
         }
     }
 
@@ -236,10 +230,14 @@ class AdminSolutionProjectionTest {
     // Helpers
     // ------------------------------------------------------------------
 
-    private static com.baomidou.mybatisplus.extension.plugins.pagination.Page<Solution> emptySolutionPage() {
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Solution> p =
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(1, 10);
-        p.setTotal(0);
-        return p;
+    private static SolutionAdminPage emptyPage() {
+        return new SolutionAdminPage(List.of(), 0L);
+    }
+
+    private static SolutionAdminRow row(String id, Long problemId, String userId, String title,
+                                        String content, Boolean isFlagged, Boolean isPublished) {
+        return new SolutionAdminRow(
+                id, problemId, userId, title, content, null, null, null, null,
+                isPublished, null, null, isFlagged, null, null, null, null, null, null, null);
     }
 }

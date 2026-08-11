@@ -7,8 +7,10 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
  * @author ulticode
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultContestAdminReadAdapter implements ContestAdminReadPort {
 
@@ -38,7 +41,25 @@ public class DefaultContestAdminReadAdapter implements ContestAdminReadPort {
     }
 
     @Override
+    public ContestAdminDTO selectByIdOrSlug(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            return null;
+        }
+        Contest contest = contestMapper.selectById(identifier);
+        if (contest == null) {
+            contest = contestMapper.findBySlug(identifier);
+        }
+        return contest != null ? toDTO(contest) : null;
+    }
+
+    @Override
     public PageResult<ContestAdminDTO> selectPage(int page, int size, String keyword, String status, String contestType) {
+        return selectPage(page, size, keyword, status, contestType, null, null);
+    }
+
+    @Override
+    public PageResult<ContestAdminDTO> selectPage(int page, int size, String keyword, String status,
+            String contestType, String sortBy, String sortOrder) {
         Page<Contest> p = new Page<>(page, size);
         LambdaQueryWrapper<Contest> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isBlank()) {
@@ -52,12 +73,40 @@ public class DefaultContestAdminReadAdapter implements ContestAdminReadPort {
         if (contestType != null && !contestType.isBlank()) {
             wrapper.eq(Contest::getContestType, contestType);
         }
-        wrapper.orderByDesc(Contest::getCreatedAt);
+        applySort(wrapper, sortBy, sortOrder);
         Page<Contest> result = contestMapper.selectPage(p, wrapper);
         List<ContestAdminDTO> items = result.getRecords().stream()
                 .map(DefaultContestAdminReadAdapter::toDTO)
                 .collect(Collectors.toList());
         return PageResult.of(items, result.getTotal(), page, size);
+    }
+
+    /**
+     * Whitelisted sort mapping; anything outside the whitelist (or a null
+     * sort field) falls back to {@code createdAt DESC} — the historical
+     * default. Direction accepts only {@code asc}/{@code desc}.
+     */
+    private static void applySort(LambdaQueryWrapper<Contest> wrapper, String sortBy, String sortOrder) {
+        boolean asc = "asc".equalsIgnoreCase(sortOrder);
+        switch (sortBy == null ? "" : sortBy) {
+            case "title" -> order(wrapper, asc, Contest::getTitle);
+            case "slug" -> order(wrapper, asc, Contest::getSlug);
+            case "startTime" -> order(wrapper, asc, Contest::getStartTime);
+            case "createdAt" -> order(wrapper, asc, Contest::getCreatedAt);
+            case "updatedAt" -> order(wrapper, asc, Contest::getUpdatedAt);
+            case "status" -> order(wrapper, asc, Contest::getStatus);
+            case "registeredCount" -> order(wrapper, asc, Contest::getRegisteredCount);
+            case "participantCount" -> order(wrapper, asc, Contest::getParticipantCount);
+            default -> wrapper.orderByDesc(Contest::getCreatedAt);
+        }
+    }
+
+    private static <T> void order(LambdaQueryWrapper<Contest> wrapper, boolean asc, SFunction<Contest, T> column) {
+        if (asc) {
+            wrapper.orderByAsc(column);
+        } else {
+            wrapper.orderByDesc(column);
+        }
     }
 
     @Override

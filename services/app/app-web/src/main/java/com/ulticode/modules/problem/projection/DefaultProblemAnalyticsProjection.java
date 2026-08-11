@@ -13,6 +13,7 @@ import com.ulticode.app.api.dto.ProblemTrend;
 import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
 import com.ulticode.app.api.service.ProblemSubmissionStatsPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
  * @author ulticode
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsReadPort {
 

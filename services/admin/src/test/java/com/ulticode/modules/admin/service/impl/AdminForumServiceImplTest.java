@@ -1,23 +1,33 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.command.ApplyModerationCommand;
+import com.ulticode.app.api.dto.AdminForumPostRowDTO;
+import com.ulticode.app.api.dto.ContentLifecycleState;
+import com.ulticode.app.api.dto.ModerationApplyResultDTO;
+import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.api.service.AdminForumReadPort;
+import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
 import com.ulticode.modules.admin.service.AuditService;
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -27,36 +37,39 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link AdminForumServiceImpl} after the ADR-0011 Stage 2
- * extraction and the C6 forum-toggle policy collapse.
+ * extraction, the C6 forum-toggle policy collapse, and ADMIN-007.
  *
  * <p>Read tests ({@code getPosts} comment count enrichment) migrated to
  * {@link com.ulticode.modules.admin.projection.AdminForumProjectionTest}.
  * The single-field (pin / unpin / lock / unlock) and multi-field (flag /
- * unflag) toggle tests now assert delegation to {@link ForumPostFieldToggle}
- * and {@link ForumFlagPolicy}; the implementation-level audit snapshot logic
- * is covered by {@link com.ulticode.modules.admin.policy.impl.ForumPostFieldToggleImplTest}
- * and {@link com.ulticode.modules.admin.policy.impl.ForumFlagPolicyImplTest}.
+ * unflag) toggle tests assert delegation to {@link ForumPostFieldToggle}
+ * and {@link ForumFlagPolicy}; the implementation-level audit snapshot
+ * logic is covered by the policy impl tests.
  *
- * <p>This test class still pins the soft-delete state machine, the
- * concurrent-delete guard, and bulk-action validation.
+ * <p>This test class still pins the soft-delete state machine: the remote
+ * moderation write before audit recording, the {@code deletedAt} JSR-310
+ * regression, the missing-post guard, and the explicit mapping of remote
+ * {@code RpcResult} failures onto {@link AdminErrorCode}.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AdminForumServiceImplTest {
 
     @Mock
-    private ForumPostMapper forumPostMapper;
+    private AdminForumReadPort adminForumReadPort;
     @Mock
     private AuditService auditService;
     @Mock
@@ -69,14 +82,22 @@ class AdminForumServiceImplTest {
     private ForumPostFieldToggle forumPostFieldToggle;
     @Mock
     private ForumFlagPolicy forumFlagPolicy;
+    @Mock
+    private ContentModerationService contentModerationService;
 
     private AdminForumServiceImpl adminForumService;
 
-    private ForumPost testPost;
+    private AdminForumPostRowDTO testPost;
 
     @BeforeEach
     void setUp() {
-        testPost = new ForumPost();
+        adminForumService = new AdminForumServiceImpl(
+                auditService, auditRecorder, clock, currentUserProvider,
+                forumPostFieldToggle, forumFlagPolicy, new AdminBulkExecutor(),
+                adminForumReadPort);
+        ReflectionTestUtils.setField(adminForumService, "contentModerationService", contentModerationService);
+
+        testPost = new AdminForumPostRowDTO();
         testPost.setId("post-test-001");
         testPost.setTitle("Test Post");
         testPost.setUserId("user-001");
@@ -87,23 +108,9 @@ class AdminForumServiceImplTest {
         testPost.setIsFlagged(false);
         testPost.setIsDeleted(false);
 
-        // Freeze clock so LocalDateTime.now(clock) is deterministic in tests
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-
-        // Manual construction matches AdminCommentServiceImplTest and
-        // AdminSolutionServiceImplTest; the executor is a thin pure module
-        // with no external dependencies, so a real instance is the right test
-        // double (not @Spy, not @Mock).
-        adminForumService = new AdminForumServiceImpl(
-                forumPostMapper,
-                auditService,
-                auditRecorder,
-                clock,
-                currentUserProvider,
-                forumPostFieldToggle,
-                forumFlagPolicy,
-                new com.ulticode.modules.admin.bulk.AdminBulkExecutor());
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("admin-001");
     }
 
     @Nested
@@ -114,7 +121,6 @@ class AdminForumServiceImplTest {
         @DisplayName("pinPost delegates to fieldToggle policy with PIN enum")
         void pinPost_logsAudit() {
             adminForumService.pinPost("post-1");
-
             verify(forumPostFieldToggle).toggle("post-1", FieldToggle.PIN);
             verify(forumPostFieldToggle).toggle(eq("post-1"), eq(FieldToggle.PIN));
         }
@@ -123,7 +129,6 @@ class AdminForumServiceImplTest {
         @DisplayName("unpinPost delegates to fieldToggle policy with UNPIN enum")
         void unpinPost_logsAudit() {
             adminForumService.unpinPost("post-1");
-
             verify(forumPostFieldToggle).toggle("post-1", FieldToggle.UNPIN);
         }
 
@@ -131,7 +136,6 @@ class AdminForumServiceImplTest {
         @DisplayName("lockPost delegates to fieldToggle policy with LOCK enum")
         void lockPost_logsAudit() {
             adminForumService.lockPost("post-1");
-
             verify(forumPostFieldToggle).toggle("post-1", FieldToggle.LOCK);
         }
 
@@ -139,15 +143,40 @@ class AdminForumServiceImplTest {
         @DisplayName("unlockPost delegates to fieldToggle policy with UNLOCK enum")
         void unlockPost_logsAudit() {
             adminForumService.unlockPost("post-1");
-
             verify(forumPostFieldToggle).toggle("post-1", FieldToggle.UNLOCK);
         }
 
         @Test
-        @DisplayName("deletePost logs audit and uses softDelete mapper (not updateById) for @TableLogic column")
-        void deletePost_logsAuditAndUsesSoftDelete() {
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-            when(forumPostMapper.softDelete(eq("post-1"), anyString())).thenReturn(1);
+        @DisplayName("deletePost routes the owner mutation before recording the audit")
+        void deletePost_mutatesBeforeAudit() {
+            when(adminForumReadPort.getPost("post-1")).thenReturn(testPost);
+            when(contentModerationService.apply(any(ApplyModerationCommand.class)))
+                    .thenReturn(RpcResult.success(
+                            new ModerationApplyResultDTO("case-1", "post-1",
+                                    ApplyModerationCommand.ModerationAction.DELETE, ContentLifecycleState.DELETED),
+                            "t-1"));
+
+            adminForumService.deletePost("post-1");
+
+            var order = inOrder(contentModerationService, auditRecorder);
+            order.verify(contentModerationService).apply(any(ApplyModerationCommand.class));
+            order.verify(auditRecorder).recordForUser(
+                    eq(AuditVocabulary.DELETE_FORUM_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
+                    eq("post-1"),
+                    eq("user-001"),
+                    anyMap(),
+                    anyMap());
+        }
+        @Test
+        @DisplayName("deletePost records audit after routing a DELETE moderation command")
+        void deletePost_logsAuditAndAppliesRemoteModeration() {
+            when(adminForumReadPort.getPost("post-1")).thenReturn(testPost);
+            when(contentModerationService.apply(any(ApplyModerationCommand.class)))
+                    .thenReturn(RpcResult.success(
+                            new ModerationApplyResultDTO("case-1", "post-1",
+                                    ApplyModerationCommand.ModerationAction.DELETE, ContentLifecycleState.DELETED),
+                            "t-1"));
 
             adminForumService.deletePost("post-1");
 
@@ -159,33 +188,29 @@ class AdminForumServiceImplTest {
                     anyMap(),
                     anyMap()
             );
-            // Must NOT call updateById — is_deleted carries @TableLogic, so
-            // MyBatis-Plus silently drops the field. Use the dedicated mapper
-            // method that issues UPDATE ... SET is_deleted=1, deleted_at=NOW().
-            verify(forumPostMapper).softDelete(eq("post-1"), anyString());
-            verify(forumPostMapper, never()).updateById(any(ForumPost.class));
+            ArgumentCaptor<ApplyModerationCommand> commandCaptor =
+                    ArgumentCaptor.forClass(ApplyModerationCommand.class);
+            verify(contentModerationService).apply(commandCaptor.capture());
+            ApplyModerationCommand command = commandCaptor.getValue();
+            assertThat(command.contentId()).isEqualTo("post-1");
+            assertThat(command.contentType()).isEqualTo("forum_post");
+            assertThat(command.action()).isEqualTo(ApplyModerationCommand.ModerationAction.DELETE);
         }
 
         @Test
         @DisplayName("deletePost newValues contains isDeleted=true and LocalDateTime.now(clock) — JSR-310 regression")
         void deletePost_newValuesContainsIsDeletedAndLocalDateTime() {
-            // Regression for docs/forum-api-curl-test-report-2026-06-08.md §3:
-            // JacksonTypeHandler needs JavaTimeModule to serialize LocalDateTime inside
-            // audit_logs.new_values. Before the fix the call chain threw an
-            // InvalidDefinitionException and rolled back the soft-delete.
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-            when(forumPostMapper.softDelete(anyString(), anyString())).thenReturn(1);
+            when(adminForumReadPort.getPost("post-1")).thenReturn(testPost);
+            when(contentModerationService.apply(any(ApplyModerationCommand.class)))
+                    .thenReturn(RpcResult.success(
+                            new ModerationApplyResultDTO("case-1", "post-1",
+                                    ApplyModerationCommand.ModerationAction.DELETE, ContentLifecycleState.DELETED),
+                            "t-1"));
 
-            // The service stamps deletedAt from LocalDateTime.now(clock), where
-            // the clock is stubbed to 2026-01-01T00:00:00Z. The test asserts
-            // the exact value the clock produces (not a wall-clock range),
-            // matching the post-Clock-migration contract.
-            LocalDateTime expectedDeletedAt = LocalDateTime.ofInstant(
-                    Instant.parse("2026-01-01T00:00:00Z"), ZoneId.of("UTC"));
             adminForumService.deletePost("post-1");
 
-            org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
-                    org.mockito.ArgumentCaptor.forClass(Map.class);
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, Object>> newValuesCaptor = ArgumentCaptor.forClass(Map.class);
             verify(auditRecorder).recordForUser(
                     eq(AuditVocabulary.DELETE_FORUM_POST),
                     eq(AuditVocabulary.ENTITY_FORUM_POST),
@@ -194,25 +219,27 @@ class AdminForumServiceImplTest {
                     anyMap(),
                     newValuesCaptor.capture()
             );
-
             Map<String, Object> newValues = newValuesCaptor.getValue();
-            assertThat(newValues).containsEntry("isDeleted", true);
-            assertThat(newValues).containsKey("deletedAt");
             assertThat(newValues.get("deletedAt")).isInstanceOf(LocalDateTime.class);
             LocalDateTime deletedAt = (LocalDateTime) newValues.get("deletedAt");
-            assertThat(deletedAt).isEqualTo(expectedDeletedAt);
+            assertThat(deletedAt).isEqualTo(LocalDateTime.ofInstant(
+                    Instant.parse("2026-01-01T00:00:00Z"), ZoneId.of("UTC")));
         }
 
         @Test
-        @DisplayName("deletePost oldValues captures previous isDeleted state (false before soft delete)")
-        void deletePost_oldValuesCapturesPreviousState() {
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-            when(forumPostMapper.softDelete(anyString(), anyString())).thenReturn(1);
+        @DisplayName("deletePost oldValues captures the pre-delete state from the read port")
+        void deletePost_oldValuesFromReadPort() {
+            when(adminForumReadPort.getPost("post-1")).thenReturn(testPost);
+            when(contentModerationService.apply(any(ApplyModerationCommand.class)))
+                    .thenReturn(RpcResult.success(
+                            new ModerationApplyResultDTO("case-1", "post-1",
+                                    ApplyModerationCommand.ModerationAction.DELETE, ContentLifecycleState.DELETED),
+                            "t-1"));
 
             adminForumService.deletePost("post-1");
 
-            org.mockito.ArgumentCaptor<Map<String, Object>> oldValuesCaptor =
-                    org.mockito.ArgumentCaptor.forClass(Map.class);
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, Object>> oldValuesCaptor = ArgumentCaptor.forClass(Map.class);
             verify(auditRecorder).recordForUser(
                     eq(AuditVocabulary.DELETE_FORUM_POST),
                     eq(AuditVocabulary.ENTITY_FORUM_POST),
@@ -225,37 +252,56 @@ class AdminForumServiceImplTest {
         }
 
         @Test
-        @DisplayName("deletePost throws NOT_FOUND when softDelete affects 0 rows (concurrent delete)")
-        void deletePost_concurrentDeleteThrowsNotFound() {
-            // Regression: between the initial selectById and the softDelete call,
-            // the row may have been modified/deleted by another transaction
-            // (e.g. concurrent admin, or row no longer matches the cached state).
-            // The service must detect the 0-row count and signal failure rather
-            // than silently leaving the audit log dangling against a non-delete.
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-            when(forumPostMapper.softDelete(anyString(), anyString())).thenReturn(0);
+        @DisplayName("deletePost throws NOT_FOUND when the post is missing and never audits or calls the provider")
+        void deletePost_throwsNotFoundWhenPostMissing() {
+            when(adminForumReadPort.getPost("post-1")).thenReturn(null);
 
-            org.assertj.core.api.Assertions.assertThatThrownBy(
-                    () -> adminForumService.deletePost("post-1"))
+            assertThatThrownBy(() -> adminForumService.deletePost("post-1"))
                     .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
-                    .extracting("code").isEqualTo(com.ulticode.admin.error.AdminErrorCode.NOT_FOUND.getCode());
+                    .extracting("code").isEqualTo(AdminErrorCode.NOT_FOUND.getCode());
 
-            verify(forumPostMapper).softDelete(eq("post-1"), anyString());
+            verify(auditRecorder, never()).recordForUser(anyString(), anyString(), anyString(), anyString(), anyMap(), anyMap());
+            verify(contentModerationService, never()).apply(any());
+        }
+
+
+        @Test
+        @DisplayName("deletePost rejects an already deleted row before remote mutation or audit")
+        void deletePost_rejectsAlreadyDeletedPost() {
+            testPost.setIsDeleted(true);
+            when(adminForumReadPort.getPost("post-1")).thenReturn(testPost);
+
+            assertThatThrownBy(() -> adminForumService.deletePost("post-1"))
+                    .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                    .extracting("code").isEqualTo(AdminErrorCode.NOT_FOUND.getCode());
+
+            verify(contentModerationService, never()).apply(any());
+            verify(auditRecorder, never()).recordForUser(
+                    anyString(), anyString(), anyString(), anyString(), anyMap(), anyMap());
+        }
+        @Test
+        @DisplayName("deletePost maps remote CONTENT_NOT_FOUND onto admin NOT_FOUND")
+        void deletePost_mapsRemoteNotFound() {
+            when(adminForumReadPort.getPost("post-1")).thenReturn(testPost);
+            when(contentModerationService.apply(any(ApplyModerationCommand.class)))
+                    .thenReturn(RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, "t-1"));
+
+            assertThatThrownBy(() -> adminForumService.deletePost("post-1"))
+                    .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                    .extracting("code").isEqualTo(AdminErrorCode.NOT_FOUND.getCode());
         }
 
         @Test
-        @DisplayName("flagPost delegates to flagPolicy.flag with the supplied reason")
-        void flagPost_newValuesContainsReason() {
-            adminForumService.flagPost("post-1", "Spam content for testing");
-
-            verify(forumFlagPolicy).flag("post-1", "Spam content for testing");
+        @DisplayName("flagPost delegates to flag policy")
+        void flagPost_delegates() {
+            adminForumService.flagPost("post-1", "Spam");
+            verify(forumFlagPolicy).flag("post-1", "Spam");
         }
 
         @Test
-        @DisplayName("unflagPost delegates to flagPolicy.unflag")
-        void unflagPost_newValuesClearsReason() {
+        @DisplayName("unflagPost delegates to flag policy")
+        void unflagPost_delegates() {
             adminForumService.unflagPost("post-1");
-
             verify(forumFlagPolicy).unflag("post-1");
         }
     }
@@ -265,13 +311,11 @@ class AdminForumServiceImplTest {
     class BulkActionValidation {
 
         @Test
-        @DisplayName("bulkAction with unknown action returns per-item failure (not controller-level 400)")
+        @DisplayName("bulkAction unknown action returns per-item failure (not controller-level 400)")
         void bulkAction_unknownActionPerItemFailure() {
             // Pattern validation lives in @Pattern on BulkActionRequest.action; if a
             // service caller bypasses the controller (e.g. internal cron), the
             // service still must not throw and roll back the whole batch.
-            // Note: unknown action short-circuits the switch in deletePost/pinPost
-            // dispatch — it never calls forumPostMapper.selectById, hence no stubbing.
             var result = adminForumService.bulkAction(List.of("post-1"), "explode");
 
             assertThat(result.getTotal()).isEqualTo(1);
@@ -282,7 +326,7 @@ class AdminForumServiceImplTest {
         }
 
         @Test
-        @DisplayName("bulkAction with valid action delegates to per-post service and reports success")
+        @DisplayName("bulkAction valid action delegates per-post service and reports success")
         void bulkAction_validActionDelegates() {
             var result = adminForumService.bulkAction(List.of("post-1"), "pin");
 

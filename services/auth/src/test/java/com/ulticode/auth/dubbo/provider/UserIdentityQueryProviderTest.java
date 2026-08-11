@@ -79,4 +79,15 @@ class UserIdentityQueryProviderTest {
         assertThat(result.success()).isTrue();
         assertThat(result.data()).isEmpty();
     }
+
+    @Test
+    @DisplayName("findActiveAccountIds delegates Auth ownership predicates")
+    void findActiveAccountIds() {
+        when(authAccountPort.findActiveAccountIds()).thenReturn(List.of("user-1", "user-2"));
+
+        RpcResult<List<String>> result = provider.findActiveAccountIds();
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data()).containsExactly("user-1", "user-2");
+    }
 }

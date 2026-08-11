@@ -1,62 +1,60 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.common.annotation.Audited;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.app.api.command.CreateNotificationCommand;
+import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.api.command.DeleteNotificationCommand;
+import com.ulticode.app.api.command.UpdateNotificationCommand;
+import com.ulticode.app.api.dto.NotificationAdminDTO;
+import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.app.api.service.NotificationAdminReadPort;
+import com.ulticode.app.api.service.NotificationAdministrationService;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.rpc.RpcPolicy;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.admin.config.MybatisPlusPartialUpdate;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.projection.AdminNotificationProjection;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
 import com.ulticode.modules.admin.service.AdminNotificationService;
-import com.ulticode.modules.notification.dispatcher.AnnouncementBroadcaster;
-import com.ulticode.modules.notification.entity.Notification;
-import com.ulticode.modules.notification.entity.enums.NotificationCategory;
-import com.ulticode.modules.notification.mapper.NotificationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
-import java.util.HashMap;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Write state machine for admin system-notification management &mdash;
- * ADR-0011 Stage 4 deepening.
+ * Admin system-notification service &mdash; ADMIN-008.
  *
- * <p>Every read-side concern (paginated list read with sort-field whitelist,
- * batch creator User enrichment, three {@code toAdminVO} overloads, the
- * {@code buildAnnouncementVo} helper) moved behind
- * {@link AdminNotificationProjection}. This service keeps the write state
- * machine only: create / update / soft-delete system announcements, plus the
- * preference-gated recipient resolution for the broadcast path
- * (ADR-004 &sect;2.3). Write paths that return {@code AdminNotificationVO}
- * ({@code createSystemNotification}, {@code updateSystemNotification}) call
- * {@link AdminNotificationProjection#toAdminVO} so the controller contract
- * is unchanged &mdash; the shape rule simply no longer lives here.
+ * <p>The legacy write state machine (create / update / soft-delete
+ * system announcements via the App-private notification mapper and
+ * broadcaster) is replaced by remote administration commands against the
+ * App-owned {@link NotificationAdministrationService} provider. Admin no
+ * longer imports any notification entity/mapper/dispatcher class:
+ * reads go through {@link NotificationAdminReadPort}, writes through the
+ * command RPC, and the {@link AdminNotificationProjection} keeps the
+ * entity-free VO shape rule (including batch creator enrichment).
  *
- * <p>Cross-module read access ({@code UserMapper} for the {@code creator}
- * field on the VO) moved to the projection. The remaining {@code UserMapper}
- * usage here is for legitimate write-path concerns (target-user resolution
- * for the broadcast, current-admin resolution for the audit anchor) &mdash;
- * those are not projection concerns.
+ * <p>No local transaction wraps the remote writes (RPC boundary); the
+ * {@code @Audited} hook and {@link AuditContext} old/new value capture are
+ * preserved. RpcResult failures are mapped to {@link AdminErrorCode}
+ * (App {@code 40000} &rarr; {@code BAD_REQUEST}, {@code 40401} &rarr;
+ * {@code NOT_FOUND}, anything else &rarr; {@code UNKNOWN_ERROR}).
  *
- * <p>Mirrors the {@code AdminContestServiceImpl} (Stage 3) shape: the
- * service keeps its {@code listXxx} read method as a thin delegator to the
- * projection, and write methods that need a VO call the projection's
- * {@code toXxxVO} helper to avoid duplicating the shape rule.
+ * @author ulticode
  */
 @Slf4j
 @Service
@@ -65,19 +63,13 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     private static final String SYSTEM_CATEGORY = "SYSTEM";
 
-    private final NotificationMapper notificationMapper;
-    private final AdminUserEnricher userEnricher;
-    private final Clock clock;
     private final AdminNotificationProjection adminNotificationProjection;
+    private final NotificationAdminReadPort notificationAdminReadPort;
     private final CurrentUserProvider currentUserProvider;
-    /**
-     * Architecture-review candidate #4: admin announcement fan-out
-     * (target resolution, preference filtering, batch row insert)
-     * concentrates behind {@link AnnouncementBroadcaster}. The admin
-     * service keeps the audit hook, edit/delete state machine, and
-     * the producer-side validation.
-     */
-    private final AnnouncementBroadcaster announcementBroadcaster;
+
+    @DubboReference(group = "backend-app", version = "1.0.0",
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
+    private NotificationAdministrationService dubboProvider;
 
     @Override
     public PageResult<AdminNotificationVO> listSystemNotifications(AdminNotificationQueryDTO queryDTO) {
@@ -85,175 +77,225 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     }
 
     @Override
-    @Transactional
-    @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
-        String currentUserId = currentUserProvider.getCurrentUserId();
-        AdminUserSummary currentUser = userEnricher.enrichOne(currentUserId);
-        if (currentUser == null) {
-            throw new BusinessException(AdminErrorCode.NOT_FOUND, "Current user not found");
-        }
+        return createSystemNotification(request, null);
+    }
 
+    @Override
+    public AdminNotificationVO createSystemNotification(
+            CreateSystemNotificationRequest request, String idempotencyKey) {
+        String actorId = safeActorId();
         String category = request.getCategory() != null ? request.getCategory() : SYSTEM_CATEGORY;
-        NotificationCategory notificationCategory = parseCategory(category);
-
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("createdBy", currentUserId);
-        metadata.put("createdByName", currentUser.username());
-        metadata.put("isSystemAnnouncement", true);
-
-        // Architecture-review candidate #4: the recipient-resolution,
-        // preference-filter, and batch-row-insert mechanics now live
-        // behind the AnnouncementBroadcaster seam. The admin service
-        // keeps the audit anchor + producer-side validation.
-        AnnouncementBroadcaster.Outcome outcome;
-        try {
-            outcome = announcementBroadcaster.broadcast(
-                    request.getTitle(),
-                    request.getContent(),
-                    request.getType(),
-                    notificationCategory,
-                    request.getTarget(),
-                    request.getUserIds(),
-                    metadata,
-                    /* existingAnnouncementId */ null);
-        } catch (IllegalArgumentException ex) {
-            throw new BusinessException(AdminErrorCode.BAD_REQUEST, ex.getMessage());
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        RpcResult<NotificationAdminViewDTO> result = dubboProvider.createNotification(
+                new CreateNotificationCommand(
+                        commandId("create", idempotency), idempotency,
+                        new ActorDelegation(actorType(), actorId, actorId, "admin notification create"),
+                        trace(),
+                        actorId,
+                        request.getTitle(),
+                        request.getContent(),
+                        request.getType(),
+                        request.getCategory(),
+                        request.getTarget(),
+                        request.getUserIds()));
+        if (!result.success()) {
+            throw mapError(result);
         }
 
-        log.info("Created system notification '{}' for {}/{} users by admin {} (announcementId={})",
-                request.getTitle(), outcome.delivered(), outcome.totalTargets(),
-                currentUserId, outcome.announcementId());
-
+        NotificationAdminViewDTO dto = result.data();
+        String effectiveCategory = dto.category() != null && !dto.category().isBlank()
+                ? dto.category()
+                : category;
         AuditContext.setNewValues(Map.of(
-            "title", request.getTitle() != null ? request.getTitle() : "",
-            "targetCount", outcome.delivered(),
-            "suppressedCount", outcome.suppressed(),
-            "target", request.getTarget() != null ? request.getTarget() : ""
+                "title", request.getTitle() != null ? request.getTitle() : "",
+                "type", request.getType() != null ? request.getType() : "",
+                "category", effectiveCategory,
+                "target", request.getTarget() != null ? request.getTarget() : ""
         ));
-
-        if (outcome.delivered() == 0) {
-            // Every recipient opted out — record the announcement intent without
-            // persisting any user-facing notification row.
-            AuditContext.setEntityId(outcome.announcementId());
-            return adminNotificationProjection.buildAnnouncementVO(request, category, outcome.announcementId());
-        }
-        AuditContext.setEntityId(outcome.representativeId());
-        Notification representative = notificationMapper.selectById(outcome.representativeId());
-        if (representative == null) {
-            // Defensive: broadcaster promised a representative id but the
-            // row vanished between insert and re-read. Fall back to the
-            // announcement-shaped VO so callers still get a well-formed
-            // response.
-            return adminNotificationProjection.buildAnnouncementVO(request, category, outcome.announcementId());
-        }
-        return adminNotificationProjection.toAdminVO(representative);
-    }
-
-    private static NotificationCategory parseCategory(String wire) {
-        if (wire == null || wire.isBlank()) {
-            return NotificationCategory.SYSTEM;
-        }
-        try {
-            return NotificationCategory.valueOf(wire);
-        } catch (IllegalArgumentException ex) {
-            // Legacy category values (SECURITY / SYSTEM / MARKETING / COMMUNICATION
-            // as plain strings) already match the enum names; any other wire value
-            // is treated as SYSTEM so unknown categories still surface.
-            return NotificationCategory.SYSTEM;
-        }
+        AuditContext.setEntityId(dto.notificationId());
+        log.info("Created system notification '{}' (announcementId={}) by admin {}",
+                request.getTitle(), dto.announcementId(), actorId);
+        return readBack(dto.notificationId(), dto.announcementId(), request, effectiveCategory);
     }
 
     @Override
-    @Transactional
-    @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public void deleteNotification(String id) {
-        Notification notification = notificationMapper.selectById(id);
-        if (notification == null) {
-            throw new BusinessException(AdminErrorCode.NOT_FOUND, "Notification not found");
-        }
-
-        AuditContext.setOldValues(Map.of(
-            "title", notification.getTitle() != null ? notification.getTitle() : "",
-            "type", notification.getType() != null ? notification.getType() : ""
-        ));
-
-        int deletedCount;
-        if (notification.getAnnouncementId() != null) {
-            deletedCount = notificationMapper.delete(new LambdaQueryWrapper<Notification>()
-                    .eq(Notification::getAnnouncementId, notification.getAnnouncementId())
-                    .eq(Notification::getCategory, SYSTEM_CATEGORY));
-        } else {
-            LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(Notification::getTitle, notification.getTitle());
-            wrapper.eq(Notification::getType, notification.getType());
-            wrapper.eq(Notification::getCategory, SYSTEM_CATEGORY);
-            if (notification.getCreatedAt() != null) {
-                wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
-            }
-            deletedCount = notificationMapper.delete(wrapper);
-        }
-
-        log.info("Deleted system notification '{}' and {} related records", id, deletedCount);
+        deleteNotification(id, null);
     }
 
     @Override
-    @Transactional
-    @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
-    public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
-        Notification notification = notificationMapper.selectById(id);
-        if (notification == null) {
+    public void deleteNotification(String id, String idempotencyKey) {
+        AuditContext.setEntityId(id);
+        NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);
+        if (existing == null && (idempotencyKey == null || idempotencyKey.isBlank())) {
             throw new BusinessException(AdminErrorCode.NOT_FOUND, "Notification not found");
         }
 
-        AuditContext.setOldValues(Map.of(
-            "title", notification.getTitle() != null ? notification.getTitle() : "",
-            "type", notification.getType() != null ? notification.getType() : ""
-        ));
+        if (existing != null) {
+            AuditContext.setOldValues(Map.of(
+                    "title", existing.title() != null ? existing.title() : "",
+                    "type", existing.type() != null ? existing.type() : ""
+            ));
+        }
+        String actorId = safeActorId();
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        RpcResult<Void> result = dubboProvider.deleteNotification(
+                new DeleteNotificationCommand(
+                        commandId("delete", idempotency), idempotency,
+                        new ActorDelegation(actorType(), actorId, actorId, "admin notification delete"),
+                        trace(), id));
+        if (!result.success()) {
+            throw mapError(result);
+        }
+        log.info("Deleted system notification '{}' by admin {}", id, actorId);
+    }
 
-        int updatedCount;
-        if (notification.getAnnouncementId() != null) {
-            LambdaUpdateWrapper<Notification> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(Notification::getAnnouncementId, notification.getAnnouncementId())
-                    .eq(Notification::getCategory, SYSTEM_CATEGORY)
-                    .set(Notification::getTitle, request.getTitle())
-                    .set(Notification::getBody, request.getContent());
-            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
-                    UpdateSystemNotificationRequest::getType, Notification::getType);
-            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
-                    UpdateSystemNotificationRequest::getCategory, Notification::getCategory);
-            updatedCount = notificationMapper.update(null, updateWrapper);
-        } else {
-            LambdaUpdateWrapper<Notification> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(Notification::getTitle, notification.getTitle())
-                    .eq(Notification::getType, notification.getType())
-                    .eq(Notification::getCategory, SYSTEM_CATEGORY)
-                    .set(Notification::getTitle, request.getTitle())
-                    .set(Notification::getBody, request.getContent());
-            if (notification.getCreatedAt() != null) {
-                updateWrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
-            }
-            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
-                    UpdateSystemNotificationRequest::getType, Notification::getType);
-            MybatisPlusPartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
-                    UpdateSystemNotificationRequest::getCategory, Notification::getCategory);
-            updatedCount = notificationMapper.update(null, updateWrapper);
+    @Override
+    public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
+        return updateSystemNotification(id, request, null);
+    }
+
+    @Override
+    public AdminNotificationVO updateSystemNotification(
+            String id, UpdateSystemNotificationRequest request, String idempotencyKey) {
+        NotificationAdminDTO existing = notificationAdminReadPort.selectById(id);
+        if (existing == null && (idempotencyKey == null || idempotencyKey.isBlank())) {
+            throw new BusinessException(AdminErrorCode.NOT_FOUND, "Notification not found");
+        }
+
+        if (existing != null) {
+            AuditContext.setOldValues(Map.of(
+                    "title", existing.title() != null ? existing.title() : "",
+                    "type", existing.type() != null ? existing.type() : ""
+            ));
+        }
+
+        String actorId = safeActorId();
+        IdMetadata idempotency = idempotency(idempotencyKey);
+        RpcResult<NotificationAdminViewDTO> result = dubboProvider.updateNotification(
+                new UpdateNotificationCommand(
+                        commandId("update", idempotency), idempotency,
+                        new ActorDelegation(actorType(), actorId, actorId, "admin notification update"),
+                        trace(), id,
+                        request.getTitle(), request.getContent(),
+                        request.getType(), request.getCategory()));
+        if (!result.success()) {
+            throw mapError(result);
         }
 
         AuditContext.setNewValues(Map.of(
-            "title", request.getTitle() != null ? request.getTitle() : "",
-            "type", request.getType() != null ? request.getType() : ""
+                "title", request.getTitle() != null ? request.getTitle() : "",
+                "type", request.getType() != null ? request.getType() : ""
         ));
         AuditContext.setEntityId(id);
-
-        log.info("Updated system notification '{}' and {} related records", id, updatedCount);
-
-        Notification updated = notificationMapper.selectById(id);
-        return adminNotificationProjection.toAdminVO(updated);
+        log.info("Updated system notification '{}' by admin {}", id, actorId);
+        return readBackUpdate(id, result.data(), request);
     }
 
-    // Architecture-review candidate #4: target resolution, preference
-    // filtering, and batch row insert moved behind AnnouncementBroadcaster.
-    // The admin service keeps only the audit anchor, edit/delete state
-    // machine, and producer-side validation.
+    private AdminNotificationVO readBackUpdate(
+            String notificationId,
+            NotificationAdminViewDTO result,
+            UpdateSystemNotificationRequest request) {
+        NotificationAdminDTO row = notificationAdminReadPort.selectById(notificationId);
+        if (row != null) {
+            return adminNotificationProjection.toAdminVO(row);
+        }
+        if (result == null) {
+            return null;
+        }
+        AdminNotificationVO vo = new AdminNotificationVO();
+        vo.setId(result.notificationId() != null ? result.notificationId() : notificationId);
+        vo.setAnnouncementId(result.announcementId());
+        vo.setTitle(result.title() != null ? result.title() : request.getTitle());
+        vo.setContent(request.getContent());
+        vo.setType(result.type() != null ? result.type() : request.getType());
+        vo.setCategory(result.category() != null ? result.category() : request.getCategory());
+        if (result.createdEpochMs() > 0) {
+            vo.setCreatedAt(Instant.ofEpochMilli(result.createdEpochMs())
+                    .atOffset(ZoneOffset.UTC).toLocalDateTime());
+        }
+        return vo;
+    }
+
+
+    // ── helpers ────────────────────────────────────────────────
+
+    private String actorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+    }
+    /**
+     * Re-fetch the full VO via the read port so the HTTP response shape
+     * matches the legacy projection (content + creator enrichment).
+     * When no row is persisted (every recipient opted out of a broadcast,
+     * or the row vanished between write and re-read) fall back to the
+     * announcement-shaped VO built from the original create request.
+     */
+    private AdminNotificationVO readBack(String notificationId,
+                                         String announcementId,
+                                         CreateSystemNotificationRequest fallbackRequest,
+                                         String category) {
+        NotificationAdminDTO row = notificationAdminReadPort.selectById(notificationId);
+        if (row == null) {
+            if (fallbackRequest != null) {
+                return adminNotificationProjection.buildAnnouncementVO(
+                        fallbackRequest, category, announcementId);
+            }
+            return null;
+        }
+        return adminNotificationProjection.toAdminVO(row);
+    }
+    private static IdMetadata idempotency(String requestedKey) {
+        String key = requestedKey == null || requestedKey.isBlank()
+                ? UUID.randomUUID().toString()
+                : requestedKey.trim();
+        if (key.length() > 120) {
+            throw new BusinessException(
+                    AdminErrorCode.BAD_REQUEST, "Idempotency-Key must not exceed 120 characters");
+        }
+        return IdMetadata.of(key, null);
+    }
+
+    private static String commandId(String operation, IdMetadata idempotency) {
+        return UUID.nameUUIDFromBytes(
+                (operation + ":" + idempotency.idempotencyKey()).getBytes(StandardCharsets.UTF_8))
+                .toString();
+    }
+    private static TraceMetadata trace() {
+        return new TraceMetadata(TraceIdUtil.current(), null, null, null);
+    }
+
+    private String safeActorId() {
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+        }
+        return actorId;
+    }
+
+    private static BusinessException mapError(RpcResult<?> result) {
+        var err = result.error();
+        if (err == null) {
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+        }
+        int code = err.code();
+        if (code == AppErrorCode.BAD_REQUEST.code()) {
+            return new BusinessException(AdminErrorCode.BAD_REQUEST, err.message());
+        }
+        if (code == AppErrorCode.UNAUTHORIZED.code()) {
+            return new BusinessException(AdminErrorCode.UNAUTHORIZED, err.message());
+        }
+        if (code == AppErrorCode.FORBIDDEN.code()) {
+            return new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
+        }
+        if (code == AppErrorCode.CONTENT_NOT_FOUND.code()) {
+            return new BusinessException(AdminErrorCode.NOT_FOUND, err.message());
+        }
+        if (code == AppErrorCode.VERSION_CONFLICT.code()
+                || code == AppErrorCode.CONTENT_STATE_CONFLICT.code()
+                || code == AppErrorCode.IDEMPOTENCY_KEY_CONFLICT.code()) {
+            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
+        }
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
+    }
 }

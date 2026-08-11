@@ -27,14 +27,6 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-app-api</artifactId>
 		</dependency>
-		<!-- P7-FIX-ADMIN-CONSUMERS-001: transitional dependency on backend-app
-		     so admin adapters can access relocated forum/solution/submission
-		     entities and mappers. To be removed when adapters migrate to
-		     app-api port pattern (ADR-P7-ADMIN-CONSUMER-BASELINE). -->
-		<dependency>
-			<groupId>com.ulticode</groupId>
-			<artifactId>backend-app</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-web-security</artifactId>

@@ -1,74 +1,80 @@
 package com.ulticode.modules.admin.policy.impl;
 
+import com.ulticode.app.api.command.ForumPostModerationCommand;
+import com.ulticode.app.api.dto.ForumPostModerationResultDTO;
+import com.ulticode.app.api.service.ForumPostAdministrationService;
 import com.ulticode.common.audit.AuditRecorder;
+import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
-import com.ulticode.app.api.service.ForumOwnerPort;
-import com.ulticode.app.api.service.ForumOwnerPort.ToggleResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.eq;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class ForumPostFieldToggleImplTest {
 
     @Mock
-    private ForumOwnerPort forumOwnerPort;
+    private ForumPostAdministrationService forumPostAdministrationService;
 
     @Mock
     private AuditRecorder auditRecorder;
 
-    @InjectMocks
+    @Mock
+    private CurrentUserProvider currentUserProvider;
+
     private ForumPostFieldToggleImpl policy;
 
     @BeforeEach
     void setUp() {
-        when(forumOwnerPort.setPinned("p1", true)).thenReturn(new ToggleResult("u1", false));
-        when(forumOwnerPort.setPinned("p1", false)).thenReturn(new ToggleResult("u1", true));
-        when(forumOwnerPort.setLocked("p1", true)).thenReturn(new ToggleResult("u1", false));
-        when(forumOwnerPort.setLocked("p1", false)).thenReturn(new ToggleResult("u1", true));
+        policy = new ForumPostFieldToggleImpl(
+                forumPostAdministrationService, auditRecorder, currentUserProvider);
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(true);
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(false);
+        when(forumPostAdministrationService.moderate(any())).thenAnswer(invocation -> {
+            ForumPostModerationCommand command = invocation.getArgument(0);
+            return RpcResult.success(new ForumPostModerationResultDTO(
+                    command.postId(), command.action(), "u1", false, null), "trace-1");
+        });
     }
 
     @Test
-    @DisplayName("toggle(PIN) delegates to ForumOwnerPort and writes audit")
+    @DisplayName("toggle(PIN) delegates to App command and writes audit")
     void toggle_pin_writesAuditAndPersists() {
         policy.toggle("p1", FieldToggle.PIN);
 
-        verify(forumOwnerPort).setPinned("p1", true);
+        verify(forumPostAdministrationService).moderate(any(ForumPostModerationCommand.class));
         verify(auditRecorder).recordForUser(
-            eq("PIN_POST"),
-            eq("FORUM_POST"),
-            eq("p1"),
-            eq("u1"),
-            anyMap(),
-            anyMap()
-        );
+                org.mockito.ArgumentMatchers.eq("PIN_POST"),
+                org.mockito.ArgumentMatchers.eq("FORUM_POST"),
+                org.mockito.ArgumentMatchers.eq("p1"),
+                org.mockito.ArgumentMatchers.eq("u1"),
+                org.mockito.ArgumentMatchers.eq(Map.of("isPinned", false)),
+                org.mockito.ArgumentMatchers.eq(Map.of("isPinned", true)));
     }
 
     @Test
-    @DisplayName("toggle(LOCK) delegates to ForumOwnerPort and writes audit")
+    @DisplayName("toggle(LOCK) delegates to App command and writes audit")
     void toggle_lock_writesAuditAndPersists() {
         policy.toggle("p1", FieldToggle.LOCK);
 
-        verify(forumOwnerPort).setLocked("p1", true);
+        verify(forumPostAdministrationService).moderate(any(ForumPostModerationCommand.class));
         verify(auditRecorder).recordForUser(
-            eq("LOCK_POST"),
-            eq("FORUM_POST"),
-            eq("p1"),
-            eq("u1"),
-            anyMap(),
-            anyMap()
-        );
+                org.mockito.ArgumentMatchers.eq("LOCK_POST"),
+                org.mockito.ArgumentMatchers.eq("FORUM_POST"),
+                org.mockito.ArgumentMatchers.eq("p1"),
+                org.mockito.ArgumentMatchers.eq("u1"),
+                org.mockito.ArgumentMatchers.eq(Map.of("isLocked", false)),
+                org.mockito.ArgumentMatchers.eq(Map.of("isLocked", true)));
     }
 }

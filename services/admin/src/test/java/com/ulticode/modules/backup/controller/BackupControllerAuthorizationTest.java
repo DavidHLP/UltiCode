@@ -9,11 +9,13 @@ import com.ulticode.modules.backup.service.BackupService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ActiveProfiles("controller-auth-test")
 @SpringJUnitConfig(BackupControllerAuthorizationTest.TestConfig.class)
 @DisplayName("BackupController Live Method Security Authorization Test")
 class BackupControllerAuthorizationTest {
@@ -114,7 +117,8 @@ class BackupControllerAuthorizationTest {
         assertThatCode(() -> backupController.deleteBackup("b1")).doesNotThrowAnyException();
     }
 
-    @Configuration
+    @TestConfiguration
+    @Profile("controller-auth-test")
     @EnableMethodSecurity
     static class TestConfig {
         @Bean

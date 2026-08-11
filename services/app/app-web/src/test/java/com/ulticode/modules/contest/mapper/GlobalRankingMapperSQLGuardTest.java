@@ -20,6 +20,7 @@ class GlobalRankingMapperSQLGuardTest {
         List<Method> displayQueries = Arrays.stream(GlobalRankingMapper.class.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Select.class))
                 .filter(method -> joinedSql(method).contains("g.*"))
+                .filter(method -> !joinedSql(method).contains("for update"))
                 .toList();
 
         assertThat(displayQueries).isNotEmpty();

@@ -12,9 +12,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration test: verifies the committed seccomp-profile.json does not
@@ -38,6 +43,7 @@ class SandboxForkE2EIT {
     private static final String IMAGE = "ulticode-sandbox:latest";
 
     /** Wall-clock cap for any single `docker run` invocation. */
+    private static final int DOCKER_CLEANUP_TIMEOUT_SECONDS = 5;
     private static final int DOCKER_RUN_TIMEOUT_SECONDS = 30;
 
     private static boolean dockerAvailable;
@@ -103,6 +109,17 @@ class SandboxForkE2EIT {
                 .as("java compile+run pipeline must produce 'hello' and not 'Cannot fork'")
                 .contains("hello")
                 .doesNotContain("Cannot fork");
+    }
+
+    @Test
+    @DisplayName("Hung sandbox process obeys the hard timeout")
+    void hungSandboxProcessIsTerminated() throws IOException, InterruptedException {
+        Assumptions.assumeTrue(dockerAvailable, "docker CLI not available; skipping sandbox runtime test");
+        Assumptions.assumeTrue(imageAvailable, IMAGE + " image not built locally; skipping sandbox runtime test");
+
+        assertThatThrownBy(() -> runSandbox(List.of("sh", "-c", "sleep 60"), 1))
+                .isInstanceOf(InterruptedException.class)
+                .hasMessage("docker run exceeded 1s timeout");
     }
 
     @Test
@@ -200,11 +217,17 @@ class SandboxForkE2EIT {
      * {@code Assumptions.assumeTrue(result.exitCode() == 0, ...)}.
      */
     private SandboxRunResult runSandbox(List<String> innerCmd) throws IOException, InterruptedException {
+        return runSandbox(innerCmd, DOCKER_RUN_TIMEOUT_SECONDS);
+    }
+
+    private SandboxRunResult runSandbox(List<String> innerCmd, int timeoutSeconds)
+            throws IOException, InterruptedException {
         Path profile = locateSeccompProfile();
         Path profileDir = profile.getParent();
 
+        String containerName = "ulticode-sandbox-test-" + UUID.randomUUID();
         List<String> cmd = new ArrayList<>(List.of(
-                "docker", "run", "--rm", "-i",
+                "docker", "run", "--rm", "--name", containerName, "-i",
                 "--network", "none",
                 "--cap-drop", "ALL",
                 "--memory", "128m", "--cpus", "1.0",
@@ -221,23 +244,180 @@ class SandboxForkE2EIT {
 
         String output;
         int exitCode;
-        // L3: Java 17 Process does not implement AutoCloseable; explicit close in finally.
+        boolean cleanupRequired = true;
+        // Drain output concurrently; readAllBytes() before waitFor() would bypass the hard timeout
+        // whenever the sandbox process stays alive without closing its stdout.
         Process proc = new ProcessBuilder(cmd).redirectErrorStream(true).start();
-        try (InputStream in = proc.getInputStream()) {
-            output = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
+        FutureTask<String> outputTask = new FutureTask<>(() -> {
+            try (InputStream in = proc.getInputStream()) {
+                return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        });
+        Thread outputReader = new Thread(outputTask, "sandbox-output-reader");
+        outputReader.setDaemon(true);
+        outputReader.start();
+        Exception operationFailure = null;
         try {
-            boolean exited = proc.waitFor(DOCKER_RUN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            boolean exited = proc.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!exited) {
-                // Throw first; the finally block below calls proc.destroyForcibly()
-                // so we don't need a redundant call here (round 2 review L1 fix).
-                throw new InterruptedException("docker run exceeded " + DOCKER_RUN_TIMEOUT_SECONDS + "s timeout");
+                throw new InterruptedException("docker run exceeded " + timeoutSeconds + "s timeout");
             }
             exitCode = proc.exitValue();
+            try {
+                output = outputTask.get(5, TimeUnit.SECONDS);
+            } catch (ExecutionException exception) {
+                throw new IOException("failed to read docker output", exception.getCause());
+            } catch (TimeoutException exception) {
+                throw new IOException("docker output reader exceeded 5s timeout", exception);
+            }
+            cleanupRequired = false;
+        } catch (IOException | InterruptedException exception) {
+            operationFailure = exception;
+            throw exception;
         } finally {
+            Exception cleanupFailure = null;
+            boolean cleanupInterrupted = false;
             proc.destroyForcibly();
+            try {
+                if (!proc.waitFor(DOCKER_CLEANUP_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    proc.destroyForcibly();
+                    cleanupFailure = new IOException("docker run client did not exit after bounded cleanup");
+                }
+            } catch (InterruptedException exception) {
+                cleanupInterrupted = true;
+                cleanupFailure = exception;
+            }
+            if (outputReader.isAlive()) {
+                outputReader.interrupt();
+                try {
+                    outputReader.join(1000);
+                } catch (InterruptedException exception) {
+                    cleanupInterrupted = true;
+                    cleanupFailure = mergeCleanupFailure(cleanupFailure, exception);
+                }
+            }
+            if (cleanupRequired) {
+                try {
+                    forceRemoveSandboxContainer(containerName);
+                } catch (IOException | InterruptedException exception) {
+                    cleanupInterrupted |= exception instanceof InterruptedException;
+                    cleanupFailure = mergeCleanupFailure(cleanupFailure, exception);
+                }
+            }
+            if (cleanupFailure != null) {
+                if (operationFailure != null) {
+                    operationFailure.addSuppressed(cleanupFailure);
+                    if (cleanupInterrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else if (cleanupFailure instanceof InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw exception;
+                } else {
+                    if (cleanupInterrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                    throw (IOException) cleanupFailure;
+                }
+            }
         }
         return new SandboxRunResult(exitCode, output);
+    }
+
+    private static Exception mergeCleanupFailure(Exception existing, Exception additional) {
+        if (existing == null) {
+            return additional;
+        }
+        existing.addSuppressed(additional);
+        return existing;
+    }
+
+    private static void forceRemoveSandboxContainer(String containerName)
+            throws IOException, InterruptedException {
+        InterruptedException interruption = null;
+        IOException ioFailure = null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            Process cleanup = null;
+            try {
+                try {
+                    cleanup = new ProcessBuilder("docker", "rm", "--force", containerName)
+                            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                            .redirectError(ProcessBuilder.Redirect.DISCARD)
+                            .start();
+                    try {
+                        boolean exited = cleanup.waitFor(DOCKER_CLEANUP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                        if (!exited) {
+                            cleanup.destroyForcibly();
+                        }
+                    } catch (InterruptedException exception) {
+                        interruption = exception;
+                        cleanup.destroyForcibly();
+                    }
+                } catch (IOException exception) {
+                    ioFailure = exception;
+                }
+            } finally {
+                if (cleanup != null) {
+                    cleanup.destroyForcibly();
+                }
+            }
+            boolean present;
+            try {
+                present = isSandboxContainerPresent(containerName);
+            } catch (InterruptedException exception) {
+                interruption = exception;
+                continue;
+            } catch (IOException exception) {
+                ioFailure = exception;
+                continue;
+            }
+            if (!present) {
+                if (interruption != null) {
+                    if (ioFailure != null) {
+                        interruption.addSuppressed(ioFailure);
+                    }
+                    Thread.currentThread().interrupt();
+                    throw interruption;
+                }
+                return;
+            }
+        }
+        if (interruption != null) {
+            if (ioFailure != null) {
+                interruption.addSuppressed(ioFailure);
+            }
+            Thread.currentThread().interrupt();
+            throw interruption;
+        }
+        if (ioFailure != null) {
+            throw ioFailure;
+        }
+        throw new IOException("sandbox container still exists after bounded cleanup: " + containerName);
+    }
+
+    private static boolean isSandboxContainerPresent(String containerName)
+            throws IOException, InterruptedException {
+        Process inspect = null;
+        try {
+            inspect = new ProcessBuilder(
+                    "docker", "ps", "--all", "--quiet", "--filter", "name=" + containerName)
+                    .redirectErrorStream(true)
+                    .start();
+            if (!inspect.waitFor(DOCKER_CLEANUP_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                inspect.destroyForcibly();
+                throw new IOException("docker ps timed out while checking sandbox cleanup");
+            }
+            if (inspect.exitValue() != 0) {
+                throw new IOException("docker ps failed while checking sandbox cleanup");
+            }
+            return !new String(inspect.getInputStream().readAllBytes(), StandardCharsets.UTF_8)
+                    .trim()
+                    .isEmpty();
+        } finally {
+            if (inspect != null) {
+                inspect.destroyForcibly();
+            }
+        }
     }
 
     private static boolean isCommandAvailable(String... cmd) throws IOException, InterruptedException {
@@ -252,9 +432,14 @@ class SandboxForkE2EIT {
     }
 
     private Path locateSeccompProfile() {
-        Path cwd = Path.of(System.getProperty("user.dir"));
-        Path p = cwd.resolve("../docker/sandbox/seccomp-profile.json");
-        if (Files.exists(p)) return p.normalize();
-        return cwd.resolve("docker/sandbox/seccomp-profile.json").normalize();
+        Path configuredPath = Path.of("docker/sandbox/seccomp-profile.json");
+        Path cwd = Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
+        for (Path ancestor = cwd; ancestor != null; ancestor = ancestor.getParent()) {
+            Path candidate = ancestor.resolve(configuredPath);
+            if (Files.isRegularFile(candidate)) {
+                return candidate;
+            }
+        }
+        return cwd.resolve(configuredPath).normalize();
     }
 }

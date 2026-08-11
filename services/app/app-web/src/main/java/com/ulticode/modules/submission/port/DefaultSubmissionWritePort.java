@@ -121,13 +121,9 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                     generation, isShadow, uuidGenerator));
         }
 
-        try {
-            contestSubmissionPort.recordSubmissionIfNeeded(
-                    submission.getId(), userId, createDTO.getProblemId());
-        } catch (Exception e) {
-            log.warn("Failed to record contest submission for submission {}: {}",
-                    submission.getId(), e.getMessage());
-        }
+        contestSubmissionPort.recordSubmissionIfNeeded(
+                submission.getId(), userId, createDTO.getProblemId(),
+                createDTO.getContestId(), createDTO.getVirtualSessionId());
 
         if (portActive) {
             log.debug("Submit {} skipped legacy RQueue (port cutover active)", submission.getId());

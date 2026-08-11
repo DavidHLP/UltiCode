@@ -1,77 +1,107 @@
 package com.ulticode.modules.admin.policy.impl;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.command.ForumPostModerationCommand;
+import com.ulticode.app.api.dto.ForumPostModerationResultDTO;
+import com.ulticode.app.api.service.ForumPostAdministrationService;
 import com.ulticode.common.audit.AuditRecorder;
-import com.ulticode.app.api.service.ForumOwnerPort;
-import com.ulticode.app.api.service.ForumOwnerPort.FlagResult;
+import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.rpc.RpcResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import java.time.Clock;
-import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class ForumFlagPolicyImplTest {
 
     @Mock
-    private ForumOwnerPort forumOwnerPort;
+    private ForumPostAdministrationService forumPostAdministrationService;
 
     @Mock
     private AuditRecorder auditRecorder;
 
-    private Clock clock = Clock.system(ZoneId.of("UTC"));
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     private ForumFlagPolicyImpl policy;
 
     @BeforeEach
     void setUp() {
-        policy = new ForumFlagPolicyImpl(forumOwnerPort, auditRecorder, clock);
-        when(forumOwnerPort.flagPost(eq("p1"), any(), any())).thenReturn(new FlagResult("u1", false, ""));
-        when(forumOwnerPort.unflagPost(eq("p1"))).thenReturn(new FlagResult("u1", true, "spam"));
+        policy = new ForumFlagPolicyImpl(
+                forumPostAdministrationService, auditRecorder, currentUserProvider);
+        when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
     }
 
+    private void stubAdminMutation() {
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(true);
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(false);
+        when(forumPostAdministrationService.moderate(any())).thenAnswer(invocation -> {
+            ForumPostModerationCommand command = invocation.getArgument(0);
+            ForumPostModerationResultDTO result = command.action() == ForumPostModerationCommand.Action.FLAG
+                    ? new ForumPostModerationResultDTO("p1", command.action(), "u1", false, null)
+                    : new ForumPostModerationResultDTO("p1", command.action(), "u1", true, "spam");
+            return RpcResult.success(result, "trace-1");
+        });
+    }
+
+
     @Test
-    @DisplayName("flag delegates to ForumOwnerPort and writes audit with oldValues map")
+    @DisplayName("flag delegates through App contract and preserves nullable old audit values")
     void flag_writesAuditAndDelegates() {
+        stubAdminMutation();
         policy.flag("p1", "Spam");
 
-        verify(forumOwnerPort).flagPost(eq("p1"), eq("Spam"), any());
+        verify(forumPostAdministrationService).moderate(any(ForumPostModerationCommand.class));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("isFlagged", false);
+        oldValues.put("flaggedReason", null);
         verify(auditRecorder).recordForUser(
-            eq("FLAG_POST"),
-            eq("FORUM_POST"),
-            eq("p1"),
-            eq("u1"),
-            eq(Map.of("isFlagged", false, "flaggedReason", "")),
-            eq(Map.of("isFlagged", true, "flaggedReason", "Spam"))
-        );
+                org.mockito.ArgumentMatchers.eq("FLAG_POST"),
+                org.mockito.ArgumentMatchers.eq("FORUM_POST"),
+                org.mockito.ArgumentMatchers.eq("p1"),
+                org.mockito.ArgumentMatchers.eq("u1"),
+                org.mockito.ArgumentMatchers.eq(oldValues),
+                org.mockito.ArgumentMatchers.eq(Map.of("isFlagged", true, "flaggedReason", "Spam")));
     }
 
     @Test
-    @DisplayName("unflag delegates to ForumOwnerPort and writes audit with oldValues map")
+    @DisplayName("unflag delegates through App contract and writes audit")
     void unflag_clearsFieldsAndWritesAudit() {
+        stubAdminMutation();
         policy.unflag("p1");
 
-        verify(forumOwnerPort).unflagPost("p1");
+        verify(forumPostAdministrationService).moderate(any(ForumPostModerationCommand.class));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("isFlagged", true);
+        oldValues.put("flaggedReason", "spam");
         verify(auditRecorder).recordForUser(
-            eq("UNFLAG_POST"),
-            eq("FORUM_POST"),
-            eq("p1"),
-            eq("u1"),
-            eq(Map.of("isFlagged", true, "flaggedReason", "spam")),
-            eq(Map.of("isFlagged", false, "flaggedReason", ""))
-        );
+                org.mockito.ArgumentMatchers.eq("UNFLAG_POST"),
+                org.mockito.ArgumentMatchers.eq("FORUM_POST"),
+                org.mockito.ArgumentMatchers.eq("p1"),
+                org.mockito.ArgumentMatchers.eq("u1"),
+                org.mockito.ArgumentMatchers.eq(oldValues),
+                org.mockito.ArgumentMatchers.eq(Map.of("isFlagged", false, "flaggedReason", "")));
+    }
+
+    @Test
+    void flag_rejectsMissingAdminIdentity() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
+
+        assertThatThrownBy(() -> policy.flag("p1", "Spam"))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .extracting(error -> ((com.ulticode.common.exception.BusinessException) error).getErrorCode())
+                .isEqualTo(AdminErrorCode.UNAUTHORIZED);
     }
 }

@@ -22,7 +22,20 @@ import java.util.List;
 public interface RankingService {
 
     /**
-     * Get contest ranking with pagination.
+     * Get a public contest ranking with pagination.
+     *
+     * <p>Invisible or soft-deleted contests are reported as not found. Admin
+     * reads use {@link #getContestRanking(String, Integer, Integer)} instead.
+     *
+     * @param contestId the contest ID
+     * @param page      the page number (1-based)
+     * @param limit     the number of items per page
+     * @return paginated list of rankings
+     */
+    PageResult<ContestRankingVO> getPublicContestRanking(String contestId, Integer page, Integer limit);
+
+    /**
+     * Get contest ranking with pagination for an owner/admin read.
      *
      * @param contestId the contest ID
      * @param page      the page number (1-based)

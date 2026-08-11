@@ -42,8 +42,16 @@ public interface ForumOwnerPort {
      */
     String resolveAuthorId(String postId);
 
-    /** Soft-delete a forum post. */
+    /** Soft-delete a forum post without an actor (internal legacy path). */
     DeleteResult deletePost(String postId);
+
+    /**
+     * Soft-delete a forum post with the verified owner-side actor.
+     *
+     * <p>This overload is used by the command-based moderation boundary so
+     * the App owner persists deletion attribution.
+     */
+    DeleteResult deletePost(String postId, String deletedBy);
 
     // ─── Result records ───────────────────────────────────────────────────
 

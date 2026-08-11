@@ -76,6 +76,13 @@ management:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
       timeout: 5s
 
+security:
+  internal-delegation:
+    # Prefer a dedicated secret in production; JWT_SECRET is a compatibility fallback.
+    secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
+    issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-app}
+
 dubbo:
   application:
     name: ${DUBBO_APPLICATION_NAME:backend-app}

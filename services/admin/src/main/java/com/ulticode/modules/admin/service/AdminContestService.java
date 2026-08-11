@@ -22,5 +22,14 @@ public interface AdminContestService {
 
     List<ContestAnnouncementDTO> getAnnouncements(String contestId);
 
-    List<ContestRankingEntryDTO> getRankings(String contestId);
+    /**
+     * Read a page of the contest's live ranking with the full ranked total.
+     *
+     * @param contestId contest id or slug
+     * @param page      1-based page number
+     * @param limit     page size
+     * @return paginated ranking entries, or throws NOT_FOUND when the
+     *         contest does not exist
+     */
+    PageResult<ContestRankingEntryDTO> getRankings(String contestId, int page, int limit);
 }

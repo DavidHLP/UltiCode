@@ -7,6 +7,7 @@ import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.entity.enums.RatingTitle;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.mapper.ContestRatingCalculationMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,7 @@ class RatingCalculationServiceImplTest {
     @Mock private ContestParticipantMapper participantMapper;
     @Mock private GlobalRankingMapper globalRankingMapper;
     @Mock private ContestMapper contestMapper;
+    @Mock private ContestRatingCalculationMapper ratingCalculationMapper;
 
     private RatingCalculationServiceImpl service;
 
@@ -57,7 +59,10 @@ class RatingCalculationServiceImplTest {
         c.setId(CONTEST_ID);
         c.setIsRated(true);
         when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
-        service = new RatingCalculationServiceImpl(participantMapper, globalRankingMapper, contestMapper);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(c);
+        when(ratingCalculationMapper.insertIfAbsent(anyString(), eq(CONTEST_ID))).thenReturn(1);
+        service = new RatingCalculationServiceImpl(
+                participantMapper, globalRankingMapper, contestMapper, ratingCalculationMapper);
     }
 
     /** P1-5: participant list is pre-fetched once via findByUserIds, not N findByUserId. */
@@ -73,7 +78,7 @@ class RatingCalculationServiceImplTest {
         GlobalRanking aliceGr = rating("u-1", 1500);
         GlobalRanking bobGr = rating("u-2", 1500);
         GlobalRanking carolGr = rating("u-3", 1500);
-        when(globalRankingMapper.findByUserIds(new java.util.ArrayList<>(List.of("u-1", "u-2", "u-3"))))
+        when(globalRankingMapper.findByUserIdsForUpdate(new java.util.ArrayList<>(List.of("u-1", "u-2", "u-3"))))
                 .thenReturn(new java.util.ArrayList<>(List.of(aliceGr, bobGr, carolGr)));
         when(globalRankingMapper.findByUserId("u-1")).thenReturn(Optional.of(aliceGr));
         when(globalRankingMapper.findByUserId("u-2")).thenReturn(Optional.of(bobGr));
@@ -82,7 +87,7 @@ class RatingCalculationServiceImplTest {
         service.calculateAndUpdate(CONTEST_ID);
 
         // P1-5: one preload call, NOT N=3 per-opponent single-row queries.
-        verify(globalRankingMapper, times(1)).findByUserIds(new java.util.ArrayList<>(List.of("u-1", "u-2", "u-3")));
+        verify(globalRankingMapper, times(1)).findByUserIdsForUpdate(new java.util.ArrayList<>(List.of("u-1", "u-2", "u-3")));
     }
 
     /** R3.2 / P1-4: virtual participants are filtered out of the rating calculation
@@ -97,7 +102,7 @@ class RatingCalculationServiceImplTest {
         // happens in SQL now; the test exercises the post-filter path.
         when(participantMapper.findRealParticipantsByContestId(CONTEST_ID))
                 .thenReturn(new java.util.ArrayList<>(List.of(real)));
-        when(globalRankingMapper.findByUserIds(new java.util.ArrayList<>(List.of("u-1"))))
+        when(globalRankingMapper.findByUserIdsForUpdate(new java.util.ArrayList<>(List.of("u-1"))))
                 .thenReturn(new java.util.ArrayList<>(List.of(rating("u-1", 1500))));
         when(globalRankingMapper.findByUserId("u-1")).thenReturn(Optional.of(rating("u-1", 1500)));
 
@@ -126,7 +131,7 @@ class RatingCalculationServiceImplTest {
 
         GlobalRanking aliceGr = rating("u-1", 1500);
         GlobalRanking bobGr = rating("u-2", 1500);
-        when(globalRankingMapper.findByUserIds(new java.util.ArrayList<>(List.of("u-1", "u-2"))))
+        when(globalRankingMapper.findByUserIdsForUpdate(new java.util.ArrayList<>(List.of("u-1", "u-2"))))
                 .thenReturn(new java.util.ArrayList<>(List.of(aliceGr, bobGr)));
         when(globalRankingMapper.findByUserId("u-1")).thenReturn(Optional.of(aliceGr));
         when(globalRankingMapper.findByUserId("u-2")).thenReturn(Optional.of(bobGr));
@@ -149,24 +154,63 @@ class RatingCalculationServiceImplTest {
 
         service.calculateAndUpdate(CONTEST_ID);
 
-        verify(globalRankingMapper, never()).findByUserIds(any());
+        verify(globalRankingMapper, never()).findByUserIdsForUpdate(any());
         verify(globalRankingMapper, never()).updateRating(anyString(), anyInt(), anyString(), anyString());
         verify(globalRankingMapper, never()).recalculateGlobalRanks();
     }
 
-    /** R6.1 / F-03: contest.isRated=false short-circuits before any DB write. */
     @Test
-    @DisplayName("R6.1 / F-03: isRated=false skips rating update entirely")
-    void calculateAndUpdate_isRatedFalse_skipsUpdate() {
-        Contest c = new Contest();
-        c.setId(CONTEST_ID);
-        c.setIsRated(false);
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+    @DisplayName("Successful rating receipt makes a later retry skip all writes")
+    void calculateAndUpdate_successThenRetry_isAppliedOnlyOnce() {
+        ContestParticipant alice = participant("alice", "u-1", 100, 0);
+        GlobalRanking aliceGr = rating("u-1", 1500);
+        when(participantMapper.findRealParticipantsByContestId(CONTEST_ID))
+                .thenReturn(new java.util.ArrayList<>(List.of(alice)));
+        when(ratingCalculationMapper.insertIfAbsent(anyString(), eq(CONTEST_ID))).thenReturn(1, 0);
+        when(globalRankingMapper.findByUserIdsForUpdate(List.of("u-1")))
+                .thenReturn(List.of(aliceGr));
+        when(globalRankingMapper.findByUserId("u-1")).thenReturn(Optional.of(aliceGr));
+
+        service.calculateAndUpdate(CONTEST_ID);
+        service.calculateAndUpdate(CONTEST_ID);
+
+        verify(participantMapper, times(1)).updateById(alice);
+        verify(globalRankingMapper, times(1))
+                .updateRating(eq("u-1"), anyInt(), anyString(), eq(CONTEST_ID));
+        verify(globalRankingMapper, times(1)).recalculateGlobalRanks();
+    }
+
+    @Test
+    @DisplayName("Duplicate rating receipt makes a retry a no-op")
+    void calculateAndUpdate_duplicateReceipt_skipsWrites() {
+        ContestParticipant alice = participant("alice", "u-1", 100, 0);
+        when(participantMapper.findRealParticipantsByContestId(CONTEST_ID))
+                .thenReturn(new java.util.ArrayList<>(List.of(alice)));
+        when(ratingCalculationMapper.insertIfAbsent(anyString(), eq(CONTEST_ID))).thenReturn(0);
 
         service.calculateAndUpdate(CONTEST_ID);
 
-        verify(participantMapper, never()).findRealParticipantsByContestId(anyString());
-        verify(globalRankingMapper, never()).findByUserIds(any());
+        verify(globalRankingMapper, never()).findByUserIdsForUpdate(any());
+        verify(globalRankingMapper, never()).updateRating(anyString(), anyInt(), anyString(), anyString());
+    }
+
+    /** R6.1 / F-03: isRated=false still assigns final ranks without Elo writes. */
+    @Test
+    @DisplayName("R6.1 / F-03: isRated=false persists final rank but skips rating update")
+    void calculateAndUpdate_isRatedFalse_persistsFinalRankWithoutRating() {
+        Contest c = new Contest();
+        c.setId(CONTEST_ID);
+        c.setIsRated(false);
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(c);
+        ContestParticipant participant = participant("alice", "u-1", 100, 0);
+        when(participantMapper.findRealParticipantsByContestId(CONTEST_ID))
+                .thenReturn(new java.util.ArrayList<>(List.of(participant)));
+
+        service.calculateAndUpdate(CONTEST_ID);
+
+        assertThat(participant.getFinalRank()).isEqualTo(1);
+        verify(ratingCalculationMapper).insertIfAbsent(anyString(), eq(CONTEST_ID));
+        verify(participantMapper).updateById(participant);
         verify(globalRankingMapper, never()).updateRating(anyString(), anyInt(), anyString(), anyString());
         verify(globalRankingMapper, never()).recalculateGlobalRanks();
     }

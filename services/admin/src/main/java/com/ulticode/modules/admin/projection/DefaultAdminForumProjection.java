@@ -1,49 +1,40 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.dto.AdminForumCommunityDTO;
+import com.ulticode.app.api.dto.AdminForumCommunityPage;
+import com.ulticode.app.api.dto.AdminForumPostPage;
+import com.ulticode.app.api.dto.AdminForumPostQuery;
+import com.ulticode.app.api.dto.AdminForumPostRowDTO;
+import com.ulticode.app.api.service.AdminForumReadPort;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminForumCommunityVO;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
-import com.ulticode.modules.forum.entity.ForumCommunity;
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumCommentMapper;
-import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
  * Default (and only) adapter for {@link AdminForumProjection}. Owns every
- * entity-to-VO projection rule and read-side aggregation for the admin forum
+ * row-to-VO projection rule and read-side aggregation for the admin forum
  * surface &mdash; see the interface javadoc for why this is a deep module.
  *
  * <p>All methods are pure reads; none mutate post or community state.
- * Batch-loads cross-module enrichment (user + community + comment count +
- * upvote / downvote counts) to keep the paginated list read N+1-safe.
- *
- * <p>Cross-module entity imports ({@link AdminUserSummary}, {@link ForumCommunity},
- * {@link ForumCommentMapper}, {@link EdgeOperationMapper}) live here and only
- * here &mdash; the admin forum service no longer imports them after the
- * ADR-0011 Stage 2 extraction.
+ * Underlying data comes from the App-owned {@link AdminForumReadPort}
+ * (Dubbo), which returns flat typed rows with comment counts, community
+ * name/slug and vote counts already composed; this projection merges the
+ * author profile via {@link AdminUserEnricher} and shapes the
+ * {@code AdminForumPostVO} / {@code AdminForumCommunityVO} HTTP views.
+ * No forum entity or mapper is imported.
  *
  * @author ulticode
  */
@@ -52,129 +43,43 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultAdminForumProjection implements AdminForumProjection {
 
-    private final ForumPostMapper forumPostMapper;
-    private final ForumCommentMapper forumCommentMapper;
-    private final ForumCommunityMapper forumCommunityMapper;
-    private final EdgeOperationMapper edgeOperationMapper;
+    private final AdminForumReadPort adminForumReadPort;
     private final AdminUserEnricher userEnricher;
+
     // ------------------------------------------------------------------
-    // Paginated post list read (query build + batch enrichment)
+    // Paginated post list read (query build + batch author enrichment)
     // ------------------------------------------------------------------
 
     @Override
     public PageResult<AdminForumPostVO> getPosts(AdminForumPostQueryDTO query) {
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
-        LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<>();
+        AdminForumPostQuery portQuery = new AdminForumPostQuery(
+                query.getSearch(),
+                query.getCommunityId(),
+                query.getAuthorId(),
+                query.getIsFlagged(),
+                query.getIsPinned(),
+                query.getIsLocked(),
+                query.getIsDeleted(),
+                query.getSortBy(),
+                query.getSortOrder(),
+                pageRequest.page(),
+                pageRequest.pageSize());
 
-        // Search filter (title or excerpt)
-        if (StringUtils.hasText(query.getSearch())) {
-            wrapper.and(w -> w
-                    .like(ForumPost::getTitle, "%" + query.getSearch() + "%")
-                    .or()
-                    .like(ForumPost::getExcerpt, "%" + query.getSearch() + "%"));
-        }
+        AdminForumPostPage page = adminForumReadPort.listPosts(portQuery);
 
-        // Community ID filter
-        if (StringUtils.hasText(query.getCommunityId())) {
-            wrapper.eq(ForumPost::getCommunityId, query.getCommunityId());
-        }
-
-        // Author ID filter
-        if (StringUtils.hasText(query.getAuthorId())) {
-            wrapper.eq(ForumPost::getUserId, query.getAuthorId());
-        }
-
-        // Flagged status filter
-        if (query.getIsFlagged() != null) {
-            wrapper.eq(ForumPost::getIsFlagged, query.getIsFlagged());
-        }
-
-        // Pinned status filter
-        if (query.getIsPinned() != null) {
-            wrapper.eq(ForumPost::getIsPinned, query.getIsPinned());
-        }
-
-        // Locked status filter
-        if (query.getIsLocked() != null) {
-            wrapper.eq(ForumPost::getIsLocked, query.getIsLocked());
-        }
-
-        // Deleted status filter
-        if (query.getIsDeleted() != null) {
-            wrapper.eq(ForumPost::getIsDeleted, query.getIsDeleted());
-        }
-
-        // Sorting
-        boolean isAsc = !"desc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        switch (sortBy) {
-            case "createdAt" -> wrapper.orderBy(true, isAsc, ForumPost::getCreatedAt);
-            case "viewCount" -> wrapper.orderBy(true, isAsc, ForumPost::getViews);
-            case "commentCount" -> wrapper.orderBy(true, isAsc, ForumPost::getCreatedAt);
-            default -> wrapper.orderBy(true, isAsc, ForumPost::getCreatedAt);
-        }
-
-        Page<ForumPost> pageResult = new Page<>(pageRequest.page(), pageRequest.pageSize());
-        Page<ForumPost> result = forumPostMapper.selectPage(pageResult, wrapper);
-
-        // Batch-load related data to avoid N+1 queries
-        List<String> postIds = result.getRecords().stream()
-                .map(ForumPost::getId)
-                .toList();
-        Set<String> userIds = result.getRecords().stream()
-                .map(ForumPost::getUserId)
+        Set<String> userIds = page.rows().stream()
+                .map(AdminForumPostRowDTO::getUserId)
                 .collect(Collectors.toSet());
-        Set<String> communityIds = result.getRecords().stream()
-                .map(ForumPost::getCommunityId)
-                .collect(Collectors.toSet());
-
-        Map<String, Long> commentCountMap = new HashMap<>();
-        Map<String, Integer> upvoteMap = new HashMap<>();
-        Map<String, Integer> downvoteMap = new HashMap<>();
-        if (!postIds.isEmpty()) {
-            forumCommentMapper.countByPostIds(postIds).forEach(row ->
-                    commentCountMap.put((String) row.get("post_id"), ((Number) row.get("cnt")).longValue()));
-            edgeOperationMapper.countByTargetsAndOperation(postIds,
-                            EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_UP.name())
-                    .forEach(row -> upvoteMap.put((String) row.get("target_id"), ((Number) row.get("cnt")).intValue()));
-            edgeOperationMapper.countByTargetsAndOperation(postIds,
-                            EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_DOWN.name())
-                    .forEach(row -> downvoteMap.put((String) row.get("target_id"), ((Number) row.get("cnt")).intValue()));
-        }
-
         Map<String, AdminUserSummary> userMap = userIds.isEmpty()
                 ? Collections.emptyMap()
                 : userEnricher.enrich(userIds);
 
-        Map<String, ForumCommunity> communityMap = new HashMap<>();
-        if (!communityIds.isEmpty()) {
-            communityMap = forumCommunityMapper.selectBatchIds(communityIds).stream()
-                    .collect(Collectors.toMap(ForumCommunity::getId, c -> c));
-        }
-
-        // Enrich with batch-loaded data
-        Map<String, AdminUserSummary> finalUserMap = userMap;
-        Map<String, ForumCommunity> finalCommunityMap = communityMap;
-        List<AdminForumPostVO> vos = result.getRecords().stream()
-                .map(p -> toAdminVO(p, commentCountMap, upvoteMap, downvoteMap, finalUserMap, finalCommunityMap))
+        List<AdminForumPostVO> vos = page.rows().stream()
+                .map(row -> toAdminVO(row, userMap.get(row.getUserId())))
                 .collect(Collectors.toList());
-
-        // Sort by commentCount if requested (count derived post-fetch)
-        if ("commentCount".equals(sortBy)) {
-            final boolean asc = isAsc;
-            vos.sort((a, b) -> {
-                int countA = a.getCommentCount() != null ? a.getCommentCount() : 0;
-                int countB = b.getCommentCount() != null ? b.getCommentCount() : 0;
-                return asc ? Integer.compare(countA, countB) : Integer.compare(countB, countA);
-            });
-        }
-
-        return PageResult.of(
-                vos,
-                result.getTotal(),
-                pageRequest
-        );
+        return PageResult.of(vos, page.total(), pageRequest);
     }
 
     // ------------------------------------------------------------------
@@ -183,11 +88,12 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
 
     @Override
     public AdminForumPostVO getPost(String id) {
-        ForumPost post = forumPostMapper.selectById(id);
-        if (post == null) {
+        AdminForumPostRowDTO row = adminForumReadPort.getPost(id);
+        if (row == null) {
             throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
-        return toAdminVOWithDetails(post);
+        AdminUserSummary user = userEnricher.enrichOne(row.getUserId());
+        return toAdminVO(row, user);
     }
 
     // ------------------------------------------------------------------
@@ -198,139 +104,72 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
     public PageResult<AdminForumCommunityVO> getCommunities(int page, int limit, String search) {
         PaginationRequest communitiesRequest = PaginationRequest.of(page, limit);
 
-        LambdaQueryWrapper<ForumCommunity> wrapper = new LambdaQueryWrapper<ForumCommunity>()
-                .orderByDesc(ForumCommunity::getMembers);
+        AdminForumCommunityPage result = adminForumReadPort.listCommunities(
+                communitiesRequest.page(), communitiesRequest.pageSize(), search);
 
-        if (StringUtils.hasText(search)) {
-            String like = "%" + search.trim() + "%";
-            wrapper.and(w -> w
-                    .like(ForumCommunity::getName, like)
-                    .or()
-                    .like(ForumCommunity::getSlug, like)
-                    .or()
-                    .like(ForumCommunity::getDescription, like));
-        }
-
-        Page<ForumCommunity> pageResult = new Page<>(communitiesRequest.page(), communitiesRequest.pageSize());
-        Page<ForumCommunity> result = forumCommunityMapper.selectPage(pageResult, wrapper);
-
-        List<AdminForumCommunityVO> voList = result.getRecords().stream()
+        List<AdminForumCommunityVO> voList = result.rows().stream()
                 .map(this::toCommunityVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.getTotal(), communitiesRequest);
+        return PageResult.of(voList, result.total(), communitiesRequest);
     }
 
     // ------------------------------------------------------------------
-    // Projection helpers (entity &rarr; AdminForumPostVO)
+    // Projection helpers (row &rarr; AdminForumPostVO / AdminForumCommunityVO)
     // ------------------------------------------------------------------
 
     /**
-     * Convert a ForumPost entity to a list-view AdminForumPostVO using
-     * pre-loaded batch maps (avoids N+1 on the paginated read path).
+     * Convert an App-owned forum post row to an AdminForumPostVO, merging
+     * the author profile loaded via {@link AdminUserEnricher}.
      */
-    private AdminForumPostVO toAdminVO(ForumPost post, Map<String, Long> commentCountMap,
-                                        Map<String, Integer> upvoteMap, Map<String, Integer> downvoteMap,
-                                        Map<String, AdminUserSummary> userMap, Map<String, ForumCommunity> communityMap) {
-        if (post == null) {
+    private AdminForumPostVO toAdminVO(AdminForumPostRowDTO row, AdminUserSummary user) {
+        if (row == null) {
             return null;
         }
 
         AdminForumPostVO vo = new AdminForumPostVO();
-        vo.setId(post.getId());
-        vo.setTitle(post.getTitle());
-        vo.setExcerpt(post.getExcerpt());
-        vo.setUserId(post.getUserId());
-        vo.setCommunityId(post.getCommunityId());
-        vo.setViewCount(post.getViews() != null ? post.getViews() : 0);
-        vo.setCommentCount(commentCountMap.getOrDefault(post.getId(), 0L).intValue());
-        vo.setUpvotes(upvoteMap.getOrDefault(post.getId(), 0));
-        vo.setDownvotes(downvoteMap.getOrDefault(post.getId(), 0));
-        vo.setIsPinned(post.getIsPinned() != null ? post.getIsPinned() : false);
-        vo.setIsLocked(post.getIsLocked() != null ? post.getIsLocked() : false);
-        vo.setIsFlagged(post.getIsFlagged() != null ? post.getIsFlagged() : false);
-        vo.setFlaggedReason(post.getFlaggedReason());
-        vo.setFlaggedAt(post.getFlaggedAt());
-        vo.setIsDeleted(post.getIsDeleted() != null ? post.getIsDeleted() : false);
-        vo.setDeletedAt(post.getDeletedAt());
-        vo.setCreatedAt(post.getCreatedAt());
-        vo.setUpdatedAt(post.getCreatedAt());
+        vo.setId(row.getId());
+        vo.setTitle(row.getTitle());
+        vo.setExcerpt(row.getExcerpt());
+        vo.setContent(row.getContent());
+        vo.setUserId(row.getUserId());
+        vo.setCommunityId(row.getCommunityId());
+        vo.setCommunityName(row.getCommunityName());
+        vo.setCommunitySlug(row.getCommunitySlug());
+        vo.setViewCount(row.getViews() != null ? row.getViews() : 0);
+        vo.setCommentCount(row.getCommentCount() != null ? row.getCommentCount() : 0);
+        vo.setUpvotes(row.getUpvotes() != null ? row.getUpvotes() : 0);
+        vo.setDownvotes(row.getDownvotes() != null ? row.getDownvotes() : 0);
+        vo.setIsPinned(row.getIsPinned() != null ? row.getIsPinned() : false);
+        vo.setIsLocked(row.getIsLocked() != null ? row.getIsLocked() : false);
+        vo.setIsFlagged(row.getIsFlagged() != null ? row.getIsFlagged() : false);
+        vo.setFlaggedReason(row.getFlaggedReason());
+        vo.setFlaggedAt(row.getFlaggedAt());
+        vo.setIsDeleted(row.getIsDeleted() != null ? row.getIsDeleted() : false);
+        vo.setDeletedAt(row.getDeletedAt());
+        vo.setCreatedAt(row.getCreatedAt());
+        vo.setUpdatedAt(row.getUpdatedAt() != null ? row.getUpdatedAt() : row.getCreatedAt());
 
-        AdminUserSummary user = userMap.get(post.getUserId());
         if (user != null) {
             vo.setUsername(user.username());
             vo.setAvatar(user.avatar());
-        }
-
-        ForumCommunity community = communityMap.get(post.getCommunityId());
-        if (community != null) {
-            vo.setCommunityName(community.getName());
-            vo.setCommunitySlug(community.getSlug());
         }
 
         return vo;
     }
 
     /**
-     * Convert a ForumPost entity to a detail-view AdminForumPostVO (single
-     * fetch path — enriches user + community + counts inline since the
-     * volume is 1).
+     * Convert an App-owned community row to an AdminForumCommunityVO for
+     * the filter dropdown.
      */
-    private AdminForumPostVO toAdminVOWithDetails(ForumPost post) {
-        if (post == null) {
-            return null;
-        }
-
-        AdminForumPostVO vo = new AdminForumPostVO();
-        vo.setId(post.getId());
-        vo.setTitle(post.getTitle());
-        vo.setExcerpt(post.getExcerpt());
-        vo.setContent(post.getExcerpt());
-        vo.setUserId(post.getUserId());
-        vo.setCommunityId(post.getCommunityId());
-        vo.setViewCount(post.getViews() != null ? post.getViews() : 0);
-        vo.setCommentCount((int) forumCommentMapper.countByPostId(post.getId()));
-        vo.setUpvotes(edgeOperationMapper.countByTargetAndOperation(
-                post.getId(), EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_UP.name()));
-        vo.setDownvotes(edgeOperationMapper.countByTargetAndOperation(
-                post.getId(), EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_DOWN.name()));
-        vo.setIsPinned(post.getIsPinned() != null ? post.getIsPinned() : false);
-        vo.setIsLocked(post.getIsLocked() != null ? post.getIsLocked() : false);
-        vo.setIsFlagged(post.getIsFlagged() != null ? post.getIsFlagged() : false);
-        vo.setFlaggedReason(post.getFlaggedReason());
-        vo.setFlaggedAt(post.getFlaggedAt());
-        vo.setIsDeleted(post.getIsDeleted() != null ? post.getIsDeleted() : false);
-        vo.setDeletedAt(post.getDeletedAt());
-        vo.setCreatedAt(post.getCreatedAt());
-        vo.setUpdatedAt(post.getCreatedAt());
-
-        AdminUserSummary user = userEnricher.enrichOne(post.getUserId());
-        if (user != null) {
-            vo.setUsername(user.username());
-            vo.setAvatar(user.avatar());
-        }
-
-        ForumCommunity community = forumCommunityMapper.selectById(post.getCommunityId());
-        if (community != null) {
-            vo.setCommunityName(community.getName());
-            vo.setCommunitySlug(community.getSlug());
-        }
-
-        return vo;
-    }
-
-    /**
-     * Convert a ForumCommunity entity to an AdminForumCommunityVO for the
-     * filter dropdown.
-     */
-    private AdminForumCommunityVO toCommunityVO(ForumCommunity community) {
+    private AdminForumCommunityVO toCommunityVO(AdminForumCommunityDTO community) {
         AdminForumCommunityVO vo = new AdminForumCommunityVO();
-        vo.setId(community.getId());
-        vo.setName(community.getName());
-        vo.setSlug(community.getSlug());
-        vo.setDescription(community.getDescription());
-        vo.setPostCount(community.getPostsCount() != null ? community.getPostsCount() : 0);
-        vo.setMemberCount(community.getMembers() != null ? community.getMembers() : 0);
+        vo.setId(community.id());
+        vo.setName(community.name());
+        vo.setSlug(community.slug());
+        vo.setDescription(community.description());
+        vo.setPostCount(community.postCount() != null ? community.postCount() : 0);
+        vo.setMemberCount(community.memberCount() != null ? community.memberCount() : 0);
         return vo;
     }
 }

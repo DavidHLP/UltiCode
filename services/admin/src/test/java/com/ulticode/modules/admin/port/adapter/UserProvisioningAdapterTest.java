@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.port.adapter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.ulticode.auth.api.command.CreateAccountCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
@@ -14,6 +15,7 @@ import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.port.UserProvisioningPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -118,7 +120,12 @@ class UserProvisioningAdapterTest {
         adapter.createAdministrator(new UserProvisioningPort.AdministratorSpec(
                 "newadmin", "New Admin", "new@example.com", "secret123", "ADMIN"));
 
-        verify(accountManagementService).createAccount(any());
+        ArgumentCaptor<CreateAccountCommand> captor = ArgumentCaptor.forClass(CreateAccountCommand.class);
+        verify(accountManagementService).createAccount(captor.capture());
+        CreateAccountCommand command = captor.getValue();
+        assertThat(command.trace()).isNotNull();
+        assertThat(command.trace().traceId()).isNotBlank();
+        assertThat(command.actor().actorId()).isEqualTo("bootstrap");
     }
 
     @Test

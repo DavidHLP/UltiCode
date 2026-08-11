@@ -148,7 +148,7 @@ public interface ForumCommentMapper extends BaseMapper<ForumComment> {
     @Update("UPDATE forum_comments SET is_flagged = 0, flagged_reason = NULL, flagged_at = NULL WHERE id = #{commentId}")
     int unflagComment(@Param("commentId") String commentId);
 
-    @Update("UPDATE forum_comments SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
+    @Update("UPDATE forum_comments SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id} AND is_deleted = 0")
     int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
 
     /**
@@ -158,7 +158,7 @@ public interface ForumCommentMapper extends BaseMapper<ForumComment> {
      * @param deletedBy the user ID who deleted the comment
      * @return number of rows affected
      */
-    @Update("UPDATE forum_comments SET is_deleted = 1, deleted_at = NOW(), deleted_by = #{deletedBy} WHERE id = #{commentId}")
+    @Update("UPDATE forum_comments SET is_deleted = 1, deleted_at = NOW(), deleted_by = #{deletedBy} WHERE id = #{commentId} AND is_deleted = 0")
     int softDelete(@Param("commentId") String commentId, @Param("deletedBy") String deletedBy);
 
     /**

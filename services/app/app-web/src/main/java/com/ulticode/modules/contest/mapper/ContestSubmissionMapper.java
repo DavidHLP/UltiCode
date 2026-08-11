@@ -27,7 +27,9 @@ public interface ContestSubmissionMapper extends BaseMapper<ContestSubmission> {
     @Select("SELECT COUNT(*) FROM contest_submissions WHERE contest_id = #{contestId}")
     long countByContestId(@Param("contestId") String contestId);
 
-    @Select("SELECT COUNT(*) FROM contest_submissions")
+    @Select("SELECT COUNT(*) FROM contest_submissions cs "
+            + "JOIN contests c ON c.id = cs.contest_id "
+            + "WHERE c.is_visible = 1 AND c.is_deleted = 0")
     long countTotal();
 
     @Select("""
@@ -47,12 +49,21 @@ public interface ContestSubmissionMapper extends BaseMapper<ContestSubmission> {
 
     /**
      * Reverse-lookup the contest_submission row for a given {@code submissions.id}.
-     * Used by the P0-1 scoring listener to apply the verdict after judge commit.
+     * Used by the durable contest consumer to apply the verdict after judge commit.
      *
      * @return Optional.empty() if the submission is not part of any contest
      */
     @Select("SELECT * FROM contest_submissions WHERE submission_id = #{submissionId} LIMIT 1")
     Optional<ContestSubmission> findBySubmissionId(@Param("submissionId") String submissionId);
+
+    /**
+     * Locate and lock the contest submission before applying a judge receipt.
+     * The submission row serializes replays and different judge generations.
+     */
+    @Select("SELECT * FROM contest_submissions WHERE submission_id = #{submissionId} "
+            + "ORDER BY submitted_at DESC LIMIT 1 FOR UPDATE")
+    Optional<ContestSubmission> findBySubmissionIdForUpdate(
+            @Param("submissionId") String submissionId);
 
     /**
      * Update the {@code is_accepted} flag of a contest_submission row. Idempotent.

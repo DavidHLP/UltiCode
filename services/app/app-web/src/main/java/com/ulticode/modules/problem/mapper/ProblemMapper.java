@@ -178,4 +178,30 @@ public interface ProblemMapper extends BaseMapper<Problem> {
      */
     @Update("UPDATE problems SET difficulty = #{difficulty} WHERE id = #{id} AND difficulty <> #{difficulty}")
     int updateDifficulty(@Param("id") Long id, @Param("difficulty") String difficulty);
+
+    /**
+     * Update the owner-owned administrative fields behind an optimistic-lock
+     * fence. The version increment is part of the same SQL statement so a
+     * competing write cannot pass the read fence and still trigger callers'
+     * post-write side effects.
+     */
+    @Update("UPDATE problems SET slug = #{problem.slug}, title = #{problem.title}, " +
+            "difficulty = #{problem.difficulty}, is_premium = #{problem.isPremium}, " +
+            "has_solution = #{problem.hasSolution}, is_published = #{problem.isPublished}, " +
+            "published_at = #{problem.publishedAt}, published_by = #{problem.publishedBy}, " +
+            "version = version + 1, updated_at = NOW() " +
+            "WHERE id = #{problem.id} AND version = #{expectedVersion} AND is_deleted = false")
+    int updateByIdWithExpectedVersion(@Param("problem") Problem problem,
+                                      @Param("expectedVersion") Long expectedVersion);
+
+    /**
+     * Soft-delete a problem behind an optimistic-lock fence. The version
+     * increment and delete marker are atomic and the affected-row count is
+     * the concurrency result consumed by the domain service.
+     */
+    @Update("UPDATE problems SET is_deleted = true, deleted_at = NOW(), " +
+            "version = version + 1, updated_at = NOW() " +
+            "WHERE id = #{id} AND version = #{expectedVersion} AND is_deleted = false")
+    int deleteByIdWithExpectedVersion(@Param("id") Long id,
+                                      @Param("expectedVersion") Long expectedVersion);
 }

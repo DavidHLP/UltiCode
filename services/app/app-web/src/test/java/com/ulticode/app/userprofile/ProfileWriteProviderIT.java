@@ -28,6 +28,7 @@ import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ProfileWriteService;
+import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
 import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
@@ -112,9 +113,17 @@ class ProfileWriteProviderIT {
     @Autowired
     private UserProfileMapper userProfileMapper;
 
+    @Autowired
+    private AppCommandReceiptMapper receiptMapper;
+
     private static ActorDelegation testActor() {
         String uuid = UUID.randomUUID().toString();
         return new ActorDelegation("USER", uuid, uuid, "test");
+    }
+
+    private static ActorDelegation testActor(String actorType) {
+        String uuid = UUID.randomUUID().toString();
+        return new ActorDelegation(actorType, uuid, uuid, "test");
     }
 
     private static UpdateProfileCommand command(String accountId, String name, String bio) {
@@ -337,5 +346,53 @@ class ProfileWriteProviderIT {
         RpcResult<ProfileWriteResult> result2 = profileWriteService.uploadAvatar(cmd);
         assertThat(result2.success()).isTrue();
         assertThat(result2.data().avatar()).isEqualTo(avatarUrl);
+    }
+
+    @Test
+    @DisplayName("idempotency receipts preserve delegated actor identity")
+    void receiptsPreserveDelegatedActorIdentity() {
+        for (String actorType : new String[]{"ADMIN", "MODERATOR", "SERVICE"}) {
+            String accountId = UUID.randomUUID().toString();
+            ActorDelegation actor = testActor(actorType);
+            String updateKey = "profile-actor-" + actorType + "-" + UUID.randomUUID();
+            UpdateProfileCommand update = new UpdateProfileCommand(
+                    UUID.randomUUID().toString(),
+                    new IdMetadata(updateKey, null, null),
+                    actor,
+                    TraceMetadata.EMPTY,
+                    accountId,
+                    "Delegated",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+
+            assertThat(profileWriteService.updateProfile(update).success()).isTrue();
+            AppCommandReceiptEntity profileReceipt = receiptMapper.findByReceiptKey(
+                    "ProfileWriteService", "updateProfile", updateKey);
+            assertThat(profileReceipt).isNotNull();
+            assertThat(profileReceipt.getActorType()).isEqualTo(actorType);
+            assertThat(profileReceipt.getActorId()).isEqualTo(actor.actorId());
+
+            String avatarKey = "avatar-actor-" + actorType + "-" + UUID.randomUUID();
+            UploadAvatarCommand avatar = new UploadAvatarCommand(
+                    UUID.randomUUID().toString(),
+                    new IdMetadata(avatarKey, null, null),
+                    actor,
+                    TraceMetadata.EMPTY,
+                    accountId,
+                    "/avatars/" + actorType.toLowerCase() + ".png");
+
+            assertThat(profileWriteService.uploadAvatar(avatar).success()).isTrue();
+            AppCommandReceiptEntity avatarReceipt = receiptMapper.findByReceiptKey(
+                    "ProfileWriteService", "uploadAvatar", avatarKey);
+            assertThat(avatarReceipt).isNotNull();
+            assertThat(avatarReceipt.getActorType()).isEqualTo(actorType);
+            assertThat(avatarReceipt.getActorId()).isEqualTo(actor.actorId());
+        }
     }
 }

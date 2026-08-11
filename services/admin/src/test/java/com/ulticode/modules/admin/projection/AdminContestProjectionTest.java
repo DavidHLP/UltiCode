@@ -102,6 +102,7 @@ class AdminContestProjectionTest {
             assertThat(vo.getEndTime()).isEqualTo(end);
             assertThat(vo.getDurationMinutes()).isEqualTo(180);
             assertThat(vo.getIsVisible()).isTrue();
+            assertThat(vo.getParticipantCount()).isEqualTo(42);
             assertThat(vo.getCreatedAt()).isEqualTo(created);
             assertThat(vo.getUpdatedAt()).isEqualTo(updated);
             assertThat(vo.getProblemCount()).isEqualTo(7);
@@ -152,7 +153,7 @@ class AdminContestProjectionTest {
                     120, true, 10,
                     LocalDateTime.of(2025, 12, 1, 0, 0),
                     LocalDateTime.of(2025, 12, 31, 0, 0));
-            when(contestAdminReadPort.selectById(id)).thenReturn(contest);
+            when(contestAdminReadPort.selectByIdOrSlug(id)).thenReturn(contest);
             when(contestAdminReadPort.countProblemsByContestId(id)).thenReturn(3L);
 
             AdminContestVO vo = projection.getContest(id);
@@ -165,7 +166,7 @@ class AdminContestProjectionTest {
         @Test
         @DisplayName("throws BusinessException(NOT_FOUND) when the read port returns null")
         void notFound_throws() {
-            when(contestAdminReadPort.selectById("missing")).thenReturn(null);
+            when(contestAdminReadPort.selectByIdOrSlug("missing")).thenReturn(null);
 
             assertThatThrownBy(() -> projection.getContest("missing"))
                     .isInstanceOf(BusinessException.class)
@@ -196,7 +197,7 @@ class AdminContestProjectionTest {
             when(contestAdminReadPort.countProblemsByContestId("c2")).thenReturn(8L);
 
             PageResult<ContestAdminDTO> pageResult = PageResult.of(List.of(c1, c2), 2L, 1, 10);
-            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any()))
+            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
                     .thenReturn(pageResult);
 
             PageResult<AdminContestVO> result = projection.getContests(query);
@@ -217,7 +218,7 @@ class AdminContestProjectionTest {
             query.setLimit(10);
 
             PageResult<ContestAdminDTO> emptyResult = PageResult.of(List.of(), 0L, 1, 10);
-            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any()))
+            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
                     .thenReturn(emptyResult);
 
             PageResult<AdminContestVO> result = projection.getContests(query);

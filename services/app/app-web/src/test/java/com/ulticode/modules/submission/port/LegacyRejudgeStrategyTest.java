@@ -8,6 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.inOrder;
@@ -41,6 +43,29 @@ class LegacyRejudgeStrategyTest {
         order.verify(submissionMapper).bumpRetryCount("submission-1", 1);
         order.verify(judgeEnqueuePort).enqueueJudgeJob(
                 "submission-1", "42", "user-1", "java", "class Main {}");
+    }
+
+    @Test
+    void defersEnqueueUntilTransactionCommit() {
+        Submission submission = submission("submission-commit");
+        when(submissionMapper.bumpGenerationAndReset("submission-commit", 1L, 2L)).thenReturn(1);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            var result = new LegacyRejudgeStrategy(submissionMapper, judgeEnqueuePort)
+                    .rejudge(submission, new com.ulticode.app.api.dto.RejudgeResult());
+
+            assertThat(result.getSuccess()).isTrue();
+            verify(judgeEnqueuePort, org.mockito.Mockito.never())
+                    .enqueueJudgeJob("submission-commit", "42", "user-1", "java", "class Main {}");
+            for (TransactionSynchronization synchronization
+                    : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCommit();
+            }
+            verify(judgeEnqueuePort).enqueueJudgeJob(
+                    "submission-commit", "42", "user-1", "java", "class Main {}");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

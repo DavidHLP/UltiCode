@@ -3,8 +3,8 @@ package com.ulticode.modules.admin.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Admin Submission View Object for API responses.
@@ -65,12 +65,12 @@ public class AdminSubmissionVO {
     @Schema(description = "Memory percentile compared to other submissions")
     private Double memoryPercentile;
 
-    @Schema(description = "Test case execution details (JSON)")
+    @Schema(description = "Test case execution details")
     private Object testDetails;
 
-    @Schema(description = "Memory distribution bins in MB (JSON)")
-    private Object memoryDistBinsMb;
+    @Schema(description = "Memory distribution bins in MB")
+    private List<Integer> memoryDistBinsMb;
 
-    @Schema(description = "Runtime distribution bins in ms (JSON)")
-    private Object runtimeDistBinsMs;
+    @Schema(description = "Runtime distribution bins in ms")
+    private List<Integer> runtimeDistBinsMs;
 }

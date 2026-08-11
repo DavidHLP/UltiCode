@@ -1,13 +1,14 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.app.api.service.RejudgePolicy;
+import com.ulticode.app.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
-import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
+import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
-import com.ulticode.modules.submission.dto.RejudgeResult;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.app.api.service.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,13 +25,17 @@ import java.util.List;
  * statistics, filter options) moved behind
  * {@link com.ulticode.modules.admin.projection.AdminSubmissionProjection}.
  * Cross-module entity imports ({@code User}, {@code Problem}) and their
- * mappers have left this file &mdash; the projection owns them.
+ * mappers have left this file — the projection owns them.
  *
  * <p>P7-FIX-ADMIN-CONSUMERS-001: RejudgePolicy port signature changed from
  * {@code (Submission, admin.dto.RejudgeResult)} to
  * {@code (String, app.api.dto.RejudgeResult)} during SUBMISSION relocation.
- * This impl now bridges the admin interface's legacy return type
- * ({@code submission.dto.RejudgeResult}) with the port's new API type.
+ * This impl bridges the admin interface's legacy return type
+ * ({@code admin.dto.RejudgeResult}) with the port's new API type.
+ *
+ * <p>ADMIN-004: the old-status read now goes through the entity-free
+ * {@link SubmissionAdminReadPort} contract instead of the submission
+ * entity/mapper.
  *
  * @author ulticode
  */
@@ -39,24 +44,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
-    private final AdminSubmissionReadPort submissionReadPort;
+    private final SubmissionAdminReadPort submissionReadPort;
     private final RejudgePolicy rejudgePolicy;
 
     @Override
     @Audited(action = AuditVocabulary.REQUEUE_SUBMISSION, entityType = AuditVocabulary.ENTITY_SUBMISSION, userIdFrom = "id")
     public RejudgeResult rejudge(String id, boolean notifyUser) {
-        Submission submission = submissionReadPort.findById(id);
+        SubmissionAdminRowDTO submission = submissionReadPort.findById(id);
         if (submission == null) {
             RejudgeResult result = new RejudgeResult();
             result.setSubmissionId(id);
             result.setSuccess(false);
             result.setError("Submission not found");
+            result.setErrorCode(AdminErrorCode.SUBMISSION_NOT_FOUND.code());
             return result;
         }
 
         com.ulticode.app.api.dto.RejudgeResult portInput = new com.ulticode.app.api.dto.RejudgeResult();
         portInput.setSubmissionId(id);
-        portInput.setOldStatus(submission.getStatus());
+        portInput.setOldStatus(submission.status());
         com.ulticode.app.api.dto.RejudgeResult portResult = rejudgePolicy.rejudge(id, portInput);
 
         return toDomain(portResult);
@@ -95,6 +101,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         domain.setOldStatus(portResult.getOldStatus());
         domain.setNewStatus(portResult.getNewStatus());
         domain.setError(portResult.getError());
+        domain.setErrorCode(portResult.getErrorCode());
         domain.setRejudgedAt(portResult.getRejudgedAt());
         domain.setRetryCount(portResult.getRetryCount());
         return domain;

@@ -1,5 +1,6 @@
 package com.ulticode.modules.submission.port.adapter;
 
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.RejudgePolicy;
 import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.modules.submission.dto.RejudgeResult;
@@ -46,6 +47,7 @@ public class SubmissionAdministrationWriteAdapter implements SubmissionAdministr
             result.setSubmissionId(submissionId);
             result.setSuccess(false);
             result.setError("Submission not found");
+            result.setErrorCode(AppErrorCode.CONTENT_NOT_FOUND.code());
             return result;
         }
 
@@ -90,6 +92,7 @@ public class SubmissionAdministrationWriteAdapter implements SubmissionAdministr
         domain.setOldStatus(portResult.getOldStatus());
         domain.setNewStatus(portResult.getNewStatus());
         domain.setError(portResult.getError());
+        domain.setErrorCode(portResult.getErrorCode());
         domain.setRejudgedAt(portResult.getRejudgedAt());
         domain.setRetryCount(portResult.getRetryCount());
         return domain;

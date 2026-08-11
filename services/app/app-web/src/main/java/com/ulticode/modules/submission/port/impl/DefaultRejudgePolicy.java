@@ -1,6 +1,8 @@
 package com.ulticode.modules.submission.port.impl;
 
 import com.ulticode.app.api.dto.RejudgeResult;
+import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.entity.Submission;
@@ -14,6 +16,7 @@ import com.ulticode.modules.submission.port.LegacyRejudgeStrategy;
 import com.ulticode.app.api.service.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -27,11 +30,14 @@ import java.time.Instant;
  * <p>Owns the ADR-003 M3b fenced rejudge state machine.
  */
 @Slf4j
+@Primary
 @Component
 @RequiredArgsConstructor
+
 public class DefaultRejudgePolicy implements RejudgePolicy {
 
     private final SubmissionMapper submissionMapper;
+    private final ContestSubmissionPort contestSubmissionPort;
     private final JudgeEnqueuePort judgeEnqueuePort;
     private final JudgeOutboxMapper judgeOutboxMapper;
     private final FeatureFlagsProperties featureFlags;
@@ -41,7 +47,19 @@ public class DefaultRejudgePolicy implements RejudgePolicy {
 
     @Override
     public RejudgeResult rejudge(String submissionId, RejudgeResult result) {
+        if (contestSubmissionPort.isContestSubmission(submissionId)) {
+            result.setSuccess(false);
+            result.setError("Contest submissions cannot be rejudged until replacement scoring is supported");
+            result.setErrorCode(AppErrorCode.CONTENT_STATE_CONFLICT.code());
+            return result;
+        }
         com.ulticode.modules.submission.entity.Submission submission = submissionMapper.selectById(submissionId);
+        if (submission == null) {
+            result.setSuccess(false);
+            result.setError("Submission not found");
+            result.setErrorCode(AppErrorCode.CONTENT_NOT_FOUND.code());
+            return result;
+        }
         if (!featureFlags.isUseGenerationFence()) {
             return legacyRejudgeStrategy.rejudge(submission, result);
         }
@@ -136,6 +154,7 @@ public class DefaultRejudgePolicy implements RejudgePolicy {
             log.error("Fenced rejudge failed for submission {}: {}", id, e.getMessage(), e);
             result.setSuccess(false);
             result.setError(e.getMessage());
+            result.setErrorCode(AppErrorCode.UNEXPECTED_APP_STATE.code());
         }
         return result;
     }

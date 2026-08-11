@@ -65,6 +65,11 @@ public class MyBatisAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public List<String> findActiveAccountIds() {
+        return mapper.findActiveAccountIds();
+    }
+
+    @Override
     public AuthAccountRecord create(AuthAccountRecord record) {
         AuthAccountEntity entity = toEntity(record);
         mapper.insert(entity);

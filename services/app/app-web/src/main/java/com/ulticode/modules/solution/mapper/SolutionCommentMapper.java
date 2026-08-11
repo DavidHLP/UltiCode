@@ -38,7 +38,7 @@ public interface SolutionCommentMapper extends BaseMapper<SolutionComment> {
             <if test="parentEntityId != null and parentEntityId != ''">AND solution_id = #{parentEntityId}</if>
             ORDER BY
             <choose>
-                <when test="sortBy == 'updatedAt'">edited_at</when>
+                <when test="sortBy == 'updatedAt'">updated_at</when>
                 <otherwise>created_at</otherwise>
             </choose>
             <choose>

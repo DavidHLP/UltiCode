@@ -4,10 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
+import com.ulticode.modules.admin.dto.problem.ProblemAdminVO;
 import com.ulticode.modules.admin.service.ProblemExportService;
-import com.ulticode.modules.problem.dto.ProblemQueryDTO;
-import com.ulticode.modules.problem.dto.ProblemVO;
-import com.ulticode.modules.problem.projection.ProblemProjection;
+import com.ulticode.app.api.dto.ProblemAdminQueryDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,9 @@ import java.util.stream.Collectors;
  *       seam was added to remove).</li>
  * </ul>
  *
- * <p>The controller is left with 8&ndash;10 lines of pure response-writing.
+ * <p>Problem rows come from the public {@link ProblemAdminReadPort} and are
+ * shaped into the admin-owned {@link ProblemAdminVO} before serialisation,
+ * so the exported JSON/CSV fields are unchanged.
  *
  * @author ulticode
  */
@@ -46,16 +49,19 @@ public class ProblemExportServiceImpl implements ProblemExportService {
         "id,slug,title,difficulty,status,isPremium,isPublished,submissionCount,solutionCount,"
             + "createdAt,updatedAt,tags";
 
-    private final ProblemProjection problemProjection;
+    private final ProblemAdminReadPort problemReadPort;
+    private final AdminProblemMapper mapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
     @Override
-    public ExportPayload export(ProblemQueryDTO query, String format) {
+    public ExportPayload export(ProblemAdminQueryDTO query, String format) {
         String normalizedFormat = normalizeFormat(format);
         String date = LocalDate.now(clock).toString();
 
-        List<ProblemVO> problems = problemProjection.listAllProblems(query);
+        List<ProblemAdminVO> problems = problemReadPort.listAllProblems(query).stream()
+                .map(mapper::toAdminVO)
+                .collect(Collectors.toList());
         if (problems.size() > MAX_EXPORT_SIZE) {
             problems = problems.subList(0, MAX_EXPORT_SIZE);
         }
@@ -75,38 +81,37 @@ public class ProblemExportServiceImpl implements ProblemExportService {
         return normalized;
     }
 
-    private byte[] toJson(List<ProblemVO> problems) {
+    private byte[] toJson(List<ProblemAdminVO> problems) {
         try {
             return objectMapper.writeValueAsBytes(problems);
         } catch (JsonProcessingException e) {
-            // Serialization of a list of POJOs should never fail in
-            // production; surface as a 500 rather than swallowing.
-            throw new UncheckedIOException(e);
+            // Serializing POJOs with plain fields should never throw at runtime.
+            throw new UncheckedIOException("Failed to serialize problems for export", e);
         }
     }
 
-    private String toCsv(List<ProblemVO> problems) {
-        StringBuilder sb = new StringBuilder(CSV_HEADER.length() * (problems.size() + 1));
+    private String toCsv(List<ProblemAdminVO> problems) {
+        StringBuilder sb = new StringBuilder(CSV_HEADER.length() + (problems.size() + 1) * 64);
         sb.append(CSV_HEADER).append('\n');
-        for (ProblemVO problem : problems) {
+        for (ProblemAdminVO problem : problems) {
             String tags = problem.getTags() != null
-                ? problem.getTags().stream().map(ProblemVO.ProblemTagVO::getLabel)
-                    .collect(Collectors.joining(";"))
-                : "";
+                    ? problem.getTags().stream().map(ProblemAdminVO.ProblemTagVO::getLabel)
+                            .collect(Collectors.joining(";"))
+                    : "";
             sb.append(String.join(",",
-                String.valueOf(problem.getId()),
-                escapeCsvField(problem.getSlug()),
-                escapeCsvField(problem.getTitle()),
-                escapeCsvField(problem.getDifficulty()),
-                escapeCsvField(problem.getStatus()),
-                String.valueOf(problem.getIsPremium()),
-                String.valueOf(problem.getIsPublished()),
-                String.valueOf(problem.getSubmissionCount()),
-                String.valueOf(problem.getSolutionCount()),
-                problem.getCreatedAt() != null ? problem.getCreatedAt().toString() : "",
-                problem.getUpdatedAt() != null ? problem.getUpdatedAt().toString() : "",
-                escapeCsvField(tags)
-            )).append('\n');
+                    String.valueOf(problem.getId()),
+                    escapeCsvField(problem.getSlug()),
+                    escapeCsvField(problem.getTitle()),
+                    escapeCsvField(problem.getDifficulty()),
+                    escapeCsvField(problem.getStatus()),
+                    String.valueOf(problem.getIsPremium()),
+                    String.valueOf(problem.getIsPublished()),
+                    String.valueOf(problem.getSubmissionCount()),
+                    String.valueOf(problem.getSolutionCount()),
+                    problem.getCreatedAt() != null ? problem.getCreatedAt().toString() : "",
+                    problem.getUpdatedAt() != null ? problem.getUpdatedAt().toString() : "",
+                    escapeCsvField(tags)));
+            sb.append('\n');
         }
         return sb.toString();
     }

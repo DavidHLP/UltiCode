@@ -19,7 +19,6 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -115,7 +114,6 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.FLAG_COMMENT, entityType = AuditVocabulary.ENTITY_COMMENT)
     public AdminCommentVO flagComment(String id, String type, String reason) {
         moderatorFor(type).flagComment(id, reason);
@@ -123,7 +121,6 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.UNFLAG_COMMENT, entityType = AuditVocabulary.ENTITY_COMMENT)
     public AdminCommentVO unflagComment(String id, String type) {
         moderatorFor(type).unflagComment(id);
@@ -131,14 +128,12 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.DELETE_COMMENT, entityType = AuditVocabulary.ENTITY_COMMENT)
     public void deleteComment(String id, String type) {
         moderatorFor(type).deleteComment(id);
     }
 
     @Override
-    @Transactional
     public BulkActionResult bulkCommentAction(BulkCommentActionRequest request) {
         AdminBulkExecutor.Run run = bulkExecutor.run(
             request.getIds(),

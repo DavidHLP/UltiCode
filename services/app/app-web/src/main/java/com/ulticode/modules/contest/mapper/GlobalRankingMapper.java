@@ -23,17 +23,15 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     Optional<GlobalRanking> findByUserId(@Param("userId") String userId);
 
     /**
-     * P1-5 (P1-5 fix): batch-fetch all global rankings for a contest's participants
-     * in a single query, replacing the O(n²) per-opponent {@code findByUserId} loop
-     * inside the rating Elo calculation. Backed by the {@code idx_global_rankings_user_id_rating}
-     * covering index added in V20260617_120000.
+     * Batch-load and lock the global rankings used by one contest calculation.
+     * User ids are sorted by the caller and the SQL repeats that order so two
+     * contests sharing a user acquire overlapping row locks deterministically.
      */
-    @Select("<script>SELECT g.*, p.name FROM global_rankings g " +
-            "LEFT JOIN user_profiles p ON g.user_id = p.account_id " +
+    @Select("<script>SELECT g.* FROM global_rankings g " +
             "WHERE g.user_id IN " +
             "<foreach item='id' collection='userIds' open='(' separator=',' close=')'>" +
-            "#{id}</foreach></script>")
-    List<GlobalRanking> findByUserIds(@Param("userIds") List<String> userIds);
+            "#{id}</foreach> ORDER BY g.user_id FOR UPDATE</script>")
+    List<GlobalRanking> findByUserIdsForUpdate(@Param("userIds") List<String> userIds);
 
     /**
      * Find ranking by username

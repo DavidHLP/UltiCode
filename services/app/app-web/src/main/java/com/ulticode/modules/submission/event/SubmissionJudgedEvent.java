@@ -7,14 +7,9 @@ import java.time.LocalDateTime;
 /**
  * Event published when a submission's verdict has been finalized by the judge worker.
  *
- * <p>Consumed by listeners at different transaction phases:
- * <ul>
- *   <li>{@code BEFORE_COMMIT}: {@code SubmissionResultOutboxListener} writes the result
- *       outbox row in the same transaction (P6-RESULT-001).</li>
- *   <li>{@code AFTER_COMMIT}: {@code ContestAdjudicationListener} applies contest scoring
- *       (D-04). Notification, achievement, and WebSocket effects consume the durable
- *       result event separately.</li>
- * </ul>
+ * <p>The source transaction writes the result outbox in {@code BEFORE_COMMIT}
+ * (P6-RESULT-001). Contest, notification, achievement, and WebSocket effects
+ * consume the published durable result event after commit.
  */
 public class SubmissionJudgedEvent extends ApplicationEvent {
 

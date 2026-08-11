@@ -2,6 +2,7 @@ package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateProblemCommand;
+import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
@@ -120,7 +121,7 @@ class ProblemAdministrationProviderTest {
                     "10", 1L, "New Title", "rationale");
 
             Problem entity = problemEntity(10L, "two-sum", "New Title", 2);
-            when(domainService.updateProblem(eq(10L), any(UpdateProblemDTO.class), eq("admin-1")))
+            when(domainService.updateProblem(eq(10L), any(UpdateProblemDTO.class), eq("admin-1"), eq(1L)))
                     .thenReturn(entity);
 
             RpcResult<ProblemAdminViewDTO> result = provider.updateProblem(command);
@@ -142,12 +143,12 @@ class ProblemAdministrationProviderTest {
                     "42", 1L, true, "publishing");
 
             Problem entity = problemEntity(42L, "two-sum", "Two Sum", 1);
-            when(domainService.publishProblem(42L, "admin-1")).thenReturn(entity);
+            when(domainService.publishProblem(42L, "admin-1", 1L)).thenReturn(entity);
 
             RpcResult<Void> result = provider.publishProblem(command);
 
             assertThat(result.success()).isTrue();
-            verify(domainService).publishProblem(42L, "admin-1");
+            verify(domainService).publishProblem(42L, "admin-1", 1L);
         }
 
         @Test
@@ -158,12 +159,12 @@ class ProblemAdministrationProviderTest {
                     "42", 1L, false, "unpublishing");
 
             Problem entity = problemEntity(42L, "two-sum", "Two Sum", 1);
-            when(domainService.unpublishProblem(42L, "admin-1")).thenReturn(entity);
+            when(domainService.unpublishProblem(42L, "admin-1", 1L)).thenReturn(entity);
 
             RpcResult<Void> result = provider.publishProblem(command);
 
             assertThat(result.success()).isTrue();
-            verify(domainService).unpublishProblem(42L, "admin-1");
+            verify(domainService).unpublishProblem(42L, "admin-1", 1L);
         }
 
         @Test
@@ -177,6 +178,39 @@ class ProblemAdministrationProviderTest {
 
             assertThat(result.success()).isFalse();
             assertThat(result.error().code()).isEqualTo(AppErrorCode.CONTENT_NOT_FOUND.code());
+        }
+
+        @Test
+        @DisplayName("version conflict from domain maps to VERSION_CONFLICT")
+        void versionConflict() {
+            PublishProblemCommand command = new PublishProblemCommand(
+                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
+                    "42", 7L, true, "publishing");
+            when(domainService.publishProblem(42L, "admin-1", 7L))
+                    .thenThrow(new BusinessException(AppErrorCode.VERSION_CONFLICT));
+
+            RpcResult<Void> result = provider.publishProblem(command);
+
+            assertThat(result.success()).isFalse();
+            assertThat(result.error().code()).isEqualTo(AppErrorCode.VERSION_CONFLICT.code());
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteProblem")
+    class Delete {
+
+        @Test
+        @DisplayName("forwards expected version to the domain")
+        void forwardsExpectedVersion() {
+            DeleteProblemCommand command = new DeleteProblemCommand(
+                    UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
+                    "42", 3L, "deleting");
+
+            RpcResult<Void> result = provider.deleteProblem(command);
+
+            assertThat(result.success()).isTrue();
+            verify(domainService).deleteProblem(42L, "admin-1", 3L);
         }
     }
 }

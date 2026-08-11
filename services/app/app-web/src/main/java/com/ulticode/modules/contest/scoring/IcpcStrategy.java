@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.scoring;
 
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestScoringMode;
+import com.ulticode.modules.contest.entity.enums.ContestTieBreaker;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import org.springframework.stereotype.Component;
 
@@ -30,13 +31,8 @@ public class IcpcStrategy implements ScoringStrategy {
     }
 
     @Override
-    public Comparator<ContestParticipantMapper.ContestParticipantWithUser> getRankingComparator() {
-        return Comparator
-                .comparing(
-                        ContestParticipantMapper.ContestParticipantWithUser::totalScore,
-                        Comparator.nullsLast(Comparator.reverseOrder()))
-                .thenComparing(
-                        ContestParticipantMapper.ContestParticipantWithUser::totalPenalty,
-                        Comparator.nullsLast(Comparator.naturalOrder()));
+    public Comparator<ContestParticipantMapper.ContestParticipantWithUser> getRankingComparator(
+            ContestTieBreaker tieBreaker) {
+        return ContestRankingComparator.forLive(getMode(), tieBreaker);
     }
 }

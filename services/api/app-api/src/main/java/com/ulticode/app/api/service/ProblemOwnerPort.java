@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -11,6 +12,34 @@ import java.util.List;
  * implementation move does not change moderation or import behavior.
  */
 public interface ProblemOwnerPort {
+
+    /**
+     * Maximum number of rows accepted by one import batch RPC.
+     */
+    int MAX_IMPORT_SIZE = 500;
+
+    /**
+     * Entity-free import write request. {@code create} selects insert versus
+     * update; update requests carry the existing problem id when one is known.
+     * The key is owned by the caller and is echoed by the result.
+     */
+    record ImportWriteRequest(String key, boolean create, Long id, String slug,
+                              String title, String difficulty, String status,
+                              Boolean isPremium, Boolean isPublished) implements Serializable {}
+
+    /**
+     * Per-row outcome for an import write. A failed row does not prevent later
+     * requests in the same bounded batch from being attempted.
+     */
+    record ImportWriteResult(String key, boolean success, String error) implements Serializable {}
+
+    /**
+     * Apply an import batch in request order, isolating failures per row.
+     *
+     * @param requests bounded import writes; null/empty means no writes
+     * @return one result per attempted request, keyed by {@link ImportWriteRequest#key()}
+     */
+    List<ImportWriteResult> applyImportedBatch(List<ImportWriteRequest> requests);
 
     /**
      * Resolve the author of a problem without mutating it.

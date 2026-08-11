@@ -11,6 +11,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -27,7 +28,7 @@ import java.util.UUID;
  * AdminSolutionService). When the flag is {@code true}, moderation writes
  * go through the Dubbo {@link ContentModerationService} Provider.
  *
- * <p>Mirrors {@link NotificationCutoverService} / {@link ContestCutoverService}
+ * <p>Mirrors {@code NotificationCutoverService} / {@link ContestCutoverService}
  * in pattern. Only DELETE action is currently routed (matching the admin
  * services' soft-delete methods); HIDE/RESTORE/UNDELETE are deferred until
  * those operations exist on the admin services.
@@ -74,11 +75,13 @@ public class ContentModerationCutoverService {
         RpcResult<ModerationApplyResultDTO> result = dubboProvider.apply(
                 new ApplyModerationCommand(
                         UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover moderation"),
-                        TraceMetadata.EMPTY,
+                        new ActorDelegation(
+                                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                                actorId, actorId, "cutover moderation"),
+                        currentTrace(),
                         caseId, contentId, contentType, action,
                         "admin moderation cutover"));
-        if (!result.success()) {
+        if (result == null || !result.success()) {
             throw mapError(result);
         }
     }
@@ -97,14 +100,25 @@ public class ContentModerationCutoverService {
     }
 
     private String safeActorId() {
-        try {
-            return currentUserProvider.getCurrentUserId();
-        } catch (Exception e) {
-            return "admin";
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
+        return actorId;
     }
 
+
+    private static TraceMetadata currentTrace() {
+        String reqId = TraceIdUtil.current();
+        if (reqId == null || reqId.isBlank()) {
+            reqId = "t-" + UUID.randomUUID();
+        }
+        return new TraceMetadata(reqId, null, null, null);
+    }
     private static BusinessException mapError(RpcResult<?> result) {
+        if (result == null) {
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC result is null (transport failure)");
+        }
         var err = result.error();
         if (err == null) {
             return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");

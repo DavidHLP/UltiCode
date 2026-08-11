@@ -39,11 +39,65 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param userId    the user ID
      * @return the participant if found
      */
-    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND user_id = #{userId} ORDER BY registered_at DESC LIMIT 1")
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} "
+            + "AND user_id = #{userId} ORDER BY registered_at DESC LIMIT 1")
     Optional<ContestParticipant> findByContestIdAndUserId(
             @Param("contestId") String contestId,
             @Param("userId") String userId
     );
+
+    /** Read the canonical real registration; virtual replay rows are separate data. */
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} "
+            + "AND user_id = #{userId} AND is_virtual = 0 "
+            + "ORDER BY registered_at DESC LIMIT 1")
+    Optional<ContestParticipant> findRealByContestIdAndUserId(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId
+    );
+
+    /**
+     * Lock the participant while unregistering so lifecycle transitions and
+     * cascade deletes cannot invalidate the row between validation and delete.
+     */
+    @Select("SELECT * FROM contest_participants "
+            + "WHERE contest_id = #{contestId} AND user_id = #{userId} "
+            + "AND is_virtual = 0 ORDER BY registered_at DESC LIMIT 1 FOR UPDATE")
+    Optional<ContestParticipant> findByContestIdAndUserIdForUpdate(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId
+    );
+
+    /**
+     * Lock the real participant used by explicit contest admission. Keeping
+     * {@code is_virtual = 0} in SQL avoids selecting a finished/active virtual
+     * replay when a user has both kinds of participation rows.
+     */
+    @Select("SELECT * FROM contest_participants "
+            + "WHERE contest_id = #{contestId} AND user_id = #{userId} "
+            + "AND is_virtual = 0 ORDER BY registered_at DESC LIMIT 1 FOR UPDATE")
+    Optional<ContestParticipant> findRealForSubmissionAdmission(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId
+    );
+
+    /**
+     * Lock the exact virtual session used by explicit contest admission.
+     */
+    @Select("SELECT * FROM contest_participants "
+            + "WHERE contest_id = #{contestId} AND user_id = #{userId} "
+            + "AND is_virtual = 1 AND virtual_session_id = #{virtualSessionId} "
+            + "LIMIT 1 FOR UPDATE")
+    Optional<ContestParticipant> findVirtualForSubmissionAdmission(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId,
+            @Param("virtualSessionId") String virtualSessionId
+    );
+
+    /**
+     * Lock one participant while aggregate score and penalty fields are updated.
+     */
+    @Select("SELECT * FROM contest_participants WHERE id = #{id} FOR UPDATE")
+    ContestParticipant selectByIdForUpdate(@Param("id") String id);
 
     /**
      * Find participants by user ID.
@@ -99,12 +153,14 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     long countByUserId(@Param("userId") String userId);
 
     /**
-     * Count participants globally by status.
+     * Count participants in publicly visible, non-deleted contests by status.
      *
      * @param status the participant status
-     * @return total count of participants with the given status
+     * @return public participant count with the given status
      */
-    @Select("SELECT COUNT(*) FROM contest_participants WHERE status = #{status}")
+    @Select("SELECT COUNT(*) FROM contest_participants cp "
+            + "JOIN contests c ON c.id = cp.contest_id "
+            + "WHERE cp.status = #{status} AND c.is_visible = 1 AND c.is_deleted = 0")
     long countByStatus(@Param("status") String status);
 
     /**
@@ -213,7 +269,9 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, "
             + "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, "
             + "cp.registered_at, cp.updated_at, cp.virtual_session_id, "
-            + "u.username, p.name, p.avatar "
+            + "u.username, p.name, p.avatar, cp.last_solve_time, "
+            + "(SELECT COUNT(*) FROM contest_problem_results cpr "
+            + "WHERE cpr.participant_id = cp.id AND cpr.is_solved = 1) AS problems_solved "
             + "FROM contest_participants cp "
             + "LEFT JOIN users u ON cp.user_id = u.id "
             + "LEFT JOIN user_profiles p ON cp.user_id = p.account_id "
@@ -313,8 +371,31 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             String virtualSessionId,
             String username,
             String name,
-            String avatar
-    ) {}
+            String avatar,
+            Integer lastSolveTime,
+            Integer problemsSolved
+    ) {
+        public ContestParticipantWithUser(
+                String id,
+                String contestId,
+                String userId,
+                String status,
+                Integer finalRank,
+                Integer totalScore,
+                Integer totalPenalty,
+                Integer totalTime,
+                Integer attemptCount,
+                java.time.LocalDateTime registeredAt,
+                java.time.LocalDateTime updatedAt,
+                String virtualSessionId,
+                String username,
+                String name,
+                String avatar) {
+            this(id, contestId, userId, status, finalRank, totalScore, totalPenalty, totalTime,
+                    attemptCount, registeredAt, updatedAt, virtualSessionId, username, name, avatar,
+                    null, null);
+        }
+    }
 
     /**
      * Find participants by contest ID with user data joined.
@@ -338,12 +419,16 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             @Arg(column = "virtual_session_id", javaType = String.class),
             @Arg(column = "username", javaType = String.class),
             @Arg(column = "name", javaType = String.class),
-            @Arg(column = "avatar", javaType = String.class)
+            @Arg(column = "avatar", javaType = String.class),
+            @Arg(column = "last_solve_time", javaType = Integer.class),
+            @Arg(column = "problems_solved", javaType = Integer.class)
     })
     @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
             "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
             "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
-            "u.username, p.name, p.avatar " +
+            "u.username, p.name, p.avatar, cp.last_solve_time, " +
+            "(SELECT COUNT(*) FROM contest_problem_results cpr " +
+            "WHERE cpr.participant_id = cp.id AND cpr.is_solved = 1) AS problems_solved " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
             "LEFT JOIN user_profiles p ON cp.user_id = p.account_id " +
@@ -374,12 +459,16 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             @Arg(column = "virtual_session_id", javaType = String.class),
             @Arg(column = "username", javaType = String.class),
             @Arg(column = "name", javaType = String.class),
-            @Arg(column = "avatar", javaType = String.class)
+            @Arg(column = "avatar", javaType = String.class),
+            @Arg(column = "last_solve_time", javaType = Integer.class),
+            @Arg(column = "problems_solved", javaType = Integer.class)
     })
     @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
             "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
             "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
-            "u.username, p.name, p.avatar " +
+            "u.username, p.name, p.avatar, cp.last_solve_time, " +
+            "(SELECT COUNT(*) FROM contest_problem_results cpr " +
+            "WHERE cpr.participant_id = cp.id AND cpr.is_solved = 1) AS problems_solved " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
             "LEFT JOIN user_profiles p ON cp.user_id = p.account_id " +
@@ -439,4 +528,17 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "#{item}</foreach> " +
             "GROUP BY contest_id</script>")
     List<Map<String, Object>> countParticipantsByContestIds(@Param("contestIds") List<String> contestIds);
+
+    /**
+     * Batch count solved contest problems for user-history projections.
+     * Callers must skip empty participant-id lists.
+     */
+    @Select("<script>SELECT participant_id AS participantId, COUNT(*) AS solvedCount " +
+            "FROM contest_problem_results " +
+            "WHERE participant_id IN " +
+            "<foreach item='item' collection='participantIds' open='(' separator=',' close=')'>" +
+            "#{item}</foreach> AND is_solved = 1 " +
+            "GROUP BY participant_id</script>")
+    List<Map<String, Object>> countSolvedByParticipantIds(
+            @Param("participantIds") List<String> participantIds);
 }

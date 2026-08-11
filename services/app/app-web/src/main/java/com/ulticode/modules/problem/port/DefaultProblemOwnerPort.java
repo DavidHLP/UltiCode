@@ -1,14 +1,20 @@
 package com.ulticode.modules.problem.port;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * P3-OWNER-001-A: default {@link ProblemOwnerPort} implementation.
@@ -34,6 +40,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultProblemOwnerPort implements ProblemOwnerPort {
 
@@ -105,6 +112,11 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
     @Transactional
     public void insertImportedProblem(String slug, String title, String difficulty, String status,
                                       Boolean isPremium, Boolean isPublished) {
+        createImportedProblem(slug, title, difficulty, status, isPremium, isPublished);
+    }
+
+    private Problem createImportedProblem(String slug, String title, String difficulty, String status,
+                                          Boolean isPremium, Boolean isPublished) {
         Problem problem = new Problem();
         problem.setSlug(slug);
         problem.setTitle(title);
@@ -118,6 +130,7 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         problem.setVersion(1);
         problemMapper.insert(problem);
         log.info("ProblemOwnerPort.insertImportedProblem slug={} id={}", slug, problem.getId());
+        return problem;
     }
 
     @Override
@@ -151,6 +164,62 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         }
         problemMapper.updateById(existing);
         log.info("ProblemOwnerPort.applyImportedUpdate id={}", id);
+    }
+
+    @Override
+    public List<ImportWriteResult> applyImportedBatch(List<ImportWriteRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return List.of();
+        }
+        if (requests.size() > MAX_IMPORT_SIZE) {
+            throw new IllegalArgumentException("Too many problem import writes");
+        }
+        List<ImportWriteResult> results = new ArrayList<>(requests.size());
+        Map<String, Long> createdIds = new HashMap<>();
+        for (ImportWriteRequest request : requests) {
+            if (request == null) {
+                results.add(new ImportWriteResult(null, false, "Import request is null"));
+                continue;
+            }
+            try {
+                if (request.create()) {
+                    Problem created = createImportedProblem(request.slug(), request.title(),
+                            request.difficulty(), request.status(), request.isPremium(),
+                            request.isPublished());
+                    if (created.getId() != null) {
+                        createdIds.put(request.slug(), created.getId());
+                    }
+                } else {
+                    Long id = request.id() == null ? createdIds.get(request.slug()) : request.id();
+                    if (id != null) {
+                        applyImportedUpdate(id, request.title(), request.difficulty(),
+                                request.status(), request.isPremium(), request.isPublished());
+                    } else {
+                        Problem existing = problemMapper.selectOne(
+                                new LambdaQueryWrapper<Problem>()
+                                        .eq(Problem::getSlug, request.slug()));
+                        if (existing == null) {
+                            Problem created = createImportedProblem(request.slug(), request.title(),
+                                    request.difficulty(), request.status(), request.isPremium(),
+                                    request.isPublished());
+                            if (created.getId() != null) {
+                                createdIds.put(request.slug(), created.getId());
+                            }
+                        } else {
+                            applyImportedUpdate(existing.getId(), request.title(), request.difficulty(),
+                                    request.status(), request.isPremium(), request.isPublished());
+                        }
+                    }
+                }
+                results.add(new ImportWriteResult(request.key(), true, null));
+            } catch (Exception e) {
+                String message = e.getMessage();
+                log.error("ProblemOwnerPort.applyImportedBatch key={} slug={} failed: {}",
+                        request.key(), request.slug(), message, e);
+                results.add(new ImportWriteResult(request.key(), false, message));
+            }
+        }
+        return results;
     }
 
     @Override

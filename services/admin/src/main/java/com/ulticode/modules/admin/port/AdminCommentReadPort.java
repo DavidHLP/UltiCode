@@ -27,10 +27,9 @@ import java.util.Set;
  * into reaching across to three mappers, three batch-load helpers, and four
  * per-field null guards in the VO assembly.
  *
- * <p>Only the read-side enrichment is owned by this port. Write-side comment
- * moderation (flag / unflag / delete) stays on {@code ForumCommentMapper} and
- * {@code SolutionCommentMapper} directly — those are admin's legitimate CRUD
- * targets, not cross-module leakage.
+ * <p>Only the read-side enrichment is owned by this port. Write-side
+ * moderation stays behind each owner's typed command/owner contract, so the
+ * admin service never reaches across the boundary to comment mappers.
  *
  * @author ulticode
  */

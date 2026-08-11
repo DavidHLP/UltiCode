@@ -16,6 +16,15 @@ import java.util.Optional;
  */
 @Mapper
 public interface ForumTagMapper extends BaseMapper<ForumTag> {
+    /**
+     * Load a tag while serializing mutations that address the same row.
+     *
+     * @param id tag ID
+     * @return the locked tag, or {@code null} when it does not exist
+     */
+    @Select("SELECT * FROM forum_tags WHERE id = #{id} FOR UPDATE")
+    ForumTag selectByIdForUpdate(@Param("id") String id);
+
 
     /**
      * Find tag by slug.

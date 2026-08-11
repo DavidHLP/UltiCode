@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.dto.CreateSubmissionDTO;
 import com.ulticode.app.api.dto.SubmissionVO;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.app.security.AppTestSecurityConfig;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestParticipationService;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,6 +27,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         ContestRankingController.class,
         ContestParticipationController.class
 })
+@Import(AppTestSecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("Contest public routes")
 class ContestPublicControllerTest {
@@ -72,6 +76,7 @@ class ContestPublicControllerTest {
     @MockBean
     private CurrentUserProvider currentUserProvider;
 
+
     @BeforeEach
     void stubCurrentUser() {
         when(currentUserProvider.getCurrentUserId()).thenReturn("user-1");
@@ -84,6 +89,18 @@ class ContestPublicControllerTest {
         contest.setSlug("ulticode-weekly-42");
         contest.setIsDeleted(false);
         return contest;
+    }
+
+    @Test
+    @DisplayName("GET contest detail passes the raw identifier to the public projection")
+    void getContestById_usesRawIdentifier() throws Exception {
+        when(contestProjection.getPublicContestById("draft", "user-1")).thenReturn(null);
+
+        mockMvc.perform(get("/contest/draft"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+
+        verify(contestProjection).getPublicContestById("draft", "user-1");
     }
 
     @Nested

@@ -12,7 +12,6 @@ import com.ulticode.modules.admin.service.handler.TagDomainHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,7 +53,6 @@ public class AdminTagServiceImpl implements AdminTagService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.CREATE_TAG, entityType = AuditVocabulary.ENTITY_TAG, captureOldState = false)
     public TagVO createTag(CreateTagDTO dto) {
         String normalized = normalizeType(dto.getType());
@@ -65,7 +63,6 @@ public class AdminTagServiceImpl implements AdminTagService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.UPDATE_TAG, entityType = AuditVocabulary.ENTITY_TAG, entityIdFrom = "id")
     public TagVO updateTag(String id, UpdateTagDTO dto) {
         String normalized = normalizeType(dto.getType());
@@ -83,7 +80,6 @@ public class AdminTagServiceImpl implements AdminTagService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.DELETE_TAG, entityType = AuditVocabulary.ENTITY_TAG, entityIdFrom = "id")
     public void deleteTag(String id, String type) {
         String normalized = normalizeType(type);
@@ -95,7 +91,6 @@ public class AdminTagServiceImpl implements AdminTagService {
     }
 
     @Override
-    @Transactional
     @Audited(action = AuditVocabulary.UPDATE_TAG, entityType = AuditVocabulary.ENTITY_TAG)
     public void mergeTag(MergeTagDTO dto) {
         if (dto.getSourceId().equals(dto.getTargetTagId())) {

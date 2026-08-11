@@ -32,6 +32,10 @@ public class RejudgeResult {
     @Schema(description = "Error message if rejudge failed")
     private String error;
 
+    /** Stable App error code for a failed item in a batch result. */
+    @Schema(description = "App error code if rejudge failed")
+    private Integer errorCode;
+
     /** Wall-clock time when the rejudge was initiated. ISO-8601 UTC. */
     @Schema(description = "When the rejudge was initiated (ISO-8601 UTC)")
     private Instant rejudgedAt;

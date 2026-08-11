@@ -2,7 +2,9 @@ package com.ulticode.modules.admin.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -29,13 +31,14 @@ public class BatchRejudgeRequest {
     @Size(max = 50, message = "submissionIds size must not exceed 50")
     @JsonAlias({"ids"})
     @Schema(description = "List of submission IDs to rejudge", requiredMode = Schema.RequiredMode.REQUIRED)
-    private List<String> submissionIds;
+    private List<@NotBlank(message = "submissionId must not be blank") String> submissionIds;
 
     /**
      * Whether to notify the affected users via email/in-app notification
      * after the rejudge completes. Defaults to {@code false} to avoid spamming
      * users when admins run bulk operations.
      */
+    @NotNull(message = "notifyUsers must not be null")
     @Schema(description = "Whether to notify users about the rejudge", defaultValue = "false")
     private Boolean notifyUsers = false;
 }

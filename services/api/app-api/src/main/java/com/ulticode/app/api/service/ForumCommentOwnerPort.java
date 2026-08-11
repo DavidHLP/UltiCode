@@ -35,4 +35,24 @@ public interface ForumCommentOwnerPort {
     // ─── Result record ────────────────────────────────────────────────────
 
     record FlagResult(String authorId, boolean previousWasFlagged, String previousReason) {}
+
+    /**
+     * Soft-delete a forum comment, stamping the acting admin's user id.
+     *
+     * <p>ADMIN-007: consumed by the Admin service's
+     * {@code ForumCommentModerator} which previously reached for
+     * {@code ForumCommentMapper} directly.
+     *
+     * @param commentId target comment ID
+     * @param deletedBy admin user ID performing the deletion
+     * @return result wrapper with author id + pre-mutation deleted state,
+     *         or {@code null} when the comment does not exist
+     */
+    DeleteResult deleteComment(String commentId, String deletedBy);
+
+    /**
+     * Result wrapper holding the author user ID and pre-mutation deleted
+     * state.
+     */
+    record DeleteResult(String authorUserId, boolean previousIsDeleted) {}
 }

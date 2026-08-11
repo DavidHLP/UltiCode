@@ -1,12 +1,16 @@
 package com.ulticode.modules.solution.port;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.app.api.service.SolutionCommentOwnerPort;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * Default implementation of {@link SolutionCommentOwnerPort}.
@@ -22,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultSolutionCommentOwnerPort implements SolutionCommentOwnerPort {
 
@@ -71,5 +76,28 @@ public class DefaultSolutionCommentOwnerPort implements SolutionCommentOwnerPort
     public String resolveSolutionId(String commentId) {
         SolutionComment comment = solutionCommentMapper.selectById(commentId);
         return comment != null ? comment.getSolutionId() : null;
+    }
+
+    @Override
+    @Transactional
+    public SolutionCommentOwnerPort.DeleteResult deleteComment(String commentId, String deletedBy) {
+        SolutionComment comment = solutionCommentMapper.selectByIdIgnoreDeleted(commentId);
+        if (comment == null) {
+            return null;
+        }
+
+        boolean previousIsDeleted = Boolean.TRUE.equals(comment.getIsDeleted());
+
+        // LambdaUpdateWrapper bypasses MyBatis-Plus FieldStrategy so the
+        // soft-delete + audit stamps are persisted in a single statement
+        // (mirrors the admin moderator's former update semantics).
+        solutionCommentMapper.update(null, new LambdaUpdateWrapper<SolutionComment>()
+                .eq(SolutionComment::getId, commentId)
+                .set(SolutionComment::getIsDeleted, true)
+                .set(SolutionComment::getDeletedAt, LocalDateTime.now())
+                .set(SolutionComment::getDeletedBy, deletedBy));
+        log.info("Deleted solution comment {} by {}", commentId, deletedBy);
+
+        return new SolutionCommentOwnerPort.DeleteResult(comment.getUserId(), previousIsDeleted);
     }
 }

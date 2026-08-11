@@ -13,6 +13,7 @@ import com.ulticode.common.response.Result;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
@@ -82,7 +83,7 @@ public class AdminAccountController {
                     UUID.randomUUID().toString(),
                     IdMetadata.mint(),
                     new ActorDelegation("ADMIN", userId, userId, "admin self password change"),
-                    TraceMetadata.EMPTY,
+                    currentTrace(),
                     userId,
                     changePasswordDTO.getCurrentPassword(),
                     changePasswordDTO.getNewPassword());
@@ -113,6 +114,14 @@ public class AdminAccountController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
         return userId;
+    }
+
+    private TraceMetadata currentTrace() {
+        String reqId = TraceIdUtil.current();
+        if (reqId == null || reqId.isBlank()) {
+            reqId = "t-" + UUID.randomUUID();
+        }
+        return new TraceMetadata(reqId, null, null, null);
     }
 
     public static class SubscriptionVO {

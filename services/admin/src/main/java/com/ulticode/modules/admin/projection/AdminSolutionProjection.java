@@ -1,12 +1,8 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 
 /**
@@ -45,14 +41,14 @@ import com.ulticode.modules.admin.dto.AdminSolutionVO;
  * to preserve the access contract observed by the controller.
  *
  * <p>Mirrors the {@link AdminSubmissionProjection} /
- * {@link com.ulticode.modules.admin.projection.AdminUserProjection} /
- * {@link com.ulticode.modules.problemlist.projection.ProblemListProjection}
- * shape exactly. Cross-module entity imports ({@code User}, {@code Problem})
- * live behind this seam; the admin solution service no longer imports them.
+ * {@link AdminUserProjection} /
+ * {@link AdminProblemListProjection} shape exactly. Cross-module entity
+ * imports ({@code User}, {@code Problem}) live behind this seam; the admin
+ * solution service no longer imports them.
  *
  * @author ulticode
  * @see AdminSubmissionProjection
- * @see com.ulticode.modules.problemlist.projection.ProblemListProjection
+ * @see AdminProblemListProjection
  */
 public interface AdminSolutionProjection {
 

@@ -7,6 +7,7 @@ import com.ulticode.app.api.dto.WeeklyActiveUserCount;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.app.api.service.SubmissionActivityAnalyticsPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ import java.util.List;
  * the submission module; the user analytics projection depends on the port.
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 public class SubmissionActivityAnalyticsMapperAdapter implements SubmissionActivityAnalyticsPort {
 

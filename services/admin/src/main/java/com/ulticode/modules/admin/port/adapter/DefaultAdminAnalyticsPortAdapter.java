@@ -1,6 +1,5 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.port.ContestSummary;
 import com.ulticode.app.api.service.SubscriptionReadPort;
@@ -8,8 +7,7 @@ import com.ulticode.modules.admin.port.SubscriptionSummary;
 import com.ulticode.app.api.dto.ContestAdminDTO;
 import com.ulticode.app.api.service.ContestAdminReadPort;
 import com.ulticode.app.api.service.ContestParticipantReadPort;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.app.api.service.SubmissionAdminReadPort;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
@@ -52,7 +50,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     private final ContestAdminReadPort contestAdminReadPort;
     private final ContestParticipantReadPort contestParticipantReadPort;
     private final SubscriptionReadPort subscriptionReadPort;
-    private final SubmissionMapper submissionMapper;
+    private final SubmissionAdminReadPort submissionAdminReadPort;
 
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
@@ -96,21 +94,17 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
 
     @Override
     public long countDistinctSubmittersInRange(LocalDateTime from, LocalDateTime to) {
-        return submissionMapper.countDistinctUsersInRange(from, to);
+        return submissionAdminReadPort.countDistinctUsersInRange(from, to);
     }
 
     @Override
     public long countSubmissionsInRange(LocalDateTime from) {
-        LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(Submission::getCreatedAt, from);
-        return submissionMapper.selectCount(wrapper);
+        return submissionAdminReadPort.countSubmissionsInRange(from);
     }
 
     @Override
     public long countAcceptedSubmissionsInRange(LocalDateTime from) {
-        LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(Submission::getCreatedAt, from).eq(Submission::getStatus, "Accepted");
-        return submissionMapper.selectCount(wrapper);
+        return submissionAdminReadPort.countAcceptedSubmissionsInRange(from);
     }
 
     @Override

@@ -2,42 +2,60 @@ package com.ulticode.admin.security.jwt;
 
 import com.ulticode.app.api.dto.AccountInfo;
 import com.ulticode.app.api.service.AccountReadPort;
-import com.ulticode.app.user.port.UserReadMapper;
-import com.ulticode.app.user.port.UserSummaryView;
-
-import lombok.RequiredArgsConstructor;
+import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.rpc.RpcPolicy;
+import com.ulticode.common.rpc.RpcResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 /**
  * Admin-local adapter implementing {@link AccountReadPort} for WebSocket
- * authentication (P7-RELOCATE). Reads user account state (active/banned)
- * via the App-owned {@link UserReadMapper} Q-read — the mapper is part of
- * the admin shell's explicit {@code @MapperScan}, so the bean wiring does
- * not depend on the excluded App security package.
+ * authentication (P7-RELOCATE). Reads account state (active/banned) via the
+ * Auth-owned public {@link IdentityQueryService} Dubbo contract instead of
+ * the App-private {@code UserReadMapper} Q-read.
  *
- * <p>Mirrors the App-side {@code com.ulticode.app.security.jwt.AccountReadAdapter}.
+ * <p>The Dubbo reference is {@code check=false}/{@code required=false} so the
+ * admin context loads even when the Auth provider is down; an unavailable or
+ * failing lookup yields {@link Optional#empty()} (WebSocket auth denied).
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class AccountReadAdapter implements AccountReadPort {
 
-    private final UserReadMapper userReadMapper;
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private IdentityQueryService identityQueryService;
 
     @Override
     public Optional<AccountInfo> findById(String userId) {
-        UserSummaryView user = userReadMapper.selectById(userId);
-        if (user == null) {
+        if (identityQueryService == null) {
+            log.warn("IdentityQueryService unavailable; account lookup for {} skipped", userId);
             return Optional.empty();
         }
+        RpcResult<UserIdentityDTO> result;
+        try {
+            result = identityQueryService.getIdentity(userId);
+        } catch (RuntimeException e) {
+            log.warn("Identity lookup failed for account {}: {}", userId, e.getMessage());
+            return Optional.empty();
+        }
+        if (result == null || !result.success() || result.data() == null) {
+            log.warn("Identity lookup failed for account {}: {}", userId,
+                    result != null ? result.error() : "null rpc result");
+            return Optional.empty();
+        }
+        UserIdentityDTO user = result.data();
         return Optional.of(new AccountInfo(
-                user.id(),
+                user.accountId(),
                 user.username(),
                 user.role(),
-                Boolean.TRUE.equals(user.isActive()),
-                Boolean.TRUE.equals(user.isBanned())));
+                user.active(),
+                user.banned()));
     }
 }

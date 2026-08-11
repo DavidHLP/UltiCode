@@ -3,21 +3,26 @@ package com.ulticode.modules.admin.service;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.BatchRejudgeCommand;
 import com.ulticode.app.api.command.RejudgeCommand;
-import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
+import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.modules.submission.dto.RejudgeResult;
+import com.ulticode.common.util.TraceIdUtil;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
+import com.ulticode.modules.admin.dto.RejudgeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,11 +30,6 @@ import java.util.UUID;
 
 /**
  * P4-CUTOVER-002: feature-flagged routing adapter for submission rejudge.
- *
- * <p>When {@code app.features.submission-dubbo-cutover=false} (default),
- * delegates directly to {@link AdminSubmissionService#rejudge}. When the
- * flag is {@code true}, the rejudge goes through the Dubbo
- * {@link SubmissionAdministrationService} Provider.
  */
 @Slf4j
 @Service
@@ -37,6 +37,7 @@ import java.util.UUID;
 public class SubmissionCutoverService {
 
     private final AdminSubmissionService submissionService;
+    private final CurrentUserProvider currentUserProvider;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = 3000, retries = 0, check = false)
@@ -46,70 +47,162 @@ public class SubmissionCutoverService {
     private boolean dubboEnabled;
 
     public RejudgeResult rejudge(String id, boolean notifyUser) {
+        return rejudge(id, notifyUser, null);
+    }
+
+    public RejudgeResult rejudge(String id, boolean notifyUser, String requestedKey) {
         if (!dubboEnabled) {
             return submissionService.rejudge(id, notifyUser);
         }
-        RpcResult<RejudgeResultDTO> result = dubboProvider.rejudge(
-                new RejudgeCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", "admin", "admin", "cutover rejudge"),
-                        TraceMetadata.EMPTY, id, notifyUser));
-        if (!result.success()) {
+        String actorId = currentActorId();
+        IdMetadata idempotency = idempotency(requestedKey);
+        RpcResult<RejudgeResultDTO> result = callRejudge(new RejudgeCommand(
+                commandId("rejudge", idempotency),
+                idempotency,
+                new ActorDelegation("ADMIN", actorId, actorId, "cutover rejudge"),
+                currentTrace(), id, notifyUser));
+        if (result == null || !result.success()) {
             throw mapError(result);
         }
-        RejudgeResultDTO dto = result.data();
-        RejudgeResult mapped = new RejudgeResult();
-        mapped.setSubmissionId(dto.submissionId());
-        mapped.setSuccess(true);
-        mapped.setNewStatus(dto.newStatus());
-        mapped.setRejudgedAt(Instant.ofEpochMilli(dto.rejudgedAtEpochMs()));
-        mapped.setRetryCount(dto.retryCount());
-        return mapped;
+        return mapResult(result.data());
     }
 
     public BatchRejudgeResponse batchRejudge(List<String> submissionIds, boolean notifyUsers) {
+        return batchRejudge(submissionIds, notifyUsers, null);
+    }
+
+    public BatchRejudgeResponse batchRejudge(
+            List<String> submissionIds, boolean notifyUsers, String requestedKey) {
         if (!dubboEnabled) {
             return submissionService.batchRejudge(submissionIds, notifyUsers);
         }
-        RpcResult<com.ulticode.app.api.dto.BatchRejudgeResultDTO> result = dubboProvider.batchRejudge(
-                new BatchRejudgeCommand(
-                        UUID.randomUUID().toString(), IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", "admin", "admin", "cutover batch rejudge"),
-                        TraceMetadata.EMPTY, submissionIds, notifyUsers));
-        if (!result.success()) {
+        String actorId = currentActorId();
+        IdMetadata idempotency = idempotency(requestedKey);
+        RpcResult<BatchRejudgeResultDTO> result = callBatchRejudge(new BatchRejudgeCommand(
+                commandId("batchRejudge", idempotency),
+                idempotency,
+                new ActorDelegation("ADMIN", actorId, actorId, "cutover batch rejudge"),
+                currentTrace(), submissionIds, notifyUsers));
+        if (result == null || !result.success()) {
             throw mapError(result);
         }
-        com.ulticode.app.api.dto.BatchRejudgeResultDTO dto = result.data();
+        BatchRejudgeResultDTO dto = result.data();
+        if (dto == null) {
+            throw new BusinessException(
+                    AdminErrorCode.UNKNOWN_ERROR, "RPC returned no batch result");
+        }
         BatchRejudgeResponse response = new BatchRejudgeResponse();
         response.setTotal(dto.total());
         response.setSuccessful(dto.successful());
         response.setFailed(dto.failed());
-        List<RejudgeResult> results = new ArrayList<>(dto.results().size());
-        for (RejudgeResultDTO r : dto.results()) {
-            RejudgeResult mapped = new RejudgeResult();
-            mapped.setSubmissionId(r.submissionId());
-            mapped.setSuccess(true);
-            mapped.setNewStatus(r.newStatus());
-            mapped.setRejudgedAt(Instant.ofEpochMilli(r.rejudgedAtEpochMs()));
-            mapped.setRetryCount(r.retryCount());
-            results.add(mapped);
+        List<RejudgeResult> results = new ArrayList<>();
+        if (dto.results() != null) {
+            for (RejudgeResultDTO item : dto.results()) {
+                results.add(mapResult(item));
+            }
         }
         response.setResults(results);
         return response;
     }
 
+    private RpcResult<RejudgeResultDTO> callRejudge(RejudgeCommand command) {
+        try {
+            return dubboProvider.rejudge(command);
+        } catch (RuntimeException e) {
+            log.error("Submission rejudge provider unavailable commandId={}",
+                    command.commandId(), e);
+            throw new BusinessException(
+                    AdminErrorCode.UNKNOWN_ERROR, "Submission provider unavailable");
+        }
+    }
+
+    private RpcResult<BatchRejudgeResultDTO> callBatchRejudge(BatchRejudgeCommand command) {
+        try {
+            return dubboProvider.batchRejudge(command);
+        } catch (RuntimeException e) {
+            log.error("Submission batch rejudge provider unavailable commandId={}",
+                    command.commandId(), e);
+            throw new BusinessException(
+                    AdminErrorCode.UNKNOWN_ERROR, "Submission provider unavailable");
+        }
+    }
+
+    private static RejudgeResult mapResult(RejudgeResultDTO dto) {
+        RejudgeResult mapped = new RejudgeResult();
+        if (dto == null) {
+            mapped.setSuccess(false);
+            mapped.setError("Missing rejudge result");
+            mapped.setErrorCode(AppErrorCode.UNEXPECTED_APP_STATE.code());
+            return mapped;
+        }
+        mapped.setSubmissionId(dto.submissionId());
+        boolean success = !Boolean.FALSE.equals(dto.success());
+        mapped.setSuccess(success);
+        mapped.setNewStatus(dto.newStatus());
+        mapped.setErrorCode(dto.errorCode());
+        mapped.setError(dto.error());
+        mapped.setRejudgedAt(success && dto.rejudgedAtEpochMs() > 0
+                ? Instant.ofEpochMilli(dto.rejudgedAtEpochMs()) : null);
+        mapped.setRetryCount(dto.retryCount());
+        return mapped;
+    }
+
+    private String currentActorId() {
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED,
+                    "Authenticated admin actor is required");
+        }
+        return actorId;
+    }
+
+    private static IdMetadata idempotency(String requestedKey) {
+        String key = requestedKey == null || requestedKey.isBlank()
+                ? UUID.randomUUID().toString() : requestedKey.trim();
+        if (key.length() > 120) {
+            throw new BusinessException(AdminErrorCode.BAD_REQUEST,
+                    "Idempotency-Key must not exceed 120 characters");
+        }
+        return IdMetadata.of(key, null);
+    }
+
+    private static String commandId(String operation, IdMetadata idempotency) {
+        return UUID.nameUUIDFromBytes(
+                (operation + ":" + idempotency.idempotencyKey()).getBytes(StandardCharsets.UTF_8))
+                .toString();
+    }
+
+    private static TraceMetadata currentTrace() {
+        String requestId = TraceIdUtil.current();
+        if (requestId == null || requestId.isBlank()) {
+            requestId = "t-" + UUID.randomUUID();
+        }
+        return new TraceMetadata(requestId, null, null, null);
+    }
+
     private static BusinessException mapError(RpcResult<?> result) {
-        var err = result.error();
-        if (err == null) {
-            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "RPC failed without error payload");
+        if (result == null || result.error() == null) {
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "RPC failed without error payload");
         }
-        int code = err.code();
-        if (code == 40401) {
-            return new BusinessException(AdminErrorCode.PROBLEM_NOT_FOUND, err.message());
+        int code = result.error().code();
+        if (code == AppErrorCode.CONTENT_NOT_FOUND.code()) {
+            return new BusinessException(AdminErrorCode.SUBMISSION_NOT_FOUND, result.error().message());
         }
-        if (code == 40901 || code == 40902) {
-            return new BusinessException(AdminErrorCode.CONFLICT, err.message());
+        if (code == AppErrorCode.BAD_REQUEST.code()) {
+            return new BusinessException(AdminErrorCode.BAD_REQUEST, result.error().message());
         }
-        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
+        if (code == AppErrorCode.UNAUTHORIZED.code()) {
+            return new BusinessException(AdminErrorCode.UNAUTHORIZED, result.error().message());
+        }
+        if (code == AppErrorCode.FORBIDDEN.code()) {
+            return new BusinessException(AdminErrorCode.FORBIDDEN, result.error().message());
+        }
+        if (code == AppErrorCode.VERSION_CONFLICT.code()
+                || code == AppErrorCode.CONTENT_STATE_CONFLICT.code()
+                || code == AppErrorCode.IDEMPOTENCY_KEY_CONFLICT.code()) {
+            return new BusinessException(AdminErrorCode.CONFLICT, result.error().message());
+        }
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR, result.error().message());
     }
 }

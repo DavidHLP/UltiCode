@@ -22,6 +22,9 @@ public class RejudgeResult implements Serializable {
 
     private String error;
 
+    /** Stable App error code when {@link #success} is {@code false}. */
+    private Integer errorCode;
+
     private Instant rejudgedAt;
 
     private Integer retryCount;

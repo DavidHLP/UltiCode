@@ -1,16 +1,20 @@
 package com.ulticode.app.dubbo.provider;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
-import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.common.tracing.IdMetadata;
-import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.app.idempotency.CommandReceiptExecutor;
+import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.modules.moderation.service.ContentModerationDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +30,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,21 +42,65 @@ class ContentModerationProviderTest {
     @Mock
     private ContentModerationDomainService domainService;
 
+    @Mock
+    private AppCommandReceiptMapper receiptMapper;
+
+    @Mock
+    private AdminActorAuthorizer actorAuthorizer;
+
     private ContentModerationProvider provider;
 
     @BeforeEach
     void setUp() {
-        provider = new ContentModerationProvider(domainService);
+        when(receiptMapper.insertClaim(any())).thenReturn(1);
+        when(receiptMapper.markSuccess(any(), any())).thenReturn(1);
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+        provider = new ContentModerationProvider(
+                domainService,
+                new CommandReceiptExecutor(receiptMapper, new ObjectMapper(),
+                        java.time.Clock.systemUTC()),
+                actorAuthorizer);
     }
-
     private static ActorDelegation actor() {
         return new ActorDelegation("ADMIN", "admin-1", "admin-1", "test");
     }
+
 
     private ApplyModerationCommand cmd(String contentType, ModerationAction action) {
         return new ApplyModerationCommand(
                 UUID.randomUUID().toString(), IdMetadata.mint(), actor(), TraceMetadata.EMPTY,
                 UUID.randomUUID().toString(), "content-1", contentType, action, "test rationale");
+    }
+
+    @Test
+    @DisplayName("unverified actor is rejected before the command receipt")
+    void rejectsUnverifiedActorBeforeReceipt() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
+
+        RpcResult<ModerationApplyResultDTO> result = provider.apply(
+                cmd("forum_post", ModerationAction.DELETE));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        verify(domainService, never()).apply(any());
+        verify(receiptMapper, never()).insertClaim(any());
+    }
+
+    @Test
+    @DisplayName("mismatched actor and delegator are rejected before the command receipt")
+    void rejectsMismatchedActorBeforeReceipt() {
+        ApplyModerationCommand command = new ApplyModerationCommand(
+                UUID.randomUUID().toString(), IdMetadata.mint(),
+                new ActorDelegation("ADMIN", "admin-1", "different-admin", "test"),
+                TraceMetadata.EMPTY, UUID.randomUUID().toString(), "content-1",
+                "forum_post", ModerationAction.DELETE, "test rationale");
+
+        RpcResult<ModerationApplyResultDTO> result = provider.apply(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        verify(domainService, never()).apply(any());
+        verify(receiptMapper, never()).insertClaim(any());
     }
 
     @Nested

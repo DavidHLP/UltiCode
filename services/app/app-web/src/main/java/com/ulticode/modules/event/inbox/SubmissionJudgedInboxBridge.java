@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
 import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
+import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -61,7 +62,8 @@ public class SubmissionJudgedInboxBridge {
             UuidGenerator uuidGenerator,
             SubmissionJudgedNotificationConsumer notificationConsumer,
             SubmissionJudgedAchievementConsumer achievementConsumer,
-            SubmissionJudgedWebSocketConsumer webSocketConsumer) {
+            SubmissionJudgedWebSocketConsumer webSocketConsumer,
+            SubmissionJudgedContestConsumer contestConsumer) {
         this.redisTemplate = redisTemplate;
         this.inboxMapper = inboxMapper;
         this.objectMapper = objectMapper;
@@ -75,10 +77,14 @@ public class SubmissionJudgedInboxBridge {
         InboxConsumer webSocketInbox = new InboxConsumer(inboxMapper, "App-WebSocket");
         webSocketInbox.registerHandler(EVENT_TYPE, webSocketConsumer::consume);
         webSocketInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
+        InboxConsumer contestInbox = new InboxConsumer(inboxMapper, "App-Contest");
+        contestInbox.registerHandler(EVENT_TYPE, contestConsumer::consume);
+        contestInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
         this.bindings = List.of(
                 new Binding("App-Notification", notificationInbox),
                 new Binding("App-Achievement", achievementInbox),
-                new Binding("App-WebSocket", webSocketInbox));
+                new Binding("App-WebSocket", webSocketInbox),
+                new Binding("App-Contest", contestInbox));
     }
 
     /**

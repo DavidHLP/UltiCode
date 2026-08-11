@@ -2,6 +2,9 @@ package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.admin.security.AdminSecurityConfig;
+import com.ulticode.admin.security.jwt.JwksPublicKeyProvider;
+import com.ulticode.admin.security.jwt.ResourceServerJwtVerifier;
+import com.ulticode.admin.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.admin.error.AdminWebExceptionHandler;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
@@ -47,7 +50,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(AdminSettingsController.class)
 @ContextConfiguration(classes = {AdminSettingsController.class, AdminWebExceptionHandler.class})
-@Import(AdminSecurityConfig.class)
+@Import({
+        AdminSecurityConfig.class,
+        JwtAuthenticationFilter.class,
+        JwksPublicKeyProvider.class,
+        ResourceServerJwtVerifier.class
+})
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminSettingsController")
 @WithMockUser(roles = "ADMIN")

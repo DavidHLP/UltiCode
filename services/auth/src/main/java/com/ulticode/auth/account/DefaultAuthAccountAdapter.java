@@ -62,6 +62,15 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public List<String> findActiveAccountIds() {
+        return accountsById.values().stream()
+                .filter(account -> Boolean.TRUE.equals(account.isActive()))
+                .filter(account -> !Boolean.TRUE.equals(account.isBanned()))
+                .map(AuthAccountRecord::id)
+                .toList();
+    }
+
+    @Override
     public AuthAccountRecord create(AuthAccountRecord record) {
         accountsById.put(record.id(), record);
         accountsByUsername.put(record.username(), record);

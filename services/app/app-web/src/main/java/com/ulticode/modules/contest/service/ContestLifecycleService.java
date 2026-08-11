@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
  * <p>This is the natural home for behavior that is about a contest's lifetime
  * rather than about a single verdict:
  * <ul>
- *   <li><b>tick</b> — the 10-second heartbeat that advances UPCOMING→RUNNING
- *       and RUNNING→FINISHED for due contests, then auto-finishes expired
- *       virtual participants.</li>
+ *   <li><b>tick</b> — the 10-second heartbeat that advances UPCOMING→RUNNING,
+ *       claims RUNNING→FINISHING, retries FINISHING finalization, and then
+ *       auto-finishes expired virtual participants.</li>
  *   <li><b>P0-2</b> batch-transition REGISTERED participants to STARTED when a
  *       contest moves into RUNNING.</li>
  *   <li><b>P1-2 / P2-2</b> auto-finish virtual participants whose
@@ -32,8 +32,8 @@ import java.time.LocalDateTime;
  *
  * <p>Verdict application and scoring invariants live in the deep
  * {@link ContestAdjudicationService}; this module does not score — it only
- * hands off to {@link RatingCalculationService} once a contest is FINISHED.
- * Every method is idempotent and safe to retry.
+ * hands off to {@link RatingCalculationService} while a contest is FINISHING,
+ * before publishing FINISHED. Every method is idempotent and safe to retry.
  */
 public interface ContestLifecycleService {
 
@@ -55,18 +55,22 @@ public interface ContestLifecycleService {
     int autoFinishVirtualParticipants();
 
     /**
-     * Cascade-delete a soft-deleted contest's relational rows. Idempotent:
-     * a missing or already-deleted contest is a no-op.
+     * Soft-delete an UPCOMING or FINISHED contest and remove every
+     * contest-owned relational row in one owner transaction. A retry after a
+     * committed soft-delete only repeats cleanup and does not rewrite the
+     * parent row.
      *
-     * @param contestId the contest to clean up
+     * @param contestId the contest to delete
+     * @param deletedBy the actor performing the delete
      */
-    void deleteContestCascade(String contestId);
+    void deleteContestCascade(String contestId, String deletedBy);
 
     /**
      * Drive one 10-second scheduler heartbeat at the given wall-clock
-     * instant: advance due UPCOMING contests to RUNNING, advance due RUNNING
-     * contests to FINISHED (closing real participants and handing off to the
-     * rating service), then auto-finish expired virtual participants.
+     * instant: advance due UPCOMING contests to RUNNING, claim due RUNNING
+     * contests as FINISHING, retry FINISHING finalization (closing real
+     * participants and handing off to the rating service), publish FINISHED,
+     * then auto-finish expired virtual participants.
      *
      * <p>Step 3 (virtual auto-finish) is fault-isolated so a failure there
      * never blocks the next tick; the per-contest transition loops match the

@@ -1,5 +1,11 @@
 package com.ulticode.modules.contest.port;
 import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.app.api.command.CreateContestCommand;
+import com.ulticode.app.api.command.UpdateContestCommand;
+import com.ulticode.app.api.dto.ContestProblemInputDTO;
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.common.tracing.TraceMetadata;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.error.ContestErrorCode;
@@ -14,6 +20,7 @@ import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.service.ContestLifecycleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,7 +34,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +66,7 @@ class DefaultContestOwnerPortTest {
     @Mock private ContestMapper contestMapper;
     @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestAnnouncementMapper contestAnnouncementMapper;
+    @Mock private ContestLifecycleService contestLifecycleService;
 
     private final Clock clock = Clock.systemUTC();
     /** Deterministic id generator so test assertions can pin ids. */
@@ -67,7 +78,41 @@ class DefaultContestOwnerPortTest {
     void setUp() {
         port = new DefaultContestOwnerPort(
                 contestMapper, contestProblemMapper, contestAnnouncementMapper,
-                uuid, clock);
+                contestLifecycleService, uuid, clock);
+        org.mockito.Mockito.lenient().when(contestMapper.selectByIdForUpdate(anyString()))
+                .thenAnswer(invocation -> contestMapper.selectById(invocation.getArgument(0)));
+    }
+
+    private String create(CreateContestDTO dto, String actorId) {
+        List<ContestProblemInputDTO> problems = dto.getProblems() == null ? null
+                : dto.getProblems().stream()
+                        .map(problem -> new ContestProblemInputDTO(
+                                problem.getProblemId(), problem.getScore()))
+                        .toList();
+        return port.createContest(new CreateContestCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.of("owner-test", "fingerprint"),
+                new ActorDelegation("ADMIN", actorId, actorId, "owner test"),
+                new TraceMetadata("owner-test", null, null, null),
+                dto.getSlug(), dto.getTitle(), actorId,
+                dto.getContestType() == null ? "ICPC" : dto.getContestType(),
+                "SCORE", dto.getScoringRuleId(), dto.getDescription(),
+                dto.getStartTime().toInstant(ZoneOffset.UTC).toEpochMilli(),
+                dto.getDuration() == null ? 60 : dto.getDuration(),
+                dto.getMaxParticipants(), dto.getIsPremium(), dto.getIsPublished(),
+                dto.getProblemIds(), problems));
+    }
+
+    private void update(String contestId, UpdateContestDTO dto) {
+        port.updateContest(new UpdateContestCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.of("owner-test", "fingerprint"),
+                new ActorDelegation("ADMIN", "admin-1", "admin-1", "owner test"),
+                new TraceMetadata("owner-test", null, null, null),
+                contestId, 1L, dto.getTitle(),
+                dto.getStartTime() == null ? null
+                        : dto.getStartTime().toInstant(ZoneOffset.UTC).toEpochMilli(),
+                dto.getDuration(), "owner test"));
     }
 
     // ─── createContest ───────────────────────────────────────────
@@ -87,7 +132,7 @@ class DefaultContestOwnerPortTest {
             dto.setMaxParticipants(100);
             dto.setIsPublished(true);
 
-            final String id = port.createContest(dto, "admin-1");
+            final String id = create(dto, "admin-1");
 
             assertThat(id).isEqualTo("00000000-0000-0000-0000-000000000001");
             verify(contestMapper).insert(any(Contest.class));
@@ -106,7 +151,7 @@ class DefaultContestOwnerPortTest {
             when(contestMapper.insert(any(Contest.class)))
                     .thenThrow(new DataIntegrityViolationException("uk_contest_slug"));
 
-            assertThatThrownBy(() -> port.createContest(dto, "admin-1"))
+            assertThatThrownBy(() -> create(dto, "admin-1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ContestErrorCode.CONTEST_SLUG_EXISTS));
@@ -124,7 +169,7 @@ class DefaultContestOwnerPortTest {
         void notFound() {
             when(contestMapper.selectById("missing")).thenReturn(null);
 
-            assertThatThrownBy(() -> port.updateContest("missing", new UpdateContestDTO()))
+            assertThatThrownBy(() -> update("missing", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ContestErrorCode.CONTEST_NOT_FOUND));
@@ -137,7 +182,7 @@ class DefaultContestOwnerPortTest {
             before.setStatus(ContestStatus.RUNNING.name());
             when(contestMapper.selectById("c1")).thenReturn(before);
 
-            assertThatThrownBy(() -> port.updateContest("c1", new UpdateContestDTO()))
+            assertThatThrownBy(() -> update("c1", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ContestErrorCode.CONTEST_ONLY_REGISTER_UPCOMING));
@@ -155,7 +200,7 @@ class DefaultContestOwnerPortTest {
             final UpdateContestDTO dto = new UpdateContestDTO();
             dto.setTitle("New");
 
-            port.updateContest("c1", dto);
+            update("c1", dto);
 
             verify(contestMapper).updateById(any(Contest.class));
             verify(contestProblemMapper, never()).deleteByContestId(anyString());
@@ -235,10 +280,26 @@ class DefaultContestOwnerPortTest {
             final Contest before = new Contest();
             before.setStatus(ContestStatus.RUNNING.name());
             when(contestMapper.selectById("c1")).thenReturn(before);
+            when(contestMapper.tryTransitionToFinishing(eq("c1"), any())).thenReturn(1);
 
             port.endContest("c1");
 
-            verify(contestMapper).updateById(any(Contest.class));
+            verify(contestMapper).tryTransitionToFinishing(eq("c1"), any());
+            verify(contestMapper, never()).updateById(any(Contest.class));
+        }
+
+        @Test
+        @DisplayName("CONTEST_ENDED when the FINISHING claim loses a race")
+        void claimLost() {
+            final Contest before = new Contest();
+            before.setStatus(ContestStatus.RUNNING.name());
+            when(contestMapper.selectById("c1")).thenReturn(before);
+            when(contestMapper.tryTransitionToFinishing(eq("c1"), any())).thenReturn(0);
+
+            assertThatThrownBy(() -> port.endContest("c1"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ContestErrorCode.CONTEST_ENDED));
         }
     }
 
@@ -251,7 +312,8 @@ class DefaultContestOwnerPortTest {
         @Test
         @DisplayName("CONTEST_NOT_FOUND when the contest does not exist")
         void notFound() {
-            when(contestMapper.selectById("missing")).thenReturn(null);
+            doThrow(new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND))
+                    .when(contestLifecycleService).deleteContestCascade("missing", "admin-1");
 
             assertThatThrownBy(() -> port.deleteContest("missing", "admin-1"))
                     .isInstanceOf(BusinessException.class)
@@ -260,15 +322,12 @@ class DefaultContestOwnerPortTest {
         }
 
         @Test
-        @DisplayName("happy path: soft-deletes the contest")
+        @DisplayName("happy path: delegates the whole delete to the owner cascade seam")
         void happy() {
-            final Contest before = new Contest();
-            before.setStatus(ContestStatus.UPCOMING.name());
-            when(contestMapper.selectById("c1")).thenReturn(before);
-
             port.deleteContest("c1", "admin-1");
 
-            verify(contestMapper).updateById(any(Contest.class));
+            verify(contestLifecycleService).deleteContestCascade("c1", "admin-1");
+            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
@@ -299,6 +358,7 @@ class DefaultContestOwnerPortTest {
         @Test
         @DisplayName("BAD_REQUEST when the announcement does not exist")
         void notFound() {
+            when(contestMapper.selectById("c1")).thenReturn(new Contest());
             when(contestAnnouncementMapper.findByContestIdAndId("c1", "missing"))
                     .thenReturn(null);
 
@@ -312,6 +372,7 @@ class DefaultContestOwnerPortTest {
         @Test
         @DisplayName("happy path: applies the partial update")
         void happy() {
+            when(contestMapper.selectById("c1")).thenReturn(new Contest());
             final ContestAnnouncement before = new ContestAnnouncement();
             before.setId("a1");
             before.setTitle("old");
@@ -331,6 +392,7 @@ class DefaultContestOwnerPortTest {
         @Test
         @DisplayName("BAD_REQUEST when the announcement does not exist")
         void notFound() {
+            when(contestMapper.selectById("c1")).thenReturn(new Contest());
             when(contestAnnouncementMapper.findByContestIdAndId("c1", "missing"))
                     .thenReturn(null);
 
@@ -343,6 +405,7 @@ class DefaultContestOwnerPortTest {
         @Test
         @DisplayName("happy path: deletes the row by id")
         void happy() {
+            when(contestMapper.selectById("c1")).thenReturn(new Contest());
             final ContestAnnouncement before = new ContestAnnouncement();
             before.setId("a1");
             when(contestAnnouncementMapper.findByContestIdAndId("c1", "a1"))

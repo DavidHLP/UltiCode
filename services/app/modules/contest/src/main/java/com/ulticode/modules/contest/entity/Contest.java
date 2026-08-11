@@ -41,7 +41,7 @@ public class Contest {
     private LocalDateTime freezeTime;
 
     /**
-     * Contest status: DRAFT, UPCOMING, RUNNING, FINISHED, CANCELLED
+     * Contest status: DRAFT, UPCOMING, RUNNING, FINISHING, FINISHED, CANCELLED
      */
     private String status;
 

@@ -1,14 +1,11 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.dto.NotificationAdminDTO;
+import com.ulticode.app.api.service.NotificationAdminReadPort;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.modules.notification.entity.Notification;
-import com.ulticode.modules.notification.mapper.NotificationMapper;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,26 +19,24 @@ import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultAdminNotificationProjection} &mdash; the
- * read-side deep module lifted out of {@code AdminNotificationServiceImpl}
- * per ADR-0011 Stage 4.
+ * read-side deep module for the admin system-notification surface
+ * (ADMIN-008: DTO-based over {@link NotificationAdminReadPort}).
  *
- * <p>Covers the projection rules that previously lived inside
- * {@code AdminNotificationServiceImpl}:
+ * <p>Covers the projection rules:
  * <ul>
  *   <li>{@code getSystemNotifications} &mdash; pagination defaults,
  *       sort-field whitelist validation, sortOrder passthrough.</li>
@@ -56,56 +51,46 @@ import com.ulticode.common.auth.CurrentUserProvider;
 @DisplayName("DefaultAdminNotificationProjection")
 class AdminNotificationProjectionTest {
 
-    @Mock
-    private CurrentUserProvider currentUserProvider;
-
-    @Mock private NotificationMapper notificationMapper;
+    @Mock private NotificationAdminReadPort notificationAdminReadPort;
     @Mock private AdminUserEnricher userEnricher;
 
     private DefaultAdminNotificationProjection projection;
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultAdminNotificationProjection(notificationMapper, userEnricher);
+        projection = new DefaultAdminNotificationProjection(notificationAdminReadPort, userEnricher);
     }
 
-    private Notification makeSystemNotification(String id, String announcementId, String creatorId) {
-        Notification n = new Notification();
-        n.setId(id);
-        n.setAnnouncementId(announcementId);
-        n.setTitle("Title " + id);
-        n.setBody("Body " + id);
-        n.setType("SYSTEM");
-        n.setCategory("SYSTEM");
-        n.setCreatedAt(LocalDateTime.of(2026, 7, 1, 0, 0));
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("createdBy", creatorId);
-        metadata.put("isSystemAnnouncement", true);
-        n.setMetadata(metadata);
-        return n;
+    private NotificationAdminDTO makeSystemNotification(String id, String announcementId, String creatorId) {
+        return new NotificationAdminDTO(
+                id,
+                announcementId,
+                "Title " + id,
+                "Body " + id,
+                "SYSTEM",
+                "SYSTEM",
+                LocalDateTime.of(2026, 7, 1, 0, 0),
+                creatorId);
     }
-
-
 
     @Nested
     @DisplayName("getSystemNotifications()")
     class GetSystemNotifications {
 
         @Test
-        @DisplayName("delegates to notificationMapper.selectDedupedAnnouncements with normalised pagination (default 10)")
+        @DisplayName("delegates to the read port with normalised pagination (default 10)")
         void delegatesWithNormalisedPagination() {
             AdminNotificationQueryDTO query = new AdminNotificationQueryDTO();
             query.setKeyword("test");
+            query.setCategory("SECURITY");
             query.setPage(3);
             query.setLimit(25);
 
-            IPage<Notification> empty = new Page<>(3, 25, 0);
-            when(notificationMapper.selectDedupedAnnouncements(
-                    any(Page.class), eq("SYSTEM"), eq("test"),
-                    any(), any(), any(), any()))
-                    .thenReturn((Page<Notification>) empty);
+            when(notificationAdminReadPort.selectSystemNotifications(
+                    eq(3), eq(25), eq("test"), any(), eq("SECURITY"), any(), any(), any()))
+                    .thenReturn(PageResult.of(List.of(), 0L, 3, 25));
 
-            var result = projection.getSystemNotifications(query);
+            PageResult<AdminNotificationVO> result = projection.getSystemNotifications(query);
 
             assertThat(result.getPage()).isEqualTo(3);
             assertThat(result.getPageSize()).isEqualTo(25);
@@ -114,37 +99,33 @@ class AdminNotificationProjectionTest {
         }
 
         @Test
-        @DisplayName("page-size cap is enforced by PaginationRequest (limit 999 -> 100)")
-        void pageSizeCapIsEnforced() {
+        @DisplayName("page-size over 100 is capped via PaginationRequest (999 -> 100)")
+        void pageSizeCappedAtHundred() {
             AdminNotificationQueryDTO query = new AdminNotificationQueryDTO();
             query.setPage(1);
             query.setLimit(999);
 
-            IPage<Notification> empty = new Page<>(1, 100, 0);
-            when(notificationMapper.selectDedupedAnnouncements(
-                    any(Page.class), eq("SYSTEM"), any(),
-                    any(), any(), any(), any()))
-                    .thenReturn((Page<Notification>) empty);
+            when(notificationAdminReadPort.selectSystemNotifications(
+                    eq(1), eq(100), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(PageResult.of(List.of(), 0L, 1, 100));
 
-            var result = projection.getSystemNotifications(query);
+            PageResult<AdminNotificationVO> result = projection.getSystemNotifications(query);
 
             assertThat(result.getPageSize()).isEqualTo(100);
         }
 
         @Test
-        @DisplayName("invalid sortBy is silently dropped to null (mapper-level default takes over)")
-        void invalidSortByIsSilentlyDropped() {
+        @DisplayName("invalid sortBy is dropped to null (mapper-level default takes over)")
+        void invalidSortByDroppedToNull() {
             AdminNotificationQueryDTO query = new AdminNotificationQueryDTO();
             query.setSortBy("DROP_TABLE");
             query.setSortOrder("desc");
 
             ArgumentCaptor<String> sortByCaptor = ArgumentCaptor.forClass(String.class);
-
-            IPage<Notification> empty = new Page<>(1, 10, 0);
-            when(notificationMapper.selectDedupedAnnouncements(
-                    any(Page.class), eq("SYSTEM"), any(),
-                    any(), any(), sortByCaptor.capture(), any()))
-                    .thenReturn((Page<Notification>) empty);
+            when(notificationAdminReadPort.selectSystemNotifications(
+                    anyInt(), anyInt(), any(), any(), any(), any(),
+                    sortByCaptor.capture(), any()))
+                    .thenReturn(PageResult.of(List.of(), 0L, 1, 10));
 
             projection.getSystemNotifications(query);
 
@@ -152,20 +133,18 @@ class AdminNotificationProjectionTest {
         }
 
         @Test
-        @DisplayName("valid sortBy values pass through to the mapper verbatim")
-        void validSortByPassesThrough() {
+        @DisplayName("valid sortBy and sortOrder pass through to the read port")
+        void validSortByPassedThrough() {
             AdminNotificationQueryDTO query = new AdminNotificationQueryDTO();
             query.setSortBy("announcementId");
             query.setSortOrder("asc");
 
             ArgumentCaptor<String> sortByCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<String> sortOrderCaptor = ArgumentCaptor.forClass(String.class);
-
-            IPage<Notification> empty = new Page<>(1, 10, 0);
-            when(notificationMapper.selectDedupedAnnouncements(
-                    any(Page.class), eq("SYSTEM"), any(),
-                    any(), any(), sortByCaptor.capture(), sortOrderCaptor.capture()))
-                    .thenReturn((Page<Notification>) empty);
+            when(notificationAdminReadPort.selectSystemNotifications(
+                    anyInt(), anyInt(), any(), any(), any(), any(),
+                    sortByCaptor.capture(), sortOrderCaptor.capture()))
+                    .thenReturn(PageResult.of(List.of(), 0L, 1, 10));
 
             projection.getSystemNotifications(query);
 
@@ -174,24 +153,24 @@ class AdminNotificationProjectionTest {
         }
 
         @Test
-        @DisplayName("projection shape + creator enrichment runs after the page query")
+        @DisplayName("projection shape runs after page query with batch creator enrichment")
         void projectionShapeRunsAfterPageQuery() {
             AdminNotificationQueryDTO query = new AdminNotificationQueryDTO();
 
-            Notification n1 = makeSystemNotification("n-1", "a-1", "u-1");
-            Notification n2 = makeSystemNotification("n-2", "a-2", "u-1");
-            Notification n3 = makeSystemNotification("n-3", "a-3", "u-2");
-            IPage<Notification> page = new Page<>(1, 10, 3);
-            page.setRecords(List.of(n1, n2, n3));
+            NotificationAdminDTO n1 = makeSystemNotification("n-1", "a-1", "u-1");
+            NotificationAdminDTO n2 = makeSystemNotification("n-2", "a-2", "u-1");
+            NotificationAdminDTO n3 = makeSystemNotification("n-3", "a-3", "u-2");
 
-            when(notificationMapper.selectDedupedAnnouncements(
-                    any(Page.class), any(), any(), any(), any(), any(), any()))
-                    .thenReturn(page);
+            when(notificationAdminReadPort.selectSystemNotifications(
+                    anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(PageResult.of(List.of(n1, n2, n3), 3L, 1, 10));
             when(userEnricher.enrich(anySet())).thenReturn(Map.of(
-                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice", "https://example.com/avatar/u-1.png", "alice@example.com"),
-                    "u-2", new AdminUserSummary("u-2", "bob", "role2", "Bob", "https://example.com/avatar/u-2.png", "bob@example.com")));
+                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice",
+                            "https://example.com/avatar/u-1.png", "alice@example.com"),
+                    "u-2", new AdminUserSummary("u-2", "bob", "role2", "Bob",
+                            "https://example.com/avatar/u-2.png", "bob@example.com")));
 
-            var result = projection.getSystemNotifications(query);
+            PageResult<AdminNotificationVO> result = projection.getSystemNotifications(query);
 
             assertThat(result.getItems()).hasSize(3);
             assertThat(result.getItems()).extracting(AdminNotificationVO::getId)
@@ -204,59 +183,49 @@ class AdminNotificationProjectionTest {
                     .containsExactly("alice", "alice", "bob");
             assertThat(result.getItems()).extracting(v -> v.getCreator().getAvatar())
                     .containsExactly("https://example.com/avatar/u-1.png",
-                                     "https://example.com/avatar/u-1.png",
-                                     "https://example.com/avatar/u-2.png");
+                            "https://example.com/avatar/u-1.png",
+                            "https://example.com/avatar/u-2.png");
             assertThat(result.getTotal()).isEqualTo(3);
         }
 
         @Test
-        @DisplayName("no creator IDs in metadata -> userMapper is not queried (N+1 safe)")
-        void noCreatorIdsSkipsUserLookup() {
+        @DisplayName("rows without creator ids skip enrichment (no N+1 lookups)")
+        void noCreatorIdsSkipsEnrichment() {
             AdminNotificationQueryDTO query = new AdminNotificationQueryDTO();
+            NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", null);
 
-            Notification n = new Notification();
-            n.setId("n-1");
-            n.setTitle("Title");
-            n.setBody("Body");
-            n.setType("SYSTEM");
-            n.setCategory("SYSTEM");
-            // metadata intentionally null
-            IPage<Notification> page = new Page<>(1, 10, 1);
-            page.setRecords(List.of(n));
+            when(notificationAdminReadPort.selectSystemNotifications(
+                    anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(PageResult.of(List.of(n), 1L, 1, 10));
 
-            when(notificationMapper.selectDedupedAnnouncements(
-                    any(Page.class), any(), any(), any(), any(), any(), any()))
-                    .thenReturn(page);
-
-            var result = projection.getSystemNotifications(query);
+            PageResult<AdminNotificationVO> result = projection.getSystemNotifications(query);
 
             assertThat(result.getItems()).hasSize(1);
             assertThat(result.getItems().get(0).getCreator()).isNull();
-
             verify(userEnricher, never()).enrich(anySet());
         }
     }
 
     @Nested
-    @DisplayName("toAdminVO() — single entity shortcut")
+    @DisplayName("toAdminVO()")
     class ToAdminVOSingle {
 
         @Test
-        @DisplayName("returns null when the input is null")
+        @DisplayName("returns null for a null DTO")
         void returnsNullForNull() {
-            assertThat(projection.toAdminVO((Notification) null)).isNull();
+            assertThat(projection.toAdminVO((NotificationAdminDTO) null)).isNull();
         }
 
         @Test
-        @DisplayName("populates every scalar field from the entity")
-        void populatesScalars() {
-            Notification n = makeSystemNotification("n-1", "a-1", "u-1");
+        @DisplayName("populates every VO field and enriches the creator")
+        void populatesAllFields() {
+            NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", "u-1");
             when(userEnricher.enrich(anySet())).thenReturn(Map.of(
-                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice", "https://example.com/avatar/u-1.png", "alice@example.com")));
+                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice",
+                            "https://example.com/avatar/u-1.png", "alice@example.com")));
 
             AdminNotificationVO vo = projection.toAdminVO(n);
 
-            assertThat(vo).isNotNull();
             assertThat(vo.getId()).isEqualTo("n-1");
             assertThat(vo.getAnnouncementId()).isEqualTo("a-1");
             assertThat(vo.getTitle()).isEqualTo("Title n-1");
@@ -271,42 +240,34 @@ class AdminNotificationProjectionTest {
         }
 
         @Test
-        @DisplayName("creator stays null when metadata.createdBy is missing")
-        void nullMetadataCreator() {
-            Notification n = new Notification();
-            n.setId("n-1");
-            n.setTitle("Title");
-            n.setBody("Body");
-            n.setType("SYSTEM");
-            n.setCategory("SYSTEM");
-            n.setMetadata(null);
+        @DisplayName("leaves creator null when the DTO carries no createdBy")
+        void creatorNullWhenNoCreatedBy() {
+            NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", null);
 
             AdminNotificationVO vo = projection.toAdminVO(n);
 
-            assertThat(vo).isNotNull();
             assertThat(vo.getCreator()).isNull();
             verify(userEnricher, never()).enrich(anySet());
         }
 
         @Test
-        @DisplayName("creator stays null when the user is not found in the batch lookup")
-        void creatorNullWhenUserNotFound() {
-            Notification n = makeSystemNotification("n-1", "a-1", "missing-user");
+        @DisplayName("leaves creator null when the creator id is not resolvable")
+        void creatorNullWhenUserMissing() {
+            NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", "missing-user");
             when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
 
             AdminNotificationVO vo = projection.toAdminVO(n);
 
-            assertThat(vo).isNotNull();
             assertThat(vo.getCreator()).isNull();
         }
     }
 
     @Nested
-    @DisplayName("buildAnnouncementVO() — all-opted-out broadcast")
+    @DisplayName("buildAnnouncementVO() — all-opted-out broadcast intent")
     class BuildAnnouncementVO {
 
         @Test
-        @DisplayName("carries announcementId, title, content, type and category")
+        @DisplayName("carries only the announcement metadata")
         void carriesAnnouncementMetadata() {
             CreateSystemNotificationRequest request = new CreateSystemNotificationRequest();
             request.setTitle("Heads-up");

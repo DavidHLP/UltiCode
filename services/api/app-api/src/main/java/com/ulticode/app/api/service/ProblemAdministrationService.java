@@ -1,6 +1,7 @@
 package com.ulticode.app.api.service;
 
 import com.ulticode.app.api.command.CreateProblemCommand;
+import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
@@ -56,4 +57,15 @@ public interface ProblemAdministrationService {
      *         {@link #updateProblem}
      */
     RpcResult<Void> publishProblem(PublishProblemCommand command);
+
+    /**
+     * Soft-delete a problem.
+     *
+     * @param command carries commandId, idempotency key, actor
+     *                delegation, trace metadata, the problem id and
+     *                the expected version
+     * @return success (no payload); failure codes as documented on
+     *         {@link #updateProblem}
+     */
+    RpcResult<Void> deleteProblem(DeleteProblemCommand command);
 }

@@ -1,16 +1,12 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.app.api.dto.NotificationAdminDTO;
+import com.ulticode.app.api.service.NotificationAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.modules.notification.entity.Notification;
-import com.ulticode.modules.notification.mapper.NotificationMapper;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,23 +20,20 @@ import java.util.stream.Collectors;
 
 /**
  * Default (and only) adapter for {@link AdminNotificationProjection}. Owns
- * every entity-to-{@code AdminNotificationVO} projection rule, the sort-field
+ * every DTO-to-{@code AdminNotificationVO} projection rule, the sort-field
  * whitelist and the batch creator enrichment for the admin system
  * notification surface &mdash; see the interface javadoc for the deepening
  * rationale.
  *
- * <p>All read methods are pure reads; none mutate notification state. The
- * paginated list read uses {@code NotificationMapper.selectDedupedAnnouncements}
- * and batch-loads creator metadata via {@code AdminUserEnricher.enrich} to stay N+1-safe.
+ * <p>ADMIN-008: all notification entity/mapper imports replaced with
+ * {@link NotificationAdminReadPort}. The paginated list read goes through
+ * the App-owned read provider (deduplicated system announcements); creator
+ * metadata is batch-loaded via {@code AdminUserEnricher.enrich} to stay
+ * N+1-safe.
  *
- * <p>Cross-module entity imports ({@link AdminUserSummary}) live here and
- * only here &mdash; the {@code AdminNotificationService} write state machine
- * no longer imports {@code UserMapper} for read enrichment after the extraction.
- *
- * <p>Mirrors the {@code DefaultAdminSubmissionProjection} /
- * {@code DefaultAdminContestProjection} / {@code DefaultModerationProjection} /
- * {@code DefaultAchievementProjection} shape exactly: {@link
- * org.springframework.stereotype.Service @Service} + Lombok's
+ * <p>Mirrors the {@code DefaultAdminContestProjection} /
+ * {@code DefaultAdminSubmissionProjection} shape exactly:
+ * {@link org.springframework.stereotype.Service @Service} + Lombok's
  * {@link lombok.RequiredArgsConstructor} for constructor injection and
  * {@link lombok.extern.slf4j.Slf4j @Slf4j} for the SLF4J Logger, with a
  * small, focused surface that callers compose with the service's write
@@ -56,7 +49,7 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
     /**
      * Whitelist of {@code sortBy} values accepted by the paginated list read.
      * Any value outside this set is silently dropped to {@code null} so the
-     * mapper-level {@code <otherwise>n.created_at</otherwise>} takes over
+     * provider-side {@code <otherwise>n.created_at</otherwise>} takes over
      * &mdash; matching the legacy behaviour carried by
      * {@code AdminNotificationServiceImpl}.
      */
@@ -67,7 +60,7 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
     /** Hard-coded SYSTEM category used when the create request omits it. */
     private static final String SYSTEM_CATEGORY = "SYSTEM";
 
-    private final NotificationMapper notificationMapper;
+    private final NotificationAdminReadPort notificationAdminReadPort;
     private final AdminUserEnricher userEnricher;
 
     // ------------------------------------------------------------------
@@ -86,25 +79,26 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
         }
         String sortOrder = query.getSortOrder();
 
-        IPage<Notification> result = notificationMapper.selectDedupedAnnouncements(
-                new Page<>(page, limit),
-                SYSTEM_CATEGORY,
+        PageResult<NotificationAdminDTO> result = notificationAdminReadPort.selectSystemNotifications(
+                page,
+                limit,
                 query.getKeyword(),
                 query.getType(),
+                query.getCategory(),
                 query.getAnnouncementId(),
                 sortBy,
                 sortOrder);
 
-        List<AdminNotificationVO> vos = toAdminVOList(result.getRecords());
+        List<AdminNotificationVO> vos = toAdminVOList(result.getItems());
         return PageResult.of(vos, result.getTotal(), page, limit);
     }
 
     // ------------------------------------------------------------------
-    // Projection helpers (entity -> AdminNotificationVO)
+    // Projection helpers (DTO -> AdminNotificationVO)
     // ------------------------------------------------------------------
 
     @Override
-    public AdminNotificationVO toAdminVO(Notification notification) {
+    public AdminNotificationVO toAdminVO(NotificationAdminDTO notification) {
         if (notification == null) {
             return null;
         }
@@ -127,19 +121,19 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
     }
 
     /**
-     * Project a list of {@link Notification} entities to the admin VO shape
-     * with one batched creator enrichment lookup. N+1-safe: every distinct
-     * {@code metadata.createdBy} is collapsed into a single
+     * Project a list of {@link NotificationAdminDTO} rows to the admin VO
+     * shape with one batched creator enrichment lookup. N+1-safe: every
+     * distinct {@code createdBy} is collapsed into a single
      * {@code AdminUserEnricher.enrich} call.
      */
-    private List<AdminNotificationVO> toAdminVOList(List<Notification> notifications) {
+    private List<AdminNotificationVO> toAdminVOList(List<NotificationAdminDTO> notifications) {
         if (notifications == null || notifications.isEmpty()) {
             return Collections.emptyList();
         }
 
         Set<String> creatorIds = notifications.stream()
-                .filter(n -> n.getMetadata() != null && n.getMetadata().get("createdBy") != null)
-                .map(n -> (String) n.getMetadata().get("createdBy"))
+                .map(NotificationAdminDTO::createdBy)
+                .filter(StringUtils::hasText)
                 .collect(Collectors.toSet());
 
         Map<String, AdminUserSummary> userMap = creatorIds.isEmpty()
@@ -154,34 +148,32 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
     /**
      * Pure shape rule for a single notification with a pre-loaded creator
      * map. When {@code notification} is {@code null} returns {@code null};
-     * when the {@code metadata.createdBy} entry is absent the {@code creator}
-     * field is left null (matching the legacy behaviour &mdash; only the
-     * system-announcement branch sets metadata).
+     * when the {@code createdBy} entry is absent the {@code creator} field
+     * is left null (matching the legacy behaviour &mdash; only the
+     * system-announcement branch sets createdBy metadata).
      */
-    private AdminNotificationVO toAdminVO(Notification notification, Map<String, AdminUserSummary> userMap) {
+    private AdminNotificationVO toAdminVO(NotificationAdminDTO notification, Map<String, AdminUserSummary> userMap) {
         if (notification == null) {
             return null;
         }
 
         AdminNotificationVO vo = new AdminNotificationVO();
-        vo.setId(notification.getId());
-        vo.setAnnouncementId(notification.getAnnouncementId());
-        vo.setTitle(notification.getTitle());
-        vo.setContent(notification.getBody());
-        vo.setType(notification.getType());
-        vo.setCategory(notification.getCategory());
-        vo.setCreatedAt(notification.getCreatedAt());
+        vo.setId(notification.id());
+        vo.setAnnouncementId(notification.announcementId());
+        vo.setTitle(notification.title());
+        vo.setContent(notification.body());
+        vo.setType(notification.type());
+        vo.setCategory(notification.category());
+        vo.setCreatedAt(notification.createdAt());
 
-        if (notification.getMetadata() != null) {
-            String creatorId = (String) notification.getMetadata().get("createdBy");
-            if (StringUtils.hasText(creatorId) && userMap.containsKey(creatorId)) {
-                AdminUserSummary creator = userMap.get(creatorId);
-                AdminNotificationVO.CreatorInfo creatorInfo = new AdminNotificationVO.CreatorInfo();
-                creatorInfo.setId(creator.accountId());
-                creatorInfo.setUsername(creator.username());
-                creatorInfo.setAvatar(creator.avatar());
-                vo.setCreator(creatorInfo);
-            }
+        String creatorId = notification.createdBy();
+        if (StringUtils.hasText(creatorId) && userMap.containsKey(creatorId)) {
+            AdminUserSummary creator = userMap.get(creatorId);
+            AdminNotificationVO.CreatorInfo creatorInfo = new AdminNotificationVO.CreatorInfo();
+            creatorInfo.setId(creator.accountId());
+            creatorInfo.setUsername(creator.username());
+            creatorInfo.setAvatar(creator.avatar());
+            vo.setCreator(creatorInfo);
         }
 
         return vo;

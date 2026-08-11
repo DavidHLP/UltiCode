@@ -15,9 +15,9 @@ dubbo:
   application:
     name: backend-app-test
   registry:
-    address: N/A
+    address: multicast://224.5.6.7:1234
     register: false
-    subscribe: false
+    subscribe: true
 
 management:
   health:

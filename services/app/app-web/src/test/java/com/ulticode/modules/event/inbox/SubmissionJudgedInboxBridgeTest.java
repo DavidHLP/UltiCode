@@ -3,6 +3,7 @@ package com.ulticode.modules.event.inbox;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
+import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
 import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import org.junit.jupiter.api.Test;
@@ -56,17 +57,19 @@ class SubmissionJudgedInboxBridgeTest {
     private SubmissionJudgedAchievementConsumer achievementConsumer;
     @Mock
     private SubmissionJudgedWebSocketConsumer webSocketConsumer;
+    @Mock
+    private SubmissionJudgedContestConsumer contestConsumer;
     @Test
     void stagesOneEventIntoBothOwnerInboxesBeforeAcknowledging() {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn(
-                "inbox-notification", "inbox-achievement", "inbox-websocket");
+                "inbox-notification", "inbox-achievement", "inbox-websocket", "inbox-contest");
         when(inboxMapper.insertIfAbsent(anyString(), anyString(), eq("event-1"),
                 eq("SubmissionJudged"), anyString())).thenReturn(1);
 
         MapRecord<String, String, String> record = record("event-1", "Accepted");
-        doReturn(List.of(record), List.of(), List.of(record), List.of(), List.of(record), List.of())
+        doReturn(List.of(record), List.of(), List.of(record), List.of(), List.of(record), List.of(), List.of(record), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -75,12 +78,14 @@ class SubmissionJudgedInboxBridgeTest {
 
         int staged = bridge.consume();
 
-        assertThat(staged).isEqualTo(3);
+        assertThat(staged).isEqualTo(4);
         verify(inboxMapper).insertIfAbsent(eq("inbox-notification"), eq("App-Notification"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
         verify(inboxMapper).insertIfAbsent(eq("inbox-achievement"), eq("App-Achievement"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
         verify(inboxMapper).insertIfAbsent(eq("inbox-websocket"), eq("App-WebSocket"),
+                eq("event-1"), eq("SubmissionJudged"), anyString());
+        verify(inboxMapper).insertIfAbsent(eq("inbox-contest"), eq("App-Contest"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
                 (RecordId) eq(record.getId()));
@@ -95,7 +100,7 @@ class SubmissionJudgedInboxBridgeTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn(
-                "inbox-notification", "inbox-achievement", "inbox-websocket");
+                "inbox-notification", "inbox-achievement", "inbox-websocket", "inbox-contest");
         when(inboxMapper.insertIfAbsent(anyString(), anyString(), eq("event-1"),
                 eq("SubmissionJudged"), anyString())).thenReturn(1);
 
@@ -114,7 +119,7 @@ class SubmissionJudgedInboxBridgeTest {
 
         int staged = bridge().consume();
 
-        assertThat(staged).isEqualTo(3);
+        assertThat(staged).isEqualTo(4);
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
                 (RecordId) eq(record.getId()));
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Achievement"),
@@ -158,7 +163,7 @@ class SubmissionJudgedInboxBridgeTest {
                         "payload", "not-json"))
                 .withStreamKey("stream:integration")
                 .withId(RecordId.of("2-0"));
-        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of())
+        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -185,7 +190,7 @@ class SubmissionJudgedInboxBridgeTest {
                         "payload", "null"))
                 .withStreamKey("stream:integration")
                 .withId(RecordId.of("3-0"));
-        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of())
+        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -212,7 +217,7 @@ class SubmissionJudgedInboxBridgeTest {
                         "payload", "{\"submissionId\":\"submission-1\"}"))
                 .withStreamKey("stream:integration")
                 .withId(RecordId.of("4-0"));
-        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of())
+        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -237,7 +242,7 @@ class SubmissionJudgedInboxBridgeTest {
                         eq("SubmissionJudged"), anyString());
 
         MapRecord<String, String, String> record = record("event-1", "Accepted");
-        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of())
+        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -267,7 +272,7 @@ class SubmissionJudgedInboxBridgeTest {
                 .when(streamOperations)
                 .acknowledge(eq("stream:integration"), eq("App-Notification"),
                         (RecordId) eq(record.getId()));
-        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of())
+        doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -291,7 +296,8 @@ class SubmissionJudgedInboxBridgeTest {
                 uuidGenerator,
                 notificationConsumer,
                 achievementConsumer,
-                webSocketConsumer);
+                webSocketConsumer,
+                contestConsumer);
     }
 
     private static MapRecord<String, String, String> record(String eventId, String verdict) {

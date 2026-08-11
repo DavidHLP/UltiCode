@@ -108,8 +108,7 @@ public class ContestCatalogController {
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}")
     public Result<ContestVO> getContestById(@PathVariable String id) {
-        String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        return Result.success(contestProjection.getContestById(resolvedId, currentUserProvider.getCurrentUserId()));
+        return Result.success(contestProjection.getPublicContestById(id, currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Get contest problems",

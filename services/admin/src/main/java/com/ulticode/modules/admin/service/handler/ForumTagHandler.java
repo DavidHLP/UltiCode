@@ -1,32 +1,52 @@
 package com.ulticode.modules.admin.service.handler;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.admin.dto.tag.*;
-import com.ulticode.modules.forum.entity.ForumTag;
-import com.ulticode.modules.forum.mapper.ForumTagMapper;
+import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.app.api.command.ForumTagMutationCommand;
+import com.ulticode.app.api.dto.ForumTagDTO;
+import com.ulticode.app.api.service.ForumTagAdministrationService;
+import com.ulticode.app.api.service.ForumTagReadPort;
+import com.ulticode.app.api.service.ForumTagReadPort.ForumTagPage;
+import com.ulticode.app.api.service.ForumTagReadPort.ForumTagRow;
+import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.common.tracing.TraceMetadata;
+import com.ulticode.common.util.TraceIdUtil;
+import com.ulticode.modules.admin.dto.tag.CreateTagDTO;
+import com.ulticode.modules.admin.dto.tag.MergeTagDTO;
+import com.ulticode.modules.admin.dto.tag.TagListResponse;
+import com.ulticode.modules.admin.dto.tag.TagTypes;
+import com.ulticode.modules.admin.dto.tag.TagVO;
+import com.ulticode.modules.admin.dto.tag.UpdateTagDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
-import java.time.Clock;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
+/**
+ * Forum-branch implementation of {@link TagDomainHandler}.
+ *
+ * <p>ADMIN-007: the forum module's entities/mappers are no longer on the
+ * admin classpath. Reads go through {@link ForumTagReadPort}; writes go
+ * through {@link ForumTagAdministrationService} — a Dubbo provider
+ * carrying full command / idempotency / actor / trace metadata.
+ * {@code RpcResult} failures are mapped explicitly onto
+ * {@link AdminErrorCode} (missing tag &rarr;
+ * {@code FORUM_TAG_NOT_FOUND}; name / slug conflicts &rarr;
+ * {@code FORUM_TAG_NAME_EXISTS} / {@code FORUM_TAG_SLUG_EXISTS}).
+ *
+ * @author ulticode
+ */
 @Component
 @RequiredArgsConstructor
 public class ForumTagHandler implements TagDomainHandler {
 
-    private final ForumTagMapper forumTagMapper;
-    private final Clock clock;
-    private final UuidGenerator uuidGenerator;
+    private final ForumTagReadPort forumTagReadPort;
+    private final ForumTagAdministrationService forumTagAdministrationService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public String type() {
@@ -35,25 +55,14 @@ public class ForumTagHandler implements TagDomainHandler {
 
     @Override
     public TagListResponse list(String search, int pageNum, int pageSize, String sortBy, String sortOrder) {
-        LambdaQueryWrapper<ForumTag> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(search)) {
-            wrapper.like(ForumTag::getName, search).or().like(ForumTag::getSlug, search);
-        }
-        boolean isAsc = "asc".equalsIgnoreCase(sortOrder);
-        if ("usageCount".equalsIgnoreCase(sortBy) || "usage_count".equalsIgnoreCase(sortBy)) {
-            wrapper.orderBy(true, isAsc, ForumTag::getUsageCount);
-        } else {
-            wrapper.orderBy(true, isAsc, ForumTag::getName);
-        }
-        IPage<ForumTag> page = new Page<>(pageNum, pageSize);
-        IPage<ForumTag> result = forumTagMapper.selectPage(page, wrapper);
-        List<TagVO> data = result.getRecords().stream().map(this::toTagVO).collect(Collectors.toList());
-        return TagListResponse.of(data, result.getTotal(), pageNum, pageSize);
+        ForumTagPage page = forumTagReadPort.page(search, pageNum, pageSize, sortBy, sortOrder);
+        List<TagVO> data = page.rows().stream().map(this::toTagVO).toList();
+        return TagListResponse.of(data, page.total(), pageNum, pageSize);
     }
 
     @Override
     public TagVO getById(String id) {
-        ForumTag tag = forumTagMapper.selectById(id);
+        ForumTagRow tag = forumTagReadPort.getById(id);
         if (tag == null) {
             throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
         }
@@ -62,89 +71,121 @@ public class ForumTagHandler implements TagDomainHandler {
 
     @Override
     public TagVO create(CreateTagDTO dto, String slug) {
-        if (forumTagMapper.existsByName(dto.getName())) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_NAME_EXISTS);
-        }
-        if (forumTagMapper.existsBySlug(slug)) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_SLUG_EXISTS);
-        }
-        ForumTag tag = new ForumTag();
-        tag.setId(uuidGenerator.newId());
-        tag.setName(dto.getName());
-        tag.setSlug(slug);
-        tag.setDescription(dto.getDescription());
-        tag.setColor(dto.getColor());
-        tag.setUsageCount(0);
-        tag.setCreatedAt(LocalDateTime.now(clock));
-        forumTagMapper.insert(tag);
-        return toTagVO(tag);
+        ForumTagDTO result = mutate(new ForumTagMutationCommand(
+                commandId(), idempotency(), actor("forum tag create"),
+                currentTrace(),
+                ForumTagMutationCommand.Action.CREATE,
+                null, null, null,
+                dto.getName(), slug, dto.getDescription(), dto.getColor()));
+        return toTagVO(result);
     }
 
     @Override
     public TagVO update(String id, UpdateTagDTO dto) {
-        ForumTag existing = forumTagMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
-        }
-        if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.getName())) {
-            if (forumTagMapper.existsByName(dto.getName())) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_NAME_EXISTS);
-            }
-            existing.setName(dto.getName());
-        }
-        if (StringUtils.hasText(dto.getSlug()) && !dto.getSlug().equals(existing.getSlug())) {
-            if (forumTagMapper.existsBySlug(dto.getSlug())) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_SLUG_EXISTS);
-            }
-            existing.setSlug(dto.getSlug());
-        }
-        if (dto.getDescription() != null) {
-            existing.setDescription(dto.getDescription());
-        }
-        if (dto.getColor() != null) {
-            existing.setColor(dto.getColor());
-        }
-        forumTagMapper.updateById(existing);
-        return toTagVO(existing);
+        ForumTagDTO result = mutate(new ForumTagMutationCommand(
+                commandId(), idempotency(), actor("forum tag update"),
+                currentTrace(),
+                ForumTagMutationCommand.Action.UPDATE,
+                id, null, null,
+                dto.getName(), dto.getSlug(), dto.getDescription(), dto.getColor()));
+        return toTagVO(result);
     }
 
     @Override
     public void delete(String id) {
-        if (forumTagMapper.selectById(id) == null) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
-        }
-        forumTagMapper.deleteById(id);
+        mutate(new ForumTagMutationCommand(
+                commandId(), idempotency(), actor("forum tag delete"),
+                currentTrace(),
+                ForumTagMutationCommand.Action.DELETE,
+                id, null, null, null, null, null, null));
     }
 
     @Override
     public void merge(MergeTagDTO dto) {
-        ForumTag source = forumTagMapper.selectById(dto.getSourceId());
-        ForumTag target = forumTagMapper.selectById(dto.getTargetTagId());
-        if (source == null || target == null) {
-            throw new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND);
+        mutate(new ForumTagMutationCommand(
+                commandId(), idempotency(), actor("forum tag merge"),
+                currentTrace(),
+                ForumTagMutationCommand.Action.MERGE,
+                null, dto.getSourceId(), dto.getTargetTagId(),
+                null, null, null, null));
+    }
+
+    private static TraceMetadata currentTrace() {
+        String reqId = TraceIdUtil.current();
+        if (reqId == null || reqId.isBlank()) {
+            reqId = "t-" + UUID.randomUUID();
         }
-        forumTagMapper.deleteById(dto.getSourceId());
+        return new TraceMetadata(reqId, null, null, null);
     }
 
-    public Map<String, Object> auditValues(ForumTag tag) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("name", tag.getName());
-        values.put("slug", tag.getSlug());
-        values.put("description", tag.getDescription());
-        values.put("color", tag.getColor());
-        return values;
+    private ForumTagDTO mutate(ForumTagMutationCommand command) {
+        RpcResult<ForumTagDTO> result = forumTagAdministrationService.mutate(command);
+        if (result == null || !result.success()) {
+            throw mapError(result);
+        }
+        return result.data();
     }
 
-    private TagVO toTagVO(ForumTag tag) {
+    private static BusinessException mapError(RpcResult<?> result) {
+        if (result == null) {
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "RPC result is null (transport failure)");
+        }
+        var err = result.error();
+        if (err == null) {
+            return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "RPC failed without error payload");
+        }
+        return switch (err.code()) {
+            case 40000 -> new BusinessException(AdminErrorCode.BAD_REQUEST, err.message());
+            case 40100 -> new BusinessException(AdminErrorCode.UNAUTHORIZED, err.message());
+            case 40300 -> new BusinessException(AdminErrorCode.FORBIDDEN, err.message());
+            case 40401 -> new BusinessException(AdminErrorCode.FORUM_TAG_NOT_FOUND, err.message());
+            case 40904 -> new BusinessException(AdminErrorCode.FORUM_TAG_NAME_EXISTS, err.message());
+            case 40905 -> new BusinessException(AdminErrorCode.FORUM_TAG_SLUG_EXISTS, err.message());
+            default -> new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
+        };
+    }
+
+    private static String commandId() {
+        return UUID.randomUUID().toString();
+    }
+
+    private static IdMetadata idempotency() {
+        return IdMetadata.mint();
+    }
+
+    private ActorDelegation actor(String rationale) {
+        String actorId = currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+        }
+        return new ActorDelegation(currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN", actorId, actorId, rationale);
+    }
+
+    private TagVO toTagVO(ForumTagRow tag) {
         TagVO vo = new TagVO();
-        vo.setId(tag.getId());
-        vo.setName(tag.getName());
-        vo.setSlug(tag.getSlug());
-        vo.setDescription(tag.getDescription());
-        vo.setColor(tag.getColor());
-        vo.setUsageCount(tag.getUsageCount());
+        vo.setId(tag.id());
+        vo.setName(tag.name());
+        vo.setSlug(tag.slug());
+        vo.setDescription(tag.description());
+        vo.setColor(tag.color());
+        vo.setUsageCount(tag.usageCount());
         vo.setType(TagTypes.FORUM);
-        vo.setCreatedAt(tag.getCreatedAt());
+        vo.setCreatedAt(tag.createdAt());
+        return vo;
+    }
+
+    private TagVO toTagVO(ForumTagDTO tag) {
+        TagVO vo = new TagVO();
+        vo.setId(tag.id());
+        vo.setName(tag.name());
+        vo.setSlug(tag.slug());
+        vo.setDescription(tag.description());
+        vo.setColor(tag.color());
+        vo.setUsageCount(tag.usageCount());
+        vo.setType(TagTypes.FORUM);
+        vo.setCreatedAt(tag.createdAt());
         return vo;
     }
 }

@@ -9,6 +9,7 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.app.api.service.SubmissionUserReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,9 +19,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,17 +41,25 @@ class RankingServiceImplTest {
     private com.ulticode.modules.contest.scoring.ScoringStrategyResolver scoringStrategyResolver;
     @Mock
     private com.ulticode.modules.contest.scoring.ScoringStrategy scoringStrategy;
+    @Mock
+    private SubmissionUserReadPort submissionUserReadPort;
 
     private RankingService rankingService;
 
     @BeforeEach
     void setUp() {
-        rankingService = new RankingServiceImpl(participantMapper, contestMapper, scoringStrategyResolver);
+        rankingService = new RankingServiceImpl(
+                participantMapper, contestMapper, scoringStrategyResolver, submissionUserReadPort);
         org.mockito.Mockito.lenient().when(scoringStrategyResolver.resolveFromString(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(scoringStrategy);
     }
 
     private ContestParticipantMapper.ContestParticipantWithUser createParticipant(String userId, int rank, int score) {
+        return createParticipant(userId, rank, score, "user-" + userId);
+    }
+
+    private ContestParticipantMapper.ContestParticipantWithUser createParticipant(
+            String userId, int rank, int score, String username) {
         return new ContestParticipantMapper.ContestParticipantWithUser(
                 "p-" + userId,
                 "c1",
@@ -62,7 +73,7 @@ class RankingServiceImplTest {
                 java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
                 java.time.LocalDateTime.of(2024, 1, 1, 0, 0, 0),
                 null,
-                "user-" + userId,
+                username,
                 "User " + userId,
                 "https://avatar.example.com/" + userId + ".png",
                 30,
@@ -163,6 +174,46 @@ class RankingServiceImplTest {
             assertThat(result.getItems()).isEmpty();
 
             verify(participantMapper).selectParticipantsWithUserByContestIdPaginated(contestId, 50, 0);
+        }
+
+        @Test
+        @DisplayName("resolves ranking display data through the App user read seam")
+        void resolvesRankingDisplayDataThroughUserReadPort() {
+            String contestId = "contest-123";
+            ContestParticipantMapper.ContestParticipantWithUser participant =
+                    createParticipant("u1", 1, 500);
+            when(participantMapper.countRankedParticipantsByContestId(contestId)).thenReturn(1L);
+            when(participantMapper.selectParticipantsWithUserByContestIdPaginated(contestId, 20, 0))
+                    .thenReturn(List.of(participant));
+            when(submissionUserReadPort.findAllById(any())).thenReturn(Map.of(
+                    "u1", new SubmissionUserReadPort.UserSummary("u1", "auth-user", "App User", "app-avatar")));
+
+            PageResult<ContestRankingVO> result = rankingService.getContestRanking(contestId, 1, 20);
+
+            assertThat(result.getItems()).singleElement().satisfies(item -> {
+                assertThat(item.getUsername()).isEqualTo("auth-user");
+                assertThat(item.getName()).isEqualTo("App User");
+                assertThat(item.getAvatar()).isEqualTo("app-avatar");
+            });
+            verify(submissionUserReadPort).findAllById(any());
+        }
+
+        @Test
+        @DisplayName("does not expose a raw account id as username when user lookup is missing")
+        void missingUserSummaryKeepsUsernameAbsent() {
+            String contestId = "contest-123";
+            ContestParticipantMapper.ContestParticipantWithUser participant =
+                    createParticipant("u1", 1, 500, null);
+            when(participantMapper.countRankedParticipantsByContestId(contestId)).thenReturn(1L);
+            when(participantMapper.selectParticipantsWithUserByContestIdPaginated(contestId, 20, 0))
+                    .thenReturn(List.of(participant));
+            when(submissionUserReadPort.findAllById(any())).thenReturn(Map.of());
+
+            PageResult<ContestRankingVO> result = rankingService.getContestRanking(contestId, 1, 20);
+
+            assertThat(result.getItems()).singleElement()
+                    .extracting(ContestRankingVO::getUsername)
+                    .isNull();
         }
 
         @Test

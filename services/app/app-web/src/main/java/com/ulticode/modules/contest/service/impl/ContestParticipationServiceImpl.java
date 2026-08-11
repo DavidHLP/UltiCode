@@ -37,8 +37,8 @@ import java.util.stream.Collectors;
  * {@link ContestParticipantTransitions} for every status transition and for
  * the register / start / delete operations on {@code contest_participants}.
  * The single-row read lookups
- * ({@link ContestParticipantMapper#findByContestIdAndUserId(String, String)},
- * {@link ContestParticipantMapper#findByContestIdAndUserIdForUpdate(String, String)},
+ * ({@link ContestParticipantMapper#findRealByContestIdAndUserId(String, String)},
+ * {@link ContestParticipantMapper#findVirtualByContestIdAndUserId(String, String)},
  * and {@link ContestParticipantMapper#findActiveVirtualSessionForUpdate(String, String)})
  * stay on the mapper because they are pure lookups with no transition
  * policy — the seam only owns write paths and read-then-write composites.
@@ -260,7 +260,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
 
     @Override
     public ParticipationStatusDTO getVirtualSession(String contestId, String userId) {
-        Optional<ContestParticipant> participantOpt = participantMapper.findByContestIdAndUserId(contestId, userId);
+        Optional<ContestParticipant> participantOpt = participantMapper.findVirtualByContestIdAndUserId(contestId, userId);
         if (participantOpt.isEmpty() || !Boolean.TRUE.equals(participantOpt.get().getIsVirtual())) {
             return null;
         }
@@ -289,7 +289,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     @Override
     @Transactional
     public void finishVirtualContest(String contestId, String sessionId, String userId) {
-        Optional<ContestParticipant> participantOpt = participantMapper.findByContestIdAndUserId(contestId, userId);
+        Optional<ContestParticipant> participantOpt = participantMapper.findVirtualByContestIdAndUserId(contestId, userId);
         if (participantOpt.isEmpty()) throw new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED);
 
         ContestParticipant participant = participantOpt.get();

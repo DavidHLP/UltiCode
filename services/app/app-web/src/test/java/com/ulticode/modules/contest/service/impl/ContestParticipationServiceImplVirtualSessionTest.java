@@ -112,7 +112,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void getVirtualSession_populatesIdAndEndsAt() {
         String sessionUuid = UUID.randomUUID().toString();
         ContestParticipant p = buildVirtualParticipant(sessionUuid);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
         Contest contest = buildContest();
         when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
@@ -133,7 +133,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void getVirtualSession_returnsNullForNonVirtual() {
         ContestParticipant p = buildVirtualParticipant(UUID.randomUUID().toString());
         p.setIsVirtual(false);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         ParticipationStatusDTO result = service.getVirtualSession(CONTEST_ID, USER_ID);
@@ -144,7 +144,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     @Test
     @DisplayName("getVirtualSession returns null when participant not found")
     void getVirtualSession_returnsNullWhenNotFound() {
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.empty());
 
         ParticipationStatusDTO result = service.getVirtualSession(CONTEST_ID, USER_ID);
@@ -161,7 +161,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void finishVirtualContest_acceptsNullSessionId() {
         String storedUuid = UUID.randomUUID().toString();
         ContestParticipant p = buildVirtualParticipant(storedUuid);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         // Should not throw — null sessionId is allowed
@@ -176,7 +176,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void finishVirtualContest_acceptsBlankSessionId() {
         String storedUuid = UUID.randomUUID().toString();
         ContestParticipant p = buildVirtualParticipant(storedUuid);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         service.finishVirtualContest(CONTEST_ID, "  ", USER_ID);
@@ -190,7 +190,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void finishVirtualContest_acceptsMatchingSessionId() {
         String storedUuid = UUID.randomUUID().toString();
         ContestParticipant p = buildVirtualParticipant(storedUuid);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         service.finishVirtualContest(CONTEST_ID, storedUuid, USER_ID);
@@ -203,7 +203,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     @DisplayName("finishVirtualContest rejects mismatched sessionId with 400")
     void finishVirtualContest_rejectsMismatchedSessionId() {
         ContestParticipant p = buildVirtualParticipant(UUID.randomUUID().toString());
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, "wrong-uuid", USER_ID))
@@ -216,7 +216,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void finishVirtualContest_rejectsNonVirtual() {
         ContestParticipant p = buildVirtualParticipant(UUID.randomUUID().toString());
         p.setIsVirtual(false);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, null, USER_ID))
@@ -234,7 +234,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         p.setStatus(ContestParticipantStatus.FINISHED.wireValue());
         p.setFinishedAt(originalFinish);
         p.setUpdatedAt(originalFinish);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
 
         // Re-finish an already-FINISHED session — should be a no-op
@@ -413,7 +413,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         }).when(participantTransitions).startVirtualParticipant(any(ContestParticipant.class));
 
         // getVirtualSession reads the DB — return a valid participant
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenAnswer(invocation -> {
                     ContestParticipant p = buildVirtualParticipant(generatedId.get());
                     return Optional.of(p);
@@ -467,7 +467,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         // getVirtualSession reads the winner's row from the DB
         ContestParticipant existing = buildVirtualParticipant(winnerSessionId);
-        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+        when(participantMapper.findVirtualByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(existing));
 
         // Must not throw — catch block handles DuplicateKeyException gracefully

@@ -16,6 +16,7 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.scoring.ContestRankingComparator;
 import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
 import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class RankingServiceImpl implements RankingService {
     private final ContestParticipantMapper participantMapper;
     private final ContestMapper contestMapper;
     private final ScoringStrategyResolver scoringStrategyResolver;
+    private final SubmissionUserReadPort submissionUserReadPort;
 
     /**
      * Public ranking read. Invisible contests are indistinguishable from
@@ -89,8 +91,9 @@ public class RankingServiceImpl implements RankingService {
         int offset = (int) ((long) (currentPage - 1) * currentLimit);
         List<ContestParticipantMapper.ContestParticipantWithUser> rankedParticipants =
                 participantMapper.selectParticipantsWithUserByContestIdPaginated(contestId, currentLimit, offset);
+        Map<String, SubmissionUserReadPort.UserSummary> userSummaries = findUserSummaries(rankedParticipants);
         List<ContestRankingVO> rankingList = rankedParticipants.stream()
-                .map(this::toRankingVO)
+                .map(participant -> toRankingVO(participant, userSummaries.get(participant.userId())))
                 .collect(Collectors.toList());
 
         return PageResult.of(rankingList, total, currentPage, currentLimit);
@@ -109,9 +112,11 @@ public class RankingServiceImpl implements RankingService {
         currentLimit = Math.min(currentLimit, MAX_LIVE_LIMIT);
 
         List<ContestParticipantMapper.ContestParticipantWithUser> ranked = rankAll(contestId);
+        Map<String, SubmissionUserReadPort.UserSummary> userSummaries = findUserSummaries(ranked);
         int count = Math.min(currentLimit, ranked.size());
         return IntStream.range(0, count)
-                .mapToObj(index -> toLiveRankingEntryVO(ranked.get(index), index + 1))
+                .mapToObj(index -> toLiveRankingEntryVO(
+                        ranked.get(index), index + 1, userSummaries.get(ranked.get(index).userId())))
                 .collect(Collectors.toList());
     }
 
@@ -130,12 +135,14 @@ public class RankingServiceImpl implements RankingService {
         int currentLimit = pageRequest.pageSize();
 
         List<ContestParticipantMapper.ContestParticipantWithUser> ranked = rankAll(contestId);
+        Map<String, SubmissionUserReadPort.UserSummary> userSummaries = findUserSummaries(ranked);
         long total = ranked.size();
         long offset = pageRequest.offset();
         int from = (int) Math.min(offset, ranked.size());
         int to = (int) Math.min(offset + currentLimit, ranked.size());
         List<LiveRankingEntryVO> items = IntStream.range(from, to)
-                .mapToObj(index -> toLiveRankingEntryVO(ranked.get(index), index + 1))
+                .mapToObj(index -> toLiveRankingEntryVO(
+                        ranked.get(index), index + 1, userSummaries.get(ranked.get(index).userId())))
                 .collect(Collectors.toList());
         return PageResult.of(items, total, currentPage, currentLimit);
     }
@@ -211,10 +218,23 @@ public class RankingServiceImpl implements RankingService {
         return vo;
     }
 
+    private Map<String, SubmissionUserReadPort.UserSummary> findUserSummaries(
+            List<ContestParticipantMapper.ContestParticipantWithUser> participants) {
+        List<String> userIds = participants.stream()
+                .map(ContestParticipantMapper.ContestParticipantWithUser::userId)
+                .filter(userId -> userId != null && !userId.isBlank())
+                .distinct()
+                .toList();
+        Map<String, SubmissionUserReadPort.UserSummary> summaries = submissionUserReadPort.findAllById(userIds);
+        return summaries == null ? Map.of() : summaries;
+    }
+
     /**
      * Convert ContestParticipantWithUser DTO to ContestRankingVO.
      */
-    private ContestRankingVO toRankingVO(ContestParticipantMapper.ContestParticipantWithUser participant) {
+    private ContestRankingVO toRankingVO(
+            ContestParticipantMapper.ContestParticipantWithUser participant,
+            SubmissionUserReadPort.UserSummary userSummary) {
         if (participant == null) {
             return null;
         }
@@ -226,9 +246,10 @@ public class RankingServiceImpl implements RankingService {
         vo.setPenalty(participant.totalPenalty() != null ? participant.totalPenalty().longValue() : null);
         vo.setProblemsSolved(participant.problemsSolved());
         vo.setIsParticipating(true);
-        vo.setUsername(participant.username());
-        vo.setName(participant.name());
-        vo.setAvatar(participant.avatar());
+        vo.setUsername(userSummary != null && userSummary.username() != null
+                ? userSummary.username() : participant.username());
+        vo.setName(userSummary != null ? userSummary.name() : participant.name());
+        vo.setAvatar(userSummary != null ? userSummary.avatar() : participant.avatar());
         return vo;
     }
 
@@ -236,16 +257,19 @@ public class RankingServiceImpl implements RankingService {
      * Convert ContestParticipantWithUser to LiveRankingEntryVO.
      */
     private LiveRankingEntryVO toLiveRankingEntryVO(
-            ContestParticipantMapper.ContestParticipantWithUser participant, int rank) {
+            ContestParticipantMapper.ContestParticipantWithUser participant,
+            int rank,
+            SubmissionUserReadPort.UserSummary userSummary) {
         if (participant == null) {
             return null;
         }
         LiveRankingEntryVO vo = new LiveRankingEntryVO();
         vo.setRank(rank);
         vo.setUserId(participant.userId());
-        vo.setUsername(participant.username());
-        vo.setName(participant.name());
-        vo.setAvatar(participant.avatar());
+        vo.setUsername(userSummary != null && userSummary.username() != null
+                ? userSummary.username() : participant.username());
+        vo.setName(userSummary != null ? userSummary.name() : participant.name());
+        vo.setAvatar(userSummary != null ? userSummary.avatar() : participant.avatar());
         vo.setScore(participant.totalScore() != null ? participant.totalScore().longValue() : null);
         vo.setPenalty(participant.totalPenalty() != null ? participant.totalPenalty().longValue() : null);
         vo.setProblemsSolved(participant.problemsSolved());

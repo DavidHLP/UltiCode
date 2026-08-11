@@ -29,6 +29,7 @@ import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.app.api.dto.SubmissionVO;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.SubmissionReadPort;
+import com.ulticode.app.api.service.SubmissionUserReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -69,6 +70,7 @@ public class DefaultContestProjection implements ContestProjection {
     private final ProblemFactsPort problemFactsPort;
     private final RankingService rankingService;
     private final SubmissionReadPort submissionProjection;
+    private final SubmissionUserReadPort submissionUserReadPort;
 
     @Override
     public java.util.List<ContestVO> findUserContests(String userId, String type) {
@@ -101,12 +103,22 @@ public class DefaultContestProjection implements ContestProjection {
         if (contests == null || contests.isEmpty()) {
             return java.util.Collections.emptyList();
         }
+        Map<String, SubmissionUserReadPort.UserSummary> creatorSummaries = findUserSummaries(
+                contests.stream()
+                        .map(Contest::getCreatedBy)
+                        .filter(createdBy -> createdBy != null && !createdBy.isBlank())
+                        .distinct()
+                        .toList());
         java.util.List<ContestVO> result = new ArrayList<>(contests.size());
         for (Contest contest : contests) {
             if (contest == null) continue;
             long problemCount = contestProblemMapper.countByContestId(contest.getId());
             ContestParticipant participant = byContestId.get(contest.getId());
             ContestVO vo = toVOInternal(contest, userId, problemCount, participant);
+            SubmissionUserReadPort.UserSummary creator = creatorSummaries.get(contest.getCreatedBy());
+            if (creator != null) {
+                vo.setCreatedByUsername(creator.username());
+            }
             if (participant != null) {
                 vo.setUserRanking(participant.getFinalRank());
                 if (participant.getTotalScore() != null) {
@@ -163,7 +175,7 @@ public class DefaultContestProjection implements ContestProjection {
         long problemCount = contestProblemMapper.countByContestId(contest.getId());
         ContestParticipant participant = null;
         if (userId != null && !userId.isBlank()) {
-            participant = participantMapper.findByContestIdAndUserId(contest.getId(), userId).orElse(null);
+            participant = participantMapper.findRealByContestIdAndUserId(contest.getId(), userId).orElse(null);
         }
         return toVOInternal(contest, userId, problemCount, participant);
     }
@@ -473,10 +485,17 @@ public class DefaultContestProjection implements ContestProjection {
             }
             if (parts.length > 1) afterUserId = parts[1];
         }
-        return participantMapper
-                .selectParticipantsKeyset(contestId, afterRank, afterUserId, max)
-                .stream()
-                .map(this::toContestRankingVO)
+        List<ContestParticipantMapper.ContestParticipantWithUser> participants = participantMapper
+                .selectParticipantsKeyset(contestId, afterRank, afterUserId, max);
+        Map<String, SubmissionUserReadPort.UserSummary> userSummaries = findUserSummaries(
+                participants.stream()
+                        .map(ContestParticipantMapper.ContestParticipantWithUser::userId)
+                        .filter(userId -> userId != null && !userId.isBlank())
+                        .distinct()
+                        .toList());
+        return participants.stream()
+                .map(participant -> toContestRankingVO(
+                        participant, userSummaries.get(participant.userId())))
                 .collect(Collectors.toList());
     }
 
@@ -533,14 +552,22 @@ public class DefaultContestProjection implements ContestProjection {
         return vo;
     }
 
-    private ContestRankingVO toContestRankingVO(ContestParticipantMapper.ContestParticipantWithUser p) {
+    private Map<String, SubmissionUserReadPort.UserSummary> findUserSummaries(Iterable<String> userIds) {
+        Map<String, SubmissionUserReadPort.UserSummary> summaries = submissionUserReadPort.findAllById(userIds);
+        return summaries == null ? Map.of() : summaries;
+    }
+
+    private ContestRankingVO toContestRankingVO(
+            ContestParticipantMapper.ContestParticipantWithUser p,
+            SubmissionUserReadPort.UserSummary userSummary) {
         if (p == null) return null;
         ContestRankingVO vo = new ContestRankingVO();
         vo.setRank(p.finalRank());
         vo.setUserId(p.userId());
-        vo.setUsername(p.username());
-        vo.setName(p.name());
-        vo.setAvatar(p.avatar());
+        vo.setUsername(userSummary != null && userSummary.username() != null
+                ? userSummary.username() : p.username());
+        vo.setName(userSummary != null ? userSummary.name() : p.name());
+        vo.setAvatar(userSummary != null ? userSummary.avatar() : p.avatar());
         vo.setScore(p.totalScore() != null ? p.totalScore().longValue() : null);
         vo.setPenalty(p.totalPenalty() != null ? p.totalPenalty().longValue() : null);
         vo.setProblemsSolved(p.problemsSolved());

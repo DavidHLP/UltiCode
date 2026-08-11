@@ -35,24 +35,40 @@ class GlobalRankingMapperSQLGuardTest {
     }
 
     @Test
-    @DisplayName("contest ranking queries read profile name and avatar from user_profiles")
-    void contestRankingQueriesUseUserProfiles() {
+    @DisplayName("contest ranking queries leave user display resolution to the App read seam")
+    void contestRankingQueriesDoNotJoinOwnerUserTables() {
         List<Method> rankingQueries = Arrays.stream(ContestParticipantMapper.class.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Select.class))
-                .filter(method -> joinedSql(method).contains("u.username"))
+                .filter(method -> joinedSql(method).contains("null as username"))
                 .toList();
 
-        assertThat(rankingQueries).isNotEmpty();
+        assertThat(rankingQueries).hasSize(3);
         for (Method method : rankingQueries) {
             String sql = joinedSql(method);
             assertThat(sql)
-                    .as("%s must read profile display data from user_profiles", method.getName())
-                    .contains("left join user_profiles p on cp.user_id = p.account_id")
-                    .contains("p.name")
-                    .contains("p.avatar")
-                    .doesNotContain("u.name")
-                    .doesNotContain("u.avatar");
+                    .as("%s must not cross the Auth/App user boundary", method.getName())
+                    .doesNotContain("join users")
+                    .doesNotContain("join user_profiles")
+                    .contains("null as username")
+                    .contains("null as name")
+                    .contains("null as avatar");
         }
+    }
+
+    @Test
+    @DisplayName("generic participant reads are restricted to real contests")
+    void genericParticipantReadsExcludeVirtualRows() throws NoSuchMethodException {
+        Method byContestAndUser = ContestParticipantMapper.class.getDeclaredMethod(
+                "findByContestIdAndUserId", String.class, String.class);
+        Method byContestsAndUser = ContestParticipantMapper.class.getDeclaredMethod(
+                "findByContestIdsAndUserId", List.class, String.class);
+
+        assertThat(joinedSql(byContestAndUser))
+                .as("single-contest participant lookup must not select virtual rows")
+                .contains("and is_virtual = 0");
+        assertThat(joinedSql(byContestsAndUser))
+                .as("batch participant lookup must not select virtual rows")
+                .contains("and is_virtual = 0");
     }
 
     private static String joinedSql(Method method) {

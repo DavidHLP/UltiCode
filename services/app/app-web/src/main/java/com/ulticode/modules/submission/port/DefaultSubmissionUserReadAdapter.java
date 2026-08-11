@@ -102,9 +102,12 @@ public class DefaultSubmissionUserReadAdapter implements SubmissionUserReadPort 
         for (String id : cleanIds) {
             UserProfile profile = profileMap.get(id);
             if (profile != null || usernameMap.containsKey(id)) {
-                String username = profile != null && profile.getName() != null
-                        ? profile.getName()
-                        : usernameMap.getOrDefault(id, id);
+                String username = usernameMap.get(id);
+                if (username == null || username.isBlank()) {
+                    username = profile != null && profile.getName() != null
+                            ? profile.getName()
+                            : id;
+                }
                 String name = profile != null ? profile.getName() : null;
                 String avatar = profile != null ? profile.getAvatar() : null;
                 result.put(id, new UserSummary(id, username, name, avatar));

@@ -13,6 +13,7 @@ import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.SubmissionReadPort;
+import com.ulticode.app.api.service.SubmissionUserReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +56,7 @@ class DefaultContestProjectionUserContestsTest {
     @Mock private ProblemFactsPort problemFactsPort;
     @Mock private RankingService rankingService;
     @Mock private SubmissionReadPort submissionProjection;
+    @Mock private SubmissionUserReadPort submissionUserReadPort;
 
     private DefaultContestProjection projection;
 
@@ -67,7 +70,7 @@ class DefaultContestProjectionUserContestsTest {
         projection = new DefaultContestProjection(
                 contestMapper, contestProblemMapper, participantMapper,
                 contestSubmissionMapper, globalRankingMapper, contestAnnouncementMapper,
-                problemFactsPort, rankingService, submissionProjection);
+                problemFactsPort, rankingService, submissionProjection, submissionUserReadPort);
     }
 
     private ContestParticipant makeParticipant(String contestId, String status, boolean isVirtual) {
@@ -160,6 +163,25 @@ class DefaultContestProjectionUserContestsTest {
 
         assertThat(result).hasSize(2);
         assertThat(result).extracting(ContestVO::getId).containsExactlyInAnyOrder(C1, C2);
+    }
+
+    @Test
+    @DisplayName("resolves contest creator display data through the App user read seam")
+    void resolvesCreatorThroughUserReadPort() {
+        Contest contest = makeContest(C1);
+        contest.setCreatedBy("creator-1");
+        when(participantMapper.findByUserId(USER_ID)).thenReturn(
+                List.of(makeParticipant(C1, ContestParticipantStatus.REGISTERED.wireValue(), false)));
+        when(contestMapper.selectBatchIds(any())).thenReturn(List.of(contest));
+        when(contestProblemMapper.countByContestId(C1)).thenReturn(0L);
+        when(submissionUserReadPort.findAllById(any())).thenReturn(Map.of(
+                "creator-1", new SubmissionUserReadPort.UserSummary(
+                        "creator-1", "creator", "Creator", "avatar")));
+
+        ContestVO result = projection.findUserContests(USER_ID, "registered").get(0);
+
+        assertThat(result.getCreatedByUsername()).isEqualTo("creator");
+        verify(submissionUserReadPort, times(1)).findAllById(any());
     }
 
     @Test

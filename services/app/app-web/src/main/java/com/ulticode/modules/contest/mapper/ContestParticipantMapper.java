@@ -40,7 +40,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @return the participant if found
      */
     @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} "
-            + "AND user_id = #{userId} ORDER BY registered_at DESC LIMIT 1")
+            + "AND user_id = #{userId} AND is_virtual = 0 ORDER BY registered_at DESC LIMIT 1")
     Optional<ContestParticipant> findByContestIdAndUserId(
             @Param("contestId") String contestId,
             @Param("userId") String userId
@@ -51,6 +51,15 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "AND user_id = #{userId} AND is_virtual = 0 "
             + "ORDER BY registered_at DESC LIMIT 1")
     Optional<ContestParticipant> findRealByContestIdAndUserId(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId
+    );
+
+    /** Find the latest virtual participation for a contest and user. */
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} "
+            + "AND user_id = #{userId} AND is_virtual = 1 "
+            + "ORDER BY registered_at DESC LIMIT 1")
+    Optional<ContestParticipant> findVirtualByContestIdAndUserId(
             @Param("contestId") String contestId,
             @Param("userId") String userId
     );
@@ -269,12 +278,10 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, "
             + "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, "
             + "cp.registered_at, cp.updated_at, cp.virtual_session_id, "
-            + "u.username, p.name, p.avatar, cp.last_solve_time, "
+            + "NULL AS username, NULL AS name, NULL AS avatar, cp.last_solve_time, "
             + "(SELECT COUNT(*) FROM contest_problem_results cpr "
             + "WHERE cpr.participant_id = cp.id AND cpr.is_solved = 1) AS problems_solved "
             + "FROM contest_participants cp "
-            + "LEFT JOIN users u ON cp.user_id = u.id "
-            + "LEFT JOIN user_profiles p ON cp.user_id = p.account_id "
             + "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 "
             + "AND cp.final_rank IS NOT NULL "
             + "<choose>"
@@ -354,7 +361,8 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     List<ContestParticipant> findByVirtualSessionId(@Param("virtualSessionId") String virtualSessionId);
 
     /**
-     * DTO record holding ContestParticipant fields plus joined user data.
+     * DTO record holding ContestParticipant fields. User display fields are
+     * populated by the consumer-owned SubmissionUserReadPort after this query.
      */
     record ContestParticipantWithUser(
             String id,
@@ -398,8 +406,8 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     }
 
     /**
-     * Find participants by contest ID with user data joined.
-     * Eliminates N+1 by fetching username/name/avatar in a single query.
+     * Find ranked participants by contest ID. User display data is resolved
+     * through the consumer-owned SubmissionUserReadPort, not a cross-owner join.
      *
      * @param contestId the contest ID
      * @return list of participants with user data
@@ -426,18 +434,17 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
             "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
             "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
-            "u.username, p.name, p.avatar, cp.last_solve_time, " +
+            "NULL AS username, NULL AS name, NULL AS avatar, cp.last_solve_time, " +
             "(SELECT COUNT(*) FROM contest_problem_results cpr " +
             "WHERE cpr.participant_id = cp.id AND cpr.is_solved = 1) AS problems_solved " +
             "FROM contest_participants cp " +
-            "LEFT JOIN users u ON cp.user_id = u.id " +
-            "LEFT JOIN user_profiles p ON cp.user_id = p.account_id " +
             "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC")
     List<ContestParticipantWithUser> selectParticipantsWithUserByContestId(@Param("contestId") String contestId);
 
     /**
-     * Find ranked participants by contest ID with user data joined, paginated.
+     * Find ranked participants by contest ID, paginated. User display data is
+     * resolved through the consumer-owned SubmissionUserReadPort.
      *
      * @param contestId the contest ID
      * @param limit     maximum number of participants to return
@@ -466,12 +473,10 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
             "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
             "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
-            "u.username, p.name, p.avatar, cp.last_solve_time, " +
+            "NULL AS username, NULL AS name, NULL AS avatar, cp.last_solve_time, " +
             "(SELECT COUNT(*) FROM contest_problem_results cpr " +
             "WHERE cpr.participant_id = cp.id AND cpr.is_solved = 1) AS problems_solved " +
             "FROM contest_participants cp " +
-            "LEFT JOIN users u ON cp.user_id = u.id " +
-            "LEFT JOIN user_profiles p ON cp.user_id = p.account_id " +
             "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 AND cp.final_rank IS NOT NULL " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC " +
             "LIMIT #{limit} OFFSET #{offset}")
@@ -502,9 +507,9 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "#{item}</foreach> ORDER BY contest_id, registered_at ASC</script>")
     List<ContestParticipant> findByContestIds(@Param("contestIds") List<String> contestIds);
 
-    @Select("<script>SELECT * FROM contest_participants WHERE contest_id IN " +
-            "<foreach item='item' collection='contestIds' open='(' separator=',' close=')'>" +
-            "#{item}</foreach> AND user_id = #{userId}</script>")
+    @Select("<script>SELECT * FROM contest_participants WHERE contest_id IN "
+            + "<foreach collection='contestIds' item='item' open='(' separator=',' close=')'>"
+            + "#{item}</foreach> AND user_id = #{userId} AND is_virtual = 0</script>")
     List<ContestParticipant> findByContestIdsAndUserId(@Param("contestIds") List<String> contestIds, @Param("userId") String userId);
 
     /**

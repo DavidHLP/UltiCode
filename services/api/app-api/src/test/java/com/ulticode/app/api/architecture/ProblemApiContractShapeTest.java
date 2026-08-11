@@ -13,6 +13,7 @@ import com.ulticode.app.api.service.ProblemListReadPort;
 import com.ulticode.app.api.service.ProblemOwnerPort;
 import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.app.api.service.TestCaseOwnerPort;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -64,7 +65,7 @@ class ProblemApiContractShapeTest {
                 .map(RecordComponent::getName).toList())
                 .containsExactly("key", "create", "id", "slug", "title", "difficulty",
                         "status", "isPremium", "isPublished");
-        assertThat(Arrays.stream(ProblemOwnerPort.ImportWriteRequest.class.getRecordComponents())
+        Assertions.<Class<?>>assertThat(Arrays.stream(ProblemOwnerPort.ImportWriteRequest.class.getRecordComponents())
                 .map(RecordComponent::getType).toList())
                 .containsExactly(String.class, boolean.class, Long.class, String.class,
                         String.class, String.class, String.class, Boolean.class, Boolean.class);
@@ -98,7 +99,7 @@ class ProblemApiContractShapeTest {
                         "id", "problemId", "isSample", "isHidden", "testOrder",
                         "inputText", "outputText", "explanation", "constraints", "inputs",
                         "createdAt", "updatedAt");
-        assertThat(Arrays.stream(components).map(RecordComponent::getType).toList())
+        Assertions.<Class<?>>assertThat(Arrays.stream(components).map(RecordComponent::getType).toList())
                 .containsExactlyElementsOf(Arrays.<Class<?>>asList(
                         String.class, Long.class, boolean.class, boolean.class, int.class,
                         String.class, String.class, String.class, String.class, String.class,

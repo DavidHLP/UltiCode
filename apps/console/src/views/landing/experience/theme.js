@@ -23,29 +23,29 @@ export const SOLARIZED = {
     green: "#859900",
 };
 
-// dark: 页面为 Solarized Dark(base03 底、base1 强调)
-// light: 页面为 Solarized Light(base3 底、base01 强调)
+// dark: 页面为 Solarized Dark(base03 底、base2 文字、cyan 强调)
+// light: 页面为 Solarized Light(base3 底、base01 文字、blue 强调)
 export const LANDING_THEMES = {
     dark: {
         clearColor: SOLARIZED.base03,
         fog: { dark: SOLARIZED.base03, light: SOLARIZED.base1 },
         // 无缝循环归零时雾色由 fogFade 渐变为 fog.light(原为纯黑→纯白)
         fogFade: SOLARIZED.base03,
-        desert: { colorA: SOLARIZED.base01, colorB: SOLARIZED.base1 },
-        light: { colorA: SOLARIZED.base01, colorB: SOLARIZED.base2 },
-        text: SOLARIZED.base1,
+        desert: { colorA: SOLARIZED.base01, colorB: SOLARIZED.cyan, glow: 2.5 },
+        light: { colorA: SOLARIZED.cyan, colorB: SOLARIZED.base2, glow: 1.0 },
+        text: SOLARIZED.base2,
         textStroke: SOLARIZED.base03,
-        mouse: SOLARIZED.base1,
+        mouse: SOLARIZED.cyan,
     },
     light: {
         clearColor: SOLARIZED.base3,
-        fog: { dark: SOLARIZED.base2, light: SOLARIZED.base01 },
+        fog: { dark: SOLARIZED.base2, light: SOLARIZED.base1 },
         fogFade: SOLARIZED.base3,
-        desert: { colorA: SOLARIZED.base1, colorB: SOLARIZED.base01 },
-        light: { colorA: SOLARIZED.base1, colorB: SOLARIZED.base00 },
+        desert: { colorA: SOLARIZED.base00, colorB: SOLARIZED.base01, glow: 1.1 },
+        light: { colorA: SOLARIZED.base1, colorB: SOLARIZED.blue, glow: 0.8 },
         text: SOLARIZED.base01,
-        textStroke: SOLARIZED.base3,
-        mouse: SOLARIZED.base01,
+        textStroke: SOLARIZED.base0,
+        mouse: SOLARIZED.blue,
     },
 };
 

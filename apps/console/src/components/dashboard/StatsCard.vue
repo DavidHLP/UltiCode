@@ -15,10 +15,13 @@ defineProps<{
 
 const colorClasses = {
   default: "text-foreground",
-  green: "text-[oklch(0.6444_0.1508_118.6)]",
-  blue: "text-[oklch(0.6149_0.1394_244.9)]",
-  purple: "text-[oklch(0.5924_0.2025_355.9)]",
-  orange: "text-[oklch(0.6545_0.1340_85.7)]",
+  green:
+    "text-foreground-strong decoration-status-success underline decoration-2 underline-offset-4",
+  blue: "text-foreground-strong decoration-link-decoration underline decoration-2 underline-offset-4",
+  purple:
+    "text-foreground-strong decoration-status-special underline decoration-2 underline-offset-4",
+  orange:
+    "text-foreground-strong decoration-status-warning underline decoration-2 underline-offset-4",
 };
 </script>
 
@@ -43,8 +46,8 @@ const colorClasses = {
           cn(
             'text-xs font-medium',
             trend.value >= 0
-              ? 'text-[oklch(0.6444_0.1508_118.6)]'
-              : 'text-[oklch(0.5863_0.2064_27.1)]',
+              ? 'text-foreground decoration-status-success underline decoration-2'
+              : 'text-foreground decoration-status-error underline decoration-2',
           )
         "
       >

@@ -3,11 +3,11 @@ import { createTopUsersChartOption, type TopUserChartColors } from './topUsersCh
 
 const colors: TopUserChartColors = {
   accent: '#268bd2',
-  accentMuted: '#2aa4f4',
+  accentMuted: '#2aa198',
   axis: '#839496',
   border: '#586e75',
-  card: '#002b36',
-  foreground: '#fdf6e3',
+  card: '#073642',
+  foreground: '#93a1a1',
 }
 
 describe('createTopUsersChartOption', () => {

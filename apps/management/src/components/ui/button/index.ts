@@ -1,4 +1,5 @@
 import type { VariantProps } from 'class-variance-authority'
+import { BUTTON_VARIANT_CLASSES } from '@ulticode/design-system'
 import { cva } from 'class-variance-authority'
 
 export { default as Button } from './Button.vue'
@@ -8,21 +9,14 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive:
-          'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
-        outline:
-          'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        link: 'text-primary underline-offset-4 hover:underline',
+        ...BUTTON_VARIANT_CLASSES,
         // Terminal Precision variants
         terminal:
-          'border border-[var(--silver-300)] bg-transparent font-data text-xs uppercase tracking-wider text-[var(--silver-600)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] dark:border-[var(--silver-300)] dark:text-[var(--silver-400)] dark:hover:border-[var(--accent-electric)] dark:hover:text-[var(--accent-electric)] transition-colors rounded-none shadow-none',
+          'border border-[var(--silver-300)] bg-transparent font-data text-xs uppercase tracking-wider text-[var(--silver-600)] hover:border-[var(--accent-electric)] hover:text-foreground dark:border-[var(--silver-300)] dark:text-[var(--silver-400)] dark:hover:border-[var(--accent-electric)] dark:hover:text-foreground transition-colors rounded-none shadow-none',
         terminal_primary:
-          'bg-[var(--accent-electric)] text-white font-data text-xs uppercase tracking-wider hover:bg-[var(--accent-electric)]/90 dark:hover:bg-[var(--accent-electric)]/80 rounded-none shadow-none',
+          'border border-[var(--accent-primary)] bg-primary text-primary-foreground font-data text-xs uppercase tracking-wider hover:bg-primary/90 rounded-none shadow-none',
         terminal_danger:
-          'border border-[var(--terminal-red)] bg-transparent text-[var(--terminal-red)] font-data text-xs uppercase tracking-wider hover:bg-[oklch(0.6_0.2_25/0.1)] dark:hover:bg-[oklch(0.58_0.18_25/0.15)] rounded-none shadow-none',
+          'border border-[var(--terminal-red)] bg-status-error-surface text-foreground-strong font-data text-xs uppercase tracking-wider hover:bg-status-error-surface/80 [&_svg]:text-[var(--terminal-red)] rounded-none shadow-none',
         terminal_ghost:
           'font-data text-xs uppercase tracking-wider text-[var(--silver-500)] hover:text-[var(--foreground)] hover:bg-transparent dark:text-[var(--silver-400)] dark:hover:text-[var(--foreground)] rounded-none shadow-none',
       },

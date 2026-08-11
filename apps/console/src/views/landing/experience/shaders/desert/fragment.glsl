@@ -156,8 +156,8 @@ void main()
     col += rim  * uRim;
     col += spec;
 
-    // tienilo scuro
-    col *= 0.05;
+    // Mantieni la silhouette leggibile senza schiacciarla nel base03/base3.
+    col *= 0.28;
 
     float dit = bayer4x4(gl_FragCoord.xy)*0.05;
 

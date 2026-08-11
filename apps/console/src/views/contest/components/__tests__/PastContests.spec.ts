@@ -31,9 +31,7 @@ describe("PastContests", () => {
 
     expect(currentPage.text()).toBe("1");
     expect(currentPage.attributes("aria-current")).toBe("page");
-    expect(currentPage.classes()).toContain("text-[var(--terminal-amber)]");
-    expect(currentPage.classes()).toContain(
-      "dark:bg-[oklch(0.6545_0.1340_85.7_/_0.18)]",
-    );
+    expect(currentPage.classes()).toContain("text-foreground-strong");
+    expect(currentPage.classes()).toContain("bg-status-warning-surface");
   });
 });

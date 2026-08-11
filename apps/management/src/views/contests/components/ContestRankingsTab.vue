@@ -7,8 +7,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { IconTrophy, IconMedal } from '@tabler/icons-vue'
 import type { ContestRanking } from '@/api/admin/contests'
+import {
+  getRankAccentClass,
+  getRankIcon,
+  RANK_TEXT_CLASS,
+} from '@/views/contest/rankingPresentation'
 
 withDefaults(
   defineProps<{
@@ -18,21 +22,6 @@ withDefaults(
     rankings: () => [],
   },
 )
-
-// Get rank styling
-function getRankStyle(rank: number) {
-  if (rank === 1) return 'text-[var(--terminal-amber)]'
-  if (rank === 2) return 'text-[var(--silver-400)]'
-  if (rank === 3) return 'text-[oklch(0.5808_0.1732_39.5)]'
-  return 'text-[var(--foreground)]'
-}
-
-// Get rank icon
-function getRankIcon(rank: number) {
-  if (rank === 1) return IconTrophy
-  if (rank <= 3) return IconMedal
-  return null
-}
 </script>
 
 <template>
@@ -85,9 +74,9 @@ function getRankIcon(rank: number) {
                 <component
                   :is="getRankIcon(i + 1)"
                   v-if="getRankIcon(i + 1)"
-                  :class="['h-4 w-4', getRankStyle(i + 1)]"
+                  :class="['h-4 w-4', getRankAccentClass(i + 1)]"
                 />
-                <span :class="['font-data text-sm font-bold tabular-nums', getRankStyle(i + 1)]">
+                <span :class="['font-data text-sm font-bold tabular-nums', RANK_TEXT_CLASS]">
                   #{{ i + 1 }}
                 </span>
               </div>

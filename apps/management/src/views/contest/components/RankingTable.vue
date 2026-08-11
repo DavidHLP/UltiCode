@@ -7,7 +7,7 @@
  * - Uses data from rankingStore or passed props
  */
 import { computed } from 'vue'
-import { IconTrophy, IconMedal } from '@tabler/icons-vue'
+import { getRankAccentClass, getRankIcon, RANK_TEXT_CLASS } from '../rankingPresentation'
 import {
   Table,
   TableBody,
@@ -43,21 +43,6 @@ const props = withDefaults(
     problemLabels: () => [],
   },
 )
-
-// Get rank styling
-function getRankStyle(rank: number) {
-  if (rank === 1) return 'text-[var(--terminal-amber)]'
-  if (rank === 2) return 'text-[var(--silver-400)]'
-  if (rank === 3) return 'text-[oklch(0.5808_0.1732_39.5)]'
-  return 'text-[var(--foreground)]'
-}
-
-// Get rank icon
-function getRankIcon(rank: number) {
-  if (rank === 1) return IconTrophy
-  if (rank <= 3) return IconMedal
-  return null
-}
 
 // Format penalty as time string
 function formatPenalty(penalty: number): string {
@@ -167,11 +152,9 @@ const displayProblemLabels = computed(() => {
                 <component
                   :is="getRankIcon(entry.rank)"
                   v-if="getRankIcon(entry.rank)"
-                  :class="['h-4 w-4', getRankStyle(entry.rank)]"
+                  :class="['h-4 w-4', getRankAccentClass(entry.rank)]"
                 />
-                <span
-                  :class="['font-data text-sm font-bold tabular-nums', getRankStyle(entry.rank)]"
-                >
+                <span :class="['font-data text-sm font-bold tabular-nums', RANK_TEXT_CLASS]">
                   #{{ entry.rank }}
                 </span>
               </div>

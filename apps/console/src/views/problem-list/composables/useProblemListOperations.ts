@@ -3,6 +3,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
+import { getDifficultyBadgeClass } from "@ulticode/design-system";
 import type { Problem } from "@/types/problem";
 import type {
   ProblemList,
@@ -289,19 +290,6 @@ export function useProblemListOperations(listId: Ref<string>) {
     }
   }
 
-  function getDifficultyColor(difficulty: string): string {
-    switch (difficulty?.toLowerCase()) {
-      case "easy":
-        return "text-[var(--terminal-green)] bg-[oklch(0.6444_0.1508_118.6_/_0.12)]";
-      case "medium":
-        return "text-[var(--terminal-amber)] bg-[oklch(0.6545_0.1340_85.7_/_0.12)]";
-      case "hard":
-        return "text-[var(--terminal-red)] bg-[oklch(0.5863_0.2064_27.1_/_0.12)]";
-      default:
-        return "text-muted-foreground bg-muted";
-    }
-  }
-
   return {
     currentList,
     problems,
@@ -324,6 +312,6 @@ export function useProblemListOperations(listId: Ref<string>) {
     handleMoveToCategory,
     handleAddProblem,
     handleRemoveProblem,
-    getDifficultyColor,
+    getDifficultyColor: getDifficultyBadgeClass,
   };
 }

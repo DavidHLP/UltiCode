@@ -51,8 +51,8 @@ import {CustomFog} from "./CustomFog";
  * @typedef {Object} SceneTheme
  * @property {string} clearColor
  * @property {{ dark: string, light: string }} fog
- * @property {{ colorA: string, colorB: string }} desert
- * @property {{ colorA: string, colorB: string }} light
+ * @property {{ colorA: string, colorB: string, glow?: number }} desert
+ * @property {{ colorA: string, colorB: string, glow?: number }} light
  * @property {string} text
  * @property {string} textStroke
  * @property {string} mouse
@@ -95,6 +95,9 @@ function applyThemeToScene(scene, theme) {
         particles.colorB = colors.colorB;
         setUniformColor(particles.material?.uniforms?.uColorA, colors.colorA);
         setUniformColor(particles.material?.uniforms?.uColorB, colors.colorB);
+        if (colors.glow != null && particles.material?.uniforms?.uGlow) {
+            particles.material.uniforms.uGlow.value = colors.glow;
+        }
     };
     applyParticleColors(scene.desert, theme.desert);
     applyParticleColors(scene.light, theme.light);
@@ -1485,6 +1488,10 @@ export class MainScene {
      */
     setTextSectionReveal(section, progress) {
         this.getTextSection(section).forEach((t) => t.setRevealProgress(progress));
+    }
+
+    setTextLineReveal(section, index, progress) {
+        this.getTextSection(section)[index]?.setRevealProgress(progress);
     }
 
     /**

@@ -9,7 +9,8 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
-    }
+    },
+    "./typography.css": "./src/typography.css"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

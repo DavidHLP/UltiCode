@@ -1,7 +1,9 @@
-@import "../theme/src/typography.css";
+@import "@ulticode/theme/typography.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "katex/dist/katex.min.css";
+
+@source "./src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -14,8 +16,8 @@
     --vis-tooltip-backdrop-filter: none !important;
     --vis-tooltip-padding: none !important;
 
-    --vis-primary-color: 222.2 47.4% 11.2%;
-    --vis-secondary-color: 160 81% 40%;
+    --vis-primary-color: var(--chart-series-1);
+    --vis-secondary-color: var(--chart-series-2);
     --vis-text-color: var(--muted-foreground);
   }
 
@@ -139,8 +141,11 @@
 
   .markdown-block a,
   .prose a {
-    color: var(--primary);
+    color: var(--link-foreground);
+    text-decoration-color: var(--link-decoration);
     text-decoration: underline;
+    text-decoration-thickness: 0.1em;
+    text-underline-offset: 0.18em;
   }
 
   .markdown-block a:hover,
@@ -198,6 +203,16 @@
   --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-strong: var(--foreground-strong);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-highlight: var(--surface-highlight);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-control: var(--border-control);
+  --color-link-foreground: var(--link-foreground);
+  --color-link-decoration: var(--link-decoration);
 
   /* Font + size + leading + tracking aliases are owned by
    * shared/theme/src/typography.css. They are re-imported above; this
@@ -275,6 +290,8 @@
   --color-chart-series-4: var(--chart-series-4);
   --color-chart-series-5: var(--chart-series-5);
   --color-chart-series-6: var(--chart-series-6);
+  --color-chart-series-7: var(--chart-series-7);
+  --color-chart-series-8: var(--chart-series-8);
   --color-chart-accent-primary: var(--chart-accent-primary);
   --color-chart-accent-secondary: var(--chart-accent-secondary);
   --color-chart-accent-warning: var(--chart-accent-warning);
@@ -282,6 +299,19 @@
   --color-chart-accent-info: var(--chart-accent-info);
   --color-chart-premium: var(--chart-premium);
   --color-chart-solution: var(--chart-solution);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-error: var(--status-error);
+  --color-status-info: var(--status-info);
+  --color-status-special: var(--status-special);
+  --color-status-success-surface: var(--status-success-surface);
+  --color-status-warning-surface: var(--status-warning-surface);
+  --color-status-error-surface: var(--status-error-surface);
+  --color-status-info-surface: var(--status-info-surface);
+  --color-status-special-surface: var(--status-special-surface);
+  --color-rank-first: var(--rank-first);
+  --color-rank-second: var(--rank-second);
+  --color-rank-third: var(--rank-third);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   @keyframes accordion-down {
@@ -314,58 +344,93 @@
    * shared/theme/src/typography.css, which is imported at the top of this
    * file. Do not redeclare them here. */
 
-  /* Solarized Color Palette Core (oklch mapping) */
-  --solarized-base03: oklch(0.2673 0.0486 219.8);
-  --solarized-base02: oklch(0.3092 0.0518 219.7);
-  --solarized-base01: oklch(0.523 0.0283 219.1);
-  --solarized-base00: oklch(0.5682 0.0285 221.9);
-  --solarized-base0: oklch(0.6537 0.0197 205.3);
-  --solarized-base1: oklch(0.6979 0.0159 196.8);
-  --solarized-base2: oklch(0.9306 0.026 92.4);
-  --solarized-base3: oklch(0.9735 0.0261 90.1);
+  /* Canonical Solarized sRGB palette. */
+  --solarized-base03: #002b36;
+  --solarized-base02: #073642;
+  --solarized-base01: #586e75;
+  --solarized-base00: #657b83;
+  --solarized-base0: #839496;
+  --solarized-base1: #93a1a1;
+  --solarized-base2: #eee8d5;
+  --solarized-base3: #fdf6e3;
 
   /* Solarized Accent Colors */
-  --solarized-yellow: oklch(0.6545 0.134 85.7);
-  --solarized-orange: oklch(0.5808 0.1732 39.5);
-  --solarized-red: oklch(0.5863 0.2064 27.1);
-  --solarized-magenta: oklch(0.5924 0.2025 355.9);
-  --solarized-violet: oklch(0.524 0.144 286.9);
-  --solarized-blue: oklch(0.6149 0.1394 244.9);
-  --solarized-cyan: oklch(0.6437 0.1019 187.4);
-  --solarized-green: oklch(0.6444 0.1508 118.6);
+  --solarized-yellow: #b58900;
+  --solarized-orange: #cb4b16;
+  --solarized-red: #dc322f;
+  --solarized-magenta: #d33682;
+  --solarized-violet: #6c71c4;
+  --solarized-blue: #268bd2;
+  --solarized-cyan: #2aa198;
+  --solarized-green: #859900;
 
-  /* Solarized Light: base2 background, base3 card, base00 body text */
-  --background: var(--solarized-base2);
-  --foreground: var(--solarized-base00);
+  /* Solarized Light. Text-bearing semantic pairs are adjusted to meet WCAG AA. */
+  --background: var(--solarized-base3);
+  --foreground: var(--solarized-base01);
+  --foreground-strong: var(--solarized-base03);
+  --foreground-muted: var(--solarized-base01);
+  --surface: var(--solarized-base3);
+  --surface-elevated: var(--solarized-base3);
+  --surface-highlight: var(--solarized-base2);
+  --surface-sunken: var(--solarized-base2);
   --card: var(--solarized-base3);
-  --card-foreground: var(--solarized-base00);
+  --card-foreground: var(--solarized-base01);
   --popover: var(--solarized-base3);
-  --popover-foreground: var(--solarized-base00);
+  --popover-foreground: var(--solarized-base01);
   --primary: var(--solarized-base03);
   --primary-foreground: var(--solarized-base3);
+  --link-foreground: var(--solarized-base01);
+  --link-decoration: var(--solarized-blue);
   --secondary: var(--solarized-base2);
-  --secondary-foreground: var(--solarized-base01);
+  --secondary-foreground: var(--solarized-base03);
   --muted: var(--solarized-base2);
-  --muted-foreground: var(--solarized-base01);
-  --accent: var(--solarized-blue);
-  --accent-foreground: var(--solarized-base3);
+  --muted-foreground: var(--solarized-base03);
+  --accent: var(--solarized-base2);
+  --accent-foreground: var(--solarized-base03);
   --destructive: var(--solarized-red);
   --destructive-foreground: var(--solarized-base3);
-  --border: color-mix(in oklch, var(--solarized-base1) 30%, transparent);
-  --input: color-mix(in oklch, var(--solarized-base1) 30%, transparent);
+  --border: var(--solarized-base1);
+  --border-subtle: var(--solarized-base1);
+  --border-control: var(--solarized-base00);
+  --input: var(--solarized-base00);
   --ring: var(--solarized-blue);
   --chart-1: var(--solarized-blue);
   --chart-2: var(--solarized-cyan);
   --chart-3: var(--solarized-green);
-  --chart-4: var(--solarized-yellow);
+  --chart-4: var(--solarized-magenta);
   --chart-5: var(--solarized-orange);
-  --sidebar: var(--solarized-base3);
-  --sidebar-foreground: var(--solarized-base00);
-  --sidebar-primary: var(--solarized-blue);
+  --chart-series-1: var(--solarized-blue);
+  --chart-series-2: var(--solarized-cyan);
+  --chart-series-3: var(--solarized-green);
+  --chart-series-4: var(--solarized-magenta);
+  --chart-series-5: var(--solarized-orange);
+  --chart-series-6: var(--solarized-violet);
+  --chart-series-7: var(--solarized-yellow);
+  --chart-series-8: var(--solarized-red);
+  --chart-status-solved: var(--status-success);
+  --chart-status-attempted: var(--status-warning);
+  --chart-status-todo: var(--status-info);
+  --chart-difficulty-easy: var(--status-success);
+  --chart-difficulty-medium: var(--status-warning);
+  --chart-difficulty-hard: var(--status-error);
+  --chart-accent-primary: var(--solarized-blue);
+  --chart-accent-secondary: var(--solarized-green);
+  --chart-accent-warning: var(--solarized-yellow);
+  --chart-accent-danger: var(--solarized-red);
+  --chart-accent-info: var(--solarized-cyan);
+  --chart-grid-color: var(--border-subtle);
+  --chart-background: var(--card);
+  --chart-tooltip-background: var(--popover);
+  --chart-tooltip-border: var(--border-control);
+  --chart-premium: var(--solarized-magenta);
+  --chart-solution: var(--solarized-cyan);
+  --sidebar: var(--solarized-base2);
+  --sidebar-foreground: var(--solarized-base03);
+  --sidebar-primary: var(--solarized-base03);
   --sidebar-primary-foreground: var(--solarized-base3);
-  --sidebar-accent: color-mix(in oklch, var(--solarized-blue) 10%, transparent);
-  --sidebar-accent-foreground: var(--solarized-base00);
-  --sidebar-border: color-mix(in oklch, var(--solarized-base1) 30%, transparent);
+  --sidebar-accent: var(--solarized-base3);
+  --sidebar-accent-foreground: var(--solarized-base01);
+  --sidebar-border: var(--solarized-base1);
   --sidebar-ring: var(--solarized-blue);
 
   /* Solarized Monotones (base3→base03, warm hue ~90) */
@@ -384,18 +449,50 @@
   --accent-primary: var(--solarized-blue);
   --accent-glow: color-mix(in oklch, var(--solarized-blue) 15%, transparent);
 
-  /* Solarized Accent Status */
+  /* Status accents are invariant; tinted surfaces preserve readable text. */
   --status-success: var(--solarized-green);
   --status-warning: var(--solarized-yellow);
   --status-error: var(--solarized-red);
+  --status-info: var(--solarized-cyan);
+  --status-special: var(--solarized-violet);
+  --rank-first: var(--solarized-yellow);
+  --rank-second: var(--foreground-muted);
+  --rank-third: var(--solarized-orange);
+  --status-success-surface: color-mix(
+    in srgb,
+    var(--solarized-green) 14%,
+    var(--surface)
+  );
+  --status-warning-surface: color-mix(
+    in srgb,
+    var(--solarized-yellow) 14%,
+    var(--surface)
+  );
+  --status-error-surface: color-mix(
+    in srgb,
+    var(--solarized-red) 12%,
+    var(--surface)
+  );
+  --status-info-surface: color-mix(
+    in srgb,
+    var(--solarized-cyan) 14%,
+    var(--surface)
+  );
+  --status-special-surface: color-mix(
+    in srgb,
+    var(--solarized-violet) 12%,
+    var(--surface)
+  );
 
   /* Border Styles */
   --border-thin: 1px solid var(--silver-200);
   --border-accent: 1px solid var(--accent-primary);
 
   /* Shadow Styles */
-  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.08);
-  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.12);
+  --shadow-float: 0 4px 20px -4px
+    color-mix(in srgb, var(--solarized-base03) 12%, transparent);
+  --shadow-float-hover: 0 8px 30px -4px
+    color-mix(in srgb, var(--solarized-base03) 18%, transparent);
 
   /* Transition Timing */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -413,38 +510,52 @@
    ======================================== */
 
 .dark {
-  /* Solarized Dark: base03 background, base0 body text */
+  /* Solarized Dark: base03/base0, highlighted surfaces base02/base1. */
   --background: var(--solarized-base03);
-  --foreground: var(--solarized-base0);
+  --foreground: var(--solarized-base1);
+  --foreground-strong: var(--solarized-base1);
+  --foreground-muted: var(--solarized-base0);
+  --surface: var(--solarized-base03);
+  --surface-elevated: var(--solarized-base02);
+  --surface-highlight: var(--solarized-base02);
+  --surface-sunken: var(--solarized-base03);
   --card: var(--solarized-base02);
-  --card-foreground: var(--solarized-base0);
+  --card-foreground: var(--solarized-base1);
   --popover: var(--solarized-base02);
-  --popover-foreground: var(--solarized-base0);
-  --primary: var(--solarized-base1);
+  --popover-foreground: var(--solarized-base1);
+  --primary: var(--solarized-base3);
   --primary-foreground: var(--solarized-base03);
+  --link-foreground: var(--solarized-base1);
+  --link-decoration: var(--solarized-blue);
   --secondary: var(--solarized-base02);
-  --secondary-foreground: var(--solarized-base0);
+  --secondary-foreground: var(--solarized-base1);
   --muted: var(--solarized-base02);
-  --muted-foreground: var(--solarized-base01);
-  --accent: var(--solarized-blue);
-  --accent-foreground: var(--solarized-base3);
+  --muted-foreground: var(--solarized-base1);
+  --accent: var(--solarized-base02);
+  --accent-foreground: var(--solarized-base1);
   --destructive: var(--solarized-red);
   --destructive-foreground: var(--solarized-base3);
-  --border: color-mix(in oklch, var(--solarized-base01) 40%, transparent);
-  --input: color-mix(in oklch, var(--solarized-base01) 40%, transparent);
+  --border: var(--solarized-base01);
+  --border-subtle: var(--solarized-base01);
+  --border-control: var(--solarized-base0);
+  --input: var(--solarized-base0);
   --ring: var(--solarized-blue);
   --chart-1: var(--solarized-blue);
   --chart-2: var(--solarized-cyan);
   --chart-3: var(--solarized-green);
-  --chart-4: var(--solarized-yellow);
+  --chart-4: var(--solarized-magenta);
   --chart-5: var(--solarized-orange);
+  --chart-grid-color: var(--border-subtle);
+  --chart-background: var(--card);
+  --chart-tooltip-background: var(--popover);
+  --chart-tooltip-border: var(--border-control);
   --sidebar: var(--solarized-base02);
-  --sidebar-foreground: var(--solarized-base0);
-  --sidebar-primary: var(--solarized-blue);
-  --sidebar-primary-foreground: var(--solarized-base3);
-  --sidebar-accent: color-mix(in oklch, var(--solarized-blue) 15%, transparent);
-  --sidebar-accent-foreground: var(--solarized-base0);
-  --sidebar-border: color-mix(in oklch, var(--solarized-base01) 40%, transparent);
+  --sidebar-foreground: var(--solarized-base1);
+  --sidebar-primary: var(--solarized-base3);
+  --sidebar-primary-foreground: var(--solarized-base03);
+  --sidebar-accent: var(--solarized-base03);
+  --sidebar-accent-foreground: var(--solarized-base1);
+  --sidebar-border: var(--solarized-base01);
   --sidebar-ring: var(--solarized-blue);
 
   /* Solarized Monotones - Dark Mode (inverted) */
@@ -467,14 +578,43 @@
   --status-success: var(--solarized-green);
   --status-warning: var(--solarized-yellow);
   --status-error: var(--solarized-red);
+  --status-info: var(--solarized-cyan);
+  --status-special: var(--solarized-violet);
+  --status-success-surface: color-mix(
+    in srgb,
+    var(--solarized-green) 16%,
+    var(--surface)
+  );
+  --status-warning-surface: color-mix(
+    in srgb,
+    var(--solarized-yellow) 16%,
+    var(--surface)
+  );
+  --status-error-surface: color-mix(
+    in srgb,
+    var(--solarized-red) 16%,
+    var(--surface)
+  );
+  --status-info-surface: color-mix(
+    in srgb,
+    var(--solarized-cyan) 14%,
+    var(--surface)
+  );
+  --status-special-surface: color-mix(
+    in srgb,
+    var(--solarized-violet) 16%,
+    var(--surface)
+  );
 
   /* Shadow Styles - Dark Mode */
-  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.25);
-  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.35);
+  --shadow-float: 0 4px 20px -4px
+    color-mix(in srgb, var(--solarized-base03) 65%, transparent);
+  --shadow-float-hover: 0 8px 30px -4px
+    color-mix(in srgb, var(--solarized-base03) 80%, transparent);
 
   /* Scrollbar - Dark Mode */
-  --scrollbar-thumb: oklch(0.45 0.03 220);
-  --scrollbar-thumb-hover: oklch(0.55 0.025 210);
+  --scrollbar-thumb: var(--solarized-base01);
+  --scrollbar-thumb-hover: var(--solarized-base0);
   --scrollbar-thumb-active: var(--solarized-base0);
 }
 
@@ -504,13 +644,21 @@
     overflow-x: clip;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--uc-font-ui);
     font-weight: var(--uc-font-weight-bold);
     letter-spacing: var(--uc-tracking-normal);
   }
 
-  pre, code, .font-mono, .font-data {
+  pre,
+  code,
+  .font-mono,
+  .font-data {
     font-family: var(--uc-font-code);
     line-height: var(--uc-leading-code);
   }
@@ -647,19 +795,19 @@
 
 :root {
   /* Solarized Terminal Accent Colors (identical in light/dark) */
-  --terminal-green: oklch(0.6444 0.1508 118.6);
-  --terminal-amber: oklch(0.6545 0.134 85.7);
-  --terminal-red: oklch(0.5863 0.2064 27.1);
-  --terminal-cyan: oklch(0.6437 0.1019 187.4);
-  --terminal-purple: oklch(0.5924 0.2025 355.9);
+  --terminal-green: var(--solarized-green);
+  --terminal-amber: var(--solarized-yellow);
+  --terminal-red: var(--solarized-red);
+  --terminal-cyan: var(--solarized-cyan);
+  --terminal-purple: var(--solarized-magenta);
 
   /* Solarized Blue Accent */
-  --accent-electric: oklch(0.6149 0.1394 244.9);
-  --accent-electric-glow: oklch(0.6149 0.1394 244.9 / 0.15);
-
-  /* Surface Layers */
-  --surface-elevated: oklch(0.9735 0.0261 90.1);
-  --surface-sunken: oklch(0.9306 0.026 92.4);
+  --accent-electric: var(--solarized-blue);
+  --accent-electric-glow: color-mix(
+    in srgb,
+    var(--solarized-blue) 15%,
+    transparent
+  );
 
   /* Terminal Timing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -962,51 +1110,51 @@
 }
 
 .terminal-badge-success {
-  background: color-mix(in oklch, var(--terminal-green) 15%, transparent);
-  color: var(--terminal-green);
-  border: 1px solid color-mix(in oklch, var(--terminal-green) 30%, transparent);
+  background: var(--status-success-surface);
+  color: var(--foreground-strong);
+  border: 1px solid var(--status-success);
 }
 
 .terminal-badge-warning {
-  background: color-mix(in oklch, var(--terminal-amber) 15%, transparent);
-  color: var(--terminal-amber);
-  border: 1px solid color-mix(in oklch, var(--terminal-amber) 30%, transparent);
+  background: var(--status-warning-surface);
+  color: var(--foreground-strong);
+  border: 1px solid var(--status-warning);
 }
 
 .terminal-badge-error {
-  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
-  color: var(--terminal-red);
-  border: 1px solid color-mix(in oklch, var(--terminal-red) 30%, transparent);
+  background: var(--status-error-surface);
+  color: var(--foreground-strong);
+  border: 1px solid var(--status-error);
 }
 
 .terminal-badge-info {
-  background: color-mix(in oklch, var(--terminal-cyan) 15%, transparent);
-  color: var(--terminal-cyan);
-  border: 1px solid color-mix(in oklch, var(--terminal-cyan) 30%, transparent);
+  background: var(--status-info-surface);
+  color: var(--foreground-strong);
+  border: 1px solid var(--status-info);
 }
 
 .terminal-badge-purple {
-  background: color-mix(in oklch, var(--terminal-purple) 15%, transparent);
-  color: var(--terminal-purple);
-  border: 1px solid color-mix(in oklch, var(--terminal-purple) 30%, transparent);
+  background: var(--status-special-surface);
+  color: var(--foreground-strong);
+  border: 1px solid var(--status-special);
 }
 
 .terminal-badge-electric {
-  background: color-mix(in oklch, var(--accent-electric) 15%, transparent);
-  color: var(--accent-electric);
-  border: 1px solid color-mix(in oklch, var(--accent-electric) 30%, transparent);
+  background: var(--surface-highlight);
+  color: var(--foreground-strong);
+  border: 1px solid var(--accent-primary);
 }
 
 .terminal-badge-neutral {
-  background: color-mix(in oklch, var(--silver-500) 15%, transparent);
-  color: var(--silver-500);
-  border: 1px solid color-mix(in oklch, var(--silver-500) 30%, transparent);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border-control);
 }
 
 .terminal-badge-primary {
-  background: color-mix(in oklch, var(--accent-primary) 15%, transparent);
-  color: var(--accent-primary);
-  border: 1px solid color-mix(in oklch, var(--accent-primary) 40%, transparent);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid var(--accent-primary);
 }
 
 .animate-pulse-subtle {
@@ -1072,33 +1220,24 @@
 }
 
 /* ========================================
-   Dark Mode Terminal Adjustments
-   ======================================== */
-
-.dark {
-  --surface-elevated: oklch(0.3092 0.0518 219.7);
-  --surface-sunken: oklch(0.2673 0.0486 219.8);
-}
-
-/* ========================================
    Highlight.js Solarized Theme
    ======================================== */
 
 .hljs {
   background: transparent;
-  color: #657b83;
+  color: var(--foreground);
 }
 
 .hljs-comment,
 .hljs-quote {
-  color: #93a1a1;
+  color: var(--foreground);
   font-style: italic;
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-addition {
-  color: #859900;
+  color: var(--solarized-green);
 }
 
 .hljs-number,
@@ -1107,7 +1246,7 @@
 .hljs-literal,
 .hljs-doctag,
 .hljs-regexp {
-  color: #2aa198;
+  color: var(--solarized-cyan);
 }
 
 .hljs-title,
@@ -1115,7 +1254,7 @@
 .hljs-name,
 .hljs-selector-id,
 .hljs-selector-class {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 .hljs-attribute,
@@ -1124,7 +1263,7 @@
 .hljs-template-variable,
 .hljs-class .hljs-title,
 .hljs-type {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 .hljs-symbol,
@@ -1135,16 +1274,16 @@
 .hljs-selector-attr,
 .hljs-selector-pseudo,
 .hljs-link {
-  color: #cb4b16;
+  color: var(--solarized-orange);
 }
 
 .hljs-built_in,
 .hljs-deletion {
-  color: #dc322f;
+  color: var(--solarized-red);
 }
 
 .hljs-formula {
-  background: #eee8d5;
+  background: var(--solarized-base2);
 }
 
 .hljs-emphasis {
@@ -1156,58 +1295,58 @@
 }
 
 .hljs-function {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 .hljs-params {
-  color: #657b83;
+  color: var(--foreground);
 }
 
 .hljs-tag {
-  color: #859900;
+  color: var(--solarized-green);
 }
 
 .hljs-xml-tag {
-  color: #859900;
+  color: var(--solarized-green);
 }
 
 .hljs-xml-attr {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 .hljs-xml-comment {
-  color: #93a1a1;
+  color: var(--foreground);
 }
 
 .hljs-javascript .hljs-title,
 .hljs-typescript .hljs-title {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 .hljs-python .hljs-decorator {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 .hljs-java .hljs-annotation {
-  color: #268bd2;
+  color: var(--solarized-blue);
 }
 
 /* Highlight.js Dark Theme Override */
 .dark .hljs {
-  color: #839496;
+  color: var(--foreground);
 }
 
 .dark .hljs-comment,
 .dark .hljs-quote {
-  color: #586e75;
+  color: var(--foreground);
 }
 
 .dark .hljs-formula {
-  background: #073642;
+  background: var(--solarized-base02);
 }
 
 .dark .hljs-params {
-  color: #839496;
+  color: var(--foreground);
 }
 
 /* ========================================
@@ -1216,7 +1355,9 @@
 .header-btn {
   height: 2rem !important; /* h-8 */
   border-radius: 0 !important; /* rounded-none */
-  font-family: var(--uc-font-code) !important; /* matches engineering style code/text stack */
+  font-family: var(
+    --uc-font-code
+  ) !important; /* matches engineering style code/text stack */
   font-weight: var(--uc-font-weight-semibold) !important;
   font-size: var(--uc-text-xxs) !important;
   text-transform: uppercase !important;
@@ -1238,28 +1379,47 @@
 
 /* Hover state */
 .header-btn:hover:not(:disabled) {
-  background-color: color-mix(in oklch, var(--solarized-base1) 22%, transparent) !important;
+  background-color: color-mix(
+    in oklch,
+    var(--solarized-base1) 22%,
+    transparent
+  ) !important;
   color: var(--solarized-base02) !important;
 }
 
 .dark .header-btn:hover:not(:disabled) {
-  background-color: color-mix(in oklch, var(--solarized-base01) 22%, transparent) !important;
+  background-color: color-mix(
+    in oklch,
+    var(--solarized-base01) 22%,
+    transparent
+  ) !important;
   color: var(--solarized-base3) !important;
 }
 
 /* Active / Checked state */
-.header-btn.active, .header-btn[data-state=open] {
-  background-color: color-mix(in oklch, var(--solarized-base1) 32%, transparent) !important;
+.header-btn.active,
+.header-btn[data-state="open"] {
+  background-color: color-mix(
+    in oklch,
+    var(--solarized-base1) 32%,
+    transparent
+  ) !important;
   color: var(--solarized-base03) !important;
 }
 
-.dark .header-btn.active, .dark .header-btn[data-state=open] {
-  background-color: color-mix(in oklch, var(--solarized-base01) 32%, transparent) !important;
+.dark .header-btn.active,
+.dark .header-btn[data-state="open"] {
+  background-color: color-mix(
+    in oklch,
+    var(--solarized-base01) 32%,
+    transparent
+  ) !important;
   color: var(--solarized-base3) !important;
 }
 
 /* Disabled state */
-.header-btn:disabled, .header-btn.disabled {
+.header-btn:disabled,
+.header-btn.disabled {
   opacity: 0.35 !important;
   pointer-events: none !important;
   cursor: not-allowed !important;

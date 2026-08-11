@@ -61,6 +61,19 @@ function mountTimer() {
   });
 }
 
+function mountTimerWithRealDialog() {
+  return mount(VirtualContestTimer, {
+    global: {
+      stubs: {
+        Card: stubs.Card,
+        CardContent: stubs.CardContent,
+        Clock: stubs.Clock,
+        Trophy: stubs.Trophy,
+      },
+    },
+  });
+}
+
 describe("VirtualContestTimer", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -104,5 +117,45 @@ describe("VirtualContestTimer", () => {
     await flushPromises();
 
     expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledTimes(1);
+  });
+
+  it("finishes the virtual contest when the confirmation action is clicked", async () => {
+    const wrapper = mountTimer();
+    const confirmButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "common.actions.confirm");
+
+    expect(confirmButton).toBeDefined();
+    await confirmButton!.trigger("click");
+    await flushPromises();
+
+    expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledTimes(1);
+    expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledWith(
+      "contest-1",
+    );
+  });
+
+  it("submits from the rendered alert dialog confirmation button", async () => {
+    const wrapper = mountTimerWithRealDialog();
+    await wrapper.get('button[aria-haspopup="dialog"]').trigger("click");
+    await flushPromises();
+
+    const confirmButton = Array.from(document.body.querySelectorAll("button"))
+      .find((button) => button.textContent?.trim() === "common.actions.confirm");
+    const dialogContent = document.body.querySelector(
+      '[data-slot="alert-dialog-content"]',
+    );
+
+    expect(confirmButton).toBeDefined();
+    expect(dialogContent?.classList.contains("pointer-events-auto")).toBe(true);
+    confirmButton!.click();
+    await flushPromises();
+
+    expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledTimes(1);
+    expect(contestStoreMock.finishVirtualContest).toHaveBeenCalledWith(
+      "contest-1",
+    );
+
+    wrapper.unmount();
   });
 });

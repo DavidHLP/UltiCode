@@ -43,11 +43,11 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
   delay: Math.random() * 0.5,
   duration: 1 + Math.random() * 0.5,
   color: [
-    "oklch(0.6545 0.1340 85.7)",
-    "oklch(0.5863 0.2064 27.1)",
-    "oklch(0.6437 0.1019 187.4)",
-    "oklch(0.6149 0.1394 244.9)",
-    "oklch(0.6444 0.1508 118.6)",
+    "var(--status-warning)",
+    "var(--status-error)",
+    "var(--status-info)",
+    "var(--accent-primary)",
+    "var(--status-success)",
   ][Math.floor(Math.random() * 5)],
 }));
 </script>
@@ -64,7 +64,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
     >
       <div
         v-if="visible"
-        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-none border border-[oklch(0.6545_0.1340_85.7/0.3)] bg-[oklch(0.9735_0.0261_90.1)] shadow-2xl dark:bg-[oklch(0.3092_0.0518_219.7)]"
+        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-none border border-[var(--status-warning)] bg-surface-elevated shadow-float"
       >
         <!-- Confetti -->
         <div
@@ -91,29 +91,27 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
           <div class="flex items-start gap-3">
             <!-- Icon -->
             <div
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[oklch(0.6545_0.1340_85.7)] shadow-lg"
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--status-warning)] bg-status-warning-surface shadow-float"
             >
-              <Trophy class="h-6 w-6 text-white" />
+              <Trophy class="h-6 w-6 text-status-warning" />
             </div>
 
             <!-- Text -->
             <div class="flex-1 space-y-1">
               <div class="flex items-center gap-2">
-                <Sparkles class="h-4 w-4 text-[var(--terminal-amber)]" />
-                <span
-                  class="text-sm font-semibold text-[var(--terminal-amber)]"
-                >
+                <Sparkles class="h-4 w-4 text-status-warning" />
+                <span class="text-sm font-semibold text-foreground">
                   Achievement Unlocked!
                 </span>
               </div>
-              <h4 class="font-bold text-gray-900 dark:text-white">
+              <h4 class="font-bold text-foreground-strong">
                 {{ badgeName }}
               </h4>
-              <p class="text-sm text-gray-600 dark:text-gray-300">
+              <p class="text-sm text-muted-foreground">
                 {{ badgeDescription }}
               </p>
               <span
-                class="inline-block rounded-full bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-xs font-medium text-[var(--terminal-amber)]"
+                class="inline-block rounded-full border border-status-warning bg-status-warning-surface px-2 py-0.5 text-xs font-medium text-foreground-strong"
               >
                 +{{ points }} points
               </span>

@@ -1,4 +1,5 @@
-@import '../../../packages/design-system/style.css';
+/* Public Solarized contract includes shared variants; app files add adapters. */
+@import '@ulticode/design-system/style.css';
 @import '../../../packages/sidebar-menu/src/styles/sidebar-menu.css';
 
 :root {
@@ -248,11 +249,6 @@
   text-align: right;
   user-select: none;
   width: 40px;
-}
-
-.dark {
-  --surface-elevated: oklch(0.3092 0.0518 219.7);
-  --surface-sunken: oklch(0.2673 0.0486 219.8);
 }
 
 .px-4.lg\:px-6.py-4.flex.items-center.justify-between {

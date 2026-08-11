@@ -33,23 +33,36 @@ const iconMap = {
 // so no status ever resolves to class="undefined" (the previous statusColors
 // map had only 5 entries and no fallback).
 const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: "text-[oklch(0.6444_0.1508_118.6)]",
-  warning: "text-[oklch(0.6545_0.1340_85.7)]",
-  error: "text-[oklch(0.5863_0.2064_27.1)]",
-  info: "text-[oklch(0.6149_0.1394_244.9)]",
-  purple: "text-[oklch(0.5924_0.2025_355.9)]",
-  electric: "text-[oklch(0.6149_0.1394_244.9)]",
+  success: "text-foreground decoration-status-success underline decoration-2",
+  warning: "text-foreground decoration-status-warning underline decoration-2",
+  error: "text-foreground decoration-status-error underline decoration-2",
+  info: "text-foreground decoration-status-info underline decoration-2",
+  purple: "text-foreground decoration-status-special underline decoration-2",
+  electric: "text-foreground decoration-link-decoration underline decoration-2",
+  neutral: "text-muted-foreground",
+};
+
+const SEMANTIC_ACCENT_CLASS: Record<SemanticColor, string> = {
+  success: "text-status-success",
+  warning: "text-status-warning",
+  error: "text-status-error",
+  info: "text-status-info",
+  purple: "text-status-special",
+  electric: "text-[var(--accent-primary)]",
   neutral: "text-muted-foreground",
 };
 
 const getStatusTextClass = (status: string | undefined): string =>
   SEMANTIC_TEXT_CLASS[getStatusColor(status ?? "")];
 
+const getStatusAccentClass = (status: string | undefined): string =>
+  SEMANTIC_ACCENT_CLASS[getStatusColor(status ?? "")];
+
 const typeColors: Record<string, string> = {
-  submission: "text-[oklch(0.6149_0.1394_244.9)]",
-  solution: "text-[oklch(0.5924_0.2025_355.9)]",
-  post: "text-[oklch(0.6444_0.1508_118.6)]",
-  comment: "text-[oklch(0.6545_0.1340_85.7)]",
+  submission: "text-[var(--accent-primary)]",
+  solution: "text-status-special",
+  post: "text-status-success",
+  comment: "text-status-warning",
 };
 
 function formatTime(dateStr: string): string {
@@ -84,7 +97,7 @@ function formatTime(dateStr: string): string {
             cn(
               'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
               activity.type === 'submission' && activity.status === 'Accepted'
-                ? 'bg-[oklch(0.6444_0.1508_118.6/0.1)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]'
+                ? 'bg-status-success-surface'
                 : 'bg-muted',
             )
           "
@@ -95,7 +108,7 @@ function formatTime(dateStr: string): string {
               cn(
                 'h-4 w-4',
                 activity.type === 'submission'
-                  ? getStatusTextClass(activity.status)
+                  ? getStatusAccentClass(activity.status)
                   : typeColors[activity.type],
               )
             "

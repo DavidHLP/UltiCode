@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Video, Lock, Trash2 } from "lucide-vue-next";
 import { DataTable, type ColumnDef } from "@/components/common/data-table";
 import { useI18n } from "vue-i18n";
+import { getDifficultyBadgeClass } from "@ulticode/design-system";
 import type { Problem } from "@/types/problem";
 import type { EnrichedProblem } from "../composables/useProblemExplorer";
 
@@ -20,19 +21,6 @@ const emit = defineEmits<{
   remove: [problem: Problem];
   "row-click": [problem: EnrichedProblem];
 }>();
-
-const difficultyBadgeClass = (difficulty: Problem["difficulty"]) => {
-  switch (difficulty) {
-    case "EASY":
-      return "bg-[oklch(0.6444_0.1508_118.6_/_0.1)] text-[var(--terminal-green)] border border-[oklch(0.6444_0.1508_118.6_/_0.2)]";
-    case "MEDIUM":
-      return "bg-[oklch(0.6545_0.1340_85.7_/_0.1)] text-[var(--terminal-amber)] border border-[oklch(0.6545_0.1340_85.7_/_0.2)]";
-    case "HARD":
-      return "bg-[oklch(0.5863_0.2064_27.1_/_0.1)] text-[var(--terminal-red)] border border-[oklch(0.5863_0.2064_27.1_/_0.2)]";
-    default:
-      return "";
-  }
-};
 
 const formatAcceptance = (value: number | string | undefined | null) => {
   if (value === undefined || value === null) return "-";
@@ -65,7 +53,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
             v-if="(problem as EnrichedProblem).statusIcon"
             class="h-5 w-5"
             :class="{
-              'text-[var(--terminal-green)]':
+              'text-status-success':
                 (problem as EnrichedProblem).status === 'solved',
             }"
           />
@@ -75,7 +63,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       <template #cell-title="{ item: problem }">
         <div class="flex items-center gap-2">
           <span
-            class="truncate font-bold text-[var(--solarized-base03)] dark:text-[var(--silver-900)] hover:text-[var(--accent-electric)] transition-colors duration-200"
+            class="truncate font-bold text-foreground-strong transition-colors duration-200 hover:underline hover:decoration-link-decoration"
             >{{ (problem as EnrichedProblem).id }}.
             {{ (problem as EnrichedProblem).title }}</span
           >
@@ -89,7 +77,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
           </a>
           <Lock
             v-if="(problem as EnrichedProblem).isPremium"
-            class="h-4 w-4 text-[var(--terminal-amber)]"
+            class="h-4 w-4 text-status-warning"
           />
         </div>
       </template>
@@ -108,7 +96,9 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       <template #cell-difficulty="{ item: problem }">
         <span
           class="font-sans text-xs font-semibold px-2 py-0.5 rounded-none inline-block tracking-wide"
-          :class="difficultyBadgeClass((problem as EnrichedProblem).difficulty)"
+          :class="
+            getDifficultyBadgeClass((problem as EnrichedProblem).difficulty)
+          "
         >
           {{
             t(

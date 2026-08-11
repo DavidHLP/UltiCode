@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -27,6 +26,8 @@ let finishRequested = false;
 
 const isActive = computed(() => contestStore.isInVirtualContest);
 const session = computed(() => contestStore.virtualSession);
+const finishDialogOpen = ref(false);
+const finishing = ref(false);
 
 const formattedTime = computed(() => {
   const hours = Math.floor(timeRemaining.value / 3600);
@@ -70,21 +71,30 @@ function stopTimer() {
   }
 }
 
-async function finishCurrentVirtualContest() {
-  if (finishRequested) return;
-  if (!session.value?.contestId) return;
+async function finishCurrentVirtualContest(): Promise<boolean> {
+  if (finishRequested) return false;
+  if (!session.value?.contestId) return false;
 
   finishRequested = true;
   try {
     await contestStore.finishVirtualContest(session.value.contestId);
+    return true;
   } catch {
     finishRequested = false;
     toast.error(t("contest.virtual.finishFailed"));
+    return false;
   }
 }
 
 async function handleFinish() {
-  await finishCurrentVirtualContest();
+  if (finishing.value) return;
+
+  finishing.value = true;
+  try {
+    if (await finishCurrentVirtualContest()) finishDialogOpen.value = false;
+  } finally {
+    finishing.value = false;
+  }
 }
 
 // R6.4 / F-13: when the tab goes hidden, freeze the visible timer so users
@@ -155,7 +165,10 @@ onUnmounted(() => {
               </p>
             </div>
           </div>
-          <AlertDialog>
+          <AlertDialog
+            :open="finishDialogOpen"
+            @update:open="finishDialogOpen = $event"
+          >
             <AlertDialogTrigger as-child>
               <Button size="sm" variant="outline">
                 {{ t("contest.virtual.finishEarly") }}
@@ -174,9 +187,14 @@ onUnmounted(() => {
                 <AlertDialogCancel>{{
                   t("common.actions.cancel")
                 }}</AlertDialogCancel>
-                <AlertDialogAction @click="handleFinish">{{
+                <Button
+                  type="button"
+                  :disabled="finishing"
+                  :aria-busy="finishing"
+                  @click="handleFinish"
+                >{{
                   t("common.actions.confirm")
-                }}</AlertDialogAction>
+                }}</Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

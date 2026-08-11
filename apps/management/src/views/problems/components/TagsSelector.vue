@@ -95,7 +95,7 @@ onMounted(() => {
           {{ tag.label }}
           <button
             type="button"
-            class="cursor-pointer text-[var(--silver-500)] hover:text-[var(--solarized-red)] hover:bg-[oklch(0.6_0.2_25/0.1)] rounded-none p-0.5 transition-colors"
+            class="cursor-pointer rounded-none p-0.5 text-foreground-muted transition-colors hover:bg-status-error-surface hover:text-foreground-strong [&_svg]:text-destructive"
             :aria-label="t('problems.tagsSelector.removeTag', { tag: tag.label })"
             @click="removeTag(tag.id)"
           >

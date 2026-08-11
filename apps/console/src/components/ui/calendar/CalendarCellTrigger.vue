@@ -25,13 +25,13 @@ const forwardedProps = useForwardProps(delegatedProps);
       cn(
         buttonVariants({ variant: 'ghost' }),
         'size-8 p-0 font-normal aria-selected:opacity-100 cursor-default rounded-none',
-        '[&[data-today]:not([data-selected])]:border [&[data-today]:not([data-selected])]:border-dashed [&[data-today]:not([data-selected])]:border-[var(--accent-electric)]/70 [&[data-today]:not([data-selected])]:bg-[var(--accent-electric)]/10 [&[data-today]:not([data-selected])]:text-[var(--accent-electric)] [&[data-today]:not([data-selected])]:font-bold',
+        '[&[data-today]:not([data-selected])]:border [&[data-today]:not([data-selected])]:border-dashed [&[data-today]:not([data-selected])]:border-link-decoration [&[data-today]:not([data-selected])]:bg-surface-highlight [&[data-today]:not([data-selected])]:text-foreground-strong [&[data-today]:not([data-selected])]:font-bold',
         // Selected
-        'data-[selected]:bg-[var(--accent-electric)] data-[selected]:text-white data-[selected]:opacity-100 data-[selected]:hover:bg-[var(--accent-electric)] data-[selected]:hover:text-white data-[selected]:focus:bg-[var(--accent-electric)] data-[selected]:focus:text-white data-[selected]:font-bold data-[selected]:border data-[selected]:border-[var(--accent-electric)]',
+        'data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground data-[selected]:font-bold data-[selected]:border data-[selected]:border-link-decoration',
         // Disabled
         'data-[disabled]:text-muted-foreground data-[disabled]:opacity-50',
         // Unavailable
-        'data-[unavailable]:text-destructive-foreground data-[unavailable]:line-through',
+        'data-[unavailable]:text-foreground data-[unavailable]:decoration-destructive data-[unavailable]:line-through',
         // Outside months
         'data-[outside-view]:text-muted-foreground',
         props.class,

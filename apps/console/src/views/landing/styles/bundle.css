@@ -8,8 +8,8 @@
 /* ---------------------------------------------------------------------------
  * Solarized 主题覆盖(2026-07-23)
  * 落地页跟随 console 应用主题:<html> 的 dark class 由 shared/theme 维护,
- * 这里只读不写。dark → Solarized Dark(base03 底 / base0 正文 / base1 强调),
- * light → Solarized Light(base3 底 / base00 正文 / base01 强调)。
+ * 这里只读不写。dark → Solarized Dark(base03 底 / base0 正文 / cyan 强调),
+ * light → Solarized Light(base3 底 / base00 正文 / blue 强调)。
  * WebGL 场景(雾/粒子/MSDF 文字/鼠标拖尾)由 experience/theme.js 同步。
  * ------------------------------------------------------------------------- */
 
@@ -21,9 +21,11 @@ html.dark .loader a{color:#93a1a1}
 html.dark .loader a:hover{color:#eee8d5}
 html.dark .loader span{background:linear-gradient(90deg,rgba(147,161,161,0) 0,#93a1a1 40%,#93a1a1 60%,rgba(147,161,161,0))}
 html.dark .step{color:#93a1a1}
-html.dark .header__lnk,html.dark .header__lnk--2,html.dark .footer,html.dark .footer--2,html.dark .footer__social-lnk,html.dark .footer__audio-toggle{color:#93a1a1}
-html.dark .footer,html.dark .header__lnk:hover{color:#eee8d5}
-html.dark .header__lnk--2:hover,html.dark .footer__social-lnk:hover,html.dark .footer__audio-toggle:hover{color:#586e75}
+html.dark .header__lnk,html.dark .footer,html.dark .footer--2,html.dark .footer__social-lnk,html.dark .footer__audio-toggle{color:#839496}
+html.dark .header__lnk--2{color:#2aa198;border-color:#2aa198}
+html.dark .header__lnk:hover,html.dark .header__lnk--2:hover,html.dark .footer__social-lnk:hover,html.dark .footer__audio-toggle:hover{color:#2aa198}
+html.dark .header__lnk--2:hover{background:#2aa198;color:#002b36;border-color:#2aa198}
+html.dark .header__lnk--2:focus-visible,html.dark .footer__social-lnk:focus-visible,html.dark .footer__audio-toggle:focus-visible{outline:2px solid #2aa198;outline-offset:4px}
 
 /* Solarized Light */
 html:not(.dark) body{background:#fdf6e3;color:#657b83}
@@ -33,6 +35,8 @@ html:not(.dark) .loader a{color:#586e75}
 html:not(.dark) .loader a:hover{color:#073642}
 html:not(.dark) .loader span{background:linear-gradient(90deg,rgba(88,110,117,0) 0,#586e75 40%,#586e75 60%,rgba(88,110,117,0))}
 html:not(.dark) .step{color:#586e75}
-html:not(.dark) .header__lnk,html:not(.dark) .header__lnk--2,html:not(.dark) .footer,html:not(.dark) .footer--2,html:not(.dark) .footer__social-lnk,html:not(.dark) .footer__audio-toggle{color:#586e75}
-html:not(.dark) .footer,html:not(.dark) .header__lnk:hover{color:#073642}
-html:not(.dark) .header__lnk--2:hover,html:not(.dark) .footer__social-lnk:hover,html:not(.dark) .footer__audio-toggle:hover{color:#93a1a1}
+html:not(.dark) .header__lnk,html:not(.dark) .footer,html:not(.dark) .footer--2,html:not(.dark) .footer__social-lnk,html:not(.dark) .footer__audio-toggle{color:#657b83}
+html:not(.dark) .header__lnk--2{color:#268bd2;border-color:#268bd2}
+html:not(.dark) .header__lnk:hover,html:not(.dark) .header__lnk--2:hover,html:not(.dark) .footer__social-lnk:hover,html:not(.dark) .footer__audio-toggle:hover{color:#268bd2}
+html:not(.dark) .header__lnk--2:hover{background:#268bd2;color:#fdf6e3;border-color:#268bd2}
+html:not(.dark) .header__lnk--2:focus-visible,html:not(.dark) .footer__social-lnk:focus-visible,html:not(.dark) .footer__audio-toggle:focus-visible{outline:2px solid #268bd2;outline-offset:4px}

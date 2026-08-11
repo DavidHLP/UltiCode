@@ -579,37 +579,37 @@ const initMainScene = () => {
     .to(aboutRow1,{
         val: 1,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow1.val)
+            scene.setTextLineReveal('aboutR', 0, aboutRow1.val)
         }
     })
     .to(aboutRow2,{
         val: 1,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow2.val)
+            scene.setTextLineReveal('aboutR', 1, aboutRow2.val)
         }
     })
     .to(aboutRow3,{
         val: 1,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow3.val)
+            scene.setTextLineReveal('aboutR', 2, aboutRow3.val)
         }
     })
     .to(aboutRow4,{
         val: 1,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow4.val)
+            scene.setTextLineReveal('aboutR', 3, aboutRow4.val)
         }
     })
     .to(aboutRow5,{
         val: 1,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow5.val)
+            scene.setTextLineReveal('aboutR', 4, aboutRow5.val)
         }
     })
     .to(aboutRow6,{
         val: 1,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow6.val)
+            scene.setTextLineReveal('aboutR', 5, aboutRow6.val)
         }
     })
         .to({},{
@@ -619,37 +619,37 @@ const initMainScene = () => {
     .to(aboutRow1,{
         val: 2,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow1.val)
+            scene.setTextLineReveal('aboutR', 0, aboutRow1.val)
         }
     },'out')
     .to(aboutRow2,{
         val: 2,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow2.val)
+            scene.setTextLineReveal('aboutR', 1, aboutRow2.val)
         }
     },'out+=0.125')
     .to(aboutRow3,{
         val: 2,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow3.val)
+            scene.setTextLineReveal('aboutR', 2, aboutRow3.val)
         }
     },'out+=0.25')
     .to(aboutRow4,{
         val: 2,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow4.val)
+            scene.setTextLineReveal('aboutR', 3, aboutRow4.val)
         }
     },'out+=0.375')
     .to(aboutRow5,{
         val: 2,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow5.val)
+            scene.setTextLineReveal('aboutR', 4, aboutRow5.val)
         }
     },'out+=0.5')
     .to(aboutRow6,{
         val: 2,
         onUpdate: ()=> {
-            scene.setTextSectionReveal('aboutR', aboutRow6.val)
+            scene.setTextLineReveal('aboutR', 5, aboutRow6.val)
         }
     },'out+=0.625')
 
@@ -823,25 +823,25 @@ const initMainScene = () => {
             val: 1,
             onUpdate: ()=> {
 
-                scene.setTextSectionReveal('agencyR', agencyRow1.val)
+                scene.setTextLineReveal('agencyR', 0, agencyRow1.val)
             }
         },'revealAgency')
         .to(agencyRow2,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow2.val)
+                scene.setTextLineReveal('agencyR', 1, agencyRow2.val)
             }
         })
         .to(agencyRow3,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow3.val)
+                scene.setTextLineReveal('agencyR', 2, agencyRow3.val)
             }
         })
         .to(agencyRow4,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow4.val)
+                scene.setTextLineReveal('agencyR', 3, agencyRow4.val)
             }
         })
         .add('clients')
@@ -896,49 +896,49 @@ const initMainScene = () => {
         .to(clientRow1,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow1.val)
+                scene.setTextLineReveal('clientsR', 0, clientRow1.val)
             }
         },'clients')
         .to(clientRow2,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow2.val)
+                scene.setTextLineReveal('clientsR', 1, clientRow2.val)
             }
         })
         .to(clientRow3,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow3.val)
+                scene.setTextLineReveal('clientsR', 2, clientRow3.val)
             }
         })
         .to(clientRow4,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow4.val)
+                scene.setTextLineReveal('clientsR', 3, clientRow4.val)
             }
         })
         .to(clientRow5,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow5.val)
+                scene.setTextLineReveal('clientsR', 4, clientRow5.val)
             }
         })
         .to(clientRow6,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow6.val)
+                scene.setTextLineReveal('clientsR', 5, clientRow6.val)
             }
         })
         .to(clientRow7,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow7.val)
+                scene.setTextLineReveal('clientsR', 6, clientRow7.val)
             }
         })
         .to(clientRow8,{
             val: 1,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow8.val)
+                scene.setTextLineReveal('clientsR', 7, clientRow8.val)
             }
         })
         .to({},{
@@ -949,73 +949,73 @@ const initMainScene = () => {
         .to(agencyRow1,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow1.val)
+                scene.setTextLineReveal('agencyR', 0, agencyRow1.val)
             }
         },'outAgency')
         .to(agencyRow2,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow2.val)
+                scene.setTextLineReveal('agencyR', 1, agencyRow2.val)
             }
         },'outAgency')
         .to(agencyRow3,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow3.val)
+                scene.setTextLineReveal('agencyR', 2, agencyRow3.val)
             }
         },'outAgency')
         .to(agencyRow4,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('agencyR', agencyRow4.val)
+                scene.setTextLineReveal('agencyR', 3, agencyRow4.val)
             }
         },'outAgency')
         .to(clientRow1,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow1.val)
+                scene.setTextLineReveal('clientsR', 0, clientRow1.val)
             }
         },'outClients')
         .to(clientRow2,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow2.val)
+                scene.setTextLineReveal('clientsR', 1, clientRow2.val)
             }
         },'outClients')
         .to(clientRow3,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow3.val)
+                scene.setTextLineReveal('clientsR', 2, clientRow3.val)
             }
         },'outClients')
         .to(clientRow4,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow4.val)
+                scene.setTextLineReveal('clientsR', 3, clientRow4.val)
             }
         },'outClients')
         .to(clientRow5,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow5.val)
+                scene.setTextLineReveal('clientsR', 4, clientRow5.val)
             }
         },'outClients')
         .to(clientRow6,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow6.val)
+                scene.setTextLineReveal('clientsR', 5, clientRow6.val)
             }
         },'outClients')
         .to(clientRow7,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow7.val)
+                scene.setTextLineReveal('clientsR', 6, clientRow7.val)
             }
         },'outClients')
         .to(clientRow8,{
             val: 2,
             onUpdate: ()=> {
-                scene.setTextSectionReveal('clientsR', clientRow8.val)
+                scene.setTextLineReveal('clientsR', 7, clientRow8.val)
             }
         },'outClients')
 
@@ -1177,25 +1177,25 @@ const initMainScene = () => {
             .to(recognitionRow1,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
+                    scene.setTextLineReveal('recognitionR', 0, recognitionRow1.val)
                 }
             },'afterexp+=0.1')
             .to(recognitionRow2,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
+                    scene.setTextLineReveal('recognitionR', 1, recognitionRow2.val)
                 }
             },'afterexp+=0.175')
             .to(recognitionRow3,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
+                    scene.setTextLineReveal('recognitionR', 2, recognitionRow3.val)
                 }
             },'afterexp+=0.25')
             .to(recognitionRow4,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
+                    scene.setTextLineReveal('recognitionR', 3, recognitionRow4.val)
                 }
             },'afterexp+=0.325')
 
@@ -1221,28 +1221,28 @@ const initMainScene = () => {
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
+                    scene.setTextLineReveal('recognitionR', 0, recognitionRow1.val)
                 }
             },'aw')
             .to(recognitionRow2,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
+                    scene.setTextLineReveal('recognitionR', 1, recognitionRow2.val)
                 }
             },'aw+=0.05')
             .to(recognitionRow3,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
+                    scene.setTextLineReveal('recognitionR', 2, recognitionRow3.val)
                 }
             },'aw+=0.1')
             .to(recognitionRow4,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
+                    scene.setTextLineReveal('recognitionR', 3, recognitionRow4.val)
                 }
             },'aw+=0.15')
             .to(scene.awards.progressState,{
@@ -1295,25 +1295,25 @@ const initMainScene = () => {
             .to(recognitionRow1,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
+                    scene.setTextLineReveal('recognitionR', 0, recognitionRow1.val)
                 }
             })
             .to(recognitionRow2,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
+                    scene.setTextLineReveal('recognitionR', 1, recognitionRow2.val)
                 }
             })
             .to(recognitionRow3,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
+                    scene.setTextLineReveal('recognitionR', 2, recognitionRow3.val)
                 }
             })
             .to(recognitionRow4,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
+                    scene.setTextLineReveal('recognitionR', 3, recognitionRow4.val)
                 }
             })
             .to({},{
@@ -1338,28 +1338,28 @@ const initMainScene = () => {
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
+                    scene.setTextLineReveal('recognitionR', 0, recognitionRow1.val)
                 }
             },'aw')
             .to(recognitionRow2,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
+                    scene.setTextLineReveal('recognitionR', 1, recognitionRow2.val)
                 }
             },'aw+=0.05')
             .to(recognitionRow3,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
+                    scene.setTextLineReveal('recognitionR', 2, recognitionRow3.val)
                 }
             },'aw+=0.05')
             .to(recognitionRow4,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
+                    scene.setTextLineReveal('recognitionR', 3, recognitionRow4.val)
                 }
             },'aw+=0.05')
             .to({},{
@@ -1662,7 +1662,7 @@ const initMainScene = () => {
     })
     .to(subtimeline3,{
         progress: 1,
-        duration: 0.2,
+        duration: 1.2,
         onUpdate: ()=> {
 
         }

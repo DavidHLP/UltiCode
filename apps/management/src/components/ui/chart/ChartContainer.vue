@@ -53,7 +53,7 @@ provideChartContext({
       '--vis-tooltip-text-color': 'none',
       '--vis-tooltip-shadow-color': 'none',
       '--vis-tooltip-backdrop-filter': 'none',
-      '--vis-crosshair-circle-stroke-color': '#0000',
+      '--vis-crosshair-circle-stroke-color': 'transparent',
       '--vis-crosshair-line-stroke-width': cursor ? '1px' : '0px',
       '--vis-font-family': 'var(--font-sans)',
     }"

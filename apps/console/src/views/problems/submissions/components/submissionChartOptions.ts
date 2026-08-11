@@ -27,7 +27,7 @@ interface Translator {
 
 const FALLBACK_COLORS: Required<Omit<ChartCssColors, "mutedBar">> = {
   foreground: "#839496",
-  border: "#174652",
+  border: "#586e75",
   accent: "#268bd2",
 };
 
@@ -50,8 +50,7 @@ export function readChartCssColors(fallbacks: {
   const foreground = resolve("--muted-foreground", fallbacks.foreground);
   const border = resolve("--border", fallbacks.border);
   const accent = resolve("--chart-series-1", fallbacks.accent);
-  const mutedBar =
-    echartsColor.modifyAlpha(foreground, 0.32) || foreground;
+  const mutedBar = echartsColor.modifyAlpha(foreground, 0.32) || foreground;
   return {
     foreground,
     border,
@@ -87,7 +86,9 @@ export function buildDistributionChartOption(
         const point = paired[data.dataIndex];
         if (!point || !Number.isFinite(point.bin)) return "";
         const count = Number.isFinite(point.count) ? point.count : 0;
-        const percentage = safeTotal ? ((count / safeTotal) * 100).toFixed(2) : "0";
+        const percentage = safeTotal
+          ? ((count / safeTotal) * 100).toFixed(2)
+          : "0";
         const isUserPosition = data.dataIndex === userIndex;
         return `${point.bin}${unit}<br/>${t("problem.layout.count")}: ${count}<br/>${t("problem.layout.percentage")}: ${percentage}%${isUserPosition ? `<br/><span style="color: var(--chart-series-1);">${t("problem.layout.userPosition")}</span>` : ""}`;
       },

@@ -24,6 +24,7 @@
     "verify:typography-tokens": "node ../scripts/verify-typography-tokens.mjs"
   },
   "dependencies": {
+    "@ulticode/design-system": "workspace:*",
     "@dnd-kit/abstract": "^0.1.21",
     "@dnd-kit/dom": "^0.1.21",
     "@dnd-kit/modifiers": "^9.0.0",

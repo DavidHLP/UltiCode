@@ -36,7 +36,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
         ],
         // Terminal variant
         variant === 'terminal' && [
-          'border-[var(--silver-300)] dark:border-[var(--silver-400)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:text-white data-[state=checked]:border-[var(--accent-electric)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] rounded-none shadow-none focus-visible:ring-[2px]',
+          'border-[var(--silver-300)] dark:border-[var(--silver-400)] data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-[var(--accent-electric)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] rounded-none shadow-none focus-visible:ring-[2px]',
         ],
         props.class,
       )

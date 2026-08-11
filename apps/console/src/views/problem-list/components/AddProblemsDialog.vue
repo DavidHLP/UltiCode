@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Plus, Check } from "lucide-vue-next";
+import { getDifficultyBadgeClass } from "@ulticode/design-system";
 import { searchProblems } from "@/api/problem";
 
 const props = defineProps<{
@@ -35,19 +36,6 @@ const searchResults = ref<Problem[]>([]);
 const isSearching = ref(false);
 const addingProblemIds = ref<Set<number>>(new Set());
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function getDifficultyColor(difficulty: string): string {
-  switch (difficulty?.toLowerCase()) {
-    case "easy":
-      return "text-[var(--terminal-green)] bg-[oklch(0.6444_0.1508_118.6_/_0.12)]";
-    case "medium":
-      return "text-[var(--terminal-amber)] bg-[oklch(0.6545_0.1340_85.7_/_0.12)]";
-    case "hard":
-      return "text-[var(--terminal-red)] bg-[oklch(0.5863_0.2064_27.1_/_0.12)]";
-    default:
-      return "text-muted-foreground bg-muted";
-  }
-}
 
 function handleSearch() {
   if (searchTimeout) clearTimeout(searchTimeout);
@@ -163,7 +151,7 @@ watch(
                     {{ problem.title }}
                   </span>
                   <Badge
-                    :class="getDifficultyColor(problem.difficulty)"
+                    :class="getDifficultyBadgeClass(problem.difficulty)"
                     class="text-xs shrink-0"
                   >
                     {{

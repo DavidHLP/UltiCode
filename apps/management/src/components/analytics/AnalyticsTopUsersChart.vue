@@ -37,12 +37,12 @@ const colors = computed<TopUserChartColors>(() => {
   void themeRevision.value
 
   return {
-    accent: readCssColor('--accent-primary', '#268bd2'),
-    accentMuted: readCssColor('--accent-electric', '#2aa4f4'),
-    axis: readCssColor('--silver-400', '#839496'),
-    border: readCssColor('--border', '#586e75'),
-    card: readCssColor('--card', '#002b36'),
-    foreground: readCssColor('--foreground', '#fdf6e3'),
+    accent: readCssColor('--chart-series-1', '#268bd2'),
+    accentMuted: readCssColor('--chart-series-2', '#2aa198'),
+    axis: readCssColor('--foreground-muted', '#839496'),
+    border: readCssColor('--chart-tooltip-border', '#586e75'),
+    card: readCssColor('--chart-tooltip-background', '#073642'),
+    foreground: readCssColor('--foreground-strong', '#93a1a1'),
   }
 })
 

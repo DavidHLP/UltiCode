@@ -25,7 +25,7 @@ const { t } = useI18n();
           <h2
             class="text-lg font-bold text-foreground font-mono tracking-tight flex items-center gap-2"
           >
-            <span class="h-2.5 w-2.5 bg-[var(--terminal-amber)]"></span>
+            <span class="h-2.5 w-2.5 bg-[var(--status-warning-mark)]"></span>
             {{ t("contest.ranking.national") }}
           </h2>
           <span
@@ -74,7 +74,7 @@ const { t } = useI18n();
               class="h-20 w-full bg-muted/60 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
             >
               <div
-                class="absolute inset-0 bg-white/5 skew-y-12 opacity-50"
+                class="absolute inset-0 bg-surface/5 skew-y-12 opacity-50"
               ></div>
             </div>
           </div>
@@ -97,17 +97,17 @@ const { t } = useI18n();
                   rankings[0].avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
                 "
-                class="w-16 h-16 rounded-none border-2 border-[var(--terminal-amber)] shadow-[2px_2px_0px_0px_var(--terminal-amber)]"
+                class="w-16 h-16 rounded-none border-2 border-[var(--status-warning-mark)] shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
               />
               <div class="absolute -bottom-2.5 w-full text-center">
                 <span
-                  class="bg-[var(--terminal-amber)] text-white text-xxs px-2 py-0.5 rounded-none font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-surface-highlight text-foreground-strong border border-[var(--rank-first)] text-xxs px-2 py-0.5 rounded-none font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >1ST</span
                 >
               </div>
             </div>
             <p
-              class="text-sm font-black truncate w-full text-[var(--terminal-amber)] mt-3 text-center"
+              class="text-sm font-black truncate w-full text-foreground-strong mt-3 text-center"
             >
               {{ rankings[0].name || rankings[0].username }}
             </p>
@@ -119,13 +119,13 @@ const { t } = useI18n();
               >
             </div>
             <div
-              class="h-28 w-full bg-[var(--terminal-amber)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--terminal-amber)]/30 border-b-0 relative overflow-hidden mt-1"
+              class="h-28 w-full bg-[var(--status-warning-mark)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--status-warning-mark)]/30 border-b-0 relative overflow-hidden mt-1"
             >
               <div
-                class="absolute inset-0 bg-white/10 skew-y-12 opacity-50"
+                class="absolute inset-0 bg-surface/10 skew-y-12 opacity-50"
               ></div>
               <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-5 font-black text-4xl text-[var(--terminal-amber)] font-mono"
+                class="absolute bottom-0 w-full text-center pb-2 opacity-5 font-black text-4xl text-foreground-strong font-mono"
               >
                 1
               </div>
@@ -145,11 +145,11 @@ const { t } = useI18n();
                   rankings[2].avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
                 "
-                class="w-14 h-14 rounded-none border-2 border-[var(--solarized-orange)] shadow-[2px_2px_0px_0px_var(--solarized-orange)]"
+                class="w-14 h-14 rounded-none border-2 border-[var(--rank-third)] shadow-[2px_2px_0px_0px_var(--rank-third)]"
               />
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-muted text-[var(--solarized-orange)] border border-[var(--solarized-orange)] text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-muted text-[var(--rank-third)] border border-[var(--rank-third)] text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >3RD</span
                 >
               </div>
@@ -167,10 +167,10 @@ const { t } = useI18n();
               >
             </div>
             <div
-              class="h-12 w-full bg-[var(--solarized-orange)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--solarized-orange)]/30 border-b-0 relative overflow-hidden mt-1"
+              class="h-12 w-full bg-[var(--rank-third)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--rank-third)]/30 border-b-0 relative overflow-hidden mt-1"
             >
               <div
-                class="absolute inset-0 bg-white/5 skew-y-12 opacity-50"
+                class="absolute inset-0 bg-surface/5 skew-y-12 opacity-50"
               ></div>
             </div>
           </div>

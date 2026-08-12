@@ -24,7 +24,7 @@ const categoryColor = computed(
   () =>
     AchievementCategoryColors[
       props.achievement.category as keyof typeof AchievementCategoryColors
-    ] || "text-gray-500",
+    ] || "text-foreground-muted",
 );
 
 const formattedDate = computed(() => {
@@ -85,7 +85,7 @@ const progressPercentage = computed(() =>
         </span>
 
         <template v-if="achievement.earned && formattedDate">
-          <span class="flex items-center gap-1 text-[var(--terminal-green)]">
+          <span class="flex items-center gap-1 text-[var(--foreground-strong)]">
             <Check class="h-3 w-3" />
             Earned
           </span>

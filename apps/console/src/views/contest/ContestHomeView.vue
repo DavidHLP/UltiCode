@@ -77,9 +77,9 @@ watch(currentPage, async (newPage) => {
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--terminal-amber)]" />
+          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
           <h1
-            class="text-3xl font-bold tracking-tight text-[var(--terminal-amber)]"
+            class="text-3xl font-bold tracking-tight text-foreground-strong"
           >
             {{ t("contest.list.mainTitle") }}
           </h1>

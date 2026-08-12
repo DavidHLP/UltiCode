@@ -12,9 +12,9 @@ const props = defineProps<{
     data-slot="table-row"
     :class="
       cn(
-        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]',
+        'border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]',
         'hover:bg-[var(--surface-sunken)] transition-colors duration-150',
-        'data-[state=selected]:bg-[color-mix(in_oklch,_var(--accent-electric)_8%,_transparent)] dark:data-[state=selected]:bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
+        'data-[state=selected]:bg-[color-mix(in_oklch,_var(--primary)_8%,_transparent)] dark:data-[state=selected]:bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)]',
         props.class,
       )
     "

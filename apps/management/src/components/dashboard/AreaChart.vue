@@ -150,7 +150,7 @@ const defaultConfig: ChartConfig = {
   },
   desktop: {
     label: 'Desktop',
-    color: 'var(--silver-400)',
+    color: 'var(--foreground-muted)',
   },
 }
 
@@ -260,16 +260,16 @@ function escapeHtml(s: string): string {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden shadow-float gap-0 py-0 rounded-none h-full flex flex-col"
+    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card overflow-hidden shadow-float gap-0 py-0 rounded-none h-full flex flex-col"
   >
     <CardHeader
-      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
     >
       <div class="space-y-1">
         <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
           props.title
         }}</CardTitle>
-        <CardDescription class="text-xs text-[var(--silver-400)]">{{
+        <CardDescription class="text-xs text-[var(--foreground-muted)]">{{
           props.description
         }}</CardDescription>
       </div>
@@ -277,7 +277,7 @@ function escapeHtml(s: string): string {
       <!-- Time period selector - Segmented Control style -->
       <div
         v-if="props.showPeriodSelector"
-        class="flex items-center gap-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-100)] p-0.5"
+        class="flex items-center gap-0.5 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-highlight)] p-0.5"
       >
         <Button
           v-for="period in timePeriods"
@@ -287,8 +287,8 @@ function escapeHtml(s: string): string {
           class="h-6 px-3.5 text-xs rounded-none font-mono transition-all duration-200 cursor-pointer"
           :class="
             timePeriod === period.value
-              ? 'bg-card text-[var(--accent-primary)] font-bold shadow-sm border border-[var(--silver-200)] dark:border-[var(--silver-300)]'
-              : 'text-[var(--silver-500)] hover:text-foreground hover:bg-[var(--silver-200)]/50'
+              ? 'bg-card text-[var(--accent-primary)] font-bold shadow-sm border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]'
+              : 'text-[var(--foreground-muted)] hover:text-foreground hover:bg-[var(--border-subtle)]/50'
           "
           @click="selectTimePeriod(period.value)"
         >
@@ -301,13 +301,13 @@ function escapeHtml(s: string): string {
       <!-- Empty State -->
       <div
         v-if="filterRange.length === 0"
-        class="flex flex-col items-center justify-center h-[280px] w-full border border-dashed border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-50)]/30 rounded-none"
+        class="flex flex-col items-center justify-center h-[280px] w-full border border-dashed border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface)]/30 rounded-none"
       >
         <Empty>
           <EmptyContent>
             <EmptyMedia
               variant="icon"
-              class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card text-[var(--silver-400)] rounded-none"
+              class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card text-[var(--foreground-muted)] rounded-none"
             >
               <IconChartBar class="size-6" />
             </EmptyMedia>
@@ -316,7 +316,7 @@ function escapeHtml(s: string): string {
                 {{ t('dashboard.chart.noDataTitle') }}
               </EmptyTitle>
               <EmptyDescription
-                class="text-xxs font-mono text-[var(--silver-400)] mt-1 max-w-xs mx-auto"
+                class="text-xxs font-mono text-[var(--foreground-muted)] mt-1 max-w-xs mx-auto"
               >
                 {{ t('dashboard.chart.noDataDesc') }}
               </EmptyDescription>
@@ -406,7 +406,7 @@ function escapeHtml(s: string): string {
   font-weight: var(--uc-font-weight-semibold);
   font-size: var(--uc-text-2xs);
   letter-spacing: 0.05em;
-  color: var(--silver-500);
+  color: var(--foreground-muted);
   text-transform: uppercase;
 }
 
@@ -432,7 +432,7 @@ function escapeHtml(s: string): string {
 
 :deep(.uc-chart-tooltip__label) {
   flex: 1;
-  color: var(--silver-500);
+  color: var(--foreground-muted);
   font-size: var(--uc-text-xs);
 }
 

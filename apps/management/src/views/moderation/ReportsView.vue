@@ -160,7 +160,7 @@ function handleFilterUpdate(index: number, value: string | number) {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -172,7 +172,7 @@ function handleFilterUpdate(index: number, value: string | number) {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="loadReports"
           :disabled="loading"
         >
@@ -183,25 +183,25 @@ function handleFilterUpdate(index: number, value: string | number) {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.pending') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconAlertTriangle class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('moderation.reports.pageTitle')

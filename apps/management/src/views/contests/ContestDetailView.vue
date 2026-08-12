@@ -134,7 +134,7 @@ function handleTabChange(value: string | number) {
     <!-- Terminal Header -->
     <header
       :class="[
-        'sticky top-0 z-10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'sticky top-0 z-10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -145,7 +145,7 @@ function handleTabChange(value: string | number) {
             <Button
               variant="terminal"
               size="icon"
-              class="h-8 w-8 border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+              class="h-8 w-8 border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
               @click="router.push({ name: 'contests' })"
             >
               <IconArrowLeft class="h-4 w-4" />
@@ -158,7 +158,7 @@ function handleTabChange(value: string | number) {
 
             <div v-else-if="contest" class="flex items-center gap-3">
               <div
-                class="h-10 w-10 border flex items-center justify-center bg-[var(--silver-100)] dark:bg-[var(--silver-800)] border-[var(--silver-200)] dark:border-[var(--silver-600)] text-[var(--accent-electric)]"
+                class="h-10 w-10 border flex items-center justify-center bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] text-[var(--primary)]"
               >
                 <IconTrophy class="h-5 w-5" />
               </div>
@@ -190,7 +190,7 @@ function handleTabChange(value: string | number) {
                 v-if="contest.status === 'UPCOMING'"
                 variant="terminal"
                 size="sm"
-                class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+                class="font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
                 @click="handleStart"
               >
                 <IconPlayerPlay class="mr-1.5 h-3.5 w-3.5" />
@@ -200,7 +200,7 @@ function handleTabChange(value: string | number) {
                 v-if="contest.status === 'RUNNING'"
                 variant="terminal"
                 size="sm"
-                class="font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
+                class="font-data text-xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_10%,_transparent)]"
                 @click="handleEnd"
               >
                 <IconPlayerStop class="mr-1.5 h-3.5 w-3.5" />
@@ -211,7 +211,7 @@ function handleTabChange(value: string | number) {
               v-if="canDelete"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+              class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
               @click="handleDelete"
             >
               <IconTrash class="mr-1.5 h-3.5 w-3.5" />
@@ -224,36 +224,36 @@ function handleTabChange(value: string | number) {
 
     <main class="flex-1 p-4 lg:p-6 max-w-[1200px] mx-auto w-full">
       <div v-if="loading && !contest" class="space-y-6">
-        <Skeleton class="h-48 w-full border border-[var(--silver-200)]" />
-        <Skeleton class="h-96 w-full border border-[var(--silver-200)]" />
+        <Skeleton class="h-48 w-full border border-[var(--border-subtle)]" />
+        <Skeleton class="h-96 w-full border border-[var(--border-subtle)]" />
       </div>
 
       <template v-else-if="contest">
         <Tabs :model-value="activeTab" @update:model-value="handleTabChange" class="space-y-6">
           <TabsList
-            class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-1"
+            class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)] p-1"
           >
             <TabsTrigger
               value="overview"
-              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--primary)] data-[state=active]:text-[var(--primary)]"
             >
               {{ t('contests.detail.overview') }}
             </TabsTrigger>
             <TabsTrigger
               value="problems"
-              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--primary)] data-[state=active]:text-[var(--primary)]"
             >
               {{ t('contests.detail.problems') }}
             </TabsTrigger>
             <TabsTrigger
               value="participants"
-              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--primary)] data-[state=active]:text-[var(--primary)]"
             >
               {{ t('contests.detail.participants') }}
             </TabsTrigger>
             <TabsTrigger
               value="rankings"
-              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--primary)] data-[state=active]:text-[var(--primary)]"
             >
               {{ t('contests.detail.rankings') }}
             </TabsTrigger>
@@ -288,13 +288,13 @@ function handleTabChange(value: string | number) {
 
       <div
         v-else
-        class="flex flex-col items-center justify-center h-64 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="flex flex-col items-center justify-center h-64 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <span class="terminal-comment mb-4">{{ t('contests.detail.contestNotFound') }}</span>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)]"
+          class="font-data text-xs border-[var(--border-subtle)]"
           @click="router.push({ name: 'contests' })"
         >
           {{ t('contests.detail.backToList') }}

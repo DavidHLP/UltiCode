@@ -108,13 +108,13 @@ function rowAction(
 <template>
   <Card
     id="contest-problems"
-    class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-[var(--shadow-float)] overflow-hidden rounded-none"
+    class="border border-border bg-surface dark:bg-surface-highlight shadow-[var(--shadow-float)] overflow-hidden rounded-none"
   >
     <CardHeader
-      class="pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
+      class="pb-3 border-b border-border bg-[var(--surface-highlight)]/50 dark:bg-background/50"
     >
       <CardTitle
-        class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+        class="text-xs font-bold font-mono uppercase tracking-widest text-foreground dark:text-foreground-strong"
         >{{ t("contest.detail.challenges") }}</CardTitle
       >
     </CardHeader>
@@ -124,7 +124,7 @@ function rowAction(
         class="flex flex-col items-center justify-center gap-4 px-6 py-12 text-center"
       >
         <div
-          class="flex h-16 w-16 items-center justify-center rounded-none bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] border border-border text-muted-foreground"
+          class="flex h-16 w-16 items-center justify-center rounded-none bg-[var(--surface-highlight)] dark:bg-background border border-border text-muted-foreground"
         >
           <Lock class="h-6 w-6" />
         </div>
@@ -139,7 +139,7 @@ function rowAction(
         <Button
           v-if="!isRegistered"
           variant="outline"
-          class="rounded-none px-6 h-9 font-bold text-xs uppercase tracking-wider border border-border hover:bg-[var(--silver-100)] cursor-pointer"
+          class="rounded-none px-6 h-9 font-bold text-xs uppercase tracking-wider border border-border hover:bg-[var(--surface-highlight)] cursor-pointer"
           :disabled="registering"
           @click="emit('register')"
         >
@@ -149,7 +149,7 @@ function rowAction(
 
       <Table v-else>
         <TableHeader
-          class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40"
+          class="bg-[var(--surface-highlight)]/45 dark:bg-background/45 border-b border-border/40"
         >
           <TableRow class="hover:bg-transparent">
             <TableHead
@@ -182,28 +182,28 @@ function rowAction(
           <TableRow
             v-for="problem in problems"
             :key="problem.id"
-            class="group cursor-pointer hover:bg-[var(--silver-100)]/30 dark:hover:bg-[var(--solarized-base03)]/30 border-b border-border/30 last:border-b-0 transition-colors"
+            class="group cursor-pointer hover:bg-[var(--surface-highlight)]/30 dark:hover:bg-background/30 border-b border-border/30 last:border-b-0 transition-colors"
             @click="problem.slug && $router.push(problemLink(problem.slug))"
           >
             <TableCell class="pl-6 py-3">
               <!-- Solved Status Block Indicator -->
               <div
                 v-if="getProblemStatus(problem.problemId) === 'solved'"
-                class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/35 shadow-sm"
+                class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--status-success-mark)]/10 text-foreground-strong border-[var(--status-success-mark)]/35 shadow-sm"
                 :title="t('contest.detail.row.solved')"
               >
                 <Check class="h-4.5 w-4.5 stroke-[3]" />
               </div>
               <div
                 v-else-if="getProblemStatus(problem.problemId) === 'attempted'"
-                class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/35 shadow-sm"
+                class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--status-warning-mark)]/10 text-foreground-strong border-[var(--status-warning-mark)]/35 shadow-sm"
                 :title="t('contest.detail.row.attempted', { n: 0 })"
               >
                 {{ problem.problemIndex || "?" }}
               </div>
               <div
                 v-else
-                class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-muted-foreground border-border/40 group-hover:bg-[var(--solarized-base3)] dark:group-hover:bg-[var(--solarized-base02)]"
+                class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--surface-highlight)] dark:bg-background text-muted-foreground border-border/40 group-hover:bg-surface dark:group-hover:bg-surface-highlight"
                 :title="t('contest.detail.row.notStarted')"
               >
                 {{ problem.problemIndex || "#" }}
@@ -215,7 +215,7 @@ function rowAction(
                 <router-link
                   v-if="problem.slug"
                   :to="problemLink(problem.slug)"
-                  class="text-base font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] group-hover:text-[var(--accent-electric)] transition-colors"
+                  class="text-base font-bold text-foreground dark:text-foreground-strong group-hover:text-[var(--primary)] transition-colors"
                   @click.stop
                 >
                   {{ problem.title }}
@@ -268,7 +268,7 @@ function rowAction(
 
             <TableCell class="text-center py-3">
               <span
-                class="inline-flex items-center gap-1 font-black text-sm text-[var(--terminal-amber)] font-mono"
+                class="inline-flex items-center gap-1 font-black text-sm text-foreground-strong font-mono"
               >
                 <Award class="h-4.5 w-4.5" />
                 {{ problem.score || 0 }}
@@ -277,7 +277,7 @@ function rowAction(
 
             <TableCell class="text-center py-3">
               <span
-                class="text-xs font-bold text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-mono"
+                class="text-xs font-bold text-foreground-muted dark:text-foreground-muted font-mono"
                 :data-testid="`acceptance-rate-${problem.problemId}`"
               >
                 <!--
@@ -298,12 +298,12 @@ function rowAction(
                 :class="[
                   'rounded-none px-3 h-8 font-black text-2xs uppercase tracking-widest cursor-pointer',
                   rowAction(problem.problemId).key === 'review'
-                    ? 'border border-border bg-[var(--silver-100)]/60 hover:bg-[var(--silver-100)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] dark:bg-[var(--solarized-base03)]/60'
+                    ? 'border border-border bg-[var(--surface-highlight)]/60 hover:bg-[var(--surface-highlight)] text-foreground dark:text-foreground-strong dark:bg-background/60'
                     : rowAction(problem.problemId).key === 'continue'
-                      ? 'bg-[var(--terminal-amber)]/15 border border-[var(--terminal-amber)]/40 text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/25'
+                      ? 'bg-[var(--status-warning-mark)]/15 border border-[var(--status-warning-mark)]/40 text-foreground-strong hover:bg-[var(--status-warning-mark)]/25'
                       : rowAction(problem.problemId).key === 'locked'
-                        ? 'border border-border bg-[var(--silver-100)]/40 text-muted-foreground cursor-not-allowed'
-                        : 'bg-[var(--accent-electric)]/15 border border-[var(--accent-electric)]/40 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/25',
+                        ? 'border border-border bg-[var(--surface-highlight)]/40 text-muted-foreground cursor-not-allowed'
+                        : 'bg-[var(--primary)]/15 border border-[var(--primary)]/40 text-[var(--primary)] hover:bg-[var(--primary)]/25',
                 ]"
                 :data-testid="`row-action-${problem.problemId}`"
                 @click.stop="$router.push(problemLink(problem.slug!))"

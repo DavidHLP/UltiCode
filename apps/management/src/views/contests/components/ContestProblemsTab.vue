@@ -33,7 +33,7 @@ const emit = defineEmits<{
         v-if="canUpdate"
         variant="terminal"
         size="sm"
-        class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+        class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
         @click="emit('addProblem')"
       >
         <IconPlus class="mr-1.5 h-3.5 w-3.5" />
@@ -42,29 +42,29 @@ const emit = defineEmits<{
     </div>
 
     <!-- Table - Terminal Style -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
       <Table class="terminal-table">
         <TableHeader>
           <TableRow
-            class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
           >
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[60px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[60px]"
             >
               #
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]"
             >
               {{ $t('contests.detail.problem') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[80px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[80px]"
             >
               {{ $t('contests.detail.score') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[50px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[50px]"
             >
             </TableHead>
           </TableRow>
@@ -73,9 +73,9 @@ const emit = defineEmits<{
           <TableRow
             v-for="(problemId, index) in contest.problemIds || []"
             :key="problemId"
-            class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
+            class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)]"
           >
-            <TableCell class="font-data text-xs text-[var(--accent-electric)]">
+            <TableCell class="font-data text-xs text-[var(--primary)]">
               {{ String(index + 1).padStart(2, '0') }}
             </TableCell>
             <TableCell>
@@ -84,14 +84,14 @@ const emit = defineEmits<{
               </span>
             </TableCell>
             <TableCell>
-              <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">—</span>
+              <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">—</span>
             </TableCell>
             <TableCell>
               <Button
                 v-if="canUpdate"
                 variant="ghost"
                 size="icon"
-                class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+                class="h-8 w-8 text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
                 @click="emit('removeProblem', problemId)"
               >
                 <IconTrash class="h-4 w-4" />

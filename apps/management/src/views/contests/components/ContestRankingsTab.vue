@@ -32,29 +32,29 @@ withDefaults(
     </div>
 
     <!-- Table - Terminal Style -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
       <Table class="terminal-table">
         <TableHeader>
           <TableRow
-            class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
           >
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[60px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[60px]"
             >
               {{ $t('contests.detail.rank') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]"
             >
               {{ $t('contests.detail.user') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[100px] text-right"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[100px] text-right"
             >
               {{ $t('contests.detail.score') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[100px] text-right"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[100px] text-right"
             >
               {{ $t('contests.detail.penalty') }}
             </TableHead>
@@ -65,7 +65,7 @@ withDefaults(
             v-for="(r, i) in rankings"
             :key="r.userId"
             :class="[
-              'border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]',
+              'border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)]',
               i < 3 ? 'bg-[var(--surface-sunken)]' : '',
             ]"
           >
@@ -85,12 +85,12 @@ withDefaults(
               <span class="font-medium text-sm text-[var(--foreground)]">{{ r.username }}</span>
             </TableCell>
             <TableCell class="text-right">
-              <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums font-bold">
+              <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums font-bold">
                 {{ r.score }}
               </span>
             </TableCell>
             <TableCell class="text-right">
-              <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
+              <span class="font-data text-xs text-[var(--foreground-muted)] tabular-nums">
                 {{ r.penalty }}
               </span>
             </TableCell>

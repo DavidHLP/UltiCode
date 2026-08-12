@@ -178,7 +178,7 @@ function handleClose() {
             >
               <div
                 v-if="selectedColor === color"
-                class="h-2 w-2 rounded-full bg-white shadow-sm"
+                class="h-2 w-2 rounded-full bg-primary-foreground shadow-sm"
               ></div>
             </button>
             <button

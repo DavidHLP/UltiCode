@@ -64,16 +64,16 @@ export const RATING_THRESHOLDS: Record<RatingTitle, number> = {
 };
 
 export const RATING_COLORS: Record<RatingTitle, string> = {
-  NEWBIE: "#808080",
-  PUPIL: "#008000",
-  SPECIALIST: "#03A89E",
-  EXPERT: "#0000FF",
-  CANDIDATE_MASTER: "#AA00AA",
-  MASTER: "#FF8C00",
-  INTERNATIONAL_MASTER: "#FF8C00",
-  GRANDMASTER: "#FF0000",
-  INTERNATIONAL_GRANDMASTER: "#FF0000",
-  LEGENDARY_GRANDMASTER: "#FF0000",
+  NEWBIE: "var(--foreground-muted)",
+  PUPIL: "var(--status-success-mark)",
+  SPECIALIST: "var(--status-info-mark)",
+  EXPERT: "var(--primary)",
+  CANDIDATE_MASTER: "var(--status-special-mark)",
+  MASTER: "var(--status-warning-mark)",
+  INTERNATIONAL_MASTER: "var(--status-warning-mark)",
+  GRANDMASTER: "var(--status-error-mark)",
+  INTERNATIONAL_GRANDMASTER: "var(--status-error-mark)",
+  LEGENDARY_GRANDMASTER: "var(--status-error-mark)",
 };
 
 export function getRatingTitle(rating: number): RatingTitle {

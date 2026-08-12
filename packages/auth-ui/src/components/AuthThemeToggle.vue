@@ -58,15 +58,15 @@ const labelFor = (mode: "light" | "dark" | "system"): string => {
   border: 1px solid var(--border);
   border-radius: 0;
   background: var(--card);
-  color: var(--silver-500);
+  color: var(--foreground-muted);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .auth-theme-toggle:hover {
-  border-color: var(--accent-electric);
-  color: var(--accent-electric);
-  box-shadow: 2px 2px 0px 0px var(--accent-electric);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 2px 2px 0px 0px var(--primary);
   transform: translate(-1px, -1px);
 }
 
@@ -76,7 +76,7 @@ const labelFor = (mode: "light" | "dark" | "system"): string => {
 }
 
 .auth-theme-toggle:focus-visible {
-  outline: 2px solid var(--accent-electric);
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
 

@@ -226,9 +226,12 @@
 
 
 .markdown-view .prose a {
-  color: hsl(var(--primary));
-  text-decoration: none;
-  font-weight: var(--uc-font-weight-medium);}
+  color: var(--link-foreground);
+  text-decoration-color: var(--link-decoration);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  font-weight: var(--uc-font-weight-medium);
+}
 
 .markdown-view .prose a:hover {
   text-decoration: underline;
@@ -243,30 +246,30 @@
 
 
 .markdown-view .prose {
-  color: var(--solarized-base02) !important;
+  color: var(--foreground) !important;
 }
 .dark .markdown-view .prose {
-  color: var(--solarized-base0) !important;
+  color: var(--foreground) !important;
 }
 
 .markdown-view .prose h1,
 .markdown-view .prose h2,
 .markdown-view .prose h3,
 .markdown-view .prose h4 {
-  color: var(--solarized-base03) !important;
+  color: var(--foreground-strong) !important;
 }
 .dark .markdown-view .prose h1,
 .dark .markdown-view .prose h2,
 .dark .markdown-view .prose h3,
 .dark .markdown-view .prose h4 {
-  color: var(--solarized-base1) !important;
+  color: var(--foreground-strong) !important;
 }
 
 
 .markdown-view .prose h2 {
   font-size: var(--uc-text-xl) !important;
   font-weight: var(--uc-font-weight-bold) !important;
-  border-left: 4px solid var(--solarized-blue) !important;
+  border-left: 4px solid var(--primary) !important;
   padding-left: 0.75rem !important;
   margin-top: 2.5rem !important;
   margin-bottom: 1.25rem !important;
@@ -276,7 +279,7 @@
 .markdown-view .prose h3 {
   font-size: var(--uc-text-lg) !important;
   font-weight: var(--uc-font-weight-bold) !important;
-  border-left: 3px solid var(--solarized-cyan) !important;
+  border-left: 3px solid var(--status-info-mark) !important;
   padding-left: 0.6rem !important;
   margin-top: 2rem !important;
   margin-bottom: 1rem !important;
@@ -286,7 +289,7 @@
 
 .lc-code-block-standalone {
   margin: 1.5rem 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--shadow-color) 5%, transparent);
 }
 
 .lc-code-block-header {
@@ -298,11 +301,11 @@
 .lc-code-block-header span {
   font-size: var(--uc-text-sm);
   font-weight: var(--uc-font-weight-semibold);
-  color: var(--silver-600);
+  color: var(--foreground-strong);
 }
 
 .dark .lc-code-block-header span {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .lc-code-block-standalone pre {

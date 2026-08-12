@@ -53,7 +53,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
             v-if="(problem as EnrichedProblem).statusIcon"
             class="h-5 w-5"
             :class="{
-              'text-status-success':
+              'text-foreground-strong':
                 (problem as EnrichedProblem).status === 'solved',
             }"
           />
@@ -77,7 +77,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
           </a>
           <Lock
             v-if="(problem as EnrichedProblem).isPremium"
-            class="h-4 w-4 text-status-warning"
+            class="h-4 w-4 text-status-warning-mark"
           />
         </div>
       </template>

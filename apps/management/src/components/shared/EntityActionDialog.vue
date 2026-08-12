@@ -177,9 +177,9 @@ const headerIcon = computed<Component>(() => {
 })
 
 const headerClass = computed(() => {
-  if (isFlagAction.value) return 'text-amber-600'
+  if (isFlagAction.value) return 'text-foreground-strong'
   if (isBanAction.value) return 'text-destructive'
-  if (props.action === 'unban') return 'text-emerald-600'
+  if (props.action === 'unban') return 'text-foreground-strong'
   return 'text-destructive'
 })
 
@@ -195,10 +195,10 @@ const confirmButtonVariant = computed(() => {
 
 const confirmButtonClass = computed(() => {
   if (isFlagAction.value) {
-    return 'bg-amber-600 hover:bg-amber-700 text-white'
+    return 'bg-status-warning-surface text-foreground-strong border border-[var(--status-warning-mark)] hover:bg-status-warning-surface'
   }
   if (props.action === 'unban') {
-    return 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    return 'bg-status-success-surface text-foreground-strong border border-[var(--status-success-mark)] hover:bg-status-success-surface'
   }
   return ''
 })
@@ -208,8 +208,8 @@ const confirmButtonClass = computed(() => {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle :class="['flex items-center gap-2', headerClass]">
-          <component :is="headerIcon" class="h-5 w-5" />
+        <DialogTitle class="flex items-center gap-2 text-foreground-strong">
+          <component :is="headerIcon" class="h-5 w-5" :class="headerClass" />
           {{ defaultTitle }}
         </DialogTitle>
         <DialogDescription>

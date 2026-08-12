@@ -61,9 +61,9 @@ const props = defineProps<{
  */
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty.toLowerCase()
-  if (difficulty === 'easy') return 'text-green-600 dark:text-green-500'
-  if (difficulty === 'medium') return 'text-orange-600 dark:text-orange-500'
-  if (difficulty === 'hard') return 'text-red-600 dark:text-red-500'
+  if (difficulty === 'easy') return 'text-foreground-strong bg-status-success-surface border border-status-success-mark'
+  if (difficulty === 'medium') return 'text-foreground-strong bg-status-warning-surface border border-status-warning-mark'
+  if (difficulty === 'hard') return 'text-foreground-strong bg-status-error-surface border border-status-error-mark'
   return 'text-foreground'
 })
 

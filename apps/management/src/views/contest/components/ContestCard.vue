@@ -73,8 +73,8 @@ function handleRegister(event: Event) {
     :class="
       cn(
         'group cursor-pointer transition-all duration-200',
-        'hover:border-[var(--accent-electric)] hover:shadow-md',
-        'border border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+        'hover:border-[var(--primary)] hover:shadow-md',
+        'border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
         'bg-card',
       )
     "
@@ -85,11 +85,11 @@ function handleRegister(event: Event) {
       <div class="flex items-start justify-between gap-3">
         <div class="flex-1 min-w-0">
           <h3
-            class="font-medium text-sm text-foreground truncate group-hover:text-[var(--accent-electric)] transition-colors"
+            class="font-medium text-sm text-foreground truncate group-hover:text-[var(--primary)] transition-colors"
           >
             {{ contest.title }}
           </h3>
-          <p class="font-data text-xs text-[var(--silver-400)] truncate mt-0.5">
+          <p class="font-data text-xs text-[var(--foreground-muted)] truncate mt-0.5">
             {{ contest.slug }}
           </p>
         </div>
@@ -101,10 +101,10 @@ function handleRegister(event: Event) {
                 'font-data text-2xs font-medium uppercase tracking-label',
                 'px-2 py-0.5 border rounded-none',
                 contest.type === 'PUBLIC'
-                  ? 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)] text-[var(--terminal-cyan)]'
+                  ? 'bg-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)] border-[color-mix(in_oklch,_var(--status-info-mark)_40%,_transparent)] text-foreground-strong'
                   : contest.type === 'PRIVATE'
-                    ? 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)] border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)] text-[var(--accent-electric)]'
-                    : 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]',
+                    ? 'bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)] border-[color-mix(in_oklch,_var(--primary)_40%,_transparent)] text-[var(--primary)]'
+                    : 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)] text-foreground-strong',
               )
             "
           >
@@ -128,25 +128,25 @@ function handleRegister(event: Event) {
       <!-- Description (truncated) -->
       <p
         v-if="contest.description"
-        class="text-xs text-[var(--silver-500)] line-clamp-2 min-h-[2rem]"
+        class="text-xs text-[var(--foreground-muted)] line-clamp-2 min-h-[2rem]"
       >
         {{ contest.description }}
       </p>
 
       <!-- Footer: Schedule, Participants, Actions -->
       <div
-        class="flex items-center justify-between pt-2 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+        class="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]"
       >
         <!-- Schedule and Participants -->
         <div class="flex items-center gap-4">
           <!-- Start time -->
-          <div class="flex items-center gap-1.5 text-[var(--silver-400)]">
+          <div class="flex items-center gap-1.5 text-[var(--foreground-muted)]">
             <IconCalendar class="h-3.5 w-3.5" />
             <span class="font-data text-xs tabular-nums">{{ formattedStartTime }}</span>
           </div>
 
           <!-- Participant count -->
-          <div class="flex items-center gap-1.5 text-[var(--silver-400)]">
+          <div class="flex items-center gap-1.5 text-[var(--foreground-muted)]">
             <IconUsers class="h-3.5 w-3.5" />
             <span class="font-data text-xs tabular-nums">{{ contest.participantCount }}</span>
           </div>
@@ -165,7 +165,7 @@ function handleRegister(event: Event) {
         </Button>
         <span
           v-else-if="contest.isRegistered"
-          class="font-data text-xs text-[var(--terminal-green)]"
+          class="font-data text-xs text-foreground-strong"
         >
           Registered
         </span>

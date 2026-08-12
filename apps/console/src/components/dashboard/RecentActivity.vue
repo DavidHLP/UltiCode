@@ -33,21 +33,21 @@ const iconMap = {
 // so no status ever resolves to class="undefined" (the previous statusColors
 // map had only 5 entries and no fallback).
 const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: "text-foreground decoration-status-success underline decoration-2",
-  warning: "text-foreground decoration-status-warning underline decoration-2",
-  error: "text-foreground decoration-status-error underline decoration-2",
-  info: "text-foreground decoration-status-info underline decoration-2",
-  purple: "text-foreground decoration-status-special underline decoration-2",
+  success: "text-foreground decoration-status-success-mark underline decoration-2",
+  warning: "text-foreground decoration-status-warning-mark underline decoration-2",
+  error: "text-foreground decoration-status-error-mark underline decoration-2",
+  info: "text-foreground decoration-status-info-mark underline decoration-2",
+  purple: "text-foreground decoration-status-special-mark underline decoration-2",
   electric: "text-foreground decoration-link-decoration underline decoration-2",
   neutral: "text-muted-foreground",
 };
 
 const SEMANTIC_ACCENT_CLASS: Record<SemanticColor, string> = {
-  success: "text-status-success",
-  warning: "text-status-warning",
-  error: "text-status-error",
-  info: "text-status-info",
-  purple: "text-status-special",
+  success: "text-status-success-mark",
+  warning: "text-status-warning-mark",
+  error: "text-status-error-mark",
+  info: "text-status-info-mark",
+  purple: "text-status-special-mark",
   electric: "text-[var(--accent-primary)]",
   neutral: "text-muted-foreground",
 };
@@ -60,9 +60,9 @@ const getStatusAccentClass = (status: string | undefined): string =>
 
 const typeColors: Record<string, string> = {
   submission: "text-[var(--accent-primary)]",
-  solution: "text-status-special",
-  post: "text-status-success",
-  comment: "text-status-warning",
+  solution: "text-status-special-mark",
+  post: "text-status-success-mark",
+  comment: "text-status-warning-mark",
 };
 
 function formatTime(dateStr: string): string {

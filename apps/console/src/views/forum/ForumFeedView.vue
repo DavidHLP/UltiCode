@@ -237,12 +237,12 @@ function handlePostSave(postId: string, isSaved: boolean) {
             <Input
               v-model="searchQuery"
               :placeholder="t('forum.list.searchPlaceholder')"
-              class="h-10 pl-10 rounded-none bg-[var(--surface-sunken)]/50 font-data border-silver focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
+              class="h-10 pl-10 rounded-none bg-[var(--surface-sunken)]/50 font-data border-border-control focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)]"
             />
           </div>
           <Select v-model="quickFilter">
             <SelectTrigger
-              class="h-10 w-40 rounded-none bg-[var(--surface-sunken)]/50 font-data border-silver focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
+              class="h-10 w-40 rounded-none bg-[var(--surface-sunken)]/50 font-data border-border-control focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)]"
             >
               <SelectValue :placeholder="t('forum.list.sort')" />
             </SelectTrigger>
@@ -258,7 +258,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
           </Select>
         </div>
         <Button
-          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-wide border border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/20 shadow-none transition-colors duration-200"
+          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-wide border border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 shadow-none transition-colors duration-200"
           @click="handleCreatePost"
         >
           <Plus class="h-4 w-4" />

@@ -7,106 +7,90 @@
  *
  * Standard Solarized palette (Ethan Schoonover):
  *   8 monotones (base03–base3) + 8 accent colors
- *   Light: base3 background, base00 foreground
+ *   Light: base3 background, accessible base01 foreground
  *   Dark:  base03 background, base0 foreground
  */
 
-// ---------------------------------------------------------------------------
-// Solarized hex values
-// ---------------------------------------------------------------------------
+import type * as Monaco from "monaco-editor";
 
-const SOLARIZED = {
-  base03: "#002b36",
-  base02: "#073642",
-  base01: "#586e75",
-  base00: "#657b83",
-  base0: "#839496",
-  base1: "#93a1a1",
-  base2: "#eee8d5",
-  base3: "#fdf6e3",
-  yellow: "#b58900",
-  orange: "#cb4b16",
-  red: "#dc322f",
-  magenta: "#d33682",
-  violet: "#6c71c4",
-  blue: "#268bd2",
-  cyan: "#2aa198",
-  green: "#859900",
-} as const;
+import { SOLARIZED_PALETTE } from "@ulticode/design-system";
+
+const SOLARIZED = SOLARIZED_PALETTE;
+
+type TokenRule = {
+  token: string;
+  foreground?: string;
+  fontStyle?: string;
+};
 
 // ---------------------------------------------------------------------------
-// Syntax token rules (identical for light & dark — only accent colors)
+// Syntax token rules. Accent colors carry the Solarized language roles while
+// font weight/underline/italic cues keep syntax meaning available without hue.
 // ---------------------------------------------------------------------------
 
-const TOKEN_RULES: { token: string; foreground: string; fontStyle?: string }[] =
-  [
-    // Keywords & control flow
-    { token: "keyword", foreground: SOLARIZED.green },
-    { token: "keyword.flow", foreground: SOLARIZED.green },
-    { token: "keyword.control", foreground: SOLARIZED.green },
-    { token: "storage", foreground: SOLARIZED.green },
-    { token: "storage.type", foreground: SOLARIZED.green },
+const TOKEN_RULES: TokenRule[] = [
+  { token: "keyword", foreground: SOLARIZED.green, fontStyle: "bold" },
+  { token: "keyword.flow", foreground: SOLARIZED.green, fontStyle: "bold" },
+  { token: "keyword.control", foreground: SOLARIZED.green, fontStyle: "bold" },
+  { token: "storage", foreground: SOLARIZED.green, fontStyle: "bold" },
+  { token: "storage.type", foreground: SOLARIZED.green, fontStyle: "bold" },
 
-    // Strings
-    { token: "string", foreground: SOLARIZED.cyan },
-    { token: "string.escape", foreground: SOLARIZED.red },
+  { token: "string", foreground: SOLARIZED.cyan, fontStyle: "italic underline" },
+  { token: "string.escape", foreground: SOLARIZED.cyan, fontStyle: "underline" },
 
-    // Numbers & constants
-    { token: "number", foreground: SOLARIZED.blue },
-    { token: "constant", foreground: SOLARIZED.blue },
-    { token: "constant.numeric", foreground: SOLARIZED.blue },
-    { token: "constant.language", foreground: SOLARIZED.blue },
-    { token: "constant.character", foreground: SOLARIZED.blue },
-    { token: "constant.character.escape", foreground: SOLARIZED.red },
+  { token: "number", foreground: SOLARIZED.cyan, fontStyle: "underline" },
+  { token: "constant", foreground: SOLARIZED.orange, fontStyle: "underline" },
+  { token: "constant.numeric", foreground: SOLARIZED.cyan, fontStyle: "underline" },
+  { token: "constant.language", foreground: SOLARIZED.orange, fontStyle: "underline" },
+  { token: "constant.character", foreground: SOLARIZED.cyan, fontStyle: "underline" },
+  {
+    token: "constant.character.escape",
+    foreground: SOLARIZED.cyan,
+    fontStyle: "underline",
+  },
 
-    // Comments
-    { token: "comment", foreground: "", fontStyle: "italic" },
-    { token: "comment.block", foreground: "", fontStyle: "italic" },
-    { token: "comment.line", foreground: "", fontStyle: "italic" },
+  { token: "comment", fontStyle: "italic" },
+  { token: "comment.block", fontStyle: "italic" },
+  { token: "comment.line", fontStyle: "italic" },
 
-    // Types & classes
-    { token: "type", foreground: SOLARIZED.yellow },
-    { token: "type.identifier", foreground: SOLARIZED.yellow },
-    { token: "class", foreground: SOLARIZED.yellow },
-    { token: "constructor", foreground: SOLARIZED.blue },
+  { token: "type", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+  { token: "type.identifier", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+  { token: "class", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+  { token: "constructor", foreground: SOLARIZED.yellow, fontStyle: "bold underline" },
 
-    // Functions
-    { token: "identifier", foreground: "" },
-    { token: "entity.name.function", foreground: SOLARIZED.blue },
-    { token: "variable", foreground: "" },
-    { token: "variable.predefined", foreground: SOLARIZED.blue },
+  { token: "identifier" },
+  { token: "entity.name.function", foreground: SOLARIZED.blue, fontStyle: "bold underline" },
+  { token: "variable" },
+  { token: "variable.predefined", foreground: SOLARIZED.violet, fontStyle: "bold underline" },
 
-    // Operators & punctuation
-    { token: "operator", foreground: SOLARIZED.green },
-    { token: "delimiter", foreground: "" },
-    { token: "delimiter.html", foreground: "" },
+  { token: "operator", fontStyle: "bold" },
+  { token: "delimiter" },
+  { token: "delimiter.html" },
 
-    // Tags (HTML / JSX)
-    { token: "tag", foreground: SOLARIZED.blue },
-    { token: "tag.attribute.name", foreground: SOLARIZED.yellow },
-    { token: "tag.attribute.value", foreground: SOLARIZED.cyan },
+  { token: "tag", foreground: SOLARIZED.green, fontStyle: "bold underline" },
+  { token: "tag.attribute.name", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+  { token: "tag.attribute.value", foreground: SOLARIZED.cyan, fontStyle: "italic underline" },
 
-    // Regex
-    { token: "regexp", foreground: SOLARIZED.red },
-    { token: "regexp.constant.character.escape", foreground: SOLARIZED.red },
+  { token: "regexp", foreground: SOLARIZED.cyan, fontStyle: "italic underline" },
+  {
+    token: "regexp.constant.character.escape",
+    foreground: SOLARIZED.cyan,
+    fontStyle: "underline",
+  },
 
-    // Decorators / annotations
-    { token: "decorator", foreground: SOLARIZED.magenta },
-    { token: "annotation", foreground: SOLARIZED.magenta },
+  { token: "decorator", foreground: SOLARIZED.violet, fontStyle: "underline" },
+  { token: "annotation", foreground: SOLARIZED.violet, fontStyle: "underline" },
 
-    // Meta (markdown, etc.)
-    { token: "meta.tag", foreground: SOLARIZED.blue },
+  { token: "invalid", foreground: SOLARIZED.red, fontStyle: "underline" },
+  { token: "error", foreground: SOLARIZED.red, fontStyle: "underline" },
+  { token: "meta.tag", foreground: SOLARIZED.orange, fontStyle: "bold underline" },
 
-    // CSS / SCSS
-    { token: "attribute.name", foreground: SOLARIZED.blue },
-    { token: "attribute.value", foreground: SOLARIZED.cyan },
+  { token: "attribute.name", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+  { token: "attribute.value", foreground: SOLARIZED.cyan, fontStyle: "italic underline" },
 
-    // JSON keys
-    { token: "type.json", foreground: SOLARIZED.blue },
-
-    // YAML
-    { token: "type.yaml", foreground: SOLARIZED.blue },
-  ] as const;
+  { token: "type.json", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+  { token: "type.yaml", foreground: SOLARIZED.yellow, fontStyle: "underline" },
+];
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -119,18 +103,16 @@ const TOKEN_RULES: { token: string; foreground: string; fontStyle?: string }[] =
  * "hc-black" is intentionally left untouched for accessibility.
  */
 export function registerSolarizedThemes(
-  monaco: typeof import("monaco-editor"),
+  monaco: typeof Monaco,
 ): void {
   const lightRules = TOKEN_RULES.map((rule) => ({
     ...rule,
-    // Comments & identifiers use the base01 foreground in light mode
-    foreground: rule.foreground || SOLARIZED.base01,
+    foreground: rule.foreground ?? SOLARIZED.base01,
   }));
 
   const darkRules = TOKEN_RULES.map((rule) => ({
     ...rule,
-    // Comments & identifiers use the base01 foreground in dark mode
-    foreground: rule.foreground || SOLARIZED.base01,
+    foreground: rule.foreground ?? SOLARIZED.base0,
   }));
 
   // --- Solarized Light ---
@@ -141,12 +123,12 @@ export function registerSolarizedThemes(
     rules: lightRules,
     colors: {
       "editor.background": SOLARIZED.base3,
-      "editor.foreground": SOLARIZED.base00,
-      "editorLineNumber.foreground": SOLARIZED.base1,
+      "editor.foreground": SOLARIZED.base01,
+      "editorLineNumber.foreground": SOLARIZED.base01,
       "editorLineNumber.activeForeground": SOLARIZED.base01,
       "editor.selectionBackground": `${SOLARIZED.base2}80`,
-      "editor.selectionForeground": SOLARIZED.base00,
-      "editorCursor.foreground": SOLARIZED.base00,
+      "editor.selectionForeground": SOLARIZED.base01,
+      "editorCursor.foreground": SOLARIZED.base01,
       "editor.lineHighlightBackground": `${SOLARIZED.base2}40`,
       "editorIndentGuide.background": SOLARIZED.base2,
       "editorIndentGuide.activeBackground": SOLARIZED.base1,
@@ -165,8 +147,8 @@ export function registerSolarizedThemes(
       "scrollbarSlider.activeBackground": `${SOLARIZED.base1}70`,
       "minimap.background": SOLARIZED.base2,
       "input.background": SOLARIZED.base3,
-      "input.border": SOLARIZED.base1,
-      "input.foreground": SOLARIZED.base00,
+      "input.border": SOLARIZED.base00,
+      "input.foreground": SOLARIZED.base01,
       focusBorder: SOLARIZED.blue,
       "list.activeSelectionBackground": `${SOLARIZED.base1}60`,
       "list.hoverBackground": `${SOLARIZED.base1}30`,
@@ -185,8 +167,8 @@ export function registerSolarizedThemes(
     colors: {
       "editor.background": SOLARIZED.base03,
       "editor.foreground": SOLARIZED.base0,
-      "editorLineNumber.foreground": SOLARIZED.base01,
-      "editorLineNumber.activeForeground": SOLARIZED.base0,
+      "editorLineNumber.foreground": SOLARIZED.base0,
+      "editorLineNumber.activeForeground": SOLARIZED.base1,
       "editor.selectionBackground": `${SOLARIZED.base02}80`,
       "editor.selectionForeground": SOLARIZED.base0,
       "editorCursor.foreground": SOLARIZED.base0,
@@ -208,7 +190,7 @@ export function registerSolarizedThemes(
       "scrollbarSlider.activeBackground": `${SOLARIZED.base01}70`,
       "minimap.background": SOLARIZED.base02,
       "input.background": SOLARIZED.base03,
-      "input.border": SOLARIZED.base01,
+      "input.border": SOLARIZED.base0,
       "input.foreground": SOLARIZED.base0,
       focusBorder: SOLARIZED.blue,
       "list.activeSelectionBackground": `${SOLARIZED.base01}60`,

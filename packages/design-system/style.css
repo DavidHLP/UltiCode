@@ -209,6 +209,7 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-highlight: var(--surface-highlight);
   --color-surface-sunken: var(--surface-sunken);
+  --color-overlay: var(--overlay);
   --color-border-subtle: var(--border-subtle);
   --color-border-control: var(--border-control);
   --color-link-foreground: var(--link-foreground);
@@ -238,22 +239,14 @@
   --color-solarized-cyan: var(--solarized-cyan);
   --color-solarized-green: var(--solarized-green);
 
-  --color-silver-50: var(--silver-50);
-  --color-silver-100: var(--silver-100);
-  --color-silver-200: var(--silver-200);
-  --color-silver-300: var(--silver-300);
-  --color-silver-400: var(--silver-400);
-  --color-silver-500: var(--silver-500);
-  --color-silver-600: var(--silver-600);
-  --color-silver-700: var(--silver-700);
-  --color-silver-800: var(--silver-800);
-  --color-silver-900: var(--silver-900);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-control: var(--primary-control);
+  --color-primary-control-foreground: var(--primary-control-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -304,6 +297,11 @@
   --color-status-error: var(--status-error);
   --color-status-info: var(--status-info);
   --color-status-special: var(--status-special);
+  --color-status-success-mark: var(--status-success-mark);
+  --color-status-warning-mark: var(--status-warning-mark);
+  --color-status-error-mark: var(--status-error-mark);
+  --color-status-info-mark: var(--status-info-mark);
+  --color-status-special-mark: var(--status-special-mark);
   --color-status-success-surface: var(--status-success-surface);
   --color-status-warning-surface: var(--status-warning-surface);
   --color-status-error-surface: var(--status-error-surface);
@@ -363,6 +361,7 @@
   --solarized-blue: #268bd2;
   --solarized-cyan: #2aa198;
   --solarized-green: #859900;
+  --overlay: color-mix(in srgb, var(--solarized-base03) 65%, transparent);
 
   /* Solarized Light. Text-bearing semantic pairs are adjusted to meet WCAG AA. */
   --background: var(--solarized-base3);
@@ -377,8 +376,11 @@
   --card-foreground: var(--solarized-base01);
   --popover: var(--solarized-base3);
   --popover-foreground: var(--solarized-base01);
-  --primary: var(--solarized-base03);
+  /* Primary remains the Solarized blue action identity; filled controls use a scoped monotone pair. */
+  --primary: var(--solarized-blue);
   --primary-foreground: var(--solarized-base3);
+  --primary-control: var(--solarized-base03);
+  --primary-control-foreground: var(--solarized-base3);
   --link-foreground: var(--solarized-base01);
   --link-decoration: var(--solarized-blue);
   --secondary: var(--solarized-base2);
@@ -400,24 +402,24 @@
   --chart-4: var(--solarized-magenta);
   --chart-5: var(--solarized-orange);
   --chart-series-1: var(--solarized-blue);
-  --chart-series-2: var(--solarized-cyan);
-  --chart-series-3: var(--solarized-green);
+  --chart-series-2: var(--status-info-mark);
+  --chart-series-3: var(--status-success-mark);
   --chart-series-4: var(--solarized-magenta);
   --chart-series-5: var(--solarized-orange);
-  --chart-series-6: var(--solarized-violet);
-  --chart-series-7: var(--solarized-yellow);
-  --chart-series-8: var(--solarized-red);
-  --chart-status-solved: var(--status-success);
-  --chart-status-attempted: var(--status-warning);
-  --chart-status-todo: var(--status-info);
-  --chart-difficulty-easy: var(--status-success);
-  --chart-difficulty-medium: var(--status-warning);
-  --chart-difficulty-hard: var(--status-error);
+  --chart-series-6: var(--status-special-mark);
+  --chart-series-7: var(--status-warning-mark);
+  --chart-series-8: var(--status-error-mark);
+  --chart-status-solved: var(--status-success-mark);
+  --chart-status-attempted: var(--status-warning-mark);
+  --chart-status-todo: var(--status-info-mark);
+  --chart-difficulty-easy: var(--status-success-mark);
+  --chart-difficulty-medium: var(--status-warning-mark);
+  --chart-difficulty-hard: var(--status-error-mark);
   --chart-accent-primary: var(--solarized-blue);
-  --chart-accent-secondary: var(--solarized-green);
-  --chart-accent-warning: var(--solarized-yellow);
-  --chart-accent-danger: var(--solarized-red);
-  --chart-accent-info: var(--solarized-cyan);
+  --chart-accent-secondary: var(--status-success-mark);
+  --chart-accent-warning: var(--status-warning-mark);
+  --chart-accent-danger: var(--status-error-mark);
+  --chart-accent-info: var(--status-info-mark);
   --chart-grid-color: var(--border-subtle);
   --chart-background: var(--card);
   --chart-tooltip-background: var(--popover);
@@ -433,18 +435,6 @@
   --sidebar-border: var(--solarized-base1);
   --sidebar-ring: var(--solarized-blue);
 
-  /* Solarized Monotones (base3→base03, warm hue ~90) */
-  --silver-50: var(--solarized-base3);
-  --silver-100: var(--solarized-base2);
-  --silver-200: var(--solarized-base1);
-  --silver-300: var(--solarized-base0);
-  --silver-400: var(--solarized-base0);
-  --silver-500: var(--solarized-base00);
-  --silver-600: var(--solarized-base01);
-  --silver-700: var(--solarized-base01);
-  --silver-800: var(--solarized-base02);
-  --silver-900: var(--solarized-base03);
-
   /* Solarized Blue Accent */
   --accent-primary: var(--solarized-blue);
   --accent-glow: color-mix(in oklch, var(--solarized-blue) 15%, transparent);
@@ -455,6 +445,32 @@
   --status-error: var(--solarized-red);
   --status-info: var(--solarized-cyan);
   --status-special: var(--solarized-violet);
+  /* Contrast-safe foregrounds for status text, icons, borders and chart marks. */
+  --status-success-mark: color-mix(
+    in srgb,
+    var(--solarized-green) 60%,
+    var(--solarized-base03)
+  );
+  --status-warning-mark: color-mix(
+    in srgb,
+    var(--solarized-yellow) 65%,
+    var(--solarized-base03)
+  );
+  --status-error-mark: color-mix(
+    in srgb,
+    var(--solarized-red) 70%,
+    var(--solarized-base03)
+  );
+  --status-info-mark: color-mix(
+    in srgb,
+    var(--solarized-cyan) 60%,
+    var(--solarized-base03)
+  );
+  --status-special-mark: color-mix(
+    in srgb,
+    var(--solarized-violet) 70%,
+    var(--solarized-base03)
+  );
   --rank-first: var(--solarized-yellow);
   --rank-second: var(--foreground-muted);
   --rank-third: var(--solarized-orange);
@@ -485,19 +501,20 @@
   );
 
   /* Border Styles */
-  --border-thin: 1px solid var(--silver-200);
+  --border-thin: 1px solid var(--border-subtle);
   --border-accent: 1px solid var(--accent-primary);
 
   /* Shadow Styles */
+  --shadow-color: var(--solarized-base03);
   --shadow-float: 0 4px 20px -4px
-    color-mix(in srgb, var(--solarized-base03) 12%, transparent);
+    color-mix(in srgb, var(--shadow-color) 12%, transparent);
   --shadow-float-hover: 0 8px 30px -4px
-    color-mix(in srgb, var(--solarized-base03) 18%, transparent);
+    color-mix(in srgb, var(--shadow-color) 18%, transparent);
 
   /* Transition Timing */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 180ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Scrollbar */
   --scrollbar-thumb: var(--solarized-base1);
@@ -523,8 +540,10 @@
   --card-foreground: var(--solarized-base1);
   --popover: var(--solarized-base02);
   --popover-foreground: var(--solarized-base1);
-  --primary: var(--solarized-base3);
-  --primary-foreground: var(--solarized-base03);
+  --primary: var(--solarized-blue);
+  --primary-foreground: var(--solarized-base3);
+  --primary-control: var(--solarized-base3);
+  --primary-control-foreground: var(--solarized-base03);
   --link-foreground: var(--solarized-base1);
   --link-decoration: var(--solarized-blue);
   --secondary: var(--solarized-base02);
@@ -545,10 +564,19 @@
   --chart-3: var(--solarized-green);
   --chart-4: var(--solarized-magenta);
   --chart-5: var(--solarized-orange);
+  --chart-series-1: var(--solarized-blue);
+  --chart-series-2: var(--status-info-mark);
+  --chart-series-3: var(--status-success-mark);
+  --chart-series-4: var(--solarized-magenta);
+  --chart-series-5: var(--solarized-orange);
+  --chart-series-6: var(--status-special-mark);
+  --chart-series-7: var(--status-warning-mark);
+  --chart-series-8: var(--status-error-mark);
   --chart-grid-color: var(--border-subtle);
   --chart-background: var(--card);
   --chart-tooltip-background: var(--popover);
   --chart-tooltip-border: var(--border-control);
+  --overlay: color-mix(in srgb, var(--solarized-base03) 65%, transparent);
   --sidebar: var(--solarized-base02);
   --sidebar-foreground: var(--solarized-base1);
   --sidebar-primary: var(--solarized-base3);
@@ -557,18 +585,6 @@
   --sidebar-accent-foreground: var(--solarized-base1);
   --sidebar-border: var(--solarized-base01);
   --sidebar-ring: var(--solarized-blue);
-
-  /* Solarized Monotones - Dark Mode (inverted) */
-  --silver-50: var(--solarized-base03);
-  --silver-100: var(--solarized-base02);
-  --silver-200: var(--solarized-base01);
-  --silver-300: var(--solarized-base01);
-  --silver-400: var(--solarized-base0);
-  --silver-500: var(--solarized-base0);
-  --silver-600: var(--solarized-base1);
-  --silver-700: var(--solarized-base2);
-  --silver-800: var(--solarized-base3);
-  --silver-900: var(--solarized-base3);
 
   /* Accent Colors - Dark Mode (same as light per Solarized spec) */
   --accent-primary: var(--solarized-blue);
@@ -580,6 +596,32 @@
   --status-error: var(--solarized-red);
   --status-info: var(--solarized-cyan);
   --status-special: var(--solarized-violet);
+  /* Contrast-safe marks lift accents against the dark canvas. */
+  --status-success-mark: color-mix(
+    in srgb,
+    var(--solarized-green) 70%,
+    var(--solarized-base3)
+  );
+  --status-warning-mark: color-mix(
+    in srgb,
+    var(--solarized-yellow) 70%,
+    var(--solarized-base3)
+  );
+  --status-error-mark: color-mix(
+    in srgb,
+    var(--solarized-red) 65%,
+    var(--solarized-base3)
+  );
+  --status-info-mark: color-mix(
+    in srgb,
+    var(--solarized-cyan) 70%,
+    var(--solarized-base3)
+  );
+  --status-special-mark: color-mix(
+    in srgb,
+    var(--solarized-violet) 70%,
+    var(--solarized-base3)
+  );
   --status-success-surface: color-mix(
     in srgb,
     var(--solarized-green) 16%,
@@ -607,10 +649,11 @@
   );
 
   /* Shadow Styles - Dark Mode */
+  --shadow-color: var(--solarized-base03);
   --shadow-float: 0 4px 20px -4px
-    color-mix(in srgb, var(--solarized-base03) 65%, transparent);
+    color-mix(in srgb, var(--shadow-color) 65%, transparent);
   --shadow-float-hover: 0 8px 30px -4px
-    color-mix(in srgb, var(--solarized-base03) 80%, transparent);
+    color-mix(in srgb, var(--shadow-color) 80%, transparent);
 
   /* Scrollbar - Dark Mode */
   --scrollbar-thumb: var(--solarized-base01);
@@ -724,12 +767,12 @@
   box-shadow: var(--shadow-float-hover);
 }
 
-.border-silver {
-  border-color: var(--silver-200);
+.border-border-control {
+  border-color: var(--border-control);
 }
 
-.dark .border-silver {
-  border-color: var(--silver-300);
+.dark .border-border-control {
+  border-color: var(--border-control);
 }
 
 .shadow-float {
@@ -741,7 +784,7 @@
   background: linear-gradient(
     to right,
     transparent,
-    var(--silver-200),
+    var(--border-subtle),
     transparent
   );
 }
@@ -750,7 +793,7 @@
   background: linear-gradient(
     to right,
     transparent,
-    var(--silver-300),
+    var(--border-subtle),
     transparent
   );
 }
@@ -766,11 +809,11 @@
   top: 24px;
   bottom: 0;
   width: 1px;
-  background: var(--silver-200);
+  background: var(--border-subtle);
 }
 
 .dark .timeline-line::before {
-  background: var(--silver-300);
+  background: var(--border-subtle);
 }
 
 .glow-accent {
@@ -778,15 +821,15 @@
 }
 
 .status-success {
-  color: var(--status-success);
+  color: var(--status-success-mark);
 }
 
 .status-warning {
-  color: var(--status-warning);
+  color: var(--status-warning-mark);
 }
 
 .status-error {
-  color: var(--status-error);
+  color: var(--status-error-mark);
 }
 
 /* ========================================
@@ -794,26 +837,12 @@
    ======================================== */
 
 :root {
-  /* Solarized Terminal Accent Colors (identical in light/dark) */
-  --terminal-green: var(--solarized-green);
-  --terminal-amber: var(--solarized-yellow);
-  --terminal-red: var(--solarized-red);
-  --terminal-cyan: var(--solarized-cyan);
-  --terminal-purple: var(--solarized-magenta);
-
-  /* Solarized Blue Accent */
-  --accent-electric: var(--solarized-blue);
-  --accent-electric-glow: color-mix(
-    in srgb,
-    var(--solarized-blue) 15%,
-    transparent
-  );
 
   /* Terminal Timing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 200ms;
-  --duration-normal: 350ms;
+  --duration-fast: 150ms;
+  --duration-normal: 180ms;
 }
 
 /* ========================================
@@ -925,19 +954,19 @@
 .terminal-prompt {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  color: var(--accent-electric);
+  color: var(--accent-primary);
 }
 
 .terminal-prompt::before {
   content: "> ";
-  color: var(--terminal-green);
+  color: var(--status-success-mark);
 }
 
 .terminal-cursor {
   display: inline-block;
   width: 8px;
   height: 16px;
-  background: var(--accent-electric);
+  background: var(--accent-primary);
   animation: cursor-blink 1s step-end infinite;
   margin-left: 2px;
   vertical-align: text-bottom;
@@ -955,7 +984,7 @@
 .terminal-comment {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-xxs);
-  color: var(--silver-400);
+  color: var(--foreground-muted);
   font-style: italic;
 }
 
@@ -978,7 +1007,7 @@
   font-size: var(--uc-text-xxs);
   text-transform: uppercase;
   letter-spacing: var(--uc-tracking-terminal);
-  color: var(--silver-500);
+  color: var(--foreground-muted);
 }
 
 .terminal-kv-value {
@@ -1013,13 +1042,13 @@
     linear-gradient(
         to right,
         transparent 0%,
-        var(--silver-200) 15%,
-        var(--silver-200) 85%,
+        var(--border-subtle) 15%,
+        var(--border-subtle) 85%,
         transparent 100%
       )
       bottom / 100% 1px no-repeat,
-    var(--silver-50);
-  color: var(--silver-600);
+    var(--surface);
+  color: var(--foreground);
 }
 
 .dark .terminal-card-header {
@@ -1027,13 +1056,13 @@
     linear-gradient(
         to right,
         transparent 0%,
-        var(--silver-300) 15%,
-        var(--silver-300) 85%,
+        var(--border-subtle) 15%,
+        var(--border-subtle) 85%,
         transparent 100%
       )
       bottom / 100% 1px no-repeat,
-    var(--silver-100);
-  color: var(--silver-500);
+    var(--surface-highlight);
+  color: var(--foreground-muted);
 }
 
 .terminal-tab {
@@ -1053,8 +1082,8 @@
   height: 3px;
   background: repeating-linear-gradient(
     to bottom,
-    var(--silver-200) 0px,
-    var(--silver-200) 1px,
+    var(--border-subtle) 0px,
+    var(--border-subtle) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -1064,8 +1093,8 @@
 .dark .terminal-separator {
   background: repeating-linear-gradient(
     to bottom,
-    var(--silver-300) 0px,
-    var(--silver-300) 1px,
+    var(--border-subtle) 0px,
+    var(--border-subtle) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -1075,18 +1104,18 @@
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
   border-radius: 0;
-  border: 1px solid var(--silver-200);
+  border: 1px solid var(--border-subtle);
   background: var(--surface-sunken);
 }
 
 .dark .terminal-input {
-  border-color: var(--silver-300);
+  border-color: var(--border-subtle);
 }
 
 .terminal-input:focus {
   outline: none;
-  border-color: var(--accent-electric);
-  box-shadow: 0 0 0 2px var(--accent-electric-glow);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 /* ========================================
@@ -1094,49 +1123,49 @@
    ======================================== */
 
 .terminal-success {
-  color: var(--terminal-green);
+  color: var(--status-success-mark);
 }
 
 .terminal-warning {
-  color: var(--terminal-amber);
+  color: var(--status-warning-mark);
 }
 
 .terminal-error {
-  color: var(--terminal-red);
+  color: var(--status-error-mark);
 }
 
 .terminal-info {
-  color: var(--terminal-cyan);
+  color: var(--status-info-mark);
 }
 
 .terminal-badge-success {
   background: var(--status-success-surface);
   color: var(--foreground-strong);
-  border: 1px solid var(--status-success);
+  border: 1px solid var(--status-success-mark);
 }
 
 .terminal-badge-warning {
   background: var(--status-warning-surface);
   color: var(--foreground-strong);
-  border: 1px solid var(--status-warning);
+  border: 1px solid var(--status-warning-mark);
 }
 
 .terminal-badge-error {
   background: var(--status-error-surface);
   color: var(--foreground-strong);
-  border: 1px solid var(--status-error);
+  border: 1px solid var(--status-error-mark);
 }
 
 .terminal-badge-info {
   background: var(--status-info-surface);
   color: var(--foreground-strong);
-  border: 1px solid var(--status-info);
+  border: 1px solid var(--status-info-mark);
 }
 
 .terminal-badge-purple {
   background: var(--status-special-surface);
   color: var(--foreground-strong);
-  border: 1px solid var(--status-special);
+  border: 1px solid var(--status-special-mark);
 }
 
 .terminal-badge-electric {
@@ -1177,15 +1206,15 @@
 }
 
 .ascii-progress-track {
-  color: var(--silver-300);
+  color: var(--border-subtle);
 }
 
 .dark .ascii-progress-track {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .ascii-progress-fill {
-  color: var(--accent-electric);
+  color: var(--accent-primary);
 }
 
 /* ========================================
@@ -1213,7 +1242,7 @@
 .terminal-row-num {
   font-family: var(--uc-font-data);
   font-size: var(--uc-text-xxs);
-  color: var(--silver-400);
+  color: var(--foreground-muted);
   text-align: right;
   user-select: none;
   width: 40px;
@@ -1223,21 +1252,30 @@
    Highlight.js Solarized Theme
    ======================================== */
 
+/* Syntax accents are decorations; glyphs keep the accessible mode foreground. */
 .hljs {
   background: transparent;
   color: var(--foreground);
 }
 
 .hljs-comment,
-.hljs-quote {
+.hljs-quote,
+.hljs-xml-comment {
   color: var(--foreground);
   font-style: italic;
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
-.hljs-addition {
-  color: var(--solarized-green);
+.hljs-addition,
+.hljs-tag,
+.hljs-xml-tag {
+  color: var(--foreground);
+  font-weight: var(--uc-font-weight-bold);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-green);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
 }
 
 .hljs-number,
@@ -1246,15 +1284,32 @@
 .hljs-literal,
 .hljs-doctag,
 .hljs-regexp {
-  color: var(--solarized-cyan);
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-cyan);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+}
+
+.hljs-string,
+.hljs-regexp {
+  font-style: italic;
 }
 
 .hljs-title,
 .hljs-section,
 .hljs-name,
 .hljs-selector-id,
-.hljs-selector-class {
-  color: var(--solarized-blue);
+.hljs-selector-class,
+.hljs-function,
+.hljs-javascript .hljs-title,
+.hljs-typescript .hljs-title {
+  color: var(--foreground);
+  font-weight: var(--uc-font-weight-semibold);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-blue);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
 }
 
 .hljs-attribute,
@@ -1262,8 +1317,13 @@
 .hljs-variable,
 .hljs-template-variable,
 .hljs-class .hljs-title,
-.hljs-type {
-  color: var(--solarized-blue);
+.hljs-type,
+.hljs-xml-attr {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-yellow);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
 }
 
 .hljs-symbol,
@@ -1274,16 +1334,33 @@
 .hljs-selector-attr,
 .hljs-selector-pseudo,
 .hljs-link {
-  color: var(--solarized-orange);
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-orange);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
 }
 
 .hljs-built_in,
 .hljs-deletion {
-  color: var(--solarized-red);
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-red);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+}
+
+.hljs-python .hljs-decorator,
+.hljs-java .hljs-annotation {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--solarized-violet);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
 }
 
 .hljs-formula {
-  background: var(--solarized-base2);
+  background: var(--surface-highlight);
 }
 
 .hljs-emphasis {
@@ -1291,61 +1368,10 @@
 }
 
 .hljs-strong {
-  font-weight: bold;
-}
-
-.hljs-function {
-  color: var(--solarized-blue);
+  font-weight: var(--uc-font-weight-bold);
 }
 
 .hljs-params {
-  color: var(--foreground);
-}
-
-.hljs-tag {
-  color: var(--solarized-green);
-}
-
-.hljs-xml-tag {
-  color: var(--solarized-green);
-}
-
-.hljs-xml-attr {
-  color: var(--solarized-blue);
-}
-
-.hljs-xml-comment {
-  color: var(--foreground);
-}
-
-.hljs-javascript .hljs-title,
-.hljs-typescript .hljs-title {
-  color: var(--solarized-blue);
-}
-
-.hljs-python .hljs-decorator {
-  color: var(--solarized-blue);
-}
-
-.hljs-java .hljs-annotation {
-  color: var(--solarized-blue);
-}
-
-/* Highlight.js Dark Theme Override */
-.dark .hljs {
-  color: var(--foreground);
-}
-
-.dark .hljs-comment,
-.dark .hljs-quote {
-  color: var(--foreground);
-}
-
-.dark .hljs-formula {
-  background: var(--solarized-base02);
-}
-
-.dark .hljs-params {
   color: var(--foreground);
 }
 

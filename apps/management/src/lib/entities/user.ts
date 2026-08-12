@@ -17,7 +17,7 @@ export function getStatusIcon(user: User): VNode {
     return h(IconCircleXFilled, { class: 'h-4 w-4 text-destructive' })
   }
   if (user.isActive) {
-    return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
+    return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-foreground-strong' })
   }
   return h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' })
 }

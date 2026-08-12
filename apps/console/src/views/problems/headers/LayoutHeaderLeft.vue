@@ -197,7 +197,7 @@ async function handleRandom() {
               <RouterLink
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hidden group-hover/nav-back:flex -translate-x-3 h-6 w-6 flex-none cursor-pointer items-center justify-center rounded-none text-muted-foreground no-underline transition-colors duration-200 hover:bg-[var(--silver-200)]/30 hover:text-[var(--solarized-base02)] focus:outline-none focus:ring-0 focus:ring-offset-0 dark:hover:text-[var(--solarized-base3)]"
+                class="hidden group-hover/nav-back:flex -translate-x-3 h-6 w-6 flex-none cursor-pointer items-center justify-center rounded-none text-muted-foreground no-underline transition-colors duration-200 hover:bg-[var(--border-subtle)]/30 hover:text-foreground-strong focus:outline-none focus:ring-0 focus:ring-offset-0 dark:hover:text-primary-foreground"
                 :to="{ name: 'problemset' }"
               >
                 <ExternalLink class="h-3 w-3 text-current" />

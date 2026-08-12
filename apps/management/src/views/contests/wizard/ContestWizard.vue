@@ -114,11 +114,11 @@ async function handleSubmit(): Promise<void> {
 <template>
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
     <DialogContent
-      class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0 border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+      class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0 border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]"
     >
       <!-- Header - Terminal Style -->
       <DialogHeader
-        class="px-6 py-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+        class="px-6 py-4 border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-3">
           <DialogTitle class="font-data text-sm uppercase tracking-wider">
@@ -143,9 +143,9 @@ async function handleSubmit(): Promise<void> {
               <StepperTrigger
                 :class="[
                   'h-8 w-8 border-2 text-xs font-data font-semibold flex items-center justify-center',
-                  'border-[var(--silver-300)] text-[var(--silver-400)]',
-                  'data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] data-[state=active]:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]',
-                  'data-[state=completed]:border-[var(--terminal-green)] data-[state=completed]:text-[var(--terminal-green)] data-[state=completed]:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]',
+                  'border-[var(--border-subtle)] text-[var(--foreground-muted)]',
+                  'data-[state=active]:border-[var(--primary)] data-[state=active]:text-[var(--primary)] data-[state=active]:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]',
+                  'data-[state=completed]:border-[var(--status-success-mark)] data-[state=completed]:text-foreground-strong data-[state=completed]:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]',
                 ]"
               >
                 {{ step.step }}
@@ -154,15 +154,15 @@ async function handleSubmit(): Promise<void> {
                 :class="[
                   'text-xs font-data uppercase tracking-wider',
                   currentStep === step.step
-                    ? 'text-[var(--accent-electric)]'
-                    : 'text-[var(--silver-400)]',
+                    ? 'text-[var(--primary)]'
+                    : 'text-[var(--foreground-muted)]',
                 ]"
               >
                 {{ t(`contests.wizard.${step.title.toLowerCase()}`, step.title) }}
               </span>
               <StepperSeparator
                 v-if="step.step !== steps.length"
-                class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)] h-0.5 bg-[var(--silver-200)] data-[state=completed]:bg-[var(--terminal-green)]"
+                class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)] h-0.5 bg-[var(--border-subtle)] data-[state=completed]:bg-[var(--status-success-mark)]"
               />
             </StepperItem>
           </Stepper>
@@ -202,13 +202,13 @@ async function handleSubmit(): Promise<void> {
 
       <!-- Footer - Terminal Style -->
       <DialogFooter
-        class="px-6 py-4 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+        class="px-6 py-4 border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
       >
         <Button
           type="button"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)]"
+          class="font-data text-xs border-[var(--border-subtle)]"
           @click="prevStep"
           :disabled="currentStep === 1 || submitting"
         >
@@ -220,7 +220,7 @@ async function handleSubmit(): Promise<void> {
           type="button"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--primary)] text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
           @click="nextStep"
           :disabled="!isStepValid"
         >
@@ -232,7 +232,7 @@ async function handleSubmit(): Promise<void> {
           type="button"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
           @click="handleSubmit"
           :disabled="!isStepValid || submitting"
         >

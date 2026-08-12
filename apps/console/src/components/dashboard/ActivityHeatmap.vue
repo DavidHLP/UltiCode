@@ -57,10 +57,10 @@ const heatmapGrid = computed(() => {
 // `bg-muted` directly would make empty cells invisible against the card.
 const levelColors = [
   "bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]",
-  "bg-[color-mix(in_oklch,var(--status-success)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_30%,transparent)]",
-  "bg-[color-mix(in_oklch,var(--status-success)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_50%,transparent)]",
-  "bg-[color-mix(in_oklch,var(--status-success)_60%,transparent)]",
-  "bg-[color-mix(in_oklch,var(--status-success)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_100%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success-mark)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_50%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]",
 ];
 
 const levelLabels = [

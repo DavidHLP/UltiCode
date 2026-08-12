@@ -153,10 +153,10 @@ watch(isFinished, (finished, wasFinished) => {
         cn(
           'h-4 w-4',
           isFinished
-            ? 'text-[var(--silver-400)]'
+            ? 'text-[var(--foreground-muted)]'
             : !isStarted
-              ? 'text-[var(--terminal-amber)]'
-              : 'text-[var(--terminal-green)]',
+              ? 'text-foreground-strong'
+              : 'text-foreground-strong',
         )
       "
     />
@@ -165,7 +165,7 @@ watch(isFinished, (finished, wasFinished) => {
     <div class="flex flex-col gap-0.5">
       <span
         v-if="variant === 'default'"
-        class="font-data text-2xs uppercase tracking-wide text-[var(--silver-400)]"
+        class="font-data text-2xs uppercase tracking-wide text-[var(--foreground-muted)]"
       >
         {{ label }}
       </span>
@@ -175,10 +175,10 @@ watch(isFinished, (finished, wasFinished) => {
             'font-data tabular-nums font-medium',
             variant === 'default' ? 'text-sm' : 'text-xs',
             isFinished
-              ? 'text-[var(--silver-400)]'
+              ? 'text-[var(--foreground-muted)]'
               : !isStarted
-                ? 'text-[var(--terminal-amber)]'
-                : 'text-[var(--terminal-green)]',
+                ? 'text-foreground-strong'
+                : 'text-foreground-strong',
           )
         "
       >

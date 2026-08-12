@@ -305,7 +305,7 @@ watch(
           <Avatar class="h-10 w-10 border border-border/50 shrink-0">
             <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
             <AvatarFallback
-              class="text-xs font-semibold text-white"
+              class="text-xs font-semibold text-foreground-strong"
               :style="{ backgroundColor: props.item.author.avatarColor }"
             >
               {{ authorInitial }}
@@ -317,7 +317,7 @@ watch(
               class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-none"
             >
               <span
-                class="font-bold text-[var(--solarized-base03)] dark:text-foreground"
+                class="font-bold text-foreground-strong dark:text-foreground"
               >
                 {{ props.item.author.name }}
               </span>
@@ -331,7 +331,7 @@ watch(
               <Badge
                 v-if="props.item.flair"
                 variant="secondary"
-                class="rounded-none bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/20 border border-[var(--terminal-amber)]/30 select-none"
+                class="rounded-none bg-[var(--status-warning-mark)]/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-foreground-strong hover:bg-[var(--status-warning-mark)]/20 border border-[var(--status-warning-mark)]/30 select-none"
               >
                 {{ props.item.flair }}
               </Badge>
@@ -340,13 +340,13 @@ watch(
             <div class="flex flex-wrap items-center gap-2 mt-1">
               <Badge
                 variant="secondary"
-                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-2xs capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)] select-none font-medium"
+                class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 text-2xs capitalize text-[var(--foreground-strong)] bg-[var(--surface-sunken)] select-none font-medium"
               >
                 {{ languageLabel }}
               </Badge>
               <Badge
                 variant="secondary"
-                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-2xs capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)] select-none font-medium"
+                class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 text-2xs capitalize text-[var(--foreground-strong)] bg-[var(--surface-sunken)] select-none font-medium"
               >
                 {{ topicLabel }}
               </Badge>
@@ -354,7 +354,7 @@ watch(
                 v-for="badge in props.item.badges"
                 :key="badge"
                 variant="outline"
-                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-2xs font-medium text-[var(--silver-500)] bg-transparent select-none"
+                class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 text-2xs font-medium text-[var(--foreground-muted)] bg-transparent select-none"
               >
                 {{ badge }}
               </Badge>
@@ -394,7 +394,7 @@ watch(
                     class="text-left text-xs py-1 px-1.5 transition-all duration-150 border-l-2 hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer select-none"
                     :class="[
                       activeHeadingId === h.id
-                        ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
+                        ? 'border-link-decoration text-[var(--primary)] font-bold bg-[var(--primary)]/5'
                         : 'border-transparent text-muted-foreground font-medium',
                     ]"
                     :style="{ paddingLeft: h.level === 3 ? '1rem' : '0.25rem' }"
@@ -443,7 +443,7 @@ watch(
         <section class="space-y-4 text-sm leading-relaxed">
           <!-- Solution Title -->
           <h1
-            class="text-xl font-bold tracking-tight text-[var(--solarized-base03)] dark:text-foreground mb-4 leading-tight"
+            class="text-xl font-bold tracking-tight text-foreground-strong dark:text-foreground mb-4 leading-tight"
           >
             {{ props.item.title }}
           </h1>
@@ -460,7 +460,7 @@ watch(
               v-for="tag in props.item.tags"
               :key="tag"
               variant="secondary"
-              class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2.5 py-0.5 text-2xs text-[var(--silver-500)] bg-[var(--surface-sunken)] font-mono select-none"
+              class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2.5 py-0.5 text-2xs text-[var(--foreground-muted)] bg-[var(--surface-sunken)] font-mono select-none"
             >
               # {{ tag }}
             </Badge>
@@ -493,9 +493,9 @@ watch(
         <!-- Comments Thread Area -->
         <div id="comments-section" class="mt-8 border-t border-border/60 pt-6">
           <div class="flex items-center gap-2 mb-4">
-            <div class="h-4 w-1 bg-[var(--solarized-blue)]"></div>
+            <div class="h-4 w-1 bg-[var(--primary)]"></div>
             <h3
-              class="text-sm font-bold text-[var(--solarized-base03)] dark:text-foreground uppercase tracking-wide select-none"
+              class="text-sm font-bold text-foreground-strong dark:text-foreground uppercase tracking-wide select-none"
             >
               {{ t("forum.comments.title") }}
             </h3>
@@ -528,7 +528,7 @@ watch(
                 :alt="props.item.author.name"
               />
               <AvatarFallback
-                class="text-xs font-semibold text-white"
+                class="text-xs font-semibold text-foreground-strong"
                 :style="{ backgroundColor: props.item.author.avatarColor }"
               >
                 {{ authorInitial }}
@@ -536,7 +536,7 @@ watch(
             </Avatar>
             <div class="flex flex-col min-w-0">
               <span
-                class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight"
+                class="font-bold text-xs text-foreground-strong dark:text-foreground truncate leading-tight"
               >
                 {{ props.item.author.name }}
               </span>
@@ -554,12 +554,12 @@ watch(
             <div>发布：{{ formattedDate }}</div>
             <div class="flex items-center gap-1.5 flex-wrap mt-1">
               <span
-                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-[var(--solarized-base01)] capitalize"
+                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-foreground capitalize"
               >
                 {{ languageLabel }}
               </span>
               <span
-                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-[var(--solarized-base01)] truncate max-w-[80px]"
+                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-foreground truncate max-w-[80px]"
               >
                 {{ topicLabel }}
               </span>
@@ -585,7 +585,7 @@ watch(
               class="text-left text-xs font-mono py-1 px-2 transition-all duration-150 border-l-2 select-none hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer"
               :class="[
                 activeHeadingId === h.id
-                  ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
+                  ? 'border-link-decoration text-[var(--primary)] font-bold bg-[var(--primary)]/5'
                   : 'border-transparent text-muted-foreground font-medium',
               ]"
               :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"

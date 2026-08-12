@@ -102,7 +102,7 @@ onMounted(async () => {
         >
           <div class="flex items-center gap-2 text-foreground">
             <Trophy
-              class="w-4 h-4 text-[var(--terminal-amber)] animate-pulse"
+              class="w-4 h-4 text-[var(--status-warning-mark)] animate-pulse"
             />
             <span class="font-sans text-sm font-semibold text-foreground">{{
               t("problem.sidebar.dailyChallenge")
@@ -111,13 +111,13 @@ onMounted(async () => {
           <div class="flex items-center gap-1.5">
             <Badge
               variant="outline"
-              class="bg-yellow-950/40 border border-yellow-600/50 text-yellow-500 rounded-none px-2 py-0.5 text-xs font-mono"
+              class="bg-status-warning-surface border border-status-warning-mark text-foreground-strong rounded-none px-2 py-0.5 text-xs font-mono"
             >
               <span
-                class="w-1.5 h-1.5 rounded-none bg-yellow-500 mr-1.5"
+                class="w-1.5 h-1.5 rounded-none bg-status-warning-mark mr-1.5"
               ></span>
               <span>{{ t("problem.sidebar.completed") }}</span>
-              <span class="tabular-nums font-black text-white text-xs px-0.5">{{
+              <span class="tabular-nums font-black text-foreground-strong text-xs px-0.5">{{
                 completedDates.length
               }}</span>
               <span>{{ t("problem.sidebar.daysUnit") }}</span>
@@ -137,7 +137,7 @@ onMounted(async () => {
           class="md:hidden mt-2 text-xxs font-mono text-muted-foreground/90 border-t border-border/20 pt-2 flex items-center gap-1 flex-wrap"
           @click.stop
         >
-          <span class="text-[var(--terminal-amber)] font-bold">></span>
+          <span class="text-[var(--foreground-strong)] font-bold">></span>
           <span>今日：{{ dailyProblem.id }}.</span>
           <RouterLink
             :to="`/problems/${dailyProblem.slug || 'merge-k-sorted-lists'}`"
@@ -149,10 +149,10 @@ onMounted(async () => {
             class="text-2xs font-bold uppercase tracking-tighter px-1 ml-1 rounded-none"
             :class="
               dailyProblem.difficulty === 'EASY'
-                ? 'text-[var(--terminal-green)] bg-[var(--terminal-green)]/10'
+                ? 'text-foreground-strong bg-[var(--status-success-mark)]/10'
                 : dailyProblem.difficulty === 'MEDIUM'
-                  ? 'text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10'
-                  : 'text-[var(--terminal-red)] bg-[var(--terminal-red)]/10'
+                  ? 'text-foreground-strong bg-[var(--status-warning-mark)]/10'
+                  : 'text-foreground-strong bg-[var(--status-error-mark)]/10'
             "
           >
             ({{
@@ -183,14 +183,14 @@ onMounted(async () => {
             class="flex flex-col items-center flex-1 py-1 px-0.5 border rounded-none"
             :class="
               day.isToday
-                ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-[var(--accent-electric)]'
+                ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
                 : day.isCompleted
-                  ? 'border-[var(--terminal-amber)]/45 bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]'
+                  ? 'border-[var(--status-warning-mark)]/45 bg-status-warning-surface text-foreground-strong'
                   : 'border-border/30 bg-muted/10 text-muted-foreground/70'
             "
           >
             <span
-              class="text-2xs text-stone-600 dark:text-stone-600 font-mono mb-1 rounded-none"
+              class="text-2xs text-foreground font-mono mb-1 rounded-none"
             >
               {{ day.dayName }}
             </span>
@@ -198,7 +198,7 @@ onMounted(async () => {
               class="text-xs font-mono font-bold w-6 h-6 flex items-center justify-center rounded-none"
               :class="
                 day.isToday
-                  ? 'text-[var(--accent-electric)] font-extrabold'
+                  ? 'text-[var(--primary)] font-extrabold'
                   : ''
               "
             >
@@ -209,7 +209,7 @@ onMounted(async () => {
               class="w-1.5 h-1.5 mt-1 rounded-none"
               :class="
                 day.isCompleted
-                  ? 'bg-[var(--terminal-amber)] shadow-[0_0_4px_var(--terminal-amber)]'
+                  ? 'bg-[var(--status-warning-mark)] shadow-[0_0_4px_var(--status-warning-mark)]'
                   : 'bg-transparent'
               "
             ></div>

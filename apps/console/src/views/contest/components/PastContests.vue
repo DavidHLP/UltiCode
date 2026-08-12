@@ -71,7 +71,7 @@ const visiblePages = computed(() => {
         size="sm"
         class="h-8 rounded-none border border-border bg-transparent shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs text-muted-foreground flex items-center gap-1.5 cursor-pointer font-mono"
       >
-        <Trophy class="h-3.5 w-3.5 text-[var(--terminal-amber)]" />
+        <Trophy class="h-3.5 w-3.5 text-[var(--status-warning-mark)]" />
         {{ t("contest.list.partner") }}
       </Button>
     </div>
@@ -206,7 +206,7 @@ const visiblePages = computed(() => {
           class="h-9 w-9 rounded-none text-xs"
           :class="{
             'pointer-events-none': page === '...',
-            'border-[var(--status-warning)] bg-status-warning-surface text-foreground-strong shadow-[2px_2px_0px_0px_var(--status-warning)] hover:bg-status-warning-surface/80':
+            'border-[var(--status-warning-mark)] bg-status-warning-surface text-foreground-strong shadow-[2px_2px_0px_0px_var(--status-warning-mark)] hover:bg-status-warning-surface/80':
               page === currentPage,
           }"
           @click="typeof page === 'number' && emit('update:currentPage', page)"

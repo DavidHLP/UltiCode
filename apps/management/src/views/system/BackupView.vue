@@ -164,14 +164,14 @@ function getStatusIcon(status: BackupStatus) {
 function getStatusColor(status: BackupStatus): string {
   switch (status) {
     case 'COMPLETED':
-      return 'text-green-500'
+      return 'text-foreground-strong'
     case 'PENDING':
     case 'IN_PROGRESS':
-      return 'text-yellow-500'
+      return 'text-foreground-strong'
     case 'FAILED':
-      return 'text-red-500'
+      return 'text-foreground-strong'
     default:
-      return 'text-gray-500'
+      return 'text-foreground-muted'
   }
 }
 
@@ -198,7 +198,7 @@ onMounted(async () => {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -209,13 +209,13 @@ onMounted(async () => {
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('system.backup.title') }}
           </h1>
-          <p class="text-xs text-[var(--silver-500)]">{{ t('system.backup.description') }}</p>
+          <p class="text-xs text-[var(--foreground-muted)]">{{ t('system.backup.description') }}</p>
         </div>
         <div class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
             :disabled="loading"
             @click="loadBackups"
           >
@@ -226,7 +226,7 @@ onMounted(async () => {
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
             :disabled="creating"
             @click="createBackup"
           >
@@ -264,7 +264,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-green-500">{{ completedBackups.length }}</div>
+            <div class="text-2xl font-bold text-foreground-strong">{{ completedBackups.length }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -274,7 +274,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-yellow-500">{{ pendingBackups.length }}</div>
+            <div class="text-2xl font-bold text-foreground-strong">{{ pendingBackups.length }}</div>
           </CardContent>
         </Card>
       </div>
@@ -370,7 +370,7 @@ onMounted(async () => {
             <DialogTitle>{{ t('system.backup.restoreBackup') }}</DialogTitle>
           </DialogHeader>
           <div class="py-4">
-            <div class="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-none text-yellow-600">
+            <div class="flex items-center gap-2 p-4 bg-status-warning-surface rounded-none text-foreground-strong border border-status-warning-mark">
               <IconAlertTriangle class="h-5 w-5" />
               <p class="text-sm">{{ t('system.backup.restoreWarning') }}</p>
             </div>

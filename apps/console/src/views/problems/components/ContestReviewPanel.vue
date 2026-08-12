@@ -150,7 +150,7 @@ onMounted(() => {
 <template>
   <div
     v-if="ctx?.isInContest.value && ctx.contest.value?.status === 'FINISHED'"
-    class="border-b border-border bg-[var(--silver-100)]/40 dark:bg-[var(--solarized-base03)]/40"
+    class="border-b border-border bg-[var(--surface-highlight)]/40 dark:bg-background/40"
     data-testid="contest-review-panel"
   >
     <div class="mx-auto max-w-7xl px-4 py-3 font-mono">
@@ -163,7 +163,7 @@ onMounted(() => {
         <div class="flex items-start gap-2">
           <CheckCircle2
             v-if="firstAccepted"
-            class="mt-0.5 h-4 w-4 shrink-0 text-[var(--terminal-green)]"
+            class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-success-mark)]"
           />
           <Clock v-else class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
@@ -197,7 +197,7 @@ onMounted(() => {
                 ce: breakdown.compileError,
               }) }}
             </p>
-            <p class="text-xs font-bold text-[var(--terminal-green)]">
+            <p class="text-xs font-bold text-[var(--foreground-strong)]">
               {{ breakdown.accepted }} / {{ breakdown.total }}
               <span class="text-2xs text-muted-foreground">AC</span>
             </p>
@@ -206,7 +206,7 @@ onMounted(() => {
 
         <!-- Final score -->
         <div class="flex items-start gap-2">
-          <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-[var(--terminal-amber)]" />
+          <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning-mark)]" />
           <div>
             <p
               class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
@@ -223,7 +223,7 @@ onMounted(() => {
       <!-- Submission timeline -->
       <ul
         v-if="submissions.length > 0"
-        class="mt-3 max-h-48 overflow-y-auto border border-border/40 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)]"
+        class="mt-3 max-h-48 overflow-y-auto border border-border/40 bg-surface dark:bg-surface-highlight"
         data-testid="contest-review-timeline"
       >
         <li
@@ -243,7 +243,7 @@ onMounted(() => {
           <span class="col-span-2 font-mono text-muted-foreground">
             {{ s.memory ?? 0 }}KB
           </span>
-          <span class="col-span-2 text-right font-black text-[var(--terminal-amber)]">
+          <span class="col-span-2 text-right font-black text-[var(--foreground-strong)]">
             <!-- Score lives on the nested `contest_info` for contest
                  submissions; non-contest submissions don't have a
                  score at all. -->
@@ -257,7 +257,7 @@ onMounted(() => {
         <Button
           variant="default"
           size="sm"
-          class="h-8 rounded-none border border-[var(--accent-electric)]/40 bg-[var(--accent-electric)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/25 cursor-pointer"
+          class="h-8 rounded-none border border-[var(--primary)]/40 bg-[var(--primary)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--primary)] hover:bg-[var(--primary)]/25 cursor-pointer"
           :disabled="!retakeHref()"
           data-testid="contest-review-retake"
           @click="handleRetake"
@@ -268,7 +268,7 @@ onMounted(() => {
         <Button
           variant="outline"
           size="sm"
-          class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--silver-100)] hover:text-foreground dark:hover:bg-[var(--solarized-base03)] cursor-pointer"
+          class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--surface-highlight)] hover:text-foreground dark:hover:bg-background cursor-pointer"
           data-testid="contest-review-notebook"
           @click="handleNotebook"
         >

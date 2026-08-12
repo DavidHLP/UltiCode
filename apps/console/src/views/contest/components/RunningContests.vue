@@ -113,10 +113,10 @@ onUnmounted(() => {
         </p>
       </div>
       <div
-        class="flex items-center gap-2 rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-2xs font-bold uppercase tracking-widest text-[var(--terminal-red)]"
+        class="flex items-center gap-2 rounded-none border border-[var(--status-error-mark)] bg-[var(--status-error-mark)]/10 px-3 py-1 text-2xs font-bold uppercase tracking-widest text-foreground-strong"
       >
         <span
-          class="h-2 w-2 rounded-none bg-[var(--terminal-red)] animate-pulse"
+          class="h-2 w-2 rounded-none bg-[var(--status-error-mark)] animate-pulse"
         ></span>
         {{ t("contest.list.liveBadge") }}
       </div>
@@ -126,7 +126,7 @@ onUnmounted(() => {
       <Card
         v-for="contest in contests.slice(0, 2)"
         :key="contest.id"
-        class="group relative overflow-hidden rounded-none border border-border border-l-4 border-l-[var(--terminal-red)] bg-card text-foreground transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 shadow-[3px_3px_0px_0px_var(--border)] hover:shadow-[4px_4px_0px_0px_var(--border)]"
+        class="group relative overflow-hidden rounded-none border border-border border-l-4 border-l-[var(--status-error-mark)] bg-card text-foreground transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 shadow-[3px_3px_0px_0px_var(--border)] hover:shadow-[4px_4px_0px_0px_var(--border)]"
       >
         <CardContent class="relative z-10 p-6">
           <div class="space-y-5">
@@ -144,10 +144,10 @@ onUnmounted(() => {
                 </h3>
               </div>
               <div
-                class="rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider text-[var(--terminal-red)] flex items-center gap-1.5 shrink-0"
+                class="rounded-none border border-[var(--status-error-mark)] bg-[var(--status-error-mark)]/10 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider text-foreground-strong flex items-center gap-1.5 shrink-0"
               >
                 <span
-                  class="h-1.5 w-1.5 bg-[var(--terminal-red)] animate-pulse inline-block"
+                  class="h-1.5 w-1.5 bg-[var(--status-error-mark)] animate-pulse inline-block"
                 ></span>
                 {{ t("contest.list.liveNow") }}
               </div>
@@ -190,7 +190,7 @@ onUnmounted(() => {
                 class="h-2 rounded-none bg-muted border border-border overflow-hidden"
               >
                 <div
-                  class="h-full bg-[var(--terminal-red)] transition-all duration-500"
+                  class="h-full bg-[var(--status-error-mark)] transition-all duration-500"
                   :style="{ width: `${getProgress(contest.id)}%` }"
                 ></div>
               </div>
@@ -217,7 +217,7 @@ onUnmounted(() => {
               </div>
               <Button
                 size="sm"
-                class="rounded-none border border-border bg-[var(--terminal-red)] text-white hover:bg-[var(--terminal-red)]/90 shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs h-9 px-4 font-bold"
+                class="rounded-none border border-status-error-mark bg-status-error-surface text-foreground-strong hover:bg-status-error-surface shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs h-9 px-4 font-bold"
                 @click="
                   router.push({
                     name: 'contest-detail',

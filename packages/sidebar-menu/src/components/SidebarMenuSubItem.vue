@@ -45,7 +45,7 @@ const mergedClass = computed(() =>
     <slot />
     <span
       v-if="badge !== undefined && badge !== null"
-      class="ml-auto inline-flex items-center rounded-full bg-[var(--silver-200)]/60 px-2 py-0.5 text-xs font-medium tabular-nums text-[var(--solarized-base01)] dark:text-[var(--silver-400)]"
+      class="ml-auto inline-flex items-center rounded-full bg-[var(--border-subtle)]/60 px-2 py-0.5 text-xs font-medium tabular-nums text-foreground dark:text-[var(--foreground-muted)]"
     >
       {{ badge }}
     </span>

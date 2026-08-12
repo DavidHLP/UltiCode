@@ -41,10 +41,10 @@ const modelValue = useVModel(props, 'modelValue', emits, {
         ],
         // Terminal variant
         variant === 'terminal' && [
-          'font-data text-sm border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none shadow-none bg-[var(--surface-sunken)]',
-          'selection:bg-[var(--accent-electric)] selection:text-[var(--solarized-base3)]',
-          'focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] focus-visible:ring-[2px]',
-          'aria-invalid:border-[var(--terminal-red)] aria-invalid:ring-[color-mix(in_oklch,_var(--terminal-red)_20%,_transparent)]',
+          'font-data text-sm border-[var(--border-control)] dark:border-[var(--border-control)] rounded-none shadow-none bg-[var(--surface-sunken)]',
+          'selection:bg-[var(--primary)] selection:text-primary-foreground',
+          'focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)] focus-visible:ring-[2px]',
+          'aria-invalid:border-[var(--status-error-mark)] aria-invalid:ring-[color-mix(in_oklch,_var(--status-error-mark)_20%,_transparent)]',
         ],
         props.class,
       )

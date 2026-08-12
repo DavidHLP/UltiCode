@@ -21,7 +21,7 @@ const statusColorTokens = {
 };
 
 const statusColorScale = computed(() =>
-  statusCategories.map((label) => `hsl(var(${statusColorTokens[label]}))`),
+  statusCategories.map((label) => `var(${statusColorTokens[label]})`),
 );
 
 const statusDistribution = computed(() => {

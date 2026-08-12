@@ -53,7 +53,7 @@ defineOptions({
 
 .auth-card:hover,
 .auth-card:focus-within {
-  border-color: color-mix(in oklch, var(--accent-electric) 45%, var(--border));
+  border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
   box-shadow: var(--shadow-float-hover);
 }
 
@@ -90,21 +90,21 @@ defineOptions({
 }
 
 .auth-card__control--close {
-  background: var(--terminal-red);
+  background: var(--status-error-mark);
 }
 
 .auth-card__control--minimize {
-  background: var(--terminal-amber);
+  background: var(--status-warning-mark);
 }
 
 .auth-card__control--maximize {
-  background: var(--terminal-green);
+  background: var(--status-success-mark);
 }
 
 .auth-card__title {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  color: var(--silver-500);
+  color: var(--foreground-muted);
   letter-spacing: var(--uc-tracking-normal);
 }
 

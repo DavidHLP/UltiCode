@@ -68,7 +68,7 @@ export function createAppealsColumns(
     // Selection column
     ...createSelectionColumn<Appeal>(t, {
       checkboxClass:
-        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     // Row number
     {
@@ -91,14 +91,14 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.appeals.appellant'),
         ),
       cell: ({ row }) => {
         const appellantName = row.original.appellantName
         const appellantUsername = row.original.appellantUsername
         return h('div', { class: 'flex items-center gap-2' }, [
-          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--silver-500)]' }),
+          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--foreground-muted)]' }),
           h(
             'span',
             { class: 'text-sm truncate' },
@@ -114,7 +114,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           'Queue ID',
         ),
       cell: ({ row }) => {
@@ -136,7 +136,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.appeals.reason'),
         ),
       cell: ({ row }) => {
@@ -155,7 +155,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.status'),
         ),
       cell: ({ row }) => {
@@ -170,13 +170,13 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.appeals.reviewedBy'),
         ),
       cell: ({ row }) => {
         const reviewerName = row.original.reviewedByName
         if (!reviewerName) {
-          return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '-')
+          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '-')
         }
         return h('span', { class: 'text-sm truncate block' }, reviewerName)
       },
@@ -188,14 +188,14 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
         const date = row.original.createdAt
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
           date ? formatDate(date) : '—',
         )
       },
@@ -206,7 +206,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {
@@ -229,7 +229,7 @@ export function createAppealsColumns(
                       { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                       {
                         default: () => [
-                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
+                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
                         ],
                       },
                     ),
@@ -237,7 +237,7 @@ export function createAppealsColumns(
               ),
               h(
                 DropdownMenuContent,
-                { align: 'end', class: 'border-[var(--silver-200)]' },
+                { align: 'end', class: 'border-[var(--border-subtle)]' },
                 {
                   default: () =>
                     [
@@ -250,7 +250,7 @@ export function createAppealsColumns(
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                              h(IconEye, { class: 'h-4 w-4 text-foreground-strong' }),
                               h('span', t('moderation.appeals.reviewAppeal')),
                             ]),
                         },
@@ -265,10 +265,10 @@ export function createAppealsColumns(
                             {
                               default: () =>
                                 h('div', { class: 'flex items-center gap-2' }, [
-                                  h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                                  h(IconCheck, { class: 'h-4 w-4 text-foreground-strong' }),
                                   h(
                                     'span',
-                                    { class: 'text-[var(--terminal-green)]' },
+                                    { class: 'text-foreground-strong' },
                                     t('moderation.appeals.approveAppeal'),
                                   ),
                                 ]),
@@ -285,10 +285,10 @@ export function createAppealsColumns(
                             {
                               default: () =>
                                 h('div', { class: 'flex items-center gap-2' }, [
-                                  h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                                  h(IconX, { class: 'h-4 w-4 text-foreground-strong' }),
                                   h(
                                     'span',
-                                    { class: 'text-[var(--terminal-red)]' },
+                                    { class: 'text-foreground-strong' },
                                     t('moderation.appeals.rejectAppeal'),
                                   ),
                                 ]),

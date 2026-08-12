@@ -183,21 +183,21 @@ async function handleSubmit(event: Event) {
   font-size: var(--uc-text-2xl);
   font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
-  color: var(--solarized-base03);
+  color: var(--foreground-strong);
   line-height: 1.1;
 }
 
 .dark .login-form__title {
-  color: var(--silver-900);
+  color: var(--foreground-strong);
 }
 
 .login-form__subtitle {
   font-size: var(--uc-text-md);
-  color: var(--solarized-base01);
+  color: var(--foreground);
 }
 
 .dark .login-form__subtitle {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .login-form__error {
@@ -205,22 +205,22 @@ async function handleSubmit(event: Event) {
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
-  border-left: 3px solid var(--terminal-red);
+  border-left: 3px solid var(--status-error-mark);
   border-radius: 0;
-  background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
-  color: var(--status-error);
+  background: color-mix(in oklch, var(--status-error-mark) 8%, transparent);
+  color: var(--foreground-strong);
   font-size: var(--uc-text-sm);
   font-family: var(--uc-font-code);
 }
 
 .dark .login-form__error {
-  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
-  border-left-color: var(--terminal-red);
+  background: color-mix(in oklch, var(--status-error-mark) 15%, transparent);
+  border-left-color: var(--status-error-mark);
 }
 
 .login-form__error-prefix {
+  color: var(--status-error-mark);
   font-weight: var(--uc-font-weight-semibold);
-  opacity: 0.9;
 }
 
 .login-form__forgot {
@@ -230,8 +230,10 @@ async function handleSubmit(event: Event) {
 }
 
 .login-form__forgot a {
-  color: var(--accent-electric);
-  text-decoration: none;
+  color: var(--link-foreground);
+  text-decoration-color: var(--link-decoration);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
   font-weight: var(--uc-font-weight-bold);
 }
 
@@ -250,17 +252,17 @@ async function handleSubmit(event: Event) {
 
 .login-form__signup {
   font-size: var(--uc-text-md);
-  color: var(--solarized-base01);
+  color: var(--foreground);
   text-align: center;
   font-family: var(--uc-font-code);
 }
 
 .dark .login-form__signup {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .login-form__signup a {
-  color: var(--accent-electric);
+  color: var(--primary);
   text-decoration: none;
   font-weight: var(--uc-font-weight-bold);
 }

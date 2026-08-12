@@ -39,14 +39,14 @@ describe("AuthPatternBackground", () => {
     const wrapper = mount(AuthPatternBackground, {
       props: { title: "Test", spec },
     })
-    expect(wrapper.html()).toContain("text-[var(--terminal-green)]")
+    expect(wrapper.html()).toContain("text-status-success-mark")
   })
 
   it("applies the muted tone class", () => {
     const wrapper = mount(AuthPatternBackground, {
       props: { title: "Test", spec },
     })
-    expect(wrapper.html()).toContain("text-[var(--solarized-base01)]")
+    expect(wrapper.html()).toContain("text-foreground")
   })
 
   it("accepts plain strings as output (defaults to normal tone)", () => {

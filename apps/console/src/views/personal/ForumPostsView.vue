@@ -239,7 +239,7 @@ onMounted(loadPosts);
                         }}</AlertDialogCancel>
                         <AlertDialogAction
                           @click="handleDelete(post.id)"
-                          class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80"
                         >
                           {{ t("common.actions.delete") }}
                         </AlertDialogAction>

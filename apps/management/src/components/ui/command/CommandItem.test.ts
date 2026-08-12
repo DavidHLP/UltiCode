@@ -27,12 +27,12 @@ describe('CommandItem', () => {
     const classes = wrapper.get('[data-slot="command-item"]').classes()
 
     expect(classes).toContain(
-      'data-[highlighted]:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))]',
+      'data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))]',
     )
     expect(classes).toContain(
-      'dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))]',
+      'dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))]',
     )
-    expect(classes).toContain('data-[highlighted]:text-[var(--accent-electric)]')
+    expect(classes).toContain('data-[highlighted]:text-[var(--primary)]')
     expect(classes).not.toContain('data-[highlighted]:bg-accent')
   })
 })

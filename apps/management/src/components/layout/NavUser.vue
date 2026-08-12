@@ -62,7 +62,7 @@ async function handleLogout() {
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-11"
           >
             <Avatar
-              class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+              class="h-8 w-8 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
               shape="square"
             >
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
@@ -73,17 +73,17 @@ async function handleLogout() {
                 <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
                 <span
                   v-if="user.role"
-                  class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
+                  class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--border-subtle)] bg-[var(--surface-highlight)] text-[var(--foreground-muted)] tracking-wide shrink-0"
                 >
                   {{ user.role }}
                 </span>
               </div>
-              <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-2xs">
+              <span class="text-[var(--foreground-muted)] truncate mt-0.5 font-mono text-2xs">
                 {{ user.email }}
               </span>
             </div>
             <IconDotsVertical
-              class="ml-auto size-4 text-[var(--silver-400)] group-hover:text-foreground"
+              class="ml-auto size-4 text-[var(--foreground-muted)] group-hover:text-foreground"
             />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
@@ -97,7 +97,7 @@ async function handleLogout() {
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
               <Avatar
-                class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+                class="h-8 w-8 rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
                 shape="square"
               >
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
@@ -108,12 +108,12 @@ async function handleLogout() {
                   <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
                   <span
                     v-if="user.role"
-                    class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
+                    class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--border-subtle)] bg-[var(--surface-highlight)] text-[var(--foreground-muted)] tracking-wide shrink-0"
                   >
                     {{ user.role }}
                   </span>
                 </div>
-                <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-2xs">
+                <span class="text-[var(--foreground-muted)] truncate mt-0.5 font-mono text-2xs">
                   {{ user.email }}
                 </span>
               </div>

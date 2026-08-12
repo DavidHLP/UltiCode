@@ -195,7 +195,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -209,7 +209,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="title">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
                         >
                           {{ t('problems.form.title') }}
                         </FormLabel>
@@ -227,7 +227,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="slug">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
                         >
                           {{ t('problems.form.slug') }}
                         </FormLabel>
@@ -248,7 +248,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="difficulty">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
                         >
                           {{ t('problems.form.difficulty') }}
                         </FormLabel>
@@ -277,7 +277,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="status">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
                         >
                           {{ t('problems.form.status') }}
                         </FormLabel>
@@ -317,7 +317,7 @@ function isLanguageSelected(lang: string): boolean {
                             >
                               {{ t('problems.descriptionForm.premium') }}
                             </Label>
-                            <p class="text-xxs text-[var(--silver-500)] leading-normal">
+                            <p class="text-xxs text-[var(--foreground-muted)] leading-normal">
                               {{ t('problems.descriptionForm.premiumDescription') }}
                             </p>
                           </div>
@@ -343,7 +343,7 @@ function isLanguageSelected(lang: string): boolean {
                             >
                               {{ t('problems.descriptionForm.published') }}
                             </Label>
-                            <p class="text-xxs text-[var(--silver-500)] leading-normal">
+                            <p class="text-xxs text-[var(--foreground-muted)] leading-normal">
                               {{ t('problems.descriptionForm.publishedDescription') }}
                             </p>
                           </div>
@@ -369,7 +369,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -382,7 +382,7 @@ function isLanguageSelected(lang: string): boolean {
                   <FormField v-slot="{ componentField }" name="summary">
                     <FormItem class="space-y-0.5">
                       <FormLabel
-                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
                       >
                         {{ t('problems.form.summary') }}
                       </FormLabel>
@@ -391,7 +391,7 @@ function isLanguageSelected(lang: string): boolean {
                           v-bind="componentField"
                           rows="2"
                           :placeholder="t('problems.descriptionForm.summaryPlaceholder')"
-                          class="font-sans text-sm border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none shadow-none bg-[var(--surface-sunken)]/20 focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] focus-visible:ring-[2px] resize-none min-h-[60px]"
+                          class="font-sans text-sm border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none shadow-none bg-[var(--surface-sunken)]/20 focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)] focus-visible:ring-[2px] resize-none min-h-[60px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -401,7 +401,7 @@ function isLanguageSelected(lang: string): boolean {
                   <FormField v-slot="{ componentField }" name="content">
                     <FormItem class="space-y-0.5">
                       <FormLabel
-                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
                       >
                         {{ t('problems.form.fullContent') }}
                       </FormLabel>
@@ -427,7 +427,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -457,7 +457,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -487,7 +487,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -517,7 +517,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -550,7 +550,7 @@ function isLanguageSelected(lang: string): boolean {
                 class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
               >
                 <div class="flex items-center gap-2.5">
-                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <IconFileDescription class="size-4 text-[var(--foreground-muted)] shrink-0" />
                   <span
                     class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
                   >
@@ -560,7 +560,7 @@ function isLanguageSelected(lang: string): boolean {
               </AccordionTrigger>
               <AccordionContent class="pt-4 pb-5 px-5">
                 <CardContent class="p-0 space-y-4">
-                  <p class="text-xs text-[var(--silver-500)] leading-normal">
+                  <p class="text-xs text-[var(--foreground-muted)] leading-normal">
                     {{ t('problems.descriptionForm.languagesDescription') }}
                   </p>
                   <div class="flex flex-wrap gap-1.5">
@@ -571,7 +571,7 @@ function isLanguageSelected(lang: string): boolean {
                       class="cursor-pointer font-mono text-xs px-2.5 py-1 select-none border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] rounded-none h-7 flex items-center justify-center"
                       :class="[
                         isLanguageSelected(lang)
-                          ? 'bg-[var(--accent-primary)] text-[var(--solarized-base3)] border-transparent font-semibold'
+                          ? 'bg-[var(--accent-primary)] text-primary-foreground border-transparent font-semibold'
                           : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground',
                       ]"
                       @click="toggleLanguage(lang)"
@@ -581,7 +581,7 @@ function isLanguageSelected(lang: string): boolean {
                   </div>
                   <p
                     v-if="(formValues.languages || []).length === 0"
-                    class="text-xs text-[var(--solarized-red)] italic font-mono"
+                    class="text-xs text-foreground-strong italic font-mono"
                   >
                     {{ t('problems.descriptionForm.noLanguagesSelected') }}
                   </p>
@@ -613,7 +613,7 @@ function isLanguageSelected(lang: string): boolean {
             type="button"
             variant="terminal"
             size="terminal_lg"
-            class="w-full sm:w-auto text-[var(--silver-600)] hover:text-foreground border-[var(--silver-300)]"
+            class="w-full sm:w-auto text-[var(--foreground-strong)] hover:text-foreground border-[var(--border-subtle)]"
             @click="cancel"
           >
             {{ t('common.cancel') }}

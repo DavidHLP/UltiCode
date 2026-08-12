@@ -141,7 +141,7 @@ onMounted(async () => {
                 :href="profile.website"
                 target="_blank"
                 rel="noopener"
-                class="hover:text-[var(--accent-electric)]"
+                class="hover:text-[var(--primary)]"
               >
                 {{ profile.website }}
               </a>
@@ -159,7 +159,7 @@ onMounted(async () => {
           />
           <div
             v-else
-            class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--terminal-green)] text-2xl font-bold text-[var(--color-background)]"
+            class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--status-success-mark)] text-2xl font-bold text-[var(--background)]"
           >
             {{ (profile.name || profile.username).charAt(0).toUpperCase() }}
           </div>
@@ -180,7 +180,7 @@ onMounted(async () => {
           color="green"
         >
           <template #icon>
-            <Trophy class="h-5 w-5 text-[oklch(0.6444_0.1508_118.6)]" />
+            <Trophy class="h-5 w-5 text-[var(--status-success-mark)]" />
           </template>
         </StatsCard>
 
@@ -191,7 +191,7 @@ onMounted(async () => {
           color="blue"
         >
           <template #icon>
-            <Target class="h-5 w-5 text-[oklch(0.6149_0.1394_244.9)]" />
+            <Target class="h-5 w-5 text-[var(--accent-primary)]" />
           </template>
         </StatsCard>
 
@@ -206,7 +206,7 @@ onMounted(async () => {
           color="purple"
         >
           <template #icon>
-            <BarChart3 class="h-5 w-5 text-[oklch(0.5924_0.2025_355.9)]" />
+            <BarChart3 class="h-5 w-5 text-[var(--status-special-mark)]" />
           </template>
         </StatsCard>
 
@@ -217,7 +217,7 @@ onMounted(async () => {
           color="orange"
         >
           <template #icon>
-            <Flame class="h-5 w-5 text-[oklch(0.6545_0.1340_85.7)]" />
+            <Flame class="h-5 w-5 text-[var(--status-warning-mark)]" />
           </template>
         </StatsCard>
 

@@ -249,7 +249,7 @@ function getErrorMessage(error: unknown, fallback: string) {
       <!-- Contest Info Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
-          class="border border-border border-t-2 border-t-[var(--accent-electric)] bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
+          class="border border-border border-t-2 border-t-[var(--primary)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
@@ -271,12 +271,12 @@ function getErrorMessage(error: unknown, fallback: string) {
         </Card>
 
         <Card
-          class="border border-border border-t-2 border-t-[var(--terminal-amber)] bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
+          class="border border-border border-t-2 border-t-[var(--status-warning-mark)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--status-warning-mark)]/10 text-foreground-strong shadow-sm"
               >
                 <Clock class="h-5 w-5" />
               </div>
@@ -294,12 +294,12 @@ function getErrorMessage(error: unknown, fallback: string) {
         </Card>
 
         <Card
-          class="border border-border border-t-2 border-t-[var(--terminal-green)] bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
+          class="border border-border border-t-2 border-t-[var(--status-success-mark)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--status-success-mark)]/10 text-foreground-strong shadow-sm"
               >
                 <Users class="h-5 w-5" />
               </div>
@@ -316,12 +316,12 @@ function getErrorMessage(error: unknown, fallback: string) {
         </Card>
 
         <Card
-          class="border border-border border-t-2 border-t-[var(--accent-electric)] bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
+          class="border border-border border-t-2 border-t-[var(--primary)] bg-surface dark:bg-surface-highlight shadow-sm transition-all duration-300 hover:border-muted-foreground/40 hover:-translate-y-0.5 rounded-none"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--primary)]/10 text-[var(--primary)] shadow-sm"
               >
                 <Trophy class="h-5 w-5" />
               </div>
@@ -354,14 +354,14 @@ function getErrorMessage(error: unknown, fallback: string) {
         :default-open="
           contest.status !== 'RUNNING' && !virtualSessionActive
         "
-        class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm overflow-hidden rounded-none"
+        class="border border-border bg-surface dark:bg-surface-highlight shadow-sm overflow-hidden rounded-none"
       >
         <CollapsibleTrigger as-child>
           <CardHeader
-            class="cursor-pointer pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
+            class="cursor-pointer pb-3 border-b border-border bg-[var(--surface-highlight)]/50 dark:bg-background/50"
           >
             <CardTitle
-              class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] flex items-center justify-between gap-2"
+              class="text-xs font-bold font-mono uppercase tracking-widest text-foreground dark:text-foreground-strong flex items-center justify-between gap-2"
             >
               <span>{{ t("contest.detail.rules") }}</span>
               <ChevronDown class="h-4 w-4 transition-transform" />
@@ -371,7 +371,7 @@ function getErrorMessage(error: unknown, fallback: string) {
         <CollapsibleContent>
           <CardContent class="p-6">
             <p
-              class="text-sm text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] whitespace-pre-line leading-relaxed"
+              class="text-sm text-foreground-muted dark:text-foreground-muted whitespace-pre-line leading-relaxed"
             >
               {{ contest.rules }}
             </p>
@@ -387,13 +387,13 @@ function getErrorMessage(error: unknown, fallback: string) {
           >
             <TabsTrigger
               value="problems"
-              class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--accent-electric)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"
+              class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--primary)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"
             >
               {{ t("contest.detail.problems") }}
             </TabsTrigger>
             <TabsTrigger
               value="ranking"
-              class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--accent-electric)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"
+              class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--primary)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"
             >
               {{ t("contest.detail.ranking") }}
             </TabsTrigger>

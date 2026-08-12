@@ -60,7 +60,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
       v-if="fields.length === 0"
       class="flex flex-col items-center justify-center py-8 px-4 border border-dashed border-[var(--border)] bg-muted/5 gap-3 rounded-none"
     >
-      <p class="text-xs text-[var(--silver-500)] text-muted-foreground font-mono">
+      <p class="text-xs text-[var(--foreground-muted)] text-muted-foreground font-mono">
         {{ t('problems.casesDisplay.noCasesDescription') }}
       </p>
       <Button variant="terminal" size="terminal" @click="addExample">
@@ -124,7 +124,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
           <CardContent class="space-y-4 pt-4 px-4 pb-4 bg-card rounded-none">
             <div class="space-y-1">
               <label
-                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
               >
                 {{ t('problems.casesDisplay.input') }}
               </label>
@@ -139,7 +139,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
 
             <div class="space-y-1">
               <label
-                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
               >
                 {{ t('problems.casesDisplay.output') }}
               </label>
@@ -154,7 +154,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
 
             <div class="space-y-1">
               <label
-                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] mb-1 block"
               >
                 {{ t('problems.descriptionDisplay.explanation') }}
               </label>

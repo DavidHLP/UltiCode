@@ -37,7 +37,7 @@ defineExpose({ addConstraint, deleteConstraint })
       v-if="fields.length === 0"
       class="flex flex-col items-center justify-center py-6 px-4 border border-dashed border-[var(--border)] bg-muted/5 rounded-none"
     >
-      <p class="text-xs text-[var(--silver-500)] font-mono text-center">
+      <p class="text-xs text-[var(--foreground-muted)] font-mono text-center">
         {{ t('problems.descriptionForm.constraintsSection.emptyDescription') }}
       </p>
     </div>

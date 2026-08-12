@@ -1,6 +1,7 @@
 import MouseV from "./shaders/mouse/vertex.glsl?raw";
 import MouseF from "./shaders/mouse/fragment.glsl?raw";
 import * as THREE from 'three';
+import { SOLARIZED_PALETTE } from '@ulticode/design-system';
 
 const VSA = MouseV;
 const FSA = MouseF;
@@ -65,7 +66,7 @@ export class MousePointer {
             blending: THREE.AdditiveBlending,
             uniforms: {
                 uTrail: { value: trailArray },
-                uColor: { value: new THREE.Color("#ffffff") },
+                uColor: { value: new THREE.Color(SOLARIZED_PALETTE.cyan) },
                 uTrailLength: { value: this.params.trailLength },
                 uSize: { value: this.params.size },
                 uOpacity: { value: this.params.opacity },

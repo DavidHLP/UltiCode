@@ -34,7 +34,7 @@ const authorInitials = computed(() => {
     <TerminalCard title="post_detail">
       <div class="flex items-start gap-4">
         <div
-          class="h-12 w-12 border border-[var(--silver-300)] bg-[var(--surface-sunken)] flex items-center justify-center text-[var(--terminal-cyan)] flex-shrink-0"
+          class="h-12 w-12 border border-[var(--border-subtle)] bg-[var(--surface-sunken)] flex items-center justify-center text-foreground-strong flex-shrink-0"
         >
           <IconMessageCircle class="h-6 w-6" />
         </div>
@@ -76,7 +76,7 @@ const authorInitials = computed(() => {
 
       <!-- Author & Community -->
       <div class="flex items-center gap-3 mb-4">
-        <Avatar class="h-10 w-10 rounded-none border border-[var(--silver-300)]">
+        <Avatar class="h-10 w-10 rounded-none border border-[var(--border-subtle)]">
           <AvatarImage :src="post.author?.avatar || ''" :alt="post.author?.username" />
           <AvatarFallback class="font-data text-xs bg-[var(--surface-sunken)]">{{
             authorInitials
@@ -86,7 +86,7 @@ const authorInitials = computed(() => {
           <span class="font-medium text-sm text-[var(--foreground)]">{{
             post.author?.username || t('forum.overview.unknown')
           }}</span>
-          <span class="font-data text-xs text-[var(--silver-400)]">
+          <span class="font-data text-xs text-[var(--foreground-muted)]">
             @{{ post.community?.name || t('forum.drawer.unknownCommunity') }}
           </span>
         </div>
@@ -94,9 +94,9 @@ const authorInitials = computed(() => {
 
       <!-- Content -->
       <div class="space-y-2">
-        <span class="terminal-label text-[var(--silver-500)]">{{ t('forum.detail.content') }}</span>
+        <span class="terminal-label text-[var(--foreground-muted)]">{{ t('forum.detail.content') }}</span>
         <div
-          class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+          class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--surface-sunken)]"
         >
           <p class="font-data text-sm text-[var(--foreground)] whitespace-pre-wrap leading-relaxed">
             {{
@@ -113,22 +113,22 @@ const authorInitials = computed(() => {
     <!-- Statistics Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--card)]"
       >
         <div class="flex items-center gap-2 mb-3">
-          <IconEye class="h-5 w-5 text-[var(--terminal-cyan)]" />
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('forum.detail.views') }}</span>
+          <IconEye class="h-5 w-5 text-[var(--status-info-mark)]" />
+          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('forum.detail.views') }}</span>
         </div>
         <span class="font-data text-2xl tabular-nums text-[var(--foreground)]">{{
           post.viewCount || 0
         }}</span>
       </div>
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--card)]"
       >
         <div class="flex items-center gap-2 mb-3">
-          <IconMessage class="h-5 w-5 text-[var(--terminal-cyan)]" />
-          <span class="terminal-label text-[var(--silver-500)]">{{
+          <IconMessage class="h-5 w-5 text-[var(--status-info-mark)]" />
+          <span class="terminal-label text-[var(--foreground-muted)]">{{
             t('forum.detail.comments')
           }}</span>
         </div>
@@ -137,28 +137,28 @@ const authorInitials = computed(() => {
         }}</span>
       </div>
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--card)]"
       >
         <div class="flex items-center gap-2 mb-3">
-          <IconThumbUp class="h-5 w-5 text-[var(--terminal-green)]" />
-          <span class="terminal-label text-[var(--silver-500)]">{{
+          <IconThumbUp class="h-5 w-5 text-[var(--status-success-mark)]" />
+          <span class="terminal-label text-[var(--foreground-muted)]">{{
             t('forum.detail.upvotes')
           }}</span>
         </div>
-        <span class="font-data text-2xl tabular-nums text-[var(--terminal-green)]">{{
+        <span class="font-data text-2xl tabular-nums text-[var(--foreground-strong)]">{{
           post.upvotes || 0
         }}</span>
       </div>
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--card)]"
       >
         <div class="flex items-center gap-2 mb-3">
-          <IconThumbDown class="h-5 w-5 text-[var(--terminal-red)]" />
-          <span class="terminal-label text-[var(--silver-500)]">{{
+          <IconThumbDown class="h-5 w-5 text-[var(--status-error-mark)]" />
+          <span class="terminal-label text-[var(--foreground-muted)]">{{
             t('forum.detail.downvotes')
           }}</span>
         </div>
-        <span class="font-data text-2xl tabular-nums text-[var(--terminal-red)]">{{
+        <span class="font-data text-2xl tabular-nums text-[var(--foreground-strong)]">{{
           post.downvotes || 0
         }}</span>
       </div>
@@ -169,7 +169,7 @@ const authorInitials = computed(() => {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <DataBlock :label="t('forum.detail.created')">
           <div class="flex items-center gap-2">
-            <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
+            <IconCalendar class="h-4 w-4 text-[var(--foreground-muted)]" />
             <span class="font-data text-sm text-[var(--foreground)]">{{
               formatDateTimeByLocale(post.createdAt)
             }}</span>
@@ -177,7 +177,7 @@ const authorInitials = computed(() => {
         </DataBlock>
         <DataBlock :label="t('forum.detail.updated')">
           <div class="flex items-center gap-2">
-            <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
+            <IconCalendar class="h-4 w-4 text-[var(--foreground-muted)]" />
             <span class="font-data text-sm text-[var(--foreground)]">{{
               formatDateTimeByLocale(post.updatedAt)
             }}</span>
@@ -189,21 +189,21 @@ const authorInitials = computed(() => {
     <!-- Flagged Info -->
     <div
       v-if="post.isFlagged && post.flaggedReason"
-      class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
+      class="border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)]"
     >
       <div
-        class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[color-mix(in_oklch,_var(--terminal-red)_5%,_transparent)]"
+        class="px-4 py-3 border-b border-[var(--status-error-mark)]/30 bg-[color-mix(in_oklch,_var(--status-error-mark)_5%,_transparent)]"
       >
         <div class="flex items-center gap-2">
-          <IconFlag class="h-4 w-4 text-[var(--terminal-red)]" />
-          <span class="font-data text-xs uppercase tracking-wider text-[var(--terminal-red)]">
+          <IconFlag class="h-4 w-4 text-[var(--status-error-mark)]" />
+          <span class="font-data text-xs uppercase tracking-wider text-[var(--foreground-strong)]">
             {{ t('forum.detail.flagInformation') }}
           </span>
         </div>
       </div>
       <div class="p-4 space-y-3">
         <DataBlock :label="t('forum.detail.reason')" :value="post.flaggedReason" size="sm" />
-        <p v-if="post.flaggedAt" class="font-data text-xs text-[var(--silver-400)]">
+        <p v-if="post.flaggedAt" class="font-data text-xs text-[var(--foreground-muted)]">
           {{ t('forum.detail.flaggedOn') }} {{ formatDateTimeByLocale(post.flaggedAt) }}
         </p>
       </div>
@@ -212,20 +212,20 @@ const authorInitials = computed(() => {
     <!-- Deleted Info -->
     <div
       v-if="post.isDeleted"
-      class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
+      class="border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)]"
     >
       <div
-        class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[color-mix(in_oklch,_var(--terminal-red)_5%,_transparent)]"
+        class="px-4 py-3 border-b border-[var(--status-error-mark)]/30 bg-[color-mix(in_oklch,_var(--status-error-mark)_5%,_transparent)]"
       >
         <div class="flex items-center gap-2">
-          <IconTrash class="h-4 w-4 text-[var(--terminal-red)]" />
-          <span class="font-data text-xs uppercase tracking-wider text-[var(--terminal-red)]">
+          <IconTrash class="h-4 w-4 text-[var(--status-error-mark)]" />
+          <span class="font-data text-xs uppercase tracking-wider text-[var(--foreground-strong)]">
             {{ t('forum.detail.deletionInformation') }}
           </span>
         </div>
       </div>
       <div class="p-4">
-        <p v-if="post.deletedAt" class="font-data text-xs text-[var(--silver-400)]">
+        <p v-if="post.deletedAt" class="font-data text-xs text-[var(--foreground-muted)]">
           {{ t('forum.detail.deletedOn') }} {{ formatDateTimeByLocale(post.deletedAt) }}
         </p>
       </div>
@@ -235,29 +235,29 @@ const authorInitials = computed(() => {
     <TerminalCard :title="t('forum.detail.identifiers')">
       <div class="grid gap-3">
         <div class="flex items-center gap-3">
-          <span class="terminal-label text-[var(--silver-500)] min-w-[80px]">{{
+          <span class="terminal-label text-[var(--foreground-muted)] min-w-[80px]">{{
             t('forum.detail.postId')
           }}</span>
           <code
-            class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--silver-300)]"
+            class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--border-subtle)]"
             >{{ post.id }}</code
           >
         </div>
         <div class="flex items-center gap-3">
-          <span class="terminal-label text-[var(--silver-500)] min-w-[80px]">{{
+          <span class="terminal-label text-[var(--foreground-muted)] min-w-[80px]">{{
             t('forum.detail.authorId')
           }}</span>
           <code
-            class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--silver-300)]"
+            class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--border-subtle)]"
             >{{ post.userId }}</code
           >
         </div>
         <div class="flex items-center gap-3">
-          <span class="terminal-label text-[var(--silver-500)] min-w-[80px]">{{
+          <span class="terminal-label text-[var(--foreground-muted)] min-w-[80px]">{{
             t('forum.detail.communityId')
           }}</span>
           <code
-            class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--silver-300)]"
+            class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--border-subtle)]"
             >{{ post.communityId }}</code
           >
         </div>

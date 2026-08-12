@@ -114,8 +114,8 @@ onUnmounted(() => {
         :class="
           cn(
             'fixed top-4 right-4 z-50 max-w-sm',
-            'border border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-            'bg-gradient-to-r from-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] to-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
+            'border border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
+            'bg-gradient-to-r from-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] to-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)]',
             'backdrop-blur-sm',
             'rounded-none shadow-lg',
             'p-4',
@@ -126,36 +126,36 @@ onUnmounted(() => {
         <div class="flex items-start gap-3">
           <!-- Trophy icon with animation -->
           <div
-            class="flex-shrink-0 w-10 h-10 rounded-full bg-[color-mix(in_oklch,_var(--terminal-amber)_30%,_transparent)] flex items-center justify-center"
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_30%,_transparent)] flex items-center justify-center"
           >
-            <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)] animate-bounce-subtle" />
+            <IconTrophy class="h-5 w-5 text-[var(--status-warning-mark)] animate-bounce-subtle" />
           </div>
 
           <!-- Content -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-data text-2xs uppercase tracking-wide text-[var(--terminal-amber)]">
+              <span class="font-data text-2xs uppercase tracking-wide text-[var(--foreground-strong)]">
                 First Solve
               </span>
             </div>
             <p class="mt-1 text-sm font-medium text-foreground">
-              <span class="text-[var(--accent-electric)]">{{ data.username }}</span>
+              <span class="text-[var(--primary)]">{{ data.username }}</span>
               solved problem
-              <span class="font-data font-bold text-[var(--terminal-amber)]">
+              <span class="font-data font-bold text-[var(--foreground-strong)]">
                 {{ data.problemIndex }}
               </span>
             </p>
-            <p class="mt-0.5 text-xs text-[var(--silver-400)]">
+            <p class="mt-0.5 text-xs text-[var(--foreground-muted)]">
               Solved in {{ formatTimeSpent(data.timeSpent) }}
             </p>
           </div>
 
           <!-- Close button -->
           <button
-            class="flex-shrink-0 p-1 rounded-none hover:bg-[var(--silver-200)] dark:hover:bg-[var(--silver-700)] transition-colors"
+            class="flex-shrink-0 p-1 rounded-none hover:bg-[var(--border-subtle)] dark:hover:bg-[var(--foreground-strong)] transition-colors"
             @click="close"
           >
-            <IconX class="h-4 w-4 text-[var(--silver-400)]" />
+            <IconX class="h-4 w-4 text-[var(--foreground-muted)]" />
           </button>
         </div>
       </div>

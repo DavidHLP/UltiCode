@@ -13,8 +13,8 @@ const props = defineProps<{
     :class="
       cn(
         'h-9 px-3 text-left align-middle whitespace-nowrap',
-        'text-[var(--silver-500)] font-data text-xs uppercase tracking-wider',
-        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]',
+        'text-[var(--foreground-muted)] font-data text-xs uppercase tracking-wider',
+        'border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]',
         '[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         props.class,
       )

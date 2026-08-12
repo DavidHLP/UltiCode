@@ -197,7 +197,7 @@ async function copyToClipboard() {
         class="gap-1.5 shrink-0"
         @click="copyToClipboard"
       >
-        <IconCheck v-if="copied" class="h-4 w-4 text-green-500" />
+        <IconCheck v-if="copied" class="h-4 w-4 text-status-success-mark" />
         <IconCopy v-else class="h-4 w-4" />
         {{ copied ? t('problems.codeDisplay.copied') : t('problems.codeDisplay.copy') }}
       </Button>
@@ -226,7 +226,7 @@ async function copyToClipboard() {
         class="gap-1.5 shrink-0"
         @click="copyToClipboard"
       >
-        <IconCheck v-if="copied" class="h-4 w-4 text-green-500" />
+        <IconCheck v-if="copied" class="h-4 w-4 text-status-success-mark" />
         <IconCopy v-else class="h-4 w-4" />
         {{ copied ? t('solutions.detail.copied') : t('solutions.detail.copy') }}
       </Button>
@@ -234,11 +234,11 @@ async function copyToClipboard() {
 
     <!-- Code Display -->
     <div
-      class="relative overflow-hidden border border-[var(--silver-200)] bg-[var(--card)] dark:border-[var(--silver-200)]"
+      class="relative overflow-hidden border border-[var(--border-subtle)] bg-[var(--card)] dark:border-[var(--border-subtle)]"
     >
       <!-- Code Header -->
       <div
-        class="flex items-center justify-between border-b border-[var(--silver-200)] bg-[var(--surface-sunken)] px-4 py-2.5 dark:border-[var(--silver-200)]"
+        class="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-4 py-2.5 dark:border-[var(--border-subtle)]"
       >
         <div class="flex items-center gap-3">
           <Badge
@@ -261,16 +261,16 @@ async function copyToClipboard() {
           >
         </div>
         <div class="flex items-center gap-1">
-          <div class="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-          <div class="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
-          <div class="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+          <div class="w-2.5 h-2.5 rounded-full bg-status-error-mark/80" />
+          <div class="w-2.5 h-2.5 rounded-full bg-status-warning-mark/80" />
+          <div class="w-2.5 h-2.5 rounded-full bg-status-success-mark/80" />
         </div>
       </div>
 
       <!-- Code Content -->
       <div
         v-if="hasCode"
-        class="code-viewer-surface overflow-x-auto border-t border-[var(--silver-100)] p-4 dark:border-[var(--silver-200)]"
+        class="code-viewer-surface overflow-x-auto border-t border-[var(--surface-highlight)] p-4 dark:border-[var(--border-subtle)]"
       >
         <pre class="text-sm font-mono whitespace-pre-wrap break-words"><code
           class="hljs"

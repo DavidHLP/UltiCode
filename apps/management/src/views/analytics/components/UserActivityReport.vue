@@ -123,10 +123,10 @@ function truncateUsername(username: string) {
 
     <!-- Top Active Users Leaderboard - Monospace Terminal SVG Bar Chart -->
     <Card
-      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
+      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
     >
       <CardHeader
-        class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+        class="pb-4 pt-5 px-5 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
       >
         <div class="flex items-center gap-2">
           <IconChartBar class="h-4 w-4 text-[var(--accent-primary)]" />
@@ -134,7 +134,7 @@ function truncateUsername(username: string) {
             {{ t('analytics.userActivity.topUsers') }}
           </CardTitle>
         </div>
-        <CardDescription class="text-xs text-[var(--silver-400)] mt-1">
+        <CardDescription class="text-xs text-[var(--foreground-muted)] mt-1">
           {{ t('analytics.userActivity.topUsersDesc') }}
         </CardDescription>
       </CardHeader>
@@ -194,7 +194,7 @@ function truncateUsername(username: string) {
             <text
               x="35"
               y="203"
-              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              class="text-2xs font-mono fill-[var(--foreground-muted)] text-right"
               text-anchor="end"
             >
               0
@@ -202,7 +202,7 @@ function truncateUsername(username: string) {
             <text
               x="35"
               y="163"
-              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              class="text-2xs font-mono fill-[var(--foreground-muted)] text-right"
               text-anchor="end"
             >
               {{ formatNumber(Math.round(maxVal * 0.25)) }}
@@ -210,7 +210,7 @@ function truncateUsername(username: string) {
             <text
               x="35"
               y="123"
-              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              class="text-2xs font-mono fill-[var(--foreground-muted)] text-right"
               text-anchor="end"
             >
               {{ formatNumber(Math.round(maxVal * 0.5)) }}
@@ -218,7 +218,7 @@ function truncateUsername(username: string) {
             <text
               x="35"
               y="83"
-              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              class="text-2xs font-mono fill-[var(--foreground-muted)] text-right"
               text-anchor="end"
             >
               {{ formatNumber(Math.round(maxVal * 0.75)) }}
@@ -226,7 +226,7 @@ function truncateUsername(username: string) {
             <text
               x="35"
               y="43"
-              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              class="text-2xs font-mono fill-[var(--foreground-muted)] text-right"
               text-anchor="end"
             >
               {{ formatNumber(maxVal) }}
@@ -240,7 +240,7 @@ function truncateUsername(username: string) {
                 :y="200 - (user.loginCount / maxVal) * 160"
                 width="28"
                 :height="(user.loginCount / maxVal) * 160"
-                class="fill-[color-mix(in oklch,var(--accent-primary)_35%,var(--silver-300))] group-hover/bar:fill-[var(--accent-primary)] stroke-[var(--silver-200)] dark:stroke-[var(--silver-700)] stroke-1 transition-all duration-200 cursor-pointer"
+                class="fill-[color-mix(in oklch,var(--accent-primary)_35%,var(--border-subtle))] group-hover/bar:fill-[var(--accent-primary)] stroke-[var(--border-subtle)] dark:stroke-[var(--foreground-strong)] stroke-1 transition-all duration-200 cursor-pointer"
               />
               <!-- Label value on top of bar -->
               <text
@@ -255,7 +255,7 @@ function truncateUsername(username: string) {
               <text
                 :x="45 + i * 53 + 14"
                 :y="216"
-                class="text-2xs font-mono fill-[var(--silver-500)] group-hover/bar:fill-foreground text-center font-medium transition-colors"
+                class="text-2xs font-mono fill-[var(--foreground-muted)] group-hover/bar:fill-foreground text-center font-medium transition-colors"
                 text-anchor="middle"
               >
                 {{ truncateUsername(user.username) }}

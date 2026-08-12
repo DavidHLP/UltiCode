@@ -1,9 +1,12 @@
 import { graphic, type EChartsOption } from "echarts";
+import { SOLARIZED_PALETTE } from "@ulticode/design-system";
 
-export function createAcceptedAreaGradient(): graphic.LinearGradient {
+export function createAcceptedAreaGradient(
+  color: string = SOLARIZED_PALETTE.green,
+): graphic.LinearGradient {
   return new graphic.LinearGradient(0, 0, 0, 1, [
-    { offset: 0, color: "rgba(133, 153, 0, 0.3)" },
-    { offset: 1, color: "rgba(133, 153, 0, 0.05)" },
+    { offset: 0, color },
+    { offset: 1, color },
   ]);
 }
 

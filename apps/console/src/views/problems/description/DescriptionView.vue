@@ -105,7 +105,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Tags Button -->
         <button
           v-if="props.problem.tags?.length"
-          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-xxs text-muted-foreground font-data hover:bg-[var(--accent-electric)] hover:text-white hover:border-[var(--accent-electric)]"
+          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-xxs text-muted-foreground font-data hover:bg-accent hover:text-accent-foreground hover:border-accent"
           @click="scrollToSection((tagsSection as any).$el)"
         >
           <svg
@@ -127,7 +127,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             Array.isArray(props.problem.companies) &&
             props.problem.companies.length
           "
-          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-xxs text-[var(--terminal-amber)] font-data hover:bg-[var(--terminal-amber)] hover:text-white hover:border-[var(--terminal-amber)]"
+          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-status-warning-mark cursor-pointer transition-all duration-200 text-xxs text-foreground-strong font-data hover:bg-status-warning-surface hover:border-status-warning-mark"
           @click="scrollToSection((companiesSection as any).$el)"
         >
           <span>{{ t("problem.detail.companies") }}</span>
@@ -136,7 +136,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Hint Button -->
         <button
           v-if="props.problem.followUp || props.problem.starterNotes?.length"
-          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-xxs text-muted-foreground font-data hover:bg-[var(--accent-electric)] hover:text-white hover:border-[var(--accent-electric)]"
+          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-xxs text-muted-foreground font-data hover:bg-accent hover:text-accent-foreground hover:border-accent"
           @click="scrollToSection((hintsSection as any)?.$el)"
         >
           <svg
@@ -161,7 +161,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="tag in props.problem.tags || []"
           :key="tag"
-          class="rounded-none bg-muted px-2.5 py-0.5 text-xxs text-foreground font-data border border-transparent hover:border-[var(--accent-electric)]/50 transition-colors"
+          class="rounded-none bg-muted px-2.5 py-0.5 text-xxs text-foreground font-data border border-transparent hover:border-[var(--primary)]/50 transition-colors"
         >
           {{ tag }}
         </span>
@@ -179,7 +179,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="company in props.problem.companies"
           :key="company.id"
-          class="rounded-none bg-muted px-2.5 py-0.5 text-xxs font-medium text-foreground font-data border border-transparent hover:border-[var(--terminal-amber)]/50 transition-colors"
+          class="rounded-none bg-muted px-2.5 py-0.5 text-xxs font-medium text-foreground font-data border border-transparent hover:border-[var(--status-warning-mark)]/50 transition-colors"
         >
           {{ company.name }}
         </span>
@@ -243,7 +243,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             >
               <div class="flex items-center gap-2 text-foreground">
                 <svg
-                  class="h-3.5 w-3.5 text-[var(--accent-electric)]"
+                  class="h-3.5 w-3.5 text-[var(--primary)]"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 448 512"
                   fill="currentColor"
@@ -262,7 +262,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="tag in props.problem.tags || []"
                   :key="tag"
-                  class="rounded-none bg-muted px-2.5 py-0.5 text-xxs text-foreground font-data border border-transparent hover:border-[var(--accent-electric)]/50 transition-colors"
+                  class="rounded-none bg-muted px-2.5 py-0.5 text-xxs text-foreground font-data border border-transparent hover:border-[var(--primary)]/50 transition-colors"
                 >
                   {{ tag }}
                 </span>
@@ -285,7 +285,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             >
               <div class="flex items-center gap-2 text-foreground">
                 <span
-                  class="text-[var(--terminal-amber)] font-data font-bold uppercase tracking-wider text-xxs"
+                  class="text-foreground-strong font-data font-bold uppercase tracking-wider text-xxs"
                   >{{ t("problem.detail.companies") }}</span
                 >
               </div>
@@ -295,7 +295,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="company in props.problem.companies"
                   :key="company.id"
-                  class="rounded-none bg-muted px-2.5 py-0.5 text-xxs font-medium text-foreground font-data border border-transparent hover:border-[var(--terminal-amber)]/50 transition-colors"
+                  class="rounded-none bg-muted px-2.5 py-0.5 text-xxs font-medium text-foreground font-data border border-transparent hover:border-[var(--status-warning-mark)]/50 transition-colors"
                 >
                   {{ company.name }}
                 </span>
@@ -315,7 +315,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             >
               <div class="flex items-center gap-2 text-foreground">
                 <svg
-                  class="h-3.5 w-3.5 text-[var(--accent-electric)]"
+                  class="h-3.5 w-3.5 text-[var(--primary)]"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 384 512"
                   fill="currentColor"
@@ -337,7 +337,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                   class="text-xs text-muted-foreground flex gap-1.5 items-start"
                 >
                   <span
-                    class="font-bold text-[var(--accent-electric)] text-2xs bg-muted px-1 rounded-none"
+                    class="font-bold text-[var(--primary)] text-2xs bg-muted px-1 rounded-none"
                     >{{ index + 1 }}</span
                   >
                   <span class="text-foreground">{{ hint }}</span>

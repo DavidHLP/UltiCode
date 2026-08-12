@@ -42,7 +42,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.publishTitle'),
         description: t('problems.bulk.publishDescription', { count: props.count }),
         icon: IconEye,
-        iconColor: 'text-emerald-600',
+        iconColor: 'text-foreground-strong',
         confirmText: t('problems.bulk.confirmPublish'),
         variant: 'default' as const,
       }
@@ -51,7 +51,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.unpublishTitle'),
         description: t('problems.bulk.unpublishDescription', { count: props.count }),
         icon: IconEyeOff,
-        iconColor: 'text-amber-600',
+        iconColor: 'text-foreground-strong',
         confirmText: t('problems.bulk.confirmUnpublish'),
         variant: 'default' as const,
       }
@@ -69,7 +69,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.restoreTitle'),
         description: t('problems.bulk.restoreDescription', { count: props.count }),
         icon: IconRefresh,
-        iconColor: 'text-blue-600',
+        iconColor: 'text-foreground-strong',
         confirmText: t('problems.bulk.confirmRestore'),
         variant: 'default' as const,
       }
@@ -78,7 +78,7 @@ const actionConfig = computed(() => {
         title: t('problems.bulk.publishTitle'),
         description: t('problems.bulk.publishDescription', { count: props.count }),
         icon: IconEye,
-        iconColor: 'text-emerald-600',
+        iconColor: 'text-foreground-strong',
         confirmText: t('problems.bulk.confirmPublish'),
         variant: 'default' as const,
       }
@@ -113,7 +113,7 @@ function handleCancel() {
 
       <div class="rounded-none bg-muted p-4">
         <div class="flex items-start gap-3">
-          <IconAlertTriangle class="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <IconAlertTriangle class="h-5 w-5 text-status-warning-mark shrink-0 mt-0.5" />
           <div class="flex-1">
             <p class="text-sm font-medium">{{ t('problems.bulk.warning') }}</p>
             <p class="text-sm text-muted-foreground mt-1">

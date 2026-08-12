@@ -163,7 +163,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     cell: ({ row }) =>
       h(
         'span',
-        { class: 'font-data text-xs uppercase tracking-wider text-[var(--silver-400)]' },
+        { class: 'font-data text-xs uppercase tracking-wider text-[var(--foreground-muted)]' },
         row.original.category
           ? getNotificationCategoryLabel(row.original.category as NotificationCategory, t)
           : '—',
@@ -175,7 +175,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     cell: ({ row }) =>
       h(
         'span',
-        { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },
+        { class: 'font-data text-sm text-[var(--foreground-muted)] tabular-nums' },
         format(new Date(row.original.createdAt), 'MMM d, yyyy HH:mm'),
       ),
   },
@@ -184,12 +184,12 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     header: () => t('notifications.sentBy'),
     cell: ({ row }) => {
       const creator = row.original.creator
-      if (!creator) return h('span', { class: 'text-sm text-[var(--silver-400)]' }, '—')
+      if (!creator) return h('span', { class: 'text-sm text-[var(--foreground-muted)]' }, '—')
       const initials = creator.username.slice(0, 2).toUpperCase()
       return h('div', { class: 'flex items-center gap-2' }, [
         h(
           Avatar,
-          { class: 'h-7 w-7 ring-1 ring-[var(--silver-200)] dark:ring-[var(--silver-300)]' },
+          { class: 'h-7 w-7 ring-1 ring-[var(--border-subtle)] dark:ring-[var(--border-subtle)]' },
           {
             default: () => [
               h(AvatarImage, { src: creator.avatar ?? '' }),
@@ -241,7 +241,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
                     {
                       variant: 'terminal',
                       class:
-                        'text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))] focus:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))] data-[highlighted]:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))] dark:hover:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))] dark:focus:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))] dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))] focus:text-[var(--accent-electric)] data-[highlighted]:text-[var(--accent-electric)] [&_svg]:!text-[var(--accent-electric)]',
+                        'text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] focus:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_10%,_var(--card))] dark:hover:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] dark:focus:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--primary)_14%,_var(--card))] focus:text-[var(--primary)] data-[highlighted]:text-[var(--primary)] [&_svg]:!text-[var(--primary)]',
                       onClick: () => startEdit(row.original),
                     },
                     {
@@ -282,7 +282,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -295,7 +295,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="createDialogOpen = true"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />
@@ -305,41 +305,41 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('notifications.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('notifications.stats.system') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.system
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('notifications.stats.contest') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.contest
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('notifications.stats.submission') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.submission
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconBell class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('notifications.stats.badge')
@@ -380,16 +380,16 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
       <!-- Error state -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
           @click="loadNotifications()"
         >
           {{ t('common.retry') }}

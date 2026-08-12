@@ -19,13 +19,13 @@ const SIZE_CLASSES = {
 } as const
 
 const DOT_COLOR_MAP: Record<SemanticColor, string> = {
-  success: 'bg-[var(--terminal-green)]',
-  warning: 'bg-[var(--terminal-amber)]',
-  error: 'bg-[var(--terminal-red)]',
-  info: 'bg-[var(--terminal-cyan)]',
-  purple: 'bg-[var(--terminal-purple)]',
-  electric: 'bg-[var(--accent-electric)]',
-  neutral: 'bg-[var(--silver-500)]',
+  success: 'bg-[var(--status-success-mark)]',
+  warning: 'bg-[var(--status-warning-mark)]',
+  error: 'bg-[var(--status-error-mark)]',
+  info: 'bg-[var(--status-info-mark)]',
+  purple: 'bg-[var(--status-special-mark)]',
+  electric: 'bg-[var(--primary)]',
+  neutral: 'bg-[var(--foreground-muted)]',
 }
 
 /**

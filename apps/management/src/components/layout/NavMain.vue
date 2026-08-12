@@ -62,8 +62,8 @@ function isSubmenuActive(item: NavItem): boolean {
 // shadcn SidebarMenuButton here; only the duplicated class string is unified.
 function itemRowClass(active: boolean): string {
   return active
-    ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
-    : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
+    ? 'border-l-4 border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--primary)] pl-2 font-semibold'
+    : 'border-l-4 border-transparent hover:bg-[var(--border-subtle)]/40 hover:text-foreground text-[var(--foreground-muted)] pl-2'
 }
 
 watchEffect(() => {
@@ -79,7 +79,7 @@ watchEffect(() => {
   <SidebarGroup class="py-1">
     <SidebarGroupLabel
       v-if="title && items.length > 0"
-      class="px-2 py-1 text-2xs font-mono font-bold uppercase tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] mt-2 mb-1"
+      class="px-2 py-1 text-2xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] mt-2 mb-1"
     >
       {{ title }}
     </SidebarGroupLabel>
@@ -101,8 +101,8 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--accent-electric)] stroke-[2.5]'
-                        : 'text-[var(--silver-400)] stroke-[1.8]'
+                        ? 'text-[var(--primary)] stroke-[2.5]'
+                        : 'text-[var(--foreground-muted)] stroke-[1.8]'
                     "
                   />
                 </SidebarMenuButton>
@@ -140,7 +140,7 @@ watchEffect(() => {
                     class="size-3.5 shrink-0"
                     :class="
                       isActive(subItem.url)
-                        ? 'text-[var(--accent-electric)]'
+                        ? 'text-[var(--primary)]'
                         : 'text-muted-foreground'
                     "
                   />
@@ -170,25 +170,25 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--accent-electric)] stroke-[2.5]'
-                        : 'text-[var(--silver-400)] group-hover/collapsible:text-foreground stroke-[1.8]'
+                        ? 'text-[var(--primary)] stroke-[2.5]'
+                        : 'text-[var(--foreground-muted)] group-hover/collapsible:text-foreground stroke-[1.8]'
                     "
                   />
                   <span
                     class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--accent-electric)] font-semibold'
-                        : 'text-[var(--silver-500)] group-hover/collapsible:text-foreground'
+                        ? 'text-[var(--primary)] font-semibold'
+                        : 'text-[var(--foreground-muted)] group-hover/collapsible:text-foreground'
                     "
                   >
                     {{ item.title }}
                   </span>
                   <IconChevronRight
-                    class="ml-auto size-3.5 shrink-0 transition-transform duration-200 text-[var(--silver-400)] group-hover/collapsible:text-foreground group-data-[collapsible=icon]:hidden"
+                    class="ml-auto size-3.5 shrink-0 transition-transform duration-200 text-[var(--foreground-muted)] group-hover/collapsible:text-foreground group-data-[collapsible=icon]:hidden"
                     :class="[
                       openMenus[item.title] ? 'rotate-90' : '',
-                      isSubmenuActive(item) ? 'text-[var(--accent-electric)]' : '',
+                      isSubmenuActive(item) ? 'text-[var(--primary)]' : '',
                     ]"
                   />
                 </SidebarMenuButton>
@@ -196,7 +196,7 @@ watchEffect(() => {
 
               <CollapsibleContent>
                 <SidebarMenuSub
-                  class="mt-0.5 border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+                  class="mt-0.5 border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
                 >
                   <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
                     <SharedSidebarMenuSubItem
@@ -210,8 +210,8 @@ watchEffect(() => {
                         class="size-3.5 shrink-0 transition-colors"
                         :class="
                           isActive(subItem.url)
-                            ? 'text-[var(--accent-electric)] stroke-[2.5]'
-                            : 'text-[var(--silver-400)] stroke-[1.8]'
+                            ? 'text-[var(--primary)] stroke-[2.5]'
+                            : 'text-[var(--foreground-muted)] stroke-[1.8]'
                         "
                       />
                       <span class="truncate text-xs">{{ subItem.title }}</span>
@@ -238,16 +238,16 @@ watchEffect(() => {
                   class="size-4 shrink-0 transition-colors"
                   :class="
                     isActive(item.url)
-                      ? 'text-[var(--accent-electric)] stroke-[2.5]'
-                      : 'text-[var(--silver-400)] group-hover:text-foreground stroke-[1.8]'
+                      ? 'text-[var(--primary)] stroke-[2.5]'
+                      : 'text-[var(--foreground-muted)] group-hover:text-foreground stroke-[1.8]'
                   "
                 />
                 <span
                   class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                   :class="
                     isActive(item.url)
-                      ? 'text-[var(--accent-electric)] font-semibold'
-                      : 'text-[var(--silver-500)] group-hover:text-foreground'
+                      ? 'text-[var(--primary)] font-semibold'
+                      : 'text-[var(--foreground-muted)] group-hover:text-foreground'
                   "
                 >
                   {{ item.title }}

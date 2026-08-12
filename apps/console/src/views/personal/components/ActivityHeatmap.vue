@@ -69,13 +69,13 @@ const activityData = computed(() => {
 const getColorClass = (level: number) => {
   switch (level) {
     case 1:
-      return "bg-[color-mix(in_oklch,var(--status-success)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_30%,transparent)]";
+      return "bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]";
     case 2:
-      return "bg-[color-mix(in_oklch,var(--status-success)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_50%,transparent)]";
+      return "bg-[color-mix(in_oklch,var(--status-success-mark)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_50%,transparent)]";
     case 3:
-      return "bg-[color-mix(in_oklch,var(--status-success)_60%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_60%,transparent)]";
+      return "bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)]";
     case 4:
-      return "bg-[color-mix(in_oklch,var(--status-success)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_100%,transparent)]";
+      return "bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]";
     default:
       return "bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]";
   }
@@ -139,16 +139,16 @@ const months = computed(() => [
         <div class="flex gap-[2px]">
           <div class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]"></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_30%,transparent)]"
+            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_30%,transparent)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_50%,transparent)]"
+            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_50%,transparent)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success)_60%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_60%,transparent)]"
+            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_60%,transparent)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_100%,transparent)]"
+            class="h-3 w-3 rounded-none bg-[color-mix(in_oklch,var(--status-success-mark)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success-mark)_100%,transparent)]"
           ></div>
         </div>
         <span>{{ t("common.labels.more") }}</span>

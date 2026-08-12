@@ -113,22 +113,22 @@ onUnmounted(() => {
 
 <template>
   <header
-    class="flex h-14 shrink-0 items-center border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/40 bg-[var(--card)] transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14 select-none z-10"
+    class="flex h-14 shrink-0 items-center border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/40 bg-[var(--card)] transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14 select-none z-10"
   >
     <div class="flex w-full items-center justify-between px-4 lg:px-6">
       <!-- Left Side: Sidebar Trigger, Search & System Status -->
       <div class="flex items-center gap-4">
         <!-- Search Trigger Button -->
         <button
-          class="flex items-center justify-between w-48 md:w-64 h-8 px-3 text-xs text-[var(--silver-500)] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 bg-[var(--silver-100)]/30 hover:bg-[var(--silver-100)]/70 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all rounded-none font-mono cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+          class="flex items-center justify-between w-48 md:w-64 h-8 px-3 text-xs text-[var(--foreground-muted)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-[var(--surface-highlight)]/30 hover:bg-[var(--surface-highlight)]/70 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all rounded-none font-mono cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
           @click="triggerSearch"
         >
           <div class="flex items-center gap-2">
-            <IconSearch class="size-3.5 text-[var(--silver-400)]" />
+            <IconSearch class="size-3.5 text-[var(--foreground-muted)]" />
             <span>{{ t('common.search') }}...</span>
           </div>
           <kbd
-            class="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 border border-[var(--silver-300)] bg-[var(--card)] px-1 font-mono text-2xs font-medium text-[var(--silver-400)] shrink-0"
+            class="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 border border-[var(--border-subtle)] bg-[var(--card)] px-1 font-mono text-2xs font-medium text-[var(--foreground-muted)] shrink-0"
           >
             Ctrl+K
           </kbd>
@@ -139,29 +139,29 @@ onUnmounted(() => {
       <div class="flex items-center gap-4">
         <!-- System Telemetry Status (retro styled badge) -->
         <div
-          class="hidden sm:flex items-center gap-3 h-8 px-2.5 border border-[var(--silver-200)]/80 dark:border-[var(--silver-300)]/40 bg-transparent text-2xs font-mono select-none"
+          class="hidden sm:flex items-center gap-3 h-8 px-2.5 border border-[var(--border-subtle)]/80 dark:border-[var(--border-subtle)]/40 bg-transparent text-2xs font-mono select-none"
         >
           <div class="flex items-center gap-1.5">
             <span class="relative flex h-1.5 w-1.5 shrink-0">
               <span
-                class="animate-ping absolute inline-flex h-full w-full rounded-none bg-[var(--status-success)] opacity-75"
+                class="animate-ping absolute inline-flex h-full w-full rounded-none bg-[var(--status-success-mark)] opacity-75"
               ></span>
               <span
-                class="relative inline-flex rounded-none h-1.5 w-1.5 bg-[var(--status-success)]"
+                class="relative inline-flex rounded-none h-1.5 w-1.5 bg-[var(--status-success-mark)]"
               ></span>
             </span>
-            <span class="text-[var(--silver-500)] font-bold">API</span>
+            <span class="text-[var(--foreground-muted)] font-bold">API</span>
           </div>
-          <span class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)]/40"></span>
+          <span class="h-3 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)]/40"></span>
           <div class="flex items-center gap-1.5">
-            <span class="h-1.5 w-1.5 bg-[var(--status-success)] shrink-0"></span>
-            <span class="text-[var(--silver-500)] font-bold">DB</span>
+            <span class="h-1.5 w-1.5 bg-[var(--status-success-mark)] shrink-0"></span>
+            <span class="text-[var(--foreground-muted)] font-bold">DB</span>
           </div>
         </div>
 
         <!-- Vertical Divider -->
         <span
-          class="hidden sm:inline-block h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"
+          class="hidden sm:inline-block h-4 w-px bg-[var(--border-subtle)]/60 dark:bg-[var(--border-subtle)]/40"
         ></span>
 
         <!-- Quick Actions Menu -->
@@ -171,56 +171,56 @@ onUnmounted(() => {
               class="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border border-[var(--accent-primary)]/40 bg-transparent hover:bg-[var(--accent-primary)]/5 hover:border-[var(--accent-primary)] text-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
             >
               <IconBolt
-                class="size-3.5 text-[var(--solarized-yellow)] fill-[var(--solarized-yellow)]/20"
+                class="size-3.5 text-[var(--status-warning-mark)] fill-[var(--status-warning-mark)]/20"
               />
               <span class="font-bold uppercase">{{ t('common.actions.label') }}</span>
               <IconChevronDown class="size-3 text-[var(--accent-primary)]" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent variant="terminal" align="end" class="w-48">
-            <DropdownMenuLabel class="font-mono text-2xs text-[var(--silver-400)] uppercase">{{
+            <DropdownMenuLabel class="font-mono text-2xs text-[var(--foreground-muted)] uppercase">{{
               t('dashboard.quickActions.title')
             }}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="terminal" @click="router.push('/problems')">
-              <IconPlus class="size-3.5 mr-2 text-[var(--silver-400)]" />
+              <IconPlus class="size-3.5 mr-2 text-[var(--foreground-muted)]" />
               <span>{{ t('dashboard.quickActions.createProblem') }}</span>
             </DropdownMenuItem>
             <DropdownMenuItem variant="terminal" @click="router.push('/contests')">
-              <IconPlus class="size-3.5 mr-2 text-[var(--silver-400)]" />
+              <IconPlus class="size-3.5 mr-2 text-[var(--foreground-muted)]" />
               <span>{{ t('dashboard.quickActions.createContest') }}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="terminal" @click="router.push('/settings')">
-              <IconSettings class="size-3.5 mr-2 text-[var(--silver-400)]" />
+              <IconSettings class="size-3.5 mr-2 text-[var(--foreground-muted)]" />
               <span>{{ t('nav.settings') }}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <!-- Vertical Divider -->
-        <span class="h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"></span>
+        <span class="h-4 w-px bg-[var(--border-subtle)]/60 dark:bg-[var(--border-subtle)]/40"></span>
 
         <!-- Notifications Bell -->
         <button
           @click="router.push('/notifications')"
-          class="relative h-8 w-8 flex items-center justify-center text-[var(--silver-500)] hover:text-[var(--accent-primary)] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 bg-transparent hover:bg-[var(--silver-100)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+          class="relative h-8 w-8 flex items-center justify-center text-[var(--foreground-muted)] hover:text-[var(--accent-primary)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface-highlight)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
           :title="t('nav.notifications')"
         >
           <IconBell class="size-4" />
           <span
-            class="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-[var(--status-error)] rounded-none"
+            class="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-[var(--status-error-mark)] rounded-none"
           ></span>
         </button>
 
         <!-- Vertical Divider -->
-        <span class="h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"></span>
+        <span class="h-4 w-px bg-[var(--border-subtle)]/60 dark:bg-[var(--border-subtle)]/40"></span>
 
         <!-- Theme Switcher -->
         <ThemeSwitcher />
 
         <!-- Vertical Divider -->
-        <span class="h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"></span>
+        <span class="h-4 w-px bg-[var(--border-subtle)]/60 dark:bg-[var(--border-subtle)]/40"></span>
 
         <!-- Language Switcher -->
         <div>

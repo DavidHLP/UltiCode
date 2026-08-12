@@ -157,7 +157,7 @@ async function handleReviewSubmit() {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -169,7 +169,7 @@ async function handleReviewSubmit() {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="loadAppeals"
           :disabled="loading"
         >
@@ -180,25 +180,25 @@ async function handleReviewSubmit() {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.pending') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconScale class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('moderation.appeals.pageTitle')
@@ -242,17 +242,17 @@ async function handleReviewSubmit() {
 
     <!-- Review Dialog -->
     <Dialog v-model:open="reviewDialogOpen">
-      <DialogContent class="terminal-card border-[var(--silver-300)]">
+      <DialogContent class="terminal-card border-[var(--border-subtle)]">
         <DialogHeader
-          class="terminal-card-header border-b border-[var(--silver-300)] bg-[var(--surface-sunken)] px-4 py-3 -mx-6 -mt-6"
+          class="terminal-card-header border-b border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-4 py-3 -mx-6 -mt-6"
         >
           <DialogTitle
-            class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-[var(--terminal-purple)]"
+            class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-foreground-strong"
           >
             <IconScale class="h-4 w-4" />
             &gt; {{ t('moderation.appeals.reviewAppeal') }}
           </DialogTitle>
-          <DialogDescription class="font-data text-xs text-[var(--silver-400)]">
+          <DialogDescription class="font-data text-xs text-[var(--foreground-muted)]">
             Review the appeal and provide your decision.
           </DialogDescription>
         </DialogHeader>
@@ -260,20 +260,20 @@ async function handleReviewSubmit() {
         <div v-if="selectedAppeal" class="space-y-4 pt-4">
           <!-- Appeal Info -->
           <div
-            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+            class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--surface-sunken)]"
           >
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
+            <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)] mb-2">
               {{ t('moderation.appeals.reason') }}
             </p>
             <p class="text-sm">{{ selectedAppeal.reason }}</p>
-            <p v-if="selectedAppeal.evidence" class="text-xs text-[var(--silver-500)] mt-2">
+            <p v-if="selectedAppeal.evidence" class="text-xs text-[var(--foreground-muted)] mt-2">
               {{ t('moderation.detail.evidence') }}: {{ selectedAppeal.evidence }}
             </p>
           </div>
 
           <!-- Decision -->
           <div>
-            <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+            <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
               Decision
             </Label>
             <div class="mt-2 flex gap-2">
@@ -282,8 +282,8 @@ async function handleReviewSubmit() {
                 :class="[
                   'h-9 font-data text-xs',
                   reviewDecision === 'APPROVED'
-                    ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]'
-                    : 'border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]',
+                    ? 'border-[var(--status-success-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
+                    : 'border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong',
                 ]"
                 size="sm"
                 @click="reviewDecision = 'APPROVED'"
@@ -296,8 +296,8 @@ async function handleReviewSubmit() {
                 :class="[
                   'h-9 font-data text-xs',
                   reviewDecision === 'REJECTED'
-                    ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]'
-                    : 'border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]',
+                    ? 'border-[var(--status-error-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]'
+                    : 'border-[var(--border-subtle)] hover:border-[var(--status-error-mark)] hover:text-foreground-strong',
                 ]"
                 size="sm"
                 @click="reviewDecision = 'REJECTED'"
@@ -312,7 +312,7 @@ async function handleReviewSubmit() {
           <div>
             <Label
               for="review-response"
-              class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+              class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
             >
               {{ t('moderation.appeals.response') }}
             </Label>
@@ -321,7 +321,7 @@ async function handleReviewSubmit() {
               v-model="reviewResponse"
               :placeholder="t('moderation.appeals.responsePlaceholder')"
               rows="3"
-              class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
+              class="mt-2 font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
             />
           </div>
         </div>
@@ -330,7 +330,7 @@ async function handleReviewSubmit() {
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-500)]"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
             @click="reviewDialogOpen = false"
           >
             {{ t('moderation.dialogs.cancel') }}
@@ -341,8 +341,8 @@ async function handleReviewSubmit() {
             :class="[
               'font-data text-xs',
               reviewDecision === 'APPROVED'
-                ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]'
-                : 'border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]',
+                ? 'border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
+                : 'border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]',
             ]"
             :disabled="reviewLoading"
             @click="handleReviewSubmit"

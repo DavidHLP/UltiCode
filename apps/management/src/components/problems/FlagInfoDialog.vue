@@ -46,8 +46,8 @@ function handleClose(value: boolean) {
 
       <div v-if="problem" class="space-y-4">
         <!-- Problem Title -->
-        <div class="border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] pb-3">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+        <div class="border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] pb-3">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             Problem
           </span>
           <p class="text-sm font-medium mt-1">{{ problem.title }}</p>
@@ -55,7 +55,7 @@ function handleClose(value: boolean) {
 
         <!-- Status -->
         <div class="flex items-center justify-between">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.status') }}
           </span>
           <SemanticBadge :color="statusColor" size="sm" class="font-data uppercase">
@@ -65,11 +65,11 @@ function handleClose(value: boolean) {
 
         <!-- Reason -->
         <div>
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.reason') }}
           </span>
           <p
-            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
+            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none"
           >
             {{ problem.flagReason || t('problems.flagInfo.noReason') }}
           </p>
@@ -77,51 +77,51 @@ function handleClose(value: boolean) {
 
         <!-- Reported By -->
         <div v-if="problem.flagReportedBy" class="flex items-center justify-between">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.reportedBy') }}
           </span>
-          <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)]">
+          <span class="text-sm text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)]">
             {{ problem.flagReportedBy }}
           </span>
         </div>
 
         <!-- Reported At -->
         <div v-if="problem.flagReportedAt" class="flex items-center justify-between">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.reportedAt') }}
           </span>
-          <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] font-data">
+          <span class="text-sm text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)] font-data">
             {{ formatDate(problem.flagReportedAt) }}
           </span>
         </div>
 
         <!-- Reviewed By -->
         <div v-if="problem.flagReviewedBy" class="flex items-center justify-between">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.reviewedBy') }}
           </span>
-          <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)]">
+          <span class="text-sm text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)]">
             {{ problem.flagReviewedBy }}
           </span>
         </div>
 
         <!-- Reviewed At -->
         <div v-if="problem.flagReviewedAt" class="flex items-center justify-between">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.reviewedAt') }}
           </span>
-          <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] font-data">
+          <span class="text-sm text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)] font-data">
             {{ formatDate(problem.flagReviewedAt) }}
           </span>
         </div>
 
         <!-- Notes -->
         <div v-if="problem.flagNotes">
-          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('problems.flagInfo.notes') }}
           </span>
           <p
-            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
+            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none"
           >
             {{ problem.flagNotes }}
           </p>

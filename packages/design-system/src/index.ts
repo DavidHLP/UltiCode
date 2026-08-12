@@ -52,6 +52,7 @@ export const CSS_TOKENS = {
   surfaceElevated: "var(--surface-elevated)",
   surfaceHighlight: "var(--surface-highlight)",
   surfaceSunken: "var(--surface-sunken)",
+  overlay: "var(--overlay)",
   card: "var(--card)",
   cardForeground: "var(--card-foreground)",
   popover: "var(--popover)",
@@ -61,11 +62,13 @@ export const CSS_TOKENS = {
   // Brand
   primary: "var(--primary)",
   primaryForeground: "var(--primary-foreground)",
+  primaryControl: "var(--primary-control)",
+  primaryControlForeground: "var(--primary-control-foreground)",
   linkForeground: "var(--link-foreground)",
   linkDecoration: "var(--link-decoration)",
   accent: "var(--accent)",
   accentPrimary: "var(--accent-primary)",
-  accentElectric: "var(--accent-electric)",
+  accentElectric: "var(--primary)",
   accentForeground: "var(--accent-foreground)",
   // Status palette
   destructive: "var(--destructive)",
@@ -75,6 +78,11 @@ export const CSS_TOKENS = {
   statusError: "var(--status-error)",
   statusInfo: "var(--status-info)",
   statusSpecial: "var(--status-special)",
+  statusSuccessMark: "var(--status-success-mark)",
+  statusWarningMark: "var(--status-warning-mark)",
+  statusErrorMark: "var(--status-error-mark)",
+  statusInfoMark: "var(--status-info-mark)",
+  statusSpecialMark: "var(--status-special-mark)",
   statusSuccessSurface: "var(--status-success-surface)",
   statusWarningSurface: "var(--status-warning-surface)",
   statusErrorSurface: "var(--status-error-surface)",
@@ -106,3 +114,15 @@ export const CSS_TOKENS = {
 } as const;
 
 export type CssTokenKey = keyof typeof CSS_TOKENS;
+
+/**
+ * Canonical Solarized runtime palette bridge for non-CSS renderers
+ * (ECharts, Monaco, WebGL). CSS consumers keep using CSS_TOKENS / the
+ * stylesheet; renderers resolve concrete colors via `readCssColor` with a
+ * canonical `SOLARIZED_PALETTE` fallback.
+ */
+export { readCssColor, SOLARIZED_PALETTE } from "./palette";
+export type {
+  SolarizedPaletteKey,
+  SolarizedPaletteValue,
+} from "./palette";

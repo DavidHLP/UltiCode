@@ -36,51 +36,51 @@ const statusConfig: Record<
   { bg: string; border: string; text: string; label: string }
 > = {
   draft: {
-    bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-    border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-    text: 'text-[var(--silver-500)]',
+    bg: 'bg-surface-highlight',
+    border: 'border-border-control',
+    text: 'text-foreground-strong',
     label: 'Draft',
   },
   published: {
-    bg: 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
-    border: 'border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)]',
-    text: 'text-[var(--accent-electric)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--primary)_40%,_transparent)]',
+    text: 'text-[var(--primary)]',
     label: 'Published',
   },
   registering: {
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-    border: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-    text: 'text-[var(--terminal-green)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
+    text: 'text-foreground-strong',
     label: 'Registering',
   },
   upcoming: {
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-    border: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-    text: 'text-[var(--terminal-amber)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
+    text: 'text-foreground-strong',
     label: 'Upcoming',
   },
   ongoing: {
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-    border: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-    text: 'text-[var(--terminal-red)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
+    text: 'text-foreground-strong',
     label: 'Ongoing',
   },
   freezing: {
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
-    border: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
-    text: 'text-[var(--terminal-purple)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-special-mark)_40%,_transparent)]',
+    text: 'text-foreground-strong',
     label: 'Freezing',
   },
   finished: {
-    bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-    border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-    text: 'text-[var(--silver-500)]',
+    bg: 'bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)]',
+    border: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
+    text: 'text-[var(--foreground-muted)]',
     label: 'Finished',
   },
   archived: {
-    bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-    border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-    text: 'text-[var(--silver-500)]',
+    bg: 'bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)]',
+    border: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
+    text: 'text-[var(--foreground-muted)]',
     label: 'Archived',
   },
 }
@@ -117,7 +117,7 @@ const showAnimatedDot = computed(() => props.showIcon && props.status === 'ongoi
     <!-- Animated red dot for ongoing contests -->
     <span
       v-if="showAnimatedDot"
-      :class="cn('rounded-full bg-[var(--terminal-red)] animate-pulse', dotSizeClasses[props.size])"
+      :class="cn('rounded-full bg-[var(--status-error-mark)] animate-pulse', dotSizeClasses[props.size])"
     />
     {{ config.label }}
   </span>

@@ -309,7 +309,7 @@ const columns: ColumnDef<ScoringRule>[] = [
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -323,7 +323,7 @@ const columns: ColumnDef<ScoringRule>[] = [
           v-if="canManageRules"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="openCreateDialog"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />
@@ -333,41 +333,41 @@ const columns: ColumnDef<ScoringRule>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('scoringRules.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('scoringRules.stats.active') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.active
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('scoringRules.stats.defaults') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.defaults
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('scoringRules.stats.inactive') }}:</span
           >
-          <span class="font-data text-sm text-[var(--silver-400)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-muted)] tabular-nums">{{
             stats.inactive
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconCalculator class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('scoringRules.stats.scoringManagement')
@@ -424,13 +424,13 @@ const columns: ColumnDef<ScoringRule>[] = [
       <div
         v-if="selectedRows.length > 0"
         :class="[
-          'mb-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+          'mb-4 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
           'animate-in fade-in slide-in-from-top-2 duration-200',
         ]"
       >
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <span class="font-data text-sm text-[var(--terminal-amber)]">
+            <span class="font-data text-sm text-[var(--foreground-strong)]">
               &gt; SELECTED:{{ selectedRows.length }}
             </span>
           </div>
@@ -438,7 +438,7 @@ const columns: ColumnDef<ScoringRule>[] = [
         <Button
           variant="terminal"
           size="sm"
-          class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+          class="h-8 font-data text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
           @click="selectedRows = []"
         >
           [ESC] {{ t('common.clearSelection') }}
@@ -461,16 +461,16 @@ const columns: ColumnDef<ScoringRule>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
           @click="loadScoringRules()"
         >
           {{ t('common.retry') }}

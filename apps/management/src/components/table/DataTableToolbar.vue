@@ -52,19 +52,19 @@ function updateFilter(index: number, value: string | number) {
       :class="searchWidth || 'min-w-[150px] w-full lg:w-[250px]'"
     >
       <IconSearch
-        class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none"
+        class="absolute left-2.5 h-3.5 w-3.5 text-[var(--foreground-muted)] pointer-events-none"
       />
       <Input
         variant="terminal"
         :model-value="searchModelValue"
         @update:model-value="updateSearch"
         :placeholder="searchPlaceholder"
-        class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)]"
+        class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]"
       />
       <button
         v-if="searchModelValue"
         @click="updateSearch('')"
-        class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--silver-500)] focus:outline-none transition-opacity"
+        class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--foreground-muted)] focus:outline-none transition-opacity"
       >
         <IconCircleXFilled class="h-3.5 w-3.5" />
       </button>
@@ -80,7 +80,7 @@ function updateFilter(index: number, value: string | number) {
         variant="terminal"
         size="sm"
         :class="[
-          'h-8 bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)]',
+          'h-8 bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]',
           filter.width || 'w-[140px]',
         ]"
       >
@@ -97,7 +97,7 @@ function updateFilter(index: number, value: string | number) {
       v-if="onRefresh"
       variant="terminal"
       size="icon"
-      class="h-8 w-8 border-[var(--silver-300)]"
+      class="h-8 w-8 border-[var(--border-subtle)]"
       @click="onRefresh"
       :title="$t('common.refresh')"
     >

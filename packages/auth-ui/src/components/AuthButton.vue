@@ -80,23 +80,23 @@ defineOptions({
 .auth-button--primary:hover:not(:disabled) {
   background: var(--foreground);
   color: var(--background);
-  box-shadow: 0 0 0 1px var(--accent-electric);
+  box-shadow: 0 0 0 1px var(--primary);
 }
 
 .auth-button--secondary {
   background: transparent;
   color: var(--foreground);
-  border-color: var(--border);
+  border-color: var(--border-control);
 }
 
 .auth-button--secondary:hover:not(:disabled) {
   background: var(--surface-sunken);
-  border-color: color-mix(in oklch, var(--accent-electric) 35%, var(--border));
+  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
 }
 
 .auth-button--primary:focus-visible,
 .auth-button--secondary:focus-visible {
-  outline: 2px solid var(--accent-electric);
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
 

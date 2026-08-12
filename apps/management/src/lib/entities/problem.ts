@@ -9,11 +9,11 @@ import { IconFlask, IconBrackets, IconSparkles } from '@tabler/icons-vue'
 export function getDifficultyColor(difficulty: Difficulty): string {
   switch (difficulty) {
     case 'EASY':
-      return 'text-emerald-500'
+      return 'text-foreground-strong'
     case 'MEDIUM':
-      return 'text-amber-500'
+      return 'text-foreground-strong'
     case 'HARD':
-      return 'text-red-500'
+      return 'text-foreground-strong'
     default:
       return 'text-muted-foreground'
   }
@@ -25,11 +25,11 @@ export function getDifficultyColor(difficulty: Difficulty): string {
 export function getDifficultyBgColor(difficulty: Difficulty): string {
   switch (difficulty) {
     case 'EASY':
-      return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+      return 'bg-surface-highlight text-foreground-strong border border-control'
     case 'MEDIUM':
-      return 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+      return 'bg-surface-highlight text-foreground-strong border border-control'
     case 'HARD':
-      return 'bg-red-500/10 text-red-500 border-red-500/20'
+      return 'bg-surface-highlight text-foreground-strong border border-control'
     default:
       return 'bg-muted text-muted-foreground'
   }

@@ -11,6 +11,10 @@
       "types": "./src/index.ts"
     },
     "./style.css": "./style.css",
+    "./palette": {
+      "import": "./src/palette.ts",
+      "types": "./src/palette.ts"
+    },
     "./components/separator": {
       "import": "./src/components/separator/index.ts",
       "types": "./src/components/separator/index.ts"

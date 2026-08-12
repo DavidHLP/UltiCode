@@ -34,7 +34,7 @@ const forwardedProps = useForwardProps(delegatedProps)
         ],
         // Terminal variant
         variant === 'terminal' && [
-          'focus:bg-[var(--silver-100)] dark:focus:bg-[var(--silver-100)] focus:text-[var(--foreground)] [&_svg:not([class*=\'text-\'])]:text-[var(--silver-400)] font-data text-xs rounded-none',
+          'focus:bg-[var(--surface-highlight)] dark:focus:bg-[var(--surface-highlight)] focus:text-[var(--foreground)] [&_svg:not([class*=\'text-\'])]:text-[var(--foreground-muted)] font-data text-xs rounded-none',
         ],
         props.class,
       )

@@ -20,7 +20,7 @@ const emit = defineEmits<{
     type="button"
     :aria-label="label"
     :class="cn(
-      'uc-sidebar-icon-button flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--silver-500)] hover:bg-[var(--silver-200)]/40 hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2',
+      'uc-sidebar-icon-button flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--foreground-muted)] hover:bg-[var(--border-subtle)]/40 hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2',
       props.class,
     )"
     @click="emit('click', $event)"

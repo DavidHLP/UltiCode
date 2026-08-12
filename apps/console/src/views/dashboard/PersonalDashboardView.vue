@@ -59,7 +59,7 @@ onMounted(async () => {
           color="green"
         >
           <template #icon>
-            <Trophy class="h-5 w-5 text-[var(--terminal-green)]" />
+            <Trophy class="h-5 w-5 text-[var(--status-success-mark)]" />
           </template>
         </StatsCard>
 
@@ -70,7 +70,7 @@ onMounted(async () => {
           color="orange"
         >
           <template #icon>
-            <Flame class="h-5 w-5 text-[var(--terminal-amber)]" />
+            <Flame class="h-5 w-5 text-[var(--status-warning-mark)]" />
           </template>
         </StatsCard>
 
@@ -81,7 +81,7 @@ onMounted(async () => {
           color="blue"
         >
           <template #icon>
-            <Target class="h-5 w-5 text-[var(--accent-electric)]" />
+            <Target class="h-5 w-5 text-[var(--primary)]" />
           </template>
         </StatsCard>
 
@@ -92,7 +92,7 @@ onMounted(async () => {
           color="purple"
         >
           <template #icon>
-            <BarChart3 class="h-5 w-5 text-[var(--terminal-purple)]" />
+            <BarChart3 class="h-5 w-5 text-[var(--status-special-mark)]" />
           </template>
         </StatsCard>
       </template>
@@ -112,7 +112,7 @@ onMounted(async () => {
         <!-- Easy -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-[var(--terminal-green)]">{{
+            <span class="font-medium text-[var(--foreground-strong)]">{{
               t("personal.stats.easy")
             }}</span>
             <span class="text-muted-foreground">
@@ -122,14 +122,14 @@ onMounted(async () => {
           </div>
           <Progress
             :model-value="userStatsStore.easyProgress.percentage"
-            class="h-2 [&>div]:bg-[var(--terminal-green)]"
+            class="h-2 [&>div]:bg-[var(--status-success-mark)]"
           />
         </div>
 
         <!-- Medium -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-[var(--terminal-amber)]">{{
+            <span class="font-medium text-[var(--foreground-strong)]">{{
               t("personal.stats.medium")
             }}</span>
             <span class="text-muted-foreground">
@@ -139,14 +139,14 @@ onMounted(async () => {
           </div>
           <Progress
             :model-value="userStatsStore.mediumProgress.percentage"
-            class="h-2 [&>div]:bg-[var(--terminal-amber)]"
+            class="h-2 [&>div]:bg-[var(--status-warning-mark)]"
           />
         </div>
 
         <!-- Hard -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-[var(--terminal-red)]">{{
+            <span class="font-medium text-[var(--foreground-strong)]">{{
               t("personal.stats.hard")
             }}</span>
             <span class="text-muted-foreground">
@@ -156,7 +156,7 @@ onMounted(async () => {
           </div>
           <Progress
             :model-value="userStatsStore.hardProgress.percentage"
-            class="h-2 [&>div]:bg-[var(--terminal-red)]"
+            class="h-2 [&>div]:bg-[var(--status-error-mark)]"
           />
         </div>
       </div>

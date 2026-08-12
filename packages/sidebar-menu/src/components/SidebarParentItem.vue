@@ -64,7 +64,7 @@ const rowBase =
         <CollapsibleTrigger as-child>
           <button
             type="button"
-            class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--silver-500)] hover:bg-[var(--silver-200)]/40 hover:text-[var(--foreground)] min-h-11 min-w-11 sm:min-h-7 sm:min-w-7"
+            class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--foreground-muted)] hover:bg-[var(--border-subtle)]/40 hover:text-[var(--foreground)] min-h-11 min-w-11 sm:min-h-7 sm:min-w-7"
             :aria-label="isOpen ? 'collapse section' : 'expand section'"
           >
             <slot name="chevron" :open="isOpen">
@@ -102,7 +102,7 @@ const rowBase =
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            :class="cn('ml-auto size-4 shrink-0 text-[var(--silver-500)] transition-transform duration-200', isOpen && 'rotate-90')"
+            :class="cn('ml-auto size-4 shrink-0 text-[var(--foreground-muted)] transition-transform duration-200', isOpen && 'rotate-90')"
           >
             <path d="m9 18 6-6-6-6" />
           </svg>

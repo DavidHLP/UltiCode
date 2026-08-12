@@ -44,9 +44,9 @@ const metrics = computed<MetricData[]>(() => {
 
 const difficultyBarItems = computed<BarListItem[]>(() => {
   const difficultyColors: Record<string, string> = {
-    EASY: 'var(--status-success)',
-    MEDIUM: 'var(--status-warning)',
-    HARD: 'var(--status-error)',
+    EASY: 'var(--status-success-mark)',
+    MEDIUM: 'var(--status-warning-mark)',
+    HARD: 'var(--status-error-mark)',
   }
   return props.report.byDifficulty.map((item) => ({
     id: item.difficulty,
@@ -62,7 +62,7 @@ const hardestBarItems = computed<BarListItem[]>(() =>
     id: problem.problemId,
     label: problem.title,
     value: problem.completionRate,
-    color: 'var(--status-error)',
+    color: 'var(--status-error-mark)',
     subtitle: problem.difficulty,
   })),
 )

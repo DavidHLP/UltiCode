@@ -201,11 +201,11 @@ watch(
 <template>
   <!-- Unified Card Container (always visible) -->
   <div
-    class="w-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] flex flex-col rounded-none"
+    class="w-full border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] flex flex-col rounded-none"
   >
     <!-- Toolbar Row -->
     <div
-      class="px-4 lg:px-6 py-2.5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      class="px-4 lg:px-6 py-2.5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
     >
       <div class="flex flex-wrap items-center gap-2">
         <slot name="toolbar-left" :table="table" />
@@ -219,7 +219,7 @@ watch(
             <Button
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--silver-300)]"
+              class="h-8 font-data text-xs border-[var(--border-subtle)]"
             >
               <IconLayoutColumns class="h-3.5 w-3.5" />
               <span class="hidden lg:inline uppercase tracking-wider">{{
@@ -337,12 +337,12 @@ watch(
     <!-- Pagination Footer -->
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="flex items-center justify-between px-4 lg:px-6 py-2.5 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      class="flex items-center justify-between px-4 lg:px-6 py-2.5 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
     >
       <div
-        class="hidden flex-1 text-sm lg:flex items-center gap-2 font-data text-xs text-[var(--silver-500)]"
+        class="hidden flex-1 text-sm lg:flex items-center gap-2 font-data text-xs text-[var(--foreground-muted)]"
       >
-        <span class="text-[var(--terminal-cyan)] tabular-nums">{{
+        <span class="text-[var(--foreground-strong)] tabular-nums">{{
           table.getFilteredSelectedRowModel().rows.length
         }}</span>
         <span>{{ t('table.of') }}</span>
@@ -353,7 +353,7 @@ watch(
         <div class="hidden items-center gap-2 lg:flex">
           <Label
             for="rows-per-page"
-            class="text-xs font-data text-[var(--silver-500)] uppercase tracking-wider"
+            class="text-xs font-data text-[var(--foreground-muted)] uppercase tracking-wider"
             >{{ t('table.rowsPerPage') }}</Label
           >
           <Select
@@ -368,7 +368,7 @@ watch(
             <SelectTrigger
               id="rows-per-page"
               size="sm"
-              class="w-20 h-7 font-data text-xs border-[var(--silver-300)]"
+              class="w-20 h-7 font-data text-xs border-[var(--border-subtle)]"
             >
               <SelectValue :placeholder="`${table.getState().pagination.pageSize}`" />
             </SelectTrigger>
@@ -384,10 +384,10 @@ watch(
           </Select>
         </div>
         <div
-          class="flex w-fit items-center justify-center text-xs font-data text-[var(--silver-500)]"
+          class="flex w-fit items-center justify-center text-xs font-data text-[var(--foreground-muted)]"
         >
           <span>{{ t('table.page') }}</span>
-          <span class="mx-1.5 text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="mx-1.5 text-[var(--foreground-strong)] tabular-nums">{{
             table.getState().pagination.pageIndex + 1
           }}</span>
           <span>{{ t('table.of') }}</span>
@@ -396,7 +396,7 @@ watch(
         <div class="ml-auto flex items-center gap-1.5 lg:ml-0">
           <Button
             variant="terminal"
-            class="hidden h-7 w-7 p-0 lg:flex border-[var(--silver-300)]"
+            class="hidden h-7 w-7 p-0 lg:flex border-[var(--border-subtle)]"
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.setPageIndex(0)"
           >
@@ -405,7 +405,7 @@ watch(
           </Button>
           <Button
             variant="terminal"
-            class="h-7 w-7 p-0 border-[var(--silver-300)]"
+            class="h-7 w-7 p-0 border-[var(--border-subtle)]"
             size="icon"
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.previousPage()"
@@ -415,7 +415,7 @@ watch(
           </Button>
           <Button
             variant="terminal"
-            class="h-7 w-7 p-0 border-[var(--silver-300)]"
+            class="h-7 w-7 p-0 border-[var(--border-subtle)]"
             size="icon"
             :disabled="loading || !table.getCanNextPage()"
             @click="table.nextPage()"
@@ -425,7 +425,7 @@ watch(
           </Button>
           <Button
             variant="terminal"
-            class="hidden h-7 w-7 p-0 lg:flex border-[var(--silver-300)]"
+            class="hidden h-7 w-7 p-0 lg:flex border-[var(--border-subtle)]"
             size="icon"
             :disabled="loading || !table.getCanNextPage()"
             @click="table.setPageIndex(table.getPageCount() - 1)"

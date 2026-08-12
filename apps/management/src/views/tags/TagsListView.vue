@@ -154,6 +154,7 @@ async function handleBulkDelete() {
   }
 }
 
+
 const columns: ColumnDef<Tag>[] = [
   ...createSelectionColumn<Tag>(t),
   {
@@ -165,9 +166,8 @@ const columns: ColumnDef<Tag>[] = [
         h(
           'div',
           {
-            class: 'h-9 w-9 rounded-none flex items-center justify-center',
             style: {
-              backgroundColor: tag.color ? `${tag.color}20` : 'var(--primary-10)',
+              backgroundColor: `color-mix(in srgb, ${tag.color || 'var(--primary)'} 12%, transparent)`,
               color: tag.color || 'var(--primary)',
             },
           },
@@ -300,7 +300,7 @@ const columns: ColumnDef<Tag>[] = [
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -314,7 +314,7 @@ const columns: ColumnDef<Tag>[] = [
           v-if="canManageTags"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="openCreateDialog"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />
@@ -324,29 +324,29 @@ const columns: ColumnDef<Tag>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('tags.stats.total') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('tags.stats.total') }}:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('tags.stats.problem') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.problemTags
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('tags.stats.forum') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('tags.stats.forum') }}:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.forumTags
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconTag class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('tags.tagManagement')
@@ -359,23 +359,23 @@ const columns: ColumnDef<Tag>[] = [
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-data text-sm text-[var(--terminal-amber)]">
+          <span class="font-data text-sm text-[var(--foreground-strong)]">
             &gt; SELECTED:{{ selectedRows.length }}
           </span>
         </div>
-        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="h-4 w-px bg-[var(--border-subtle)]" />
         <div class="flex items-center gap-2">
           <Button
             v-if="canManageTags"
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]"
+            class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-error-mark)] hover:text-foreground-strong"
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
@@ -387,7 +387,7 @@ const columns: ColumnDef<Tag>[] = [
       <Button
         variant="terminal"
         size="sm"
-        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        class="h-8 font-data text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
         @click="selectedRows = []"
       >
         [ESC] {{ t('tags.clearSelection') }}
@@ -424,16 +424,16 @@ const columns: ColumnDef<Tag>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
           @click="loadTags()"
         >
           {{ t('common.retry') }}

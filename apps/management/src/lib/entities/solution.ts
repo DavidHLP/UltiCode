@@ -19,9 +19,9 @@ const VISIBILITY_COLOR_MAP: Record<string, SemanticColor> = {
 export function getSolutionVisibilityIcon(visibility: SolutionVisibility): VNode {
   switch (visibility) {
     case 'PUBLIC':
-      return h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-green)]' })
+      return h(IconEye, { class: 'h-4 w-4 text-foreground-strong' })
     case 'PRIVATE':
-      return h(IconEyeOff, { class: 'h-4 w-4 text-[var(--terminal-amber)]' })
+      return h(IconEyeOff, { class: 'h-4 w-4 text-foreground-strong' })
     case 'HIDDEN':
       return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
     default:

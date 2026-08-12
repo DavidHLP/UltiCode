@@ -15,7 +15,7 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale()
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
       <button
-        class="h-8 w-8 flex items-center justify-center text-[var(--silver-500)] hover:text-[var(--accent-primary)] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 bg-transparent hover:bg-[var(--silver-100)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+        class="h-8 w-8 flex items-center justify-center text-[var(--foreground-muted)] hover:text-[var(--accent-primary)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface-highlight)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
       >
         <Globe class="h-4 w-4" />
         <span class="sr-only">{{ $t('common.actions.toggleLanguage') }}</span>
@@ -33,7 +33,7 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale()
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
         :class="[
           isCurrentLocale(localeConfig.code)
-            ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold'
+            ? 'bg-[var(--surface-highlight)]/40 text-[var(--accent-primary)] font-bold'
             : '',
         ]"
         @click="setLocale(localeConfig.code)"

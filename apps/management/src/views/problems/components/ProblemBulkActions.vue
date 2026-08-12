@@ -20,20 +20,20 @@ const emit = defineEmits<{
   <div
     v-if="selectedCount > 0"
     :class="[
-      'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+      'mt-4 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
       'animate-in fade-in slide-in-from-top-2 duration-200',
     ]"
   >
     <div class="flex items-center gap-3">
-      <span class="font-data text-xs text-[var(--terminal-amber)] uppercase tracking-wider">
+      <span class="font-data text-xs text-[var(--foreground-strong)] uppercase tracking-wider">
         {{ selectedCount }} selected
       </span>
-      <div class="h-4 w-px bg-[var(--silver-300)]" />
+      <div class="h-4 w-px bg-[var(--border-subtle)]" />
       <div class="flex items-center gap-1">
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-2xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]"
           :disabled="loading"
           @click="emit('bulk-publish')"
         >
@@ -43,7 +43,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-2xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]"
           :disabled="loading"
           @click="emit('bulk-unpublish')"
         >
@@ -53,7 +53,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-2xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]"
           :disabled="loading"
           @click="emit('bulk-delete')"
         >
@@ -63,7 +63,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-2xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--primary)] text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)]"
           @click="emit('bulk-edit')"
         >
           <IconPencil class="h-3 w-3 mr-1" />
@@ -74,7 +74,7 @@ const emit = defineEmits<{
     <Button
       variant="ghost"
       size="sm"
-      class="h-7 w-7 p-0 text-[var(--silver-500)]"
+      class="h-7 w-7 p-0 text-[var(--foreground-muted)]"
       @click="emit('clear-selection')"
     >
       <IconX class="h-4 w-4" />

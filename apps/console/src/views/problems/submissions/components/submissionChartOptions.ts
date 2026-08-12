@@ -1,5 +1,9 @@
 import { color as echartsColor, type EChartsOption } from "echarts";
-
+import {
+  readCssColor,
+  SOLARIZED_PALETTE,
+  type SolarizedPaletteValue,
+} from "@ulticode/design-system";
 export type DistributionChartUnit = "ms" | "MB";
 
 export interface DistributionChartPoint {
@@ -13,6 +17,8 @@ export interface ChartCssColors {
   border: string;
   accent: string;
   mutedBar: string;
+  tooltipBackground: string;
+  tooltipBorder: string;
 }
 
 export interface TooltipCallbackDataParams {
@@ -25,45 +31,48 @@ interface Translator {
   (key: string, params?: Record<string, unknown>): string;
 }
 
-const FALLBACK_COLORS: Required<Omit<ChartCssColors, "mutedBar">> = {
-  foreground: "#839496",
-  border: "#586e75",
-  accent: "#268bd2",
+type ChartColorFallbacks = {
+  foreground: SolarizedPaletteValue;
+  border: SolarizedPaletteValue;
+  accent: SolarizedPaletteValue;
+  tooltipBackground?: SolarizedPaletteValue;
+  tooltipBorder?: SolarizedPaletteValue;
 };
 
-export function readChartCssColors(fallbacks: {
-  foreground: string;
-  border: string;
-  accent: string;
-}): ChartCssColors {
-  if (typeof window === "undefined") {
-    return {
-      ...fallbacks,
-      mutedBar: fallbacks.foreground,
-    };
-  }
-  const computed = getComputedStyle(document.documentElement);
-  const resolve = (token: string, fallback: string) => {
-    const raw = computed.getPropertyValue(token).trim();
-    return raw || fallback;
-  };
-  const foreground = resolve("--muted-foreground", fallbacks.foreground);
-  const border = resolve("--border", fallbacks.border);
-  const accent = resolve("--chart-series-1", fallbacks.accent);
+const FALLBACK_COLORS: Required<Omit<ChartCssColors, "mutedBar">> & ChartColorFallbacks = {
+  foreground: SOLARIZED_PALETTE.base01,
+  border: SOLARIZED_PALETTE.base1,
+  accent: SOLARIZED_PALETTE.blue,
+  tooltipBackground: SOLARIZED_PALETTE.base3,
+  tooltipBorder: SOLARIZED_PALETTE.base00,
+};
+
+export function readChartCssColors(
+  fallbacks: ChartColorFallbacks = FALLBACK_COLORS,
+): ChartCssColors {
+  const foreground = readCssColor("--foreground", fallbacks.foreground);
+  const border = readCssColor("--chart-grid-color", fallbacks.border);
+  const accent = readCssColor("--chart-series-1", fallbacks.accent);
+  const tooltipBackground = readCssColor(
+    "--chart-tooltip-background",
+    fallbacks.tooltipBackground ?? FALLBACK_COLORS.tooltipBackground,
+  );
+  const tooltipBorder = readCssColor(
+    "--chart-tooltip-border",
+    fallbacks.tooltipBorder ?? FALLBACK_COLORS.tooltipBorder,
+  );
   const mutedBar = echartsColor.modifyAlpha(foreground, 0.32) || foreground;
   return {
     foreground,
     border,
     accent,
     mutedBar,
+    tooltipBackground,
+    tooltipBorder,
   };
 }
 
-export const DEFAULT_CHART_FALLBACKS: {
-  foreground: string;
-  border: string;
-  accent: string;
-} = FALLBACK_COLORS;
+export const DEFAULT_CHART_FALLBACKS: ChartColorFallbacks = FALLBACK_COLORS;
 
 export function buildDistributionChartOption(
   paired: DistributionChartPoint[],
@@ -78,6 +87,9 @@ export function buildDistributionChartOption(
   return {
     tooltip: {
       trigger: "axis",
+      backgroundColor: colors.tooltipBackground,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.foreground },
       axisPointer: { type: "shadow" },
       formatter: (params: unknown) => {
         if (!Array.isArray(params) || params.length === 0) return "";
@@ -90,7 +102,7 @@ export function buildDistributionChartOption(
           ? ((count / safeTotal) * 100).toFixed(2)
           : "0";
         const isUserPosition = data.dataIndex === userIndex;
-        return `${point.bin}${unit}<br/>${t("problem.layout.count")}: ${count}<br/>${t("problem.layout.percentage")}: ${percentage}%${isUserPosition ? `<br/><span style="color: var(--chart-series-1);">${t("problem.layout.userPosition")}</span>` : ""}`;
+        return `${point.bin}${unit}<br/>${t("problem.layout.count")}: ${count}<br/>${t("problem.layout.percentage")}: ${percentage}%${isUserPosition ? `<br/><strong style="color: ${colors.accent};">${t("problem.layout.userPosition")}</strong>` : ""}`;
       },
     },
     grid: {
@@ -133,8 +145,22 @@ export function buildDistributionChartOption(
           value: Number.isFinite(d.count) ? d.count : 0,
           itemStyle: {
             color: i === userIndex ? colors.accent : colors.mutedBar,
+            borderColor: i === userIndex ? colors.accent : colors.border,
+            borderWidth: i === userIndex ? 2 : 0,
+            borderType: i === userIndex ? "dashed" : "solid",
             borderRadius: 0,
           },
+          label:
+            i === userIndex
+              ? {
+                  show: true,
+                  position: "top",
+                  formatter: t("problem.layout.userPosition"),
+                  color: colors.foreground,
+                  fontWeight: "bold",
+                  fontSize: 10,
+                }
+              : undefined,
         })),
         barMaxWidth: 40,
       },
@@ -183,7 +209,7 @@ export async function renderAvatarMarkPointDataUrl(
   ctx.restore();
   ctx.beginPath();
   ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
-  ctx.strokeStyle = accentColor || "var(--chart-series-1)";
+  ctx.strokeStyle = accentColor || SOLARIZED_PALETTE.blue;
   ctx.lineWidth = 2;
   ctx.stroke();
   return canvas.toDataURL();

@@ -329,13 +329,13 @@ defineExpose({ saveStatus, form, saveChanges })
 }
 
 .custom-terminal-button-primary {
-  background-color: var(--editor-blue);
-  color: #ffffff;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   border: 1px solid transparent;
 }
 
 .custom-terminal-button-primary:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--editor-blue) 85%, #000000);
+  background-color: color-mix(in srgb, var(--primary) 85%, transparent);
 }
 
 .custom-terminal-button-primary:disabled {

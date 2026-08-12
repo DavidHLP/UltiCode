@@ -65,10 +65,10 @@ debouncedSearch('')
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent
-      class="p-0 overflow-hidden max-w-2xl border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+      class="p-0 overflow-hidden max-w-2xl border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]"
     >
       <DialogHeader
-        class="px-6 pt-6 pb-2 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+        class="px-6 pt-6 pb-2 border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
       >
         <DialogTitle class="font-data text-sm uppercase tracking-wider">
           {{ t('contests.problemPicker.title') }}
@@ -80,7 +80,7 @@ debouncedSearch('')
 
       <div class="p-4">
         <Command
-          class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+          class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
         >
           <CommandInput
             :placeholder="t('contests.problemPicker.searchPlaceholder')"
@@ -90,7 +90,7 @@ debouncedSearch('')
           />
           <CommandList class="max-h-[300px] overflow-y-auto">
             <CommandEmpty v-if="problemsStore.loading" class="py-6 flex justify-center">
-              <Loader2 class="h-6 w-6 animate-spin text-[var(--silver-400)]" />
+              <Loader2 class="h-6 w-6 animate-spin text-[var(--foreground-muted)]" />
             </CommandEmpty>
             <CommandEmpty v-else-if="filteredProblems.length === 0" class="py-6 text-center">
               <span class="terminal-comment">{{
@@ -99,7 +99,7 @@ debouncedSearch('')
             </CommandEmpty>
             <CommandGroup v-else>
               <div
-                class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-3 py-2 bg-[var(--surface-sunken)]"
+                class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-3 py-2 bg-[var(--surface-sunken)]"
               >
                 <span class="terminal-label">{{ t('contests.problemPicker.problems') }}</span>
               </div>
@@ -108,17 +108,17 @@ debouncedSearch('')
                 :key="problem.id"
                 :value="problem.title"
                 @select="() => handleSelect(problem)"
-                class="flex items-center justify-between p-3 cursor-pointer border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] hover:bg-[var(--surface-sunken)]"
+                class="flex items-center justify-between p-3 cursor-pointer border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] hover:bg-[var(--surface-sunken)]"
               >
                 <div class="flex items-center gap-3">
-                  <span class="font-data text-xs text-[var(--silver-400)] w-6">
+                  <span class="font-data text-xs text-[var(--foreground-muted)] w-6">
                     {{ String(index + 1).padStart(2, '0') }}
                   </span>
                   <div class="flex flex-col gap-0.5">
                     <span class="font-medium text-sm text-[var(--foreground)]">{{
                       problem.title
                     }}</span>
-                    <span class="font-data text-xs text-[var(--silver-400)]">{{
+                    <span class="font-data text-xs text-[var(--foreground-muted)]">{{
                       problem.slug
                     }}</span>
                   </div>
@@ -132,7 +132,7 @@ debouncedSearch('')
                 <Button
                   size="sm"
                   variant="terminal"
-                  class="h-6 w-6 p-0 border-[var(--terminal-green)] text-[var(--terminal-green)]"
+                  class="h-6 w-6 p-0 border-[var(--status-success-mark)] text-foreground-strong"
                 >
                   <Plus class="h-3 w-3" />
                 </Button>

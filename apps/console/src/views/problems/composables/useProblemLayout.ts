@@ -33,7 +33,7 @@ function createInitialHeaderGroups(
       index: 0,
       title: t("problem.layout.problemDescription"),
       icon: "FileText",
-      iconColor: "oklch(0.6149 0.1394 244.9)",
+      iconColor: "var(--accent-primary)",
     },
   ];
   if (!isContest) {
@@ -42,7 +42,7 @@ function createInitialHeaderGroups(
       index: problemInfoHeaders.length,
       title: t("problem.layout.solution"),
       icon: "FlaskConical",
-      iconColor: "oklch(0.6149 0.1394 244.9)",
+      iconColor: "var(--accent-primary)",
     });
   }
   problemInfoHeaders.push({
@@ -50,7 +50,7 @@ function createInitialHeaderGroups(
     index: problemInfoHeaders.length,
     title: t("problem.layout.submissions"),
     icon: "History",
-    iconColor: "oklch(0.6149 0.1394 244.9)",
+    iconColor: "var(--accent-primary)",
   });
 
   return [
@@ -68,7 +68,7 @@ function createInitialHeaderGroups(
           index: 0,
           title: t("problem.layout.code"),
           icon: "Code2",
-          iconColor: "oklch(0.6444 0.1508 118.6)",
+          iconColor: "var(--status-success-mark)",
         },
       ],
     },
@@ -81,14 +81,14 @@ function createInitialHeaderGroups(
           index: 0,
           title: t("problem.layout.testCases"),
           icon: "SquareCheck",
-          iconColor: "oklch(0.6444 0.1508 118.6)",
+          iconColor: "var(--status-success-mark)",
         },
         {
           id: 6,
           index: 1,
           title: t("problem.layout.testResults"),
           icon: "Terminal",
-          iconColor: "oklch(0.6444 0.1508 118.6)",
+          iconColor: "var(--status-success-mark)",
         },
       ],
     },

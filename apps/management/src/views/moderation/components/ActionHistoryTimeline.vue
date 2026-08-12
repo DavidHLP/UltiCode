@@ -28,58 +28,58 @@ const { t } = useI18n()
 const actionConfig = computed(() => ({
   [ModerationActionType.DELETED]: {
     icon: IconTrash,
-    color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
   [ModerationActionType.HIDDEN]: {
     icon: IconEyeOff,
-    color: 'text-[var(--terminal-amber)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   },
   [ModerationActionType.RESTORED]: {
     icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   },
   [ModerationActionType.WARNED]: {
     icon: IconAlertCircle,
-    color: 'text-[var(--terminal-amber)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   },
   [ModerationActionType.TEMP_BANNED]: {
     icon: IconClock,
-    color: 'text-[var(--terminal-amber)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   },
   [ModerationActionType.PERM_BANNED]: {
     icon: IconBan,
-    color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
   [ModerationActionType.DISMISSED]: {
     icon: IconX,
-    color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
   [ModerationActionType.RESOLVED]: {
     icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_PENDING]: {
     icon: IconScale,
-    color: 'text-[var(--terminal-purple)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_APPROVED]: {
     icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_REJECTED]: {
     icon: IconX,
-    color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    color: 'text-foreground-strong',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
 }))
 
@@ -87,7 +87,7 @@ function getActionConfig(actionType: ModerationActionType) {
   return (
     actionConfig.value[actionType] || {
       icon: IconCheck,
-      color: 'text-[var(--silver-500)]',
+      color: 'text-[var(--foreground-muted)]',
       bg: 'bg-[var(--surface-sunken)]',
     }
   )
@@ -111,12 +111,12 @@ function getRelativeTime(date: Date | string): string {
 
 <template>
   <Card
-    class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+    class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
   >
     <CardHeader class="pb-3">
       <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
-        <IconClock class="h-4 w-4 text-[var(--silver-500)]" />
-        <span class="text-[var(--silver-500)]">
+        <IconClock class="h-4 w-4 text-[var(--foreground-muted)]" />
+        <span class="text-[var(--foreground-muted)]">
           {{ t('moderation.detail.actionsTitle', { count: actions.length }) }}
         </span>
       </CardTitle>
@@ -124,7 +124,7 @@ function getRelativeTime(date: Date | string): string {
     <CardContent>
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-8">
-        <div class="animate-pulse text-xs font-data text-[var(--silver-400)]">
+        <div class="animate-pulse text-xs font-data text-[var(--foreground-muted)]">
           {{ t('moderation.terminal.loading') }}
         </div>
       </div>
@@ -134,8 +134,8 @@ function getRelativeTime(date: Date | string): string {
         v-else-if="actions.length === 0"
         class="flex flex-col items-center justify-center py-8 text-center"
       >
-        <IconClock class="h-8 w-8 text-[var(--silver-400)] mb-2" />
-        <p class="text-xs font-data text-[var(--silver-400)]">
+        <IconClock class="h-8 w-8 text-[var(--foreground-muted)] mb-2" />
+        <p class="text-xs font-data text-[var(--foreground-muted)]">
           {{ t('moderation.detail.noActions') }}
         </p>
       </div>
@@ -143,7 +143,7 @@ function getRelativeTime(date: Date | string): string {
       <!-- Timeline -->
       <div v-else class="relative space-y-4">
         <!-- Timeline line -->
-        <div class="absolute left-4 top-0 bottom-0 w-px bg-[var(--silver-300)]" />
+        <div class="absolute left-4 top-0 bottom-0 w-px bg-[var(--border-subtle)]" />
 
         <!-- Action items -->
         <div v-for="action in actions" :key="action.id" class="relative flex gap-4">
@@ -152,7 +152,7 @@ function getRelativeTime(date: Date | string): string {
             :class="[
               'relative z-10 flex h-8 w-8 items-center justify-center rounded-full border',
               getActionConfig(action.action).bg,
-              'border-[var(--silver-300)]',
+              'border-[var(--border-subtle)]',
             ]"
           >
             <component
@@ -168,7 +168,7 @@ function getRelativeTime(date: Date | string): string {
                 <p class="text-sm font-medium">
                   {{ t(`moderation.actions.${action.action}`, action.action) }}
                 </p>
-                <div class="flex items-center gap-2 mt-1 text-xs text-[var(--silver-500)]">
+                <div class="flex items-center gap-2 mt-1 text-xs text-[var(--foreground-muted)]">
                   <IconUser class="h-3 w-3" />
                   <span>
                     {{
@@ -177,7 +177,7 @@ function getRelativeTime(date: Date | string): string {
                       t('moderation.unknownReporter')
                     }}
                   </span>
-                  <span class="text-[var(--silver-400)]">•</span>
+                  <span class="text-[var(--foreground-muted)]">•</span>
                   <span class="font-data tabular-nums">
                     {{ getRelativeTime(action.createdAt) }}
                   </span>
@@ -188,7 +188,7 @@ function getRelativeTime(date: Date | string): string {
             <!-- Note -->
             <div
               v-if="action.note"
-              class="mt-2 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--background)]"
+              class="mt-2 p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--background)]"
             >
               <p class="text-xs text-[var(--foreground)]">{{ action.note }}</p>
             </div>
@@ -196,7 +196,7 @@ function getRelativeTime(date: Date | string): string {
             <!-- Duration (for temp bans) -->
             <div
               v-if="action.durationDays && action.action === ModerationActionType.TEMP_BANNED"
-              class="mt-2 text-xs text-[var(--terminal-amber)]"
+              class="mt-2 text-xs text-foreground-strong"
             >
               {{ t('moderation.detail.duration') }}:
               {{ t('moderation.detail.days', { count: action.durationDays }) }}

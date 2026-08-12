@@ -39,7 +39,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           variant === 'default' && ['bg-popover text-popover-foreground shadow-md'],
           // Terminal variant
           variant === 'terminal' && [
-            'bg-[var(--card)] text-popover-foreground border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none shadow-lg',
+            'bg-[var(--card)] text-popover-foreground border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none shadow-lg',
           ],
           position === 'popper' &&
             'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',

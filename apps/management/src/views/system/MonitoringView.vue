@@ -49,13 +49,13 @@ const overallStatus = computed(() => healthStatus.value?.status ?? 'unknown')
 const statusBgColor = computed(() => {
   switch (overallStatus.value) {
     case 'healthy':
-      return 'bg-green-500/10'
+      return 'bg-status-success-surface'
     case 'degraded':
-      return 'bg-yellow-500/10'
+      return 'bg-status-warning-surface'
     case 'unhealthy':
-      return 'bg-red-500/10'
+      return 'bg-status-error-surface'
     default:
-      return 'bg-gray-500/10'
+      return 'bg-muted'
   }
 })
 
@@ -127,11 +127,11 @@ function getHealthIcon(status: string) {
 function getHealthColor(status: string): string {
   switch (status) {
     case 'healthy':
-      return 'text-green-500'
+      return 'text-foreground-strong'
     case 'degraded':
-      return 'text-yellow-500'
+      return 'text-foreground-strong'
     default:
-      return 'text-red-500'
+      return 'text-foreground-strong'
   }
 }
 
@@ -162,7 +162,7 @@ onUnmounted(() => {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -173,13 +173,13 @@ onUnmounted(() => {
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('system.monitoring.title') }}
           </h1>
-          <p class="text-xs text-[var(--silver-500)]">{{ t('system.monitoring.description') }}</p>
+          <p class="text-xs text-[var(--foreground-muted)]">{{ t('system.monitoring.description') }}</p>
         </div>
         <div class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
             :disabled="refreshing"
             @click="refresh"
           >
@@ -353,7 +353,7 @@ onUnmounted(() => {
                   <span class="text-muted-foreground">{{
                     t('system.monitoring.slowQueries')
                   }}</span>
-                  <span :class="{ 'text-red-500': (databaseStats?.slowQueries ?? 0) > 0 }">
+                  <span :class="{ 'text-foreground-strong': (databaseStats?.slowQueries ?? 0) > 0 }">
                     {{ databaseStats?.slowQueries ?? 0 }}
                   </span>
                 </div>
@@ -415,25 +415,25 @@ onUnmounted(() => {
                   </div>
                   <div class="grid grid-cols-5 gap-2 text-xs">
                     <div class="text-center p-2 bg-muted rounded-none">
-                      <div class="text-lg font-bold text-blue-500">{{ queue.waiting }}</div>
+                      <div class="text-lg font-bold text-foreground-strong">{{ queue.waiting }}</div>
                       <div class="text-muted-foreground">{{ t('system.monitoring.waiting') }}</div>
                     </div>
                     <div class="text-center p-2 bg-muted rounded-none">
-                      <div class="text-lg font-bold text-yellow-500">{{ queue.active }}</div>
+                      <div class="text-lg font-bold text-foreground-strong">{{ queue.active }}</div>
                       <div class="text-muted-foreground">{{ t('system.monitoring.active') }}</div>
                     </div>
                     <div class="text-center p-2 bg-muted rounded-none">
-                      <div class="text-lg font-bold text-green-500">{{ queue.completed }}</div>
+                      <div class="text-lg font-bold text-foreground-strong">{{ queue.completed }}</div>
                       <div class="text-muted-foreground">
                         {{ t('system.monitoring.completed') }}
                       </div>
                     </div>
                     <div class="text-center p-2 bg-muted rounded-none">
-                      <div class="text-lg font-bold text-red-500">{{ queue.failed }}</div>
+                      <div class="text-lg font-bold text-foreground-strong">{{ queue.failed }}</div>
                       <div class="text-muted-foreground">{{ t('system.monitoring.failed') }}</div>
                     </div>
                     <div class="text-center p-2 bg-muted rounded-none">
-                      <div class="text-lg font-bold text-purple-500">{{ queue.delayed }}</div>
+                      <div class="text-lg font-bold text-foreground-strong">{{ queue.delayed }}</div>
                       <div class="text-muted-foreground">{{ t('system.monitoring.delayed') }}</div>
                     </div>
                   </div>

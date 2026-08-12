@@ -166,7 +166,7 @@ watch(
                     v-if="problemIdsInList.has(problem.id)"
                     variant="ghost"
                     size="sm"
-                    class="text-[var(--terminal-green)] gap-1 pointer-events-none"
+                    class="text-foreground-strong gap-1 pointer-events-none"
                   >
                     <Check class="h-4 w-4" />
                     {{ t("problem.problemList.detail.added") }}

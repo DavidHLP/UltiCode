@@ -205,7 +205,7 @@ onMounted(() => {
       <Card
         v-for="log in filteredLogs"
         :key="log.id"
-        class="hover:shadow-sm transition-shadow border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+        class="hover:shadow-sm transition-shadow border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
       >
         <!-- Compact header: action + entity + time + performer in one line -->
         <CardHeader class="py-2 px-3">
@@ -220,24 +220,24 @@ onMounted(() => {
               <Badge v-if="log.entityType" variant="outline" class="text-xs px-1.5 py-0">
                 {{ t(`audit.entityTypes.${log.entityType}`, log.entityType) }}
               </Badge>
-              <span class="text-xs text-[var(--silver-500)] font-data tabular-nums truncate">
+              <span class="text-xs text-[var(--foreground-muted)] font-data tabular-nums truncate">
                 {{ formatDateTimeByLocale(log.createdAt) }}
               </span>
-              <span class="text-[var(--silver-400)] text-xs">·</span>
+              <span class="text-[var(--foreground-muted)] text-xs">·</span>
               <span
                 v-if="log.performer"
-                class="text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)] truncate"
+                class="text-xs text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)] truncate"
               >
                 {{ log.performer.username }}
               </span>
-              <span v-else class="text-xs text-[var(--silver-500)]">System</span>
+              <span v-else class="text-xs text-[var(--foreground-muted)]">System</span>
             </div>
 
             <!-- Right: expand toggle + change count -->
             <div class="flex items-center gap-2 flex-shrink-0">
               <span
                 v-if="!expandedLogs.has(log.id) && getChangesSummary(log).count > 0"
-                class="text-xs text-[var(--silver-400)]"
+                class="text-xs text-[var(--foreground-muted)]"
               >
                 {{ getChangesSummary(log).label }}
               </span>
@@ -252,7 +252,7 @@ onMounted(() => {
 
           <!-- ID row when expanded -->
           <div v-if="expandedLogs.has(log.id)" class="flex items-center gap-2 mt-1">
-            <span class="text-xs text-[var(--silver-400)] font-data">
+            <span class="text-xs text-[var(--foreground-muted)] font-data">
               ID: {{ log.id.slice(0, 8) }}
             </span>
           </div>
@@ -266,7 +266,7 @@ onMounted(() => {
               <Badge variant="secondary" class="text-xs">
                 {{ t(`users.filters.role.${log.performer.role}`, log.performer.role) }}
               </Badge>
-              <span class="font-medium text-[var(--silver-700)] dark:text-[var(--silver-300)]">{{
+              <span class="font-medium text-[var(--foreground-strong)] dark:text-[var(--border-subtle)]">{{
                 log.performer.name || log.performer.username
               }}</span>
             </div>
@@ -274,15 +274,15 @@ onMounted(() => {
             <!-- Changes section -->
             <div v-if="log.oldValues || log.newValues" class="space-y-2">
               <div v-if="log.oldValues" class="space-y-1">
-                <span class="text-xs font-medium text-[var(--silver-500)] uppercase tracking-wider">
+                <span class="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
                   {{ t('audit.oldValues') }}
                 </span>
                 <div
-                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+                  class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
                 >
                   <ScrollArea class="h-[120px] w-full rounded-none">
                     <pre
-                      class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]"
+                      class="p-2 text-xs font-data leading-relaxed text-foreground-strong"
                       >{{ formatJson(log.oldValues) }}</pre
                     >
                   </ScrollArea>
@@ -290,15 +290,15 @@ onMounted(() => {
               </div>
 
               <div v-if="log.newValues" class="space-y-1">
-                <span class="text-xs font-medium text-[var(--silver-500)] uppercase tracking-wider">
+                <span class="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
                   {{ t('audit.newValues') }}
                 </span>
                 <div
-                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+                  class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
                 >
                   <ScrollArea class="h-[120px] w-full rounded-none">
                     <pre
-                      class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-green)]"
+                      class="p-2 text-xs font-data leading-relaxed text-foreground-strong"
                       >{{ formatJson(log.newValues) }}</pre
                     >
                   </ScrollArea>
@@ -309,7 +309,7 @@ onMounted(() => {
             <!-- Metadata: IP and userAgent -->
             <div
               v-if="log.ipAddress || log.userAgent"
-              class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--silver-400)] pt-1"
+              class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--foreground-muted)] pt-1"
             >
               <span v-if="log.ipAddress" class="font-data">
                 {{ t('audit.ipAddress') }}: {{ log.ipAddress }}

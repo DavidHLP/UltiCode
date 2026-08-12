@@ -353,13 +353,13 @@ function onCategoryUnsave(listId: string) {
                   <div class="space-y-1.5 flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                       <span
-                        class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20 rounded-none inline-flex items-center"
+                        class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--status-warning-mark)]/10 text-foreground-strong border border-[var(--status-warning-mark)]/20 rounded-none inline-flex items-center"
                       >
                         {{ t("personal.problemLists.listCard.featured") }}
                       </span>
                       <span
                         v-if="list.isSaved"
-                        class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20 rounded-none inline-flex items-center"
+                        class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 rounded-none inline-flex items-center"
                       >
                         {{ t("personal.problemLists.listCard.saved") }}
                       </span>
@@ -373,7 +373,7 @@ function onCategoryUnsave(listId: string) {
                       >
                         {{ list.name }}
                         <Star
-                          class="h-4 w-4 text-[var(--terminal-amber)] fill-[var(--terminal-amber)]"
+                          class="h-4 w-4 text-[var(--status-warning-mark)] fill-[var(--status-warning-mark)]"
                         />
                       </router-link>
                     </h3>

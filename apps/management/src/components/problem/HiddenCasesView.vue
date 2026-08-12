@@ -102,7 +102,7 @@ onMounted(() => {
             <li
               v-for="(tc, idx) in hiddenCases"
               :key="tc.id"
-              class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-md p-3 space-y-2"
+              class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-md p-3 space-y-2"
             >
               <div class="flex items-center justify-between text-xs text-muted-foreground">
                 <span class="font-mono">#{{ idx + 1 }}</span>

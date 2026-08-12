@@ -74,11 +74,11 @@ const CATEGORY_ICON_MAP: Record<ReportCategory, typeof IconAlertTriangle> = {
 
 // ========== Entity Type Styles ==========
 const entityTypeColors: Record<ModeratableEntityType, string> = {
-  forum_post: 'text-[var(--terminal-cyan)]',
-  forum_comment: 'text-[var(--terminal-cyan)]',
-  solution: 'text-[var(--terminal-green)]',
-  solution_comment: 'text-[var(--terminal-green)]',
-  problem: 'text-[var(--terminal-amber)]',
+  forum_post: 'text-foreground-strong',
+  forum_comment: 'text-foreground-strong',
+  solution: 'text-foreground-strong',
+  solution_comment: 'text-foreground-strong',
+  problem: 'text-foreground-strong',
 }
 
 // ========== Renderers ==========
@@ -119,7 +119,7 @@ export function createReportsColumns(
     // Selection column
     ...createSelectionColumn<Report>(t, {
       checkboxClass:
-        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     // Row number
     {
@@ -142,7 +142,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.reporter'),
         ),
       cell: ({ row }) => {
@@ -162,7 +162,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.entityType'),
         ),
       cell: ({ row }) => {
@@ -181,7 +181,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.entity'),
         ),
       cell: ({ row }) => {
@@ -203,7 +203,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.category'),
         ),
       cell: ({ row }) => {
@@ -218,13 +218,13 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.reason'),
         ),
       cell: ({ row }) => {
         const reason = row.original.reason
         if (!reason) {
-          return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '-')
+          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '-')
         }
         return h(
           'span',
@@ -240,7 +240,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.status'),
         ),
       cell: ({ row }) => {
@@ -255,14 +255,14 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
         const date = row.original.createdAt
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
           date ? formatDate(date) : '—',
         )
       },
@@ -273,7 +273,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {
@@ -293,7 +293,7 @@ export function createReportsColumns(
                       { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                       {
                         default: () => [
-                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
+                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
                         ],
                       },
                     ),
@@ -301,7 +301,7 @@ export function createReportsColumns(
               ),
               h(
                 DropdownMenuContent,
-                { align: 'end', class: 'border-[var(--silver-200)]' },
+                { align: 'end', class: 'border-[var(--border-subtle)]' },
                 {
                   default: () => [
                     h(
@@ -313,7 +313,7 @@ export function createReportsColumns(
                       {
                         default: () =>
                           h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                            h(IconEye, { class: 'h-4 w-4 text-foreground-strong' }),
                             h('span', t('moderation.reports.viewEntity')),
                           ]),
                       },
@@ -327,7 +327,7 @@ export function createReportsColumns(
                       {
                         default: () =>
                           h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconLink, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                            h(IconLink, { class: 'h-4 w-4 text-foreground-strong' }),
                             h('span', t('moderation.reports.viewQueue')),
                           ]),
                       },

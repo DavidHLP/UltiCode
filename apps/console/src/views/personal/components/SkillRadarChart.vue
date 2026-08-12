@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
 import type { UserSkill } from "@/types/userStats";
 import { useI18n } from "vue-i18n";
+import { readCssColor, SOLARIZED_PALETTE } from "@ulticode/design-system";
 import { withSafeChartAnimation } from "./chartOptions";
 
 const { t } = useI18n();
@@ -18,6 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
+let themeObserver: MutationObserver | null = null;
 
 const hasSkills = computed(() => props.skills && props.skills.length > 0);
 
@@ -32,6 +34,22 @@ const initChart = () => {
     renderer: "canvas",
   });
 
+  const colors = {
+    series: readCssColor("--chart-series-1", SOLARIZED_PALETTE.blue),
+    background: readCssColor(
+      "--chart-tooltip-background",
+      SOLARIZED_PALETTE.base3,
+    ),
+    surface: readCssColor("--surface-highlight", SOLARIZED_PALETTE.base2),
+    foreground: readCssColor("--foreground-strong", SOLARIZED_PALETTE.base01),
+    muted: readCssColor("--foreground", SOLARIZED_PALETTE.base0),
+    border: readCssColor("--chart-grid-color", SOLARIZED_PALETTE.base1),
+    tooltipBorder: readCssColor(
+      "--chart-tooltip-border",
+      SOLARIZED_PALETTE.base0,
+    ),
+  };
+
   const indicators = props.skills.map((skill) => ({
     name: skill.tagName,
     max: Math.max(...props.skills.map((s) => s.count)) * 1.2,
@@ -42,11 +60,11 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "item",
-      backgroundColor: "oklch(0 0 0 / 0.8)",
-      borderColor: "transparent",
+      backgroundColor: colors.background,
+      borderColor: colors.tooltipBorder,
       borderRadius: 0,
       textStyle: {
-        color: "#fff",
+        color: colors.foreground,
       },
       formatter: (params: unknown) => {
         const data = params as {
@@ -64,23 +82,23 @@ const initChart = () => {
       shape: "polygon",
       splitNumber: 4,
       axisName: {
-        color: "var(--muted-foreground)",
+        color: colors.muted,
         fontSize: 11,
         fontWeight: 500,
       },
       splitLine: {
         lineStyle: {
-          color: "var(--border)",
+          color: colors.border,
         },
       },
       splitArea: {
         areaStyle: {
-          color: ["oklch(0.5 0 0 / 0.3)", "oklch(0.5 0 0 / 0.1)"],
+          color: [colors.background, colors.surface],
         },
       },
       axisLine: {
         lineStyle: {
-          color: "var(--border)",
+          color: colors.border,
         },
       },
     },
@@ -95,14 +113,15 @@ const initChart = () => {
             symbolSize: 6,
             lineStyle: {
               width: 2,
-              color: "oklch(0.6149 0.1394 244.9)",
+              color: colors.series,
             },
             areaStyle: {
-              color: "oklch(0.6149 0.1394 244.9 / 0.2)",
+              color: colors.series,
+              opacity: 0.2,
             },
             itemStyle: {
-              color: "oklch(0.6149 0.1394 244.9)",
-              borderColor: "var(--background)",
+              color: colors.series,
+              borderColor: colors.background,
               borderWidth: 2,
             },
           },
@@ -123,6 +142,11 @@ onMounted(() => {
     initChart();
   }
   window.addEventListener("resize", handleResize);
+  themeObserver = new MutationObserver(() => initChart());
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 });
 
 watch(
@@ -140,6 +164,8 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
+  themeObserver?.disconnect();
+  themeObserver = null;
   chartInstance?.dispose();
   chartInstance = null;
 });

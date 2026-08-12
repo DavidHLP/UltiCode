@@ -183,7 +183,7 @@ const handleWriteSolution = () => {
           v-if="isAccepted"
           variant="default"
           size="sm"
-          class="h-7 text-xs rounded-none bg-[var(--terminal-green)] hover:bg-[var(--terminal-green)] text-[var(--background)]"
+          class="h-7 text-xs rounded-none bg-[var(--status-success-mark)] hover:bg-[var(--status-success-mark)] text-[var(--background)]"
           @click="handleWriteSolution"
         >
           {{ t("problem.solutions.writeSolution") }}
@@ -205,7 +205,7 @@ const handleWriteSolution = () => {
     <!-- Stuck pending warning -->
     <div
       v-if="isPending && pendingSeconds > 120"
-      class="rounded-none border border-[var(--terminal-amber)]/30 bg-[var(--terminal-amber)]/5 px-4 py-3 text-xs text-[var(--terminal-amber)]"
+      class="rounded-none border border-[var(--status-warning-mark)]/30 bg-[var(--status-warning-mark)]/5 px-4 py-3 text-xs text-foreground-strong"
     >
       {{ t("problem.submissions.stuckWarning") }}
     </div>
@@ -235,13 +235,13 @@ const handleWriteSolution = () => {
     <!-- Compile Error -->
     <div
       v-if="isCompileError"
-      class="rounded-none bg-[var(--terminal-red)]/10 border border-[var(--terminal-red)]/30 p-4"
+      class="rounded-none bg-[var(--status-error-mark)]/10 border border-[var(--status-error-mark)]/30 p-4"
     >
-      <h3 class="font-medium text-[var(--terminal-red)] text-sm mb-2">
+      <h3 class="font-medium text-[var(--foreground-strong)] text-sm mb-2">
         {{ t("problem.submissions.compileError") }}
       </h3>
       <pre
-        class="whitespace-pre-wrap text-sm font-data text-[var(--terminal-red)] bg-transparent p-0"
+        class="whitespace-pre-wrap text-sm font-data text-foreground-strong bg-transparent p-0"
         >{{
           props.submission.compiler_error ||
           t("problem.submissions.noErrorMessage")

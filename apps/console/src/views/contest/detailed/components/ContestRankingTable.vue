@@ -25,26 +25,26 @@ const { t } = useI18n();
 <template>
   <Card
     id="contest-ranking"
-    class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-[var(--shadow-float)] overflow-hidden rounded-none"
+    class="border border-border bg-surface dark:bg-surface-highlight shadow-[var(--shadow-float)] overflow-hidden rounded-none"
   >
     <CardHeader
-      class="flex flex-row items-center justify-between pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
+      class="flex flex-row items-center justify-between pb-3 border-b border-border bg-[var(--surface-highlight)]/50 dark:bg-background/50"
     >
       <CardTitle
-        class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+        class="text-xs font-bold font-mono uppercase tracking-widest text-foreground dark:text-foreground-strong"
         >{{ t("contest.detail.leaderboard") }}</CardTitle
       >
       <Button
         variant="outline"
         size="sm"
-        class="rounded-none h-8 px-3 font-bold text-xs uppercase tracking-wider border border-border bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--solarized-base03)] cursor-pointer"
+        class="rounded-none h-8 px-3 font-bold text-xs uppercase tracking-wider border border-border bg-transparent hover:bg-[var(--surface-highlight)] dark:hover:bg-background cursor-pointer"
         >{{ t("contest.detail.viewAll") }}</Button
       >
     </CardHeader>
     <CardContent class="p-0">
       <Table>
         <TableHeader
-          class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40"
+          class="bg-[var(--surface-highlight)]/45 dark:bg-background/45 border-b border-border/40"
         >
           <TableRow class="hover:bg-transparent">
             <TableHead
@@ -79,18 +79,18 @@ const { t } = useI18n();
           <TableRow
             v-for="entry in rankings.slice(0, 20)"
             :key="entry.username"
-            class="group border-b border-border/30 last:border-b-0 hover:bg-[var(--silver-100)]/30 dark:hover:bg-[var(--solarized-base03)]/30 transition-all transition-colors"
+            class="group border-b border-border/30 last:border-b-0 hover:bg-[var(--surface-highlight)]/30 dark:hover:bg-background/30 transition-all transition-colors"
           >
             <TableCell class="pl-6 py-3">
               <div
                 class="inline-flex h-9 w-9 items-center justify-center rounded-none font-black text-xs transition-all shadow-sm"
                 :class="{
-                  'bg-[var(--terminal-amber)] text-white scale-110':
+                  'bg-surface-highlight text-foreground-strong border border-[var(--rank-first)] scale-110':
                     entry.rank === 1,
-                  'bg-[var(--silver-300)] text-white scale-105':
+                  'bg-surface-highlight text-foreground-strong border border-[var(--rank-second)] scale-105':
                     entry.rank === 2,
-                  'bg-[var(--terminal-amber)] text-white': entry.rank === 3,
-                  'bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-muted-foreground border border-border/40':
+                  'bg-surface-highlight text-foreground-strong border border-[var(--rank-third)]': entry.rank === 3,
+                  'bg-surface-highlight text-foreground border border-control':
                     (entry.rank ?? 0) > 3,
                 }"
               >
@@ -116,7 +116,7 @@ const { t } = useI18n();
                 </div>
                 <div class="flex flex-col">
                   <span
-                    class="font-bold text-sm text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+                    class="font-bold text-sm text-foreground dark:text-foreground-strong"
                     >{{ entry.username }}</span
                   >
                   <span
@@ -144,7 +144,7 @@ const { t } = useI18n();
               <div class="flex flex-wrap gap-1">
                 <Badge
                   variant="secondary"
-                  class="min-w-[2rem] justify-center font-mono text-2xs h-6 rounded-none px-2 border border-border/40 bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-foreground font-bold"
+                  class="min-w-[2rem] justify-center font-mono text-2xs h-6 rounded-none px-2 border border-border/40 bg-[var(--surface-highlight)] dark:bg-background text-foreground font-bold"
                 >
                   {{ entry.problemsSolved }}
                 </Badge>

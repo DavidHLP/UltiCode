@@ -45,20 +45,20 @@ const stats = computed(() => {
       easy: {
         count: 0,
         total: 0,
-        color: "text-[var(--terminal-green)]",
-        bg: "bg-[var(--terminal-green)]",
+        color: "text-foreground-strong",
+        bg: "bg-[var(--status-success-mark)]",
       },
       medium: {
         count: 0,
         total: 0,
-        color: "text-[var(--terminal-amber)]",
-        bg: "bg-[var(--terminal-amber)]",
+        color: "text-foreground-strong",
+        bg: "bg-[var(--status-warning-mark)]",
       },
       hard: {
         count: 0,
         total: 0,
-        color: "text-[var(--terminal-red)]",
-        bg: "bg-[var(--terminal-red)]",
+        color: "text-foreground-strong",
+        bg: "bg-[var(--status-error-mark)]",
       },
     };
 
@@ -67,20 +67,20 @@ const stats = computed(() => {
     easy: {
       count: s.Easy.count,
       total: s.Easy.total,
-      color: "text-[var(--terminal-green)]",
-      bg: "bg-[var(--terminal-green)]",
+      color: "text-foreground-strong",
+      bg: "bg-[var(--status-success-mark)]",
     },
     medium: {
       count: s.Medium.count,
       total: s.Medium.total,
-      color: "text-[var(--terminal-amber)]",
-      bg: "bg-[var(--terminal-amber)]",
+      color: "text-foreground-strong",
+      bg: "bg-[var(--status-warning-mark)]",
     },
     hard: {
       count: s.Hard.count,
       total: s.Hard.total,
-      color: "text-[var(--terminal-red)]",
-      bg: "bg-[var(--terminal-red)]",
+      color: "text-foreground-strong",
+      bg: "bg-[var(--status-error-mark)]",
     },
   };
 });
@@ -112,7 +112,7 @@ const recentActivity = computed(() => {
       <div class="grid gap-4 sm:grid-cols-3">
         <Card class="relative overflow-hidden group rounded-none py-3.5 gap-2">
           <div
-            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--accent-electric)]/5 group-hover:scale-150 transition-transform duration-500"
+            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--primary)]/5 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <CardHeader
             class="pb-1 px-4 space-y-0 flex flex-row items-center justify-between"
@@ -122,7 +122,7 @@ const recentActivity = computed(() => {
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >{{ t("personal.profile.globalRank") }}</CardTitle
             >
-            <Trophy class="h-4 w-4 text-[var(--accent-electric)]" />
+            <Trophy class="h-4 w-4 text-[var(--primary)]" />
           </CardHeader>
           <CardContent class="px-4 pb-1">
             <div class="text-3xl font-bold tracking-tight text-foreground">
@@ -131,7 +131,7 @@ const recentActivity = computed(() => {
             <div class="mt-1 flex items-center gap-1.5">
               <Badge
                 variant="secondary"
-                class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1 py-0 h-4 text-2xs font-bold"
+                class="bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/10 rounded-none px-1 py-0 h-4 text-2xs font-bold"
               >
                 DIAMOND III
               </Badge>
@@ -145,7 +145,7 @@ const recentActivity = computed(() => {
 
         <Card class="relative overflow-hidden group rounded-none py-3.5 gap-2">
           <div
-            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--terminal-green)]/5 group-hover:scale-150 transition-transform duration-500"
+            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--status-success-mark)]/5 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <CardHeader
             class="pb-1 px-4 space-y-0 flex flex-row items-center justify-between"
@@ -155,7 +155,7 @@ const recentActivity = computed(() => {
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >{{ t("personal.profile.solved") }}</CardTitle
             >
-            <CheckCircle2 class="h-4 w-4 text-[var(--terminal-green)]" />
+            <CheckCircle2 class="h-4 w-4 text-[var(--status-success-mark)]" />
           </CardHeader>
           <CardContent class="px-4 pb-1">
             <div class="text-3xl font-bold tracking-tight text-foreground">
@@ -169,7 +169,7 @@ const recentActivity = computed(() => {
 
         <Card class="relative overflow-hidden group rounded-none py-3.5 gap-2">
           <div
-            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--terminal-amber)]/5 group-hover:scale-150 transition-transform duration-500"
+            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--status-warning-mark)]/5 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <CardHeader
             class="pb-1 px-4 space-y-0 flex flex-row items-center justify-between"
@@ -179,7 +179,7 @@ const recentActivity = computed(() => {
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >{{ t("personal.profile.streak") }}</CardTitle
             >
-            <Flame class="h-4 w-4 text-[var(--terminal-amber)]" />
+            <Flame class="h-4 w-4 text-[var(--status-warning-mark)]" />
           </CardHeader>
           <CardContent class="px-4 pb-1">
             <div class="text-3xl font-bold tracking-tight text-foreground">
@@ -193,7 +193,7 @@ const recentActivity = computed(() => {
               >
                 <div
                   v-if="i <= (statsData?.streak || 0) % 7"
-                  class="h-full bg-[var(--terminal-amber)] shadow-[0_0_8px_oklch(0.7_0.15_55)]"
+                  class="h-full bg-[var(--status-warning-mark)] shadow-[0_0_8px_color-mix(in_srgb,var(--status-warning-mark)_70%,transparent)]"
                 ></div>
               </div>
             </div>
@@ -384,11 +384,11 @@ const recentActivity = computed(() => {
                 class="flex h-8 w-8 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 transition-colors"
               >
                 <div
-                  class="h-2 w-2 rounded-none animate-pulse shadow-[0_0_8px_oklch(0.7_0.15_160)]"
+                  class="h-2 w-2 rounded-none animate-pulse shadow-[0_0_8px_color-mix(in_srgb,var(--status-info-mark)_70%,transparent)]"
                   :class="
                     item.status === 'Accepted'
-                      ? 'bg-[var(--terminal-green)]'
-                      : 'bg-[var(--terminal-red)] shadow-[0_0_8px_oklch(0.65_0.2_25)]'
+                      ? 'bg-[var(--status-success-mark)]'
+                      : 'bg-[var(--status-error-mark)] shadow-[0_0_8px_color-mix(in_srgb,var(--status-error-mark)_70%,transparent)]'
                   "
                 ></div>
               </div>
@@ -414,8 +414,8 @@ const recentActivity = computed(() => {
                     class="text-2xs h-3.5 px-1 rounded-none font-bold uppercase tracking-tighter"
                     :class="
                       item.status === 'Accepted'
-                        ? 'border-[var(--terminal-green)]/50 text-[var(--terminal-green)]'
-                        : 'border-[var(--terminal-red)]/50 text-[var(--terminal-red)]'
+                        ? 'border-[var(--status-success-mark)]/50 text-foreground-strong'
+                        : 'border-[var(--status-error-mark)]/50 text-foreground-strong'
                     "
                   >
                     {{ getSubmissionLabel(item.status) }}

@@ -152,13 +152,13 @@ export function getActionIcon(action: string) {
 }
 
 const COLOR_TO_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: 'text-[var(--terminal-green)]',
-  warning: 'text-[var(--terminal-amber)]',
-  error: 'text-[var(--terminal-red)]',
-  info: 'text-[var(--terminal-cyan)]',
-  purple: 'text-[var(--terminal-purple)]',
-  electric: 'text-[var(--accent-electric)]',
-  neutral: 'text-[var(--silver-500)]',
+  success: 'text-foreground-strong',
+  warning: 'text-foreground-strong',
+  error: 'text-foreground-strong',
+  info: 'text-foreground-strong',
+  purple: 'text-foreground-strong',
+  electric: 'text-[var(--primary)]',
+  neutral: 'text-[var(--foreground-muted)]',
 }
 
 /**

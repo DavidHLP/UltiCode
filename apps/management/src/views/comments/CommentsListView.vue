@@ -178,7 +178,7 @@ async function handleBulkDeleteConfirm() {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -192,41 +192,41 @@ async function handleBulkDeleteConfirm() {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.flagged') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.forum') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.forumCount
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.solution') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.solutionCount
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconMessage class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('comments.stats.commentModeration')
@@ -239,22 +239,22 @@ async function handleBulkDeleteConfirm() {
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-data text-sm text-[var(--terminal-amber)]">
+          <span class="font-data text-sm text-[var(--foreground-strong)]">
             &gt; SELECTED:{{ selectedRows.length }}
           </span>
         </div>
-        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="h-4 w-px bg-[var(--border-subtle)]" />
         <div class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+            class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
             @click="handleBulkUnflag"
             :disabled="bulkActionLoading"
           >
@@ -264,7 +264,7 @@ async function handleBulkDeleteConfirm() {
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+            class="h-8 font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
@@ -276,7 +276,7 @@ async function handleBulkDeleteConfirm() {
       <Button
         variant="terminal"
         size="sm"
-        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        class="h-8 font-data text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
         @click="selectedRows = []"
       >
         [ESC] {{ t('comments.clearSelection') }}
@@ -317,16 +317,16 @@ async function handleBulkDeleteConfirm() {
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
           @click="loadComments()"
         >
           {{ t('common.retry') }}
@@ -383,9 +383,9 @@ async function handleBulkDeleteConfirm() {
 
   <!-- Comment Detail Dialog -->
   <Dialog v-model:open="detailDialogOpen">
-    <DialogContent class="sm:max-w-lg border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+    <DialogContent class="sm:max-w-lg border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
       <DialogHeader>
-        <DialogTitle class="font-data text-sm uppercase tracking-wider text-[var(--terminal-cyan)]">
+        <DialogTitle class="font-data text-sm uppercase tracking-wider text-foreground-strong">
           {{ t('comments.detail.title') }}
         </DialogTitle>
         <DialogDescription class="sr-only">
@@ -395,24 +395,24 @@ async function handleBulkDeleteConfirm() {
       <div v-if="detailComment" class="space-y-4 py-2">
         <!-- Comment Content -->
         <div class="space-y-1.5">
-          <span class="terminal-label text-[var(--silver-500)]">{{
+          <span class="terminal-label text-[var(--foreground-muted)]">{{
             t('comments.columns.content')
           }}</span>
           <div
-            class="prose dark:prose-invert max-w-none text-sm text-[var(--foreground)] leading-relaxed rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3 markdown-content"
+            class="prose dark:prose-invert max-w-none text-sm text-[var(--foreground)] leading-relaxed rounded-none border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)] p-3 markdown-content"
             v-html="renderMarkdown(detailComment.content)"
           ></div>
         </div>
         <!-- Type & Author Row -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{
+            <span class="terminal-label text-[var(--foreground-muted)]">{{
               t('comments.columns.type')
             }}</span>
             <div class="flex items-center gap-2 text-sm text-[var(--foreground)]">
               <component
                 :is="detailComment.type === 'forum' ? IconMessage : IconFileText"
-                class="h-4 w-4 text-[var(--silver-400)]"
+                class="h-4 w-4 text-[var(--foreground-muted)]"
               />
               <span>{{
                 detailComment.type === 'forum'
@@ -422,18 +422,18 @@ async function handleBulkDeleteConfirm() {
             </div>
           </div>
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{
+            <span class="terminal-label text-[var(--foreground-muted)]">{{
               t('comments.columns.author')
             }}</span>
             <div class="flex items-center gap-2 text-sm text-[var(--foreground)]">
-              <IconUser class="h-4 w-4 text-[var(--silver-400)]" />
+              <IconUser class="h-4 w-4 text-[var(--foreground-muted)]" />
               <span>{{ detailComment.author?.username || t('comments.status.unknown') }}</span>
             </div>
           </div>
         </div>
         <!-- Parent Title -->
         <div v-if="detailComment.parentTitle" class="space-y-1.5">
-          <span class="terminal-label text-[var(--silver-500)]">{{
+          <span class="terminal-label text-[var(--foreground-muted)]">{{
             t('comments.detail.parent')
           }}</span>
           <p class="text-sm text-[var(--foreground)]">{{ detailComment.parentTitle }}</p>
@@ -441,17 +441,17 @@ async function handleBulkDeleteConfirm() {
         <!-- Status & Time Row -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{
+            <span class="terminal-label text-[var(--foreground-muted)]">{{
               t('comments.columns.status')
             }}</span>
             <span
               :class="[
                 'font-data text-xs uppercase tracking-wider',
                 detailComment.isDeleted
-                  ? 'text-[var(--terminal-red)]'
+                  ? 'text-foreground-strong'
                   : detailComment.isFlagged
-                    ? 'text-[var(--terminal-amber)]'
-                    : 'text-[var(--terminal-green)]',
+                    ? 'text-foreground-strong'
+                    : 'text-foreground-strong',
               ]"
             >
               {{
@@ -464,20 +464,20 @@ async function handleBulkDeleteConfirm() {
             </span>
           </div>
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{
+            <span class="terminal-label text-[var(--foreground-muted)]">{{
               t('comments.columns.created')
             }}</span>
-            <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">{{
+            <span class="font-data text-xs text-[var(--foreground-muted)] tabular-nums">{{
               detailComment.createdAt
             }}</span>
           </div>
         </div>
         <!-- Flag Reason (if flagged) -->
         <div v-if="detailComment.isFlagged && detailComment.flaggedReason" class="space-y-1.5">
-          <span class="terminal-label text-[var(--silver-500)]">{{
+          <span class="terminal-label text-[var(--foreground-muted)]">{{
             t('comments.flag.reasonLabel')
           }}</span>
-          <p class="text-sm text-[var(--terminal-amber)]">{{ detailComment.flaggedReason }}</p>
+          <p class="text-sm text-[var(--foreground-strong)]">{{ detailComment.flaggedReason }}</p>
         </div>
       </div>
     </DialogContent>

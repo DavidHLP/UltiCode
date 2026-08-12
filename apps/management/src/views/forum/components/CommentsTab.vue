@@ -103,7 +103,7 @@ function renderStatusBadge(comment: Comment, t: (key: string) => string) {
 const columns: ColumnDef<Comment>[] = [
     ...createSelectionColumn<Comment>(t, {
       checkboxClass:
-        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
   {
     id: 'row_num',
@@ -122,7 +122,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
         t('comments.columns.comment'),
       ),
     cell: ({ row }) => {
@@ -139,7 +139,7 @@ const columns: ColumnDef<Comment>[] = [
           },
           renderInlineContent(truncated),
         ),
-        h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
+        h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]' }, [
           h(IconUser, { class: 'h-3 w-3' }),
           h(
             'span',
@@ -155,14 +155,14 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
         t('comments.columns.created'),
       ),
     cell: ({ row }) => {
       const date = new Date(row.getValue('createdAt') as string)
       return h(
         'span',
-        { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+        { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
         formatDateByLocale(date),
       )
     },
@@ -172,7 +172,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
         t('comments.columns.status'),
       ),
     cell: ({ row }) => {
@@ -185,7 +185,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
         t('common.actions.label'),
       ),
     cell: ({ row }) => {
@@ -208,12 +208,12 @@ const columns: ColumnDef<Comment>[] = [
                       variant: 'ghost',
                       size: 'icon',
                       class:
-                        'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+                        'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
                     },
                     {
                       default: () => [
                         h('span', { class: 'sr-only' }, t('common.open')),
-                        h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
+                        h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
                       ],
                     },
                   ),
@@ -223,7 +223,7 @@ const columns: ColumnDef<Comment>[] = [
               DropdownMenuContent,
               {
                 align: 'end',
-                class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+                class: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
               },
               {
                 default: () => [
@@ -237,10 +237,10 @@ const columns: ColumnDef<Comment>[] = [
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                              h(IconCheck, { class: 'h-4 w-4 text-foreground-strong' }),
                               h(
                                 'span',
-                                { class: 'text-[var(--terminal-green)]' },
+                                { class: 'text-foreground-strong' },
                                 t('comments.actions.unflag'),
                               ),
                             ]),
@@ -255,17 +255,17 @@ const columns: ColumnDef<Comment>[] = [
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconFlag, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                              h(IconFlag, { class: 'h-4 w-4 text-foreground-strong' }),
                               h(
                                 'span',
-                                { class: 'text-[var(--terminal-amber)]' },
+                                { class: 'text-foreground-strong' },
                                 t('comments.actions.flag'),
                               ),
                             ]),
                         },
                       ),
                   h(DropdownMenuSeparator, {
-                    class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+                    class: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
                   }),
                   h(
                     DropdownMenuItem,
@@ -276,10 +276,10 @@ const columns: ColumnDef<Comment>[] = [
                     {
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                          h(IconTrash, { class: 'h-4 w-4 text-foreground-strong' }),
                           h(
                             'span',
-                            { class: 'text-[var(--terminal-red)]' },
+                            { class: 'text-foreground-strong' },
                             t('comments.actions.delete'),
                           ),
                         ]),
@@ -299,16 +299,16 @@ const columns: ColumnDef<Comment>[] = [
 <template>
   <div class="space-y-4">
     <!-- Terminal Header -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]">
       <!-- Title Row -->
       <div
-        class="px-4 py-3 flex items-center justify-between border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+        class="px-4 py-3 flex items-center justify-between border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
       >
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
             <span class="terminal-cursor" />
           </div>
-          <IconMessage class="h-4 w-4 text-[var(--terminal-cyan)]" />
+          <IconMessage class="h-4 w-4 text-[var(--status-info-mark)]" />
           <h3 class="text-sm font-medium text-[var(--foreground)]">
             {{ t('forum.comments.postComments') }}
           </h3>
@@ -316,7 +316,7 @@ const columns: ColumnDef<Comment>[] = [
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 w-7 p-0 border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+          class="h-7 w-7 p-0 border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
           @click="loadComments"
           :title="t('common.refresh')"
         >
@@ -327,26 +327,26 @@ const columns: ColumnDef<Comment>[] = [
       <!-- Stats Ticker -->
       <div class="px-4 py-2 flex items-center gap-4 bg-[var(--surface-sunken)]">
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.total') }}:</span
           >
-          <span class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-xs text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.flagged') }}:</span
           >
-          <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
+          <span class="font-data text-xs text-[var(--foreground-strong)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('comments.stats.deleted') }}:</span
           >
-          <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
+          <span class="font-data text-xs text-[var(--foreground-strong)] tabular-nums">{{
             stats.deleted
           }}</span>
         </div>
@@ -367,16 +367,16 @@ const columns: ColumnDef<Comment>[] = [
     <!-- Error state - Terminal Style -->
     <div
       v-if="commentsStore.error"
-      class="flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+      class="flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
     >
       <div class="flex items-center gap-3">
-        <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+        <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
         <span class="text-sm text-[var(--foreground)]">{{ commentsStore.error }}</span>
       </div>
       <Button
         variant="terminal"
         size="sm"
-        class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+        class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
         @click="loadComments"
       >
         {{ t('common.retry') }}
@@ -386,14 +386,14 @@ const columns: ColumnDef<Comment>[] = [
     <!-- Empty state - Terminal Style -->
     <div
       v-if="!commentsStore.loading && commentsStore.comments.length === 0 && !commentsStore.error"
-      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-8 text-center bg-[var(--card)]"
+      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-8 text-center bg-[var(--card)]"
     >
       <div
-        class="w-10 h-10 border border-[var(--silver-300)] flex items-center justify-center mx-auto mb-3"
+        class="w-10 h-10 border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-3"
       >
-        <IconMessage class="h-5 w-5 text-[var(--silver-400)]" />
+        <IconMessage class="h-5 w-5 text-[var(--foreground-muted)]" />
       </div>
-      <p class="font-data text-xs text-[var(--silver-400)]">
+      <p class="font-data text-xs text-[var(--foreground-muted)]">
         &gt; {{ t('forum.comments.noCommentsFound') }}
       </p>
     </div>

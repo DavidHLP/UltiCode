@@ -150,7 +150,7 @@ const setRef = (el: unknown) => {
       :class="[
         isActive
           ? 'text-foreground hover:text-foreground hover:bg-background bg-background border-l border-r border-t-2 border-b-transparent border-border z-10'
-          : 'text-silver-500 hover:bg-[var(--silver-100)]/40 hover:text-silver-700 border border-transparent',
+          : 'text-foreground-muted hover:bg-[var(--surface-highlight)]/40 hover:text-foreground-strong border border-transparent',
       ]"
       :style="activeTabStyle"
       @click="onHeaderClick"

@@ -125,13 +125,13 @@ function handleOAuth() {
 
 .oauth-button:hover {
   background: var(--surface-sunken);
-  border-color: color-mix(in oklch, var(--accent-electric) 35%, var(--border));
-  box-shadow: 3px 3px 0px 0px var(--accent-electric);
+  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+  box-shadow: 3px 3px 0px 0px var(--primary);
   transform: translate(-1px, -1px);
 }
 
 .oauth-button:focus-visible {
-  outline: 2px solid var(--accent-electric);
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
 

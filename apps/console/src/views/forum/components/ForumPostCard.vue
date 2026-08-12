@@ -51,14 +51,15 @@ const emit = defineEmits<{
 
 const flairClasses: Record<ForumFlairType, string> = {
   announcement:
-    "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
   discussion:
-    "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
+    "bg-status-info-surface text-foreground-strong border border-status-info-mark",
   showcase:
-    "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
+    "bg-status-special-surface text-foreground-strong border border-status-special-mark",
   question:
-    "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
-  hiring: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+    "bg-status-success-surface text-foreground-strong border border-status-success-mark",
+  hiring:
+    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
 };
 
 const userInitials = computed(() => {
@@ -233,10 +234,10 @@ function handleCardClick(event: MouseEvent) {
       <div class="min-w-0 flex-1 space-y-3">
         <!-- Header -->
         <header
-          class="flex items-center gap-2 text-xs font-mono text-[var(--solarized-base01)] dark:text-[var(--silver-400)]"
+          class="flex items-center gap-2 text-xs font-mono text-foreground dark:text-[var(--foreground-muted)]"
         >
           <Avatar
-            class="h-9 w-9 rounded-none border border-silver avatar-trigger cursor-pointer"
+            class="h-9 w-9 rounded-none border border-border-control avatar-trigger cursor-pointer"
             v-if="post.community?.icon"
           >
             <AvatarImage
@@ -248,7 +249,7 @@ function handleCardClick(event: MouseEvent) {
             }}</AvatarFallback>
           </Avatar>
           <Avatar
-            class="h-9 w-9 rounded-none border border-silver avatar-trigger cursor-pointer"
+            class="h-9 w-9 rounded-none border border-border-control avatar-trigger cursor-pointer"
             v-else
           >
             <AvatarImage
@@ -260,13 +261,13 @@ function handleCardClick(event: MouseEvent) {
           <span class="flex items-center gap-1">
             <span
               v-if="post.community"
-              class="font-bold text-[var(--accent-electric)] hover:underline cursor-pointer"
+              class="font-bold text-[var(--primary)] hover:underline cursor-pointer"
             >
               r/{{ post.community.name }}
             </span>
             <span
               v-else
-              class="font-bold text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:underline cursor-pointer"
+              class="font-bold text-foreground dark:text-[var(--foreground-muted)] hover:underline cursor-pointer"
             >
               u/{{ post.author?.username || "?" }}
             </span>
@@ -300,7 +301,7 @@ function handleCardClick(event: MouseEvent) {
             class="block"
           >
             <h3
-              class="text-base sm:text-lg font-bold leading-snug text-foreground hover:text-[var(--accent-electric)] hover:underline transition-colors"
+              class="text-base sm:text-lg font-bold leading-snug text-foreground hover:text-[var(--primary)] hover:underline transition-colors"
             >
               {{ post.title }}
             </h3>
@@ -323,7 +324,7 @@ function handleCardClick(event: MouseEvent) {
           <!-- Media -->
           <div
             v-if="media"
-            class="mt-2 overflow-hidden rounded-none border border-silver bg-[var(--surface-sunken)]/50"
+            class="mt-2 overflow-hidden rounded-none border border-border-control bg-[var(--surface-sunken)]/50"
           >
             <AspectRatio
               v-if="media.kind === 'image'"
@@ -333,7 +334,7 @@ function handleCardClick(event: MouseEvent) {
               <img
                 :src="media.src"
                 :alt="media.alt ?? post.title"
-                class="h-full w-full object-contain bg-black/5"
+                class="h-full w-full object-contain bg-surface/5"
               />
             </AspectRatio>
 
@@ -351,7 +352,7 @@ function handleCardClick(event: MouseEvent) {
                   {{ media.description }}
                 </div>
                 <div
-                  class="flex items-center gap-1 text-xs text-[var(--accent-electric)]"
+                  class="flex items-center gap-1 text-xs text-[var(--primary)]"
                 >
                   <LinkIcon class="w-3 h-3" />
                   {{ media.domain }}
@@ -365,7 +366,7 @@ function handleCardClick(event: MouseEvent) {
               </div>
             </div>
 
-            <div v-else-if="media.kind === 'video'" class="bg-black">
+            <div v-else-if="media.kind === 'video'" class="bg-background">
               <AspectRatio :ratio="16 / 9">
                 <video
                   :src="media.src"

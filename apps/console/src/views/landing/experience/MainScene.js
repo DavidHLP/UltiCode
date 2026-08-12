@@ -10,6 +10,7 @@ import {Awards} from "./Awards";
 //import {SystemDialog} from './SystemDialog.js';
 import {isDesktop} from './Utils.js';
 import { TEMPLATE_URL } from './config.js';
+import { SOLARIZED_PALETTE } from '@ulticode/design-system';
 
 import {
     EffectComposer,
@@ -63,6 +64,20 @@ const setUniformColor = (uniform, color) => {
         uniform.value.set(color);
     }
 };
+
+/**
+ * Pure scene clock. Under `prefers-reduced-motion` the continuous
+ * clock is frozen so uTime-driven shader drift (fog flow, particle
+ * drift, text glitch) stops; scroll/theme updates keep writing their
+ * uniforms and positions directly and stay alive. Exported for
+ * focused tests.
+ * @param {number} now wall-clock ms
+ * @param {boolean} reducedMotion
+ * @param {number} previousTime
+ * @returns {number}
+ */
+export const tickSceneTime = (now, reducedMotion, previousTime) =>
+    reducedMotion ? previousTime : now * 0.01;
 
 /**
  * Apply a theme to every subsystem owned by the Scene. Used by
@@ -204,16 +219,20 @@ export class MainScene {
         this.cameraTarget = new THREE.Object3D();
         this.cameraTarget.position.set(0.36, 0.26, -.22);
 
-        const material = new THREE.MeshBasicMaterial({
-            color: new THREE.Color().setHSL(Math.random(), 0.7, 0.5)
-        });
-
-        const helperGeometry = new THREE.SphereGeometry(0.125, 16, 16);
-        this.helper = new THREE.Mesh(helperGeometry, material);
-
-
         this.scene.add(this.cameraTarget);
-        //this.scene.add(this.helper);
+
+        // prefers-reduced-motion:freeze continuous drift (particle
+        // clock, mouse smoothing, mouse-driven camera rotation) while
+        // keeping render/scroll/theme updates alive. State lives on the
+        // Scene — no second theme store — and follows OS preference
+        // changes until destroy() removes the listener.
+        this.reducedMotionQuery =
+            typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+                ? window.matchMedia('(prefers-reduced-motion: reduce)')
+                : null;
+        this.reducedMotion = this.reducedMotionQuery?.matches ?? false;
+        this.onReducedMotionChange = this.onReducedMotionChange.bind(this);
+        this.reducedMotionQuery?.addEventListener?.('change', this.onReducedMotionChange);
 
         this.customCameraRotation = { x: 0, y: 0, z: 0 };
         this.quickCameraRotationX = gsap.quickTo(this.customCameraRotation, "x", {
@@ -279,7 +298,7 @@ export class MainScene {
         this.container.appendChild(this.renderer.domElement);
 
 
-        this.renderer.setClearColor(0x101010, 0);
+        this.renderer.setClearColor(new THREE.Color(SOLARIZED_PALETTE.base03), 0);
 
 
 
@@ -332,6 +351,11 @@ export class MainScene {
 
         if (this._onResize) window.removeEventListener("resize", this._onResize);
         if (this._onVisibilityChange) document.removeEventListener('visibilitychange', this._onVisibilityChange);
+
+        if (this.reducedMotionQuery) {
+            this.reducedMotionQuery.removeEventListener?.('change', this.onReducedMotionChange);
+            this.reducedMotionQuery = null;
+        }
 
         // Awards 使用独立 scene / render target,不在主 scene 遍历范围内
         try { this.awards?.destroy?.(); } catch (e) { /* noop */ }
@@ -1075,9 +1099,27 @@ export class MainScene {
         }
     }
 
+    onReducedMotionChange(event) {
+        this.reducedMotion = event.matches;
+        if (!this.reducedMotion) return;
+
+        // Drop any in-flight GSAP pointer tween so reduced motion cannot
+        // continue a camera movement started before the preference changed.
+        gsap.killTweensOf(this.customCameraRotation);
+        this.customCameraRotation.x = 0;
+        this.customCameraRotation.y = 0;
+        this.customCameraRotation.z = 0;
+        this.cameraMouseTarget.x = 0;
+        this.cameraMouseTarget.y = 0;
+    }
+
     onMouseMove(e) {
         this.mouseTarget.x = (e.clientX / window.innerWidth) * 2 - 1;
         this.mouseTarget.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        // reduced motion:mouse smoothing is frozen in render(); keep the
+        // raw target fresh but stop the mouse-driven camera rotation.
+        if (this.reducedMotion) return;
 
         this.cameraMouseTarget.x = this.mouseTarget.y * this.cameraMouseStrength.x;
         this.cameraMouseTarget.y = -this.mouseTarget.x * this.cameraMouseStrength.y;
@@ -1135,19 +1177,25 @@ export class MainScene {
             Math.sqrt(dx * dx + dz * dz)
         );
 
+        // reduced motion:keep scroll-driven target/base rotation, skip
+        // the mouse-driven customCameraRotation contribution
+        const customYaw = this.reducedMotion ? 0 : this.customCameraRotation.y;
+        const customPitch = this.reducedMotion ? 0 : this.customCameraRotation.x;
+        const customRoll = this.reducedMotion ? 0 : this.customCameraRotation.z;
+
         this.cameraYaw.rotation.y =
             this.targetCameraRotation.y +
             this.baseCameraRotation.y +
-            this.customCameraRotation.y;
+            customYaw;
 
         this.cameraPitch.rotation.x =
             this.targetCameraRotation.x +
             this.baseCameraRotation.x +
-            this.customCameraRotation.x;
+            customPitch;
 
         this.camera.rotation.z =
             this.baseCameraRotation.z +
-            this.customCameraRotation.z;
+            customRoll;
 
 
         this.fog.camrot = {
@@ -1155,8 +1203,6 @@ export class MainScene {
             y: this.targetCameraRotation.y + this.baseCameraRotation.y,
             z: this.baseCameraRotation.z
         };
-
-        this.helper.position.copy(this.cameraTarget.position);
 
 
     }
@@ -1289,14 +1335,18 @@ export class MainScene {
         if (now - this.lastRenderTime < this.minFrameInterval - 0.5) return;
         this.lastRenderTime = now;
 
-        this.mouse.lerp(this.mouseTarget, 0.15);
+        // reduced motion:freeze continuous pointer smoothing and the
+        // scene clock; scroll/theme updates below still run every frame
+        if (!this.reducedMotion) {
+            this.mouse.lerp(this.mouseTarget, 0.15);
+        }
         this.updateParticlePerformance(now);
 
-        if (this.mousePointer) {
+        if (this.mousePointer && !this.reducedMotion) {
             this.mousePointer.update()
         }
 
-        this.time = now*0.01;
+        this.time = tickSceneTime(now, this.reducedMotion, this.time);
 
 
         if (this.dialog) {
@@ -1306,9 +1356,9 @@ export class MainScene {
 
         if (this.hand) {
 
-            let th = now*0.01;
-
-            this.hand.update(th);
+            // use the scene clock (frozen under reduced motion) so the
+            // hand particle drift cannot bypass the motion gate
+            this.hand.update(this.time);
 
 
             /*

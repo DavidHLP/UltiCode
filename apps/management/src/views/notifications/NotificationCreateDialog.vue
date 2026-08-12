@@ -149,7 +149,7 @@ async function handleSubmit() {
 
       <!-- Content -->
       <div class="p-4">
-        <p class="text-sm text-[var(--silver-500)] mb-4">
+        <p class="text-sm text-[var(--foreground-muted)] mb-4">
           {{
             isEditMode
               ? t('notifications.dialog.editDescription')
@@ -161,19 +161,19 @@ async function handleSubmit() {
           <!-- Error Block - Terminal Style -->
           <div
             v-if="error"
-            class="mb-4 p-3 border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] text-sm"
+            class="mb-4 p-3 border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] text-sm"
           >
-            <span class="font-data text-[var(--terminal-red)]">&gt; ERROR: </span>
+            <span class="font-data text-[var(--foreground-strong)]">&gt; ERROR: </span>
             <span class="text-[var(--foreground)]">{{ error }}</span>
           </div>
 
           <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
             <FieldSet>
               <FieldLegend
-                class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]"
+                class="font-data text-xs uppercase tracking-wider text-foreground-strong"
                 >{{ t('notifications.form.messageContent') }}</FieldLegend
               >
-              <FieldDescription class="text-[var(--silver-500)]">{{
+              <FieldDescription class="text-[var(--foreground-muted)]">{{
                 t('notifications.form.messageContentDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
@@ -204,20 +204,20 @@ async function handleSubmit() {
                     :disabled="loading"
                     :placeholder="t('notifications.form.notificationContentPlaceholder')"
                     rows="4"
-                    class="terminal-input font-data text-sm min-h-[100px] resize-y selection:bg-[var(--accent-electric)] selection:text-[var(--solarized-base3)]"
+                    class="terminal-input font-data text-sm min-h-[100px] resize-y selection:bg-[var(--primary)] selection:text-primary-foreground"
                   />
                 </Field>
               </FieldGroup>
             </FieldSet>
 
-            <FieldSeparator class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
+            <FieldSeparator class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]" />
 
             <FieldSet>
               <FieldLegend
-                class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]"
+                class="font-data text-xs uppercase tracking-wider text-foreground-strong"
                 >{{ t('notifications.form.classification') }}</FieldLegend
               >
-              <FieldDescription class="text-[var(--silver-500)]">{{
+              <FieldDescription class="text-[var(--foreground-muted)]">{{
                 t('notifications.form.classificationDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
@@ -275,20 +275,20 @@ async function handleSubmit() {
 
             <FieldSeparator
               v-if="!isEditMode"
-              class="border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+              class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
             />
 
             <FieldSet v-if="!isEditMode">
-              <FieldDescription class="text-[var(--silver-500)]">{{
+              <FieldDescription class="text-[var(--foreground-muted)]">{{
                 t('notifications.form.targetAudienceDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
                 <Field>
                   <RadioGroup v-model="form.target" class="flex flex-col space-y-2">
                     <div
-                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
+                      class="flex items-center space-x-3 p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none hover:border-[var(--status-info-mark)] transition-colors cursor-pointer"
                       :class="{
-                        'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
+                        'border-[var(--status-info-mark)] bg-[color-mix(in_oklch,_var(--status-info-mark)_8%,_transparent)]':
                           form.target === 'ALL',
                       }"
                     >
@@ -298,9 +298,9 @@ async function handleSubmit() {
                       </FieldLabel>
                     </div>
                     <div
-                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
+                      class="flex items-center space-x-3 p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none hover:border-[var(--status-info-mark)] transition-colors cursor-pointer"
                       :class="{
-                        'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
+                        'border-[var(--status-info-mark)] bg-[color-mix(in_oklch,_var(--status-info-mark)_8%,_transparent)]':
                           form.target === 'USERS',
                       }"
                     >
@@ -335,7 +335,7 @@ async function handleSubmit() {
               type="button"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-400)]"
+              class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
               @click="emit('update:open', false)"
             >
               {{ t('common.cancel') }}
@@ -344,7 +344,7 @@ async function handleSubmit() {
               type="submit"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
+              class="font-data text-xs border-[var(--primary)] text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
               :disabled="loading"
             >
               <span v-if="loading" class="flex items-center gap-2">

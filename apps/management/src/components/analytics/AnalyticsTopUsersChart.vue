@@ -7,6 +7,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import { IconChartBar } from '@tabler/icons-vue'
+import { readCssColor, SOLARIZED_PALETTE } from '@ulticode/design-system'
 import { useColorTheme } from '@/shared/theme/src'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -27,22 +28,17 @@ const themeRevision = ref(0)
 
 let themeObserver: MutationObserver | undefined
 
-function readCssColor(variable: string, fallback: string): string {
-  if (typeof document === 'undefined') return fallback
-  return getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback
-}
-
 const colors = computed<TopUserChartColors>(() => {
   void theme.value
   void themeRevision.value
 
   return {
-    accent: readCssColor('--chart-series-1', '#268bd2'),
-    accentMuted: readCssColor('--chart-series-2', '#2aa198'),
-    axis: readCssColor('--foreground-muted', '#839496'),
-    border: readCssColor('--chart-tooltip-border', '#586e75'),
-    card: readCssColor('--chart-tooltip-background', '#073642'),
-    foreground: readCssColor('--foreground-strong', '#93a1a1'),
+    accent: readCssColor('--chart-series-1', SOLARIZED_PALETTE.blue),
+    accentMuted: readCssColor('--chart-series-2', SOLARIZED_PALETTE.cyan),
+    axis: readCssColor('--foreground', SOLARIZED_PALETTE.base0),
+    border: readCssColor('--chart-tooltip-border', SOLARIZED_PALETTE.base01),
+    card: readCssColor('--chart-tooltip-background', SOLARIZED_PALETTE.base02),
+    foreground: readCssColor('--foreground-strong', SOLARIZED_PALETTE.base1),
   }
 })
 
@@ -70,10 +66,10 @@ onUnmounted(() => {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col gap-0 py-0 rounded-none h-full"
+    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden flex flex-col gap-0 py-0 rounded-none h-full"
   >
     <CardHeader
-      class="px-4 py-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      class="px-4 py-4 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
     >
       <div class="flex items-center gap-2">
         <IconChartBar class="h-4 w-4 text-[var(--accent-primary)]" />
@@ -81,14 +77,14 @@ onUnmounted(() => {
           {{ t('analytics.userActivity.topUsers') }}
         </CardTitle>
       </div>
-      <CardDescription class="text-xs text-[var(--silver-400)] mt-1">
+      <CardDescription class="text-xs text-[var(--foreground-muted)] mt-1">
         {{ t('analytics.userActivity.topUsersDesc') }}
       </CardDescription>
     </CardHeader>
     <CardContent class="p-4">
       <div
         v-if="data.length === 0"
-        class="h-[200px] flex items-center justify-center text-sm text-[var(--silver-400)]"
+        class="h-[200px] flex items-center justify-center text-sm text-[var(--foreground-muted)]"
       >
         {{ t('analytics.noData') }}
       </div>

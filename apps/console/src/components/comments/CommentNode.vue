@@ -24,7 +24,7 @@
         class="w-8 h-8 rounded-full overflow-hidden z-10 cursor-pointer border border-transparent hover:border-foreground/10 transition-all relative bg-background"
       >
         <div
-          class="w-full h-full flex items-center justify-center text-white font-bold text-xs bg-muted"
+          class="w-full h-full flex items-center justify-center text-foreground font-bold text-xs bg-muted"
         >
           <img
             v-if="comment.avatar"
@@ -216,7 +216,7 @@
           }}</AlertDialogCancel>
           <AlertDialogAction
             @click="confirmDelete"
-            class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-none font-black"
+            class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80 rounded-none font-black"
           >
             {{ t("forum.comments.deleteDialog.confirm") }}
           </AlertDialogAction>

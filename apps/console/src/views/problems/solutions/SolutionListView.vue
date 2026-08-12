@@ -201,7 +201,7 @@ onMounted(async () => {
           <Input
             v-model="search"
             :placeholder="t('problem.solutions.searchPlaceholder')"
-            class="h-8 pl-8.5 text-xs rounded-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:border-[var(--accent-electric)] focus-visible:ring-1 focus-visible:ring-[var(--accent-electric)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none"
+            class="h-8 pl-8.5 text-xs rounded-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:border-[var(--primary)] focus-visible:ring-1 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none"
           />
         </div>
 
@@ -232,7 +232,7 @@ onMounted(async () => {
               {{ option.label }}
               <Check
                 v-if="sortBy === option.value"
-                class="ml-auto h-3.5 w-3.5 text-[var(--accent-electric)]"
+                class="ml-auto h-3.5 w-3.5 text-[var(--primary)]"
               />
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -251,7 +251,7 @@ onMounted(async () => {
             class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === 'all'
-                ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
+                ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border-border/40'
             "
             @click="languageFilter = 'all'"
@@ -268,7 +268,7 @@ onMounted(async () => {
             class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === option.value
-                ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
+                ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border-border/40'
             "
             @click="languageFilter = option.value"
@@ -286,21 +286,21 @@ onMounted(async () => {
           <div class="flex items-center gap-2 flex-1 min-w-0 pl-1">
             <template v-if="userSolution">
               <div
-                class="rounded-none p-0.5 bg-[var(--solarized-green)] flex-shrink-0 flex items-center justify-center h-4 w-4"
+                class="rounded-none p-0.5 bg-status-success-mark flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
-                <Check class="h-3 w-3 text-white" />
+                <Check class="h-3 w-3 text-primary-control-foreground" />
               </div>
               <span
-                class="text-xxs font-bold uppercase tracking-wider text-[var(--solarized-green)] leading-tight truncate"
+                class="text-xxs font-bold uppercase tracking-wider text-foreground-strong leading-tight truncate"
               >
                 {{ t("problem.solutions.alreadyShared") }}
               </span>
             </template>
             <template v-else-if="bestSubmission">
               <div
-                class="rounded-none p-0.5 bg-[var(--accent-electric)] flex-shrink-0 flex items-center justify-center h-4 w-4"
+                class="rounded-none p-0.5 bg-primary flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
-                <Check class="h-3 w-3 text-white" />
+                <Check class="h-3 w-3 text-primary-foreground" />
               </div>
               <span
                 class="text-xxs font-semibold text-foreground leading-tight truncate"
@@ -322,11 +322,11 @@ onMounted(async () => {
           </div>
 
           <button
-            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-xxs font-bold uppercase tracking-wider text-white dark:text-[var(--solarized-base03)] shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-primary px-3 py-1 text-xxs font-bold uppercase tracking-wider text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:bg-primary cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
             <PenLine
-              class="h-3.5 w-3.5 text-white dark:text-[var(--solarized-base03)]"
+              class="h-3.5 w-3.5 text-primary-foreground"
             />
             <span>
               {{

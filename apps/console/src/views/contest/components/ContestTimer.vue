@@ -103,7 +103,7 @@ const formattedTime = computed(() => {
 const timerColor = computed(() => {
   if (isComplete.value) return "text-muted-foreground";
   if (timeRemaining.value < 300) return "text-destructive"; // < 5 minutes
-  if (timeRemaining.value < 3600) return "text-[var(--terminal-amber)]"; // < 1 hour
+  if (timeRemaining.value < 3600) return "text-[var(--foreground-strong)]"; // < 1 hour
   return "text-primary";
 });
 

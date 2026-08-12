@@ -48,9 +48,9 @@ const { t } = useI18n()
 
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty?.toLowerCase() || ''
-  if (difficulty === 'easy') return 'text-green-600 bg-green-500/10 border-green-500/20'
-  if (difficulty === 'medium') return 'text-orange-600 bg-orange-500/10 border-orange-500/20'
-  if (difficulty === 'hard') return 'text-red-600 bg-red-500/10 border-red-500/20'
+  if (difficulty === 'easy') return 'text-foreground-strong bg-status-success-surface border-status-success-mark'
+  if (difficulty === 'medium') return 'text-foreground-strong bg-status-warning-surface border-status-warning-mark'
+  if (difficulty === 'hard') return 'text-foreground-strong bg-status-error-surface border-status-error-mark'
   return 'text-foreground bg-muted'
 })
 
@@ -129,7 +129,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             <Badge
               v-if="problem.isPremium"
               variant="secondary"
-              class="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 border"
+              class="bg-status-warning-surface text-foreground-strong hover:bg-status-warning-surface border-status-warning-mark border"
             >
               {{ t('problems.badges.premium') }}
             </Badge>

@@ -32,16 +32,16 @@ function renderFeaturedBadge(isFeatured: boolean) {
   if (isFeatured) {
     return h('div', { class: 'flex items-center gap-2' }, [
       h('span', {
-        class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-amber)] animate-pulse-subtle',
+        class: 'w-1.5 h-1.5 rounded-full bg-[var(--status-warning-mark)] animate-pulse-subtle',
       }),
       h(IconStarFilled, {
-        class: 'h-4 w-4 text-[var(--terminal-amber)]',
+        class: 'h-4 w-4 text-foreground-strong',
       }),
     ])
   }
 
   return h(IconStar, {
-    class: 'h-4 w-4 text-[var(--silver-300)] dark:text-[var(--silver-600)]',
+    class: 'h-4 w-4 text-[var(--border-subtle)] dark:text-[var(--foreground-strong)]',
   })
 }
 
@@ -54,7 +54,7 @@ export function createColumns(
   return [
     ...createSelectionColumn<ProblemList>(t, {
       checkboxClass:
-        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       id: 'row_num',
@@ -73,7 +73,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('problemLists.columns.name'),
         ),
       cell: ({ row }) => {
@@ -82,7 +82,7 @@ export function createColumns(
           h('span', { class: 'font-medium text-sm text-[var(--foreground)]' }, list.name),
           h(
             'span',
-            { class: 'font-data text-xs text-[var(--silver-400)] line-clamp-1' },
+            { class: 'font-data text-xs text-[var(--foreground-muted)] line-clamp-1' },
             list.description || t('common.noData'),
           ),
         ])
@@ -93,7 +93,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('problemLists.columns.featured'),
         ),
       cell: ({ row }) => {
@@ -106,7 +106,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('problemLists.columns.visibility'),
         ),
       cell: ({ row }) => {
@@ -119,14 +119,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('problemLists.columns.problems'),
         ),
       cell: ({ row }) => {
         const count = row.original.problemCount || 0
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--terminal-cyan)] tabular-nums' },
+          { class: 'font-data text-xs text-foreground-strong tabular-nums' },
           count.toLocaleString(),
         )
       },
@@ -136,12 +136,12 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('table.columnNames.authorName'),
         ),
       cell: ({ row }) => {
         const authorName = row.original.authorName
-        return h('span', { class: 'font-data text-xs text-[var(--silver-400)]' }, authorName || '-')
+        return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)]' }, authorName || '-')
       },
     },
     {
@@ -149,14 +149,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('problemLists.columns.order'),
         ),
       cell: ({ row }) => {
         const order = row.original.bannerOrder
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
           order,
         )
       },
@@ -166,14 +166,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('common.updated'),
         ),
       cell: ({ row }) => {
         const date = row.getValue('updatedAt') as string
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
           formatDate(date),
         )
       },
@@ -183,7 +183,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {
@@ -194,7 +194,7 @@ export function createColumns(
               label: t('common.edit'),
               onSelect: () => actions.editList(list.id),
               icon: IconPencil,
-              iconClass: 'h-4 w-4 text-[var(--accent-electric)]',
+              iconClass: 'h-4 w-4 text-[var(--primary)]',
               hidden: !canUpdate(),
             },
             { kind: 'separator', hidden: !canDelete() },
@@ -202,18 +202,18 @@ export function createColumns(
               label: t('common.delete'),
               onSelect: () => actions.deleteList(list),
               icon: IconTrash,
-              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
-              labelClass: 'text-[var(--terminal-red)]',
+              iconClass: 'h-4 w-4 text-foreground-strong',
+              labelClass: 'text-[var(--foreground-strong)]',
               hidden: !canDelete(),
             },
           ],
           {
             triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
-            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
+            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
             itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
           },
         )
       },

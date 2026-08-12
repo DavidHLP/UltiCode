@@ -164,7 +164,7 @@ const getItemAtIndex = (index: number): T => {
                   (getItemAtIndex(virtualRow.index) as Identifiable).id ||
                   virtualRow.index
                 "
-                class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--accent-electric)]/5 border-b border-border cursor-pointer transition-colors"
+                class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--primary)]/5 border-b border-border cursor-pointer transition-colors"
                 :style="{
                   position: 'absolute',
                   top: 0,
@@ -180,7 +180,7 @@ const getItemAtIndex = (index: number): T => {
                   :key="col.key"
                   :class="
                     cn(
-                      'py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle',
+                      'py-3.5 px-4 text-xs text-foreground font-medium align-middle',
                       col.class,
                     )
                   "
@@ -258,7 +258,7 @@ const getItemAtIndex = (index: number): T => {
             <TableRow
               v-for="(item, index) in data"
               :key="(item as Identifiable).id || index"
-              class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--accent-electric)]/5 border-b border-border cursor-pointer transition-colors"
+              class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--primary)]/5 border-b border-border cursor-pointer transition-colors"
               @click="emit('row-click', item)"
             >
               <TableCell
@@ -266,7 +266,7 @@ const getItemAtIndex = (index: number): T => {
                 :key="col.key"
                 :class="
                   cn(
-                    'py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle',
+                    'py-3.5 px-4 text-xs text-foreground-muted dark:text-[var(--foreground-muted)] font-medium align-middle',
                     col.class,
                   )
                 "

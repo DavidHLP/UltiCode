@@ -4,6 +4,7 @@ import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { fetchLearningProgress } from "@/api/submission";
 import type { LearningProgress } from "@/api/submission";
+import { readCssColor, SOLARIZED_PALETTE } from "@ulticode/design-system";
 import { withSafeChartAnimation } from "./chartOptions";
 
 const { t } = useI18n();
@@ -18,6 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
+let themeObserver: MutationObserver | null = null;
 const progressData = ref<LearningProgress | null>(null);
 const dataLoading = ref(true);
 
@@ -39,25 +41,40 @@ const initChart = () => {
     renderer: "canvas",
   });
 
+  const colors = {
+    series1: readCssColor("--chart-series-1", SOLARIZED_PALETTE.blue),
+    series2: readCssColor("--chart-series-2", SOLARIZED_PALETTE.cyan),
+    background: readCssColor(
+      "--chart-tooltip-background",
+      SOLARIZED_PALETTE.base3,
+    ),
+    foreground: readCssColor("--foreground-strong", SOLARIZED_PALETTE.base01),
+    muted: readCssColor("--foreground", SOLARIZED_PALETTE.base01),
+    border: readCssColor("--chart-grid-color", SOLARIZED_PALETTE.base1),
+    tooltipBorder: readCssColor(
+      "--chart-tooltip-border",
+      SOLARIZED_PALETTE.base00,
+    ),
+  };
+
   const weeks = progressData.value?.weeklyProgress.map((w) => w.week) || [];
   const problemsSolved =
     progressData.value?.weeklyProgress.map((w) => w.solved) || [];
   const timeSpent =
     progressData.value?.weeklyProgress.map((w) => w.timeSpent) || [];
 
-  // Build series array
   const series: echarts.SeriesOption[] = [
     {
       name: t("personal.learning.problemsSolved"),
       type: "bar",
       data: problemsSolved,
       itemStyle: {
-        color: "oklch(0.6149 0.1394 244.9 / 0.7)",
+        color: colors.series1,
         borderRadius: 0,
       },
       emphasis: {
         itemStyle: {
-          color: "oklch(0.6149 0.1394 244.9)",
+          color: colors.series1,
         },
       },
     },
@@ -71,10 +88,10 @@ const initChart = () => {
       symbolSize: 6,
       lineStyle: {
         width: 2,
-        color: "oklch(0.6545 0.1340 85.7)",
+        color: colors.series2,
       },
       itemStyle: {
-        color: "oklch(0.6545 0.1340 85.7)",
+        color: colors.series2,
       },
     },
   ];
@@ -82,11 +99,11 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "axis",
-      backgroundColor: "oklch(0 0 0 / 0.8)",
-      borderColor: "transparent",
+      backgroundColor: colors.background,
+      borderColor: colors.tooltipBorder,
       borderRadius: 0,
       textStyle: {
-        color: "#fff",
+        color: colors.foreground,
       },
       axisPointer: {
         type: "cross",
@@ -99,7 +116,7 @@ const initChart = () => {
       ],
       bottom: 0,
       textStyle: {
-        color: "var(--muted-foreground)",
+        color: colors.muted,
         fontSize: 11,
       },
     },
@@ -115,11 +132,11 @@ const initChart = () => {
       data: weeks,
       axisLine: {
         lineStyle: {
-          color: "var(--border)",
+          color: colors.border,
         },
       },
       axisLabel: {
-        color: "var(--muted-foreground)",
+        color: colors.muted,
         fontSize: 10,
         rotate: 45,
       },
@@ -129,21 +146,21 @@ const initChart = () => {
         type: "value",
         name: t("personal.learning.problemsSolved"),
         nameTextStyle: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
         axisLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
           },
         },
         axisLabel: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
         splitLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
             type: "dashed",
           },
         },
@@ -152,16 +169,16 @@ const initChart = () => {
         type: "value",
         name: t("personal.learning.hours"),
         nameTextStyle: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
         axisLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
           },
         },
         axisLabel: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
         splitLine: {
@@ -193,6 +210,11 @@ const loadData = async () => {
 onMounted(() => {
   loadData();
   window.addEventListener("resize", handleResize);
+  themeObserver = new MutationObserver(() => initChart());
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 });
 
 watch([hasData, dataLoading], () => {
@@ -203,6 +225,8 @@ watch([hasData, dataLoading], () => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
+  themeObserver?.disconnect();
+  themeObserver = null;
   chartInstance?.dispose();
   chartInstance = null;
 });

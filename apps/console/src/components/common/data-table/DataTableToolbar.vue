@@ -37,7 +37,7 @@ const emit = defineEmits<{
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
-        class="pl-8.5 h-9 text-xs rounded-none border-border/60 bg-[var(--surface-sunken)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] focus-visible:ring-1 text-foreground"
+        class="pl-8.5 h-9 text-xs rounded-none border-border/60 bg-[var(--surface-sunken)] focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)] focus-visible:ring-1 text-foreground"
       />
     </div>
 
@@ -56,7 +56,7 @@ const emit = defineEmits<{
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"
-              class="ml-0.5 h-4 px-1.5 text-2xs font-bold rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20"
+              class="ml-0.5 h-4 px-1.5 text-2xs font-bold rounded-none bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20"
             >
               {{ activeFilterCount }}
             </Badge>

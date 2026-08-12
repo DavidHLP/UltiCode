@@ -53,10 +53,10 @@ export const AchievementCategoryLabels: Record<AchievementCategory, string> = {
 };
 
 export const AchievementCategoryColors: Record<AchievementCategory, string> = {
-  problem_solving: "text-[oklch(0.6149_0.1394_244.9)]",
-  consistency: "text-[oklch(0.6444_0.1508_118.6)]",
-  contest: "text-[oklch(0.5924_0.2025_355.9)]",
-  community: "text-[oklch(0.6545_0.1340_85.7)]",
+  problem_solving: "text-foreground-strong",
+  consistency: "text-foreground-strong",
+  contest: "text-foreground-strong",
+  community: "text-foreground-strong",
 };
 
 export const TierLabels: Record<number, string> = {
@@ -66,7 +66,7 @@ export const TierLabels: Record<number, string> = {
 };
 
 export const TierColors: Record<number, string> = {
-  1: "bg-[oklch(0.6545_0.1340_85.7)]",
-  2: "bg-[oklch(0.6979_0.0159_196.8)]",
-  3: "bg-[oklch(0.795_0.184_86)]",
+  1: "bg-rank-third", // Bronze
+  2: "bg-rank-second", // Silver
+  3: "bg-rank-first", // Gold
 };

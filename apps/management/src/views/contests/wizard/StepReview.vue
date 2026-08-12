@@ -60,21 +60,21 @@ function renderTypeBadge(type: string) {
     <div class="grid gap-4 md:grid-cols-3">
       <!-- Basic Info Card - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">{{ t('contests.reviewStep.basicInfo') }}</span>
         </div>
         <div class="p-4 space-y-3">
-          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
             <span class="terminal-label">{{ t('contests.basics.title') }}</span>
             <p class="font-medium text-sm text-[var(--foreground)]">{{ slice.title }}</p>
           </div>
-          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
             <span class="terminal-label">{{ t('contests.basics.slug') }}</span>
-            <p class="font-data text-sm text-[var(--terminal-cyan)]">{{ slice.slug }}</p>
+            <p class="font-data text-sm text-[var(--foreground-strong)]">{{ slice.slug }}</p>
           </div>
           <div>
             <span class="terminal-label">{{ t('contests.basics.type') }}</span>
@@ -87,21 +87,21 @@ function renderTypeBadge(type: string) {
 
       <!-- Schedule Card - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">{{ t('contests.reviewStep.schedule') }}</span>
         </div>
         <div class="p-4 space-y-3">
-          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
             <span class="terminal-label">{{ t('contests.reviewStep.startTime') }}</span>
             <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
               {{ formattedDate }}
             </p>
           </div>
-          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+          <div class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2">
             <span class="terminal-label">{{ t('contests.reviewStep.duration') }}</span>
             <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
               {{ slice.duration }} {{ t('common.minutes') }}
@@ -124,10 +124,10 @@ function renderTypeBadge(type: string) {
 
       <!-- Scoring Rule Card - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">{{ t('contests.scoringRule.selectRule') }}</span>
         </div>
@@ -137,7 +137,7 @@ function renderTypeBadge(type: string) {
           </div>
           <div v-else-if="scoringRule" class="space-y-3">
             <div class="flex items-center gap-2">
-              <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
+              <IconCalculator class="h-4 w-4 text-[var(--primary)]" />
               <span class="font-medium text-sm text-[var(--foreground)]">{{
                 scoringRule.name
               }}</span>
@@ -154,7 +154,7 @@ function renderTypeBadge(type: string) {
                 <span class="terminal-label text-2xs">{{
                   t('scoringRules.form.baseScorePerProblem')
                 }}</span>
-                <p class="font-data text-[var(--terminal-cyan)] tabular-nums">
+                <p class="font-data text-[var(--foreground-strong)] tabular-nums">
                   {{ scoringRule.baseScorePerProblem }}
                 </p>
               </div>
@@ -162,7 +162,7 @@ function renderTypeBadge(type: string) {
                 <span class="terminal-label text-2xs">{{
                   t('scoringRules.form.wrongAnswerPenalty')
                 }}</span>
-                <p class="font-data text-[var(--terminal-red)] tabular-nums">
+                <p class="font-data text-[var(--foreground-strong)] tabular-nums">
                   -{{ scoringRule.wrongAnswerPenalty }}
                 </p>
               </div>
@@ -178,9 +178,9 @@ function renderTypeBadge(type: string) {
     </div>
 
     <!-- Problems Card - Terminal Style -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]">
       <div
-        class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
       >
         <span class="terminal-comment">
           {{
@@ -195,17 +195,17 @@ function renderTypeBadge(type: string) {
           <div
             v-for="(problem, index) in slice.problems"
             :key="problem.id"
-            class="flex items-center justify-between border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] py-2 last:border-0"
+            class="flex items-center justify-between border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] py-2 last:border-0"
           >
             <div class="flex items-center gap-3">
-              <span class="font-data text-xs text-[var(--accent-electric)] w-6">
+              <span class="font-data text-xs text-[var(--primary)] w-6">
                 {{ String.fromCharCode(65 + index) }}
               </span>
               <span class="font-medium text-sm text-[var(--foreground)]">{{ problem.title }}</span>
               <component :is="renderDifficultyBadge(problem.difficulty)" />
             </div>
             <span
-              class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums w-16 text-right"
+              class="font-data text-xs text-foreground-strong tabular-nums w-16 text-right"
             >
               {{ problem.score }} {{ t('contests.drawer.pts') }}
             </span>

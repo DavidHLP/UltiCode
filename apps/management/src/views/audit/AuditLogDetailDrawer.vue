@@ -34,10 +34,10 @@ const emit = defineEmits<{
     <template #content="{ entity }">
       <!-- Header Info - Terminal Style -->
       <div
-        class="flex items-start gap-4 p-4 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="flex items-start gap-4 p-4 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_10%,_transparent)]"
+          class="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--status-info-mark)] bg-[color-mix(in_oklch,_var(--status-info-mark)_10%,_transparent)]"
         >
           <component
             :is="getActionIcon(entity.action)"
@@ -49,7 +49,7 @@ const emit = defineEmits<{
           <h3 class="text-lg font-data font-semibold tracking-tight">
             {{ entity.action }}
           </h3>
-          <p class="text-sm text-[var(--silver-500)] flex items-center gap-1">
+          <p class="text-sm text-[var(--foreground-muted)] flex items-center gap-1">
             <IconClock class="h-3.5 w-3.5" />
             <span class="font-data tabular-nums">{{
               formatDateTimeByLocale(entity.createdAt)
@@ -72,15 +72,15 @@ const emit = defineEmits<{
           </span>
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
             >
-              <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
+              <IconUser class="h-4 w-4 text-[var(--foreground-muted)]" />
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-medium font-data">
                 {{ entity.performer?.username || t('audit.drawer.system') }}
               </span>
-              <span class="text-xs text-[var(--silver-500)]">
+              <span class="text-xs text-[var(--foreground-muted)]">
                 {{
                   entity.performer?.role
                     ? t(`users.filters.role.${entity.performer.role}`, entity.performer.role)
@@ -97,18 +97,18 @@ const emit = defineEmits<{
           </span>
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
             >
               <component
                 :is="getEntityTypeIcon(entity.entityType)"
-                class="h-4 w-4 text-[var(--silver-500)]"
+                class="h-4 w-4 text-[var(--foreground-muted)]"
               />
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-medium">
                 {{ entity.entityType || t('audit.drawer.notAvailable') }}
               </span>
-              <span class="text-xs text-[var(--silver-500)] font-data">
+              <span class="text-xs text-[var(--foreground-muted)] font-data">
                 {{ entity.entityId?.slice(0, 8) || t('audit.drawer.notAvailable') }}
               </span>
             </div>
@@ -119,20 +119,20 @@ const emit = defineEmits<{
       <!-- Request Context - Terminal Style -->
       <div
         v-if="entity.ipAddress || entity.userAgent"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] p-3 space-y-2"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-3 space-y-2"
       >
         <div v-if="entity.ipAddress" class="flex items-center justify-between text-sm">
-          <span class="text-[var(--silver-500)] flex items-center gap-2">
+          <span class="text-[var(--foreground-muted)] flex items-center gap-2">
             <IconTerminal class="h-3.5 w-3.5" /> {{ t('audit.columns.ip') }}
           </span>
-          <span class="font-data text-[var(--terminal-cyan)]">{{ entity.ipAddress }}</span>
+          <span class="font-data text-[var(--foreground-strong)]">{{ entity.ipAddress }}</span>
         </div>
         <div v-if="entity.userAgent" class="flex flex-col gap-1 text-sm">
-          <span class="text-[var(--silver-500)] flex items-center gap-2">
+          <span class="text-[var(--foreground-muted)] flex items-center gap-2">
             <IconEye class="h-3.5 w-3.5" /> {{ t('audit.drawer.userAgent') }}
           </span>
           <span
-            class="text-xs text-[var(--silver-400)] break-all bg-[var(--card)] p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] font-data"
+            class="text-xs text-[var(--foreground-muted)] break-all bg-[var(--card)] p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] font-data"
           >
             {{ entity.userAgent }}
           </span>
@@ -144,13 +144,13 @@ const emit = defineEmits<{
       <!-- Changes - Terminal Style -->
       <div class="space-y-4">
         <h4 class="text-sm font-medium leading-none flex items-center gap-2 font-data">
-          <IconDatabase class="h-4 w-4 text-[var(--terminal-cyan)]" />
+          <IconDatabase class="h-4 w-4 text-[var(--status-info-mark)]" />
           {{ t('audit.drawer.dataChanges') }}
         </h4>
 
         <div
           v-if="!entity.oldValues && !entity.newValues"
-          class="text-sm text-[var(--silver-500)] italic pl-6 font-data"
+          class="text-sm text-[var(--foreground-muted)] italic pl-6 font-data"
         >
           &gt; {{ t('audit.drawer.noDataChanges') }}
         </div>
@@ -161,10 +161,10 @@ const emit = defineEmits<{
               {{ t('audit.drawer.previousState') }}
             </span>
             <div
-              class="relative rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              class="relative rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
             >
               <ScrollArea class="h-[200px] w-full rounded-none">
-                <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]">{{
+                <pre class="p-4 text-xs font-data leading-relaxed text-foreground-strong">{{
                   formatJson(entity.oldValues)
                 }}</pre>
               </ScrollArea>
@@ -176,10 +176,10 @@ const emit = defineEmits<{
               {{ t('audit.drawer.newState') }}
             </span>
             <div
-              class="relative rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              class="relative rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
             >
               <ScrollArea class="h-[200px] w-full rounded-none">
-                <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-green)]">{{
+                <pre class="p-4 text-xs font-data leading-relaxed text-foreground-strong">{{
                   formatJson(entity.newValues)
                 }}</pre>
               </ScrollArea>

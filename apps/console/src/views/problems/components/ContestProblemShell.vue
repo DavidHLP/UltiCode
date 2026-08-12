@@ -253,7 +253,7 @@ onMounted(() => {
 <template>
   <div
     v-if="ctx?.isInContest.value && ctx.contest.value"
-    class="border-b border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm"
+    class="border-b border-border bg-surface dark:bg-surface-highlight shadow-sm"
     data-testid="contest-problem-shell"
   >
     <!-- Top row: back link, title, status badge, timer, score/rank/solved -->
@@ -263,7 +263,7 @@ onMounted(() => {
       <!-- Back link -->
       <router-link
         :to="`/contest/${ctx.contest.value.slug}`"
-        class="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-[var(--accent-electric)]"
+        class="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-[var(--primary)]"
         :data-testid="'shell-back-to-contest'"
       >
         <ArrowLeft class="h-3.5 w-3.5" />
@@ -275,7 +275,7 @@ onMounted(() => {
       <!-- Title + status badge -->
       <div class="flex min-w-0 items-center gap-2">
         <span
-          class="truncate text-xs font-black text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+          class="truncate text-xs font-black text-foreground dark:text-foreground-strong"
           :title="ctx.contest.value.title"
         >
           {{ ctx.contest.value.title }}
@@ -313,9 +313,9 @@ onMounted(() => {
     >
       <!-- My score -->
       <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-score">
-        <Trophy class="h-3.5 w-3.5 text-[var(--terminal-amber)]" />
+        <Trophy class="h-3.5 w-3.5 text-[var(--status-warning-mark)]" />
         <span class="text-muted-foreground">{{ t("contest.detail.shell.score") }}</span>
-        <span class="font-black text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+        <span class="font-black text-foreground dark:text-foreground-strong">
           {{ isAuthed ? score : "—" }}
         </span>
       </div>
@@ -324,9 +324,9 @@ onMounted(() => {
 
       <!-- My rank -->
       <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-rank">
-        <Target class="h-3.5 w-3.5 text-[var(--accent-electric)]" />
+        <Target class="h-3.5 w-3.5 text-[var(--primary)]" />
         <span class="text-muted-foreground">{{ t("contest.detail.shell.rank") }}</span>
-        <span class="font-black text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+        <span class="font-black text-foreground dark:text-foreground-strong">
           {{ isAuthed && rank != null ? `#${rank}` : "—" }}
         </span>
       </div>
@@ -336,7 +336,7 @@ onMounted(() => {
       <!-- Solved / total -->
       <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-solved">
         <span class="text-muted-foreground">{{ t("contest.detail.shell.solved") }}</span>
-        <span class="font-black text-[var(--terminal-green)]">
+        <span class="font-black text-[var(--foreground-strong)]">
           {{ isAuthed ? solvedCount : "—" }}
         </span>
         <span class="text-muted-foreground">/ {{ totalProblems }}</span>
@@ -361,8 +361,8 @@ onMounted(() => {
               :class="[
                 'h-7 w-8 font-black text-xxs uppercase tracking-wider transition-colors cursor-pointer',
                 isActivePill(p)
-                  ? 'bg-[var(--accent-electric)]/15 text-[var(--accent-electric)] border-r border-border last:border-r-0'
-                  : 'bg-transparent text-muted-foreground hover:bg-[var(--silver-100)]/50 dark:hover:bg-[var(--solarized-base03)]/50 border-r border-border last:border-r-0',
+                  ? 'bg-[var(--primary)]/15 text-[var(--primary)] border-r border-border last:border-r-0'
+                  : 'bg-transparent text-muted-foreground hover:bg-[var(--surface-highlight)]/50 dark:hover:bg-background/50 border-r border-border last:border-r-0',
                 !p.slug ? 'cursor-not-allowed opacity-50' : '',
               ]"
               :disabled="!p.slug"
@@ -384,7 +384,7 @@ onMounted(() => {
     <!-- Solutions-hidden hint (only when RUNNING / virtual) -->
     <div
       v-if="showSolutionsHiddenHint"
-      class="border-t border-border/40 bg-[var(--silver-100)]/40 px-4 py-1.5 font-mono text-2xs text-muted-foreground dark:bg-[var(--solarized-base03)]/40"
+      class="border-t border-border/40 bg-[var(--surface-highlight)]/40 px-4 py-1.5 font-mono text-2xs text-muted-foreground dark:bg-background/40"
       :data-testid="'shell-solutions-hidden-hint'"
     >
       <div class="mx-auto flex max-w-7xl items-center gap-1.5">

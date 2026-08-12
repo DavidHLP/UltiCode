@@ -191,7 +191,7 @@ const emit = defineEmits<{
           t("common.actions.cancel")
         }}</AlertDialogCancel>
         <AlertDialogAction
-          class="bg-destructive text-white hover:bg-destructive/90"
+          class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80"
           @click="emit('deleteCategory')"
           :disabled="isDeletingCategory"
         >
@@ -228,7 +228,7 @@ const emit = defineEmits<{
           t("common.actions.cancel")
         }}</AlertDialogCancel>
         <AlertDialogAction
-          class="bg-destructive text-white hover:bg-destructive/90"
+          class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80"
           @click="emit('deleteList')"
           :disabled="isDeletingList"
         >

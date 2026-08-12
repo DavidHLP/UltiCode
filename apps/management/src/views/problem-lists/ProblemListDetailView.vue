@@ -200,32 +200,27 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
 <style>
 /* CSS Variable Hierarchy for Problem List Editor */
 .editor-container {
-  /* Solarized Light Theme Variables */
-  --editor-panel-bg: var(--solarized-base3);
-  --editor-panel-border: var(--silver-300); /* base0 - #839496 */
-  --editor-border-weak: var(--silver-200); /* base1 - #93a1a1 */
-  --editor-control-bg: var(--solarized-base2); /* base2 - sunken appearance */
-  --editor-control-border: var(--silver-200);
-  --editor-text-primary: var(--solarized-base03); /* base03 - #002b36 */
-  --editor-text-muted: var(--solarized-base01); /* base01 - #586e75 */
+  /* Public semantic tokens; values flip automatically with the `.dark` class. */
+  --editor-panel-bg: var(--surface-elevated);
+  --editor-panel-border: var(--border);
+  --editor-border-weak: var(--border-subtle);
+  --editor-control-bg: var(--surface-sunken);
+  --editor-control-border: var(--border-control);
+  --editor-text-primary: var(--foreground-strong);
+  --editor-text-muted: var(--foreground-muted);
 
-  /* Semantic Accent Colors */
-  --editor-cyan: var(--solarized-cyan); /* #2aa198 */
-  --editor-blue: var(--solarized-blue); /* #268bd2 */
-  --editor-green: var(--solarized-green); /* #859900 */
-  --editor-yellow: var(--solarized-yellow); /* #b58900 */
-  --editor-red: var(--solarized-red); /* #dc322f */
+  /* Semantic Accent Colors (theme-invariant status + brand tokens) */
+  --editor-cyan: var(--status-info-mark);
+  --editor-blue: var(--accent-primary);
+  --editor-green: var(--status-success-mark);
+  --editor-yellow: var(--status-warning-mark);
+  --editor-red: var(--status-error-mark);
 }
 
 .dark .editor-container {
-  /* Solarized Dark Theme Variables */
-  --editor-panel-bg: var(--solarized-base02);
-  --editor-panel-border: var(--silver-700); /* base01 - #586e75 */
-  --editor-border-weak: rgba(88, 110, 117, 0.22); /* very weak dividers */
-  --editor-control-bg: var(--solarized-base03); /* base03 - sunken appearance */
-  --editor-control-border: rgba(88, 110, 117, 0.45);
-  --editor-text-primary: var(--solarized-base0); /* base0 - #839496 */
-  --editor-text-muted: var(--solarized-base01); /* base01 - #586e75 */
+  /* Weak dividers stay translucent in dark mode (was rgba(88, 110, 117, …)) */
+  --editor-border-weak: color-mix(in srgb, var(--border) 22%, transparent);
+  --editor-control-border: var(--border-control);
 }
 
 .custom-back-btn {

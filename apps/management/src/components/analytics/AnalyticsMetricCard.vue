@@ -37,13 +37,16 @@ const getTrendIcon = (trend: string) => {
 const getTrendColor = (trend: string) => {
   switch (trend) {
     case 'up':
-      return 'var(--status-success)'
+      return 'var(--status-success-mark)'
     case 'down':
-      return 'var(--status-error)'
+      return 'var(--status-error-mark)'
     default:
-      return 'var(--silver-400)'
+      return 'var(--foreground-muted)'
   }
 }
+
+const colorMix = (color: string, percentage: number) =>
+  `color-mix(in srgb, ${color} ${percentage}%, transparent)`
 
 const sizeClasses = {
   sm: {
@@ -69,7 +72,7 @@ const sizeClasses = {
 
 <template>
   <div
-    class="group relative overflow-hidden rounded-none border-t-2 border-x border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-float precision-card hover:border-r-[var(--silver-300)] hover:border-l-[var(--silver-300)] hover:border-b-[var(--silver-300)] dark:hover:border-r-[var(--silver-200)]/60 dark:hover:border-l-[var(--silver-200)]/60 dark:hover:border-b-[var(--silver-200)]/60 transition-all duration-200"
+    class="group relative overflow-hidden rounded-none border-t-2 border-x border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card shadow-float precision-card hover:border-r-[var(--border-subtle)] hover:border-l-[var(--border-subtle)] hover:border-b-[var(--border-subtle)] dark:hover:border-r-[var(--border-subtle)]/60 dark:hover:border-l-[var(--border-subtle)]/60 dark:hover:border-b-[var(--border-subtle)]/60 transition-all duration-200"
     :class="sizeClasses[props.size].card"
     :style="{
       borderTopColor: getTrendColor(props.metric.trend || 'neutral'),
@@ -87,7 +90,7 @@ const sizeClasses = {
     <div class="relative z-10 space-y-2">
       <!-- Title -->
       <p
-        class="font-medium uppercase tracking-widest text-[var(--silver-400)] dark:text-[var(--silver-500)]"
+        class="font-medium uppercase tracking-widest text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
         :class="sizeClasses[props.size].title"
       >
         {{ props.metric.title }}
@@ -97,7 +100,7 @@ const sizeClasses = {
       <div class="flex items-baseline gap-1">
         <span
           v-if="props.metric.prefix"
-          class="font-medium text-[var(--silver-400)]"
+          class="font-medium text-[var(--foreground-muted)]"
           :class="sizeClasses[props.size].value"
         >
           {{ props.metric.prefix }}
@@ -108,7 +111,7 @@ const sizeClasses = {
         >
           {{ props.metric.value }}
         </span>
-        <span v-if="props.metric.suffix" class="font-normal text-[var(--silver-400)] text-sm">
+        <span v-if="props.metric.suffix" class="font-normal text-[var(--foreground-muted)] text-sm">
           {{ props.metric.suffix }}
         </span>
       </div>
@@ -120,8 +123,8 @@ const sizeClasses = {
           :class="sizeClasses[props.size].change"
           :style="{
             color: getTrendColor(props.metric.trend || 'neutral'),
-            borderColor: getTrendColor(props.metric.trend || 'neutral') + '40',
-            backgroundColor: getTrendColor(props.metric.trend || 'neutral') + '10',
+            borderColor: colorMix(getTrendColor(props.metric.trend || 'neutral'), 25),
+            backgroundColor: colorMix(getTrendColor(props.metric.trend || 'neutral'), 6),
           }"
         >
           <component
@@ -136,7 +139,7 @@ const sizeClasses = {
       <!-- Description -->
       <p
         v-if="props.metric.description"
-        class="text-[var(--silver-400)] dark:text-[var(--silver-500)]"
+        class="text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
         :class="sizeClasses[props.size].change"
       >
         {{ props.metric.description }}

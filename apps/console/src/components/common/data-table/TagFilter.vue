@@ -41,8 +41,8 @@ function isTagSelected(tag: string, currentTags: string[]) {
         class="cursor-pointer px-2.5 py-1 text-xxs font-medium transition-all duration-200 rounded-none"
         :class="
           isTagSelected(tag, modelValue)
-            ? 'border-[var(--accent-electric)]/30 bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/18'
-            : 'border-border/40 bg-[var(--surface-sunken)]/40 text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--surface-sunken)] hover:text-foreground'
+            ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/18'
+            : 'border-border/40 bg-[var(--surface-sunken)]/40 text-foreground dark:text-[var(--foreground-muted)] hover:bg-[var(--surface-sunken)] hover:text-foreground'
         "
         @click="toggleTag(tag, modelValue)"
       >
@@ -52,7 +52,7 @@ function isTagSelected(tag: string, currentTags: string[]) {
         <Button
           variant="ghost"
           size="sm"
-          class="gap-1 h-6 text-2xs font-mono text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:text-foreground rounded-none px-2 hover:bg-[var(--surface-sunken)] cursor-pointer"
+          class="gap-1 h-6 text-2xs font-mono text-foreground dark:text-[var(--foreground-muted)] hover:text-foreground rounded-none px-2 hover:bg-[var(--surface-sunken)] cursor-pointer"
         >
           {{ showMoreLabel || "Show more" }}
           <ChevronDown class="h-2.5 w-2.5" />
@@ -68,8 +68,8 @@ function isTagSelected(tag: string, currentTags: string[]) {
           class="cursor-pointer px-2.5 py-1 text-2xs font-medium transition-all duration-200 rounded-none"
           :class="
             isTagSelected(tag, modelValue)
-              ? 'border-[var(--accent-electric)]/30 bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/18'
-              : 'border-border/40 bg-[var(--surface-sunken)]/40 text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--surface-sunken)] hover:text-foreground'
+              ? 'border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/18'
+              : 'border-border/40 bg-[var(--surface-sunken)]/40 text-foreground dark:text-[var(--foreground-muted)] hover:bg-[var(--surface-sunken)] hover:text-foreground'
           "
           @click="toggleTag(tag, modelValue)"
         >

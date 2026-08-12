@@ -36,9 +36,9 @@
  * Single source of truth for sidebar menu visuals shared by
  * console + management. Activation is driven by [data-active]
  * attributes emitted by shared/sidebar-menu components, so the
- * two apps never hand-write `border-l-4 border-[--accent-electric]`
+ * two apps never hand-write `border-l-4 border-[--primary]`
  * again. Depends on tokens from shared/design-system/style.css
- * (--accent-electric, --solarized-base01, --silver-*, --foreground).
+ * (--primary, --foreground, --border-subtle, --foreground).
  *
  * Tinted backgrounds use `color-mix()` and are wrapped in @supports so
  * browsers without it (Chrome <111 / Safari <16.2 / Firefox <113) still
@@ -49,15 +49,15 @@
 /* --- Top-level menu item: 4px left activation bar --- */
 .uc-sidebar-item {
   border-left: 4px solid transparent;
-  color: var(--solarized-base01);
+  color: var(--foreground);
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .dark .uc-sidebar-item {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 .uc-sidebar-item[data-active='true'] {
-  border-left-color: var(--accent-electric);
-  color: var(--accent-electric);
+  border-left-color: var(--primary);
+  color: var(--primary);
   font-weight: 700;
 }
 .uc-sidebar-item[data-active='false']:hover {
@@ -69,7 +69,7 @@
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 .uc-sidebar-sub-item[data-active='true'] {
-  color: var(--accent-electric);
+  color: var(--primary);
   font-weight: 600;
 }
 .uc-sidebar-sub-item[data-active='false']:hover {
@@ -79,16 +79,16 @@
 /* color-mix backgrounds — progressive enhancement only */
 @supports (background: color-mix(in srgb, red 8%, transparent)) {
   .uc-sidebar-item[data-active='true'] {
-    background: color-mix(in srgb, var(--accent-electric) 8%, transparent);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
   }
   .uc-sidebar-item[data-active='false']:hover {
-    background: color-mix(in srgb, var(--silver-200) 40%, transparent);
+    background: color-mix(in srgb, var(--border-subtle) 40%, transparent);
   }
   .uc-sidebar-sub-item[data-active='true'] {
-    background: color-mix(in srgb, var(--accent-electric) 8%, transparent);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
   }
   .uc-sidebar-sub-item[data-active='false']:hover {
-    background: color-mix(in srgb, var(--silver-200) 40%, transparent);
+    background: color-mix(in srgb, var(--border-subtle) 40%, transparent);
   }
 }
 
@@ -99,14 +99,14 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--silver-500);
+  color: var(--foreground);
   padding: 0.5rem 0.75rem 0.25rem;
 }
 .dark .uc-sidebar-group-label {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 .uc-sidebar-group-label[data-active='true'] {
-  color: var(--accent-electric);
+  color: var(--primary);
 }
 
 /* --- Hover-revealed row action button ---

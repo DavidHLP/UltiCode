@@ -23,11 +23,11 @@ const { t } = useI18n();
     <DropdownMenuSubTrigger class="cursor-pointer">
       <Sun
         v-if="theme === 'light'"
-        class="mr-2 h-4 w-4 text-[var(--solarized-yellow)]"
+        class="mr-2 h-4 w-4 text-[var(--status-warning-mark)]"
       />
       <Moon
         v-else-if="theme === 'dark'"
-        class="mr-2 h-4 w-4 text-[var(--solarized-blue)]"
+        class="mr-2 h-4 w-4 text-[var(--primary)]"
       />
       <Laptop v-else class="mr-2 h-4 w-4" />
       <span>{{ t("common.appearance.theme") }}</span>

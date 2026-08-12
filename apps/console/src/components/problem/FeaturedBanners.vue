@@ -46,7 +46,7 @@ const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-all duration-500 group-hover:scale-110";
 
 const SLATE_THEME: BannerTheme = {
-  card: "border-l-[var(--silver-400)] hover:border-border",
+  card: "border-l-[var(--foreground-muted)] hover:border-border",
   icon: "text-muted-foreground bg-muted border-border/40",
   badge: "bg-muted text-muted-foreground border-border/50",
   glow: "hidden",
@@ -55,28 +55,28 @@ const SLATE_THEME: BannerTheme = {
 
 const THEME_MAP: Record<string, BannerTheme> = {
   amber: {
-    card: "border-l-[var(--terminal-amber)] hover:border-[var(--terminal-amber)]/60",
-    icon: "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/8 border-[var(--terminal-amber)]/20 shadow-none",
+    card: "border-l-[var(--status-warning-mark)] hover:border-[var(--status-warning-mark)]/60",
+    icon: "text-[var(--status-warning-mark)] bg-[var(--status-warning-mark)]/8 border-[var(--status-warning-mark)]/20 shadow-none",
     badge:
-      "bg-[var(--terminal-amber)]/8 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/20 shadow-none",
+      "bg-[var(--status-warning-mark)]/8 text-foreground-strong border-[var(--status-warning-mark)]/20 shadow-none",
     glow: "hidden",
-    sparkle: "text-[var(--terminal-amber)]",
+    sparkle: "text-[var(--status-warning-mark)]",
   },
   sky: {
-    card: "border-l-[var(--accent-electric)] hover:border-[var(--accent-electric)]/60",
-    icon: "text-[var(--accent-electric)] bg-[var(--accent-electric)]/8 border-[var(--accent-electric)]/20 shadow-none",
+    card: "border-l-[var(--primary)] hover:border-[var(--primary)]/60",
+    icon: "text-[var(--primary)] bg-[var(--primary)]/8 border-[var(--primary)]/20 shadow-none",
     badge:
-      "bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 shadow-none",
+      "bg-[var(--primary)]/8 text-[var(--primary)] border-[var(--primary)]/20 shadow-none",
     glow: "hidden",
-    sparkle: "text-[var(--accent-electric)]",
+    sparkle: "text-[var(--primary)]",
   },
   emerald: {
-    card: "border-l-[var(--terminal-green)] hover:border-[var(--terminal-green)]/60",
-    icon: "text-[var(--terminal-green)] bg-[var(--terminal-green)]/8 border-[var(--terminal-green)]/20 shadow-none",
+    card: "border-l-[var(--status-success-mark)] hover:border-[var(--status-success-mark)]/60",
+    icon: "text-[var(--status-success-mark)] bg-[var(--status-success-mark)]/8 border-[var(--status-success-mark)]/20 shadow-none",
     badge:
-      "bg-[var(--terminal-green)]/8 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 shadow-none",
+      "bg-[var(--status-success-mark)]/8 text-foreground-strong border-[var(--status-success-mark)]/20 shadow-none",
     glow: "hidden",
-    sparkle: "text-[var(--terminal-green)]",
+    sparkle: "text-[var(--status-success-mark)]",
   },
   slate: SLATE_THEME,
 };
@@ -221,7 +221,7 @@ onBeforeUnmount(() => {
     <button
       v-show="needsScroll && showLeftArrow"
       @click="scrollByCard('left')"
-      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-silver shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--accent-electric)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-border-control shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--primary)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
     >
       <ChevronLeft class="w-5 h-5 text-foreground" />
     </button>
@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
     <button
       v-show="needsScroll && showRightArrow"
       @click="scrollByCard('right')"
-      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-silver shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--accent-electric)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-border-control shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--primary)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
     >
       <ChevronRight class="w-5 h-5 text-foreground" />
     </button>

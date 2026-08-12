@@ -36,10 +36,10 @@ const sizeClasses = {
           {{ value }}
         </template>
         <template v-else>
-          <span class="text-[var(--silver-400)] italic">—</span>
+          <span class="text-[var(--foreground-muted)] italic">—</span>
         </template>
       </slot>
     </span>
-    <span v-if="hint" class="text-xs text-[var(--silver-400)] mt-0.5">{{ hint }}</span>
+    <span v-if="hint" class="text-xs text-[var(--foreground-muted)] mt-0.5">{{ hint }}</span>
   </div>
 </template>

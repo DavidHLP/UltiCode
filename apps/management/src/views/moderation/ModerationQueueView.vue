@@ -206,7 +206,7 @@ const selectedActionOption = computed(() =>
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -218,7 +218,7 @@ const selectedActionOption = computed(() =>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="handleRefresh"
           :disabled="loading"
         >
@@ -228,41 +228,41 @@ const selectedActionOption = computed(() =>
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.pending') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.underReview') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.underReview
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('moderation.terminal.resolved') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.resolved
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconShield class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{ t('nav.moderation') }}</span>
         </div>
@@ -273,22 +273,22 @@ const selectedActionOption = computed(() =>
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-data text-sm text-[var(--terminal-amber)]">
+          <span class="font-data text-sm text-[var(--foreground-strong)]">
             &gt; {{ t('moderation.queue.selectedCount', { count: selectedRows.length }) }}
           </span>
         </div>
-        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="h-4 w-px bg-[var(--border-subtle)]" />
         <div class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+            class="h-8 font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
             @click="batchDialogOpen = true"
           >
             <IconCheck class="h-3.5 w-3.5 mr-1.5" />
@@ -297,7 +297,7 @@ const selectedActionOption = computed(() =>
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+            class="h-8 font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
             @click="batchDialogOpen = true"
           >
             <IconX class="h-3.5 w-3.5 mr-1.5" />
@@ -308,7 +308,7 @@ const selectedActionOption = computed(() =>
       <Button
         variant="terminal"
         size="sm"
-        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        class="h-8 font-data text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
         @click="clearSelection"
       >
         [ESC] {{ t('common.clearSelection') }}
@@ -363,7 +363,7 @@ const selectedActionOption = computed(() =>
         <Button
           variant="terminal"
           size="sm"
-          class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+          class="h-8 font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
           :disabled="saving"
           @click="handleDrawerSave"
         >
@@ -378,28 +378,28 @@ const selectedActionOption = computed(() =>
       <template #content="{ entity }">
         <div class="space-y-4">
           <div
-            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+            class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--surface-sunken)]"
           >
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
+            <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)] mb-2">
               {{ t('moderation.detail.entityInfo') }}
             </p>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]"
+                <span class="text-[var(--foreground-muted)]"
                   >{{ t('moderation.columns.entityType') }}:</span
                 >
                 <span class="font-data">{{ entity.entityType }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entity') }}:</span>
+                <span class="text-[var(--foreground-muted)]">{{ t('moderation.columns.entity') }}:</span>
                 <span class="font-data text-xs truncate max-w-[200px]">{{ entity.entityId }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('moderation.queue.priority') }}:</span>
+                <span class="text-[var(--foreground-muted)]">{{ t('moderation.queue.priority') }}:</span>
                 <span class="font-data">{{ entity.priority }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]"
+                <span class="text-[var(--foreground-muted)]"
                   >{{ t('moderation.queue.reportCount') }}:</span
                 >
                 <span class="font-data">{{ entity.reportCount }}</span>
@@ -408,7 +408,7 @@ const selectedActionOption = computed(() =>
           </div>
 
           <div>
-            <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">{{
+            <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">{{
               t('moderation.actionPanel.selectAction')
             }}</Label>
             <div class="mt-2 grid grid-cols-2 gap-2">
@@ -420,7 +420,7 @@ const selectedActionOption = computed(() =>
                   'h-9 font-data text-xs justify-start',
                   drawerAction === option.value
                     ? `border-current ${option.color} bg-current/10`
-                    : 'border-[var(--silver-300)] hover:border-current',
+                    : 'border-[var(--border-subtle)] hover:border-current',
                 ]"
                 size="sm"
                 @click="drawerAction = option.value"
@@ -434,7 +434,7 @@ const selectedActionOption = computed(() =>
           <div v-if="selectedActionOption?.requiresDuration">
             <Label
               for="duration-days"
-              class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+              class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
               >{{ t('moderation.actionPanel.durationLabel') }}</Label
             >
             <Input
@@ -444,14 +444,14 @@ const selectedActionOption = computed(() =>
               min="1"
               max="365"
               :placeholder="t('moderation.actionPanel.durationPlaceholder')"
-              class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
+              class="mt-2 font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent"
             />
           </div>
 
           <div>
             <Label
               for="drawer-note"
-              class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+              class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
               >{{ t('moderation.actionPanel.addNote') }}</Label
             >
             <Textarea
@@ -459,18 +459,18 @@ const selectedActionOption = computed(() =>
               v-model="drawerNote"
               :placeholder="t('moderation.actionPanel.notePlaceholder')"
               rows="4"
-              class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
+              class="mt-2 font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
             />
           </div>
 
           <div
-            class="border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] p-3"
+            class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3"
           >
             <div class="flex items-start gap-2">
               <IconAlertTriangle
-                class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5"
+                class="h-4 w-4 text-[var(--status-warning-mark)] flex-shrink-0 mt-0.5"
               />
-              <p class="text-xs text-[var(--terminal-amber)]">
+              <p class="text-xs text-[var(--foreground-strong)]">
                 {{ t('moderation.actionPanel.warning') }}
               </p>
             </div>
@@ -478,13 +478,13 @@ const selectedActionOption = computed(() =>
 
           <div
             v-if="entity.assignedToId"
-            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+            class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--surface-sunken)]"
           >
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
+            <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)] mb-2">
               {{ t('moderation.queue.assignedTo') }}
             </p>
             <div class="flex items-center gap-2">
-              <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
+              <IconUser class="h-4 w-4 text-[var(--foreground-muted)]" />
               <span class="text-sm">{{ entity.assignedToName || entity.assignedToUsername }}</span>
             </div>
           </div>

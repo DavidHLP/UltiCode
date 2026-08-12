@@ -115,7 +115,7 @@ onMounted(async () => {
         />
         <div
           v-else
-          class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--terminal-green)] text-2xl font-bold text-[var(--color-background)]"
+          class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--status-success-mark)] text-2xl font-bold text-[var(--color-background)]"
         >
           {{ (profile.name || profile.username).charAt(0).toUpperCase() }}
         </div>
@@ -142,7 +142,7 @@ onMounted(async () => {
               :href="profile.website"
               target="_blank"
               rel="noopener"
-              class="hover:text-[var(--accent-electric)]"
+              class="hover:text-[var(--primary)]"
             >
               {{ profile.website }}
             </a>
@@ -161,7 +161,7 @@ onMounted(async () => {
           color="green"
         >
           <template #icon>
-            <Trophy class="h-5 w-5 text-[var(--terminal-green)]" />
+            <Trophy class="h-5 w-5 text-[var(--status-success-mark)]" />
           </template>
         </StatsCard>
 
@@ -172,7 +172,7 @@ onMounted(async () => {
           color="blue"
         >
           <template #icon>
-            <Target class="h-5 w-5 text-[var(--accent-electric)]" />
+            <Target class="h-5 w-5 text-[var(--primary)]" />
           </template>
         </StatsCard>
 
@@ -187,7 +187,7 @@ onMounted(async () => {
           color="purple"
         >
           <template #icon>
-            <BarChart3 class="h-5 w-5 text-[var(--terminal-purple)]" />
+            <BarChart3 class="h-5 w-5 text-[var(--status-special-mark)]" />
           </template>
         </StatsCard>
 
@@ -198,7 +198,7 @@ onMounted(async () => {
           color="orange"
         >
           <template #icon>
-            <Flame class="h-5 w-5 text-[var(--terminal-amber)]" />
+            <Flame class="h-5 w-5 text-[var(--status-warning-mark)]" />
           </template>
         </StatsCard>
       </div>
@@ -212,7 +212,7 @@ onMounted(async () => {
           <!-- Easy -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--terminal-green)]">{{
+              <span class="font-medium text-[var(--foreground-strong)]">{{
                 t("personal.stats.easy")
               }}</span>
               <span class="text-muted-foreground">
@@ -225,14 +225,14 @@ onMounted(async () => {
                   ? (stats.stats.Easy.count / stats.stats.Easy.total) * 100
                   : 0
               "
-              class="h-2 [&>div]:bg-[var(--terminal-green)]"
+              class="h-2 [&>div]:bg-[var(--status-success-mark)]"
             />
           </div>
 
           <!-- Medium -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--terminal-amber)]">{{
+              <span class="font-medium text-[var(--foreground-strong)]">{{
                 t("personal.stats.medium")
               }}</span>
               <span class="text-muted-foreground">
@@ -245,14 +245,14 @@ onMounted(async () => {
                   ? (stats.stats.Medium.count / stats.stats.Medium.total) * 100
                   : 0
               "
-              class="h-2 [&>div]:bg-[var(--terminal-amber)]"
+              class="h-2 [&>div]:bg-[var(--status-warning-mark)]"
             />
           </div>
 
           <!-- Hard -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--terminal-red)]">{{
+              <span class="font-medium text-[var(--foreground-strong)]">{{
                 t("personal.stats.hard")
               }}</span>
               <span class="text-muted-foreground">
@@ -265,7 +265,7 @@ onMounted(async () => {
                   ? (stats.stats.Hard.count / stats.stats.Hard.total) * 100
                   : 0
               "
-              class="h-2 [&>div]:bg-[var(--terminal-red)]"
+              class="h-2 [&>div]:bg-[var(--status-error-mark)]"
             />
           </div>
         </div>

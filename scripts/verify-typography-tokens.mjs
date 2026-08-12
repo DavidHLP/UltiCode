@@ -59,13 +59,16 @@ const ALLOWED_PATH_PATTERNS = [
   // token, add it to packages/theme/src/typography.css instead.
   'apps/console/src/style.css',
   'apps/management/src/style.css',
-  // The chart / markdown asset CSS files in console ship with the
-  // chart engine; they declare typography for SVG/ECharts output that
-  // cannot consume the Tailwind utility classes. They are allowed
-  // because they describe the chart rendering pipeline, not the app
-  // chrome. Any app-level override should go through shared tokens.
+  // The console chart / markdown asset CSS files ship with renderer-specific
+  // typography that cannot consume Tailwind utility classes.
   'apps/console/src/assets/charts.css',
   'apps/console/src/assets/markdown.css',
+  // The landing bundle contains third-party Bootstrap typography plus the
+  // owned Solarized override tail; do not rewrite the vendor payload.
+  'apps/console/src/views/landing/styles/bundle.css',
+  // Markdown inline code intentionally uses a relative scale and blockquotes
+  // inherit the surrounding content size.
+  'apps/console/src/views/problems/description/DescriptionMarkdown.vue',
 ]
 
 // Patterns that count as raw typography declarations. The intent is

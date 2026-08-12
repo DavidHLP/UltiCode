@@ -422,9 +422,9 @@ function handleClose() {
           <div class="grid grid-cols-4 gap-4">
             <div class="rounded-none border bg-card p-4 text-center">
               <div
-                class="flex items-center justify-center gap-2 text-2xl font-bold text-emerald-600"
+                class="flex items-center justify-center gap-2 text-2xl font-bold text-foreground-strong"
               >
-                <IconCheck class="h-5 w-5" />
+                <IconCheck class="h-5 w-5 text-status-success-mark" />
                 {{ result.created }}
               </div>
               <p class="text-xs text-muted-foreground mt-1">
@@ -432,8 +432,8 @@ function handleClose() {
               </p>
             </div>
             <div class="rounded-none border bg-card p-4 text-center">
-              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-blue-600">
-                <IconFile class="h-5 w-5" />
+              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-foreground-strong">
+                <IconFile class="h-5 w-5 text-status-info-mark" />
                 {{ result.updated }}
               </div>
               <p class="text-xs text-muted-foreground mt-1">
@@ -467,7 +467,7 @@ function handleClose() {
           <!-- Errors -->
           <div v-if="result.results.filter((r) => !r.success).length > 0" class="space-y-2">
             <div class="flex items-center gap-2 text-sm font-medium">
-              <IconAlertTriangle class="h-4 w-4 text-amber-500" />
+              <IconAlertTriangle class="h-4 w-4 text-status-warning-mark" />
               <span>{{ t('problems.import.errors') }}</span>
             </div>
             <div class="max-h-48 overflow-y-auto space-y-2">

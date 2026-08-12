@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
 import gsap from "gsap";
 import {isDesktop} from "./Utils";
+import { SOLARIZED_PALETTE } from '@ulticode/design-system';
 
 export class ParticlesDesert {
     constructor(data) {
@@ -147,8 +148,8 @@ export class ParticlesDesert {
 
         }
 
-        this.particles.colorA = "#757575";
-        this.particles.colorB = "#ffffff";
+        this.particles.colorA = SOLARIZED_PALETTE.base01;
+        this.particles.colorB = SOLARIZED_PALETTE.cyan;
 
         const VSA = DesertV;
         const FSA = DesertF;

@@ -83,16 +83,16 @@ const verdictLabel = computed(() => {
 // disagree with the submissions table. Covers every verdict incl. Sandbox
 // Error (neutral); unknown statuses fall back to muted.
 const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: "text-[var(--terminal-green)]",
-  warning: "text-[var(--terminal-amber)]",
-  error: "text-[var(--terminal-red)]",
+  success: "text-foreground-strong",
+  warning: "text-foreground-strong",
+  error: "text-foreground-strong",
   // `info` and `electric` previously collapsed to the same CSS class — the
   // shared verdict map does not currently emit `info`, but if a future verdict
   // maps to it we want a visibly distinct token rather than silently
   // shadowing `electric`.
-  info: "text-[var(--terminal-cyan)]",
-  purple: "text-[var(--terminal-purple)]",
-  electric: "text-[var(--accent-electric)]",
+  info: "text-foreground-strong",
+  purple: "text-foreground-strong",
+  electric: "text-[var(--primary)]",
   neutral: "text-muted-foreground",
 };
 
@@ -152,7 +152,7 @@ const selectCase = (label: string) => {
           props.runResult?.verdict === 'Compile Error' &&
           (props.runResult.errorMessage ?? props.runResult.error_message)
         "
-        class="rounded-none bg-[var(--terminal-red)]/10 border border-[var(--terminal-red)]/30 p-3 text-xs font-mono text-[var(--terminal-red)]"
+        class="rounded-none bg-[var(--status-error-mark)]/10 border border-[var(--status-error-mark)]/30 p-3 text-xs font-mono text-foreground-strong"
       >
         {{ props.runResult.errorMessage ?? props.runResult.error_message }}
       </div>

@@ -106,36 +106,36 @@ defineOptions({
   font-size: var(--uc-text-2xl);
   font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
-  color: var(--solarized-base03);
+  color: var(--foreground-strong);
   line-height: 1.1;
 }
 
 .dark .forgot-form__title {
-  color: var(--silver-900);
+  color: var(--foreground-strong);
 }
 
 .forgot-form__subtitle {
   font-size: var(--uc-text-md);
-  color: var(--solarized-base01);
+  color: var(--foreground);
 }
 
 .dark .forgot-form__subtitle {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .forgot-form__back {
   font-size: var(--uc-text-md);
-  color: var(--solarized-base01);
+  color: var(--foreground);
   text-align: center;
   font-family: var(--uc-font-code);
 }
 
 .dark .forgot-form__back {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .forgot-form__back a {
-  color: var(--accent-electric);
+  color: var(--primary);
   text-decoration: none;
   font-weight: var(--uc-font-weight-bold);
 }

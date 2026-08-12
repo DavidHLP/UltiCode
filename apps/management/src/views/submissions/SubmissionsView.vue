@@ -198,7 +198,7 @@ const columns = createColumns(t, {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -211,7 +211,7 @@ const columns = createColumns(t, {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="loadSubmissions"
         >
           <IconRefresh class="h-4 w-4 mr-1.5" />
@@ -221,41 +221,41 @@ const columns = createColumns(t, {
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('submissions.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total.toLocaleString()
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('submissions.stats.pending') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('submissions.stats.topLanguage') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)]">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)]">{{
             stats.topLanguage
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('submissions.stats.acceptedRate') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums"
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums"
             >{{ stats.acceptedRate }}%</span
           >
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconDatabase class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('submissions.stats.submissionManagement')
@@ -268,22 +268,22 @@ const columns = createColumns(t, {
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="font-data text-sm text-[var(--terminal-amber)]">
+          <span class="font-data text-sm text-[var(--foreground-strong)]">
             &gt; SELECTED:{{ selectedRows.length }}
           </span>
         </div>
-        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="h-4 w-px bg-[var(--border-subtle)]" />
         <div class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-amber)] hover:text-[var(--terminal-amber)]"
+            class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-warning-mark)] hover:text-foreground-strong"
             @click="batchRejudgeDialogOpen = true"
             :disabled="batchRejudging"
           >
@@ -295,7 +295,7 @@ const columns = createColumns(t, {
       <Button
         variant="terminal"
         size="sm"
-        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        class="h-8 font-data text-xs text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
         @click="selectedRows = []"
       >
         [ESC] {{ t('common.clearSelection') }}
@@ -333,16 +333,16 @@ const columns = createColumns(t, {
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
           @click="loadSubmissions()"
         >
           {{ t('common.retry') }}
@@ -354,35 +354,35 @@ const columns = createColumns(t, {
   <!-- Detail Dialog - Terminal Style -->
   <Dialog v-model:open="detailDialogOpen">
     <DialogContent
-      class="max-w-4xl max-h-[80vh] overflow-y-auto border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+      class="max-w-4xl max-h-[80vh] overflow-y-auto border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
     >
-      <DialogHeader class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] pb-4">
+      <DialogHeader class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] pb-4">
         <DialogTitle class="flex items-center gap-2">
           <span class="text-lg font-medium">{{ t('submissions.detail') }}</span>
         </DialogTitle>
         <DialogDescription
           v-if="selectedSubmission"
-          class="font-data text-sm text-[var(--silver-500)]"
+          class="font-data text-sm text-[var(--foreground-muted)]"
         >
           {{ selectedSubmission.problemTitle }} - {{ selectedSubmission.username }}
         </DialogDescription>
-        <DialogDescription v-else class="font-data text-sm text-[var(--silver-500)]">
+        <DialogDescription v-else class="font-data text-sm text-[var(--foreground-muted)]">
           {{ t('submissions.detail') }}
         </DialogDescription>
       </DialogHeader>
       <div v-if="detailLoading" class="flex items-center justify-center py-12">
-        <IconLoader2 class="h-6 w-6 animate-spin text-[var(--silver-400)]" />
+        <IconLoader2 class="h-6 w-6 animate-spin text-[var(--foreground-muted)]" />
       </div>
       <div v-else-if="selectedSubmission" class="space-y-4 py-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <Label class="terminal-label text-[var(--silver-500)]">{{ t('submissions.id') }}</Label>
-            <p class="font-data text-sm text-[var(--terminal-cyan)] mt-1">
+            <Label class="terminal-label text-[var(--foreground-muted)]">{{ t('submissions.id') }}</Label>
+            <p class="font-data text-sm text-[var(--foreground-strong)] mt-1">
               {{ selectedSubmission.id }}
             </p>
           </div>
           <div>
-            <Label class="terminal-label text-[var(--silver-500)]">{{
+            <Label class="terminal-label text-[var(--foreground-muted)]">{{
               t('submissions.status')
             }}</Label>
             <p class="font-data text-sm mt-1">
@@ -394,38 +394,38 @@ const columns = createColumns(t, {
             </p>
           </div>
           <div>
-            <Label class="terminal-label text-[var(--silver-500)]">{{
+            <Label class="terminal-label text-[var(--foreground-muted)]">{{
               t('submissions.runtime')
             }}</Label>
             <p class="font-data text-sm mt-1">{{ formatRuntime(selectedSubmission.runtime) }}</p>
           </div>
           <div>
-            <Label class="terminal-label text-[var(--silver-500)]">{{
+            <Label class="terminal-label text-[var(--foreground-muted)]">{{
               t('submissions.memory')
             }}</Label>
             <p class="font-data text-sm mt-1">{{ formatMemory(selectedSubmission.memory) }}</p>
           </div>
         </div>
         <div>
-          <Label class="terminal-label text-[var(--silver-500)]">{{ t('submissions.code') }}</Label>
+          <Label class="terminal-label text-[var(--foreground-muted)]">{{ t('submissions.code') }}</Label>
           <pre
-            class="mt-2 p-4 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] overflow-x-auto text-sm font-mono terminal-code-block"
+            class="mt-2 p-4 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] overflow-x-auto text-sm font-mono terminal-code-block"
           ><code>{{ selectedSubmission.code }}</code></pre>
         </div>
         <div v-if="selectedSubmission.notes">
-          <Label class="terminal-label text-[var(--silver-500)]">{{
+          <Label class="terminal-label text-[var(--foreground-muted)]">{{
             t('submissions.notes')
           }}</Label>
-          <p class="mt-1 text-sm text-[var(--silver-600)]">{{ selectedSubmission.notes }}</p>
+          <p class="mt-1 text-sm text-[var(--foreground-strong)]">{{ selectedSubmission.notes }}</p>
         </div>
       </div>
       <DialogFooter
-        class="border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] pt-4"
+        class="border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] pt-4"
       >
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
           @click="detailDialogOpen = false"
         >
           {{ t('common.close') }}
@@ -436,12 +436,12 @@ const columns = createColumns(t, {
 
   <!-- Rejudge Dialog - Terminal Style -->
   <Dialog v-model:open="rejudgeDialogOpen">
-    <DialogContent class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+    <DialogContent class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <span class="text-lg font-medium">{{ t('submissions.rejudgeTitle') }}</span>
         </DialogTitle>
-        <DialogDescription class="text-[var(--silver-500)]">
+        <DialogDescription class="text-[var(--foreground-muted)]">
           {{ t('submissions.rejudgeDescription') }}
         </DialogDescription>
       </DialogHeader>
@@ -449,7 +449,7 @@ const columns = createColumns(t, {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)]"
+          class="font-data text-xs border-[var(--border-subtle)]"
           @click="rejudgeDialogOpen = false"
         >
           {{ t('common.cancel') }}
@@ -457,7 +457,7 @@ const columns = createColumns(t, {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_10%,_transparent)]"
           :disabled="rejudging"
           @click="rejudgeSubmission"
         >
@@ -470,12 +470,12 @@ const columns = createColumns(t, {
 
   <!-- Batch Rejudge Dialog - Terminal Style -->
   <Dialog v-model:open="batchRejudgeDialogOpen">
-    <DialogContent class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+    <DialogContent class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <span class="text-lg font-medium">{{ t('submissions.batchRejudgeTitle') }}</span>
         </DialogTitle>
-        <DialogDescription class="text-[var(--silver-500)]">
+        <DialogDescription class="text-[var(--foreground-muted)]">
           {{ t('submissions.batchRejudgeDescription', { count: selectedRows.length }) }}
         </DialogDescription>
       </DialogHeader>
@@ -483,7 +483,7 @@ const columns = createColumns(t, {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)]"
+          class="font-data text-xs border-[var(--border-subtle)]"
           @click="batchRejudgeDialogOpen = false"
         >
           {{ t('common.cancel') }}
@@ -491,7 +491,7 @@ const columns = createColumns(t, {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_10%,_transparent)]"
           :disabled="batchRejudging"
           @click="batchRejudge"
         >

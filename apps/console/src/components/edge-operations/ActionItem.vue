@@ -27,11 +27,11 @@ const isButton = computed(() => props.variant === "button");
     :is="isButton ? Button : 'div'"
     :variant="isButton ? 'ghost' : undefined"
     :size="isButton ? 'sm' : undefined"
-    class="rounded-none flex items-center transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)] h-8 select-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-50)] dark:bg-[var(--silver-100)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:border-[var(--silver-300)] dark:hover:border-[var(--silver-400)]"
+    class="rounded-none flex items-center transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)] h-8 select-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface)] dark:bg-[var(--surface-highlight)] hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:border-[var(--border-subtle)] dark:hover:border-[var(--foreground-muted)]"
     :class="[
       isButton
-        ? 'text-[var(--silver-500)] hover:text-[var(--silver-900)]'
-        : 'text-[var(--silver-500)]/70',
+        ? 'text-[var(--foreground-muted)] hover:text-[var(--foreground-strong)]'
+        : 'text-[var(--foreground-muted)]/70',
       active && isButton
         ? activeClass ||
           'text-primary hover:text-primary bg-primary/10 hover:bg-primary/20 border-primary/10 font-medium'

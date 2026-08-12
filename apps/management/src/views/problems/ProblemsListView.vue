@@ -226,7 +226,7 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -239,7 +239,7 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
           v-if="canCreateProblem"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
           @click="router.push({ name: 'problem-create' })"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />
@@ -248,41 +248,41 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
       </div>
 
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('problems.stats.total') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('problems.stats.published') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.published
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('problems.stats.draft') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.draft
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('problems.stats.flagged') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
-        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconDatabase class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('problems.stats.problemManagement')
@@ -335,7 +335,7 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
                 <SelectTrigger
                   variant="terminal"
                   size="sm"
-                  class="h-8 w-[150px] bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)]"
+                  class="h-8 w-[150px] bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]"
                 >
                   <SelectValue :placeholder="t('problems.sort.title')" />
                 </SelectTrigger>
@@ -371,7 +371,7 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
                 <Button
                   variant="terminal"
                   size="sm"
-                  class="h-8 font-data text-xs border-[var(--silver-300)]"
+                  class="h-8 font-data text-xs border-[var(--border-subtle)]"
                 >
                   <IconDownload class="h-4 w-4 mr-1.5" />
                   <span class="hidden sm:inline uppercase tracking-wider">{{
@@ -391,7 +391,7 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
             <Button
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--silver-300)]"
+              class="h-8 font-data text-xs border-[var(--border-subtle)]"
               @click="importDialogOpen = true"
             >
               <IconUpload class="h-4 w-4 mr-1.5" />
@@ -405,16 +405,16 @@ watch([difficultyFilter, statusFilter, publishedFilter], () => {
 
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]"
           @click="loadProblems()"
         >
           {{ t('common.retry') }}

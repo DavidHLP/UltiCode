@@ -156,7 +156,7 @@ describe('createSelectionColumn', () => {
     it('checkboxClass is passed to header and cell', () => {
       const table = { getIsAllPageRowsSelected: () => false, getIsSomePageRowsSelected: () => false, toggleAllPageRowsSelected: vi.fn() }
       const row = { getIsSelected: () => false, toggleSelected: vi.fn() }
-      const cls = 'border-[var(--silver-300)]'
+      const cls = 'border-[var(--border-subtle)]'
       const cols = createSelectionColumn(mockT, { checkboxClass: cls })
       const headerVnode = (cols[0].header as ColumnDef<unknown>['header'])(makeHeaderCtx(table))
       const cellVnode = (cols[0].cell as ColumnDef<unknown>['cell'])(makeCellCtx(row))

@@ -192,21 +192,21 @@ async function createInitialSnapshot() {
 
 function getChangeTypeStyle(type: string): { bg: string; border: string; text: string } {
   const defaultStyle = {
-    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-    border: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-    text: 'text-[var(--terminal-amber)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
+    text: 'text-foreground-strong',
   }
   const styles: Record<string, { bg: string; border: string; text: string }> = {
     create: {
-      bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-      border: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-      text: 'text-[var(--terminal-green)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
+      text: 'text-foreground-strong',
     },
     update: defaultStyle,
     rollback: {
-      bg: 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
-      border: 'border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)]',
-      text: 'text-[var(--accent-electric)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--primary)_40%,_transparent)]',
+      text: 'text-[var(--primary)]',
     },
   }
   return styles[type] ?? defaultStyle
@@ -248,10 +248,10 @@ watch(
         <!-- Compare Mode Banner -->
         <div
           v-if="compareMode"
-          class="mb-4 p-3 rounded-none border border-[var(--accent-electric)] bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
+          class="mb-4 p-3 rounded-none border border-[var(--primary)] bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
         >
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--accent-electric)]">
+            <span class="text-sm text-[var(--primary)]">
               {{ t('problems.versionHistory.compareWith') }}: Version {{ compareFrom }}
             </span>
             <Button variant="ghost" size="sm" @click="cancelCompare">
@@ -298,7 +298,7 @@ watch(
             :key="version.id"
             class="group p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
             :class="{
-              'border-[var(--accent-electric)]': compareFrom === version.id,
+              'border-[var(--primary)]': compareFrom === version.id,
             }"
           >
             <div class="flex items-start justify-between gap-4">
@@ -356,7 +356,7 @@ watch(
                   variant="ghost"
                   size="icon"
                   class="h-8 w-8"
-                  :class="{ 'text-[var(--accent-electric)]': compareFrom === version.id }"
+                  :class="{ 'text-[var(--primary)]': compareFrom === version.id }"
                   @click="startCompare(version.id)"
                 >
                   <IconGitCompare class="h-4 w-4" />
@@ -364,7 +364,7 @@ watch(
                 <Button
                   variant="ghost"
                   size="icon"
-                  class="h-8 w-8 text-[var(--terminal-amber)]"
+                  class="h-8 w-8 text-foreground-strong"
                   @click="confirmRollback(version)"
                 >
                   <IconRotateClockwise class="h-4 w-4" />
@@ -434,7 +434,7 @@ watch(
                     {{ t('problems.versionHistory.oldValue') }}:
                   </p>
                   <pre
-                    class="p-2 rounded-none bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 overflow-x-auto"
+                    class="p-2 rounded-none bg-status-error-surface text-foreground-strong border border-status-error-mark overflow-x-auto"
                     >{{ JSON.stringify(diff.oldValue, null, 2) }}</pre
                   >
                 </div>
@@ -443,7 +443,7 @@ watch(
                     {{ t('problems.versionHistory.newValue') }}:
                   </p>
                   <pre
-                    class="p-2 rounded-none bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 overflow-x-auto"
+                    class="p-2 rounded-none bg-status-success-surface text-foreground-strong border border-status-success-mark overflow-x-auto"
                     >{{ JSON.stringify(diff.newValue, null, 2) }}</pre
                   >
                 </div>

@@ -76,11 +76,11 @@ watch(
     <template #content="{ entity }">
       <!-- Profile Header - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <!-- Header Bar -->
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">{{ t('users.drawer.sections.profile') }}</span>
         </div>
@@ -92,16 +92,16 @@ watch(
               :class="[
                 'relative',
                 entity.isBanned
-                  ? 'ring-2 ring-[var(--terminal-red)] ring-offset-2 ring-offset-background'
+                  ? 'ring-2 ring-[var(--status-error-mark)] ring-offset-2 ring-offset-background'
                   : entity.isActive
-                    ? 'ring-2 ring-[var(--terminal-green)] ring-offset-2 ring-offset-background'
+                    ? 'ring-2 ring-[var(--status-success-mark)] ring-offset-2 ring-offset-background'
                     : '',
               ]"
             >
               <Avatar class="h-16 w-16 rounded-none">
                 <AvatarImage :src="entity.avatar ?? ''" :alt="entity.username" />
                 <AvatarFallback
-                  class="font-data text-lg bg-[var(--silver-100)] dark:bg-[var(--silver-800)]"
+                  class="font-data text-lg bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)]"
                 >
                   {{ entity.name?.[0] || entity.username[0] }}
                 </AvatarFallback>
@@ -114,7 +114,7 @@ watch(
                   entity.name || entity.username
                 }}</span>
               </div>
-              <div class="flex items-center gap-1.5 text-sm text-[var(--silver-400)] mb-2">
+              <div class="flex items-center gap-1.5 text-sm text-[var(--foreground-muted)] mb-2">
                 <IconMail class="h-3.5 w-3.5" />
                 <span class="font-data text-xs truncate">{{ entity.email || 'no-email' }}</span>
               </div>
@@ -144,10 +144,10 @@ watch(
       <!-- Performance Stats - Terminal Style -->
       <div
         v-if="entity.stats"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">{{ t('users.drawer.sections.performance') }}</span>
         </div>
@@ -156,9 +156,9 @@ watch(
           <!-- Summary Stats -->
           <div class="grid grid-cols-2 gap-3">
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
             >
-              <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
+              <IconTrophy class="h-5 w-5 text-[var(--status-warning-mark)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
                   {{ entity.stats?.totalSolutions ?? 0 }}
@@ -167,9 +167,9 @@ watch(
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
             >
-              <IconFlame class="h-5 w-5 text-[var(--terminal-red)]" />
+              <IconFlame class="h-5 w-5 text-[var(--status-error-mark)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
                   {{ entity.stats?.streak ?? 0 }}
@@ -178,10 +178,10 @@ watch(
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
             >
               <div class="h-5 w-5 flex items-center justify-center">
-                <span class="font-data text-sm text-[var(--terminal-cyan)]">∑</span>
+                <span class="font-data text-sm text-[var(--foreground-strong)]">∑</span>
               </div>
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
@@ -191,10 +191,10 @@ watch(
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
             >
               <div class="h-5 w-5 flex items-center justify-center">
-                <span class="font-data text-sm text-[var(--terminal-green)]">✓</span>
+                <span class="font-data text-sm text-[var(--foreground-strong)]">✓</span>
               </div>
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
@@ -208,15 +208,15 @@ watch(
           <!-- Submission Progress Bar -->
           <div class="space-y-2" v-if="entity.stats">
             <div class="flex items-center justify-between">
-              <span class="font-data text-xs text-[var(--silver-400)]">{{
+              <span class="font-data text-xs text-[var(--foreground-muted)]">{{
                 $t('users.stats.acceptanceRate')
               }}</span>
-              <span class="font-data text-xs text-[var(--silver-400)] tabular-nums"
+              <span class="font-data text-xs text-[var(--foreground-muted)] tabular-nums"
                 >{{ acceptanceRate }}%</span
               >
             </div>
             <div class="ascii-progress text-2xs">
-              <span class="text-[var(--terminal-green)]">{{ progressFilled }}</span>
+              <span class="text-[var(--foreground-strong)]">{{ progressFilled }}</span>
               <span class="ascii-progress-track">{{ progressEmpty }}</span>
             </div>
           </div>
@@ -225,10 +225,10 @@ watch(
 
       <!-- Account Information - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">{{ t('users.drawer.sections.account') }}</span>
         </div>
@@ -251,7 +251,7 @@ watch(
               <span v-if="entity.lastLoginAt" class="font-data text-sm tabular-nums">
                 {{ formatDateByLocale(entity.lastLoginAt) }}
               </span>
-              <span v-else class="text-[var(--silver-400)] italic">{{
+              <span v-else class="text-[var(--foreground-muted)] italic">{{
                 $t('users.stats.never')
               }}</span>
             </DataBlock>
@@ -262,12 +262,12 @@ watch(
       <!-- Ban Information -->
       <div
         v-if="entity.isBanned"
-        class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
+        class="border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)]"
       >
         <div
-          class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[color-mix(in_oklch,_var(--terminal-red)_12%,_transparent)]"
+          class="border-b border-[var(--status-error-mark)] px-4 py-2 bg-[color-mix(in_oklch,_var(--status-error-mark)_12%,_transparent)]"
         >
-          <span class="terminal-comment text-[var(--terminal-red)]">ban_info</span>
+          <span class="terminal-comment text-[var(--foreground-strong)]">ban_info</span>
         </div>
 
         <div class="p-4 space-y-3">
@@ -277,7 +277,7 @@ watch(
             </span>
           </DataBlock>
           <DataBlock :label="$t('users.columns.bannedUntil')">
-            <span class="font-data text-sm tabular-nums text-[var(--terminal-red)]">
+            <span class="font-data text-sm tabular-nums text-[var(--foreground-strong)]">
               {{
                 entity.bannedUntil
                   ? formatDateTimeByLocale(entity.bannedUntil)

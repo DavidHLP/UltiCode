@@ -46,45 +46,45 @@ const statusCards = computed(() => [
     label: t('moderation.stats.totalPending'),
     value: stats.value?.pendingCount ?? 0,
     icon: IconAlertTriangle,
-    color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
+    color: 'text-foreground-strong',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
   },
   {
     key: 'under_review',
     label: t('moderation.stats.totalUnderReview'),
     value: stats.value?.underReviewCount ?? 0,
     icon: IconClock,
-    color: 'text-[var(--terminal-cyan)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
+    color: 'text-foreground-strong',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--status-info-mark)_40%,_transparent)]',
   },
   {
     key: 'resolved',
     label: t('moderation.stats.totalResolved'),
     value: stats.value?.resolvedCount ?? 0,
     icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
+    color: 'text-foreground-strong',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
   },
   {
     key: 'dismissed',
     label: t('moderation.stats.totalDismissed'),
     value: stats.value?.dismissedCount ?? 0,
     icon: IconX,
-    color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
+    color: 'text-foreground-strong',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--status-error-mark)_40%,_transparent)]',
   },
   {
     key: 'appeal_pending',
     label: t('moderation.stats.totalAppealPending'),
     value: stats.value?.pendingAppealsCount ?? 0,
     icon: IconScale,
-    color: 'text-[var(--terminal-purple)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
+    color: 'text-foreground-strong',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--status-special-mark)_40%,_transparent)]',
   },
 ])
 
@@ -120,23 +120,23 @@ const entityTypeIcons: Record<string, typeof IconFileText> = {
 }
 
 const entityTypeColors: Record<string, string> = {
-  forum_post: 'text-[var(--terminal-cyan)]',
-  forum_comment: 'text-[var(--terminal-cyan)]',
-  solution: 'text-[var(--terminal-green)]',
-  solution_comment: 'text-[var(--terminal-green)]',
-  problem: 'text-[var(--terminal-amber)]',
+  forum_post: 'text-foreground-strong',
+  forum_comment: 'text-foreground-strong',
+  solution: 'text-foreground-strong',
+  solution_comment: 'text-foreground-strong',
+  problem: 'text-foreground-strong',
 }
 
 const categoryColors: Record<ReportCategory, string> = {
-  SPAM: 'bg-[var(--terminal-amber)]',
-  HARASSMENT: 'bg-[var(--terminal-red)]',
-  HATE_SPEECH: 'bg-[var(--terminal-red)]',
-  VIOLENCE: 'bg-[var(--terminal-red)]',
-  SEXUAL_CONTENT: 'bg-[var(--terminal-red)]',
-  MISINFORMATION: 'bg-[var(--terminal-amber)]',
-  WRONG_ANSWER: 'bg-[var(--terminal-amber)]',
-  COPYRIGHT: 'bg-[var(--terminal-purple)]',
-  OTHER: 'bg-[var(--silver-500)]',
+  SPAM: 'bg-[var(--status-warning-mark)]',
+  HARASSMENT: 'bg-[var(--status-error-mark)]',
+  HATE_SPEECH: 'bg-[var(--status-error-mark)]',
+  VIOLENCE: 'bg-[var(--status-error-mark)]',
+  SEXUAL_CONTENT: 'bg-[var(--status-error-mark)]',
+  MISINFORMATION: 'bg-[var(--status-warning-mark)]',
+  WRONG_ANSWER: 'bg-[var(--status-warning-mark)]',
+  COPYRIGHT: 'bg-[var(--status-special-mark)]',
+  OTHER: 'bg-[var(--foreground-muted)]',
 }
 
 const totalItems = computed(() => {
@@ -172,7 +172,7 @@ function navigateToAppeals() {
       <Button
         variant="terminal"
         size="sm"
-        class="h-8 font-data text-xs border-[var(--silver-300)]"
+        class="h-8 font-data text-xs border-[var(--border-subtle)]"
         @click="handleRefresh"
         :disabled="store.statsLoading"
       >
@@ -202,7 +202,7 @@ function navigateToAppeals() {
         <CardHeader class="pb-2">
           <CardTitle class="flex items-center gap-2 text-sm font-data">
             <component :is="card.icon" :class="['h-4 w-4', card.color]" />
-            <span class="text-[var(--silver-500)] uppercase tracking-wider text-2xs">
+            <span class="text-[var(--foreground-muted)] uppercase tracking-wider text-2xs">
               {{ card.label }}
             </span>
           </CardTitle>
@@ -212,7 +212,7 @@ function navigateToAppeals() {
             <span :class="['text-3xl font-data tabular-nums', card.color]">
               {{ card.value }}
             </span>
-            <span v-if="totalItems > 0" class="text-xs text-[var(--silver-400)] font-data">
+            <span v-if="totalItems > 0" class="text-xs text-[var(--foreground-muted)] font-data">
               {{ Math.round((card.value / totalItems) * 100) }}%
             </span>
           </div>
@@ -229,18 +229,18 @@ function navigateToAppeals() {
       ]"
     >
       <!-- By Category -->
-      <Card class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+      <Card class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]">
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-sm font-data">
-            <IconChartBar class="h-4 w-4 text-[var(--silver-500)]" />
-            <span class="text-[var(--silver-500)] uppercase tracking-wider text-2xs">
+            <IconChartBar class="h-4 w-4 text-[var(--foreground-muted)]" />
+            <span class="text-[var(--foreground-muted)] uppercase tracking-wider text-2xs">
               {{ t('moderation.stats.byCategory') }}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div v-if="categoryData.length === 0" class="py-8 text-center">
-            <p class="text-xs font-data text-[var(--silver-400)]">
+            <p class="text-xs font-data text-[var(--foreground-muted)]">
               {{ t('common.noDataAvailable') }}
             </p>
           </div>
@@ -248,7 +248,7 @@ function navigateToAppeals() {
             <div v-for="item in categoryData" :key="item.category" class="space-y-1">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-data">{{ t(`moderation.categories.${item.category}`) }}</span>
-                <span class="font-data tabular-nums text-[var(--silver-400)]">
+                <span class="font-data tabular-nums text-[var(--foreground-muted)]">
                   {{ item.count }} ({{ item.percentage }}%)
                 </span>
               </div>
@@ -262,18 +262,18 @@ function navigateToAppeals() {
       </Card>
 
       <!-- By Entity Type -->
-      <Card class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+      <Card class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]">
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-sm font-data">
-            <IconTrendingUp class="h-4 w-4 text-[var(--silver-500)]" />
-            <span class="text-[var(--silver-500)] uppercase tracking-wider text-2xs">
+            <IconTrendingUp class="h-4 w-4 text-[var(--foreground-muted)]" />
+            <span class="text-[var(--foreground-muted)] uppercase tracking-wider text-2xs">
               {{ t('moderation.stats.byEntityType') }}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div v-if="entityTypeData.length === 0" class="py-8 text-center">
-            <p class="text-xs font-data text-[var(--silver-400)]">
+            <p class="text-xs font-data text-[var(--foreground-muted)]">
               {{ t('common.noDataAvailable') }}
             </p>
           </div>
@@ -281,12 +281,12 @@ function navigateToAppeals() {
             <div
               v-for="[entityType, count] in entityTypeData"
               :key="entityType"
-              class="flex items-center justify-between p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+              class="flex items-center justify-between p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
             >
               <div class="flex items-center gap-2">
                 <component
                   :is="entityTypeIcons[entityType] || IconFileText"
-                  :class="['h-4 w-4', entityTypeColors[entityType] || 'text-[var(--silver-500)]']"
+                  :class="['h-4 w-4', entityTypeColors[entityType] || 'text-[var(--foreground-muted)]']"
                 />
                 <span class="text-sm">{{ t(`moderation.entityTypes.${entityType}`) }}</span>
               </div>
@@ -306,21 +306,21 @@ function navigateToAppeals() {
       ]"
     >
       <Card
-        class="border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
+        class="border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
         @click="navigateToQueue"
       >
         <CardContent class="py-6">
           <div class="flex items-center gap-4">
             <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]"
+              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]"
             >
-              <IconAlertTriangle class="h-6 w-6 text-[var(--terminal-amber)]" />
+              <IconAlertTriangle class="h-6 w-6 text-[var(--status-warning-mark)]" />
             </div>
             <div>
-              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--terminal-amber)]">
+              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--foreground-strong)]">
                 {{ t('moderation.queue.title') }}
               </h3>
-              <p class="text-xs text-[var(--silver-400)] mt-1">
+              <p class="text-xs text-[var(--foreground-muted)] mt-1">
                 {{ t('moderation.queue.description') }}
               </p>
             </div>
@@ -329,21 +329,21 @@ function navigateToAppeals() {
       </Card>
 
       <Card
-        class="border-[var(--terminal-purple)] bg-[color-mix(in_oklch,_var(--terminal-purple)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
+        class="border-[var(--status-special-mark)] bg-[color-mix(in_oklch,_var(--status-special-mark)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
         @click="navigateToAppeals"
       >
         <CardContent class="py-6">
           <div class="flex items-center gap-4">
             <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]"
+              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]"
             >
-              <IconScale class="h-6 w-6 text-[var(--terminal-purple)]" />
+              <IconScale class="h-6 w-6 text-[var(--status-special-mark)]" />
             </div>
             <div>
-              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--terminal-purple)]">
+              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--foreground-strong)]">
                 {{ t('moderation.appeals.title') }}
               </h3>
-              <p class="text-xs text-[var(--silver-400)] mt-1">
+              <p class="text-xs text-[var(--foreground-muted)] mt-1">
                 {{ t('moderation.appeals.description') }}
               </p>
             </div>
@@ -356,7 +356,7 @@ function navigateToAppeals() {
     <Card
       v-if="stats?.avgResolutionTimeHours"
       :class="[
-        'border-[var(--silver-200)] dark:border-[var(--silver-300)]',
+        'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]',
         'transition-all duration-500 delay-400',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
@@ -365,17 +365,17 @@ function navigateToAppeals() {
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
             <div
-              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]"
+              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]"
             >
-              <IconClock class="h-6 w-6 text-[var(--terminal-green)]" />
+              <IconClock class="h-6 w-6 text-[var(--status-success-mark)]" />
             </div>
             <div>
-              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--silver-500)]">
+              <h3 class="font-data text-sm uppercase tracking-wider text-[var(--foreground-muted)]">
                 {{ t('moderation.stats.avgResolutionTime') }}
               </h3>
-              <p class="text-2xl font-data tabular-nums text-[var(--terminal-green)] mt-1">
+              <p class="text-2xl font-data tabular-nums text-[var(--foreground-strong)] mt-1">
                 {{ Math.round(stats.avgResolutionTimeHours) }}
-                <span class="text-sm text-[var(--silver-400)]">{{
+                <span class="text-sm text-[var(--foreground-muted)]">{{
                   t('moderation.stats.hours')
                 }}</span>
               </p>

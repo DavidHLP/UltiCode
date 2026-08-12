@@ -268,7 +268,7 @@ const navSecondary = computed(() => {
       <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
       <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
-    <SidebarFooter class="border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] p-2">
+    <SidebarFooter class="border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-2">
       <NavUser :user="user" />
     </SidebarFooter>
   </Sidebar>

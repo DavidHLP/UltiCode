@@ -52,7 +52,7 @@ const voteCounts = computed(() =>
 
 <template>
   <article
-    class="group flex cursor-pointer flex-col gap-2.5 bg-card border border-border/40 p-4 rounded-none hover:border-[var(--accent-electric)]/50 hover:bg-muted hover:shadow-xs transition-all duration-200"
+    class="group flex cursor-pointer flex-col gap-2.5 bg-card border border-border/40 p-4 rounded-none hover:border-[var(--primary)]/50 hover:bg-muted hover:shadow-xs transition-all duration-200"
     tabindex="0"
     role="button"
     @click="handleSelect"
@@ -62,7 +62,7 @@ const voteCounts = computed(() =>
       <Avatar class="h-8 w-8 border border-border/50">
         <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
         <AvatarFallback
-          class="text-xxs font-semibold text-white"
+          class="text-xxs font-semibold text-foreground-strong"
           :style="{ backgroundColor: props.item.author.avatarColor }"
         >
           {{ authorInitial }}
@@ -83,7 +83,7 @@ const voteCounts = computed(() =>
           </span>
           <span
             v-if="props.item.flair"
-            class="rounded-none bg-[var(--terminal-amber)]/15 px-1.5 py-0.2 text-2xs font-bold uppercase tracking-wider text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20"
+            class="rounded-none bg-[var(--status-warning-mark)]/15 px-1.5 py-0.2 text-2xs font-bold uppercase tracking-wider text-foreground-strong border border-[var(--status-warning-mark)]/20"
           >
             {{ props.item.flair }}
           </span>
@@ -92,12 +92,12 @@ const voteCounts = computed(() =>
         <!-- Language and Topic badging -->
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
           <span
-            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-[var(--accent-electric)] uppercase tracking-wider"
+            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-[var(--primary)] uppercase tracking-wider"
           >
             {{ languageLabel }}
           </span>
           <span
-            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-[var(--terminal-amber)] uppercase tracking-wider"
+            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-foreground-strong uppercase tracking-wider"
           >
             {{ topicLabel }}
           </span>
@@ -116,12 +116,12 @@ const voteCounts = computed(() =>
       <div class="space-y-0.5">
         <p
           v-if="props.item.highlight"
-          class="text-2xs font-bold uppercase tracking-widest text-[var(--accent-electric)]"
+          class="text-2xs font-bold uppercase tracking-widest text-[var(--primary)]"
         >
           {{ props.item.highlight }}
         </p>
         <h3
-          class="text-sm font-bold text-foreground group-hover:text-[var(--accent-electric)] transition-colors line-clamp-1"
+          class="text-sm font-bold text-foreground group-hover:text-[var(--primary)] transition-colors line-clamp-1"
         >
           {{ props.item.title }}
         </h3>
@@ -161,19 +161,19 @@ const voteCounts = computed(() =>
         class="flex items-center gap-3.5 text-xxs font-data text-muted-foreground"
       >
         <div
-          class="flex items-center gap-1 hover:text-[var(--solarized-green)] transition-colors"
+          class="flex items-center gap-1 hover:text-foreground-strong transition-colors"
         >
           <ThumbsUp class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
           <span class="font-bold">{{ voteCounts.likes }}</span>
         </div>
         <div
-          class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors"
+          class="flex items-center gap-1 hover:text-[var(--primary)] transition-colors"
         >
           <Eye class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
           <span class="font-bold">{{ props.item.stats?.views ?? 0 }}</span>
         </div>
         <div
-          class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors"
+          class="flex items-center gap-1 hover:text-[var(--primary)] transition-colors"
         >
           <MessageSquare
             class="h-3.5 w-3.5 text-muted-foreground/80 text-current"

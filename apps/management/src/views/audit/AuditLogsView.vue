@@ -134,7 +134,7 @@ const columns: ColumnDef<AuditLog>[] = [
       const date = new Date(row.getValue('createdAt') as string)
       return h(
         'span',
-        { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },
+        { class: 'font-data text-sm text-[var(--foreground-muted)] tabular-nums' },
         formatDateTimeByLocale(date),
       )
     },
@@ -159,10 +159,10 @@ const columns: ColumnDef<AuditLog>[] = [
       const icon = getEntityTypeIcon(entityType)
       const notAvailable = t('audit.drawer.notAvailable')
       if (!entityType) {
-        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
+        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
-        h(icon, { class: 'h-4 w-4 text-[var(--silver-500)]' }),
+        h(icon, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
         h('div', { class: 'flex flex-col' }, [
           h(
             'span',
@@ -171,7 +171,7 @@ const columns: ColumnDef<AuditLog>[] = [
           ),
           h(
             'span',
-            { class: 'text-[var(--silver-500)] text-xs font-data' },
+            { class: 'text-[var(--foreground-muted)] text-xs font-data' },
             entityId?.slice(0, 8) || notAvailable,
           ),
         ]),
@@ -184,7 +184,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
-        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, t('audit.systemAction'))
+        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, t('audit.systemAction'))
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
@@ -202,7 +202,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const user = row.original.user
       if (!user) {
-        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
+        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', { class: 'text-sm' }, user.username),
@@ -215,7 +215,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const ip = row.original.ipAddress
       if (!ip) {
-        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
+        return h('span', { class: 'text-[var(--foreground-muted)] text-sm' }, '—')
       }
       return h('div', { class: 'flex flex-col max-w-[150px]' }, [
         h('span', { class: 'text-sm font-data truncate' }, ip),
@@ -253,7 +253,7 @@ const columns: ColumnDef<AuditLog>[] = [
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -267,23 +267,23 @@ const columns: ColumnDef<AuditLog>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.total') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="terminal-label text-[var(--foreground-muted)]">{{ t('audit.stats.total') }}:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             statsTotal
           }}</span>
         </div>
         <div v-for="item in actionTypeStats" :key="item.actionType" class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t(actionTypeGroupToI18nKey(item.actionType)) }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">{{
             item.count
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconDatabase class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('audit.stats.systemAuditTrail')
@@ -307,18 +307,18 @@ const columns: ColumnDef<AuditLog>[] = [
           <div class="flex items-center gap-3 flex-wrap">
             <div class="relative flex items-center min-w-[200px] w-[260px]">
               <IconSearch
-                class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none"
+                class="absolute left-2.5 h-3.5 w-3.5 text-[var(--foreground-muted)] pointer-events-none"
               />
               <Input
                 v-model="searchQuery"
                 variant="terminal"
                 :placeholder="t('audit.searchPlaceholder')"
-                class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)]"
+                class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)]"
               />
               <button
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--silver-500)] focus:outline-none transition-opacity"
+                class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--foreground-muted)] focus:outline-none transition-opacity"
               >
                 <IconX class="h-3.5 w-3.5" />
               </button>
@@ -327,7 +327,7 @@ const columns: ColumnDef<AuditLog>[] = [
               <SelectTrigger
                 variant="terminal"
                 size="sm"
-                class="h-8 w-[200px] bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)] font-data text-xs uppercase tracking-wider"
+                class="h-8 w-[200px] bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)] font-data text-xs uppercase tracking-wider"
               >
                 <SelectValue :placeholder="t('audit.filters.allActions')" />
               </SelectTrigger>
@@ -349,7 +349,7 @@ const columns: ColumnDef<AuditLog>[] = [
               <SelectTrigger
                 variant="terminal"
                 size="sm"
-                class="h-8 w-[180px] bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)] font-data text-xs uppercase tracking-wider"
+                class="h-8 w-[180px] bg-[var(--surface-sunken)] border-[var(--border-subtle)] dark:border-[var(--border-subtle)] focus:border-[var(--primary)] font-data text-xs uppercase tracking-wider"
               >
                 <SelectValue :placeholder="t('audit.filters.allEntities')" />
               </SelectTrigger>
@@ -363,7 +363,7 @@ const columns: ColumnDef<AuditLog>[] = [
             <Button
               variant="terminal"
               size="icon"
-              class="h-8 w-8 border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+              class="h-8 w-8 border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
               @click="loadLogs()"
               :title="t('common.refresh')"
             >
@@ -372,7 +372,7 @@ const columns: ColumnDef<AuditLog>[] = [
             <Button
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--silver-300)]"
+              class="font-data text-xs border-[var(--border-subtle)]"
               @click="showAdvancedFilters = !showAdvancedFilters"
             >
               {{ t('audit.filters.advancedFilters') }}
@@ -382,7 +382,7 @@ const columns: ColumnDef<AuditLog>[] = [
           </div>
           <div
             v-if="showAdvancedFilters"
-            class="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+            class="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
           >
             <Input
               v-model="startDateFilter"
@@ -413,16 +413,16 @@ const columns: ColumnDef<AuditLog>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="auditStore.error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ auditStore.error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
           @click="loadLogs()"
         >
           {{ t('common.retry') }}

@@ -147,7 +147,7 @@ function cancelCreateNew() {
 
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center justify-center py-8">
-      <IconLoader class="h-6 w-6 animate-spin text-[var(--accent-electric)]" />
+      <IconLoader class="h-6 w-6 animate-spin text-[var(--primary)]" />
       <span class="ml-2 terminal-comment">{{ t('common.loading') }}</span>
     </div>
 
@@ -160,11 +160,11 @@ function cancelCreateNew() {
           @update:model-value="handleSelectionChange($event as string)"
         >
           <SelectTrigger
-            class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm"
+            class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm"
           >
             <SelectValue :placeholder="t('contests.scoringRule.selectPlaceholder')" />
           </SelectTrigger>
-          <SelectContent class="border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+          <SelectContent class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
             <SelectItem
               v-for="rule in scoringRules"
               :key="rule.id"
@@ -183,7 +183,7 @@ function cancelCreateNew() {
             </SelectItem>
             <SelectItem
               value="__create_new__"
-              class="font-data text-xs cursor-pointer text-[var(--accent-electric)]"
+              class="font-data text-xs cursor-pointer text-[var(--primary)]"
             >
               <div class="flex items-center gap-2">
                 <IconPlus class="h-3.5 w-3.5" />
@@ -200,13 +200,13 @@ function cancelCreateNew() {
       <!-- Selected Rule Details -->
       <div
         v-if="selectedRule"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <div class="flex items-center gap-2">
-            <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
+            <IconCalculator class="h-4 w-4 text-[var(--primary)]" />
             <span class="terminal-comment">{{ selectedRule.name }}</span>
             <SemanticBadge
               v-if="selectedRule.isDefault"
@@ -225,7 +225,7 @@ function cancelCreateNew() {
               <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.baseScorePerProblem')
               }}</span>
-              <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
+              <p class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">
                 {{ selectedRule.baseScorePerProblem }}
               </p>
             </div>
@@ -233,7 +233,7 @@ function cancelCreateNew() {
               <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.timeBonusPerMinute')
               }}</span>
-              <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
+              <p class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">
                 {{ selectedRule.timeBonusPerMinute }}
               </p>
             </div>
@@ -241,7 +241,7 @@ function cancelCreateNew() {
               <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.wrongAnswerPenalty')
               }}</span>
-              <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
+              <p class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">
                 -{{ selectedRule.wrongAnswerPenalty }}
               </p>
             </div>
@@ -249,7 +249,7 @@ function cancelCreateNew() {
               <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.timeLimitPenalty')
               }}</span>
-              <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
+              <p class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">
                 -{{ selectedRule.timeLimitPenalty }}
               </p>
             </div>
@@ -257,7 +257,7 @@ function cancelCreateNew() {
               <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.firstSolveBonus')
               }}</span>
-              <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
+              <p class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">
                 +{{ selectedRule.firstSolveBonus }}
               </p>
             </div>
@@ -265,7 +265,7 @@ function cancelCreateNew() {
               <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.fullScoreBonus')
               }}</span>
-              <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
+              <p class="font-data text-sm text-[var(--foreground-strong)] tabular-nums">
                 +{{ selectedRule.fullScoreBonus }}
               </p>
             </div>
@@ -277,18 +277,18 @@ function cancelCreateNew() {
     <!-- Create New Rule Form -->
     <div v-else class="space-y-4">
       <div
-        class="border border-[var(--accent-electric)] bg-[color-mix(in_oklch,_var(--accent-electric)_5%,_transparent)] p-4"
+        class="border border-[var(--primary)] bg-[color-mix(in_oklch,_var(--primary)_5%,_transparent)] p-4"
       >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <IconPlus class="h-4 w-4 text-[var(--accent-electric)]" />
+            <IconPlus class="h-4 w-4 text-[var(--primary)]" />
             <span class="terminal-comment">{{ t('contests.scoringRule.createNew') }}</span>
           </div>
           <Button
             type="button"
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)]"
+            class="font-data text-xs border-[var(--border-subtle)]"
             @click="cancelCreateNew"
           >
             {{ t('common.cancel') }}
@@ -302,7 +302,7 @@ function cancelCreateNew() {
             <Input
               v-model="newRuleForm.name"
               :placeholder="t('scoringRules.form.namePlaceholder')"
-              class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
             />
           </div>
 
@@ -313,7 +313,7 @@ function cancelCreateNew() {
               v-model="newRuleForm.description"
               :placeholder="t('scoringRules.form.descriptionPlaceholder')"
               rows="2"
-              class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)] resize-none"
+              class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)] resize-none"
             />
           </div>
 
@@ -325,7 +325,7 @@ function cancelCreateNew() {
                 v-model.number="newRuleForm.baseScorePerProblem"
                 type="number"
                 min="0"
-                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+                class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
               />
             </div>
             <div class="space-y-2">
@@ -334,7 +334,7 @@ function cancelCreateNew() {
                 v-model.number="newRuleForm.timeBonusPerMinute"
                 type="number"
                 min="0"
-                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+                class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
               />
             </div>
           </div>
@@ -346,7 +346,7 @@ function cancelCreateNew() {
                 v-model.number="newRuleForm.wrongAnswerPenalty"
                 type="number"
                 min="0"
-                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+                class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
               />
             </div>
             <div class="space-y-2">
@@ -355,7 +355,7 @@ function cancelCreateNew() {
                 v-model.number="newRuleForm.timeLimitPenalty"
                 type="number"
                 min="0"
-                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+                class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
               />
             </div>
           </div>
@@ -367,7 +367,7 @@ function cancelCreateNew() {
                 v-model.number="newRuleForm.firstSolveBonus"
                 type="number"
                 min="0"
-                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+                class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
               />
             </div>
             <div class="space-y-2">
@@ -376,7 +376,7 @@ function cancelCreateNew() {
                 v-model.number="newRuleForm.fullScoreBonus"
                 type="number"
                 min="0"
-                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+                class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
               />
             </div>
           </div>
@@ -387,7 +387,7 @@ function cancelCreateNew() {
               type="button"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+              class="font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
               :disabled="createLoading || !newRuleForm.name.trim()"
               @click="handleCreateRule"
             >

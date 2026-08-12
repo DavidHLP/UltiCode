@@ -52,14 +52,15 @@ const emit = defineEmits<{
 
 const flairClasses: Record<ForumFlairType, string> = {
   announcement:
-    "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
   discussion:
-    "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
+    "bg-status-info-surface text-foreground-strong border border-status-info-mark",
   showcase:
-    "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
+    "bg-status-special-surface text-foreground-strong border border-status-special-mark",
   question:
-    "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
-  hiring: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+    "bg-status-success-surface text-foreground-strong border border-status-success-mark",
+  hiring:
+    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
 };
 
 const communityIcon = computed(() => props.thread.community?.icon || "");
@@ -252,16 +253,16 @@ async function handleShare() {
           v-if="thread.isPinned"
           :class="[
             'flex items-center gap-1 rounded-none px-2 py-0.5 text-2xs uppercase font-bold border-0',
-            'bg-[oklch(0.6545_0.1340_85.7_/_0.15)] text-[var(--terminal-amber)]',
+            'bg-status-warning-surface text-foreground-strong',
           ]"
         >
-          <Pin class="h-3 w-3" /> {{ t("forum.post.pinned") }}
+          <Pin class="h-3 w-3 text-status-warning-mark" /> {{ t("forum.post.pinned") }}
         </Badge>
         <span
           v-if="thread.isLocked"
-          class="inline-flex items-center gap-1 text-xxs font-medium text-[var(--terminal-amber)]"
+          class="inline-flex items-center gap-1 text-xxs font-medium text-foreground-strong"
         >
-          <Lock class="h-3 w-3" /> {{ t("forum.post.locked") }}
+          <Lock class="h-3 w-3 text-status-warning-mark" /> {{ t("forum.post.locked") }}
         </span>
       </div>
     </div>
@@ -287,7 +288,7 @@ async function handleShare() {
             <img
               :src="media.src"
               :alt="media.alt ?? thread.title"
-              class="h-full w-full object-contain bg-black/5"
+              class="h-full w-full object-contain bg-surface/5"
             />
           </AspectRatio>
           <div
@@ -317,7 +318,7 @@ async function handleShare() {
                 :href="media.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="mt-2 text-[var(--accent-electric)] hover:underline text-xs inline-flex items-center gap-1"
+                class="mt-2 text-[var(--primary)] hover:underline text-xs inline-flex items-center gap-1"
               >
                 {{ t("forum.actions.copyLink") }} <Share2 class="w-3 h-3" />
               </a>
@@ -339,7 +340,7 @@ async function handleShare() {
             ></div>
           </div>
 
-          <div v-else-if="media.type === 'video'" class="bg-black">
+          <div v-else-if="media.type === 'video'" class="bg-background">
             <AspectRatio :ratio="16 / 9">
               <video
                 :src="media.src"

@@ -135,7 +135,7 @@ const statusText = computed(
   padding: 0.5rem 0.75rem;
   text-decoration: none;
   color: var(--foreground);
-  border: 1px solid var(--silver-200);
+  border: 1px solid var(--border-subtle);
   border-radius: 0;
   background: var(--background);
   transition:
@@ -144,13 +144,13 @@ const statusText = computed(
 }
 
 .auth-logo:hover {
-  border-color: var(--silver-300);
-  box-shadow: 0 2px 12px oklch(0 0 0 / 0.05);
+  border-color: var(--border-subtle);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow-color) 5%, transparent);
 }
 
 .dark .auth-logo:hover {
-  border-color: var(--silver-400);
-  box-shadow: 0 2px 12px oklch(0 0 0 / 0.2);
+  border-color: var(--foreground-muted);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow-color) 20%, transparent);
 }
 
 .auth-logo__icon {
@@ -187,7 +187,7 @@ const statusText = computed(
   font-size: var(--uc-text-2xs);
   font-weight: var(--uc-font-weight-semibold);
   letter-spacing: 0.15em;
-  color: var(--silver-500);
+  color: var(--foreground-muted);
   text-transform: uppercase;
 }
 
@@ -214,7 +214,7 @@ const statusText = computed(
   padding-top: 1rem;
   font-family: var(--uc-font-code);
   font-size: var(--uc-type-code-size);
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .auth-layout__separator {
@@ -230,7 +230,7 @@ const statusText = computed(
 .auth-layout__status-dot {
   width: 0.375rem;
   height: 0.375rem;
-  background: var(--terminal-green);
+  background: var(--status-success-mark);
   border-radius: 50%;
   animation: pulse-dot 2s ease-in-out infinite;
 }

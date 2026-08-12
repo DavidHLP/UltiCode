@@ -108,7 +108,7 @@ function handleBlur() {
   font-weight: var(--uc-font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--solarized-base01);
+  color: var(--foreground);
   transform-origin: left center;
   transition:
     transform var(--transition-fast),
@@ -118,24 +118,24 @@ function handleBlur() {
 
 .auth-input__label--floating {
   font-size: var(--uc-text-xs);
-  color: var(--silver-500);
+  color: var(--foreground);
   transform: translateY(-0.5rem);
 }
 
 .auth-input--focused .auth-input__label--floating {
-  color: var(--accent-electric);
+  color: var(--foreground-strong);
 }
 
 .auth-input--error .auth-input__label--floating {
-  color: var(--status-error);
+  color: var(--status-error-mark);
 }
 
 .dark .auth-input__label {
-  color: var(--silver-400);
+  color: var(--foreground);
 }
 
 .auth-input__prompt {
-  color: var(--accent-electric);
+  color: var(--primary);
   font-weight: var(--uc-font-weight-bold);
   margin-right: 0.375rem;
 }
@@ -146,7 +146,7 @@ function handleBlur() {
   padding: 0 0.75rem;
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  color: var(--solarized-base03);
+  color: var(--foreground-strong);
   background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: 0;
@@ -155,27 +155,27 @@ function handleBlur() {
 }
 
 .dark .auth-input__field {
-  color: var(--silver-900);
+  color: var(--foreground-strong);
 }
 
 .auth-input__field:focus {
   background: var(--card);
-  border-color: var(--accent-electric);
-  box-shadow: 0 0 0 1px var(--accent-electric-glow);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
 .auth-input__field::placeholder {
-  color: var(--solarized-base1);
-  opacity: 0.7;
+  color: var(--foreground);
+  opacity: 1;
 }
 
 .dark .auth-input__field::placeholder {
-  color: var(--solarized-base01);
-  opacity: 0.7;
+  color: var(--foreground);
+  opacity: 1;
 }
 
 .auth-input--error .auth-input__field {
-  border-color: var(--status-error);
+  border-color: var(--status-error-mark);
 }
 
 .auth-input--disabled .auth-input__field {
@@ -189,7 +189,7 @@ function handleBlur() {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-electric);
+  background: var(--primary);
   transform: scaleX(0);
   transform-origin: center;
   transition: transform var(--transition-fast);
@@ -198,7 +198,7 @@ function handleBlur() {
 .auth-input__line-glow {
   position: absolute;
   inset: -2px;
-  background: var(--accent-electric);
+  background: var(--primary);
   filter: blur(4px);
   opacity: 0;
   transition: opacity var(--transition-fast);
@@ -214,13 +214,13 @@ function handleBlur() {
 
 .auth-input--error .auth-input__line,
 .auth-input--error .auth-input__line-glow {
-  background: var(--status-error);
+  background: var(--status-error-mark);
 }
 
 .auth-input__error {
   margin-top: 0.375rem;
   font-size: var(--uc-text-sm);
-  color: var(--status-error);
+  color: var(--status-error-mark);
   font-family: var(--uc-font-code);
 }
 </style>

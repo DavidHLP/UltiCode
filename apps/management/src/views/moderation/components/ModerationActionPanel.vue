@@ -80,18 +80,18 @@ function handleSubmit() {
 
 <template>
   <Card
-    class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+    class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
   >
     <CardHeader class="pb-3">
       <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
-        <IconAlertCircle class="h-4 w-4 text-[var(--terminal-amber)]" />
-        <span class="text-[var(--silver-500)]">{{ t('moderation.actionPanel.title') }}</span>
+        <IconAlertCircle class="h-4 w-4 text-[var(--status-warning-mark)]" />
+        <span class="text-[var(--foreground-muted)]">{{ t('moderation.actionPanel.title') }}</span>
       </CardTitle>
     </CardHeader>
     <CardContent class="space-y-4">
       <!-- Action Selection -->
       <div class="space-y-2">
-        <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+        <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
           {{ t('moderation.actionPanel.selectAction') }}
         </Label>
         <div class="grid grid-cols-2 gap-2">
@@ -103,7 +103,7 @@ function handleSubmit() {
               'hover:border-current hover:bg-current/5',
               selectedAction === option.value
                 ? [option.borderColor, option.bgColor, 'border-2']
-                : 'border-[var(--silver-300)]',
+                : 'border-[var(--border-subtle)]',
             ]"
             @click="selectedAction = option.value"
           >
@@ -129,7 +129,7 @@ function handleSubmit() {
       <div v-if="selectedOption?.requiresDuration" class="space-y-2">
         <Label
           for="duration-days"
-          class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+          class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
         >
           {{ t('moderation.actionPanel.durationLabel') }}
         </Label>
@@ -141,9 +141,9 @@ function handleSubmit() {
             min="1"
             max="365"
             :placeholder="t('moderation.actionPanel.durationPlaceholder')"
-            class="font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
+            class="font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent"
           />
-          <span class="text-xs text-[var(--silver-500)]">{{
+          <span class="text-xs text-[var(--foreground-muted)]">{{
             t('moderation.actionPanel.days')
           }}</span>
         </div>
@@ -153,7 +153,7 @@ function handleSubmit() {
       <div class="space-y-2">
         <Label
           for="action-note"
-          class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+          class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
         >
           {{ t('moderation.actionPanel.addNote') }}
         </Label>
@@ -162,16 +162,16 @@ function handleSubmit() {
           v-model="note"
           :placeholder="t('moderation.actionPanel.notePlaceholder')"
           rows="3"
-          class="font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
+          class="font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
         />
       </div>
 
       <!-- Warning -->
       <div
-        class="flex items-start gap-2 p-3 border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)]"
+        class="flex items-start gap-2 p-3 border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)]"
       >
-        <IconAlertTriangle class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5" />
-        <p class="text-xs text-[var(--terminal-amber)]">
+        <IconAlertTriangle class="h-4 w-4 text-[var(--status-warning-mark)] flex-shrink-0 mt-0.5" />
+        <p class="text-xs text-[var(--foreground-strong)]">
           {{ t('moderation.actionPanel.warning') }}
         </p>
       </div>

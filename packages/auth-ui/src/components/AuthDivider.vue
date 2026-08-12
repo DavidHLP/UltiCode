@@ -30,17 +30,17 @@ defineOptions({
 .auth-divider__line {
   flex: 1;
   height: 1px;
-  background: var(--silver-200);
+  background: var(--border-subtle);
 }
 
 .dark .auth-divider__line {
-  background: var(--silver-300);
+  background: var(--border-subtle);
 }
 
 .auth-divider__text {
   font-size: var(--uc-text-sm);
   font-weight: var(--uc-font-weight-medium);
-  color: var(--silver-500);
+  color: var(--foreground-muted);
   text-transform: uppercase;
   letter-spacing: var(--uc-tracking-label);
   white-space: nowrap;

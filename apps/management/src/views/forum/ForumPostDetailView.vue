@@ -135,7 +135,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
     <!-- Terminal Header -->
     <header
       :class="[
-        'sticky top-0 z-10 bg-[var(--card)] border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]',
+        'sticky top-0 z-10 bg-[var(--card)] border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -147,7 +147,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 w-8 p-0 border-[var(--silver-300)] hover:border-[var(--silver-400)]"
+            class="h-8 w-8 p-0 border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
             @click="router.push({ name: 'forum-posts' })"
           >
             <IconArrowLeft class="h-4 w-4" />
@@ -165,12 +165,12 @@ async function handleFlagPost(id: string | number, reason?: string) {
         <!-- Center: Tabs (Desktop) -->
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
-            <TabsList class="h-9 border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+            <TabsList class="h-9 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
               <TabsTrigger
                 value="overview"
                 class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
               >
-                <span class="text-[var(--silver-500)] mr-1">01</span>
+                <span class="text-[var(--foreground-muted)] mr-1">01</span>
                 <IconFileText :size="14" class="mr-1" />
                 {{ t('forum.tabs.overview') }}
               </TabsTrigger>
@@ -178,7 +178,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
                 value="comments"
                 class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
               >
-                <span class="text-[var(--silver-500)] mr-1">02</span>
+                <span class="text-[var(--foreground-muted)] mr-1">02</span>
                 <IconMessage :size="14" class="mr-1" />
                 {{ t('forum.tabs.comments') }}
               </TabsTrigger>
@@ -186,7 +186,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
                 value="audit"
                 class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
               >
-                <span class="text-[var(--silver-500)] mr-1">03</span>
+                <span class="text-[var(--foreground-muted)] mr-1">03</span>
                 <IconHistory :size="14" class="mr-1" />
                 {{ t('forum.tabs.audit') }}
               </TabsTrigger>
@@ -222,7 +222,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
             <Button
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-cyan)] hover:text-[var(--terminal-cyan)]"
+              class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-info-mark)] hover:text-foreground-strong"
               @click="togglePin"
             >
               <IconPin class="h-3.5 w-3.5 mr-1.5" />
@@ -234,7 +234,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
             <Button
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-amber)] hover:text-[var(--terminal-amber)]"
+              class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-warning-mark)] hover:text-foreground-strong"
               @click="toggleLock"
             >
               <IconLock class="h-3.5 w-3.5 mr-1.5" />
@@ -247,7 +247,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
               v-if="post.isFlagged"
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+              class="h-8 font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
               @click="unflagPost"
             >
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
@@ -257,7 +257,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
               v-else
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
+              class="h-8 font-data text-xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_10%,_transparent)]"
               @click="flagDialogOpen = true"
             >
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
@@ -269,7 +269,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
             v-if="canDelete"
             variant="terminal"
             size="sm"
-            class="h-8 w-8 p-0 border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+            class="h-8 w-8 p-0 border-[var(--status-error-mark)] text-[var(--status-error-mark)] hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
             @click="deleteDialogOpen = true"
           >
             <IconTrash class="h-4 w-4" />
@@ -279,31 +279,31 @@ async function handleFlagPost(id: string | number, reason?: string) {
 
       <!-- Mobile Tabs (Below Header) -->
       <div
-        class="md:hidden border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] p-1 bg-[var(--surface-sunken)]"
+        class="md:hidden border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-1 bg-[var(--surface-sunken)]"
       >
         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
           <TabsList
-            class="w-full h-9 border border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+            class="w-full h-9 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]"
           >
             <TabsTrigger
               value="overview"
               class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
             >
-              <span class="text-[var(--silver-500)] mr-1">01</span>
+              <span class="text-[var(--foreground-muted)] mr-1">01</span>
               {{ t('forum.tabs.overview') }}
             </TabsTrigger>
             <TabsTrigger
               value="comments"
               class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
             >
-              <span class="text-[var(--silver-500)] mr-1">02</span>
+              <span class="text-[var(--foreground-muted)] mr-1">02</span>
               {{ t('forum.tabs.comments') }}
             </TabsTrigger>
             <TabsTrigger
               value="audit"
               class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
             >
-              <span class="text-[var(--silver-500)] mr-1">03</span>
+              <span class="text-[var(--foreground-muted)] mr-1">03</span>
               {{ t('forum.tabs.audit') }}
             </TabsTrigger>
           </TabsList>
@@ -319,17 +319,17 @@ async function handleFlagPost(id: string | number, reason?: string) {
         class="flex flex-col items-center justify-center py-24 text-center"
       >
         <div
-          class="w-12 h-12 border border-[var(--terminal-red)] flex items-center justify-center mb-3"
+          class="w-12 h-12 border border-[var(--status-error-mark)] flex items-center justify-center mb-3"
         >
-          <IconFileText :size="24" class="text-[var(--terminal-red)]" />
+          <IconFileText :size="24" class="text-[var(--status-error-mark)]" />
         </div>
         <h2 class="text-sm font-semibold mb-1 font-data">{{ t('forum.error.loadingPost') }}</h2>
-        <p class="text-xs text-[var(--silver-400)] mb-4 font-data">{{ forumStore.postError }}</p>
+        <p class="text-xs text-[var(--foreground-muted)] mb-4 font-data">{{ forumStore.postError }}</p>
         <div class="flex gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)]"
+            class="font-data text-xs border-[var(--border-subtle)]"
             @click="router.push({ name: 'forum-posts' })"
           >
             {{ t('forum.error.back') }}
@@ -337,7 +337,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)]"
+            class="font-data text-xs border-[var(--primary)] text-[var(--primary)]"
             @click="refresh"
           >
             {{ t('forum.error.retry') }}
@@ -362,18 +362,18 @@ async function handleFlagPost(id: string | number, reason?: string) {
       <!-- Not Found State -->
       <div v-else-if="!post" class="flex flex-col items-center justify-center py-24 text-center">
         <div
-          class="w-12 h-12 border border-[var(--silver-300)] flex items-center justify-center mb-3"
+          class="w-12 h-12 border border-[var(--border-subtle)] flex items-center justify-center mb-3"
         >
-          <IconFileText :size="24" class="text-[var(--silver-400)]" />
+          <IconFileText :size="24" class="text-[var(--foreground-muted)]" />
         </div>
         <h2 class="text-sm font-semibold mb-1 font-data">{{ t('forum.error.postNotFound') }}</h2>
-        <p class="text-xs text-[var(--silver-400)] mb-4">
+        <p class="text-xs text-[var(--foreground-muted)] mb-4">
           {{ t('forum.error.notFoundDescription') }}
         </p>
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)]"
+          class="font-data text-xs border-[var(--border-subtle)]"
           @click="router.push({ name: 'forum-posts' })"
         >
           {{ t('forum.error.backToForumPosts') }}

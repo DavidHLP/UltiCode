@@ -175,14 +175,14 @@ onUnmounted(() => {
     <PopoverTrigger as-child>
       <button
         type="button"
-        class="relative flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-[var(--silver-100)]/50 hover:text-[var(--solarized-base01)] dark:hover:bg-[var(--solarized-base03)]/50 dark:hover:text-[var(--solarized-base1)] cursor-pointer"
+        class="relative flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-[var(--surface-highlight)]/50 hover:text-foreground dark:hover:bg-background/50 dark:hover:text-foreground-strong cursor-pointer"
         :data-testid="'shell-announcement-bell'"
         :title="t('contest.detail.announcements.title')"
       >
         <Bell class="h-3.5 w-3.5" />
         <span
           v-if="shellStore.announceUnreadCount > 0"
-          class="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[var(--terminal-amber)] px-1 text-2xs font-black text-white"
+          class="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-status-warning-mark bg-status-warning-surface px-1 text-2xs font-black text-foreground-strong"
           :data-testid="'shell-announcement-badge'"
         >
           {{
@@ -197,15 +197,15 @@ onUnmounted(() => {
     <PopoverContent
       align="end"
       :side-offset="6"
-      class="w-80 max-h-[60vh] overflow-y-auto rounded-none border border-border bg-[var(--solarized-base3)] p-0 font-mono shadow-lg dark:bg-[var(--solarized-base02)]"
+      class="w-80 max-h-[60vh] overflow-y-auto rounded-none border border-border bg-surface p-0 font-mono shadow-lg dark:bg-surface-highlight"
     >
       <header
-        class="flex items-center justify-between border-b border-border bg-[var(--silver-100)]/50 px-3 py-2 text-2xs font-black uppercase tracking-widest text-muted-foreground dark:bg-[var(--solarized-base03)]/50"
+        class="flex items-center justify-between border-b border-border bg-[var(--surface-highlight)]/50 px-3 py-2 text-2xs font-black uppercase tracking-widest text-muted-foreground dark:bg-background/50"
       >
         <span>{{ t("contest.detail.announcements.title") }}</span>
         <span
           v-if="shellStore.announceUnreadCount > 0"
-          class="text-[var(--terminal-amber)]"
+          class="text-foreground-strong"
         >
           {{
             t("contest.detail.announcements.unread", {
@@ -237,7 +237,7 @@ onUnmounted(() => {
             <div class="flex items-start gap-2">
               <Pin
                 v-if="a.isPinned"
-                class="mt-0.5 h-3 w-3 shrink-0 text-[var(--terminal-amber)]"
+                class="mt-0.5 h-3 w-3 shrink-0 text-[var(--status-warning-mark)]"
               />
               <div class="min-w-0 flex-1">
                 <div class="flex items-baseline justify-between gap-2">

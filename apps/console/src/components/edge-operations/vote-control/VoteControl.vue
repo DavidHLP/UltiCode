@@ -39,9 +39,9 @@ defineOptions({
       <Button
         type="button"
         variant="ghost"
-        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground transition-all flex items-center gap-1.5 cursor-pointer select-none font-bold"
+        class="h-8 px-3 rounded-none text-foreground dark:text-foreground-muted hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:text-foreground-strong dark:hover:text-foreground transition-all flex items-center gap-1.5 cursor-pointer select-none font-bold"
         :class="{
-          'text-[var(--solarized-yellow)]! bg-[var(--solarized-yellow)]/10! hover:bg-[var(--solarized-yellow)]/15! hover:text-[var(--solarized-yellow)]!':
+          'text-foreground-strong! bg-[var(--status-warning-mark)]/10! hover:bg-[var(--status-warning-mark)]/15! hover:text-foreground-strong!':
             userVote === 1,
           'opacity-50 cursor-default pointer-events-none': readonly,
         }"
@@ -58,16 +58,16 @@ defineOptions({
 
       <!-- Internal Separator -->
       <div
-        class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+        class="h-4 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
       ></div>
 
       <!-- Downvote Button -->
       <Button
         type="button"
         variant="ghost"
-        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground transition-all flex items-center gap-1.5 cursor-pointer select-none font-bold"
+        class="h-8 px-3 rounded-none text-foreground dark:text-foreground-muted hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:text-foreground-strong dark:hover:text-foreground transition-all flex items-center gap-1.5 cursor-pointer select-none font-bold"
         :class="{
-          'text-[var(--solarized-violet)]! bg-[var(--solarized-violet)]/10! hover:bg-[var(--solarized-violet)]/15! hover:text-[var(--solarized-violet)]!':
+          'text-foreground-strong! bg-[var(--status-special-mark)]/10! hover:bg-[var(--status-special-mark)]/15! hover:text-foreground-strong!':
             userVote === -1,
           'opacity-50 cursor-default pointer-events-none': readonly,
         }"
@@ -86,7 +86,7 @@ defineOptions({
     <template v-else>
       <!-- Preview Mode: Two Static Buttons -->
       <div
-        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
+        class="h-8 px-3 rounded-none text-foreground dark:text-foreground-muted flex items-center gap-1.5 select-none font-bold text-xs"
       >
         <ThumbsUp class="h-3.5 w-3.5" />
         <span class="text-xxs tabular-nums font-mono font-bold">{{
@@ -95,11 +95,11 @@ defineOptions({
       </div>
 
       <div
-        class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+        class="h-4 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
       ></div>
 
       <div
-        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
+        class="h-8 px-3 rounded-none text-foreground dark:text-foreground-muted flex items-center gap-1.5 select-none font-bold text-xs"
       >
         <ThumbsDown class="h-3.5 w-3.5" />
         <span class="text-xxs tabular-nums font-mono font-bold">{{

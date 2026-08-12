@@ -75,6 +75,7 @@ test("exports the public stylesheet", () => {
     themeManifest.exports["./typography.css"],
     "./src/typography.css",
   );
+  assert.equal(manifest.exports["./palette"].import, "./src/palette.ts");
   assert.equal(manifest.dependencies["@ulticode/theme"], "workspace:*");
   for (const dependency of ["katex", "tailwindcss", "tw-animate-css"]) {
     assert.ok(manifest.dependencies[dependency]);
@@ -117,8 +118,10 @@ test("publishes accessible Light and Dark product mappings", () => {
   assert.equal(light.foreground, "var(--solarized-base01)");
   assert.equal(light["foreground-strong"], "var(--solarized-base03)");
   assert.equal(light["foreground-muted"], "var(--solarized-base01)");
-  assert.equal(light.primary, "var(--solarized-base03)");
+  assert.equal(light.primary, "var(--solarized-blue)");
   assert.equal(light["primary-foreground"], "var(--solarized-base3)");
+  assert.equal(light["primary-control"], "var(--solarized-base03)");
+  assert.equal(light["primary-control-foreground"], "var(--solarized-base3)");
   assert.equal(light["secondary-foreground"], "var(--solarized-base03)");
   assert.equal(light["muted-foreground"], "var(--solarized-base03)");
   assert.equal(light["accent-foreground"], "var(--solarized-base03)");
@@ -126,8 +129,10 @@ test("publishes accessible Light and Dark product mappings", () => {
   assert.equal(light["sidebar-accent-foreground"], "var(--solarized-base01)");
   assert.equal(light["border-control"], "var(--solarized-base00)");
   assert.equal(dark.foreground, "var(--solarized-base1)");
-  assert.equal(dark.primary, "var(--solarized-base3)");
-  assert.equal(dark["primary-foreground"], "var(--solarized-base03)");
+  assert.equal(dark.primary, "var(--solarized-blue)");
+  assert.equal(dark["primary-foreground"], "var(--solarized-base3)");
+  assert.equal(dark["primary-control"], "var(--solarized-base3)");
+  assert.equal(dark["primary-control-foreground"], "var(--solarized-base03)");
   assert.equal(dark["foreground-strong"], "var(--solarized-base1)");
   assert.equal(dark["muted-foreground"], "var(--solarized-base1)");
   assert.equal(dark["sidebar-accent-foreground"], "var(--solarized-base1)");
@@ -139,11 +144,9 @@ test("publishes accessible Light and Dark product mappings", () => {
     ["Light secondary", "#002b36", "#eee8d5"],
     ["Light sidebar", "#002b36", "#eee8d5"],
     ["Light sidebar accent", "#586e75", "#fdf6e3"],
-    ["Light primary", "#fdf6e3", "#002b36"],
     ["Dark foreground", "#93a1a1", "#002b36"],
     ["Dark elevated", "#93a1a1", "#073642"],
     ["Dark sidebar accent", "#93a1a1", "#002b36"],
-    ["Dark primary", "#002b36", "#fdf6e3"],
   ];
   for (const [label, foreground, background] of textPairs) {
     assert.ok(
@@ -151,9 +154,12 @@ test("publishes accessible Light and Dark product mappings", () => {
       `${label} must reach 4.5:1`,
     );
   }
-
   assert.ok(contrast("#657b83", "#fdf6e3") >= 3);
+  assert.ok(contrast("#fdf6e3", "#002b36") >= 4.5);
+  assert.ok(contrast("#002b36", "#fdf6e3") >= 4.5);
+
   assert.ok(contrast("#839496", "#002b36") >= 3);
+  assert.ok(contrast("#fdf6e3", "#268bd2") >= 3, "primary control text must reach 3:1");
 
   const statusSurfaces = [
     ["#859900", 0.14, 0.16],
@@ -170,6 +176,36 @@ test("publishes accessible Light and Dark product mappings", () => {
       contrast("#93a1a1", mixSrgb(accent, "#002b36", darkRatio)) >= 4.5,
     );
   }
+
+  const lightMarkAccents = [
+    ["#859900", 0.6],
+    ["#b58900", 0.65],
+    ["#dc322f", 0.7],
+    ["#2aa198", 0.6],
+    ["#6c71c4", 0.7],
+  ];
+  for (const [accent, ratio] of lightMarkAccents) {
+    assert.ok(contrast(mixSrgb(accent, "#002b36", ratio), "#fdf6e3") >= 4.5);
+  }
+
+  const darkMarkAccents = [
+    ["#859900", 0.7],
+    ["#b58900", 0.7],
+    ["#dc322f", 0.65],
+    ["#2aa198", 0.7],
+    ["#6c71c4", 0.7],
+  ];
+  for (const [accent, ratio] of darkMarkAccents) {
+    assert.ok(contrast(mixSrgb(accent, "#fdf6e3", ratio), "#073642") >= 4.5);
+  }
+});
+
+test("keeps adaptive control foregrounds readable on dark status marks", () => {
+  const darkWarningMark = mixSrgb("#b58900", "#fdf6e3", 0.7);
+  const darkSuccessMark = mixSrgb("#859900", "#fdf6e3", 0.7);
+
+  assert.ok(contrast("#002b36", darkWarningMark) >= 3);
+  assert.ok(contrast("#002b36", darkSuccessMark) >= 3);
 });
 
 test("owns shared status and chart semantics", () => {
@@ -180,7 +216,7 @@ test("owns shared status and chart semantics", () => {
   assert.equal(light["status-special"], "var(--solarized-violet)");
   assert.equal(light["chart-series-1"], "var(--solarized-blue)");
   assert.equal(light["chart-series-4"], "var(--solarized-magenta)");
-  assert.equal(light["chart-series-8"], "var(--solarized-red)");
+  assert.equal(light["chart-series-8"], "var(--status-error-mark)");
   assert.equal(light["chart-grid-color"], "var(--border-subtle)");
   assert.equal(light["rank-first"], "var(--solarized-yellow)");
   assert.equal(light["rank-third"], "var(--solarized-orange)");
@@ -200,6 +236,7 @@ test("publishes shared component states without palette primitives", async () =>
   });
 
   assert.match(BUTTON_VARIANT_CLASSES.default, /bg-primary/);
+  assert.match(BUTTON_VARIANT_CLASSES.default, /border-primary/);
   assert.match(BUTTON_VARIANT_CLASSES.destructive, /status-error-surface/);
   assert.match(BUTTON_VARIANT_CLASSES.link, /decoration-link-decoration/);
   assert.match(BADGE_VARIANT_CLASSES.destructive, /text-foreground-strong/);
@@ -228,7 +265,7 @@ test("keeps terminal badges readable with a semantic marker", () => {
     assert.match(rule, /color: var\(--foreground-strong\)/);
     assert.match(
       rule,
-      new RegExp(`border: 1px solid var\\(--status-${semantic}\\)`),
+      new RegExp(`border: 1px solid var\\(--status-${semantic}-mark\\)`),
     );
   }
 

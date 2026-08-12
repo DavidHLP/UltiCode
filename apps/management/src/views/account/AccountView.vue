@@ -124,7 +124,7 @@ onMounted(async () => {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -135,7 +135,7 @@ onMounted(async () => {
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('account.title') }}
           </h1>
-          <p class="text-xs text-[var(--silver-500)]">{{ t('account.subtitle') }}</p>
+          <p class="text-xs text-[var(--foreground-muted)]">{{ t('account.subtitle') }}</p>
         </div>
       </div>
     </div>

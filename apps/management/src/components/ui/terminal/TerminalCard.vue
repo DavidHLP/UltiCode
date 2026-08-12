@@ -30,7 +30,7 @@ withDefaults(defineProps<Props>(), {
     "
   >
     <div v-if="title" class="terminal-card-header flex items-center gap-2">
-      <span class="text-[var(--silver-400)]">//</span>
+      <span class="text-[var(--foreground-muted)]">//</span>
       <span>{{ title }}</span>
     </div>
     <div class="p-4">
@@ -39,7 +39,7 @@ withDefaults(defineProps<Props>(), {
     <div v-if="showSeparator" class="terminal-separator mx-4" />
     <div
       v-if="$slots.footer"
-      class="border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+      class="border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--surface-sunken)]"
     >
       <slot name="footer" />
     </div>

@@ -84,10 +84,10 @@ const navigateToProblem = (slug: string) => {
         </div>
         <div class="flex items-center text-xs text-muted-foreground">
           <div
-            class="w-3 h-3 rounded-full border border-[var(--terminal-green)] mr-1.5 relative"
+            class="w-3 h-3 rounded-full border border-[var(--status-success-mark)] mr-1.5 relative"
           >
             <div
-              class="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)]"
+              class="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full bg-[var(--status-success-mark)]"
               v-if="filteredProblems.length > 0"
             ></div>
           </div>
@@ -185,7 +185,7 @@ const navigateToProblem = (slug: string) => {
                 <div class="shrink-0">
                   <Check
                     v-if="problem.status === 'solved'"
-                    class="h-4 w-4 text-[var(--terminal-green)]"
+                    class="h-4 w-4 text-[var(--status-success-mark)]"
                   />
                   <div v-else class="h-4 w-4"></div>
                   <!-- Spacer -->
@@ -200,18 +200,7 @@ const navigateToProblem = (slug: string) => {
 
               <!-- Right: Difficulty -->
               <div class="shrink-0 ml-4 text-xs">
-                <span
-                  :class="
-                    cn({
-                      'text-[var(--terminal-green)]':
-                        problem.difficulty === 'EASY',
-                      'text-[var(--terminal-amber)]':
-                        problem.difficulty === 'MEDIUM',
-                      'text-[var(--terminal-red)]':
-                        problem.difficulty === 'HARD',
-                    })
-                  "
-                >
+                <span class="text-foreground-strong">
                   {{
                     problem.difficulty === "EASY"
                       ? t("problem.difficulty.easy")

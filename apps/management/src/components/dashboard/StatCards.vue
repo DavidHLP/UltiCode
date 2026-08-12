@@ -31,20 +31,20 @@ const getTrendStyles = (trend: string) => {
   switch (trend) {
     case 'up':
       return {
-        icon: 'text-[var(--status-success)]',
+        icon: 'text-[var(--status-success-mark)]',
         badge:
-          'border-[var(--status-success)]/30 bg-[var(--status-success)]/10 text-[var(--status-success)]',
+          'border-[var(--status-success-mark)]/30 bg-[var(--status-success-mark)]/10 text-foreground-strong',
       }
     case 'down':
       return {
-        icon: 'text-[var(--status-error)]',
+        icon: 'text-[var(--status-error-mark)]',
         badge:
-          'border-[var(--status-error)]/30 bg-[var(--status-error)]/10 text-[var(--status-error)]',
+          'border-[var(--status-error-mark)]/30 bg-[var(--status-error-mark)]/10 text-foreground-strong',
       }
     default:
       return {
-        icon: 'text-[var(--silver-400)]',
-        badge: 'border-[var(--silver-300)]/30 bg-[var(--silver-100)] text-[var(--silver-500)]',
+        icon: 'text-[var(--foreground-muted)]',
+        badge: 'border-[var(--border-subtle)]/30 bg-[var(--surface-highlight)] text-[var(--foreground-muted)]',
       }
   }
 }
@@ -52,15 +52,15 @@ const getTrendStyles = (trend: string) => {
 const getCardAccent = (index: number) => {
   switch (index) {
     case 0: // Total Users
-      return 'var(--solarized-blue)'
+      return 'var(--primary)'
     case 1: // Total Problems
-      return 'var(--solarized-cyan)'
+      return 'var(--status-info-mark)'
     case 2: // Active Contests
-      return 'var(--solarized-yellow)'
+      return 'var(--status-warning-mark)'
     case 3: // Flagged Content
-      return 'var(--status-error)'
+      return 'var(--status-error-mark)'
     default:
-      return 'var(--silver-400)'
+      return 'var(--foreground-muted)'
   }
 }
 </script>
@@ -132,7 +132,7 @@ const getCardAccent = (index: number) => {
           </span>
 
           <!-- Description -->
-          <span class="text-xs text-[var(--silver-500)] font-medium">
+          <span class="text-xs text-[var(--foreground-muted)] font-medium">
             {{ stat.description }}
           </span>
         </div>
@@ -143,7 +143,7 @@ const getCardAccent = (index: number) => {
 
 <style scoped>
 .dashboard-stat-card {
-  border: 1px solid color-mix(in oklch, var(--silver-200) 68%, transparent);
+  border: 1px solid color-mix(in oklch, var(--border-subtle) 68%, transparent);
   border-top: 3px solid var(--stat-accent);
   background: var(--card);
   box-shadow: var(--shadow-float);
@@ -155,14 +155,14 @@ const getCardAccent = (index: number) => {
 }
 
 .dashboard-stat-card:hover {
-  border-color: color-mix(in oklch, var(--stat-accent) 65%, var(--silver-200));
+  border-color: color-mix(in oklch, var(--stat-accent) 65%, var(--border-subtle));
   border-top-color: var(--stat-accent);
   box-shadow: var(--shadow-float-hover);
   transform: translateY(-2px);
 }
 
 .dashboard-stat-card__header {
-  border-bottom: 1px solid color-mix(in oklch, var(--silver-200) 58%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--border-subtle) 58%, transparent);
   background: color-mix(in oklch, var(--stat-accent) 5%, var(--surface-sunken));
   color: var(--muted-foreground);
 }
@@ -176,7 +176,7 @@ const getCardAccent = (index: number) => {
 }
 
 .dashboard-stat-card__dot {
-  background: color-mix(in oklch, var(--stat-accent) 42%, var(--silver-200));
+  background: color-mix(in oklch, var(--stat-accent) 42%, var(--border-subtle));
 }
 
 .dashboard-stat-card__value {
@@ -198,28 +198,28 @@ const getCardAccent = (index: number) => {
   background: linear-gradient(
     to right,
     transparent,
-    color-mix(in oklch, var(--silver-200) 70%, transparent),
+    color-mix(in oklch, var(--border-subtle) 70%, transparent),
     transparent
   );
 }
 
 :global(.dark .dashboard-stat-card) {
-  border-color: color-mix(in oklch, var(--silver-300) 55%, transparent);
+  border-color: color-mix(in oklch, var(--border-subtle) 55%, transparent);
   border-top-color: var(--stat-accent);
 }
 
 :global(.dark .dashboard-stat-card:hover) {
-  border-color: color-mix(in oklch, var(--stat-accent) 58%, var(--silver-300));
+  border-color: color-mix(in oklch, var(--stat-accent) 58%, var(--border-subtle));
   border-top-color: var(--stat-accent);
 }
 
 :global(.dark .dashboard-stat-card__header) {
-  border-bottom-color: color-mix(in oklch, var(--silver-300) 48%, transparent);
+  border-bottom-color: color-mix(in oklch, var(--border-subtle) 48%, transparent);
   background: color-mix(in oklch, var(--stat-accent) 8%, var(--surface-sunken));
 }
 
 :global(.dark .dashboard-stat-card__dot) {
-  background: color-mix(in oklch, var(--stat-accent) 52%, var(--silver-300));
+  background: color-mix(in oklch, var(--stat-accent) 52%, var(--border-subtle));
 }
 
 :global(.dark .dashboard-stat-card__icon) {
@@ -235,7 +235,7 @@ const getCardAccent = (index: number) => {
   background: linear-gradient(
     to right,
     transparent,
-    color-mix(in oklch, var(--silver-300) 55%, transparent),
+    color-mix(in oklch, var(--border-subtle) 55%, transparent),
     transparent
   );
 }

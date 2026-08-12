@@ -47,13 +47,13 @@ function outputClass(
 ): string {
   switch (tone) {
     case 'success':
-      return 'text-[var(--terminal-green)] font-bold';
+      return 'text-status-success-mark font-bold';
     case 'accent':
-      return 'text-[var(--accent-electric)] font-bold';
+      return 'text-[var(--primary)] font-bold';
     case 'muted':
-      return 'text-[var(--solarized-base01)] dark:text-[var(--silver-500)]';
+      return 'text-foreground dark:text-[var(--foreground-muted)]';
     default:
-      return 'text-[var(--solarized-base00)] dark:text-[var(--silver-400)]';
+      return 'text-foreground-muted dark:text-[var(--foreground-muted)]';
   }
 }
 
@@ -78,13 +78,13 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
       <div class="auth-pattern-terminal select-none">
         <div class="auth-pattern-terminal__header">
           <span
-            class="auth-pattern-terminal__dot bg-[var(--terminal-red)]"
+            class="auth-pattern-terminal__dot bg-[var(--status-error-mark)]"
           ></span>
           <span
-            class="auth-pattern-terminal__dot bg-[var(--terminal-amber)]"
+            class="auth-pattern-terminal__dot bg-[var(--status-warning-mark)]"
           ></span>
           <span
-            class="auth-pattern-terminal__dot bg-[var(--terminal-green)]"
+            class="auth-pattern-terminal__dot bg-[var(--status-success-mark)]"
           ></span>
           <span class="auth-pattern-terminal__title">{{ windowTitle }}</span>
         </div>
@@ -92,7 +92,7 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
           <template v-for="(line, idx) in spec" :key="idx">
             <div
               v-if="line.prompt"
-              class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)]"
+              class="text-foreground dark:text-[var(--foreground-muted)]"
             >
               $ {{ line.prompt }}
             </div>
@@ -102,7 +102,7 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
           </template>
           <div
             v-if="!spec.length"
-            class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)]"
+            class="text-foreground dark:text-[var(--foreground-muted)]"
           >
             {{ t("auth.layout.systemOnline") }}
           </div>
@@ -132,23 +132,23 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
   letter-spacing: var(--uc-tracking-normal);
   line-height: 1.2;
   margin-bottom: 1rem;
-  color: var(--solarized-base03);
+  color: var(--foreground-strong);
 }
 
 .dark .auth-pattern-text__title {
-  color: var(--silver-900);
+  color: var(--foreground-strong);
 }
 
 .auth-pattern-text__subtitle {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  color: var(--solarized-base00);
+  color: var(--foreground);
   letter-spacing: var(--uc-tracking-normal);
   line-height: 1.5;
 }
 
 .dark .auth-pattern-text__subtitle {
-  color: var(--solarized-base0);
+  color: var(--foreground);
 }
 
 .auth-pattern-text__cursor {
@@ -193,22 +193,22 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
 .auth-pattern-terminal__title {
   font-family: var(--uc-font-code);
   font-size: var(--uc-type-code-size);
-  color: var(--solarized-base01);
+  color: var(--foreground);
   margin-left: 0.5rem;
 }
 
 .dark .auth-pattern-terminal__title {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .auth-pattern-terminal__content {
   padding: 1rem;
   line-height: 1.6;
-  color: var(--solarized-base00);
+  color: var(--foreground);
 }
 
 .dark .auth-pattern-terminal__content {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 @keyframes blink {

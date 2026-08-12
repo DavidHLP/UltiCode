@@ -62,7 +62,7 @@ export function createColumns(
       cell: ({ row }) =>
         h(
           'span',
-          { class: 'font-data text-xs text-[var(--terminal-cyan)]' },
+          { class: 'font-data text-xs text-foreground-strong' },
           row.original.id.slice(0, 8),
         ),
       enableHiding: false,
@@ -75,7 +75,7 @@ export function createColumns(
           h('div', { class: 'font-medium text-sm' }, row.original.problemTitle),
           h(
             'div',
-            { class: 'text-xs text-[var(--silver-400)] font-data' },
+            { class: 'text-xs text-[var(--foreground-muted)] font-data' },
             row.original.problemSlug,
           ),
         ]),
@@ -93,7 +93,7 @@ export function createColumns(
           'span',
           {
             class:
-              'font-data text-xs text-[var(--silver-500)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 rounded-none',
+              'font-data text-xs text-[var(--foreground-muted)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] px-2 py-0.5 rounded-none',
           },
           row.original.language,
         ),
@@ -134,7 +134,7 @@ export function createColumns(
       cell: ({ row }) =>
         h(
           'span',
-          { class: 'text-sm text-[var(--silver-500)]' },
+          { class: 'text-sm text-[var(--foreground-muted)]' },
           formatDistanceToNow(new Date(row.original.createdAt), { addSuffix: true }),
         ),
     },
@@ -149,7 +149,7 @@ export function createColumns(
               variant: 'terminal',
               size: 'sm',
               class:
-                'h-8 w-8 p-0 border-[var(--silver-300)] hover:border-[var(--terminal-cyan)] hover:text-[var(--terminal-cyan)]',
+                'h-8 w-8 p-0 border-[var(--border-subtle)] hover:border-[var(--status-info-mark)] hover:text-[var(--status-info-mark)]',
               onClick: () => actions.viewSubmission(row.original.id),
             },
             () => h(IconEye, { class: 'h-3.5 w-3.5' }),
@@ -160,7 +160,7 @@ export function createColumns(
               variant: 'terminal',
               size: 'sm',
               class:
-                'h-8 w-8 p-0 border-[var(--silver-300)] hover:border-[var(--terminal-amber)] hover:text-[var(--terminal-amber)]',
+                'h-8 w-8 p-0 border-[var(--border-subtle)] hover:border-[var(--status-warning-mark)] hover:text-[var(--status-warning-mark)]',
               onClick: () => actions.openRejudgeDialog(row.original.id),
             },
             () => h(IconRefresh, { class: 'h-3.5 w-3.5' }),

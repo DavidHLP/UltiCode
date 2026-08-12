@@ -260,9 +260,9 @@ watch(
         <Button
           type="button"
           variant="ghost"
-          class="h-8 px-3 rounded-none flex items-center gap-1.5 transition-all select-none font-bold text-xs cursor-pointer bg-transparent text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground shadow-none"
+          class="h-8 px-3 rounded-none flex items-center gap-1.5 transition-all select-none font-bold text-xs cursor-pointer bg-transparent text-foreground dark:text-foreground-muted hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:text-foreground-strong dark:hover:text-foreground shadow-none"
           :class="{
-            'text-[var(--solarized-blue)]! bg-[var(--solarized-blue)]/10! hover:bg-[var(--solarized-blue)]/15! hover:text-[var(--solarized-blue)]!':
+            'text-[var(--primary)]! bg-[var(--primary)]/10! hover:bg-[var(--primary)]/15! hover:text-[var(--primary)]!':
               isSaved,
           }"
           :aria-label="t('problem.save.title')"

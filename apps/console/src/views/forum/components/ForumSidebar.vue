@@ -22,7 +22,7 @@ const { t } = useI18n();
       <div
         class="terminal-card-header p-4 font-medium"
         :style="{
-          borderLeftColor: community.color || 'oklch(0.5924 0.2025 355.9)',
+          borderLeftColor: community.color || 'var(--status-special-mark)',
           borderLeftWidth: '4px',
         }"
       >
@@ -45,7 +45,7 @@ const { t } = useI18n();
             <span class="text-muted-foreground">{{
               t("forum.sidebar.online")
             }}</span>
-            <span class="font-bold tabular-nums text-[var(--terminal-green)]">{{
+            <span class="font-bold tabular-nums text-[var(--foreground-strong)]">{{
               community.online?.toLocaleString()
             }}</span>
           </div>
@@ -76,7 +76,7 @@ const { t } = useI18n();
         <!-- Rules -->
         <div
           v-if="rules && rules.length > 0"
-          class="mt-4 border-t border-silver/40 pt-4"
+          class="mt-4 border-t border-border-control/40 pt-4"
         >
           <h3
             class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data"
@@ -96,7 +96,7 @@ const { t } = useI18n();
         <!-- Links -->
         <div
           v-if="links && links.length > 0"
-          class="mt-4 border-t border-silver/40 pt-4"
+          class="mt-4 border-t border-border-control/40 pt-4"
         >
           <h3
             class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data"
@@ -109,7 +109,7 @@ const { t } = useI18n();
                 :href="link.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-[var(--accent-electric)] hover:underline flex items-center gap-1 font-data"
+                class="text-[var(--primary)] hover:underline flex items-center gap-1 font-data"
               >
                 <span>{{ link.label }}</span>
               </a>

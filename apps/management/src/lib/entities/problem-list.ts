@@ -13,9 +13,9 @@ export type ProblemListVisibility = 'PUBLIC' | 'PRIVATE' | 'UNLISTED'
 export function getProblemListVisibilityIcon(visibility: ProblemListVisibility): VNode {
   switch (visibility) {
     case 'PUBLIC':
-      return h(IconWorld, { class: 'h-4 w-4 text-[var(--terminal-green)]' })
+      return h(IconWorld, { class: 'h-4 w-4 text-foreground-strong' })
     case 'PRIVATE':
-      return h(IconLock, { class: 'h-4 w-4 text-[var(--terminal-amber)]' })
+      return h(IconLock, { class: 'h-4 w-4 text-foreground-strong' })
     case 'UNLISTED':
       return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
     default:

@@ -26,7 +26,7 @@ const avatarFailed = ref(false)
       />
       <span
         v-else
-        class="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-electric)]/15 text-sm font-medium text-[var(--accent-electric)]"
+        class="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--primary)] bg-surface-highlight text-sm font-medium text-foreground-strong"
       >
         {{ user.name?.charAt(0)?.toUpperCase() }}
       </span>
@@ -35,7 +35,7 @@ const avatarFailed = ref(false)
     <!-- Identity -->
     <div class="min-w-0 flex-1">
       <div class="truncate text-sm font-medium">{{ user.name }}</div>
-      <div v-if="user.email" class="truncate text-xs text-[var(--silver-500)]">
+      <div v-if="user.email" class="truncate text-xs text-foreground">
         {{ user.email }}
       </div>
     </div>
@@ -43,7 +43,7 @@ const avatarFailed = ref(false)
     <!-- Role badge -->
     <span
       v-if="user.role"
-      class="shrink-0 rounded-full bg-[var(--silver-200)]/60 px-2 py-0.5 text-xs font-medium text-[var(--solarized-base01)] dark:text-[var(--silver-400)]"
+      class="shrink-0 rounded-full bg-surface-highlight border border-border-control px-2 py-0.5 text-xs font-medium text-foreground-strong"
     >
       {{ user.role }}
     </span>

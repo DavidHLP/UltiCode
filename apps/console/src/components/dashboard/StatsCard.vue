@@ -16,12 +16,12 @@ defineProps<{
 const colorClasses = {
   default: "text-foreground",
   green:
-    "text-foreground-strong decoration-status-success underline decoration-2 underline-offset-4",
+    "text-foreground-strong decoration-status-success-mark underline decoration-2 underline-offset-4",
   blue: "text-foreground-strong decoration-link-decoration underline decoration-2 underline-offset-4",
   purple:
-    "text-foreground-strong decoration-status-special underline decoration-2 underline-offset-4",
+    "text-foreground-strong decoration-status-special-mark underline decoration-2 underline-offset-4",
   orange:
-    "text-foreground-strong decoration-status-warning underline decoration-2 underline-offset-4",
+    "text-foreground-strong decoration-status-warning-mark underline decoration-2 underline-offset-4",
 };
 </script>
 
@@ -46,8 +46,8 @@ const colorClasses = {
           cn(
             'text-xs font-medium',
             trend.value >= 0
-              ? 'text-foreground decoration-status-success underline decoration-2'
-              : 'text-foreground decoration-status-error underline decoration-2',
+              ? 'text-foreground decoration-status-success-mark underline decoration-2'
+              : 'text-foreground decoration-status-error-mark underline decoration-2',
           )
         "
       >

@@ -9,138 +9,14 @@
 
 .code-viewer-surface {
   background: var(--surface-sunken);
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--silver-50) 70%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--surface) 70%, transparent);
 }
 
 .dark .code-viewer-surface {
   background: color-mix(in oklch, var(--surface-sunken) 88%, var(--background));
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--silver-200) 35%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--border-subtle) 35%, transparent);
 }
 
-.hljs {
-  background: transparent;
-  color: var(--silver-600);
-}
-
-.hljs-comment,
-.hljs-quote {
-  color: var(--silver-400);
-  font-style: italic;
-}
-
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-addition {
-  color: var(--terminal-green);
-}
-
-.hljs-number,
-.hljs-string,
-.hljs-meta .hljs-meta-string,
-.hljs-literal,
-.hljs-doctag,
-.hljs-regexp {
-  color: var(--terminal-cyan);
-}
-
-.hljs-title,
-.hljs-section,
-.hljs-name,
-.hljs-selector-id,
-.hljs-selector-class {
-  color: var(--accent-electric);
-}
-
-.hljs-attribute,
-.hljs-attr,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-class .hljs-title,
-.hljs-type {
-  color: var(--accent-electric);
-}
-
-.hljs-symbol,
-.hljs-bullet,
-.hljs-subst,
-.hljs-meta,
-.hljs-meta .hljs-keyword,
-.hljs-selector-attr,
-.hljs-selector-pseudo,
-.hljs-link {
-  color: var(--terminal-amber);
-}
-
-.hljs-built_in,
-.hljs-deletion {
-  color: var(--terminal-red);
-}
-
-.hljs-formula {
-  background: var(--surface-sunken);
-}
-
-.hljs-emphasis {
-  font-style: italic;
-}
-
-.hljs-strong {
-  font-weight: var(--uc-font-weight-bold);
-}
-
-.hljs-function {
-  color: var(--accent-electric);
-}
-
-.hljs-params {
-  color: var(--silver-600);
-}
-
-.hljs-tag {
-  color: var(--terminal-green);
-}
-
-.hljs-xml-tag {
-  color: var(--terminal-green);
-}
-
-.hljs-xml-attr {
-  color: var(--accent-electric);
-}
-
-.hljs-xml-comment {
-  color: var(--silver-400);
-}
-
-.hljs-javascript .hljs-title,
-.hljs-typescript .hljs-title {
-  color: var(--accent-electric);
-}
-
-.hljs-python .hljs-decorator {
-  color: var(--accent-electric);
-}
-
-.hljs-java .hljs-annotation {
-  color: var(--accent-electric);
-}
-
-.dark .hljs {
-  color: var(--silver-600);
-}
-
-.dark .hljs-comment,
-.dark .hljs-quote {
-  color: var(--silver-300);
-}
-
-.dark .hljs-formula {
-  background: var(--surface-sunken);
-}
-
-.dark .hljs-params {
-  color: var(--silver-600);
-}
 
 .lc-code-tabs {
   margin: 1em 0;
@@ -245,7 +121,7 @@
   font-family: var(--uc-font-data);
   font-size: var(--uc-text-xxs);
   font-variant-numeric: tabular-nums;
-  color: var(--silver-400);
+  color: var(--foreground-muted);
   text-align: right;
   user-select: none;
   width: 40px;

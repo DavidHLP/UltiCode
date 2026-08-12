@@ -133,7 +133,7 @@ onUnmounted(() => {
           @input="handleInputChange"
         />
         <kbd
-          class="hidden rounded-none border border-silver bg-[var(--surface-sunken)] px-2 py-0.5 text-xs text-muted-foreground font-data sm:inline-block"
+          class="hidden rounded-none border border-border-control bg-[var(--surface-sunken)] px-2 py-0.5 text-xs text-muted-foreground font-data sm:inline-block"
         >
           ESC
         </kbd>
@@ -201,12 +201,12 @@ onUnmounted(() => {
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
             <kbd
-              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >Cmd</kbd
             >
             +
             <kbd
-              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >K</kbd
             >
             {{ t("common.search.openSearchTip") }}
@@ -223,18 +223,18 @@ onUnmounted(() => {
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
             <kbd
-              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >↑</kbd
             >
             <kbd
-              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >↓</kbd
             >
             {{ t("common.search.navigateTip") }}
           </span>
           <span class="flex items-center gap-1">
             <kbd
-              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >Enter</kbd
             >
             {{ t("common.search.selectTip") }}

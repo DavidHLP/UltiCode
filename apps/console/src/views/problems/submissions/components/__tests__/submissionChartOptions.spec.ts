@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SOLARIZED_PALETTE } from "@ulticode/design-system";
 import {
   buildDistributionChartOption,
   formatRuntime,
@@ -54,14 +55,14 @@ describe("formatPercentile", () => {
 describe("readChartCssColors", () => {
   it("returns provided fallbacks when CSS variables resolve to empty strings", () => {
     const colors = readChartCssColors({
-      foreground: "#foreground",
-      border: "#border",
-      accent: "#accent",
+      foreground: SOLARIZED_PALETTE.base01,
+      border: SOLARIZED_PALETTE.base1,
+      accent: SOLARIZED_PALETTE.blue,
     });
 
-    expect(colors.foreground).toBe("#foreground");
-    expect(colors.border).toBe("#border");
-    expect(colors.accent).toBe("#accent");
+    expect(colors.foreground).toBe(SOLARIZED_PALETTE.base01);
+    expect(colors.border).toBe(SOLARIZED_PALETTE.base1);
+    expect(colors.accent).toBe(SOLARIZED_PALETTE.blue);
     expect(colors.mutedBar).toBeTruthy();
   });
 });

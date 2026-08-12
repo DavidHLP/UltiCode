@@ -296,16 +296,16 @@ function handleNotebook(): void {
     <PopoverTrigger as-child>
       <Button
         type="button"
-        class="h-8 max-w-[210px] rounded-none border border-border bg-transparent px-2.5 font-mono text-xxs font-black uppercase tracking-wider text-muted-foreground shadow-none transition-colors hover:bg-[var(--silver-100)]/70 hover:text-[var(--solarized-base01)] data-[state=open]:bg-[var(--silver-100)] dark:hover:bg-[var(--solarized-base03)]/70 dark:hover:text-[var(--solarized-base1)]"
+        class="h-8 max-w-[210px] rounded-none border border-border bg-transparent px-2.5 font-mono text-xxs font-black uppercase tracking-wider text-muted-foreground shadow-none transition-colors hover:bg-[var(--surface-highlight)]/70 hover:text-foreground data-[state=open]:bg-[var(--surface-highlight)] dark:hover:bg-background/70 dark:hover:text-foreground-strong"
         :aria-label="ctx?.contest.value?.title"
         :title="ctx?.contest.value?.title"
         data-testid="contest-problem-dock-trigger"
       >
-        <Trophy class="h-3.5 w-3.5 shrink-0 text-[var(--terminal-amber)]" />
+        <Trophy class="h-3.5 w-3.5 shrink-0 text-[var(--status-warning-mark)]" />
         <span class="hidden max-w-[120px] truncate xl:inline">
           {{ ctx?.contest.value?.title }}
         </span>
-        <span class="font-black text-[var(--terminal-amber)]">
+        <span class="font-black text-[var(--foreground-strong)]">
           {{ isAuthed ? score : "—" }}
         </span>
         <ChevronDown class="h-3 w-3 shrink-0 opacity-60" />
@@ -315,10 +315,10 @@ function handleNotebook(): void {
     <PopoverContent
       align="end"
       :side-offset="8"
-      class="w-[min(92vw,440px)] rounded-none border border-border bg-[var(--solarized-base3)] p-0 font-mono shadow-lg dark:bg-[var(--solarized-base02)]"
+      class="w-[min(92vw,440px)] rounded-none border border-border bg-surface p-0 font-mono shadow-lg dark:bg-surface-highlight"
     >
       <header
-        class="border-b border-border bg-[var(--silver-100)]/50 px-3 py-2 dark:bg-[var(--solarized-base03)]/50"
+        class="border-b border-border bg-[var(--surface-highlight)]/50 px-3 py-2 dark:bg-background/50"
       >
         <div class="flex min-w-0 items-center justify-between gap-3">
           <div class="min-w-0">
@@ -358,7 +358,7 @@ function handleNotebook(): void {
             <div
               class="flex items-center gap-1 text-2xs text-muted-foreground"
             >
-              <Trophy class="h-3 w-3 text-[var(--terminal-amber)]" />
+              <Trophy class="h-3 w-3 text-[var(--status-warning-mark)]" />
               {{ t("contest.detail.shell.score") }}
             </div>
             <p class="mt-1 text-sm font-black text-foreground">
@@ -369,7 +369,7 @@ function handleNotebook(): void {
             <div
               class="flex items-center gap-1 text-2xs text-muted-foreground"
             >
-              <Target class="h-3 w-3 text-[var(--accent-electric)]" />
+              <Target class="h-3 w-3 text-[var(--primary)]" />
               {{ t("contest.detail.shell.rank") }}
             </div>
             <p class="mt-1 text-sm font-black text-foreground">
@@ -380,7 +380,7 @@ function handleNotebook(): void {
             <div class="text-2xs text-muted-foreground">
               {{ t("contest.detail.shell.solved") }}
             </div>
-            <p class="mt-1 text-sm font-black text-[var(--terminal-green)]">
+            <p class="mt-1 text-sm font-black text-[var(--foreground-strong)]">
               {{ isAuthed ? solvedCount : "—" }}
               <span class="text-xs text-muted-foreground"
                 >/ {{ totalProblems }}</span
@@ -405,8 +405,8 @@ function handleNotebook(): void {
               :class="[
                 'h-8 border-r border-border text-xxs font-black uppercase tracking-wider last:border-r-0 transition-colors',
                 isActivePill(p)
-                  ? 'bg-[var(--accent-electric)]/15 text-[var(--accent-electric)]'
-                  : 'bg-transparent text-muted-foreground hover:bg-[var(--silver-100)]/50 dark:hover:bg-[var(--solarized-base03)]/50',
+                  ? 'bg-[var(--primary)]/15 text-[var(--primary)]'
+                  : 'bg-transparent text-muted-foreground hover:bg-[var(--surface-highlight)]/50 dark:hover:bg-background/50',
                 !p.slug ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
               ]"
               :disabled="!p.slug"
@@ -431,7 +431,7 @@ function handleNotebook(): void {
 
         <div
           v-if="showSolutionsHiddenHint"
-          class="flex items-start gap-1.5 border border-border/60 bg-[var(--silver-100)]/40 px-2 py-2 text-2xs leading-snug text-muted-foreground dark:bg-[var(--solarized-base03)]/40"
+          class="flex items-start gap-1.5 border border-border/60 bg-[var(--surface-highlight)]/40 px-2 py-2 text-2xs leading-snug text-muted-foreground dark:bg-background/40"
         >
           <Lightbulb class="mt-0.5 h-3 w-3 shrink-0" />
           <span>{{ t("contest.detail.solutionsHiddenHint") }}</span>
@@ -462,7 +462,7 @@ function handleNotebook(): void {
               >
                 <CheckCircle2
                   v-if="firstAccepted"
-                  class="h-3 w-3 text-[var(--terminal-green)]"
+                  class="h-3 w-3 text-[var(--status-success-mark)]"
                 />
                 <Clock v-else class="h-3 w-3" />
                 {{ t("contest.review.firstACLabel") }}
@@ -476,7 +476,7 @@ function handleNotebook(): void {
                 {{ t("contest.review.breakdownLabel") }}
               </p>
               <p
-                class="mt-1 truncate text-xxs font-bold text-[var(--terminal-green)]"
+                class="mt-1 truncate text-xxs font-bold text-foreground-strong"
               >
                 {{ breakdown.accepted }} / {{ breakdown.total }} AC
               </p>
@@ -504,7 +504,7 @@ function handleNotebook(): void {
                 {{ formatTime(s.created_at) }}
               </span>
               <span class="font-black text-foreground">{{ s.status }}</span>
-              <span class="font-black text-[var(--terminal-amber)]">
+              <span class="font-black text-[var(--foreground-strong)]">
                 {{
                   s.contest_info?.score != null
                     ? `+${s.contest_info.score}`
@@ -524,7 +524,7 @@ function handleNotebook(): void {
             <Button
               variant="default"
               size="sm"
-              class="h-8 rounded-none border border-[var(--accent-electric)]/40 bg-[var(--accent-electric)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/25 cursor-pointer"
+              class="h-8 rounded-none border border-[var(--primary)]/40 bg-[var(--primary)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--primary)] hover:bg-[var(--primary)]/25 cursor-pointer"
               :disabled="!slug"
               data-testid="contest-review-retake"
               @click="handleRetake"
@@ -535,7 +535,7 @@ function handleNotebook(): void {
             <Button
               variant="outline"
               size="sm"
-              class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--silver-100)] hover:text-foreground dark:hover:bg-[var(--solarized-base03)] cursor-pointer"
+              class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--surface-highlight)] hover:text-foreground dark:hover:bg-background cursor-pointer"
               data-testid="contest-review-notebook"
               @click="handleNotebook"
             >

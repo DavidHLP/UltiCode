@@ -25,8 +25,8 @@ const solutionContent = computed(() => ({
 <template>
   <div class="space-y-4">
     <!-- Main content card -->
-    <div class="border border-[var(--silver-200)] bg-[var(--card)]">
-      <div class="border-b border-[var(--silver-200)] px-4 py-2 bg-[var(--surface-sunken)]">
+    <div class="border border-[var(--border-subtle)] bg-[var(--card)]">
+      <div class="border-b border-[var(--border-subtle)] px-4 py-2 bg-[var(--surface-sunken)]">
         <span class="terminal-comment">description</span>
       </div>
       <div class="p-6">
@@ -35,7 +35,7 @@ const solutionContent = computed(() => ({
             <h1 class="text-2xl font-bold tracking-tight text-[var(--foreground)]">
               {{ solution.title }}
             </h1>
-            <div class="flex items-center gap-2 text-[var(--silver-400)] text-sm font-data">
+            <div class="flex items-center gap-2 text-[var(--foreground-muted)] text-sm font-data">
               <IconFileText class="h-4 w-4" />
               <span>{{
                 t('solutions.detail.solutionFor', { problem: solution.problem?.title })
@@ -47,27 +47,27 @@ const solutionContent = computed(() => ({
         <div v-if="solution.content" class="prose prose-sm dark:prose-invert max-w-none">
           <DescriptionMarkdown :description="solutionContent" />
         </div>
-        <div v-else class="text-center py-12 text-[var(--silver-400)] italic font-data">
+        <div v-else class="text-center py-12 text-[var(--foreground-muted)] italic font-data">
           {{ t('solutions.detail.noDescriptionContent') }}
         </div>
 
         <div
           v-if="solution.summary"
-          class="mt-8 p-4 bg-[var(--surface-sunken)] border border-[var(--silver-200)]"
+          class="mt-8 p-4 bg-[var(--surface-sunken)] border border-[var(--border-subtle)]"
         >
-          <div class="border-b border-[var(--silver-200)] px-4 py-2">
+          <div class="border-b border-[var(--border-subtle)] px-4 py-2">
             <span class="terminal-comment">// summary</span>
           </div>
           <div class="p-4">
-            <p class="text-sm text-[var(--silver-600)]">{{ solution.summary }}</p>
+            <p class="text-sm text-[var(--foreground-strong)]">{{ solution.summary }}</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Meta section with DataBlock -->
-    <div class="border border-[var(--silver-200)] bg-[var(--card)]">
-      <div class="border-b border-[var(--silver-200)] px-4 py-2 bg-[var(--surface-sunken)]">
+    <div class="border border-[var(--border-subtle)] bg-[var(--card)]">
+      <div class="border-b border-[var(--border-subtle)] px-4 py-2 bg-[var(--surface-sunken)]">
         <span class="terminal-comment">metadata</span>
       </div>
       <div class="p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -88,8 +88,8 @@ const solutionContent = computed(() => ({
     </div>
 
     <!-- Tags section -->
-    <div v-if="solution.tags?.length" class="border border-[var(--silver-200)] bg-[var(--card)]">
-      <div class="border-b border-[var(--silver-200)] px-4 py-2 bg-[var(--surface-sunken)]">
+    <div v-if="solution.tags?.length" class="border border-[var(--border-subtle)] bg-[var(--card)]">
+      <div class="border-b border-[var(--border-subtle)] px-4 py-2 bg-[var(--surface-sunken)]">
         <span class="terminal-comment">tags</span>
       </div>
       <div class="p-4 flex flex-wrap gap-2">

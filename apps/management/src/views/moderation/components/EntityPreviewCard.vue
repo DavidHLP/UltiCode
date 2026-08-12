@@ -46,11 +46,11 @@ const entityIcon = computed(() => {
 
 const entityTypeColor = computed(() => {
   const colors: Record<ModeratableEntityType, string> = {
-    forum_post: 'text-[var(--terminal-cyan)]',
-    forum_comment: 'text-[var(--terminal-cyan)]',
-    solution: 'text-[var(--terminal-green)]',
-    solution_comment: 'text-[var(--terminal-green)]',
-    problem: 'text-[var(--terminal-amber)]',
+    forum_post: 'text-foreground-strong',
+    forum_comment: 'text-foreground-strong',
+    solution: 'text-foreground-strong',
+    solution_comment: 'text-foreground-strong',
+    problem: 'text-foreground-strong',
   }
   return colors[props.entityType]
 })
@@ -64,18 +64,18 @@ const truncatedContent = computed(() => {
 
 <template>
   <Card
-    class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+    class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
   >
     <CardHeader class="pb-3">
       <div class="flex items-center justify-between">
         <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
           <component :is="entityIcon" :class="['h-4 w-4', entityTypeColor]" />
-          <span class="text-[var(--silver-500)]">{{ t('moderation.detail.entityPreview') }}</span>
+          <span class="text-[var(--foreground-muted)]">{{ t('moderation.detail.entityPreview') }}</span>
         </CardTitle>
         <Button
           variant="ghost"
           size="sm"
-          class="h-7 font-data text-xs text-[var(--terminal-cyan)] hover:text-[var(--terminal-cyan)] hover:bg-[var(--terminal-cyan)]/10"
+          class="h-7 font-data text-xs text-foreground-strong hover:text-foreground-strong hover:bg-[var(--status-info-mark)]/10"
           @click="emit('viewEntity')"
         >
           <IconExternalLink class="h-3.5 w-3.5 mr-1" />
@@ -87,13 +87,13 @@ const truncatedContent = computed(() => {
       <!-- Entity Type & ID -->
       <div class="flex items-center gap-4 text-xs">
         <div class="flex items-center gap-2">
-          <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entityType') }}:</span>
+          <span class="text-[var(--foreground-muted)]">{{ t('moderation.columns.entityType') }}:</span>
           <span :class="['font-data', entityTypeColor]">
             {{ t(`moderation.entityTypes.${entityType}`) }}
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[var(--silver-500)]">ID:</span>
+          <span class="text-[var(--foreground-muted)]">ID:</span>
           <span class="font-data text-[var(--foreground)] truncate max-w-[150px]">
             {{ entityId }}
           </span>
@@ -102,7 +102,7 @@ const truncatedContent = computed(() => {
 
       <!-- Title -->
       <div v-if="title" class="space-y-1">
-        <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+        <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
           {{ t('moderation.columns.title') }}
         </p>
         <p class="text-sm font-medium">{{ title }}</p>
@@ -110,7 +110,7 @@ const truncatedContent = computed(() => {
 
       <!-- Content Preview -->
       <div v-if="truncatedContent" class="space-y-1">
-        <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+        <p class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
           {{ t('moderation.detail.entityPreview') }}
         </p>
         <p class="text-sm text-[var(--foreground)] whitespace-pre-wrap break-words">
@@ -119,7 +119,7 @@ const truncatedContent = computed(() => {
       </div>
 
       <!-- Author & Date -->
-      <div class="flex items-center gap-4 text-xs text-[var(--silver-500)]">
+      <div class="flex items-center gap-4 text-xs text-[var(--foreground-muted)]">
         <div v-if="author" class="flex items-center gap-1">
           <span>{{ t('moderation.reports.reporter') }}:</span>
           <span class="text-[var(--foreground)]">

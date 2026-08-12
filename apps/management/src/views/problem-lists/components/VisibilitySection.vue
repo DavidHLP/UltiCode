@@ -204,7 +204,7 @@ const saveStatusText = {
 
 :deep(.custom-switch[data-state='checked'] span) {
   transform: translateX(18px) !important;
-  background-color: #ffffff !important;
+  background-color: var(--background) !important;
 }
 
 :deep(.custom-switch:disabled) {

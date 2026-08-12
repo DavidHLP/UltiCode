@@ -50,7 +50,7 @@ async function handleSubmit(data: ProblemFormData) {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -61,12 +61,12 @@ async function handleSubmit(data: ProblemFormData) {
           <Button
             variant="terminal"
             size="icon"
-            class="h-8 w-8 border-[var(--silver-300)]"
+            class="h-8 w-8 border-[var(--border-subtle)]"
             @click="router.push({ name: 'problems' })"
           >
             <IconArrowLeft class="h-4 w-4" />
           </Button>
-          <div class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
+          <div class="h-4 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)]" />
           <div class="flex items-center gap-2"></div>
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('problems.create.title') }}
@@ -76,25 +76,25 @@ async function handleSubmit(data: ProblemFormData) {
 
       <!-- Info Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('problems.edit.action') }}:</span
           >
-          <span class="font-data text-sm text-[var(--accent-electric)]">{{
+          <span class="font-data text-sm text-[var(--primary)]">{{
             t('common.create').toUpperCase()
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
+          <span class="terminal-label text-[var(--foreground-muted)]"
             >{{ t('problems.edit.mode') }}:</span
           >
-          <span class="font-data text-sm text-[var(--terminal-cyan)]">{{
+          <span class="font-data text-sm text-[var(--foreground-strong)]">{{
             t('problems.edit.newProblem')
           }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+        <div class="ml-auto flex items-center gap-2 text-[var(--foreground-muted)]">
           <IconDatabase class="h-4 w-4" />
           <span class="text-xs font-data uppercase tracking-wider">{{
             t('problems.edit.problemCreation')
@@ -109,7 +109,7 @@ async function handleSubmit(data: ProblemFormData) {
         <template #cancel>
           <Button
             variant="terminal"
-            class="font-data text-xs border-[var(--silver-300)]"
+            class="font-data text-xs border-[var(--border-subtle)]"
             @click="router.push({ name: 'problems' })"
           >
             <span class="uppercase tracking-wider">{{ t('common.cancel') }}</span>

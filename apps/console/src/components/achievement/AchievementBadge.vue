@@ -63,7 +63,7 @@ const categoryColor = computed(
       "
     >
       <template v-if="achievement.earned">
-        <Trophy :class="cn('text-white', iconSizes[size || 'md'])" />
+        <Trophy :class="cn('text-primary-foreground', iconSizes[size || 'md'])" />
       </template>
       <template v-else>
         <Lock :class="cn('text-muted-foreground', iconSizes[size || 'md'])" />

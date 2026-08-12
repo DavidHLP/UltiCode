@@ -91,8 +91,8 @@ const isActiveNav = (item: NavItem) => {
                   :class="[
                     'flex items-center justify-center gap-1 rounded-none px-4 text-sm font-medium transition-all duration-200 border-b-2 h-full',
                     isActiveNav(item)
-                      ? 'border-[var(--accent-electric)] text-[var(--accent-electric)] bg-[var(--accent-electric)]/5'
-                      : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4',
+                      ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5'
+                      : 'border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/4',
                   ]"
                 >
                   <span>{{ item.label }}</span>
@@ -107,7 +107,7 @@ const isActiveNav = (item: NavItem) => {
               <NavigationMenuLink
                 v-else
                 :href="item.href"
-                class="flex items-center justify-center gap-1 px-4 border-b-2 border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4 transition-all duration-200 h-full"
+                class="flex items-center justify-center gap-1 px-4 border-b-2 border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/4 transition-all duration-200 h-full"
                 target="_self"
               >
                 <span>{{ item.label }}</span>

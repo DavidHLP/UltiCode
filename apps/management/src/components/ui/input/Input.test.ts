@@ -14,8 +14,8 @@ describe('Input terminal variant', () => {
     const classes = wrapper.get('input').classes()
 
     expect(classes).toContain('bg-[var(--surface-sunken)]')
-    expect(classes).toContain('selection:bg-[var(--accent-electric)]')
-    expect(classes).toContain('selection:text-[var(--solarized-base3)]')
-    expect(classes).toContain('focus-visible:border-[var(--accent-electric)]')
+    expect(classes).toContain('selection:bg-[var(--primary)]')
+    expect(classes).toContain('selection:text-primary-foreground')
+    expect(classes).toContain('focus-visible:border-[var(--primary)]')
   })
 })

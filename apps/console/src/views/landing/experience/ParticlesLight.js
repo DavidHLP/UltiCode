@@ -1,6 +1,7 @@
 import LightV from "./shaders/light/vertex.glsl?raw";
 import LightF from "./shaders/light/fragment.glsl?raw";
 import * as THREE from "three";
+import { SOLARIZED_PALETTE } from '@ulticode/design-system';
 
 export class ParticlesLight {
     constructor(data) {
@@ -75,8 +76,8 @@ export class ParticlesLight {
         this.particles.drawCount = this.particles.maxCount;
         this.particles.geometry.setDrawRange(0, this.particles.drawCount);
 
-        this.particles.colorA = "#8f8f8f";
-        this.particles.colorB = "#ffffff";
+        this.particles.colorA = SOLARIZED_PALETTE.cyan;
+        this.particles.colorB = SOLARIZED_PALETTE.base2;
 
         const VSA = LightV;
         const FSA = LightF;

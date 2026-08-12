@@ -53,7 +53,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
         <h2 class="text-base font-bold tracking-tight text-foreground font-sans">
           {{ data.title || t('problems.preview.untitled') }}
         </h2>
-        <p class="text-xxs font-mono text-[var(--silver-500)]">
+        <p class="text-xxs font-mono text-[var(--foreground-muted)]">
           {{ data.slug || '—' }}
         </p>
       </div>
@@ -67,7 +67,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
         <Badge
           v-if="data.isPremium"
           variant="outline"
-          class="bg-amber-500/10 text-amber-600 border border-amber-500/20 text-2xs px-2 py-0.5 rounded-none font-mono"
+          class="bg-status-warning-surface text-foreground-strong border border-status-warning-mark text-2xs px-2 py-0.5 rounded-none font-mono"
         >
           <IconLock class="h-3 w-3 mr-1 shrink-0" />
           {{ t('problems.badges.premium') }}
@@ -103,12 +103,12 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
           >
             <div class="flex items-center justify-between group cursor-pointer">
               <span
-                class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] flex items-center gap-2"
+                class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] flex items-center gap-2"
               >
                 {{ t('problems.display.hints') }}
                 <Badge
                   variant="secondary"
-                  class="rounded-none shadow-none font-mono text-2xs px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--silver-600)]"
+                  class="rounded-none shadow-none font-mono text-2xs px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--foreground-strong)]"
                 >
                   {{ data.hints.length }}
                 </Badge>
@@ -127,7 +127,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
                 class="text-xs text-muted-foreground p-3 bg-card flex items-start gap-2.5"
               >
                 <span
-                  class="font-mono text-xxs font-bold text-[var(--silver-600)] bg-[var(--surface-sunken)]/25 border border-[var(--border)] px-1.5 shrink-0 h-5 flex items-center justify-center rounded-none"
+                  class="font-mono text-xxs font-bold text-[var(--foreground-strong)] bg-[var(--surface-sunken)]/25 border border-[var(--border)] px-1.5 shrink-0 h-5 flex items-center justify-center rounded-none"
                 >
                   {{ index + 1 }}
                 </span>

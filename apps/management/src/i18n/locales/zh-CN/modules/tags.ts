@@ -43,7 +43,7 @@ export default {
     slugPlaceholder: 'url-friendly-name',
     color: '颜色',
     colorHex: '颜色',
-    colorPlaceholder: '#3b82f6',
+    colorPlaceholder: '#268bd2',
     description: '描述',
     descriptionPlaceholder: '输入标签描述（可选）',
     saveChanges: '保存更改',

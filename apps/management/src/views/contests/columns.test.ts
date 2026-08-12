@@ -45,7 +45,7 @@ describe('contest title column', () => {
     const icon = wrapper.get('[data-testid="contest-title-icon"]')
 
     expect(icon.classes()).toContain('bg-[var(--surface-sunken)]')
-    expect(icon.classes()).not.toContain('dark:bg-[var(--silver-800)]')
+    expect(icon.classes()).not.toContain('dark:bg-[var(--foreground-strong)]')
     expect(wrapper.get('[data-testid="contest-title"]').classes()).toContain(
       'text-[var(--foreground)]',
     )

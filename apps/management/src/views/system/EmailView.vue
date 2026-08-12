@@ -206,13 +206,13 @@ function getStatusIcon(status: string) {
 function getStatusColor(status: string): string {
   switch (status) {
     case 'SENT':
-      return 'text-green-500'
+      return 'text-foreground-strong'
     case 'PENDING':
-      return 'text-yellow-500'
+      return 'text-foreground-strong'
     case 'FAILED':
-      return 'text-red-500'
+      return 'text-foreground-strong'
     default:
-      return 'text-gray-500'
+      return 'text-foreground-muted'
   }
 }
 
@@ -239,7 +239,7 @@ onMounted(async () => {
     <!-- Terminal Header -->
     <div
       :class="[
-        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -250,13 +250,13 @@ onMounted(async () => {
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('system.email.title') }}
           </h1>
-          <p class="text-xs text-[var(--silver-500)]">{{ t('system.email.description') }}</p>
+          <p class="text-xs text-[var(--foreground-muted)]">{{ t('system.email.description') }}</p>
         </div>
         <div class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
             :disabled="loading"
             @click="loadData"
           >
@@ -267,7 +267,7 @@ onMounted(async () => {
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
             @click="openSendDialog()"
           >
             <IconSend class="h-3.5 w-3.5 mr-1.5" />
@@ -303,7 +303,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-green-500">{{ stats?.sent ?? 0 }}</div>
+            <div class="text-2xl font-bold text-foreground-strong">{{ stats?.sent ?? 0 }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -313,7 +313,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-yellow-500">{{ stats?.pending ?? 0 }}</div>
+            <div class="text-2xl font-bold text-foreground-strong">{{ stats?.pending ?? 0 }}</div>
           </CardContent>
         </Card>
         <Card>
@@ -323,7 +323,7 @@ onMounted(async () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-red-500">{{ stats?.failed ?? 0 }}</div>
+            <div class="text-2xl font-bold text-foreground-strong">{{ stats?.failed ?? 0 }}</div>
           </CardContent>
         </Card>
       </div>
@@ -374,7 +374,7 @@ onMounted(async () => {
                         {{ t('system.email.createdAt') }}:
                         {{ formatDateTimeByLocale(log.created_at) }}
                       </div>
-                      <div v-if="log.error" class="text-sm text-red-500 mt-1">
+                      <div v-if="log.error" class="text-sm text-foreground-strong mt-1">
                         {{ log.error }}
                       </div>
                     </div>

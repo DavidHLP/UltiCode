@@ -53,7 +53,7 @@ function handleKeydown(event: KeyboardEvent) {
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"
-      class="flex-1 bg-transparent outline-none text-[var(--foreground)] placeholder:text-[var(--silver-400)]"
+      class="flex-1 bg-transparent outline-none text-[var(--foreground)] placeholder:text-[var(--foreground-muted)]"
       @input="handleInput"
       @keydown="handleKeydown"
     />

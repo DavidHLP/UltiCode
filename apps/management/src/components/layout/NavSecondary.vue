@@ -45,7 +45,7 @@ function isActive(url: string): boolean {
             as-child
             :class="[
               isActive(item.url)
-                ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--foreground)] font-bold pl-2'
+                ? 'border-l-4 border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--foreground)] font-bold pl-2'
                 : 'border-l-4 border-transparent',
             ]"
           >

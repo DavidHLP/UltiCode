@@ -20,7 +20,7 @@ blurPlug()
 gsap.registerPlugin(Observer,ScrollTrigger);
 
 const lenis = new Lenis({
-    autoRaf: true,
+    autoRaf: false,
     lerp: 0.2,
     duration: 1.3,
     content: document.getElementById('content'),
@@ -33,6 +33,51 @@ lenis.stop()
 let destroyed = false;
 let scene = null;
 let cleanupScene = null;
+const reducedMotionQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+let reducedMotion = reducedMotionQuery?.matches ?? false;
+const reducedMotionDuration = (duration) => reducedMotion ? 0 : duration;
+let lenisRequested = false;
+let lenisRaf = 0;
+let applyReducedMotion = () => {};
+let setAudioWaveMotion = () => {};
+let setTimelineMotion = () => {};
+
+const driveLenis = (time) => {
+    lenisRaf = 0;
+    if (destroyed) return;
+    lenis.raf(time);
+    lenisRaf = requestAnimationFrame(driveLenis);
+};
+const startLenisRaf = () => {
+    if (!destroyed && !reducedMotion && !lenisRaf) {
+        lenisRaf = requestAnimationFrame(driveLenis);
+    }
+};
+const stopLenisRaf = () => {
+    if (lenisRaf) cancelAnimationFrame(lenisRaf);
+    lenisRaf = 0;
+};
+const syncLenisForMotion = () => {
+    lenis.options.smoothWheel = !reducedMotion
+    lenis.options.syncTouch = !reducedMotion
+    if (!lenisRequested) return;
+    lenis.start();
+    if (reducedMotion) stopLenisRaf();
+    else startLenisRaf();
+};
+const startLenis = () => {
+    lenisRequested = true;
+    syncLenisForMotion();
+};
+const handleReducedMotionChange = (event) => {
+    reducedMotion = event.matches;
+    syncLenisForMotion();
+    applyReducedMotion(reducedMotion);
+};
+reducedMotionQuery?.addEventListener?.('change', handleReducedMotionChange);
+
 
 // Solarized 主题:跟随 <html> 的 dark class(只读,不写)。
 let currentTheme = getLandingTheme();
@@ -300,7 +345,15 @@ const initMainScene = () => {
     let audioWaveEnergy = 1;
 
     let audioWaveRaf = 0;
+    const stopAudioWave = () => {
+        if (audioWaveRaf) cancelAnimationFrame(audioWaveRaf);
+        audioWaveRaf = 0;
+    };
     const animateAudioWave = () => {
+        if (reducedMotion) {
+            audioWaveRaf = 0;
+            return;
+        }
         if (audioWave) {
             audioWaveEnergy += ((audioWaveMuted ? 0.08 : 1) - audioWaveEnergy) * 0.08;
 
@@ -318,8 +371,15 @@ const initMainScene = () => {
 
         audioWaveRaf = requestAnimationFrame(animateAudioWave);
     };
-
-    animateAudioWave();
+    const startAudioWave = () => {
+        stopAudioWave();
+        if (!reducedMotion) audioWaveRaf = requestAnimationFrame(animateAudioWave);
+    };
+    setAudioWaveMotion = (reduce) => {
+        if (reduce) stopAudioWave();
+        else startAudioWave();
+    };
+    startAudioWave();
 
     const setAudioToggleState = (muted) => {
         if (!audioToggle) {
@@ -1517,6 +1577,7 @@ const initMainScene = () => {
 
     let isLoopResetting = false;
     let restoreOpacityTween = null;
+    let resetFrame = 0;
 
     const particleOpacityTargets = [
         scene.hand?.particles?.material?.uniforms?.uOpacity,
@@ -1579,7 +1640,7 @@ const initMainScene = () => {
     };
 
     const resetExperienceLoop = () => {
-        if (isLoopResetting) {
+        if (isLoopResetting || reducedMotion) {
             return;
         }
 
@@ -1638,7 +1699,7 @@ const initMainScene = () => {
                 applyExperienceOpacity(1);
                 applyFogLightColor(1);
                 isLoopResetting = false;
-                lenis.start()
+                startLenis();
             }
         });
     };
@@ -1773,6 +1834,26 @@ const initMainScene = () => {
 
         siteAudio.crossfadeTo('vision');
     };
+    setTimelineMotion = (reduce) => {
+        const timelines = [
+            mainTimeline, subtimeline1, subtimeline2, subtimeline3,
+            subtimeline4, subtimeline5, subtimelinePortfolio, subtimelineHand,
+            subtimeline6, tlExp, tlExpDepth, tlEnd,
+        ];
+        if (reduce) {
+            timelines.forEach((timeline) => timeline?.pause());
+            restoreOpacityTween?.kill();
+            return;
+        }
+        ScrollTrigger.update();
+    };
+    applyReducedMotion = (reduce) => {
+        setAudioWaveMotion(reduce);
+        setTimelineMotion(reduce);
+        syncLenisForMotion();
+    };
+    applyReducedMotion(reducedMotion);
+
 
 
 
@@ -1808,7 +1889,14 @@ const initMainScene = () => {
             syncAudioToScroll(st.progress);
 
             if (st.direction > 0 && st.progress >= 0.999) {
-                requestAnimationFrame(resetExperienceLoop);
+                if (reducedMotion) {
+                    resetExperienceLoop();
+                } else if (!resetFrame) {
+                    resetFrame = requestAnimationFrame(() => {
+                        resetFrame = 0;
+                        resetExperienceLoop();
+                    });
+                }
             }
         },
 
@@ -1824,7 +1912,7 @@ const initMainScene = () => {
 
         gsap.to('.loader',{
             opacity: 0,
-            duration: 1.2,
+            duration: reducedMotionDuration(1.2),
             onComplete: ()=> {
                 gsap.set('.loader',{
                     display: 'none'
@@ -1838,34 +1926,38 @@ const initMainScene = () => {
 
         gsap.to({ reveal: 0 },{
             reveal: 1,
-            duration: 2,
-            delay: .5,
+            duration: reducedMotionDuration(2),
+            delay: reducedMotionDuration(.5),
             onUpdate:()=> scene.setTextSectionReveal('scrollTo', gsap.getProperty(arguments[0], 'reveal')),
             onComplete: ()=> {
-                lenis.start()
+                startLenis();
             }
 
         })
 
         gsap.to('.canvas',{
             opacity: 1,
-            duration: 1.2,
+            duration: reducedMotionDuration(1.2),
         })
 
         gsap.to('.header',{
             y: 0,
             yPercent: 0,
-            duration: 1.2,
+            duration: reducedMotionDuration(1.2),
         })
         gsap.to('.footer',{
             y: 0,
             yPercent: 0,
-            duration: 1.2,
+            duration: reducedMotionDuration(1.2),
         })
     })
 
     cleanupScene = () => {
-        cancelAnimationFrame(audioWaveRaf);
+        stopAudioWave();
+        if (resetFrame) cancelAnimationFrame(resetFrame);
+        setAudioWaveMotion = () => {};
+        setTimelineMotion = () => {};
+        resetFrame = 0;
         [
             mainTimeline, subtimeline1, subtimeline2, subtimeline3,
             subtimeline4, subtimeline5, subtimelinePortfolio, subtimelineHand,
@@ -1890,8 +1982,9 @@ return () => {
         return;
     }
     destroyed = true;
+    reducedMotionQuery?.removeEventListener?.('change', handleReducedMotionChange);
+    stopLenisRaf();
     themeObserver.disconnect();
-    if (loaderProgressTween) loaderProgressTween.kill();
     if (cleanupScene) {
         cleanupScene();
     } else {

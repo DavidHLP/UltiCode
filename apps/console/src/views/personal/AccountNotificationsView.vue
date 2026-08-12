@@ -113,9 +113,9 @@ onMounted(async () => {
           >
             <div class="flex gap-4 items-center">
               <div
-                class="h-10 w-10 rounded-full bg-[var(--terminal-amber)]/10 flex items-center justify-center"
+                class="h-10 w-10 rounded-full bg-[var(--status-warning-mark)]/10 flex items-center justify-center"
               >
-                <Bell class="h-5 w-5 text-[var(--terminal-amber)]" />
+                <Bell class="h-5 w-5 text-[var(--status-warning-mark)]" />
               </div>
               <div class="space-y-0.5">
                 <Label class="text-base font-bold">
@@ -140,9 +140,9 @@ onMounted(async () => {
           >
             <div class="flex gap-4 items-center">
               <div
-                class="h-10 w-10 rounded-full bg-[var(--terminal-green)]/10 flex items-center justify-center"
+                class="h-10 w-10 rounded-full bg-[var(--status-success-mark)]/10 flex items-center justify-center"
               >
-                <ShieldCheck class="h-5 w-5 text-[var(--terminal-green)]" />
+                <ShieldCheck class="h-5 w-5 text-[var(--status-success-mark)]" />
               </div>
               <div class="space-y-0.5">
                 <Label class="text-base font-bold">

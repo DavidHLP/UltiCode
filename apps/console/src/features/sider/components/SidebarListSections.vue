@@ -87,13 +87,13 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] transition-colors"
         >
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
           />
           <User
-            class="h-3.5 w-3.5 mr-0.5 text-[var(--accent-electric)]/70 group-hover/trigger:text-[var(--accent-electric)] transition-colors"
+            class="h-3.5 w-3.5 mr-0.5 text-[var(--primary)]/70 group-hover/trigger:text-[var(--primary)] transition-colors"
           />
           <span>{{ t("sidebar.problemLists.myLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
@@ -106,8 +106,8 @@ const isListActive = (id: string | number) => {
               :class="[
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
-                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
+                  ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:bg-[var(--primary)]/4 hover:text-[var(--primary)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -125,7 +125,7 @@ const isListActive = (id: string | number) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--accent-electric)]"
+                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--primary)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -153,13 +153,13 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] transition-colors"
         >
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
           />
           <Bookmark
-            class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-green)]/70 group-hover/trigger:text-[var(--terminal-green)] transition-colors"
+            class="h-3.5 w-3.5 mr-0.5 text-[var(--status-success-mark)]/70 group-hover/trigger:text-[var(--status-success-mark)] transition-colors"
           />
           <span>{{ t("sidebar.problemLists.savedLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
@@ -172,8 +172,8 @@ const isListActive = (id: string | number) => {
               :class="[
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
-                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
+                  ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:bg-[var(--primary)]/4 hover:text-[var(--primary)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -191,7 +191,7 @@ const isListActive = (id: string | number) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--accent-electric)]"
+                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--primary)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -232,13 +232,13 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] transition-colors"
         >
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
           />
           <Star
-            class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-amber)]/70 group-hover/trigger:text-[var(--terminal-amber)] transition-colors"
+            class="h-3.5 w-3.5 mr-0.5 text-[var(--status-warning-mark)]/70 group-hover/trigger:text-[var(--status-warning-mark)] transition-colors"
           />
           <span>{{ t("sidebar.problemLists.featured").toUpperCase() }}</span>
         </CollapsibleTrigger>
@@ -255,8 +255,8 @@ const isListActive = (id: string | number) => {
               :class="[
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
-                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
+                  ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:bg-[var(--primary)]/4 hover:text-[var(--primary)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -284,10 +284,10 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] transition-colors"
         >
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
           />
           <span class="truncate">{{ category.name }}</span>
         </CollapsibleTrigger>
@@ -326,8 +326,8 @@ const isListActive = (id: string | number) => {
               :class="[
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
-                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
+                  ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:bg-[var(--primary)]/4 hover:text-[var(--primary)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -345,7 +345,7 @@ const isListActive = (id: string | number) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--accent-electric)]"
+                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--primary)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />

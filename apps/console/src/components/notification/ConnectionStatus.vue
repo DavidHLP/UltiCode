@@ -14,8 +14,8 @@ const notificationStore = useNotificationStore();
 
 const statusColor = computed(() => {
   return notificationStore.realtimeConnected
-    ? "bg-[var(--terminal-green)]"
-    : "bg-[var(--terminal-amber)]";
+    ? "bg-[var(--status-success-mark)]"
+    : "bg-[var(--status-warning-mark)]";
 });
 
 const statusText = computed(() => {

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MSDFTextGeometry, uniforms } from '../vendor/three-msdf-text-utils.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TEMPLATE_URL } from './config.js';
+import { SOLARIZED_PALETTE } from '@ulticode/design-system';
 
 const FONT_CACHE = new Map();
 
@@ -63,7 +64,7 @@ export class MSDFText {
         this.fontPath = options.fontPath || `${TEMPLATE_URL}/static/font-mdf/font.json`;
 
         this.letterSpacing = options.letterSpacing ?? (window.matchMedia('(max-width: 992px)').matches ? 24 : 40);
-        this.color = new THREE.Color(options.color ?? 0xffffff);
+        this.color = new THREE.Color(options.color ?? SOLARIZED_PALETTE.base2);
         this.opacity = options.opacity ?? 1;
         this.revealProgress = options.revealProgress ?? 1;
 
@@ -512,7 +513,7 @@ gl_FragColor = finalColor;
         this.material.uniforms.uThreshold.value = 0.05;
         this.material.uniforms.uAlphaTest.value = 0.01;
 
-        this.material.uniforms.uStrokeColor.value = new THREE.Color(0x000000);
+        this.material.uniforms.uStrokeColor.value = new THREE.Color(SOLARIZED_PALETTE.base03);
         this.material.uniforms.uStrokeOutsetWidth.value = 0.0;
         this.material.uniforms.uStrokeInsetWidth.value = 0.0;
     }

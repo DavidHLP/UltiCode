@@ -2,18 +2,18 @@
 import { onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import bundleCss from "./styles/bundle.css?inline";
+import landingOverridesCss from "./styles/solarized-overrides.css?inline";
 
 /**
  * LandingView — UltiCode landing built on the mirrored WebGL experience.
  *
  * The DOM skeleton and WebGL scene (Three.js, scroll orchestration, audio)
  * derive from the mirrored landing; the story/content was rewritten for
- * UltiCode (online judge). The compiled bundle.css (bootstrap grid subset
- * + site styles) is injected on mount and removed on unmount so its global
- * rules never leak into the rest of the console app. Colors follow the app
- * theme (Solarized Dark / Light): DOM via the html.dark overrides at the
- * end of bundle.css, WebGL via experience/theme.js; we only READ the `dark`
- * class and never write `data-theme` (reserved to shared/theme).
+ * UltiCode. The compiled bundle.css and Solarized DOM overrides are injected
+ * on mount and removed on unmount so their global rules never leak to the
+ * rest of the console app. WebGL colors come from experience/theme.js; we
+ * only READ the `dark` class and never write `data-theme` (reserved to
+ * shared/theme).
  *
  * i18n: DOM chrome (loader / header / footer / aria labels) is translated
  * via the `landing.*` locale keys. The 3D MSDF story text stays English in
@@ -28,7 +28,7 @@ let styleEl: HTMLStyleElement | null = null;
 onMounted(async () => {
   styleEl = document.createElement("style");
   styleEl.dataset.landingBundle = "";
-  styleEl.textContent = bundleCss;
+  styleEl.textContent = `${bundleCss}\n${landingOverridesCss}`;
   document.head.appendChild(styleEl);
 
   try {

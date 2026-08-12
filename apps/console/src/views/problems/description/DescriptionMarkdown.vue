@@ -107,13 +107,13 @@ const htmlContent = computed(() =>
 
 <style scoped>
 .description-markdown :deep(.markdown-content) {
-  color: var(--solarized-base00);
+  color: var(--foreground);
   font-size: var(--uc-text-sm);
   line-height: 1.65;
 }
 
 .dark .description-markdown :deep(.markdown-content) {
-  color: var(--solarized-base0);
+  color: var(--foreground);
 }
 
 
@@ -121,7 +121,7 @@ const htmlContent = computed(() =>
 .description-markdown :deep(.markdown-content h2),
 .description-markdown :deep(.markdown-content h3),
 .description-markdown :deep(.markdown-content h4) {
-  color: var(--solarized-base02);
+  color: var(--foreground-strong);
   font-weight: var(--uc-font-weight-bold);
   line-height: var(--uc-leading-snug);
   margin-top: 1rem;
@@ -133,7 +133,7 @@ const htmlContent = computed(() =>
 .dark .description-markdown :deep(.markdown-content h2),
 .dark .description-markdown :deep(.markdown-content h3),
 .dark .description-markdown :deep(.markdown-content h4) {
-  color: var(--solarized-base1);
+  color: var(--foreground-strong);
 }
 
 .description-markdown :deep(.markdown-content h1) {
@@ -173,8 +173,8 @@ const htmlContent = computed(() =>
   font-family: var(--font-mono);
   font-size: 0.92em;
   line-height: var(--uc-leading-code);
-  background-color: var(--silver-100);
-  color: var(--solarized-base01);
+  background-color: var(--surface-highlight);
+  color: var(--foreground);
   padding: 0.1rem 0.3rem;
   border-radius: 0;
   white-space: pre-wrap;
@@ -183,12 +183,12 @@ const htmlContent = computed(() =>
 }
 
 .dark .description-markdown :deep(.markdown-content code) {
-  color: var(--solarized-base1);
+  color: var(--foreground-strong);
 }
 
 
 .description-markdown :deep(.markdown-content pre) {
-  background-color: var(--silver-100);
+  background-color: var(--surface-highlight);
   border-radius: 0;
   padding: 0.65rem 0.85rem;
   margin: 0.75rem 0;
@@ -209,11 +209,11 @@ const htmlContent = computed(() =>
 
 
 .description-markdown :deep(.markdown-content blockquote) {
-  border-left: 3px solid var(--solarized-blue);
-  background-color: var(--silver-100);
+  border-left: 3px solid var(--primary);
+  background-color: var(--surface-highlight);
   padding: 0.6rem 0.85rem;
   margin: 0.75rem 0 1rem;
-  color: var(--solarized-base00);
+  color: var(--foreground);
   font-family: inherit;
   font-size: inherit;
   line-height: 1.55;
@@ -228,7 +228,7 @@ const htmlContent = computed(() =>
 }
 
 .dark .description-markdown :deep(.markdown-content blockquote) {
-  color: var(--solarized-base0);
+  color: var(--foreground);
 }
 
 .description-markdown :deep(.markdown-content blockquote code) {
@@ -241,11 +241,11 @@ const htmlContent = computed(() =>
 
 .description-markdown :deep(.markdown-content strong) {
   font-weight: var(--uc-font-weight-semibold);
-  color: var(--solarized-base01);
+  color: var(--foreground);
 }
 
 .dark .description-markdown :deep(.markdown-content strong) {
-  color: var(--solarized-base1);
+  color: var(--foreground-strong);
 }
 
 

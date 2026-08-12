@@ -61,25 +61,25 @@ function formatValue(value: number): string {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden rounded-none"
+    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden rounded-none"
     :class="compact ? 'self-start gap-0 py-0' : 'h-full gap-0 py-0'"
   >
     <CardHeader
       v-if="title"
-      class="bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      class="bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
       :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'"
     >
       <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
         title
       }}</CardTitle>
-      <CardDescription v-if="description" class="text-xs text-[var(--silver-400)] mt-1">
+      <CardDescription v-if="description" class="text-xs text-[var(--foreground-muted)] mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
     <CardContent :class="compact ? 'p-4' : 'px-5 pb-5 pt-5'">
       <div
         v-if="displayTags.length === 0"
-        class="text-center py-8 text-[var(--silver-400)] text-sm"
+        class="text-center py-8 text-[var(--foreground-muted)] text-sm"
       >
         {{ $t('common.noData') }}
       </div>
@@ -93,7 +93,7 @@ function formatValue(value: number): string {
           v-for="tag in displayTags"
           :key="tag.id"
           data-testid="tag-item"
-          class="group inline-flex items-center rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
+          class="group inline-flex items-center rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
           :class="compact ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'"
           :style="{
             fontSize: (compact ? Math.min(tag.fontSize, 0.875) : tag.fontSize) + 'rem',
@@ -103,7 +103,7 @@ function formatValue(value: number): string {
           <span class="font-medium text-foreground">{{ tag.label }}</span>
           <span
             v-if="showValue"
-            class="font-data tabular-nums text-[var(--silver-400)] group-hover:text-[var(--accent-primary)] transition-colors"
+            class="font-data tabular-nums text-[var(--foreground-muted)] group-hover:text-[var(--accent-primary)] transition-colors"
           >
             ({{ formatValue(tag.value) }})
           </span>

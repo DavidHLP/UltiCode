@@ -4,6 +4,7 @@ import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { fetchSubmissionHistory } from "@/api/submission";
 import type { SubmissionHistory } from "@/api/submission";
+import { readCssColor, SOLARIZED_PALETTE } from "@ulticode/design-system";
 import {
   createAcceptedAreaGradient,
   withSafeChartAnimation,
@@ -21,6 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
+let themeObserver: MutationObserver | null = null;
 const historyData = ref<SubmissionHistory | null>(null);
 const dataLoading = ref(true);
 
@@ -42,27 +44,44 @@ const initChart = () => {
     renderer: "canvas",
   });
 
+  const colors = {
+    series1: readCssColor("--chart-series-1", SOLARIZED_PALETTE.blue),
+    solved: readCssColor("--chart-status-solved", SOLARIZED_PALETTE.green),
+    series2: readCssColor("--chart-series-2", SOLARIZED_PALETTE.cyan),
+    background: readCssColor(
+      "--chart-tooltip-background",
+      SOLARIZED_PALETTE.base3,
+    ),
+    foreground: readCssColor("--foreground-strong", SOLARIZED_PALETTE.base01),
+    muted: readCssColor("--foreground", SOLARIZED_PALETTE.base01),
+    border: readCssColor("--chart-grid-color", SOLARIZED_PALETTE.base1),
+    tooltipBorder: readCssColor(
+      "--chart-tooltip-border",
+      SOLARIZED_PALETTE.base00,
+    ),
+  };
+
   const months = historyData.value?.monthly.map((m) => m.month) || [];
-  const submissionCounts = historyData.value?.monthly.map((m) => m.count) || [];
+  const submissionCounts =
+    historyData.value?.monthly.map((m) => m.count) || [];
   const acceptedCounts =
     historyData.value?.monthly.map((m) => m.accepted) || [];
 
   const languages = historyData.value?.languages.map((l) => l.language) || [];
   const languageCounts = historyData.value?.languages.map((l) => l.count) || [];
 
-  // Build series array
   const series: echarts.SeriesOption[] = [
     {
       name: t("personal.history.totalSubmissions"),
       type: "bar",
       data: submissionCounts,
       itemStyle: {
-        color: "oklch(0.6149 0.1394 244.9 / 0.6)",
+        color: colors.series1,
         borderRadius: 0,
       },
       emphasis: {
         itemStyle: {
-          color: "oklch(0.6149 0.1394 244.9)",
+          color: colors.series1,
         },
       },
     },
@@ -75,21 +94,22 @@ const initChart = () => {
       symbolSize: 6,
       lineStyle: {
         width: 2,
-        color: "oklch(0.6444 0.1508 118.6)",
+        color: colors.solved,
       },
       itemStyle: {
-        color: "oklch(0.6444 0.1508 118.6)",
+        color: colors.solved,
       },
       areaStyle: {
-        color: createAcceptedAreaGradient(),
+        color: createAcceptedAreaGradient(colors.solved),
+        opacity: 0.18,
       },
     },
   ];
 
   // Append a horizontal bar series for language distribution so the
-  // submission-history card uses the same bar-chart visual language as
-  // the rest of the dashboard (LearningProgress, etc.) rather than a
-  // pie/donut chart that visually breaks the row.
+  // submission-history card uses the same bar-chart visual language as the
+  // rest of the dashboard (LearningProgress, etc.) rather than a pie/donut
+  // chart that visually breaks the row.
   if (languages.length > 0) {
     series.push({
       name: t("personal.history.languageDistribution"),
@@ -98,12 +118,12 @@ const initChart = () => {
       yAxisIndex: 1,
       data: languageCounts,
       itemStyle: {
-        color: "oklch(0.6545 0.1340 85.7 / 0.7)",
+        color: colors.series2,
         borderRadius: 0,
       },
       emphasis: {
         itemStyle: {
-          color: "oklch(0.6545 0.1340 85.7)",
+          color: colors.series2,
         },
       },
       barCategoryGap: "40%",
@@ -113,11 +133,11 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "axis",
-      backgroundColor: "oklch(0 0 0 / 0.8)",
-      borderColor: "transparent",
+      backgroundColor: colors.background,
+      borderColor: colors.tooltipBorder,
       borderRadius: 0,
       textStyle: {
-        color: "#fff",
+        color: colors.foreground,
       },
     },
     legend: {
@@ -130,7 +150,7 @@ const initChart = () => {
       ],
       bottom: 0,
       textStyle: {
-        color: "var(--muted-foreground)",
+        color: colors.muted,
         fontSize: 11,
       },
     },
@@ -156,11 +176,11 @@ const initChart = () => {
         data: months,
         axisLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
           },
         },
         axisLabel: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
           rotate: 45,
         },
@@ -170,16 +190,16 @@ const initChart = () => {
         type: "value",
         axisLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
           },
         },
         axisLabel: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
         splitLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
             type: "dashed",
           },
         },
@@ -190,16 +210,16 @@ const initChart = () => {
         type: "value",
         axisLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
           },
         },
         axisLabel: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
         splitLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
             type: "dashed",
           },
         },
@@ -210,11 +230,11 @@ const initChart = () => {
         data: languages,
         axisLine: {
           lineStyle: {
-            color: "var(--border)",
+            color: colors.border,
           },
         },
         axisLabel: {
-          color: "var(--muted-foreground)",
+          color: colors.muted,
           fontSize: 10,
         },
       },
@@ -243,6 +263,11 @@ const loadData = async () => {
 onMounted(() => {
   loadData();
   window.addEventListener("resize", handleResize);
+  themeObserver = new MutationObserver(() => initChart());
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
 });
 
 watch([hasData, dataLoading], () => {
@@ -253,6 +278,8 @@ watch([hasData, dataLoading], () => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
+  themeObserver?.disconnect();
+  themeObserver = null;
   chartInstance?.dispose();
   chartInstance = null;
 });

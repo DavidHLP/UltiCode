@@ -52,18 +52,18 @@ const commentTree = computed(() => {
   <div class="space-y-6 px-4 sm:px-6 pb-8">
     <div v-if="!isCommenting && !props.isLocked" class="mb-8">
       <div
-        class="w-full cursor-text border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] hover:border-[var(--accent-electric)] px-5 py-3.5 transition-all duration-200 flex items-center gap-3 group"
+        class="w-full cursor-text border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] hover:border-[var(--primary)] px-5 py-3.5 transition-all duration-200 flex items-center gap-3 group"
         @click="isCommenting = true"
       >
         <div
-          class="h-8 w-8 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] flex items-center justify-center group-hover:border-[var(--accent-electric)] group-hover:text-[var(--accent-electric)] transition-all duration-200"
+          class="h-8 w-8 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)] flex items-center justify-center group-hover:border-[var(--primary)] group-hover:text-[var(--primary)] transition-all duration-200"
         >
           <MessageSquare
-            class="h-4 w-4 text-[var(--silver-500)] group-hover:text-[var(--accent-electric)]"
+            class="h-4 w-4 text-[var(--foreground-muted)] group-hover:text-[var(--primary)]"
           />
         </div>
         <span
-          class="font-mono text-sm text-[var(--silver-500)] group-hover:text-[var(--foreground)] transition-colors duration-200"
+          class="font-mono text-sm text-[var(--foreground-muted)] group-hover:text-[var(--foreground)] transition-colors duration-200"
           >{{ t("forum.comments.joinConversation") }}</span
         >
       </div>
@@ -82,7 +82,7 @@ const commentTree = computed(() => {
 
       <div
         v-if="isLocked"
-        class="flex items-center gap-2 text-2xs font-black uppercase tracking-widest text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 px-3 py-1.5 rounded-none border border-[var(--terminal-amber)]/30"
+        class="flex items-center gap-2 text-2xs font-black uppercase tracking-widest text-foreground-strong bg-[var(--status-warning-mark)]/10 px-3 py-1.5 rounded-none border border-[var(--status-warning-mark)]/30"
       >
         <Lock class="h-3 w-3" /> {{ t("forum.comments.threadLocked") }}
       </div>

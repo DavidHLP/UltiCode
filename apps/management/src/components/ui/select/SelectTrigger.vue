@@ -36,7 +36,7 @@ const forwardedProps = useForwardProps(delegatedProps)
         ],
         // Terminal variant
         variant === 'terminal' && [
-          'border-[var(--silver-200)] dark:border-[var(--silver-300)] data-[placeholder]:text-[var(--silver-400)] [&_svg:not([class*=\'text-\'])]:text-[var(--silver-400)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] aria-invalid:border-[var(--terminal-red)] aria-invalid:ring-[color-mix(in_oklch,_var(--terminal-red)_20%,_transparent)] font-data text-xs rounded-none shadow-none focus-visible:ring-[2px]',
+          'border-[var(--border-subtle)] dark:border-[var(--border-subtle)] data-[placeholder]:text-[var(--foreground-muted)] [&_svg:not([class*=\'text-\'])]:text-[var(--foreground-muted)] focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)] aria-invalid:border-[var(--status-error-mark)] aria-invalid:ring-[color-mix(in_oklch,_var(--status-error-mark)_20%,_transparent)] font-data text-xs rounded-none shadow-none focus-visible:ring-[2px]',
         ],
         props.class,
       )

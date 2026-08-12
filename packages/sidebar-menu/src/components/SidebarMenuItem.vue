@@ -36,17 +36,17 @@ const tag = computed(() => {
 const badgeClass = computed(() => {
   switch (props.badgeVariant) {
     case 'accent':
-      return 'bg-[var(--accent-electric)]/15 text-[var(--accent-electric)]'
+      return 'bg-[var(--primary)]/15 text-[var(--primary)]'
     case 'muted':
-      return 'bg-[var(--silver-200)]/50 text-[var(--silver-600)] dark:text-[var(--silver-400)]'
+      return 'bg-[var(--border-subtle)]/50 text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)]'
     default:
-      return 'bg-[var(--silver-200)]/60 text-[var(--solarized-base01)] dark:text-[var(--silver-400)]'
+      return 'bg-[var(--border-subtle)]/60 text-foreground dark:text-[var(--foreground-muted)]'
   }
 })
 
 // Activation visuals are driven by [data-active] + the .uc-sidebar-item CSS
 // contract (single source of truth); this component no longer hand-writes
-// `border-l-4 border-[--accent-electric]`.
+// `border-l-4 border-[--primary]`.
 const mergedClass = computed(() =>
   cn(
     'uc-sidebar-item group flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 transition-all duration-200 select-none text-sm font-medium h-9 mx-1 rounded-md',
@@ -81,7 +81,7 @@ function onChevronClick(e: MouseEvent) {
     <button
       v-if="showChevron"
       type="button"
-      class="ml-auto flex size-4 shrink-0 items-center text-[var(--silver-500)] hover:text-[var(--foreground)]"
+      class="ml-auto flex size-4 shrink-0 items-center text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
       aria-label="toggle section"
       @click="onChevronClick"
     >

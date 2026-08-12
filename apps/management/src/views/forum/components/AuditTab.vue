@@ -97,18 +97,18 @@ function getChangesText(entry: AuditLog): string | null {
 <template>
   <div class="space-y-4">
     <!-- Terminal Header -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]">
       <div
-        class="px-4 py-3 flex items-center gap-3 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+        class="px-4 py-3 flex items-center gap-3 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
       >
         <div class="flex items-center gap-2">
           <span class="terminal-cursor" />
         </div>
-        <IconShield class="h-4 w-4 text-[var(--terminal-cyan)]" />
+        <IconShield class="h-4 w-4 text-[var(--status-info-mark)]" />
         <h3 class="text-sm font-medium text-[var(--foreground)]">{{ t('forum.tabs.audit') }}</h3>
       </div>
       <div class="px-4 py-2 bg-[var(--surface-sunken)]">
-        <span class="font-data text-xs text-[var(--silver-400)]">
+        <span class="font-data text-xs text-[var(--foreground-muted)]">
           &gt; {{ t('forum.audit.description') }}
         </span>
       </div>
@@ -119,7 +119,7 @@ function getChangesText(entry: AuditLog): string | null {
       <div
         v-for="i in 3"
         :key="i"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-4 bg-[var(--card)]"
       >
         <div class="flex items-start gap-4">
           <Skeleton class="h-10 w-10 rounded-none" />
@@ -135,14 +135,14 @@ function getChangesText(entry: AuditLog): string | null {
     <!-- Empty State -->
     <div
       v-else-if="auditHistory.length === 0"
-      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-8 text-center bg-[var(--card)]"
+      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-8 text-center bg-[var(--card)]"
     >
       <div
-        class="w-10 h-10 border border-[var(--silver-300)] flex items-center justify-center mx-auto mb-3"
+        class="w-10 h-10 border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-3"
       >
-        <IconShield class="h-5 w-5 text-[var(--silver-400)]" />
+        <IconShield class="h-5 w-5 text-[var(--foreground-muted)]" />
       </div>
-      <p class="font-data text-xs text-[var(--silver-400)]">
+      <p class="font-data text-xs text-[var(--foreground-muted)]">
         &gt; {{ t('forum.audit.noAuditHistory') }}
       </p>
     </div>
@@ -152,25 +152,25 @@ function getChangesText(entry: AuditLog): string | null {
       <div
         v-for="entry in auditHistory"
         :key="entry.id"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] overflow-hidden"
+        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] overflow-hidden"
       >
         <!-- Header with action badge -->
         <div
-          class="px-4 py-3 flex items-center justify-between border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+          class="px-4 py-3 flex items-center justify-between border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
         >
           <div class="flex items-center gap-3">
-            <div class="h-8 w-8 border border-[var(--silver-300)] flex items-center justify-center">
+            <div class="h-8 w-8 border border-[var(--border-subtle)] flex items-center justify-center">
               <component
                 :is="getActionConfig(entry.action).icon"
                 :class="[
                   'h-4 w-4',
-                  getActionConfig(entry.action).variant === 'error' && 'text-[var(--terminal-red)]',
+                  getActionConfig(entry.action).variant === 'error' && 'text-foreground-strong',
                   getActionConfig(entry.action).variant === 'warning' &&
-                    'text-[var(--terminal-amber)]',
+                    'text-foreground-strong',
                   getActionConfig(entry.action).variant === 'success' &&
-                    'text-[var(--terminal-green)]',
-                  getActionConfig(entry.action).variant === 'info' && 'text-[var(--terminal-cyan)]',
-                  getActionConfig(entry.action).variant === 'default' && 'text-[var(--silver-400)]',
+                    'text-foreground-strong',
+                  getActionConfig(entry.action).variant === 'info' && 'text-foreground-strong',
+                  getActionConfig(entry.action).variant === 'default' && 'text-[var(--foreground-muted)]',
                 ]"
               />
             </div>
@@ -178,7 +178,7 @@ function getChangesText(entry: AuditLog): string | null {
               <span class="font-data text-sm text-[var(--foreground)]">{{
                 entry.performer?.username
               }}</span>
-              <span class="font-data text-xs text-[var(--silver-400)]">{{
+              <span class="font-data text-xs text-[var(--foreground-muted)]">{{
                 t('forum.audit.performed')
               }}</span>
             </div>
@@ -193,8 +193,8 @@ function getChangesText(entry: AuditLog): string | null {
         <div class="p-4">
           <!-- Timestamp -->
           <div class="flex items-center gap-2 mb-3">
-            <IconCalendar class="h-3.5 w-3.5 text-[var(--silver-400)]" />
-            <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
+            <IconCalendar class="h-3.5 w-3.5 text-[var(--foreground-muted)]" />
+            <span class="font-data text-xs text-[var(--foreground-muted)] tabular-nums">
               {{ formatDateTimeByLocale(entry.createdAt) }}
             </span>
           </div>
@@ -202,10 +202,10 @@ function getChangesText(entry: AuditLog): string | null {
           <!-- Changes -->
           <div
             v-if="getChangesText(entry)"
-            class="border border-[var(--silver-300)] p-3 bg-[var(--surface-sunken)]"
+            class="border border-[var(--border-subtle)] p-3 bg-[var(--surface-sunken)]"
           >
             <pre
-              class="font-data text-xs text-[var(--silver-400)] whitespace-pre-wrap overflow-x-auto"
+              class="font-data text-xs text-[var(--foreground-muted)] whitespace-pre-wrap overflow-x-auto"
               >{{ getChangesText(entry) }}</pre
             >
           </div>
@@ -213,7 +213,7 @@ function getChangesText(entry: AuditLog): string | null {
           <!-- Additional Info -->
           <div
             v-if="entry.ipAddress || entry.userAgent"
-            class="mt-3 text-xs text-[var(--silver-400)]"
+            class="mt-3 text-xs text-[var(--foreground-muted)]"
           >
             <div v-if="entry.ipAddress" class="flex items-center gap-2">
               <span class="terminal-label">ip:</span>

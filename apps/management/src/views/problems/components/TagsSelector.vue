@@ -73,10 +73,10 @@ onMounted(() => {
     <!-- Selected Tags -->
     <div class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)]">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)]">
           {{ t('problems.tagsSelector.selected') }}
         </span>
-        <span v-if="selectedTags.length" class="text-2xs font-mono text-[var(--silver-500)]">
+        <span v-if="selectedTags.length" class="text-2xs font-mono text-[var(--foreground-muted)]">
           {{ selectedTags.length }} {{ t('problems.tagsSelector.selectedCount') }}
         </span>
       </div>
@@ -104,7 +104,7 @@ onMounted(() => {
         </Badge>
       </div>
 
-      <p v-else class="text-xs text-[var(--silver-500)] font-mono italic">
+      <p v-else class="text-xs text-[var(--foreground-muted)] font-mono italic">
         {{ t('problems.tagsSelector.noTagsSelected') }}
       </p>
     </div>
@@ -124,7 +124,7 @@ onMounted(() => {
     <!-- Loading State -->
     <div
       v-if="store.tagsLoading"
-      class="flex items-center gap-2 text-xs font-mono text-[var(--silver-500)]"
+      class="flex items-center gap-2 text-xs font-mono text-[var(--foreground-muted)]"
     >
       <IconLoader2 class="h-3.5 w-3.5 animate-spin" />
       {{ t('problems.tagsSelector.loading') }}
@@ -133,10 +133,10 @@ onMounted(() => {
     <!-- Available Tags -->
     <div v-else class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)]">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)]">
           {{ t('problems.tagsSelector.available') }}
         </span>
-        <span class="text-2xs font-mono text-[var(--silver-500)]">
+        <span class="text-2xs font-mono text-[var(--foreground-muted)]">
           {{ filteredTags.length }} {{ t('problems.tagsSelector.totalCount') }}
         </span>
       </div>
@@ -168,11 +168,11 @@ onMounted(() => {
         </button>
       </div>
 
-      <p v-else-if="searchQuery" class="text-xs text-[var(--silver-500)] font-mono italic">
+      <p v-else-if="searchQuery" class="text-xs text-[var(--foreground-muted)] font-mono italic">
         {{ t('problems.tagsSelector.noResults') }}
       </p>
 
-      <p v-else class="text-xs text-[var(--silver-500)] font-mono italic">
+      <p v-else class="text-xs text-[var(--foreground-muted)] font-mono italic">
         {{ t('problems.tagsSelector.noTagsAvailable') }}
       </p>
     </div>

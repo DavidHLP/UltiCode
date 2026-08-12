@@ -54,7 +54,7 @@ function handleScore(problemId: string, value: string | number): void {
         type="button"
         size="sm"
         variant="terminal"
-        class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+        class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong"
         @click="pickerOpen = true"
       >
         <IconPlus class="mr-1.5 h-3.5 w-3.5" />
@@ -63,34 +63,34 @@ function handleScore(problemId: string, value: string | number): void {
     </div>
 
     <!-- Table - Terminal Style -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
       <Table class="terminal-table">
         <TableHeader>
           <TableRow
-            class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
           >
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[50px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[50px]"
             >
               #
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]"
             >
               {{ t('contests.problemsStep.title') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]"
             >
               {{ t('contests.problemsStep.difficulty') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[100px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[100px]"
             >
               {{ t('contests.problemsStep.score') }}
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[50px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[50px]"
             >
             </TableHead>
           </TableRow>
@@ -99,9 +99,9 @@ function handleScore(problemId: string, value: string | number): void {
           <TableRow
             v-for="(problem, index) in slice.problems"
             :key="problem.id"
-            class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
+            class="border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)]"
           >
-            <TableCell class="font-data text-xs text-[var(--accent-electric)]">
+            <TableCell class="font-data text-xs text-[var(--primary)]">
               {{ String.fromCharCode(65 + index) }}
             </TableCell>
             <TableCell>
@@ -109,7 +109,7 @@ function handleScore(problemId: string, value: string | number): void {
                 <span class="font-medium text-sm text-[var(--foreground)]">{{
                   problem.title
                 }}</span>
-                <span class="font-data text-xs text-[var(--silver-400)]">{{ problem.slug }}</span>
+                <span class="font-data text-xs text-[var(--foreground-muted)]">{{ problem.slug }}</span>
               </div>
             </TableCell>
             <TableCell>
@@ -124,7 +124,7 @@ function handleScore(problemId: string, value: string | number): void {
               <Input
                 type="number"
                 min="0"
-                class="h-8 w-20 font-data text-xs border-[var(--silver-200)] dark:border-[var(--silver-700)] focus:border-[var(--accent-electric)]"
+                class="h-8 w-20 font-data text-xs border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] focus:border-[var(--primary)]"
                 :model-value="problem.score"
                 @update:model-value="handleScore(problem.id, $event)"
               />
@@ -134,7 +134,7 @@ function handleScore(problemId: string, value: string | number): void {
                 type="button"
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+                class="h-8 w-8 text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
                 @click="emit('remove', problem.id)"
               >
                 <IconTrash class="h-4 w-4" />

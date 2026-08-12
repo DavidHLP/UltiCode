@@ -545,7 +545,7 @@ onMounted(() => {
             {{ t("common.actions.cancel") }}
           </AlertDialogCancel>
           <AlertDialogAction
-            class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full"
+            class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80 rounded-full"
             @click="confirmDelete"
           >
             {{ t("common.actions.delete") }}

@@ -43,11 +43,11 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
   delay: Math.random() * 0.5,
   duration: 1 + Math.random() * 0.5,
   color: [
-    "var(--status-warning)",
-    "var(--status-error)",
-    "var(--status-info)",
+    "var(--status-warning-mark)",
+    "var(--status-error-mark)",
+    "var(--status-info-mark)",
     "var(--accent-primary)",
-    "var(--status-success)",
+    "var(--status-success-mark)",
   ][Math.floor(Math.random() * 5)],
 }));
 </script>
@@ -64,7 +64,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
     >
       <div
         v-if="visible"
-        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-none border border-[var(--status-warning)] bg-surface-elevated shadow-float"
+        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-none border border-[var(--status-warning-mark)] bg-surface-elevated shadow-float"
       >
         <!-- Confetti -->
         <div
@@ -91,15 +91,15 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
           <div class="flex items-start gap-3">
             <!-- Icon -->
             <div
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--status-warning)] bg-status-warning-surface shadow-float"
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--status-warning-mark)] bg-status-warning-surface shadow-float"
             >
-              <Trophy class="h-6 w-6 text-status-warning" />
+              <Trophy class="h-6 w-6 text-status-warning-mark" />
             </div>
 
             <!-- Text -->
             <div class="flex-1 space-y-1">
               <div class="flex items-center gap-2">
-                <Sparkles class="h-4 w-4 text-status-warning" />
+                <Sparkles class="h-4 w-4 text-status-warning-mark" />
                 <span class="text-sm font-semibold text-foreground">
                   Achievement Unlocked!
                 </span>
@@ -111,7 +111,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
                 {{ badgeDescription }}
               </p>
               <span
-                class="inline-block rounded-full border border-status-warning bg-status-warning-surface px-2 py-0.5 text-xs font-medium text-foreground-strong"
+                class="inline-block rounded-full border border-status-warning-mark bg-status-warning-surface px-2 py-0.5 text-xs font-medium text-foreground-strong"
               >
                 +{{ points }} points
               </span>

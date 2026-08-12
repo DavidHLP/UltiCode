@@ -12,13 +12,13 @@ export const buttonVariants = cva(
         ...BUTTON_VARIANT_CLASSES,
         // Terminal Precision variants
         terminal:
-          'border border-[var(--silver-300)] bg-transparent font-data text-xs uppercase tracking-wider text-[var(--silver-600)] hover:border-[var(--accent-electric)] hover:text-foreground dark:border-[var(--silver-300)] dark:text-[var(--silver-400)] dark:hover:border-[var(--accent-electric)] dark:hover:text-foreground transition-colors rounded-none shadow-none',
+          'border border-[var(--border-subtle)] bg-transparent font-data text-xs uppercase tracking-wider text-[var(--foreground-strong)] hover:border-[var(--primary)] hover:text-foreground dark:border-[var(--border-subtle)] dark:text-[var(--foreground-muted)] dark:hover:border-[var(--primary)] dark:hover:text-foreground transition-colors rounded-none shadow-none',
         terminal_primary:
           'border border-[var(--accent-primary)] bg-primary text-primary-foreground font-data text-xs uppercase tracking-wider hover:bg-primary/90 rounded-none shadow-none',
         terminal_danger:
-          'border border-[var(--terminal-red)] bg-status-error-surface text-foreground-strong font-data text-xs uppercase tracking-wider hover:bg-status-error-surface/80 [&_svg]:text-[var(--terminal-red)] rounded-none shadow-none',
+          'border border-[var(--status-error-mark)] bg-status-error-surface text-foreground-strong font-data text-xs uppercase tracking-wider hover:bg-status-error-surface/80 [&_svg]:text-foreground-strong rounded-none shadow-none',
         terminal_ghost:
-          'font-data text-xs uppercase tracking-wider text-[var(--silver-500)] hover:text-[var(--foreground)] hover:bg-transparent dark:text-[var(--silver-400)] dark:hover:text-[var(--foreground)] rounded-none shadow-none',
+          'font-data text-xs uppercase tracking-wider text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-transparent dark:text-[var(--foreground-muted)] dark:hover:text-[var(--foreground)] rounded-none shadow-none',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',

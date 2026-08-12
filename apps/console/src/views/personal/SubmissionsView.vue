@@ -111,16 +111,16 @@ const columns = computed<ColumnDef[]>(() => [
 // Error (neutral); unknown statuses fall back to neutral.
 const SEMANTIC_COLOR_CLASS: Record<SemanticColor, string> = {
   success:
-    "text-[var(--terminal-green)] bg-[var(--terminal-green)]/10 border-[var(--terminal-green)]/20",
+    "text-foreground-strong bg-[var(--status-success-mark)]/10 border-[var(--status-success-mark)]/20",
   warning:
-    "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/20",
+    "text-foreground-strong bg-[var(--status-warning-mark)]/10 border-[var(--status-warning-mark)]/20",
   error:
-    "text-[var(--terminal-red)] bg-[var(--terminal-red)]/10 border-[var(--terminal-red)]/20",
-  info: "text-[var(--terminal-cyan)] bg-[var(--terminal-cyan)]/10 border-[var(--terminal-cyan)]/20",
+    "text-foreground-strong bg-[var(--status-error-mark)]/10 border-[var(--status-error-mark)]/20",
+  info: "text-foreground-strong bg-[var(--status-info-mark)]/10 border-[var(--status-info-mark)]/20",
   purple:
-    "text-[var(--terminal-purple)] bg-[var(--terminal-purple)]/10 border-[var(--terminal-purple)]/20",
+    "text-foreground-strong bg-[var(--status-special-mark)]/10 border-[var(--status-special-mark)]/20",
   electric:
-    "text-[var(--accent-electric)] bg-[var(--accent-electric)]/10 border-[var(--accent-electric)]/20",
+    "text-[var(--primary)] bg-[var(--primary)]/10 border-[var(--primary)]/20",
   neutral: "text-muted-foreground bg-muted border-muted-foreground/20",
 };
 

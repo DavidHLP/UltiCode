@@ -32,15 +32,15 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const statusColor = computed(() => {
-  if (props.contest.status === "RUNNING") return "var(--terminal-red)";
-  if (props.contest.status === "UPCOMING") return "var(--terminal-green)";
-  return "var(--solarized-base01)";
+  if (props.contest.status === "RUNNING") return "var(--status-error-mark)";
+  if (props.contest.status === "UPCOMING") return "var(--status-success-mark)";
+  return "var(--foreground)";
 });
 </script>
 
 <template>
   <Card
-    class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-[var(--shadow-float)] text-foreground overflow-hidden rounded-none relative transition-all duration-300"
+    class="border border-border bg-surface dark:bg-surface-highlight shadow-[var(--shadow-float)] text-foreground overflow-hidden rounded-none relative transition-all duration-300"
     :class="statusCardClass"
   >
     <CardContent class="p-6 md:p-8 relative z-10">
@@ -66,11 +66,11 @@ const statusColor = computed(() => {
               >
                 <span
                   v-if="contest.status === 'RUNNING'"
-                  class="h-1.5 w-1.5 rounded-full bg-[var(--terminal-red)] animate-pulse shadow-[0_0_8px_2px_var(--terminal-red)]"
+                  class="h-1.5 w-1.5 rounded-full bg-[var(--status-error-mark)] animate-pulse shadow-[0_0_8px_2px_var(--status-error-mark)]"
                 ></span>
                 <span
                   v-else-if="contest.status === 'UPCOMING'"
-                  class="h-1.5 w-1.5 rounded-full bg-[var(--terminal-green)] animate-pulse"
+                  class="h-1.5 w-1.5 rounded-full bg-[var(--status-success-mark)] animate-pulse"
                 ></span>
                 {{
                   contest.status === "RUNNING"
@@ -90,14 +90,14 @@ const statusColor = computed(() => {
 
             <div class="space-y-1 pt-1.5">
               <h2
-                class="text-xl font-black text-[var(--solarized-base02)] dark:text-[var(--solarized-base1)] tracking-tight"
+                class="text-xl font-black text-foreground-strong dark:text-foreground-strong tracking-tight"
               >
                 {{ statusLabel }}
               </h2>
               <!-- Monospace Timer Block -->
               <p
                 v-if="contest.status !== 'FINISHED'"
-                class="font-mono text-3xl font-black tracking-tight md:text-5xl text-[var(--accent-electric)] select-all tabular-nums"
+                class="font-mono text-3xl font-black tracking-tight md:text-5xl text-[var(--primary)] select-all tabular-nums"
               >
                 {{ statusCountdown }}
               </p>
@@ -118,8 +118,8 @@ const statusColor = computed(() => {
               <div
                 class="h-full transition-all duration-1000 ease-out"
                 :class="{
-                  'bg-[var(--terminal-green)]': contest.status === 'UPCOMING',
-                  'bg-[var(--terminal-red)] shadow-[0_0_8px_var(--terminal-red)]':
+                  'bg-[var(--status-success-mark)]': contest.status === 'UPCOMING',
+                  'bg-[var(--status-error-mark)] shadow-[0_0_8px_var(--status-error-mark)]':
                     contest.status === 'RUNNING',
                   'bg-muted-foreground/40': contest.status === 'FINISHED',
                 }"
@@ -188,7 +188,7 @@ const statusColor = computed(() => {
               <Button
                 v-if="!isRegistered"
                 size="lg"
-                class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
+                class="w-full gap-2 rounded-none h-11 font-bold bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
                 :disabled="registering"
                 @click="emit('register')"
               >
@@ -203,7 +203,7 @@ const statusColor = computed(() => {
                 v-else
                 size="lg"
                 variant="outline"
-                class="w-full gap-2 rounded-none h-11 font-bold border border-destructive/50 hover:bg-destructive hover:border-destructive hover:text-white transition-colors cursor-pointer uppercase tracking-wider text-xxs text-destructive"
+                class="w-full gap-2 rounded-none h-11 font-bold border border-destructive bg-status-error-surface hover:bg-status-error-surface/80 text-foreground-strong transition-colors cursor-pointer uppercase tracking-wider text-xxs"
                 :disabled="registering"
                 @click="emit('unregister')"
               >
@@ -221,7 +221,7 @@ const statusColor = computed(() => {
               <div class="flex flex-col gap-2">
                 <Button
                   size="lg"
-                  class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--terminal-red)] hover:bg-[var(--terminal-red)]/90 text-white cursor-pointer uppercase tracking-wider text-xxs shadow-sm animate-pulse"
+                  class="w-full gap-2 rounded-none h-11 font-bold border border-status-error-mark bg-status-error-surface hover:bg-status-error-surface text-foreground-strong cursor-pointer uppercase tracking-wider text-xxs shadow-sm animate-pulse"
                   @click="emit('scrollToProblems')"
                 >
                   <PlayCircle class="h-4 w-4" />
@@ -230,7 +230,7 @@ const statusColor = computed(() => {
                 <Button
                   size="lg"
                   variant="outline"
-                  class="w-full gap-2 rounded-none h-11 font-bold border border-border hover:bg-[var(--silver-100)] dark:hover:bg-[var(--solarized-base03)] cursor-pointer uppercase tracking-wider text-xxs"
+                  class="w-full gap-2 rounded-none h-11 font-bold border border-border hover:bg-surface-highlight dark:hover:bg-surface cursor-pointer uppercase tracking-wider text-xxs"
                   @click="emit('scrollToRanking')"
                 >
                   <Trophy class="h-4 w-4" />
@@ -244,7 +244,7 @@ const statusColor = computed(() => {
               <Button
                 v-if="!virtualSessionActive"
                 size="lg"
-                class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
+                class="w-full gap-2 rounded-none h-11 font-bold bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
                 :disabled="startingVirtual"
                 @click="emit('startVirtual')"
               >
@@ -259,7 +259,7 @@ const statusColor = computed(() => {
                 v-else
                 size="lg"
                 variant="outline"
-                class="w-full gap-2 rounded-none h-11 font-bold text-[var(--terminal-green)] border-[var(--terminal-green)]/40 bg-[var(--terminal-green)]/5 uppercase tracking-wider text-xxs"
+                class="w-full gap-2 rounded-none h-11 font-bold text-foreground-strong border border-status-success-mark/40 bg-status-success-surface uppercase tracking-wider text-xxs"
                 disabled
               >
                 <PlayCircle class="h-4 w-4" />

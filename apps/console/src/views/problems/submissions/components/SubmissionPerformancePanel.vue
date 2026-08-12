@@ -46,6 +46,7 @@ let memoryChart: ECharts | null = null;
 
 let runtimeResizeObserver: ResizeObserver | null = null;
 let memoryResizeObserver: ResizeObserver | null = null;
+let themeObserver: MutationObserver | null = null;
 
 let renderGeneration = 0;
 
@@ -179,6 +180,17 @@ function selectChart(next: ActiveChart) {
 }
 
 onMounted(() => {
+  themeObserver = new MutationObserver(() => {
+    renderGeneration++;
+    void nextTick(() => {
+      initRuntimeChart();
+      initMemoryChart();
+    });
+  });
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class", "data-theme"],
+  });
   void nextTick(() => {
     initRuntimeChart();
     initMemoryChart();
@@ -213,6 +225,8 @@ watch(activeChart, () => {
 });
 
 onBeforeUnmount(() => {
+  themeObserver?.disconnect();
+  themeObserver = null;
   renderGeneration++;
   if (runtimeResizeObserver) {
     runtimeResizeObserver.disconnect();
@@ -243,8 +257,8 @@ onBeforeUnmount(() => {
             class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-none border px-3 py-2 text-xs transition-colors"
             :class="
               showRuntimeDetail
-                ? 'border-[var(--accent-electric)] bg-[color-mix(in_oklch,var(--accent-electric)_10%,transparent)] shadow-[inset_2px_0_0_var(--accent-electric)]'
-                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--accent-electric)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
+                ? 'border-[var(--primary)] bg-[color-mix(in_oklch,var(--primary)_10%,transparent)] shadow-[inset_2px_0_0_var(--primary)]'
+                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--primary)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
             "
             @click="selectChart('runtime')"
             @keydown.enter.prevent="selectChart('runtime')"
@@ -283,8 +297,8 @@ onBeforeUnmount(() => {
             class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-none border px-3 py-2 text-xs transition-colors"
             :class="
               showMemoryDetail
-                ? 'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,var(--terminal-cyan)_10%,transparent)] shadow-[inset_2px_0_0_var(--terminal-cyan)]'
-                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--terminal-cyan)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
+                ? 'border-[var(--status-info-mark)] bg-[color-mix(in_oklch,var(--status-info-mark)_10%,transparent)] shadow-[inset_2px_0_0_var(--status-info-mark)]'
+                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--status-info-mark)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
             "
             @click="selectChart('memory')"
             @keydown.enter.prevent="selectChart('memory')"

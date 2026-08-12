@@ -369,7 +369,7 @@ const formatKey = (key: string): string => {
                 <kbd
                   v-for="(key, index) in shortcut.keys"
                   :key="index"
-                  class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs text-muted-foreground font-data"
+                  class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs text-muted-foreground font-data"
                 >
                   {{ formatKey(key) }}
                 </kbd>

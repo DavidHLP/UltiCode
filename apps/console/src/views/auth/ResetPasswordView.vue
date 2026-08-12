@@ -148,36 +148,36 @@ defineOptions({
   font-size: var(--uc-text-2xl);
   font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
-  color: var(--solarized-base03);
+  color: var(--foreground-strong);
   line-height: 1.1;
 }
 
 .dark .reset-form__title {
-  color: var(--silver-900);
+  color: var(--foreground-strong);
 }
 
 .reset-form__subtitle {
   font-size: var(--uc-text-md);
-  color: var(--solarized-base01);
+  color: var(--foreground);
 }
 
 .dark .reset-form__subtitle {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .reset-form__back {
   font-size: var(--uc-text-md);
-  color: var(--solarized-base01);
+  color: var(--foreground);
   text-align: center;
   font-family: var(--uc-font-code);
 }
 
 .dark .reset-form__back {
-  color: var(--silver-400);
+  color: var(--foreground-muted);
 }
 
 .reset-form__back a {
-  color: var(--accent-electric);
+  color: var(--primary);
   text-decoration: none;
   font-weight: var(--uc-font-weight-bold);
 }

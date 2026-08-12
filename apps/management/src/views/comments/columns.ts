@@ -47,7 +47,7 @@ export function createColumns(
   return [
     ...createSelectionColumn<Comment>(t, {
       checkboxClass:
-        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       id: 'row_num',
@@ -66,7 +66,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('comments.columns.comment'),
         ),
       cell: ({ row }) => {
@@ -83,10 +83,10 @@ export function createColumns(
             },
             renderInlineContent(truncated),
           ),
-          h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
+          h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]' }, [
             comment.type === 'forum'
-              ? h(IconMessage, { class: 'h-3 w-3 text-[var(--terminal-cyan)]' })
-              : h(IconFileText, { class: 'h-3 w-3 text-[var(--terminal-green)]' }),
+              ? h(IconMessage, { class: 'h-3 w-3 text-foreground-strong' })
+              : h(IconFileText, { class: 'h-3 w-3 text-foreground-strong' }),
             h(
               'span',
               { class: 'hover:text-[var(--foreground)] transition-colors' },
@@ -101,13 +101,13 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('comments.columns.author'),
         ),
       cell: ({ row }) => {
         const author = row.original.author
         return h('div', { class: 'flex items-center gap-2 py-1' }, [
-          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--silver-400)]' }),
+          h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--foreground-muted)]' }),
           h(
             'span',
             { class: 'text-sm text-[var(--foreground)]' },
@@ -121,7 +121,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('comments.columns.type'),
         ),
       cell: ({ row }) => {
@@ -134,7 +134,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('comments.columns.status'),
         ),
       cell: ({ row }) => {
@@ -147,14 +147,14 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('comments.columns.created'),
         ),
       cell: ({ row }) => {
         const date = row.getValue('createdAt') as string
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+          { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
           formatDate(date),
         )
       },
@@ -164,7 +164,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {
@@ -176,7 +176,7 @@ export function createColumns(
               label: t('comments.actions.viewDetails'),
               onSelect: () => actions.viewCommentDetails(comment),
               icon: IconEye,
-              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+              iconClass: 'h-4 w-4 text-foreground-strong',
             },
             { kind: 'separator' },
             comment.isFlagged
@@ -184,16 +184,16 @@ export function createColumns(
                   label: t('comments.actions.unflag'),
                   onSelect: () => actions.unflagComment(comment),
                   icon: IconCheck,
-                  iconClass: 'h-4 w-4 text-[var(--terminal-green)]',
-                  labelClass: 'text-[var(--terminal-green)]',
+                  iconClass: 'h-4 w-4 text-foreground-strong',
+                  labelClass: 'text-[var(--foreground-strong)]',
                   hidden: !canModerateRow,
                 }
               : {
                   label: t('comments.actions.flag'),
                   onSelect: () => actions.openFlagDialog(comment),
                   icon: IconFlag,
-                  iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
-                  labelClass: 'text-[var(--terminal-amber)]',
+                  iconClass: 'h-4 w-4 text-foreground-strong',
+                  labelClass: 'text-[var(--foreground-strong)]',
                   hidden: !canModerateRow,
                 },
             { kind: 'separator', hidden: !canModerateRow },
@@ -201,25 +201,25 @@ export function createColumns(
               label: t('comments.actions.delete'),
               onSelect: () => actions.confirmDelete(comment),
               icon: IconTrash,
-              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
-              labelClass: 'text-[var(--terminal-red)]',
+              iconClass: 'h-4 w-4 text-foreground-strong',
+              labelClass: 'text-[var(--foreground-strong)]',
               hidden: !canModerateRow,
             },
             {
               label: t('comments.actions.noPermission'),
               onSelect: () => {},
               disabled: true,
-              itemClass: 'font-data text-xs text-[var(--silver-400)]',
+              itemClass: 'font-data text-xs text-[var(--foreground-muted)]',
               hidden: canModerateRow,
             },
           ],
           {
             triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
-            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
+            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
             itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
           },
         )
       },

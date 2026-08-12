@@ -28,8 +28,8 @@ const emit = defineEmits<{
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs transition-all duration-200 cursor-pointer select-none"
       :class="
         modelValue === cat.value
-          ? 'bg-card text-[var(--accent-electric)] shadow-sm border border-[var(--accent-electric)]/20 font-bold'
-          : 'border border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-card/40 hover:text-foreground font-medium'
+          ? 'bg-card text-[var(--primary)] shadow-sm border border-[var(--primary)]/20 font-bold'
+          : 'border border-transparent text-foreground dark:text-[var(--foreground-muted)] hover:bg-card/40 hover:text-foreground font-medium'
       "
     >
       <component :is="cat.icon" v-if="cat.icon" class="w-3.5 h-3.5 shrink-0" />

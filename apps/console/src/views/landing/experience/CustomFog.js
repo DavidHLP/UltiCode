@@ -1,6 +1,7 @@
 import FogV from "./shaders/fog/vertex.glsl?raw";
 import FogF from "./shaders/fog/fragment.glsl?raw";
 import * as THREE from "three";
+import { SOLARIZED_PALETTE } from '@ulticode/design-system';
 
 export class CustomFog {
     constructor(data) {
@@ -41,8 +42,8 @@ export class CustomFog {
             frontDistance: 3.5,
             backDistance: 6.25,
 
-            colorDark: "#000000",
-            colorLight: "#ffffff",
+            colorDark: SOLARIZED_PALETTE.base03,
+            colorLight: SOLARIZED_PALETTE.base1,
 
             mouseRadius: 3.5,
             mouseStrength: 0.35,

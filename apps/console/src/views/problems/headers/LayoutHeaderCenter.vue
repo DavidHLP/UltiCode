@@ -145,16 +145,12 @@ onBeforeUnmount(() => {
             <Button
               :aria-label="t('problem.layout.runCode')"
               :aria-busy="bottomPanelStore.isRunning"
-              class="group flex cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-[var(--solarized-green)] px-3 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-[var(--solarized-green)]/40 hover:bg-[var(--solarized-green)] hover:text-white dark:hover:text-[var(--solarized-base03)] hover:border-[var(--solarized-green)] disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs"
+              class="group flex cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-foreground-strong px-3 bg-surface dark:bg-surface-highlight border border-status-success-mark/40 hover:bg-status-success-surface hover:text-foreground-strong hover:border-status-success-mark disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs"
               @click="handleRun"
             >
               <Play
-                class="h-3.5 w-3.5 transition-transform duration-200"
-                :class="
-                  bottomPanelStore.isRunning
-                    ? 'text-current animate-[spin_0.9s_linear]'
-                    : 'text-current'
-                "
+                class="h-3.5 w-3.5 text-status-success-mark transition-transform duration-200"
+                :class="bottomPanelStore.isRunning ? 'animate-[spin_0.9s_linear]' : ''"
               />
               <span class="truncate">{{ t("problem.layout.runCode") }}</span>
             </Button>
@@ -181,14 +177,14 @@ onBeforeUnmount(() => {
             <Button
               :aria-label="t('problem.layout.submitSolution')"
               :disabled="isSubmitting"
-              class="group cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-white px-3 bg-[var(--accent-electric)] border border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/95 hover:border-[var(--accent-electric)]/95 disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs shadow-sm"
+              class="group cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-primary-foreground px-3 bg-primary border border-primary hover:bg-primary/90 hover:border-primary/90 disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs shadow-sm"
               @click="handleSubmit"
             >
               <CloudUpload
-                class="h-3.5 w-3.5 text-white"
+                class="h-3.5 w-3.5 text-primary-foreground"
                 :class="isSubmitting && 'animate-bounce'"
               />
-              <span class="truncate text-white">
+              <span class="truncate text-primary-foreground">
                 {{
                   isSubmitting
                     ? t("problem.layout.formatting")

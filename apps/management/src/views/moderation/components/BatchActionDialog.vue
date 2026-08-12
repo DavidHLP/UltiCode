@@ -67,17 +67,17 @@ async function handleBatchAction() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="terminal-card border-[var(--silver-300)]">
+    <DialogContent class="terminal-card border-[var(--border-subtle)]">
       <DialogHeader
-        class="terminal-card-header border-b border-[var(--silver-300)] bg-[var(--surface-sunken)] px-4 py-3 -mx-6 -mt-6"
+        class="terminal-card-header border-b border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-4 py-3 -mx-6 -mt-6"
       >
         <DialogTitle
-          class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-[var(--terminal-amber)]"
+          class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-foreground-strong"
         >
           <IconChecks class="h-4 w-4" />
           &gt; {{ t('moderation.dialogs.confirmBatchTitle') }}
         </DialogTitle>
-        <DialogDescription class="font-data text-xs text-[var(--silver-400)]">
+        <DialogDescription class="font-data text-xs text-[var(--foreground-muted)]">
           {{
             t('moderation.dialogs.confirmBatchMessage', {
               count: selectedItems.length,
@@ -91,7 +91,7 @@ async function handleBatchAction() {
       </DialogHeader>
       <div class="space-y-4 pt-4">
         <div>
-          <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+          <Label class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]">
             {{ t('moderation.actionPanel.selectAction') }}
           </Label>
           <div class="mt-2 flex gap-2">
@@ -100,8 +100,8 @@ async function handleBatchAction() {
               :class="[
                 'h-9 font-data text-xs',
                 batchAction === ModerationActionType.RESOLVED
-                  ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]'
-                  : 'border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]',
+                  ? 'border-[var(--status-success-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]'
+                  : 'border-[var(--border-subtle)] hover:border-[var(--status-success-mark)] hover:text-foreground-strong',
               ]"
               size="sm"
               @click="batchAction = ModerationActionType.RESOLVED"
@@ -114,8 +114,8 @@ async function handleBatchAction() {
               :class="[
                 'h-9 font-data text-xs',
                 batchAction === ModerationActionType.DISMISSED
-                  ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]'
-                  : 'border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]',
+                  ? 'border-[var(--status-error-mark)] text-foreground-strong bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]'
+                  : 'border-[var(--border-subtle)] hover:border-[var(--status-error-mark)] hover:text-foreground-strong',
               ]"
               size="sm"
               @click="batchAction = ModerationActionType.DISMISSED"
@@ -128,7 +128,7 @@ async function handleBatchAction() {
         <div>
           <Label
             for="batch-notes"
-            class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+            class="text-xs font-data uppercase tracking-wider text-[var(--foreground-muted)]"
           >
             {{ t('moderation.actionPanel.addNote') }}
           </Label>
@@ -137,7 +137,7 @@ async function handleBatchAction() {
             v-model="batchNote"
             :placeholder="t('moderation.actionPanel.notePlaceholder')"
             rows="3"
-            class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
+            class="mt-2 font-data text-sm border-[var(--border-subtle)] hover:border-[var(--primary)] bg-transparent placeholder:text-[var(--foreground-muted)]"
           />
         </div>
       </div>
@@ -145,7 +145,7 @@ async function handleBatchAction() {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-500)]"
+          class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
           @click="emit('update:open', false)"
         >
           {{ t('moderation.dialogs.cancel') }}
@@ -153,7 +153,7 @@ async function handleBatchAction() {
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
+          class="font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
           :disabled="batchSaving"
           @click="handleBatchAction"
         >

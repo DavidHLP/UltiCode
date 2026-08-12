@@ -178,7 +178,7 @@ onMounted(loadData);
   >
     <!-- Header -->
     <header
-      class="flex h-16 flex-shrink-0 items-center border-b border-silver bg-card px-6 gap-4 shadow-sm z-10"
+      class="flex h-16 flex-shrink-0 items-center border-b border-border-control bg-card px-6 gap-4 shadow-sm z-10"
     >
       <Button
         variant="ghost"
@@ -194,7 +194,7 @@ onMounted(loadData);
 
       <div class="flex items-center gap-2 flex-1">
         <h2
-          class="text-sm font-black uppercase tracking-widest text-[var(--accent-electric)]"
+          class="text-sm font-black uppercase tracking-widest text-[var(--primary)]"
         >
           {{
             isEditMode ? t("forum.post.editPost") : t("forum.post.createPost")
@@ -205,7 +205,7 @@ onMounted(loadData);
       <div class="flex items-center gap-3">
         <Button
           size="sm"
-          class="gap-2 rounded-none px-6 h-9 font-black uppercase tracking-wider bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white"
+          class="gap-2 rounded-none px-6 h-9 font-black uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground"
           :disabled="isSaving || isLoading"
           @click="handleSave"
         >
@@ -224,21 +224,21 @@ onMounted(loadData);
       <div class="flex w-full flex-col overflow-hidden">
         <!-- Meta Section -->
         <div
-          class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-silver/20"
+          class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-border-control/20"
         >
           <div class="max-w-[1600px] mx-auto w-full space-y-4">
             <Input
               v-model="title"
               :placeholder="t('forum.post.titlePlaceholder')"
-              class="rounded-none border-0 border-b border-silver/30 bg-transparent px-0 text-3xl font-black shadow-none focus-visible:ring-0 focus-visible:border-[var(--accent-electric)] transition-all placeholder:text-muted-foreground/30 h-14"
+              class="rounded-none border-0 border-b border-border-control/30 bg-transparent px-0 text-3xl font-black shadow-none focus-visible:ring-0 focus-visible:border-[var(--primary)] transition-all placeholder:text-muted-foreground/30 h-14"
             />
 
             <div class="flex flex-wrap gap-3 items-center">
               <div
-                class="flex items-center rounded-none border border-silver bg-card shadow-sm hover:border-[var(--accent-electric)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)] transition-colors h-9 overflow-hidden"
+                class="flex items-center rounded-none border border-border-control bg-card shadow-sm hover:border-[var(--primary)] focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)] transition-colors h-9 overflow-hidden"
               >
                 <div
-                  class="bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] px-2.5 h-full flex items-center justify-center border-r border-silver"
+                  class="bg-[color-mix(in_oklch,var(--primary)_15%,transparent)] text-[var(--primary)] px-2.5 h-full flex items-center justify-center border-r border-border-control"
                 >
                   <LayoutGrid class="h-3.5 w-3.5" />
                 </div>
@@ -261,10 +261,10 @@ onMounted(loadData);
               </div>
 
               <div
-                class="flex items-center rounded-none border border-silver bg-card shadow-sm hover:border-[var(--accent-electric)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)] transition-colors h-9 overflow-hidden"
+                class="flex items-center rounded-none border border-border-control bg-card shadow-sm hover:border-[var(--primary)] focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)] transition-colors h-9 overflow-hidden"
               >
                 <div
-                  class="bg-[color-mix(in_oklch,var(--terminal-amber)_15%,transparent)] text-[var(--terminal-amber)] px-2.5 h-full flex items-center justify-center border-r border-silver"
+                  class="bg-[color-mix(in_oklch,var(--status-warning-mark)_15%,transparent)] text-foreground-strong px-2.5 h-full flex items-center justify-center border-r border-border-control"
                 >
                   <Tag class="h-3.5 w-3.5" />
                 </div>
@@ -290,14 +290,14 @@ onMounted(loadData);
                 v-if="flairType"
                 v-model="flairLabel"
                 :placeholder="t('forum.post.customLabel')"
-                class="h-9 w-[150px] text-xs font-bold rounded-none border-silver focus:border-[var(--accent-electric)] focus:ring-2 focus:ring-[var(--accent-electric-glow)] shadow-sm bg-card"
+                class="h-9 w-[150px] text-xs font-bold rounded-none border-border-control focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--accent-glow)] shadow-sm bg-card"
               />
 
               <div class="relative">
                 <Button
                   variant="outline"
                   size="sm"
-                  class="h-9 rounded-none border-silver gap-2 px-4 shadow-sm hover:border-[var(--accent-electric)] hover:bg-[var(--surface-sunken)] transition-colors"
+                  class="h-9 rounded-none border-border-control gap-2 px-4 shadow-sm hover:border-[var(--primary)] hover:bg-[var(--surface-sunken)] transition-colors"
                   @click="showTagPicker = !showTagPicker"
                 >
                   <Plus class="h-3.5 w-3.5" />
@@ -345,7 +345,7 @@ onMounted(loadData);
                 v-for="tag in selectedTags"
                 :key="tag"
                 variant="secondary"
-                class="flex items-center gap-1.5 h-7 px-3 rounded-none text-2xs font-data font-bold uppercase tracking-wider bg-[color-mix(in_oklch,var(--accent-electric)_10%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_20%,transparent)] border shadow-sm"
+                class="flex items-center gap-1.5 h-7 px-3 rounded-none text-2xs font-data font-bold uppercase tracking-wider bg-[color-mix(in_oklch,var(--primary)_10%,transparent)] text-[var(--primary)] border-[color-mix(in_oklch,var(--primary)_20%,transparent)] border shadow-sm"
               >
                 {{ tag }}
                 <button
@@ -366,7 +366,7 @@ onMounted(loadData);
             class="max-w-[1600px] mx-auto h-full grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             <div
-              class="flex flex-col h-full overflow-hidden border border-silver rounded-none bg-card shadow-sm focus-within:border-[var(--accent-electric)] focus-within:ring-2 focus-within:ring-[var(--accent-electric-glow)] transition-all"
+              class="flex flex-col h-full overflow-hidden border border-border-control rounded-none bg-card shadow-sm focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--accent-glow)] transition-all"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
@@ -385,7 +385,7 @@ onMounted(loadData);
             </div>
 
             <div
-              class="hidden lg:flex flex-col rounded-none border border-silver bg-card overflow-hidden shadow-sm"
+              class="hidden lg:flex flex-col rounded-none border border-border-control bg-card overflow-hidden shadow-sm"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"

@@ -159,11 +159,11 @@ const {
   },
   onAfterScroll: (el, heading) => {
     if (heading && heading.exists === false && el.tagName !== "H2" && el.tagName !== "H3") {
-      el.classList.add("ring-2", "ring-[var(--solarized-blue)]", "rounded-sm");
+      el.classList.add("ring-2", "ring-ring", "rounded-sm");
       window.setTimeout(() => {
         el.classList.remove(
           "ring-2",
-          "ring-[var(--solarized-blue)]",
+          "ring-ring",
           "rounded-sm",
         );
       }, 1500);
@@ -209,7 +209,7 @@ const handleMobileTOCClick = (id: string) => {
                    Author Profile card shares the thread card's top edge -->
               <RouterLink
                 to="/forum"
-                class="inline-flex h-8 px-3 items-center justify-center rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground hover:border-[var(--silver-300)] active:bg-[var(--silver-200)] dark:active:bg-[var(--silver-300)] active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
+                class="inline-flex h-8 px-3 items-center justify-center rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] text-foreground dark:text-foreground-muted hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:text-foreground-strong dark:hover:text-foreground hover:border-[var(--border-subtle)] active:bg-[var(--border-subtle)] dark:active:bg-[var(--border-subtle)] active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
               >
                 <ArrowLeft class="h-3.5 w-3.5 mr-1.5" />
                 <span>{{ t("forum.feedback.backToDiscussions") }}</span>
@@ -245,7 +245,7 @@ const handleMobileTOCClick = (id: string) => {
                       class="text-left text-xs py-1 px-1.5 transition-all duration-150 border-l-2 hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer select-none"
                       :class="[
                         activeHeadingId === h.id
-                          ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
+                          ? 'border-link-decoration text-[var(--primary)] font-bold bg-[var(--primary)]/5'
                           : 'border-transparent text-muted-foreground font-medium',
                       ]"
                       :style="{
@@ -362,7 +362,7 @@ const handleMobileTOCClick = (id: string) => {
           </Avatar>
           <div class="flex flex-col min-w-0">
             <span
-              class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight"
+              class="font-bold text-xs text-foreground-strong dark:text-foreground truncate leading-tight"
             >
               u/{{ thread.author?.username || "unknown" }}
             </span>
@@ -387,7 +387,7 @@ const handleMobileTOCClick = (id: string) => {
             class="flex items-center gap-1.5 flex-wrap mt-1"
           >
             <span
-              class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-[var(--solarized-base01)]"
+              class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-foreground"
             >
               {{ thread.flair.text }}
             </span>
@@ -413,7 +413,7 @@ const handleMobileTOCClick = (id: string) => {
             class="text-left text-xs font-mono py-1 px-2 transition-all duration-150 border-l-2 select-none hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer"
             :class="[
               activeHeadingId === h.id
-                ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
+                ? 'border-link-decoration text-[var(--primary)] font-bold bg-[var(--primary)]/5'
                 : 'border-transparent text-muted-foreground font-medium',
             ]"
             :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"

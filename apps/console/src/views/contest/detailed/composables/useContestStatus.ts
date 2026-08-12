@@ -17,9 +17,9 @@ export function useContestStatus(
   const statusCardClass = computed(() => {
     const status = contest.value?.status;
     if (status === "RUNNING")
-      return "border-l-4 border-l-[var(--terminal-red)]";
+      return "border-l-4 border-l-[var(--status-error-mark)]";
     if (status === "UPCOMING")
-      return "border-l-4 border-l-[var(--terminal-green)]";
+      return "border-l-4 border-l-[var(--status-success-mark)]";
     return "border-l-4 border-l-muted-foreground";
   });
 
@@ -114,11 +114,11 @@ export function useContestStatus(
 
   function getDifficultyColor(difficulty: string): string {
     const colors: Record<string, string> = {
-      Easy: "text-[var(--terminal-green)]",
-      Medium: "text-[var(--terminal-amber)]",
-      Hard: "text-[var(--terminal-red)]",
+      Easy: "text-foreground-strong",
+      Medium: "text-foreground-strong",
+      Hard: "text-foreground-strong",
     };
-    return colors[difficulty] || "text-[var(--silver-dark)]";
+    return colors[difficulty] || "text-foreground-muted";
   }
 
   // Start timer when contest loads, clean up on unmount

@@ -63,7 +63,7 @@ export function useProblemColumns(
   return [
     ...createSelectionColumn<Problem>(t, {
       checkboxClass:
-        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       accessorKey: 'id',
@@ -119,7 +119,7 @@ export function useProblemColumns(
         )
         return h('div', { class: 'flex items-center gap-2' }, [
           icon
-            ? h(icon, { class: 'h-4 w-4 text-emerald-500' })
+            ? h(icon, { class: 'h-4 w-4 text-foreground-strong' })
             : h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' }),
           h(Badge, { variant }, () => label),
         ])
@@ -154,14 +154,14 @@ export function useProblemColumns(
         const problem = row.original
         const isFlagged = row.getValue('isFlagged') as boolean
         if (!isFlagged) {
-          return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '\u2014')
+          return h('span', { class: 'font-data text-xs text-[var(--foreground-muted)] italic' }, '\u2014')
         }
         const flagStatus = problem.flagStatus || problem.flag_status || ('PENDING' as const)
         const statusColors: Record<string, string> = {
-          PENDING: 'text-[var(--terminal-red)]',
-          REVIEWED: 'text-[var(--terminal-amber)]',
-          RESOLVED: 'text-[var(--terminal-green)]',
-          DISMISSED: 'text-[var(--silver-500)]',
+          PENDING: 'text-foreground-strong',
+          REVIEWED: 'text-foreground-strong',
+          RESOLVED: 'text-foreground-strong',
+          DISMISSED: 'text-[var(--foreground-muted)]',
         }
         const colorClass = statusColors[flagStatus] ?? statusColors.PENDING
         const statusKey = `moderation.status${flagStatus.charAt(0).toUpperCase() + flagStatus.slice(1).toLowerCase()}`
@@ -181,7 +181,7 @@ export function useProblemColumns(
             }),
             h(
               'span',
-              { class: ['font-data text-2xs uppercase', colorClass].join(' ') },
+              { class: 'font-data text-2xs uppercase text-foreground-strong' },
               t(statusKey).slice(0, 3),
             ),
           ],
@@ -257,14 +257,14 @@ export function useProblemColumns(
                 label: t('problems.actions.viewFlagInfo'),
                 onSelect: () => actions.viewFlagInfo(problem),
                 icon: IconAlertTriangle,
-                iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+                iconClass: 'h-4 w-4 text-foreground-strong',
                 hidden: !problem.isFlagged,
               },
               {
                 label: t('audit.problemDrawer.button'),
                 onSelect: () => actions.openAuditDrawer(problem),
                 icon: IconInfoCircle,
-                iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+                iconClass: 'h-4 w-4 text-foreground-strong',
               },
             ],
           },
@@ -274,14 +274,14 @@ export function useProblemColumns(
                 label: t('moderation.unflag'),
                 onSelect: () => actions.unflagProblem(problem.id),
                 icon: IconFlagOff,
-                iconClass: 'h-4 w-4 text-emerald-600',
+                iconClass: 'h-4 w-4 text-foreground-strong',
                 hidden: !canUpdateProblem.value,
               }
             : {
                 label: t('moderation.flag'),
                 onSelect: () => actions.openFlagDialog(problem),
                 icon: IconFlag,
-                iconClass: 'h-4 w-4 text-amber-600',
+                iconClass: 'h-4 w-4 text-foreground-strong',
                 hidden: !canUpdateProblem.value,
               },
           { kind: 'separator' },
@@ -290,14 +290,14 @@ export function useProblemColumns(
                 label: t('problems.actions.unpublish'),
                 onSelect: () => actions.unpublishProblem(problem.id),
                 icon: IconEyeOff,
-                labelClass: 'text-amber-600',
+                labelClass: 'text-foreground-strong',
                 hidden: !canUpdateProblem.value,
               }
             : {
                 label: t('problems.actions.publish'),
                 onSelect: () => actions.publishProblem(problem.id),
                 icon: IconEye,
-                labelClass: 'text-emerald-600',
+                labelClass: 'text-foreground-strong',
                 hidden: !canUpdateProblem.value,
               },
           {

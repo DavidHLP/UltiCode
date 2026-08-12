@@ -31,7 +31,7 @@ export function renderInlineContent(text: string): (string | VNode)[] {
           'span',
           {
             class:
-              'font-data text-xs px-1.5 py-0.5 border bg-[color-mix(in_oklch,var(--accent-electric)_12%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_25%,transparent)] rounded-none inline-flex items-center gap-0.5 align-baseline font-bold mr-1 select-all',
+              'font-data text-xs px-1.5 py-0.5 border bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-[var(--primary)] border-[color-mix(in_oklch,var(--primary)_25%,transparent)] rounded-none inline-flex items-center gap-0.5 align-baseline font-bold mr-1 select-all',
           },
           `@${username}`,
         )
@@ -44,7 +44,7 @@ export function renderInlineContent(text: string): (string | VNode)[] {
           'span',
           {
             class:
-              'font-data text-xs px-1.5 py-0.5 border bg-[color-mix(in_oklch,var(--accent-electric)_12%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_25%,transparent)] rounded-none inline-flex items-center gap-0.5 align-baseline mr-1 select-all',
+              'font-data text-xs px-1.5 py-0.5 border bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-[var(--primary)] border-[color-mix(in_oklch,var(--primary)_25%,transparent)] rounded-none inline-flex items-center gap-0.5 align-baseline mr-1 select-all',
           },
           `@${username}`,
         )
@@ -63,7 +63,7 @@ export function renderInlineContent(text: string): (string | VNode)[] {
           'code',
           {
             class:
-              'font-data text-xs px-1 py-0.5 bg-[color-mix(in_oklch,_var(--terminal-cyan)_7%,_var(--surface-sunken))] dark:bg-[color-mix(in_oklch,_var(--terminal-cyan)_10%,_var(--surface-sunken))] border border-[color-mix(in_oklch,_var(--terminal-cyan)_24%,_var(--silver-200))] dark:border-[var(--silver-300)] text-[var(--terminal-cyan)] rounded-none mx-0.5 font-bold',
+              'font-data text-xs px-1 py-0.5 bg-[color-mix(in_oklch,_var(--status-info-mark)_7%,_var(--surface-sunken))] dark:bg-[color-mix(in_oklch,_var(--status-info-mark)_10%,_var(--surface-sunken))] border border-[color-mix(in_oklch,_var(--status-info-mark)_24%,_var(--border-subtle))] dark:border-[var(--border-subtle)] text-foreground-strong rounded-none mx-0.5 font-bold',
           },
           codeText,
         )

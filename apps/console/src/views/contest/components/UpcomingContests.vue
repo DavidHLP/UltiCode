@@ -101,8 +101,8 @@ onUnmounted(() => {
         class="group relative cursor-pointer overflow-hidden rounded-none border border-border bg-card text-foreground transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 shadow-[3px_3px_0px_0px_var(--border)] hover:shadow-[4px_4px_0px_0px_var(--border)]"
         :class="
           index === 0
-            ? 'border-l-4 border-l-[var(--terminal-cyan)]'
-            : 'border-l-4 border-l-[var(--terminal-green)]'
+            ? 'border-l-4 border-l-[var(--status-info-mark)]'
+            : 'border-l-4 border-l-[var(--status-success-mark)]'
         "
         @click="
           router.push({
@@ -132,7 +132,7 @@ onUnmounted(() => {
                 </h3>
               </div>
               <div class="p-2 bg-muted/50 border border-border shrink-0">
-                <Trophy class="w-8 h-8 text-[var(--terminal-amber)]" />
+                <Trophy class="w-8 h-8 text-[var(--status-warning-mark)]" />
               </div>
             </div>
 
@@ -161,7 +161,7 @@ onUnmounted(() => {
                 class="text-xs font-mono text-muted-foreground flex items-center gap-1.5"
               >
                 <span
-                  class="h-2 w-2 bg-[var(--terminal-cyan)] animate-pulse inline-block"
+                  class="h-2 w-2 bg-[var(--status-info-mark)] animate-pulse inline-block"
                 ></span>
                 <span>{{ t("contest.list.startsIn") }}</span>
                 <span

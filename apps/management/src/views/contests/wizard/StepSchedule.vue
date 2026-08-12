@@ -38,7 +38,7 @@ function updateIsPublished(value: boolean): void {
         type="datetime-local"
         :model-value="slice.startTimeLocal"
         @update:model-value="updateStartTime($event)"
-        class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
       />
       <span class="terminal-comment text-xs">{{
         t('contests.scheduleStep.startTimeDescription')
@@ -53,7 +53,7 @@ function updateIsPublished(value: boolean): void {
         min="1"
         :model-value="slice.duration"
         @update:model-value="updateDuration($event)"
-        class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
       />
       <span class="terminal-comment text-xs">{{
         t('contests.scheduleStep.durationDescription')
@@ -62,14 +62,14 @@ function updateIsPublished(value: boolean): void {
 
     <!-- Publish Toggle - Terminal Style -->
     <div
-      class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4 bg-[var(--surface-sunken)]"
+      class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4 bg-[var(--surface-sunken)]"
     >
       <div class="flex items-center gap-4">
         <Switch
           id="is_published"
           :checked="slice.isPublished"
           @update:checked="updateIsPublished($event)"
-          class="data-[state=checked]:bg-[var(--terminal-green)]"
+          class="data-[state=checked]:bg-[var(--status-success-mark)]"
         />
         <div class="space-y-1">
           <Label for="isPublished" class="font-data text-xs uppercase tracking-wider">

@@ -70,7 +70,7 @@ function navigateToDetail() {
       <Button
         variant="terminal"
         size="sm"
-        class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+        class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
         @click="navigateToDetail"
       >
         <IconExternalLink class="h-4 w-4 mr-1.5" />
@@ -81,11 +81,11 @@ function navigateToDetail() {
     <template #content="{ entity }">
       <!-- Contest Header - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <!-- Header Bar -->
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">contest_profile</span>
         </div>
@@ -94,7 +94,7 @@ function navigateToDetail() {
           <div class="flex items-start gap-4">
             <!-- Icon -->
             <div
-              class="h-16 w-16 border flex items-center justify-center bg-[var(--silver-100)] dark:bg-[var(--silver-800)] border-[var(--silver-200)] dark:border-[var(--silver-600)] text-[var(--accent-electric)]"
+              class="h-16 w-16 border flex items-center justify-center bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] text-[var(--primary)]"
             >
               <IconTrophy class="h-8 w-8" />
             </div>
@@ -103,7 +103,7 @@ function navigateToDetail() {
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-medium text-lg truncate">{{ entity.title }}</span>
               </div>
-              <div class="font-data text-xs text-[var(--silver-400)] mb-2">
+              <div class="font-data text-xs text-[var(--foreground-muted)] mb-2">
                 {{ entity.slug }}
               </div>
               <div class="flex flex-wrap gap-2">
@@ -139,10 +139,10 @@ function navigateToDetail() {
 
       <!-- Statistics - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">statistics</span>
         </div>
@@ -150,9 +150,9 @@ function navigateToDetail() {
         <div class="p-4">
           <div class="grid grid-cols-2 gap-3">
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
             >
-              <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
+              <IconTrophy class="h-5 w-5 text-[var(--status-warning-mark)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
                   {{ entity.problemCount || 0 }}
@@ -161,9 +161,9 @@ function navigateToDetail() {
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
             >
-              <IconUsers class="h-5 w-5 text-[var(--terminal-cyan)]" />
+              <IconUsers class="h-5 w-5 text-[var(--status-info-mark)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
                   {{ entity.participantCount || 0 }}
@@ -177,10 +177,10 @@ function navigateToDetail() {
 
       <!-- Schedule Info - Terminal Style -->
       <div
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">schedule</span>
         </div>
@@ -189,7 +189,7 @@ function navigateToDetail() {
           <div class="grid grid-cols-2 gap-4">
             <DataBlock :label="t('contests.drawer.start')">
               <div class="flex items-center gap-2">
-                <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
+                <IconCalendar class="h-4 w-4 text-[var(--foreground-muted)]" />
                 <span class="font-data text-sm tabular-nums">
                   {{ formatDateTimeByLocale(entity.startTime) }}
                 </span>
@@ -197,7 +197,7 @@ function navigateToDetail() {
             </DataBlock>
             <DataBlock :label="t('contests.drawer.duration')">
               <div class="flex items-center gap-2">
-                <IconClock class="h-4 w-4 text-[var(--silver-400)]" />
+                <IconClock class="h-4 w-4 text-[var(--foreground-muted)]" />
                 <span class="font-data text-sm tabular-nums">
                   {{ entity.duration }} {{ t('common.minutes') }}
                 </span>
@@ -210,16 +210,16 @@ function navigateToDetail() {
       <!-- Description - Terminal Style -->
       <div
         v-if="entity.description"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
           <span class="terminal-comment">description</span>
         </div>
 
         <div class="p-4">
-          <p class="text-sm text-[var(--silver-400)] whitespace-pre-wrap font-data">
+          <p class="text-sm text-[var(--foreground-muted)] whitespace-pre-wrap font-data">
             {{ entity.description }}
           </p>
         </div>

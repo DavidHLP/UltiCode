@@ -194,8 +194,8 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         class="h-7 rounded-none px-3 text-xs font-semibold cursor-pointer transition-all"
         :class="[
           testCase.id === activeId
-            ? 'bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-border text-[var(--accent-electric)] shadow-none font-bold'
-            : 'bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-[var(--silver-100)]/30',
+            ? 'bg-surface dark:bg-surface-highlight border border-border text-[var(--primary)] shadow-none font-bold'
+            : 'bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-[var(--surface-highlight)]/30',
         ]"
         role="tab"
         :aria-selected="testCase.id === activeId"
@@ -240,13 +240,13 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         <template v-if="inputFields.length">
           <div v-for="field in inputFields" :key="field.id" class="space-y-1.5">
             <div
-              class="font-data text-xxs font-bold uppercase tracking-wider text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+              class="font-data text-xxs font-bold uppercase tracking-wider text-foreground dark:text-foreground-strong"
             >
               {{ field.label }} =
             </div>
             <Input
               v-model="field.value"
-              class="font-mono text-xs bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base03)] border border-border focus-visible:border-[var(--accent-electric)] focus-visible:ring-1 focus-visible:ring-[var(--accent-electric)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none rounded-none text-foreground font-bold p-2.5 h-8.5 transition-all"
+              class="font-mono text-xs bg-surface dark:bg-background border border-border focus-visible:border-[var(--primary)] focus-visible:ring-1 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none rounded-none text-foreground font-bold p-2.5 h-8.5 transition-all"
             />
           </div>
         </template>

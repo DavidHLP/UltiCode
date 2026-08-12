@@ -77,7 +77,7 @@ const { t } = useI18n();
             <div class="space-y-1.5 flex-1 min-w-0">
               <Badge
                 variant="secondary"
-                class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 rounded-none"
+                class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20 rounded-none"
               >
                 {{ t("personal.problemLists.listCard.saved") }}
               </Badge>

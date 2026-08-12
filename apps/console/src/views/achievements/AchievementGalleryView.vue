@@ -97,21 +97,21 @@ function handleUnlockClose() {
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
       <div class="rounded-none border bg-card p-4 text-center">
-        <Trophy class="mx-auto h-8 w-8 text-[var(--terminal-amber)]" />
+        <Trophy class="mx-auto h-8 w-8 text-[var(--status-warning-mark)]" />
         <p class="mt-2 text-2xl font-bold">{{ stats.earned }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.earned") }}
         </p>
       </div>
       <div class="rounded-none border bg-card p-4 text-center">
-        <Target class="mx-auto h-8 w-8 text-[var(--accent-electric)]" />
+        <Target class="mx-auto h-8 w-8 text-[var(--primary)]" />
         <p class="mt-2 text-2xl font-bold">{{ stats.total }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.total") }}
         </p>
       </div>
       <div class="rounded-none border bg-card p-4 text-center">
-        <Star class="mx-auto h-8 w-8 text-[var(--terminal-purple)]" />
+        <Star class="mx-auto h-8 w-8 text-[var(--status-special-mark)]" />
         <p class="mt-2 text-2xl font-bold">{{ stats.points }}</p>
         <p class="text-sm text-muted-foreground">
           {{ t("achievement.points") }}
@@ -140,7 +140,7 @@ function handleUnlockClose() {
               :stroke-dashoffset="
                 2 * Math.PI * 16 * (1 - stats.percentage / 100)
               "
-              class="text-[var(--terminal-green)] transition-all duration-500"
+              class="text-foreground-strong transition-all duration-500"
             />
           </svg>
           <span

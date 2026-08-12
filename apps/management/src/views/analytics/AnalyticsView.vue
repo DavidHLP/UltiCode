@@ -69,22 +69,22 @@ const metricGroups = computed(() => {
   const getTrendStyle = (trend?: string): Record<string, string> => {
     if (trend === 'up') {
       return {
-        color: 'var(--status-success)',
-        borderColor: 'color-mix(in srgb, var(--status-success) 25%, transparent)',
-        backgroundColor: 'color-mix(in srgb, var(--status-success) 6%, transparent)',
+        color: 'var(--status-success-mark)',
+        borderColor: 'color-mix(in srgb, var(--status-success-mark) 25%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--status-success-mark) 6%, transparent)',
       }
     }
     if (trend === 'down') {
       return {
-        color: 'var(--status-error)',
-        borderColor: 'color-mix(in srgb, var(--status-error) 25%, transparent)',
-        backgroundColor: 'color-mix(in srgb, var(--status-error) 6%, transparent)',
+        color: 'var(--status-error-mark)',
+        borderColor: 'color-mix(in srgb, var(--status-error-mark) 25%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--status-error-mark) 6%, transparent)',
       }
     }
     return {
-      color: 'var(--silver-400)',
-      borderColor: 'color-mix(in srgb, var(--silver-300) 25%, transparent)',
-      backgroundColor: 'color-mix(in srgb, var(--silver-100) 6%, transparent)',
+      color: 'var(--foreground-muted)',
+      borderColor: 'color-mix(in srgb, var(--border-subtle) 25%, transparent)',
+      backgroundColor: 'color-mix(in srgb, var(--surface-highlight) 6%, transparent)',
     }
   }
 
@@ -247,9 +247,9 @@ const topUsers = computed(() => {
 const difficultyBarItems = computed(() => {
   if (!problemCompletionReport.value) return []
   const difficultyColors: Record<string, string> = {
-    EASY: 'var(--status-success)',
-    MEDIUM: 'var(--status-warning)',
-    HARD: 'var(--status-error)',
+    EASY: 'var(--status-success-mark)',
+    MEDIUM: 'var(--status-warning-mark)',
+    HARD: 'var(--status-error-mark)',
   }
   return problemCompletionReport.value.byDifficulty.map((item) => ({
     id: item.difficulty,
@@ -266,7 +266,7 @@ const hardestBarItems = computed(() => {
     id: problem.problemId,
     label: problem.title,
     value: problem.completionRate,
-    color: 'var(--status-error)',
+    color: 'var(--status-error-mark)',
     subtitle: problem.difficulty,
   }))
 })
@@ -316,13 +316,13 @@ const endpointBarItems = computed(() => {
   <div class="flex flex-col gap-5 px-4 py-5 lg:px-6 min-h-full bg-background">
     <!-- Precision Header -->
     <header
-      class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/60"
+      class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60"
     >
       <div class="space-y-1">
         <h1 class="text-xl font-bold tracking-tight text-foreground font-mono uppercase">
           {{ t('analytics.title') }}
         </h1>
-        <p class="text-xs text-[var(--silver-500)]">
+        <p class="text-xs text-[var(--foreground-muted)]">
           {{ t('analytics.description') }}
         </p>
       </div>
@@ -333,17 +333,17 @@ const endpointBarItems = computed(() => {
       >
         <!-- Monospace Status/Date Display -->
         <div
-          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-xxs font-mono text-[var(--silver-500)] rounded-none sm:w-36"
+          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 text-xxs font-mono text-[var(--foreground-muted)] rounded-none sm:w-36"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success)] animate-pulse"></span>
-          <span class="text-[var(--silver-400)] font-data">{{ formattedDate }}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success-mark)] animate-pulse"></span>
+          <span class="text-[var(--foreground-muted)] font-data">{{ formattedDate }}</span>
           <span class="font-bold text-foreground font-data tabular-nums">{{ formattedTime }}</span>
         </div>
 
         <Select v-model="days">
           <SelectTrigger
             size="sm"
-            class="h-8 w-full text-xs rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card sm:w-36"
+            class="h-8 w-full text-xs rounded-none border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card sm:w-36"
           >
             <SelectValue />
           </SelectTrigger>
@@ -360,7 +360,7 @@ const endpointBarItems = computed(() => {
           size="sm"
           @click="loadReport"
           :disabled="loading"
-          class="h-8 w-full rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card sm:w-36"
+          class="h-8 w-full rounded-none border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-card sm:w-36"
         >
           <IconRefresh class="h-3.5 w-3.5 mr-1" :class="{ 'animate-spin': loading }" />
           {{ t('common.refresh') }}
@@ -372,9 +372,9 @@ const endpointBarItems = computed(() => {
     <div class="min-w-0 flex-1">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-16">
-        <div class="flex items-center gap-3 text-[var(--silver-400)] font-mono">
+        <div class="flex items-center gap-3 text-[var(--foreground-muted)] font-mono">
           <div
-            class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin"
+            class="h-4 w-4 border-2 border-[var(--border-subtle)] border-t-foreground rounded-full animate-spin"
           />
           <span>{{ t('common.loading') }}</span>
         </div>
@@ -383,7 +383,7 @@ const endpointBarItems = computed(() => {
       <!-- Permission Denied -->
       <div v-else-if="showRefreshSession" class="flex items-center justify-center py-16">
         <div class="text-center space-y-4">
-          <p class="text-[var(--silver-400)] font-mono">{{ t('analytics.permissionDenied') }}</p>
+          <p class="text-[var(--foreground-muted)] font-mono">{{ t('analytics.permissionDenied') }}</p>
           <Button
             variant="outline"
             size="sm"
@@ -522,7 +522,7 @@ const endpointBarItems = computed(() => {
       <!-- No Data State -->
       <div v-else-if="!loading" class="flex items-center justify-center py-16">
         <div class="text-center">
-          <p class="text-[var(--silver-400)] font-mono">{{ t('analytics.noData') }}</p>
+          <p class="text-[var(--foreground-muted)] font-mono">{{ t('analytics.noData') }}</p>
         </div>
       </div>
     </div>

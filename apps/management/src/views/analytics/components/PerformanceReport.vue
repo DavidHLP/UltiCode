@@ -67,10 +67,10 @@ const endpointBarItems = computed<BarListItem[]>(() =>
     </div>
 
     <div
-      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
+      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
     >
       <div
-        class="pb-4 px-5 pt-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+        class="pb-4 px-5 pt-5 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
       >
         <h3 class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
           {{ t('analytics.performance.resourceUsage') }}
@@ -79,7 +79,7 @@ const endpointBarItems = computed<BarListItem[]>(() =>
       <div class="p-5 flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--silver-500)]">{{
+            <span class="text-sm text-[var(--foreground-muted)]">{{
               t('analytics.performance.cpu')
             }}</span>
             <span class="font-data tabular-nums font-medium">{{
@@ -87,15 +87,15 @@ const endpointBarItems = computed<BarListItem[]>(() =>
             }}</span>
           </div>
           <div
-            class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+            class="h-2 bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] rounded-full overflow-hidden"
           >
             <div
               class="h-full rounded-full transition-all duration-500"
               :class="
                 report.resourceUsage.cpu > 80
-                  ? 'bg-[var(--status-error)]'
+                  ? 'bg-[var(--status-error-mark)]'
                   : report.resourceUsage.cpu > 60
-                    ? 'bg-[var(--status-warning)]'
+                    ? 'bg-[var(--status-warning-mark)]'
                     : 'bg-[var(--accent-primary)]'
               "
               :style="{ width: report.resourceUsage.cpu + '%' }"
@@ -105,7 +105,7 @@ const endpointBarItems = computed<BarListItem[]>(() =>
 
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--silver-500)]">{{
+            <span class="text-sm text-[var(--foreground-muted)]">{{
               t('analytics.performance.memory')
             }}</span>
             <span class="font-data tabular-nums font-medium">{{
@@ -113,16 +113,16 @@ const endpointBarItems = computed<BarListItem[]>(() =>
             }}</span>
           </div>
           <div
-            class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+            class="h-2 bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] rounded-full overflow-hidden"
           >
             <div
               class="h-full rounded-full transition-all duration-500"
               :class="
                 report.resourceUsage.memory > 80
-                  ? 'bg-[var(--status-error)]'
+                  ? 'bg-[var(--status-error-mark)]'
                   : report.resourceUsage.memory > 60
-                    ? 'bg-[var(--status-warning)]'
-                    : 'bg-[var(--status-success)]'
+                    ? 'bg-[var(--status-warning-mark)]'
+                    : 'bg-[var(--status-success-mark)]'
               "
               :style="{ width: report.resourceUsage.memory + '%' }"
             />
@@ -131,7 +131,7 @@ const endpointBarItems = computed<BarListItem[]>(() =>
 
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--silver-500)]">{{
+            <span class="text-sm text-[var(--foreground-muted)]">{{
               t('analytics.performance.disk')
             }}</span>
             <span class="font-data tabular-nums font-medium">{{
@@ -139,16 +139,16 @@ const endpointBarItems = computed<BarListItem[]>(() =>
             }}</span>
           </div>
           <div
-            class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+            class="h-2 bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] rounded-full overflow-hidden"
           >
             <div
               class="h-full rounded-full transition-all duration-500"
               :class="
                 report.resourceUsage.disk > 80
-                  ? 'bg-[var(--status-error)]'
+                  ? 'bg-[var(--status-error-mark)]'
                   : report.resourceUsage.disk > 60
-                    ? 'bg-[var(--status-warning)]'
-                    : 'bg-[var(--status-success)]'
+                    ? 'bg-[var(--status-warning-mark)]'
+                    : 'bg-[var(--status-success-mark)]'
               "
               :style="{ width: report.resourceUsage.disk + '%' }"
             />

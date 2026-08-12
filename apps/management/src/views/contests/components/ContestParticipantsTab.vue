@@ -23,19 +23,19 @@ defineProps<{
     </div>
 
     <!-- Table - Terminal Style -->
-    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+    <div class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
       <Table class="terminal-table">
         <TableHeader>
           <TableRow
-            class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
           >
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[60px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[60px]"
             >
               #
             </TableHead>
             <TableHead
-              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]"
             >
               {{ $t('contests.detail.user') }}
             </TableHead>
@@ -50,7 +50,7 @@ defineProps<{
           <TableRow v-else>
             <TableCell colspan="2" class="h-16 text-center">
               <div class="flex items-center justify-center gap-2">
-                <IconUsers class="h-4 w-4 text-[var(--silver-400)]" />
+                <IconUsers class="h-4 w-4 text-[var(--foreground-muted)]" />
                 <span class="font-data text-sm text-[var(--foreground)] tabular-nums">
                   {{ contest.participantCount }} {{ $t('contests.detail.participants') }}
                 </span>

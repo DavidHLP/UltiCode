@@ -62,7 +62,7 @@ const handleMouseUp = () => {
 
 <template>
   <div
-    class="absolute inset-0 z-50 flex items-center justify-center bg-black/5"
+    class="absolute inset-0 z-50 flex items-center justify-center bg-overlay/5"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
     @mouseup="handleMouseUp"
@@ -70,10 +70,10 @@ const handleMouseUp = () => {
     <!-- Visual Feedback Layers -->
     <div
       v-if="activeZone === 'top'"
-      class="absolute top-0 left-0 right-0 h-1/4 bg-[var(--accent-electric)]/20 border-b-2 border-[var(--accent-electric)] transition-all duration-150 pointer-events-none"
+      class="absolute top-0 left-0 right-0 h-1/4 bg-[var(--primary)]/20 border-b-2 border-[var(--primary)] transition-all duration-150 pointer-events-none"
     >
       <div
-        class="absolute inset-0 flex items-center justify-center text-[var(--accent-electric)] font-bold bg-white/50"
+        class="absolute inset-0 flex items-center justify-center text-[var(--primary)] font-bold bg-surface/50"
       >
         {{ t("problem.layout.splitTop") }}
       </div>
@@ -81,10 +81,10 @@ const handleMouseUp = () => {
 
     <div
       v-if="activeZone === 'bottom'"
-      class="absolute bottom-0 left-0 right-0 h-1/4 bg-[var(--accent-electric)]/20 border-t-2 border-[var(--accent-electric)] transition-all duration-150 pointer-events-none"
+      class="absolute bottom-0 left-0 right-0 h-1/4 bg-[var(--primary)]/20 border-t-2 border-[var(--primary)] transition-all duration-150 pointer-events-none"
     >
       <div
-        class="absolute inset-0 flex items-center justify-center text-[var(--accent-electric)] font-bold bg-white/50"
+        class="absolute inset-0 flex items-center justify-center text-[var(--primary)] font-bold bg-surface/50"
       >
         {{ t("problem.layout.splitBottom") }}
       </div>
@@ -92,10 +92,10 @@ const handleMouseUp = () => {
 
     <div
       v-if="activeZone === 'left'"
-      class="absolute top-0 left-0 bottom-0 w-1/4 bg-[var(--accent-electric)]/20 border-r-2 border-[var(--accent-electric)] transition-all duration-150 pointer-events-none"
+      class="absolute top-0 left-0 bottom-0 w-1/4 bg-[var(--primary)]/20 border-r-2 border-[var(--primary)] transition-all duration-150 pointer-events-none"
     >
       <div
-        class="absolute inset-0 flex items-center justify-center text-[var(--accent-electric)] font-bold bg-white/50 writing-mode-vertical"
+        class="absolute inset-0 flex items-center justify-center text-[var(--primary)] font-bold bg-surface/50 writing-mode-vertical"
       >
         {{ t("problem.layout.splitLeft") }}
       </div>
@@ -103,10 +103,10 @@ const handleMouseUp = () => {
 
     <div
       v-if="activeZone === 'right'"
-      class="absolute top-0 right-0 bottom-0 w-1/4 bg-[var(--accent-electric)]/20 border-l-2 border-[var(--accent-electric)] transition-all duration-150 pointer-events-none"
+      class="absolute top-0 right-0 bottom-0 w-1/4 bg-[var(--primary)]/20 border-l-2 border-[var(--primary)] transition-all duration-150 pointer-events-none"
     >
       <div
-        class="absolute inset-0 flex items-center justify-center text-[var(--accent-electric)] font-bold bg-white/50 writing-mode-vertical"
+        class="absolute inset-0 flex items-center justify-center text-[var(--primary)] font-bold bg-surface/50 writing-mode-vertical"
       >
         {{ t("problem.layout.splitRight") }}
       </div>
@@ -114,10 +114,10 @@ const handleMouseUp = () => {
 
     <div
       v-if="activeZone === 'center'"
-      class="absolute inset-4 bg-[var(--accent-electric)]/10 border-2 border-dashed border-[var(--accent-electric)] rounded-none transition-all duration-150 pointer-events-none"
+      class="absolute inset-4 bg-[var(--primary)]/10 border-2 border-dashed border-[var(--primary)] rounded-none transition-all duration-150 pointer-events-none"
     >
       <div
-        class="absolute inset-0 flex items-center justify-center text-[var(--accent-electric)] font-bold"
+        class="absolute inset-0 flex items-center justify-center text-[var(--primary)] font-bold"
       >
         {{ t("problem.layout.addToGroup") }}
       </div>

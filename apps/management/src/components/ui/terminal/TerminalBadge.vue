@@ -26,7 +26,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   error: 'terminal-badge-error',
   info: 'terminal-badge-info',
   default:
-    'bg-[var(--silver-100)] text-[var(--silver-700)] border border-[var(--silver-200)] dark:bg-[var(--silver-800)] dark:text-[var(--silver-300)] dark:border-[var(--silver-600)]',
+    'bg-[var(--surface-highlight)] text-[var(--foreground-strong)] border border-[var(--border-subtle)] dark:bg-[var(--foreground-strong)] dark:text-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
 }
 </script>
 
@@ -45,11 +45,11 @@ const variantClasses: Record<BadgeVariant, string> = {
       class="w-1.5 h-1.5"
       :class="
         cn(
-          variant === 'success' && 'bg-[var(--terminal-green)]',
-          variant === 'warning' && 'bg-[var(--terminal-amber)]',
-          variant === 'error' && 'bg-[var(--terminal-red)]',
-          variant === 'info' && 'bg-[var(--terminal-cyan)]',
-          variant === 'default' && 'bg-[var(--silver-500)]',
+          variant === 'success' && 'bg-[var(--status-success-mark)]',
+          variant === 'warning' && 'bg-[var(--status-warning-mark)]',
+          variant === 'error' && 'bg-[var(--status-error-mark)]',
+          variant === 'info' && 'bg-[var(--status-info-mark)]',
+          variant === 'default' && 'bg-[var(--foreground-muted)]',
         )
       "
     />

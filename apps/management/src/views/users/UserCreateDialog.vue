@@ -87,10 +87,10 @@ async function handleSubmit() {
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent
-      class="sm:max-w-[560px] border-[var(--silver-200)] dark:border-[var(--silver-700)] rounded-none p-0 gap-0"
+      class="sm:max-w-[560px] border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] rounded-none p-0 gap-0"
     >
       <!-- Terminal Header -->
-      <DialogHeader class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4">
+      <DialogHeader class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4">
         <div class="flex items-center gap-3">
           <DialogTitle class="text-lg font-medium tracking-tight">{{
             t('users.createUser')
@@ -106,9 +106,9 @@ async function handleSubmit() {
         <!-- Error Banner -->
         <div
           v-if="error"
-          class="mx-4 mt-4 p-3 border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] flex items-center gap-2"
+          class="mx-4 mt-4 p-3 border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] flex items-center gap-2"
         >
-          <span class="font-data text-xs text-[var(--terminal-red)]">> ERROR:</span>
+          <span class="font-data text-xs text-[var(--foreground-strong)]">> ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
 
@@ -203,13 +203,13 @@ async function handleSubmit() {
               <div class="space-y-1.5">
                 <label class="terminal-label block">{{ t('users.form.status') }}</label>
                 <div
-                  class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+                  class="flex items-center gap-3 h-9 px-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
                 >
                   <Checkbox
                     id="create-isActive"
                     v-model="form.isActive"
                     :disabled="loading"
-                    class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
+                    class="border-[var(--foreground-muted)] data-[state=checked]:bg-[var(--status-success-mark)] data-[state=checked]:border-[var(--status-success-mark)]"
                   />
                   <label for="create-isActive" class="font-data text-xs cursor-pointer">
                     {{
@@ -226,12 +226,12 @@ async function handleSubmit() {
 
         <!-- Footer -->
         <DialogFooter
-          class="border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4 gap-3"
+          class="border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4 gap-3"
         >
           <Button
             type="button"
             variant="terminal"
-            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-400)]"
+            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
             @click="emit('update:open', false)"
           >
             {{ t('common.cancel') }}
@@ -240,7 +240,7 @@ async function handleSubmit() {
             type="submit"
             variant="terminal"
             :disabled="loading"
-            class="font-data text-xs bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90"
+            class="font-data text-xs bg-[var(--primary)] hover:bg-[var(--primary)]/90"
           >
             <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconArrowRight v-else class="h-3.5 w-3.5 mr-1.5" />

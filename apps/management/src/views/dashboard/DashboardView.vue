@@ -154,20 +154,20 @@ onMounted(() => loadData())
   <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 bg-background">
     <!-- Precision Header -->
     <header
-      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
     >
       <div class="space-y-1">
         <h1 class="text-2xl font-medium tracking-tight text-foreground">
           {{ t('dashboard.title') }}
         </h1>
         <div class="flex items-center gap-3 text-sm">
-          <span class="text-[var(--silver-500)]">
+          <span class="text-[var(--foreground-muted)]">
             {{ t('dashboard.welcome') }},
             <span class="font-medium text-foreground">{{ authStore.userName }}</span>
           </span>
           <!-- Role badge with silver border -->
           <span
-            class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-500)] dark:text-[var(--silver-400)]"
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
           >
             {{
               authStore.userRole
@@ -181,7 +181,7 @@ onMounted(() => loadData())
       <!-- Time display with monospace font -->
       <div class="flex items-center gap-4 text-sm">
         <div class="flex items-center gap-2">
-          <span class="text-[var(--silver-400)]">{{ formattedDate }}</span>
+          <span class="text-[var(--foreground-muted)]">{{ formattedDate }}</span>
           <span class="text-lg font-data tabular-nums text-foreground">{{ formattedTime }}</span>
         </div>
       </div>
@@ -189,9 +189,9 @@ onMounted(() => loadData())
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="flex items-center gap-3 text-[var(--silver-400)]">
+      <div class="flex items-center gap-3 text-[var(--foreground-muted)]">
         <div
-          class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin"
+          class="h-4 w-4 border-2 border-[var(--border-subtle)] border-t-foreground rounded-full animate-spin"
         ></div>
         <span>{{ t('dashboard.loading') }}</span>
       </div>

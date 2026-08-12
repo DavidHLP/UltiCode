@@ -109,21 +109,21 @@ watch(currentUserAvatarUrl, () => {
 const userEntryTriggerClass = [
   "relative h-10 w-10 p-0 rounded-full overflow-hidden",
   "border border-border/40 bg-transparent shadow-sm",
-  "ring-0 ring-[var(--accent-electric)]/0",
-  "hover:border-[var(--accent-electric)]/60 hover:shadow-md hover:ring-2 hover:ring-[var(--accent-electric)]/30",
-  "data-[state=open]:border-[var(--accent-electric)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--accent-electric)]/40",
-  "focus-visible:ring-2 focus-visible:ring-[var(--accent-electric)]/50",
+  "ring-0 ring-[var(--primary)]/0",
+  "hover:border-[var(--primary)]/60 hover:shadow-md hover:ring-2 hover:ring-[var(--primary)]/30",
+  "data-[state=open]:border-[var(--primary)] data-[state=open]:ring-2 data-[state=open]:ring-[var(--primary)]/40",
+  "focus-visible:ring-2 focus-visible:ring-[var(--primary)]/50",
   "transition-all duration-200",
   "flex items-center justify-center cursor-pointer select-none",
 ].join(" ");
 
 const userEntryFallbackClass = [
   "rounded-full",
-  "bg-[var(--accent-electric)] text-white",
+  "bg-[var(--primary)] text-primary-foreground",
   "text-sm font-semibold tracking-wide",
   // Subtle inner shadow gives the solid-color fallback a touch of depth
   // when the user has no avatar URL.
-  "shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)]",
+  "shadow-[inset_0_-1px_0_color-mix(in_srgb,var(--shadow-color)_8%,transparent)]",
 ].join(" ");
 </script>
 
@@ -140,7 +140,7 @@ const userEntryFallbackClass = [
       <Separator
         v-if="problem"
         orientation="vertical"
-        class="h-5 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+        class="h-5 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
       />
 
       <!-- Group 2: View Settings (Layout Switching) -->
@@ -149,7 +149,7 @@ const userEntryFallbackClass = [
           <DropdownMenuTrigger as-child>
             <Button
               :aria-label="t('problem.explorer.filters')"
-              class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground data-[state=open]:bg-[var(--silver-100)] dark:data-[state=open]:bg-[var(--silver-200)] data-[state=open]:text-[var(--solarized-base03)] dark:data-[state=open]:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
+              class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] text-foreground dark:text-foreground-muted hover:text-foreground-strong dark:hover:text-foreground data-[state=open]:bg-[var(--surface-highlight)] dark:data-[state=open]:bg-[var(--border-subtle)] data-[state=open]:text-foreground-strong dark:data-[state=open]:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
             >
               <Layout class="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -175,7 +175,7 @@ const userEntryFallbackClass = [
                     v-for="option in layoutOptions"
                     :key="option.id"
                     :value="option.value"
-                    class="relative flex flex-col items-center gap-2 p-2 rounded-none border-2 transition-all duration-200 cursor-pointer data-[state=checked]:border-[var(--accent-electric)] data-[state=unchecked]:border-border hover:border-muted-foreground hover:bg-muted"
+                    class="relative flex flex-col items-center gap-2 p-2 rounded-none border-2 transition-all duration-200 cursor-pointer data-[state=checked]:border-[var(--primary)] data-[state=unchecked]:border-border hover:border-muted-foreground hover:bg-muted"
                   >
                     <!-- Layout preview container -->
                     <div
@@ -184,7 +184,7 @@ const userEntryFallbackClass = [
                       <!-- Selected indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute inset-0 border-2 border-[var(--accent-electric)] rounded-none"
+                        class="absolute inset-0 border-2 border-[var(--primary)] rounded-none"
                       />
 
                       <!-- Layout preview visualization -->
@@ -254,9 +254,9 @@ const userEntryFallbackClass = [
                       <!-- Check mark indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-[var(--accent-electric)] rounded-none flex items-center justify-center shadow-[var(--shadow-float)]"
+                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-primary rounded-none flex items-center justify-center shadow-[var(--shadow-float)]"
                       >
-                        <Check class="w-3 h-3 text-white" />
+                        <Check class="w-3 h-3 text-primary-foreground" />
                       </div>
                     </div>
 
@@ -275,7 +275,7 @@ const userEntryFallbackClass = [
       <!-- Divider -->
       <Separator
         orientation="vertical"
-        class="h-5 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+        class="h-5 w-px bg-[var(--border-subtle)] dark:bg-[var(--border-subtle)] flex-none"
       />
 
       <!-- Group 3: User Entry -->
@@ -284,7 +284,7 @@ const userEntryFallbackClass = [
         <RouterLink v-if="!isAuthenticated" to="/login" class="flex-none">
           <Button
             :aria-label="t('auth.login.submit')"
-            class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
+            class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] text-foreground dark:text-foreground-muted hover:text-foreground-strong dark:hover:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
           >
             <LogIn class="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -326,7 +326,7 @@ const userEntryFallbackClass = [
             <DropdownMenuGroup>
               <RouterLink to="/personal">
                 <DropdownMenuItem
-                  class="cursor-pointer rounded-none focus:bg-[var(--accent-electric)]/10 focus:text-foreground"
+                  class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
                 >
                   <User class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.profile.title") }}</span>
@@ -334,7 +334,7 @@ const userEntryFallbackClass = [
               </RouterLink>
               <RouterLink to="/personal/solutions">
                 <DropdownMenuItem
-                  class="cursor-pointer rounded-none focus:bg-[var(--accent-electric)]/10 focus:text-foreground"
+                  class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
                 >
                   <FileCode class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.solutions.title") }}</span>
@@ -342,7 +342,7 @@ const userEntryFallbackClass = [
               </RouterLink>
               <RouterLink to="/personal/submissions">
                 <DropdownMenuItem
-                  class="cursor-pointer rounded-none focus:bg-[var(--accent-electric)]/10 focus:text-foreground"
+                  class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
                 >
                   <History class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.submissions.title") }}</span>
@@ -352,7 +352,7 @@ const userEntryFallbackClass = [
             <DropdownMenuSeparator />
             <RouterLink to="/personal/account">
               <DropdownMenuItem
-                class="cursor-pointer rounded-none focus:bg-[var(--accent-electric)]/10 focus:text-foreground"
+                class="cursor-pointer rounded-none focus:bg-[var(--primary)]/10 focus:text-foreground"
               >
                 <Settings class="mr-2 h-4 w-4" aria-hidden="true" />
                 <span>{{ t("personal.account.title") }}</span>
@@ -360,7 +360,7 @@ const userEntryFallbackClass = [
             </RouterLink>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              class="text-[var(--terminal-red)] cursor-pointer rounded-none focus:bg-[var(--terminal-red)]/10 focus:text-[var(--terminal-red)]"
+              class="text-foreground-strong cursor-pointer rounded-none focus:bg-[var(--status-error-mark)]/10 focus:text-foreground-strong"
             >
               <LogOut class="mr-2 h-4 w-4" aria-hidden="true" />
               <span>{{ t("problem.layout.logout") }}</span>

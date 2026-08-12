@@ -27,7 +27,7 @@ const props = withDefaults(
   {
     showValue: true,
     showPercentage: false,
-    color: 'color-mix(in oklch, var(--accent-primary) 35%, var(--silver-300))',
+    color: 'color-mix(in oklch, var(--accent-primary) 35%, var(--border-subtle))',
     limit: 10,
     compact: false,
   },
@@ -46,25 +46,25 @@ const displayItems = computed(() => {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden rounded-none"
+    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden rounded-none"
     :class="compact ? 'h-full gap-0 py-0' : 'h-full gap-0 py-0'"
   >
     <CardHeader
       v-if="title"
-      class="bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      class="bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
       :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'"
     >
       <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
         title
       }}</CardTitle>
-      <CardDescription v-if="description" class="text-xs text-[var(--silver-400)] mt-1">
+      <CardDescription v-if="description" class="text-xs text-[var(--foreground-muted)] mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
     <CardContent :class="compact ? 'p-4' : 'px-5 pb-5 pt-5'">
       <div
         v-if="displayItems.length === 0"
-        class="text-center py-8 text-[var(--silver-400)] text-sm"
+        class="text-center py-8 text-[var(--foreground-muted)] text-sm"
       >
         {{ $t('common.noData') }}
       </div>
@@ -72,11 +72,11 @@ const displayItems = computed(() => {
         <div
           v-for="(item, index) in displayItems"
           :key="item.id"
-          class="group flex items-center gap-3 py-1.5 transition-colors duration-150 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]/30 -mx-2 px-2 rounded-none"
+          class="group flex items-center gap-3 py-1.5 transition-colors duration-150 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]/30 -mx-2 px-2 rounded-none"
         >
           <!-- Rank number -->
           <span
-            class="shrink-0 w-5 text-right font-data text-xs tabular-nums text-[var(--silver-400)]"
+            class="shrink-0 w-5 text-right font-data text-xs tabular-nums text-[var(--foreground-muted)]"
           >
             {{ index + 1 }}
           </span>
@@ -96,7 +96,7 @@ const displayItems = computed(() => {
 
             <!-- Progress bar -->
             <div
-              class="relative h-1.5 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+              class="relative h-1.5 bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] rounded-full overflow-hidden"
             >
               <div
                 class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
@@ -108,7 +108,7 @@ const displayItems = computed(() => {
             </div>
 
             <!-- Subtitle if provided -->
-            <p v-if="item.subtitle" class="text-xs text-[var(--silver-400)] mt-1 truncate">
+            <p v-if="item.subtitle" class="text-xs text-[var(--foreground-muted)] mt-1 truncate">
               {{ item.subtitle }}
             </p>
           </div>

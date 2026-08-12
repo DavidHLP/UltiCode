@@ -77,11 +77,11 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
             :class="[
               theme === 'light'
                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50',
+                : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 hover:bg-[var(--surface-highlight)]/50',
             ]"
             @click="setTheme('light')"
           >
-            <Sun class="size-4 text-[var(--solarized-yellow)]" />
+            <Sun class="size-4 text-[var(--status-warning-mark)]" />
             <span>{{ t('settings.appearance.light') }}</span>
           </button>
 
@@ -91,11 +91,11 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
             :class="[
               theme === 'dark'
                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50',
+                : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 hover:bg-[var(--surface-highlight)]/50',
             ]"
             @click="setTheme('dark')"
           >
-            <Moon class="size-4 text-[var(--solarized-blue)]" />
+            <Moon class="size-4 text-[var(--primary)]" />
             <span>{{ t('settings.appearance.dark') }}</span>
           </button>
 
@@ -105,7 +105,7 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
             :class="[
               theme === 'system'
                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50',
+                : 'border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 hover:bg-[var(--surface-highlight)]/50',
             ]"
             @click="setTheme('system')"
           >
@@ -153,12 +153,12 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
     </Card>
 
     <Card
-      class="md:col-span-2 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20"
+      class="md:col-span-2 border-status-warning-mark bg-status-warning-surface"
     >
       <CardHeader>
         <div class="flex items-center gap-2">
-          <IconServer class="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          <CardTitle class="text-orange-700 dark:text-orange-300">{{
+          <IconServer class="h-5 w-5 text-status-warning-mark" />
+          <CardTitle class="text-foreground-strong">{{
             t('settings.systemStatus.title')
           }}</CardTitle>
         </div>
@@ -175,7 +175,7 @@ function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettin
           <Switch
             :checked="settings.maintenance_mode"
             @update:checked="updateField('maintenance_mode', $event)"
-            class="data-[state=checked]:bg-orange-600"
+            class="data-[state=checked]:bg-status-warning-mark"
           />
         </div>
 

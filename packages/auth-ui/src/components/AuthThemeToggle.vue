@@ -56,18 +56,17 @@ const labelFor = (mode: "light" | "dark" | "system"): string => {
   width: 2rem;
   height: 2rem;
   border: 1px solid var(--border);
-  border-radius: 0;
-  background: var(--card);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
   color: var(--foreground-muted);
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .auth-theme-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  box-shadow: 2px 2px 0px 0px var(--primary);
-  transform: translate(-1px, -1px);
+  border-color: var(--border-control);
+  color: var(--foreground-strong);
+  box-shadow: var(--shadow-float);
 }
 
 .auth-theme-toggle:active {
@@ -76,7 +75,7 @@ const labelFor = (mode: "light" | "dark" | "system"): string => {
 }
 
 .auth-theme-toggle:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 

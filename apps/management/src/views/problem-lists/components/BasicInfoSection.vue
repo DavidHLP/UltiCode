@@ -282,7 +282,7 @@ defineExpose({ saveStatus, form, saveChanges })
 .custom-terminal-input {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
   color: var(--editor-text-primary);
@@ -292,7 +292,7 @@ defineExpose({ saveStatus, form, saveChanges })
 }
 
 :deep(.custom-terminal-input) {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   font-family: var(--uc-font-code);
 }
 
@@ -318,7 +318,7 @@ defineExpose({ saveStatus, form, saveChanges })
   font-size: var(--uc-text-xxs);
   font-weight: var(--uc-font-weight-bold);
   text-transform: uppercase;
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   padding: 8px 16px;
   height: auto;
   display: inline-flex;

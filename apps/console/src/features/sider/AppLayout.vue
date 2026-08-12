@@ -32,6 +32,7 @@ onMounted(() => {
 type NavItem = {
   label: string;
   to?: RouteLocationRaw;
+  activePath: string;
   href?: string;
   comingSoon?: boolean;
 };
@@ -40,27 +41,25 @@ const navItems = computed<NavItem[]>(() => [
   {
     label: t("sidebar.problem.problemSet"),
     to: { name: "problemset" },
+    activePath: "/problemset",
   },
   {
     label: t("sidebar.forum.platform"),
     to: { name: "forum-home" },
+    activePath: "/forum",
   },
   {
     label: t("sidebar.contest.contestSection"),
     to: { name: "contest-list" },
+    activePath: "/contest",
   },
 ]);
 
 const isActiveNav = (item: NavItem) => {
-  if (!item.to) return false;
-  if (typeof item.to === "string") return route.path === item.to;
-  if (typeof item.to === "object") {
-    if ("name" in item.to && item.to.name) {
-      return route.name === item.to.name;
-    }
-    if ("path" in item.to && item.to.path) return route.path === item.to.path;
-  }
-  return false;
+  return (
+    route.path === item.activePath ||
+    route.path.startsWith(`${item.activePath}/`)
+  );
 };
 </script>
 
@@ -69,12 +68,16 @@ const isActiveNav = (item: NavItem) => {
     <AppSidebar />
     <SidebarInset>
       <header
-        class="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4"
+        class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-4 border-b border-border-subtle bg-surface-elevated px-4"
       >
-        <SidebarTrigger class="-ml-1" />
-        <Separator orientation="vertical" class="h-6" />
+        <SidebarTrigger
+          class="-ml-1 rounded-md text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <Separator orientation="vertical" class="h-6 bg-border-subtle" />
         <NavigationMenu class="hidden md:flex h-full">
-          <NavigationMenuList class="flex h-full items-stretch gap-1">
+          <NavigationMenuList
+            class="flex h-full items-stretch gap-1 rounded-md border border-border-subtle bg-surface-sunken p-1"
+          >
             <NavigationMenuItem
               v-for="item in navItems"
               :key="item.label"
@@ -89,10 +92,10 @@ const isActiveNav = (item: NavItem) => {
                 <RouterLink
                   :to="item.to"
                   :class="[
-                    'flex items-center justify-center gap-1 rounded-none px-4 text-sm font-medium transition-all duration-200 border-b-2 h-full',
+                    'terminal-tab flex items-center justify-center gap-1 rounded-md px-4 text-sm font-medium transition-all duration-200 border-b-2 h-full',
                     isActiveNav(item)
-                      ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5'
-                      : 'border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/4',
+                      ? 'border-primary text-foreground-strong bg-surface-highlight'
+                      : 'border-transparent text-foreground-muted hover:text-foreground-strong hover:bg-surface-highlight',
                   ]"
                 >
                   <span>{{ item.label }}</span>
@@ -107,7 +110,7 @@ const isActiveNav = (item: NavItem) => {
               <NavigationMenuLink
                 v-else
                 :href="item.href"
-                class="flex items-center justify-center gap-1 px-4 border-b-2 border-transparent text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/4 transition-all duration-200 h-full"
+                class="terminal-tab flex items-center justify-center gap-1 rounded-md px-4 border-b-2 border-transparent text-foreground-muted hover:text-foreground-strong hover:bg-surface-highlight transition-all duration-200 h-full"
                 target="_self"
               >
                 <span>{{ item.label }}</span>
@@ -122,7 +125,9 @@ const isActiveNav = (item: NavItem) => {
           </NavigationMenuList>
           <NavigationMenuIndicator />
         </NavigationMenu>
-        <div class="ml-auto flex items-center gap-3">
+        <div
+          class="ml-auto flex items-center gap-1 rounded-md border border-border-subtle bg-surface-sunken p-1"
+        >
           <SearchBar />
           <NotificationBadge />
         </div>

@@ -157,7 +157,7 @@ const COLOR_TO_TEXT_CLASS: Record<SemanticColor, string> = {
   error: 'text-foreground-strong',
   info: 'text-foreground-strong',
   purple: 'text-foreground-strong',
-  electric: 'text-[var(--primary)]',
+  electric: 'text-[var(--accent-primary)]',
   neutral: 'text-[var(--foreground-muted)]',
 }
 

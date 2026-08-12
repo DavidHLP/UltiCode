@@ -67,7 +67,7 @@ export const RATING_COLORS: Record<RatingTitle, string> = {
   NEWBIE: "var(--foreground-muted)",
   PUPIL: "var(--status-success-mark)",
   SPECIALIST: "var(--status-info-mark)",
-  EXPERT: "var(--primary)",
+  EXPERT: "var(--accent-primary)",
   CANDIDATE_MASTER: "var(--status-special-mark)",
   MASTER: "var(--status-warning-mark)",
   INTERNATIONAL_MASTER: "var(--status-warning-mark)",

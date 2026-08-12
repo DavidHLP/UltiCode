@@ -228,7 +228,7 @@ export interface UseLocaleDependencies<L extends string, C = unknown> {
   locale: { value: string }
   /** All locale codes the app supports. */
   supported: readonly L[]
-  /** Per-locale metadata for display (label, flag, nativeName, etc.). */
+  /** Per-locale metadata for display (label, nativeName, etc.). */
   configs: Record<L, C>
   /**
    * Optional side-effect after a locale change (e.g. management's

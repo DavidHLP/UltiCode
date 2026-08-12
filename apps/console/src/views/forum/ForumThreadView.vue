@@ -245,7 +245,7 @@ const handleMobileTOCClick = (id: string) => {
                       class="text-left text-xs py-1 px-1.5 transition-all duration-150 border-l-2 hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer select-none"
                       :class="[
                         activeHeadingId === h.id
-                          ? 'border-link-decoration text-[var(--primary)] font-bold bg-[var(--primary)]/5'
+                          ? 'border-primary text-[var(--primary)] font-bold bg-[var(--primary)]/5'
                           : 'border-transparent text-muted-foreground font-medium',
                       ]"
                       :style="{
@@ -413,7 +413,7 @@ const handleMobileTOCClick = (id: string) => {
             class="text-left text-xs font-mono py-1 px-2 transition-all duration-150 border-l-2 select-none hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer"
             :class="[
               activeHeadingId === h.id
-                ? 'border-link-decoration text-[var(--primary)] font-bold bg-[var(--primary)]/5'
+                ? 'border-primary text-[var(--primary)] font-bold bg-[var(--primary)]/5'
                 : 'border-transparent text-muted-foreground font-medium',
             ]"
             :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"

@@ -89,14 +89,14 @@
     font-family: var(--uc-font-code);
     font-size: var(--uc-type-code-size);
     padding: 0.1rem 0.35rem;
-    border-radius: 0;
+    border-radius: var(--radius-md);
     background-color: color-mix(in srgb, var(--muted) 80%, transparent);
   }
 
   .markdown-block pre,
   .prose pre {
     padding: 0.75rem 1rem;
-    border-radius: 0;
+    border-radius: var(--radius-md);
     background-color: color-mix(in srgb, var(--muted) 70%, transparent);
     overflow-x: auto;
   }
@@ -335,7 +335,8 @@
    ======================================== */
 
 :root {
-  --radius: 0;
+  /* Shared rounded geometry: controls use 6px, cards use 8px. */
+  --radius: 0.5rem;
 
   /* Font stacks (--font-sans, --font-mono) and the legacy Tailwind size
    * aliases (--text-xs .. --text-2xl) are owned by
@@ -376,8 +377,8 @@
   --card-foreground: var(--solarized-base01);
   --popover: var(--solarized-base3);
   --popover-foreground: var(--solarized-base01);
-  /* Primary remains the Solarized blue action identity; filled controls use a scoped monotone pair. */
-  --primary: var(--solarized-blue);
+  /* Solarized uses monotones for interface hierarchy; accents carry meaning. */
+  --primary: var(--solarized-base03);
   --primary-foreground: var(--solarized-base3);
   --primary-control: var(--solarized-base03);
   --primary-control-foreground: var(--solarized-base3);
@@ -395,7 +396,7 @@
   --border-subtle: var(--solarized-base1);
   --border-control: var(--solarized-base00);
   --input: var(--solarized-base00);
-  --ring: var(--solarized-blue);
+  --ring: var(--solarized-base00);
   --chart-1: var(--solarized-blue);
   --chart-2: var(--solarized-cyan);
   --chart-3: var(--solarized-green);
@@ -433,11 +434,11 @@
   --sidebar-accent: var(--solarized-base3);
   --sidebar-accent-foreground: var(--solarized-base01);
   --sidebar-border: var(--solarized-base1);
-  --sidebar-ring: var(--solarized-blue);
+  --sidebar-ring: var(--solarized-base00);
 
-  /* Solarized Blue Accent */
+  /* Explicit data accent; interaction glow follows the monotone focus ring. */
   --accent-primary: var(--solarized-blue);
-  --accent-glow: color-mix(in oklch, var(--solarized-blue) 15%, transparent);
+  --accent-glow: color-mix(in oklch, var(--ring) 15%, transparent);
 
   /* Status accents are invariant; tinted surfaces preserve readable text. */
   --status-success: var(--solarized-green);
@@ -540,8 +541,8 @@
   --card-foreground: var(--solarized-base1);
   --popover: var(--solarized-base02);
   --popover-foreground: var(--solarized-base1);
-  --primary: var(--solarized-blue);
-  --primary-foreground: var(--solarized-base3);
+  --primary: var(--solarized-base3);
+  --primary-foreground: var(--solarized-base03);
   --primary-control: var(--solarized-base3);
   --primary-control-foreground: var(--solarized-base03);
   --link-foreground: var(--solarized-base1);
@@ -558,7 +559,7 @@
   --border-subtle: var(--solarized-base01);
   --border-control: var(--solarized-base0);
   --input: var(--solarized-base0);
-  --ring: var(--solarized-blue);
+  --ring: var(--solarized-base0);
   --chart-1: var(--solarized-blue);
   --chart-2: var(--solarized-cyan);
   --chart-3: var(--solarized-green);
@@ -584,11 +585,11 @@
   --sidebar-accent: var(--solarized-base03);
   --sidebar-accent-foreground: var(--solarized-base1);
   --sidebar-border: var(--solarized-base01);
-  --sidebar-ring: var(--solarized-blue);
+  --sidebar-ring: var(--solarized-base0);
 
   /* Accent Colors - Dark Mode (same as light per Solarized spec) */
   --accent-primary: var(--solarized-blue);
-  --accent-glow: color-mix(in oklch, var(--solarized-blue) 20%, transparent);
+  --accent-glow: color-mix(in oklch, var(--ring) 20%, transparent);
 
   /* Status Colors - Dark Mode (same as light per Solarized spec) */
   --status-success: var(--solarized-green);
@@ -662,6 +663,15 @@
 }
 
 @layer base {
+  /* Focus indicators use the public monotone ring at full opacity. Many
+   * generated controls request `ring-ring/50`; retaining that alpha would
+   * turn an otherwise AA-safe Solarized boundary into a sub-3:1 indicator. */
+  :where(:focus-visible):not([aria-invalid="true"]) {
+    --tw-ring-color: var(--ring) !important;
+    --tw-outline-color: var(--ring) !important;
+    outline-color: var(--ring) !important;
+  }
+
   * {
     @apply border-border outline-ring/50;
     scrollbar-width: thin;
@@ -999,7 +1009,7 @@
   text-transform: uppercase;
   letter-spacing: var(--uc-tracking-label);
   padding: 2px 8px;
-  border-radius: 0;
+  border-radius: var(--radius-md);
 }
 
 .terminal-kv-key {
@@ -1021,7 +1031,7 @@
    ======================================== */
 
 .terminal-card {
-  border-radius: 0;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: var(--shadow-float);
@@ -1103,7 +1113,7 @@
 .terminal-input {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: var(--surface-sunken);
 }
@@ -1114,7 +1124,7 @@
 
 .terminal-input:focus {
   outline: none;
-  border-color: var(--accent-primary);
+  border-color: var(--ring);
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
@@ -1183,7 +1193,7 @@
 .terminal-badge-primary {
   background: var(--primary);
   color: var(--primary-foreground);
-  border: 1px solid var(--accent-primary);
+  border: 1px solid var(--primary);
 }
 
 .animate-pulse-subtle {
@@ -1380,7 +1390,7 @@
    ======================================== */
 .header-btn {
   height: 2rem !important; /* h-8 */
-  border-radius: 0 !important; /* rounded-none */
+  border-radius: var(--radius-md) !important;
   font-family: var(
     --uc-font-code
   ) !important; /* matches engineering style code/text stack */
@@ -1449,4 +1459,13 @@
   opacity: 0.35 !important;
   pointer-events: none !important;
   cursor: not-allowed !important;
+}
+
+/*
+ * Public geometry migration. Existing feature code uses rounded-none as the
+ * old square-corner default; keep that class name compatible with the shared
+ * rounded system so every consumer converges without local rewrites.
+ */
+.rounded-none {
+  border-radius: var(--radius-md) !important;
 }

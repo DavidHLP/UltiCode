@@ -122,7 +122,9 @@ onUnmounted(() => {
   <Dialog v-model:open="isOpen">
     <DialogContent class="max-w-2xl overflow-hidden p-0" hide-close>
       <!-- Search Input -->
-      <div class="flex items-center border-b px-4">
+      <div
+        class="flex items-center border-b border-border-subtle bg-surface-elevated px-4"
+      >
         <Search class="h-5 w-5 shrink-0 text-muted-foreground" />
         <Input
           ref="inputRef"
@@ -133,7 +135,7 @@ onUnmounted(() => {
           @input="handleInputChange"
         />
         <kbd
-          class="hidden rounded-none border border-border-control bg-[var(--surface-sunken)] px-2 py-0.5 text-xs text-muted-foreground font-data sm:inline-block"
+          class="hidden rounded-sm border border-border-control bg-surface-sunken px-2 py-0.5 font-data text-xs text-muted-foreground sm:inline-block"
         >
           ESC
         </kbd>
@@ -143,7 +145,11 @@ onUnmounted(() => {
       <div class="max-h-96 overflow-y-auto">
         <!-- Loading state -->
         <div v-if="loading" class="p-4">
-          <Skeleton v-for="i in 3" :key="i" class="mb-2 h-14 rounded-none" />
+          <Skeleton
+            v-for="i in 3"
+            :key="i"
+            class="mb-2 h-14 rounded-md bg-surface-highlight"
+          />
         </div>
 
         <!-- Results list -->
@@ -154,10 +160,10 @@ onUnmounted(() => {
             :to="result.url"
             :class="
               cn(
-                'flex items-center gap-3 px-4 py-3 transition-colors',
+                'flex items-center gap-3 rounded-md px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 selectedIndex === index
-                  ? 'bg-accent font-bold'
-                  : 'hover:bg-muted/50',
+                  ? 'bg-surface-highlight font-bold text-foreground-strong'
+                  : 'hover:bg-surface-highlight',
               )
             "
             @click="searchHook.close()"
@@ -201,12 +207,12 @@ onUnmounted(() => {
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
             <kbd
-              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
               >Cmd</kbd
             >
             +
             <kbd
-              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
               >K</kbd
             >
             {{ t("common.search.openSearchTip") }}
@@ -217,24 +223,24 @@ onUnmounted(() => {
       <!-- Footer -->
       <div
         v-if="results?.length > 0"
-        class="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground"
+        class="flex items-center justify-between border-t border-border-subtle px-4 py-2 text-xs text-muted-foreground"
       >
         <span>{{ t("common.search.resultsCount", { total }) }}</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
             <kbd
-              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
               >↑</kbd
             >
             <kbd
-              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
               >↓</kbd
             >
             {{ t("common.search.navigateTip") }}
           </span>
           <span class="flex items-center gap-1">
             <kbd
-              class="rounded-none border border-border-control bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              class="rounded-sm border border-border-control bg-surface-sunken px-1.5 py-0.5 font-data"
               >Enter</kbd
             >
             {{ t("common.search.selectTip") }}

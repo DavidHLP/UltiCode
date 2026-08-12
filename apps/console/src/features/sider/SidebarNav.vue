@@ -62,17 +62,6 @@ const isItemActive = (item: SidebarItem): boolean => {
   return route.path === item.url || route.path.startsWith(item.url + "/");
 };
 
-// Activation class for the collapsed-state rows (shadcn SidebarMenuButton +
-// tooltip), which cannot reuse the shared .uc-sidebar-item contract because of
-// the popover/tooltip structure. Extracted so the two collapsed branches below
-// never drift apart. Expanded-state rows use SharedSidebarMenuItem /
-// SharedSidebarMenuSubItem (data-active contract) instead.
-function itemRowClass(active: boolean): string {
-  return active
-    ? "border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--primary)] font-bold"
-    : "border-transparent text-foreground dark:text-[var(--foreground-muted)] hover:bg-[var(--border-subtle)]/40 hover:text-foreground";
-}
-
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
   const active = isItemActive(item);
@@ -159,10 +148,10 @@ const getItemIconColorClass = (item: SidebarItem) => {
           <SidebarMenu v-else>
             <SidebarMenuItem v-for="item in section.items" :key="item.title">
               <SidebarMenuButton
-                :tooltip="t(item.title)"
-                :is-active="isItemActive(item)"
-                as-child
-                :class="['group rounded-md mx-1 h-9 transition-all duration-200 border-l-4', itemRowClass(isItemActive(item))]"
+              :tooltip="t(item.title)"
+              :is-active="isItemActive(item)"
+              as-child
+              class="uc-sidebar-item group"
               >
                 <router-link :to="item.url || '#'">
                   <component
@@ -234,6 +223,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
               v-else
               :is-active="isItemActive(item)"
               :to="item.url || '#'"
+              class="text-sm font-medium"
             >
               <component
                 :is="item.icon"
@@ -260,12 +250,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
               :tooltip="t(item.title)"
               :is-active="isItemActive(item)"
               as-child
-              :class="[
-                'group rounded-md mx-1 h-9 transition-all duration-200 border-l-4',
-                isItemActive(item)
-                  ? 'border-[var(--primary)] bg-[var(--primary)]/8 text-[var(--primary)] font-bold'
-                  : 'border-transparent text-foreground dark:text-[var(--foreground-muted)] hover:bg-[var(--border-subtle)]/40 hover:text-foreground',
-              ]"
+              class="uc-sidebar-item group"
             >
               <router-link :to="item.url || '#'">
                 <component

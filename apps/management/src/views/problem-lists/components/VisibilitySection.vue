@@ -178,9 +178,9 @@ const saveStatusText = {
 </template>
 
 <style scoped>
-/* Enforce completely straight edges for switch toggle */
+/* Keep switch geometry aligned with the public rounded contract. */
 :deep(.custom-switch) {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   width: 38px !important;
   height: 20px !important;
   border: 1px solid var(--editor-control-border);
@@ -191,11 +191,11 @@ const saveStatusText = {
 }
 
 :deep(.custom-switch [data-state]) {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
 }
 
 :deep(.custom-switch span) {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   width: 16px !important;
   height: 16px !important;
   background-color: var(--editor-text-muted) !important;

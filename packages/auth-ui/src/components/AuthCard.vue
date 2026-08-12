@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * AuthCard - Terminal Precision style card container
+ * AuthCard - Shared design-system card container
  */
 import type { HTMLAttributes } from "vue";
 import { cn } from "./cn";
@@ -36,8 +36,8 @@ defineOptions({
   width: 100%;
   max-width: 25rem;
   border: 1px solid var(--border);
-  border-radius: 0;
-  background: var(--card);
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
   box-shadow: var(--shadow-float);
   overflow: hidden;
   animation: card-fade-in 0.4s ease-out;
@@ -53,7 +53,7 @@ defineOptions({
 
 .auth-card:hover,
 .auth-card:focus-within {
-  border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+  border-color: var(--border-control);
   box-shadow: var(--shadow-float-hover);
 }
 

@@ -61,7 +61,7 @@ function moveDown(index: number) {
         v-model="field.value"
         placeholder="Enter a hint to guide users toward the solution..."
         rows="2"
-        class="flex-1 font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] focus-visible:border-[var(--accent-primary)] focus-visible:ring-offset-0 min-h-[50px] resize-y rounded-none shadow-none"
+        class="flex-1 font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[50px] resize-y rounded-none shadow-none"
       />
       <div class="flex flex-col gap-1 shrink-0">
         <Button

@@ -95,7 +95,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
 
       <template #cell-difficulty="{ item: problem }">
         <span
-          class="font-sans text-xs font-semibold px-2 py-0.5 rounded-none inline-block tracking-wide"
+          class="font-sans text-xs font-semibold px-2 py-0.5 rounded-md inline-block tracking-wide"
           :class="
             getDifficultyBadgeClass((problem as EnrichedProblem).difficulty)
           "
@@ -113,7 +113,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
         <Button
           variant="ghost"
           size="icon"
-          class="h-8 w-8 text-muted-foreground hover:text-destructive rounded-none border border-transparent hover:border-destructive/30"
+          class="h-8 w-8 rounded-md border border-transparent text-muted-foreground hover:text-destructive hover:border-destructive/30"
           @click="
             (e: MouseEvent) => handleRemove(e, problem as EnrichedProblem)
           "

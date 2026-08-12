@@ -52,6 +52,12 @@ tailwind and caused the contract to appear twice.)
 ## Activation contract
 
 `.uc-sidebar-item` / `.uc-sidebar-sub-item` read `[data-active="true|false"]`.
+Top-level rows also share their geometry (padding, gap, height, radius and
+focus outline) here, so source-aliased consumers do not depend on Tailwind
+scanning the shared package. Nested rows retain their component-level geometry
+utilities, allowing management's terminal density to remain intentional.
+Consumers only choose semantic size/text utilities and content; navigation,
+action and list rows therefore keep one visual shape.
 Tinted backgrounds use `color-mix()` wrapped in `@supports` — browsers without
 `color-mix` (Chrome <111 / Safari <16.2 / Firefox <113) still render the
 activation bar + color + font-weight; only the tint is dropped.

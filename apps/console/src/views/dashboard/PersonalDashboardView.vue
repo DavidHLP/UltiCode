@@ -45,7 +45,7 @@ onMounted(async () => {
     <!-- Stats Grid -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <template v-if="loading">
-        <Skeleton v-for="i in 4" :key="i" class="h-24 rounded-none-none" />
+        <Skeleton v-for="i in 4" :key="i" class="h-24 rounded-none" />
       </template>
       <template v-else>
         <StatsCard
@@ -99,7 +99,7 @@ onMounted(async () => {
     </div>
 
     <!-- Difficulty Progress -->
-    <div class="rounded-none-none border bg-card p-6">
+    <div class="rounded-none border bg-card p-6">
       <h2 class="mb-4 text-lg font-semibold">
         {{ t("personal.dashboard.progress.title") }}
       </h2>
@@ -165,7 +165,7 @@ onMounted(async () => {
     <!-- Activity Heatmap & Skills Grid -->
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Heatmap -->
-      <div class="rounded-none-none border bg-card p-6">
+      <div class="rounded-none border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("personal.dashboard.heatmap.title") }}
         </h2>
@@ -177,7 +177,7 @@ onMounted(async () => {
       </div>
 
       <!-- Skills Radar -->
-      <div class="rounded-none-none border bg-card p-6">
+      <div class="rounded-none border bg-card p-6">
         <h2 class="mb-4 text-lg font-semibold">
           {{ t("personal.dashboard.skills.title") }}
         </h2>
@@ -191,7 +191,7 @@ onMounted(async () => {
     </div>
 
     <!-- Recent Activity -->
-    <div class="rounded-none-none border bg-card p-6">
+    <div class="rounded-none border bg-card p-6">
       <h2 class="mb-4 text-lg font-semibold">
         {{ t("personal.dashboard.activity.title") }}
       </h2>

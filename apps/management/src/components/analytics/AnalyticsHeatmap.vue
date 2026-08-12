@@ -186,7 +186,7 @@ function handleMouseLeave() {
                   :tabindex="cell ? 0 : -1"
                   :aria-label="cell ? getCellAriaLabel(cell) : undefined"
                   :aria-hidden="cell ? undefined : 'true'"
-                  class="rounded-none transition-all duration-150 cursor-default hover:ring-1 hover:ring-[var(--accent-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                  class="rounded-none transition-all duration-150 cursor-default hover:ring-1 hover:ring-[var(--accent-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   :style="{
                     width: cellSize + 'px',
                     height: cellSize + 'px',

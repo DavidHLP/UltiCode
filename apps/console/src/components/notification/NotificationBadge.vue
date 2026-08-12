@@ -103,13 +103,20 @@ async function handleClick(notification: NotificationItem) {
 <template>
   <Popover v-model:open="isOpen">
     <PopoverTrigger as-child>
-      <Button variant="ghost" size="icon" :class="cn('relative', props.class)">
+      <Button
+        variant="ghost"
+        size="icon"
+        :class="cn(
+          'relative rounded-md text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong focus-visible:ring-2 focus-visible:ring-ring',
+          props.class,
+        )"
+      >
         <Bell class="h-5 w-5" />
         <span class="sr-only">{{ t("notification.toggleNotifications") }}</span>
         <Badge
           v-if="hasUnread"
-          variant="destructive"
-          class="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-2xs font-bold"
+          variant="outline"
+          class="absolute -right-1 -top-1 h-5 min-w-5 rounded-full border-status-warning-mark bg-status-warning-surface px-1 text-2xs font-bold text-foreground-strong"
           :aria-label="
             t('notification.unreadCountLabel', {
               count: notificationStore.unreadCount,
@@ -121,7 +128,9 @@ async function handleClick(notification: NotificationItem) {
       </Button>
     </PopoverTrigger>
     <PopoverContent align="end" class="w-80 p-0">
-      <div class="flex items-center justify-between border-b px-4 py-2.5">
+      <div
+        class="flex items-center justify-between border-b border-border-subtle px-4 py-2.5"
+      >
         <h4 class="text-sm font-semibold tracking-tight">
           {{ t("notification.title") }}
         </h4>
@@ -147,13 +156,13 @@ async function handleClick(notification: NotificationItem) {
             v-for="notification in notificationStore.notifications.slice(0, 5)"
             :key="notification.id"
             type="button"
-            class="group block w-full rounded-none px-3 py-2.5 text-left transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="group block w-full rounded-md px-3 py-2.5 text-left transition-colors hover:bg-surface-highlight focus-visible:text-foreground-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             @click="handleClick(notification)"
           >
             <div class="flex items-start gap-2.5">
               <span
                 v-if="!notification.isRead"
-                class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-status-warning-mark"
               />
               <div :class="cn('flex-1 min-w-0', notification.isRead && 'ml-4')">
                 <p
@@ -171,11 +180,11 @@ async function handleClick(notification: NotificationItem) {
           </button>
         </div>
       </div>
-      <div class="border-t px-1 py-1">
+      <div class="border-t border-border-subtle px-1 py-1">
         <Button
           variant="ghost"
           size="sm"
-          class="w-full h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
+          class="h-8 w-full text-xs font-medium text-muted-foreground hover:bg-surface-highlight hover:text-foreground-strong focus-visible:ring-2 focus-visible:ring-ring"
           @click="goToNotifications"
         >
           {{ t("notification.viewAll") }}

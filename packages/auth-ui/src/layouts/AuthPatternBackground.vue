@@ -49,7 +49,7 @@ function outputClass(
     case 'success':
       return 'text-status-success-mark font-bold';
     case 'accent':
-      return 'text-[var(--primary)] font-bold';
+      return 'text-[var(--accent-primary)] font-bold';
     case 'muted':
       return 'text-foreground dark:text-[var(--foreground-muted)]';
     default:
@@ -121,7 +121,7 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
 .auth-pattern-text__prefix {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-xl);
-  color: var(--accent-primary);
+  color: var(--foreground-muted);
   opacity: 0.8;
   margin-bottom: 0.5rem;
 }
@@ -155,7 +155,7 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
   display: inline-block;
   width: 0.5rem;
   height: 1.25rem;
-  background: var(--accent-primary);
+  background: var(--ring);
   margin-left: 0.25rem;
   margin-top: 0.5rem;
   animation: blink 1s step-end infinite;
@@ -165,10 +165,12 @@ function renderOutput(line: string | { text: string; tone?: 'normal' | 'success'
 .auth-pattern-terminal {
   margin-top: 2.5rem;
   border: 1px solid var(--border);
-  background: var(--card);
+  background: var(--surface-elevated);
   width: 100%;
   max-width: 28rem;
-  box-shadow: 3px 3px 0px 0px var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-float);
 }
 
 .auth-pattern-terminal__header {

@@ -13,7 +13,6 @@ export interface LocaleConfig {
   name: string
   nativeName: string
   dir: 'ltr' | 'rtl'
-  flag?: string
 }
 
 export const LOCALE_CONFIGS: Record<SupportedLocale, LocaleConfig> = {
@@ -22,14 +21,12 @@ export const LOCALE_CONFIGS: Record<SupportedLocale, LocaleConfig> = {
     name: 'Chinese (Simplified)',
     nativeName: '简体中文',
     dir: 'ltr',
-    flag: '🇨🇳',
   },
   'en-US': {
     code: 'en-US',
     name: 'English (US)',
     nativeName: 'English',
     dir: 'ltr',
-    flag: '🇺🇸',
   },
 }
 

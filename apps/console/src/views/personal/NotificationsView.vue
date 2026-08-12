@@ -278,13 +278,13 @@ watch(currentPage, () => {
             class="group relative flex items-start gap-4 p-4 rounded-none border bg-card transition-all hover:shadow-[var(--shadow-float)] hover:border-primary/20"
             :class="{
               'bg-muted/30 border-transparent': notification.isRead,
-              'border-primary/10 bg-primary/5': !notification.isRead,
+              'border-status-warning-mark/30 bg-status-warning-surface': !notification.isRead,
             }"
           >
             <!-- Unread Indicator Dot -->
             <div
               v-if="!notification.isRead"
-              class="absolute left-3 top-5 h-2 w-2 rounded-full bg-primary"
+              class="absolute left-3 top-5 h-2 w-2 rounded-full bg-status-warning-mark"
             ></div>
 
             <!-- Icon -->
@@ -293,7 +293,7 @@ watch(currentPage, () => {
               :class="
                 notification.isRead
                   ? 'bg-background text-muted-foreground/70 border-muted'
-                  : 'bg-background text-primary border-primary/20'
+                  : 'bg-status-warning-surface text-status-warning-mark border-status-warning-mark/20'
               "
             >
               <component

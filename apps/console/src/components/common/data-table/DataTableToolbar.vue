@@ -37,7 +37,7 @@ const emit = defineEmits<{
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
-        class="pl-8.5 h-9 text-xs rounded-none border-border/60 bg-[var(--surface-sunken)] focus-visible:border-[var(--primary)] focus-visible:ring-[var(--accent-glow)] focus-visible:ring-1 text-foreground"
+        class="terminal-input pl-8.5 h-9 text-xs rounded-md border-border-control bg-surface-sunken text-foreground focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-2"
       />
     </div>
 
@@ -49,14 +49,14 @@ const emit = defineEmits<{
         <DropdownMenuTrigger as-child>
           <Button
             variant="outline"
-            class="h-9 gap-1.5 border border-border/60 rounded-none text-xs hover:bg-[var(--surface-sunken)] bg-card text-foreground cursor-pointer"
+            class="h-9 gap-1.5 rounded-md border-border-control bg-surface-highlight text-xs text-foreground-strong hover:bg-surface-highlight/80 cursor-pointer"
           >
             <ListFilter class="h-3.5 w-3.5 text-muted-foreground" />
             {{ filterLabel || "Filters" }}
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"
-              class="ml-0.5 h-4 px-1.5 text-2xs font-bold rounded-none bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20"
+              class="ml-0.5 h-4 rounded-sm border border-border-control bg-surface-elevated px-1.5 text-2xs font-bold text-foreground-strong"
             >
               {{ activeFilterCount }}
             </Badge>
@@ -73,7 +73,7 @@ const emit = defineEmits<{
         v-if="showClear"
         variant="ghost"
         size="icon"
-        class="h-9 w-9 rounded-none border border-border/60 hover:bg-[var(--surface-sunken)] hover:text-foreground text-muted-foreground cursor-pointer"
+        class="h-9 w-9 rounded-md border-border-control text-muted-foreground hover:bg-surface-highlight hover:text-foreground-strong cursor-pointer"
         @click="emit('clear')"
         :aria-label="clearLabel || 'Clear filters'"
       >

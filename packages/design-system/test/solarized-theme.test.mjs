@@ -71,6 +71,9 @@ function ruleFor(source, selector) {
 test("exports the public stylesheet", () => {
   assert.equal(manifest.exports["./style.css"], "./style.css");
   assert.match(css, /@source "\.\/src";/);
+  assert.match(css, /--tw-ring-color: var\(--ring\) !important/);
+  assert.match(css, /--tw-outline-color: var\(--ring\) !important/);
+  assert.match(css, /outline-color: var\(--ring\) !important/);
   assert.equal(
     themeManifest.exports["./typography.css"],
     "./src/typography.css",
@@ -80,6 +83,19 @@ test("exports the public stylesheet", () => {
   for (const dependency of ["katex", "tailwindcss", "tw-animate-css"]) {
     assert.ok(manifest.dependencies[dependency]);
   }
+});
+
+test("publishes the shared rounded geometry contract", () => {
+  assert.match(css, /--radius:\s*0\.5rem;/);
+  assert.match(
+    css,
+    /\.rounded-none\s*\{[\s\S]*border-radius:\s*var\(--radius-md\)\s*!important;/,
+  );
+  assert.match(
+    css,
+    /\.terminal-card\s*\{[\s\S]*border-radius:\s*var\(--radius-lg\);/,
+  );
+  assert.doesNotMatch(css, /--radius:\s*0;/);
 });
 
 test("keeps the canonical Solarized palette", () => {
@@ -118,7 +134,7 @@ test("publishes accessible Light and Dark product mappings", () => {
   assert.equal(light.foreground, "var(--solarized-base01)");
   assert.equal(light["foreground-strong"], "var(--solarized-base03)");
   assert.equal(light["foreground-muted"], "var(--solarized-base01)");
-  assert.equal(light.primary, "var(--solarized-blue)");
+  assert.equal(light.primary, "var(--solarized-base03)");
   assert.equal(light["primary-foreground"], "var(--solarized-base3)");
   assert.equal(light["primary-control"], "var(--solarized-base03)");
   assert.equal(light["primary-control-foreground"], "var(--solarized-base3)");
@@ -128,15 +144,21 @@ test("publishes accessible Light and Dark product mappings", () => {
   assert.equal(light["sidebar-foreground"], "var(--solarized-base03)");
   assert.equal(light["sidebar-accent-foreground"], "var(--solarized-base01)");
   assert.equal(light["border-control"], "var(--solarized-base00)");
+  assert.equal(light.ring, "var(--solarized-base00)");
+  assert.equal(light["sidebar-ring"], "var(--solarized-base00)");
+  assert.match(light["accent-glow"], /var\(--ring\)/);
   assert.equal(dark.foreground, "var(--solarized-base1)");
-  assert.equal(dark.primary, "var(--solarized-blue)");
-  assert.equal(dark["primary-foreground"], "var(--solarized-base3)");
+  assert.equal(dark.primary, "var(--solarized-base3)");
+  assert.equal(dark["primary-foreground"], "var(--solarized-base03)");
   assert.equal(dark["primary-control"], "var(--solarized-base3)");
   assert.equal(dark["primary-control-foreground"], "var(--solarized-base03)");
   assert.equal(dark["foreground-strong"], "var(--solarized-base1)");
   assert.equal(dark["muted-foreground"], "var(--solarized-base1)");
   assert.equal(dark["sidebar-accent-foreground"], "var(--solarized-base1)");
   assert.equal(dark["border-control"], "var(--solarized-base0)");
+  assert.equal(dark.ring, "var(--solarized-base0)");
+  assert.equal(dark["sidebar-ring"], "var(--solarized-base0)");
+  assert.match(dark["accent-glow"], /var\(--ring\)/);
 
   const textPairs = [
     ["Light foreground", "#586e75", "#fdf6e3"],
@@ -159,7 +181,8 @@ test("publishes accessible Light and Dark product mappings", () => {
   assert.ok(contrast("#002b36", "#fdf6e3") >= 4.5);
 
   assert.ok(contrast("#839496", "#002b36") >= 3);
-  assert.ok(contrast("#fdf6e3", "#268bd2") >= 3, "primary control text must reach 3:1");
+  assert.ok(contrast("#fdf6e3", "#002b36") >= 3, "Light primary control text must reach 3:1");
+  assert.ok(contrast("#002b36", "#fdf6e3") >= 3, "Dark primary control text must reach 3:1");
 
   const statusSurfaces = [
     ["#859900", 0.14, 0.16],
@@ -239,12 +262,25 @@ test("publishes shared component states without palette primitives", async () =>
   assert.match(BUTTON_VARIANT_CLASSES.default, /border-primary/);
   assert.match(BUTTON_VARIANT_CLASSES.destructive, /status-error-surface/);
   assert.match(BUTTON_VARIANT_CLASSES.link, /decoration-link-decoration/);
+  assert.match(BUTTON_VARIANT_CLASSES.outline, /hover:border-primary/);
+  assert.match(BUTTON_VARIANT_CLASSES.secondary, /hover:border-border-control/);
+  assert.doesNotMatch(classes, /bg-accent|dark:bg-input/);
   assert.match(BADGE_VARIANT_CLASSES.destructive, /text-foreground-strong/);
   assert.match(MENU_ITEM_VARIANT_CLASSES.destructive, /text-foreground-strong/);
   assert.match(getDifficultyBadgeClass("HARD"), /status-error-surface/);
   assert.match(getDifficultyBadgeClass("medium"), /status-warning/);
   assert.match(getDifficultyBadgeClass("unknown"), /border-control/);
   assert.doesNotMatch(classes, /--solarized-|terminal-|silver-/);
+
+  const light = tokensFor(css, "solarized-base03");
+  const dark = tokensFor(
+    css.slice(css.indexOf("Solarized Design System - Dark")),
+    "background",
+  );
+  assert.notEqual(light["border-control"], light.primary);
+  assert.notEqual(dark["border-control"], dark.primary);
+  assert.notEqual(light["border-control"], light["surface-highlight"]);
+  assert.notEqual(dark["border-control"], dark["surface-highlight"]);
 });
 
 test("keeps terminal badges readable with a semantic marker", () => {

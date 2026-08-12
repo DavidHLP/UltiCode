@@ -131,7 +131,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
               <Textarea
                 :model-value="field.value.input"
                 rows="3"
-                class="font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] focus-visible:border-[var(--accent-primary)] focus-visible:ring-offset-0 min-h-[60px] resize-y rounded-none shadow-none"
+                class="font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[60px] resize-y rounded-none shadow-none"
                 :placeholder="t('problems.form.validation.inputRequired')"
                 @update:model-value="(v) => updateField(index, field, 'input', v as string)"
               />
@@ -146,7 +146,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
               <Textarea
                 :model-value="field.value.output"
                 rows="3"
-                class="font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] focus-visible:border-[var(--accent-primary)] focus-visible:ring-offset-0 min-h-[60px] resize-y rounded-none shadow-none"
+                class="font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[60px] resize-y rounded-none shadow-none"
                 :placeholder="t('problems.form.validation.outputRequired')"
                 @update:model-value="(v) => updateField(index, field, 'output', v as string)"
               />
@@ -161,7 +161,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
               <Textarea
                 :model-value="field.value.explanation || ''"
                 rows="2"
-                class="text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] focus-visible:border-[var(--accent-primary)] focus-visible:ring-offset-0 min-h-[50px] resize-y rounded-none shadow-none"
+                class="text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[50px] resize-y rounded-none shadow-none"
                 :placeholder="t('problems.descriptionDisplay.explanation')"
                 @update:model-value="(v) => updateField(index, field, 'explanation', v as string)"
               />

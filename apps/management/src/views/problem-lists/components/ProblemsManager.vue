@@ -273,7 +273,7 @@ function difficultyColor(difficulty: string): SemanticColor {
 .custom-terminal-input {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-xs);
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
   color: var(--editor-text-primary);
@@ -283,7 +283,7 @@ function difficultyColor(difficulty: string): SemanticColor {
 }
 
 :deep(.custom-terminal-input) {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   font-family: var(--uc-font-code);
 }
 
@@ -302,7 +302,7 @@ function difficultyColor(difficulty: string): SemanticColor {
   font-size: var(--uc-text-xxs);
   font-weight: var(--uc-font-weight-bold);
   text-transform: uppercase;
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   padding: 6px 12px;
   height: 28px;
   display: inline-flex;

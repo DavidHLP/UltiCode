@@ -155,14 +155,14 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   background-color: var(--surface-sunken);
   color: var(--foreground);
   padding: 0.125rem 0.375rem;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .description-markdown :deep(.markdown-content pre) {
   background-color: var(--surface-sunken);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
@@ -172,7 +172,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 .description-markdown :deep(.markdown-content pre code) {
   background-color: transparent;
   padding: 0;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   color: inherit;
   font-size: var(--uc-text-sm);
 }
@@ -201,7 +201,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 .description-markdown :deep(.lc-code-tabs) {
   margin: 1rem 0;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -262,7 +262,7 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   padding: 0.25rem;
   background: var(--surface-sunken);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s;

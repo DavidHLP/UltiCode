@@ -224,7 +224,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
 }
 
 .custom-back-btn {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
 }
 
 .problem-list-editor-grid {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * AuthButton - Precision style button
+ * AuthButton - Shared design-system action button
  */
 import type { HTMLAttributes } from "vue";
 import { cn } from "./cn";
@@ -58,7 +58,7 @@ defineOptions({
   font-size: var(--uc-text-sm);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
   overflow: hidden;
@@ -74,13 +74,14 @@ defineOptions({
   background: var(--primary);
   color: var(--primary-foreground);
   border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--accent-glow);
+  box-shadow: none;
 }
 
 .auth-button--primary:hover:not(:disabled) {
-  background: var(--foreground);
-  color: var(--background);
-  box-shadow: 0 0 0 1px var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--ring);
+  box-shadow: var(--shadow-float);
 }
 
 .auth-button--secondary {
@@ -91,12 +92,12 @@ defineOptions({
 
 .auth-button--secondary:hover:not(:disabled) {
   background: var(--surface-sunken);
-  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-color: var(--border-control);
 }
 
 .auth-button--primary:focus-visible,
 .auth-button--secondary:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 

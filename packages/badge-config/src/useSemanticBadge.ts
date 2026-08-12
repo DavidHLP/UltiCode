@@ -24,7 +24,7 @@ const DOT_COLOR_MAP: Record<SemanticColor, string> = {
   error: 'bg-[var(--status-error-mark)]',
   info: 'bg-[var(--status-info-mark)]',
   purple: 'bg-[var(--status-special-mark)]',
-  electric: 'bg-[var(--primary)]',
+  electric: 'bg-[var(--accent-primary)]',
   neutral: 'bg-[var(--foreground-muted)]',
 }
 

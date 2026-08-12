@@ -397,7 +397,7 @@ function escapeHtml(s: string): string {
   color: var(--foreground);
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-float);
   pointer-events: none;
 }

@@ -91,7 +91,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- Calendar Widget -->
-    <Card class="terminal-card shadow-sm">
+    <Card class="terminal-card">
       <CardHeader
         class="pb-3 cursor-pointer md:cursor-default select-none md:border-b md:border-border/40"
         :class="{ 'border-b border-border/40': !isCollapsed }"
@@ -111,10 +111,10 @@ onMounted(async () => {
           <div class="flex items-center gap-1.5">
             <Badge
               variant="outline"
-              class="bg-status-warning-surface border border-status-warning-mark text-foreground-strong rounded-none px-2 py-0.5 text-xs font-mono"
+              class="rounded-md border border-status-warning-mark bg-status-warning-surface px-2 py-0.5 text-xs font-mono text-foreground-strong"
             >
               <span
-                class="w-1.5 h-1.5 rounded-none bg-status-warning-mark mr-1.5"
+                class="mr-1.5 h-1.5 w-1.5 rounded-full bg-status-warning-mark"
               ></span>
               <span>{{ t("problem.sidebar.completed") }}</span>
               <span class="tabular-nums font-black text-foreground-strong text-xs px-0.5">{{
@@ -146,7 +146,7 @@ onMounted(async () => {
             {{ dailyProblem.title }}
           </RouterLink>
           <span
-            class="text-2xs font-bold uppercase tracking-tighter px-1 ml-1 rounded-none"
+            class="ml-1 rounded-sm px-1 text-2xs font-bold uppercase tracking-tighter"
             :class="
               dailyProblem.difficulty === 'EASY'
                 ? 'text-foreground-strong bg-[var(--status-success-mark)]/10'
@@ -180,7 +180,7 @@ onMounted(async () => {
           <div
             v-for="day in weeklyDays"
             :key="day.dateStr"
-            class="flex flex-col items-center flex-1 py-1 px-0.5 border rounded-none"
+            class="flex flex-1 flex-col items-center rounded-md border px-0.5 py-1"
             :class="
               day.isToday
                 ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]'
@@ -190,12 +190,12 @@ onMounted(async () => {
             "
           >
             <span
-              class="text-2xs text-foreground font-mono mb-1 rounded-none"
+              class="mb-1 rounded-sm text-2xs text-foreground font-mono"
             >
               {{ day.dayName }}
             </span>
             <span
-              class="text-xs font-mono font-bold w-6 h-6 flex items-center justify-center rounded-none"
+              class="flex h-6 w-6 items-center justify-center rounded-md text-xs font-mono font-bold"
               :class="
                 day.isToday
                   ? 'text-[var(--primary)] font-extrabold'
@@ -206,7 +206,7 @@ onMounted(async () => {
             </span>
             <!-- Completed indicator dot -->
             <div
-              class="w-1.5 h-1.5 mt-1 rounded-none"
+              class="mt-1 h-1.5 w-1.5 rounded-full"
               :class="
                 day.isCompleted
                   ? 'bg-[var(--status-warning-mark)] shadow-[0_0_4px_var(--status-warning-mark)]'
@@ -219,7 +219,7 @@ onMounted(async () => {
         <!-- Desktop Calendar (visible only on desktop/tablets) -->
         <Calendar
           v-model="date"
-          class="hidden md:block w-full rounded-none border-0 p-0 [&_[data-slot=calendar-grid]]:w-full [&_[data-slot=calendar-grid]]:table-fixed [&_[data-slot=calendar-grid-row]]:w-full [&_[data-slot=calendar-head-cell]]:min-w-0 [&_[data-slot=calendar-head-cell]]:flex-1 [&_[data-slot=calendar-cell]]:min-w-0 [&_[data-slot=calendar-cell]]:flex-1 [&_[data-slot=calendar-cell-trigger]]:!h-auto [&_[data-slot=calendar-cell-trigger]]:!w-full [&_[data-slot=calendar-cell-trigger]]:aspect-square"
+          class="hidden md:block w-full rounded-lg border-0 p-0 [&_[data-slot=calendar-grid]]:w-full [&_[data-slot=calendar-grid]]:table-fixed [&_[data-slot=calendar-grid-row]]:w-full [&_[data-slot=calendar-head-cell]]:min-w-0 [&_[data-slot=calendar-head-cell]]:flex-1 [&_[data-slot=calendar-cell]]:min-w-0 [&_[data-slot=calendar-cell]]:flex-1 [&_[data-slot=calendar-cell-trigger]]:!h-auto [&_[data-slot=calendar-cell-trigger]]:!w-full [&_[data-slot=calendar-cell-trigger]]:aspect-square"
           :completed-dates="completedDates"
         />
       </CardContent>

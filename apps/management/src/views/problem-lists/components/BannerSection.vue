@@ -267,7 +267,7 @@ function handleBlur() {
 .custom-terminal-input {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
   color: var(--editor-text-primary);
@@ -277,7 +277,7 @@ function handleBlur() {
 }
 
 :deep(.custom-terminal-input) {
-  border-radius: 0 !important;
+  border-radius: var(--radius-md) !important;
   font-family: var(--uc-font-code);
 }
 

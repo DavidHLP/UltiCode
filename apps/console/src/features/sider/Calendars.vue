@@ -1,11 +1,11 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
 import { ListPlus, Plus } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import { useSidebarLists } from "./composables/useSidebarLists";
 import SidebarListSections from "./components/SidebarListSections.vue";
 import SidebarListDialogs from "./components/SidebarListDialogs.vue";
+import { SidebarMenuItem as SharedSidebarMenuItem } from "@/shared/sidebar-menu/src";
 
 const { t } = useI18n();
 
@@ -44,25 +44,27 @@ const {
 
 <template>
   <!-- Action Buttons -->
-  <div class="px-4 py-2 space-y-2">
-    <Button
-      variant="ghost"
-      size="sm"
-      class="w-full justify-start gap-2 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] rounded-none border border-dashed border-border-control/20 bg-transparent hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/5 transition-all duration-200 font-data text-xs h-8"
+  <div class="flex flex-col gap-0.5 px-1 py-1">
+    <SharedSidebarMenuItem
+      as="button"
+      class="w-full text-left text-xs font-medium"
       @click="isCreateListOpen = true"
     >
-      <ListPlus class="h-3.5 w-3.5" />
+      <template #icon>
+        <ListPlus class="h-3.5 w-3.5" />
+      </template>
       {{ t("sidebar.problemLists.newList") }}
-    </Button>
-    <Button
-      variant="ghost"
-      size="sm"
-      class="w-full justify-start gap-2 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] rounded-none border border-dashed border-border-control/20 bg-transparent hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/5 transition-all duration-200 font-data text-xs h-8"
+    </SharedSidebarMenuItem>
+    <SharedSidebarMenuItem
+      as="button"
+      class="w-full text-left text-xs font-medium"
       @click="isCreateCategoryOpen = true"
     >
-      <Plus class="h-3.5 w-3.5" />
+      <template #icon>
+        <Plus class="h-3.5 w-3.5" />
+      </template>
       {{ t("sidebar.problemLists.newCategory") }}
-    </Button>
+    </SharedSidebarMenuItem>
   </div>
 
   <!-- List Sections -->

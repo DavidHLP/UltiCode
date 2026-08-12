@@ -36,47 +36,44 @@ const { t } = useI18n();
 const problemListsStore = useProblemListsStore();
 
 const CARD_BASE =
-  "relative overflow-hidden border border-border/80 border-l-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md h-full rounded-none group bg-card";
+  "terminal-card relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-float-hover)] h-full rounded-lg group";
 const CARD_CONTENT_BASE = "p-5 relative z-10 flex flex-col h-full";
 const ICON_BASE =
-  "w-12 h-12 rounded-none flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 border";
+  "w-12 h-12 rounded-md flex items-center justify-center transition-all duration-200 group-hover:scale-105 border";
 const BADGE_BASE =
-  "px-2 py-0.5 rounded-none text-2xs font-bold border uppercase tracking-widest";
+  "terminal-badge rounded-md text-2xs font-bold border uppercase tracking-widest";
 const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-all duration-500 group-hover:scale-110";
 
 const SLATE_THEME: BannerTheme = {
-  card: "border-l-[var(--foreground-muted)] hover:border-border",
-  icon: "text-muted-foreground bg-muted border-border/40",
-  badge: "bg-muted text-muted-foreground border-border/50",
+  card: "hover:border-border-control",
+  icon: "text-foreground-strong bg-surface-highlight border-border-control",
+  badge: "bg-surface-highlight text-foreground-strong border-border-control",
   glow: "hidden",
   sparkle: "text-muted-foreground",
 };
 
 const THEME_MAP: Record<string, BannerTheme> = {
   amber: {
-    card: "border-l-[var(--status-warning-mark)] hover:border-[var(--status-warning-mark)]/60",
-    icon: "text-[var(--status-warning-mark)] bg-[var(--status-warning-mark)]/8 border-[var(--status-warning-mark)]/20 shadow-none",
-    badge:
-      "bg-[var(--status-warning-mark)]/8 text-foreground-strong border-[var(--status-warning-mark)]/20 shadow-none",
+    card: "hover:border-border-control",
+    icon: "text-status-warning-mark bg-surface-highlight border-border-control",
+    badge: "bg-surface-highlight text-foreground-strong border-border-control",
     glow: "hidden",
-    sparkle: "text-[var(--status-warning-mark)]",
+    sparkle: "text-status-warning-mark",
   },
   sky: {
-    card: "border-l-[var(--primary)] hover:border-[var(--primary)]/60",
-    icon: "text-[var(--primary)] bg-[var(--primary)]/8 border-[var(--primary)]/20 shadow-none",
-    badge:
-      "bg-[var(--primary)]/8 text-[var(--primary)] border-[var(--primary)]/20 shadow-none",
+    card: "hover:border-border-control",
+    icon: "text-status-info-mark bg-surface-highlight border-border-control",
+    badge: "bg-surface-highlight text-foreground-strong border-border-control",
     glow: "hidden",
-    sparkle: "text-[var(--primary)]",
+    sparkle: "text-status-info-mark",
   },
   emerald: {
-    card: "border-l-[var(--status-success-mark)] hover:border-[var(--status-success-mark)]/60",
-    icon: "text-[var(--status-success-mark)] bg-[var(--status-success-mark)]/8 border-[var(--status-success-mark)]/20 shadow-none",
-    badge:
-      "bg-[var(--status-success-mark)]/8 text-foreground-strong border-[var(--status-success-mark)]/20 shadow-none",
+    card: "hover:border-border-control",
+    icon: "text-status-success-mark bg-surface-highlight border-border-control",
+    badge: "bg-surface-highlight text-foreground-strong border-border-control",
     glow: "hidden",
-    sparkle: "text-[var(--status-success-mark)]",
+    sparkle: "text-status-success-mark",
   },
   slate: SLATE_THEME,
 };
@@ -221,7 +218,7 @@ onBeforeUnmount(() => {
     <button
       v-show="needsScroll && showLeftArrow"
       @click="scrollByCard('left')"
-      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-border-control shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--primary)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex group-focus-within/carousel:flex items-center justify-center rounded-md bg-surface-elevated border border-border-control shadow-float hover:bg-surface-highlight hover:border-primary transition-all duration-200 opacity-0 group-hover/carousel:opacity-100 group-focus-within/carousel:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ChevronLeft class="w-5 h-5 text-foreground" />
     </button>
@@ -234,25 +231,25 @@ onBeforeUnmount(() => {
         <Card
           v-for="i in 3"
           :key="i"
-          class="flex-shrink-0 w-[calc(33.333%-1rem)] relative overflow-hidden border border-border/40 bg-card h-[200px] rounded-none"
+          class="terminal-card flex-shrink-0 w-[calc(33.333%-1rem)] relative overflow-hidden h-[200px] rounded-lg"
         >
           <CardContent
             class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col"
           >
             <div class="flex items-start justify-between">
               <div
-                class="h-12 w-12 rounded-none bg-muted/60 border border-border/30"
+                class="h-12 w-12 rounded-md bg-surface-highlight border border-border-control/60"
               ></div>
-              <div class="h-5 w-14 rounded-none bg-muted/50"></div>
+              <div class="h-5 w-14 rounded-md bg-surface-highlight"></div>
             </div>
             <div class="space-y-3 flex-1">
-              <div class="h-5 w-2/3 rounded-none bg-muted/60"></div>
-              <div class="h-3 w-full rounded-none bg-muted/50"></div>
-              <div class="h-3 w-4/5 rounded-none bg-muted/50"></div>
+              <div class="h-5 w-2/3 rounded-md bg-surface-highlight"></div>
+              <div class="h-3 w-full rounded-md bg-surface-highlight"></div>
+              <div class="h-3 w-4/5 rounded-md bg-surface-highlight"></div>
             </div>
             <div class="flex items-center justify-between pt-2">
-              <div class="h-3 w-20 rounded-none bg-muted/50"></div>
-              <div class="h-3 w-16 rounded-none bg-muted/50"></div>
+              <div class="h-3 w-20 rounded-md bg-surface-highlight"></div>
+              <div class="h-3 w-16 rounded-md bg-surface-highlight"></div>
             </div>
           </CardContent>
         </Card>
@@ -260,10 +257,10 @@ onBeforeUnmount(() => {
 
       <template v-else-if="displayBanners.length === 0">
         <div
-          class="col-span-full flex-shrink-0 w-full flex flex-col items-center justify-center py-16 rounded-none border border-dashed border-border/30 bg-card text-center px-6"
+          class="terminal-card col-span-full flex-shrink-0 w-full flex flex-col items-center justify-center py-16 rounded-lg border-dashed text-center px-6"
         >
           <div
-            class="flex h-14 w-14 items-center justify-center rounded-none bg-muted/60 border border-border/30 mb-4 shadow-lg"
+            class="flex h-14 w-14 items-center justify-center rounded-md bg-surface-highlight border border-border-control mb-4 shadow-float"
           >
             <Sparkles class="h-7 w-7 text-muted-foreground/60" />
           </div>
@@ -291,7 +288,7 @@ onBeforeUnmount(() => {
           v-for="banner in displayBanners"
           :key="banner.id"
           :to="`/problemset/list/${banner.id}`"
-          class="group block focus-visible:outline-none flex-shrink-0 w-[calc(33.333%-1rem)] snap-start"
+          class="group block flex-shrink-0 w-[calc(33.333%-1rem)] snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <Card :class="[CARD_BASE, banner.theme.card]">
             <div
@@ -351,7 +348,7 @@ onBeforeUnmount(() => {
     <button
       v-show="needsScroll && showRightArrow"
       @click="scrollByCard('right')"
-      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-border-control shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--primary)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex group-focus-within/carousel:flex items-center justify-center rounded-md bg-surface-elevated border border-border-control shadow-float hover:bg-surface-highlight hover:border-primary transition-all duration-200 opacity-0 group-hover/carousel:opacity-100 group-focus-within/carousel:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ChevronRight class="w-5 h-5 text-foreground" />
     </button>

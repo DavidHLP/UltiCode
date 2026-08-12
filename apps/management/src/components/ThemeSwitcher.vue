@@ -22,7 +22,7 @@ const { t } = useI18n()
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
       <button
-        class="h-8 w-8 flex items-center justify-center text-foreground hover:text-[var(--accent-primary)] border border-control bg-transparent hover:bg-[var(--surface-highlight)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+        class="h-8 w-8 flex items-center justify-center text-foreground hover:text-[var(--accent-primary)] border border-control bg-transparent hover:bg-[var(--surface-highlight)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring"
         :title="t('settings.appearance.theme')"
       >
         <Sun v-if="theme === 'light'" class="h-4 w-4 text-[var(--status-warning-mark)]" />

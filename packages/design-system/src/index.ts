@@ -43,6 +43,12 @@ export {
  * `style.css`.
  */
 export const CSS_TOKENS = {
+  // Geometry
+  radius: "var(--radius)",
+  radiusSm: "var(--radius-sm)",
+  radiusMd: "var(--radius-md)",
+  radiusLg: "var(--radius-lg)",
+  radiusXl: "var(--radius-xl)",
   // Surfaces
   background: "var(--background)",
   foreground: "var(--foreground)",
@@ -68,7 +74,7 @@ export const CSS_TOKENS = {
   linkDecoration: "var(--link-decoration)",
   accent: "var(--accent)",
   accentPrimary: "var(--accent-primary)",
-  accentElectric: "var(--primary)",
+  accentElectric: "var(--accent-primary)",
   accentForeground: "var(--accent-foreground)",
   // Status palette
   destructive: "var(--destructive)",

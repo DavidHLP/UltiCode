@@ -176,7 +176,7 @@ const htmlContent = computed(() =>
   background-color: var(--surface-highlight);
   color: var(--foreground);
   padding: 0.1rem 0.3rem;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   white-space: pre-wrap;
   word-break: break-word;
   border: 1px solid var(--border);
@@ -189,7 +189,7 @@ const htmlContent = computed(() =>
 
 .description-markdown :deep(.markdown-content pre) {
   background-color: var(--surface-highlight);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   padding: 0.65rem 0.85rem;
   margin: 0.75rem 0;
   overflow-x: auto;
@@ -201,7 +201,7 @@ const htmlContent = computed(() =>
 .description-markdown :deep(.markdown-content pre code) {
   background-color: transparent;
   padding: 0;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   border: none;
   color: inherit;
   font-size: inherit;

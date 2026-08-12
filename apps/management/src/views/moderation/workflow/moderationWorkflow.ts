@@ -234,7 +234,7 @@ const ACTION_COLOR_VAR: Readonly<Record<ActionColorKey, string>> = {
   success: 'text-foreground-strong',
   warning: 'text-foreground-strong',
   neutral: 'text-[var(--foreground-muted)]',
-  electric: 'text-[var(--primary)]',
+  electric: 'text-[var(--accent-primary)]',
 } as const
 
 const ACTION_BG_VAR: Readonly<Record<ActionColorKey, string>> = {
@@ -248,7 +248,7 @@ const ACTION_BG_VAR: Readonly<Record<ActionColorKey, string>> = {
   success: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   warning: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   neutral: 'bg-[var(--surface-sunken)]',
-  electric: 'bg-[color-mix(in_oklch,_var(--primary)_15%,_transparent)]',
+  electric: 'bg-[color-mix(in_oklch,_var(--accent-primary)_15%,_transparent)]',
 } as const
 
 const ACTION_BORDER_VAR: Readonly<Record<ActionColorKey, string>> = {
@@ -262,7 +262,7 @@ const ACTION_BORDER_VAR: Readonly<Record<ActionColorKey, string>> = {
   success: 'border-[color-mix(in_oklch,_var(--status-success-mark)_40%,_transparent)]',
   warning: 'border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
   neutral: 'border-[var(--border-subtle)]',
-  electric: 'border-[color-mix(in_oklch,_var(--primary)_40%,_transparent)]',
+  electric: 'border-[color-mix(in_oklch,_var(--accent-primary)_40%,_transparent)]',
 } as const
 
 export const actionColorVar = (key: ActionColorKey): string => ACTION_COLOR_VAR[key]

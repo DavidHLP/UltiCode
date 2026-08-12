@@ -13,7 +13,12 @@ function openSearch() {
 
 <template>
   <div>
-    <Button variant="ghost" size="icon" @click="openSearch">
+    <Button
+      variant="ghost"
+      size="icon"
+      class="rounded-md text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong focus-visible:ring-2 focus-visible:ring-ring"
+      @click="openSearch"
+    >
       <Search class="h-5 w-5" />
       <span class="sr-only">Search</span>
     </Button>

@@ -92,7 +92,7 @@ const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
   // shadowing `electric`.
   info: "text-foreground-strong",
   purple: "text-foreground-strong",
-  electric: "text-[var(--primary)]",
+  electric: "text-[var(--accent-primary)]",
   neutral: "text-muted-foreground",
 };
 

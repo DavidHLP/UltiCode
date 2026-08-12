@@ -42,7 +42,7 @@ Reference: https://ethanschoonover.com/solarized/
 | red     | #dc322f | Failure and destructive actions           |
 | magenta | #d33682 | System exceptions and premium states      |
 | violet  | #6c71c4 | Privileged and special states             |
-| blue    | #268bd2 | Primary action, focus and link decoration |
+| blue    | #268bd2 | Link decoration and explicit data emphasis |
 | cyan    | #2aa198 | Information and running state             |
 | green   | #859900 | Success and accepted state                |
 
@@ -60,12 +60,13 @@ Reference: https://ethanschoonover.com/solarized/
 | foreground-muted             | base01 | base0  |
 | border-subtle                | base1  | base01 |
 | border-control / input       | base00 | base0  |
-| primary action identity      | blue   | blue   |
+| primary action identity      | base03 | base3  |
 | primary-control surface      | base03 | base3  |
 | primary-control-foreground   | base3  | base03  |
-| primary-foreground           | base3  | base3   |
+| primary-foreground           | base3  | base03 |
 | link-foreground              | base01 | base1  |
-| link-decoration / focus ring | blue   | blue   |
+| link-decoration              | blue   | blue   |
+| focus ring                   | base00 | base0  |
 
 `foreground-muted` remains AA-safe for ordinary Light text by mapping to base01;
 base00 is reserved for raw secondary copy and control boundaries. Essential
@@ -75,6 +76,22 @@ small-text labels use `foreground`/`foreground-strong` (or the
 Light highlighted surfaces pair with base03 text; normal and muted copy on the
 base3 canvas use base01. Link text stays neutral and uses blue decoration so it
 remains readable in both modes.
+
+## Rounded geometry
+
+The public geometry scale uses a shared `--radius` base of `0.5rem` (8px):
+
+| Token | Value | Typical use |
+| ----- | ----- | ------------ |
+| `--radius-sm` | 4px | compact tags and inline controls |
+| `--radius-md` | 6px | buttons, inputs, menu rows |
+| `--radius-lg` | 8px | cards and panels |
+| `--radius-xl` | 12px | dialogs and elevated surfaces |
+
+`rounded-none` is retained as a compatibility class and resolves to
+`--radius-md`, so legacy feature markup follows the same rounded visual system.
+Use `rounded-full` only for intentionally circular status marks, avatars and
+loading indicators.
 
 ## Status semantics
 
@@ -105,20 +122,23 @@ popover foreground/background pair.
 | State         | Surface                | Marker                                 |
 | ------------- | ---------------------- | -------------------------------------- |
 | default       | current surface        | default boundary                       |
-| hover         | surface-highlight      | default boundary                       |
+| hover         | surface-highlight      | default boundary; outline/secondary add a visible semantic border |
 | active        | surface-highlight      | border-control                         |
-| selected      | surface-highlight      | blue indicator plus icon/text          |
-| focus-visible | unchanged              | two-pixel blue ring                   |
+| selected      | surface-highlight      | monotone primary indicator plus icon/text |
+| focus-visible | unchanged              | two-pixel border-control ring          |
 | error         | status-error-surface   | red icon/border plus message           |
 | success       | status-success-surface | green icon/border plus message         |
 | disabled      | current surface        | disabled attribute and reduced opacity |
 
-Primary buttons use invariant Solarized blue with base3 text and a blue focus
-marker in both modes, as required by the product contract. The button boundary
-and adjacent labels provide redundant interaction feedback; high-contrast
-text-bearing controls may opt into the `primary-control` pair when small-text
-AA is required. Destructive controls use an error surface, readable neutral
-text and a red marker instead of relying on a small white-on-red label.
+Primary buttons use the inverted Solarized monotone pair (`base03:base3` in
+Light, `base3:base03` in Dark). This keeps navigation, selection and action
+hierarchy aligned with the selective-contrast model instead of turning blue
+into a generic reminder color. Blue remains available for link decoration and
+explicit data emphasis. The button boundary and adjacent labels provide
+redundant interaction feedback; high-contrast text-bearing controls may opt into
+the `primary-control` pair when small-text AA is required. Destructive controls
+use an error surface, readable neutral text and a red marker instead of relying
+on a small white-on-red label.
 
 
 ## Ownership

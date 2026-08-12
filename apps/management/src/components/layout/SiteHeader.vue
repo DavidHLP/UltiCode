@@ -120,7 +120,7 @@ onUnmounted(() => {
       <div class="flex items-center gap-4">
         <!-- Search Trigger Button -->
         <button
-          class="flex items-center justify-between w-48 md:w-64 h-8 px-3 text-xs text-[var(--foreground-muted)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-[var(--surface-highlight)]/30 hover:bg-[var(--surface-highlight)]/70 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all rounded-none font-mono cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+          class="flex items-center justify-between w-48 md:w-64 h-8 px-3 text-xs text-[var(--foreground-muted)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-[var(--surface-highlight)]/30 hover:bg-[var(--surface-highlight)]/70 hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all rounded-none font-mono cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring"
           @click="triggerSearch"
         >
           <div class="flex items-center gap-2">
@@ -168,7 +168,7 @@ onUnmounted(() => {
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <button
-              class="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border border-[var(--accent-primary)]/40 bg-transparent hover:bg-[var(--accent-primary)]/5 hover:border-[var(--accent-primary)] text-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+              class="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border border-[var(--accent-primary)]/40 bg-transparent hover:bg-[var(--accent-primary)]/5 hover:border-[var(--accent-primary)] text-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <IconBolt
                 class="size-3.5 text-[var(--status-warning-mark)] fill-[var(--status-warning-mark)]/20"
@@ -204,7 +204,7 @@ onUnmounted(() => {
         <!-- Notifications Bell -->
         <button
           @click="router.push('/notifications')"
-          class="relative h-8 w-8 flex items-center justify-center text-[var(--foreground-muted)] hover:text-[var(--accent-primary)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface-highlight)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+          class="relative h-8 w-8 flex items-center justify-center text-[var(--foreground-muted)] hover:text-[var(--accent-primary)] border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface-highlight)]/50 hover:border-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring"
           :title="t('nav.notifications')"
         >
           <IconBell class="size-4" />

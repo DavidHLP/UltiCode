@@ -150,7 +150,7 @@ onMounted(() => {
           v-for="tag in filteredTags"
           :key="tag.id"
           type="button"
-          class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] rounded-none h-7 flex items-center justify-center"
+          class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-none h-7 flex items-center justify-center"
           :aria-pressed="isSelected(tag.id)"
           @click="toggleTag(tag.id)"
         >

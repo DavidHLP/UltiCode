@@ -53,7 +53,7 @@ onMounted(() => {
       <component :is="itemConfig.icon" v-if="itemConfig?.icon" />
       <div
         v-else
-        class="h-2 w-2 shrink-0 rounded-none-[2px]"
+        class="h-2 w-2 shrink-0 rounded-[2px]"
         :style="{
           backgroundColor: itemConfig?.color,
         }"

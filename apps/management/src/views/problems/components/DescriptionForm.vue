@@ -568,7 +568,7 @@ function isLanguageSelected(lang: string): boolean {
                       v-for="lang in availableLanguages"
                       :key="lang"
                       type="button"
-                      class="cursor-pointer font-mono text-xs px-2.5 py-1 select-none border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] rounded-none h-7 flex items-center justify-center"
+                      class="cursor-pointer font-mono text-xs px-2.5 py-1 select-none border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-none h-7 flex items-center justify-center"
                       :class="[
                         isLanguageSelected(lang)
                           ? 'bg-[var(--accent-primary)] text-primary-foreground border-transparent font-semibold'

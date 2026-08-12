@@ -33,4 +33,30 @@ describe('management semantic color contracts', () => {
     const source = readSource('src/views/tags/TagsListView.vue')
     expect(source).toContain("color-mix(in srgb, ${tag.color || 'var(--primary)'} 12%, transparent)")
   })
+
+  it('keeps shared shell controls on the public surface contract', () => {
+    const navigation = readSource('src/components/ui/navigation-menu/NavigationMenuLink.vue')
+    const popover = readSource('src/components/ui/popover/PopoverContent.vue')
+    const input = readSource('src/components/ui/input/Input.vue')
+
+    expect(navigation).toContain('bg-surface-highlight')
+    expect(navigation).toContain('focus-visible:ring-2')
+    expect(popover).toContain('rounded-lg')
+    expect(popover).toContain('shadow-float')
+    expect(input).toContain('bg-surface-sunken')
+    expect(input).toContain('rounded-md')
+  })
+
+  it('uses semantic locale markers instead of emoji flags', () => {
+    const switcher = readSource('src/components/LanguageSwitcher.vue')
+    const localeTypes = readSource('src/i18n/types.ts')
+
+    expect(switcher).toContain("localeConfig.code.split('-')[0].toUpperCase()")
+    expect(switcher).toContain('bg-surface-sunken')
+    expect(switcher).toContain('border-border-control')
+    expect(switcher).toContain('shadow-float')
+    expect(switcher).not.toContain('localeConfig.flag')
+    expect(switcher).not.toContain('bg-[var(--accent-primary)]')
+    expect(localeTypes).not.toContain('flag:')
+  })
 })

@@ -25,9 +25,9 @@ const forwardedProps = useForwardProps(delegatedProps);
       cn(
         buttonVariants({ variant: 'ghost' }),
         'size-8 p-0 font-normal aria-selected:opacity-100 cursor-default rounded-none',
-        '[&[data-today]:not([data-selected])]:border [&[data-today]:not([data-selected])]:border-dashed [&[data-today]:not([data-selected])]:border-link-decoration [&[data-today]:not([data-selected])]:bg-surface-highlight [&[data-today]:not([data-selected])]:text-foreground-strong [&[data-today]:not([data-selected])]:font-bold',
+        '[&[data-today]:not([data-selected])]:border [&[data-today]:not([data-selected])]:border-dashed [&[data-today]:not([data-selected])]:border-border-control [&[data-today]:not([data-selected])]:bg-surface-highlight [&[data-today]:not([data-selected])]:text-foreground-strong [&[data-today]:not([data-selected])]:font-bold',
         // Selected
-        'data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground data-[selected]:font-bold data-[selected]:border data-[selected]:border-link-decoration',
+        'data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[selected]:opacity-100 data-[selected]:hover:bg-primary data-[selected]:hover:text-primary-foreground data-[selected]:focus:bg-primary data-[selected]:focus:text-primary-foreground data-[selected]:font-bold data-[selected]:border data-[selected]:border-primary',
         // Disabled
         'data-[disabled]:text-muted-foreground data-[disabled]:opacity-50',
         // Unavailable

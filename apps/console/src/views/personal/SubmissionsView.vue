@@ -120,7 +120,7 @@ const SEMANTIC_COLOR_CLASS: Record<SemanticColor, string> = {
   purple:
     "text-foreground-strong bg-[var(--status-special-mark)]/10 border-[var(--status-special-mark)]/20",
   electric:
-    "text-[var(--primary)] bg-[var(--primary)]/10 border-[var(--primary)]/20",
+    "text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/20",
   neutral: "text-muted-foreground bg-muted border-muted-foreground/20",
 };
 

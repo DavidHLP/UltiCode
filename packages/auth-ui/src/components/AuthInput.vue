@@ -135,7 +135,7 @@ function handleBlur() {
 }
 
 .auth-input__prompt {
-  color: var(--primary);
+  color: var(--ring);
   font-weight: var(--uc-font-weight-bold);
   margin-right: 0.375rem;
 }
@@ -149,7 +149,7 @@ function handleBlur() {
   color: var(--foreground-strong);
   background: var(--surface-sunken);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   outline: none;
   transition: all var(--transition-fast);
 }
@@ -159,9 +159,9 @@ function handleBlur() {
 }
 
 .auth-input__field:focus {
-  background: var(--card);
-  border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--accent-glow);
+  background: var(--surface-elevated);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--ring) 22%, transparent);
 }
 
 .auth-input__field::placeholder {
@@ -189,7 +189,7 @@ function handleBlur() {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--primary);
+  background: var(--ring);
   transform: scaleX(0);
   transform-origin: center;
   transition: transform var(--transition-fast);
@@ -198,7 +198,7 @@ function handleBlur() {
 .auth-input__line-glow {
   position: absolute;
   inset: -2px;
-  background: var(--primary);
+  background: var(--ring);
   filter: blur(4px);
   opacity: 0;
   transition: opacity var(--transition-fast);

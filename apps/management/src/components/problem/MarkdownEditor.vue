@@ -238,7 +238,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--background);
 }
@@ -250,7 +250,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 50;
-  border-radius: 0;
+  border-radius: var(--radius-md);
 }
 
 .toolbar {
@@ -291,7 +291,7 @@ onUnmounted(() => {
   min-height: 100%;
   padding: 1rem;
   border: none;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   resize: none;
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
@@ -337,7 +337,7 @@ onUnmounted(() => {
 .preview-content :deep(code) {
   background: var(--muted);
   padding: 0.125rem 0.25rem;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   font-size: var(--uc-text-2xl);
   font-family: var(--uc-font-code);
 }
@@ -345,7 +345,7 @@ onUnmounted(() => {
 .preview-content :deep(pre) {
   background: var(--muted);
   padding: 0.75rem;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   overflow-x: auto;
   margin-bottom: 0.75rem;
   border: 1px solid var(--border);
@@ -374,7 +374,7 @@ onUnmounted(() => {
 .preview-content :deep(img) {
   max-width: 100%;
   height: auto;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   margin: 0.5rem 0;
   border: 1px solid var(--border);
 }

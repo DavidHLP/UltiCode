@@ -115,23 +115,22 @@ function handleOAuth() {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--foreground);
-  background: var(--card);
+  background: var(--surface-elevated);
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: 2px 2px 0px 0px var(--border);
+  box-shadow: none;
   transition: all var(--transition-fast);
 }
 
 .oauth-button:hover {
   background: var(--surface-sunken);
-  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
-  box-shadow: 3px 3px 0px 0px var(--primary);
-  transform: translate(-1px, -1px);
+  border-color: var(--border-control);
+  box-shadow: var(--shadow-float);
 }
 
 .oauth-button:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 

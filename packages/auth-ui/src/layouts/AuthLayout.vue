@@ -136,21 +136,16 @@ const statusText = computed(
   text-decoration: none;
   color: var(--foreground);
   border: 1px solid var(--border-subtle);
-  border-radius: 0;
-  background: var(--background);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
   transition:
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
 }
 
 .auth-logo:hover {
-  border-color: var(--border-subtle);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow-color) 5%, transparent);
-}
-
-.dark .auth-logo:hover {
-  border-color: var(--foreground-muted);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--shadow-color) 20%, transparent);
+  border-color: var(--border-control);
+  box-shadow: var(--shadow-float);
 }
 
 .auth-logo__icon {
@@ -161,12 +156,12 @@ const statusText = computed(
   height: 2rem;
   background: var(--primary);
   color: var(--primary-foreground);
-  border-radius: 0;
+  border-radius: var(--radius-md);
   transition: box-shadow var(--transition-fast);
 }
 
 .auth-logo:hover .auth-logo__icon {
-  box-shadow: 0 0 12px var(--accent-glow);
+  box-shadow: var(--shadow-float);
 }
 
 .auth-logo__text-group {

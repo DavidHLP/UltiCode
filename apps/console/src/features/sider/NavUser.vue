@@ -260,8 +260,7 @@ async function handleLogout() {
                 </div>
                 <Badge
                   v-if="unreadCount > 0"
-                  variant="destructive"
-                  class="h-5 px-2 text-2xs font-bold"
+                  class="h-5 px-2 text-2xs font-bold bg-status-warning-surface text-foreground-strong border-status-warning-mark"
                 >
                   {{ unreadLabel }}
                 </Badge>

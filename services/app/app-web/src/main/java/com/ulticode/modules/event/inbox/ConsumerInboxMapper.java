@@ -71,6 +71,24 @@ public interface ConsumerInboxMapper extends BaseMapper<ConsumerInboxRecord> {
     List<ConsumerInboxRecord> selectLeased(@Param("leaseOwner") String leaseOwner,
                                            @Param("consumer") String consumer);
 
+    /**
+     * Extend the current processing lease without changing its owner.
+     *
+     * <p>The owner/state predicates fence a stale worker from extending a
+     * lease that has already been reclaimed by another instance.
+     */
+    @Update("""
+        UPDATE consumer_inbox SET
+          lease_expires_at = DATE_ADD(NOW(3), INTERVAL 30 SECOND)
+        WHERE id = #{id}
+          AND consumer = #{consumer}
+          AND state = 'PROCESSING'
+          AND lease_owner = #{leaseOwner}
+        """)
+    int renewLease(@Param("id") String id,
+                   @Param("consumer") String consumer,
+                   @Param("leaseOwner") String leaseOwner);
+
     @Update("""
         UPDATE consumer_inbox SET
           state = 'PROCESSED',

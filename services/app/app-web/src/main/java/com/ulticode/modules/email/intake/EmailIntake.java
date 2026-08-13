@@ -14,7 +14,6 @@ import com.ulticode.modules.email.port.SmtpSenderPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Clock;
@@ -38,12 +37,11 @@ import java.util.regex.Pattern;
  *   <li>(internal) — recipient address validation.</li>
  * </ol>
  *
- * <p>Same atomicity contract as the legacy inline method:
- * {@code PENDING} → {@code SENT}/{@code FAILED} log row lives or dies with the
- * transport call's outcome. SMTP exceptions are caught and translated to a
- * {@code FAILED} log row so the caller's {@code Result} always carries a
- * log entry — the caller can poll the log to distinguish "sent" from
- * "transport rejected".
+ * <p>The pending log is persisted before outbound I/O. SMTP exceptions are
+ * caught and translated to a {@code FAILED} log row so the caller's
+ * {@code Result} still carries a log entry. The send method deliberately does
+ * not hold a database transaction across SMTP I/O; a process interrupted
+ * during transport leaves the durable row in {@code PENDING}.
  */
 @Slf4j
 @Component
@@ -66,7 +64,6 @@ public class EmailIntake {
      * controller's {@code Result&lt;EmailLogDTO&gt;} wraps the log; the caller
      * can inspect {@code status} to see what actually happened.
      */
-    @Transactional
     public EmailLogDTO send(SendEmailDTO dto) {
         validateRecipient(dto.getTo());
 
@@ -90,7 +87,8 @@ public class EmailIntake {
             smtpSenderPort.send(dto.getTo(), subject, html, text);
             markSent(emailLog);
         } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", dto.getTo(), e.getMessage(), e);
+            log.warn("Failed to send email via SMTP: {}",
+                    e.getClass().getSimpleName());
             markFailed(emailLog);
         }
         return toLogDTO(emailLog);

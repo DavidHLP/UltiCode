@@ -25,6 +25,8 @@ import com.ulticode.modules.notification.intent.NotificationIntent;
  *
  * <p>Implementations should be stateless and thread-safe: a single bean is
  * shared across the dispatcher fan-out and the optional outbox retry path.
+ * The dispatcher owns claim, terminal-state persistence, retry policy, and
+ * failure isolation; channel adapters must not write the ledger directly.
  */
 public interface NotificationChannel {
 

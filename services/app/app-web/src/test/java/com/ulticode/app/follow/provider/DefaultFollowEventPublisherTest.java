@@ -1,6 +1,6 @@
 package com.ulticode.app.follow.provider;
 
-import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
+import com.ulticode.modules.notification.event.NotificationIntentEventPublisher;
 import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,23 +16,23 @@ import static org.mockito.Mockito.verify;
 
 class DefaultFollowEventPublisherTest {
 
-    private NotificationDispatcher notificationDispatcher;
+    private NotificationIntentEventPublisher notificationIntentEventPublisher;
     private Clock clock;
     private DefaultFollowEventPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        notificationDispatcher = mock(NotificationDispatcher.class);
+        notificationIntentEventPublisher = mock(NotificationIntentEventPublisher.class);
         clock = Clock.fixed(Instant.parse("2026-08-03T10:00:00Z"), ZoneId.of("UTC"));
-        publisher = new DefaultFollowEventPublisher(notificationDispatcher, clock);
+        publisher = new DefaultFollowEventPublisher(notificationIntentEventPublisher, clock);
     }
 
     @Test
-    @DisplayName("publishFollowEvent dispatches FollowReceivedIntent to NotificationDispatcher")
+    @DisplayName("publishFollowEvent records a durable FollowReceivedIntent")
     void publishFollowEventSuccess() {
         publisher.publishFollowEvent("user-follower", "follower_alice", "user-target", 10, 5);
 
-        verify(notificationDispatcher).dispatch(any(FollowReceivedIntent.class));
+        verify(notificationIntentEventPublisher).publish(any(FollowReceivedIntent.class));
     }
 
     @Test

@@ -39,6 +39,9 @@ public class NotificationDeliveryLedger {
     private String intentType;
     private DeliveryState deliveryState;
     private String failureReason;
+    private Integer reclaimAttempts;
+    private String claimOwner;
+    private LocalDateTime claimedAt;
     private LocalDateTime deliveredAt;
     private LocalDateTime updatedAt;
 }

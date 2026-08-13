@@ -837,6 +837,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - Judge worker 可用同一 `backend-app` artifact 的 worker profile 独立进程；提交、outbox、lease/fence 的数据 Owner 仍是 App。
+- Notification Delivery worker 同样用同一 artifact 的 `worker` profile（`ulticode.notification.worker.enabled`，`api` profile 关闭）独立扩缩容；运行 durable inbox bridge + ledger reaper，数据 Owner 仍是 App，不创建第四个 logical service。
 
 ## 12. Risks
 

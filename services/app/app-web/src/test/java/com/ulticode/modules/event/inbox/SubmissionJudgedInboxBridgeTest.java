@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
+import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
 import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +55,8 @@ class SubmissionJudgedInboxBridgeTest {
     private UuidGenerator uuidGenerator;
     @Mock
     private SubmissionJudgedNotificationConsumer notificationConsumer;
+    @Mock
+    private NotificationIntentEventConsumer notificationIntentConsumer;
     @Mock
     private SubmissionJudgedAchievementConsumer achievementConsumer;
     @Mock
@@ -140,13 +144,16 @@ class SubmissionJudgedInboxBridgeTest {
         inboxRecord.setEventType("SubmissionJudged");
         inboxRecord.setPayload(Map.of("submissionId", "submission-1"));
         when(inboxMapper.selectLeased(anyString(), anyString())).thenReturn(List.of(inboxRecord));
+        when(inboxMapper.renewLease(eq("inbox-1"), eq("App-Notification"), anyString()))
+                .thenReturn(1);
         doThrow(new IllegalStateException("handler unavailable"))
                 .when(notificationConsumer).consume(anyMap());
 
         bridge().consume();
 
         verify(inboxMapper).markFailed(
-                eq("inbox-1"), eq("App-Notification"), anyString(), eq("handler unavailable"), eq(5));
+                eq("inbox-1"), eq("App-Notification"), anyString(),
+                eq("IllegalStateException"), eq(10));
         verify(inboxMapper, never()).markProcessed(eq("inbox-1"), anyString(), anyString());
     }
 
@@ -288,6 +295,36 @@ class SubmissionJudgedInboxBridgeTest {
                 eq("stream:integration"), eq("App-Notification"), (RecordId) eq(record.getId()));
     }
 
+    @Test
+    void stagesNotificationIntentOnlyIntoNotificationInbox() {
+        when(redisTemplate.opsForStream()).thenReturn(streamOperations);
+        when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
+        when(uuidGenerator.newId()).thenReturn("inbox-notification");
+        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Notification"),
+                eq("intent-event-1"), eq("NotificationIntentCreated"), anyString())).thenReturn(1);
+
+        MapRecord<String, String, String> record = notificationRecord();
+        doReturn(List.of(record), List.of(), List.of(record), List.of(),
+                List.of(record), List.of(), List.of(record), List.of())
+                .when(streamOperations)
+                .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
+                        any(StreamReadOptions.class), any(StreamOffset.class));
+
+        int staged = bridge().consume();
+
+        assertThat(staged).isEqualTo(1);
+        verify(inboxMapper).insertIfAbsent(anyString(), eq("App-Notification"),
+                eq("intent-event-1"), eq("NotificationIntentCreated"), anyString());
+        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Achievement"),
+                anyString(), anyString(), anyString());
+        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-WebSocket"),
+                anyString(), anyString(), anyString());
+        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Contest"),
+                anyString(), anyString(), anyString());
+        verify(streamOperations, times(4)).acknowledge(
+                eq("stream:integration"), anyString(), (RecordId) eq(record.getId()));
+    }
+
     private SubmissionJudgedInboxBridge bridge() {
         return new SubmissionJudgedInboxBridge(
                 redisTemplate,
@@ -295,9 +332,28 @@ class SubmissionJudgedInboxBridgeTest {
                 new ObjectMapper(),
                 uuidGenerator,
                 notificationConsumer,
+                notificationIntentConsumer,
                 achievementConsumer,
                 webSocketConsumer,
                 contestConsumer);
+    }
+
+    private static MapRecord<String, String, String> notificationRecord() {
+        return StreamRecords.mapBacked(Map.of(
+                        "eventId", "intent-event-1",
+                        "owner", "App",
+                        "aggregateId", "follow:user-1:follower-1:2026-08-13",
+                        "aggregateVersion", "0",
+                        "eventType", "NotificationIntentCreated",
+                        "schemaVersion", "1",
+                        "payload", "{\"intentType\":\"FOLLOW\","
+                                + "\"intentId\":\"follow:user-1:follower-1:2026-08-13\","
+                                + "\"userId\":\"user-1\",\"category\":\"COMMUNICATION\","
+                                + "\"followerUserId\":\"follower-1\","
+                                + "\"followerUsername\":\"alice\","
+                                + "\"followDay\":\"2026-08-13\"}"))
+                .withStreamKey("stream:integration")
+                .withId(RecordId.of("3-0"));
     }
 
     private static MapRecord<String, String, String> record(String eventId, String verdict) {

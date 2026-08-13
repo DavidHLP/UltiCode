@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -61,7 +62,8 @@ class NotificationDispatcherTest {
         // lenient(): tests that fully override the claim stub (e.g.
         // idempotencyThreeDispatches) would otherwise trip
         // UnnecessaryStubbingException.
-        lenient().when(ledgerMapper.tryClaim(anyString(), anyString(), anyString(), anyString()))
+        lenient().when(ledgerMapper.tryClaim(
+                anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(1);
         dispatcher = new NotificationDispatcher(
                 List.of(channelA, channelB, channelC),
@@ -90,10 +92,16 @@ class NotificationDispatcherTest {
         verify(channelA).send(intent);
         verify(channelB).send(intent);
         verify(channelC).send(intent);
-        // channelA and C marked DELIVERED; channelB marked FAILED.
-        verify(ledgerMapper).markDelivered(intent.intentId(), "a");
-        verify(ledgerMapper).markFailed(eq(intent.intentId()), eq("b"), anyString());
-        verify(ledgerMapper).markDelivered(intent.intentId(), "c");
+        // channelA and C marked DELIVERED; channelB marked FAILED without
+        // persisting the exception message.
+        verify(ledgerMapper).markDelivered(eq(intent.intentId()), eq("a"), anyString());
+        ArgumentCaptor<String> failureReason = ArgumentCaptor.forClass(String.class);
+        verify(ledgerMapper).markFailed(
+                eq(intent.intentId()), eq("b"), failureReason.capture(), anyString());
+        assertThat(failureReason.getValue())
+                .isEqualTo("RuntimeException")
+                .doesNotContain("boom");
+        verify(ledgerMapper).markDelivered(eq(intent.intentId()), eq("c"), anyString());
     }
 
     @Test
@@ -110,7 +118,7 @@ class NotificationDispatcherTest {
         org.mockito.Mockito.doThrow(new RuntimeException("boom"))
                 .when(channelB).send(any());
         org.mockito.Mockito.doThrow(new RuntimeException("ledger down"))
-                .when(ledgerMapper).markFailed(anyString(), eq("b"), anyString());
+                .when(ledgerMapper).markFailed(anyString(), eq("b"), anyString(), anyString());
 
         NotificationIntent intent = sampleIntent("user-1");
         dispatcher.dispatch(intent);
@@ -122,7 +130,23 @@ class NotificationDispatcherTest {
         verify(channelC).send(intent);
     }
     @Test
-    @DisplayName("durable retry propagates a post-delivery ledger failure")
+    @DisplayName("each delivery attempt receives a fresh lease owner")
+    void deliveryAttemptsUseFreshLeaseOwners() {
+        when(channelA.channelId()).thenReturn("a");
+        when(channelA.supports(any())).thenReturn(true);
+
+        NotificationIntent intent = sampleIntent("user-1");
+        dispatcher.dispatch(intent);
+        dispatcher.dispatch(intent);
+
+        ArgumentCaptor<String> claimOwners = ArgumentCaptor.forClass(String.class);
+        verify(ledgerMapper, times(2)).tryClaim(
+                eq(intent.intentId()), eq("a"), eq("user-1"), eq(intent.wireType()),
+                claimOwners.capture());
+        assertThat(claimOwners.getAllValues()).doesNotHaveDuplicates();
+    }
+    @Test
+    @DisplayName("durable retry propagates a post-delivery ledger failure without marking FAILED")
     void durableRetryPropagatesLedgerFailure() {
         when(channelA.channelId()).thenReturn("a");
         when(channelB.channelId()).thenReturn("b");
@@ -131,7 +155,7 @@ class NotificationDispatcherTest {
         when(channelB.supports(any())).thenReturn(true);
         when(channelC.supports(any())).thenReturn(true);
         org.mockito.Mockito.doThrow(new RuntimeException("ledger down"))
-                .when(ledgerMapper).markDelivered(anyString(), eq("a"));
+                .when(ledgerMapper).markDelivered(anyString(), eq("a"), anyString());
 
         NotificationIntent intent = sampleIntent("user-1");
 
@@ -141,13 +165,16 @@ class NotificationDispatcherTest {
         verify(channelA).send(intent);
         verify(channelB).send(intent);
         verify(channelC).send(intent);
+        verify(ledgerMapper, never()).markFailed(
+                eq(intent.intentId()), eq("a"), contains("post-delivery"), anyString());
     }
-
     @Test
-    @DisplayName("durable retry propagates an outstanding claimed ledger row")
-    void durableRetryPropagatesOutstandingClaim() {
+    @DisplayName("durable retry propagates a lost skip confirmation")
+    void durableRetryPropagatesLostSkipConfirmation() {
         when(channelA.channelId()).thenReturn("a");
-        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString())).thenReturn(0);
+        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString(), anyString()))
+                .thenReturn(1);
+        when(ledgerMapper.markSkipped(anyString(), eq("a"), anyString())).thenReturn(0);
         when(ledgerMapper.findByIntentAndChannel(anyString(), eq("a")))
                 .thenReturn(NotificationDeliveryLedger.builder()
                         .deliveryState(DeliveryState.CLAIMED)
@@ -159,14 +186,39 @@ class NotificationDispatcherTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(intent.intentId());
         verify(channelA, never()).send(any());
-        verify(ledgerMapper, never()).markFailed(anyString(), eq("a"), anyString());
+        verify(ledgerMapper, never()).markFailed(
+                eq(intent.intentId()), eq("a"), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("durable retry propagates an outstanding claimed ledger row")
+    void durableRetryPropagatesOutstandingClaim() {
+        when(channelA.channelId()).thenReturn("a");
+        when(channelB.channelId()).thenReturn("b");
+        when(channelC.channelId()).thenReturn("c");
+        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString(), anyString()))
+                .thenReturn(0);
+        when(ledgerMapper.findByIntentAndChannel(anyString(), eq("a")))
+                .thenReturn(NotificationDeliveryLedger.builder()
+                        .deliveryState(DeliveryState.CLAIMED)
+                        .build());
+
+        NotificationIntent intent = sampleIntent("user-1");
+
+        assertThatThrownBy(() -> dispatcher.dispatchForDurableRetry(intent))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(intent.intentId());
+
+        verify(channelA, never()).send(any());
+        verify(ledgerMapper, never()).markFailed(anyString(), eq("a"), anyString(), anyString());
     }
 
     @Test
     @DisplayName("durable retry propagates an exhausted FAILED ledger row")
     void durableRetryPropagatesExhaustedFailure() {
         when(channelA.channelId()).thenReturn("a");
-        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString())).thenReturn(0);
+        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString(), anyString()))
+                .thenReturn(0);
         when(ledgerMapper.findByIntentAndChannel(anyString(), eq("a")))
                 .thenReturn(NotificationDeliveryLedger.builder()
                         .deliveryState(DeliveryState.FAILED)
@@ -178,7 +230,7 @@ class NotificationDispatcherTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(intent.intentId());
         verify(channelA, never()).send(any());
-        verify(ledgerMapper, never()).markFailed(anyString(), eq("a"), anyString());
+        verify(ledgerMapper, never()).markFailed(anyString(), eq("a"), anyString(), anyString());
     }
 
     @Test
@@ -197,9 +249,9 @@ class NotificationDispatcherTest {
         verify(channelA).send(intent);
         verify(channelB, never()).send(any());
         verify(channelC).send(intent);
-        verify(ledgerMapper).markDelivered(intent.intentId(), "a");
-        verify(ledgerMapper).markSkipped(intent.intentId(), "b");
-        verify(ledgerMapper).markDelivered(intent.intentId(), "c");
+        verify(ledgerMapper).markDelivered(eq(intent.intentId()), eq("a"), anyString());
+        verify(ledgerMapper).markSkipped(eq(intent.intentId()), eq("b"), anyString());
+        verify(ledgerMapper).markDelivered(eq(intent.intentId()), eq("c"), anyString());
     }
 
     @Test
@@ -215,7 +267,7 @@ class NotificationDispatcherTest {
         // First call claims (returns 1), second and third calls find the row
         // already exists (returns 0).
         AtomicInteger claims = new AtomicInteger(0);
-        when(ledgerMapper.tryClaim(anyString(), eq("in_app"), anyString(), anyString()))
+        when(ledgerMapper.tryClaim(anyString(), eq("in_app"), anyString(), anyString(), anyString()))
                 .thenAnswer(inv -> claims.incrementAndGet() == 1 ? 1 : 0);
 
         NotificationIntent intent = sampleIntent("user-1");
@@ -245,7 +297,8 @@ class NotificationDispatcherTest {
         verify(channelA, never()).send(any());
         verify(channelB, never()).send(any());
         verify(channelC, never()).send(any());
-        verify(ledgerMapper, never()).tryClaim(anyString(), anyString(), anyString(), anyString());
+        verify(ledgerMapper, never()).tryClaim(
+                anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -287,7 +340,7 @@ class NotificationDispatcherTest {
         // supports() never gets called here because tryClaim returns 0
         // first. lenient() prevents UnnecessaryStubbingException.
         lenient().when(channelA.supports(any())).thenReturn(true);
-        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString()))
+        when(ledgerMapper.tryClaim(anyString(), eq("a"), anyString(), anyString(), anyString()))
                 .thenReturn(0);
 
         NotificationIntent intent = sampleIntent("user-1");
@@ -307,7 +360,7 @@ class NotificationDispatcherTest {
         dispatcher.dispatch(sampleIntent("user-1"));
 
         ArgumentCaptor<String> reason = ArgumentCaptor.forClass(String.class);
-        verify(ledgerMapper).markFailed(anyString(), eq("a"), reason.capture());
+        verify(ledgerMapper).markFailed(anyString(), eq("a"), reason.capture(), anyString());
         assertThat(reason.getValue().length()).isLessThanOrEqualTo(500);
     }
 

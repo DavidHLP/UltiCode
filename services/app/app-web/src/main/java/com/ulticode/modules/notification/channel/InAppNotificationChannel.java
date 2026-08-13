@@ -13,10 +13,10 @@ import java.util.Map;
  * In-app channel — persists a row to the {@code notification} table so the
  * user can see it on the notifications page (ADR-004 §2.2, M4b).
  *
- * <p>Idempotency is owned by the ledger ({@code notification_delivery_ledger});
- * this channel only runs when the dispatcher has successfully claimed the
- * {@code (intentId, "in_app")} slot, so duplicate invocations of the same
- * intent reach at most one {@code insert} here.
+ * <p>Idempotency is owned by the notification row's deterministic id derived
+ * from the source intent, while the delivery ledger prevents duplicate channel
+ * claims. This closes the send-success/confirm-fail window without relying on
+ * process-local state.
  *
  * <p>The WebSocket push is <b>not</b> done here — that is
  * {@link WebSocketNotificationChannel}'s job. Splitting the responsibilities
@@ -55,7 +55,8 @@ public class InAppNotificationChannel implements NotificationChannel {
         String category = intent.category().name();
         String link = renderLink(intent);
 
-        notificationService.createNotificationRowOnly(
+        notificationService.createNotificationRowOnlyIdempotent(
+                intent.intentId(),
                 intent.userId(),
                 type,
                 category,

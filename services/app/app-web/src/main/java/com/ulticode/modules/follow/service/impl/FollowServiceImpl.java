@@ -12,8 +12,8 @@ import com.ulticode.modules.follow.port.UserReadPort.UserSummaryData;
 import com.ulticode.modules.follow.service.FollowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
-
 /**
  * Write-path implementation of {@link FollowService}.
  */
@@ -27,6 +27,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowEventPublisher followEventPublisher;
     private final FollowInspector followInspector;
 
+    @Transactional
     @Override
     public FollowStatsDTO follow(String currentUserId, String targetUserId) {
         if (currentUserId.equals(targetUserId)) {
@@ -46,23 +47,20 @@ public class FollowServiceImpl implements FollowService {
             FollowStatsDTO targetStats = followInspector.getFollowStats(targetUserId);
             FollowStatsDTO followerStats = followInspector.getFollowStats(currentUserId);
 
-            try {
-                String followerUsername = currentUser != null ? currentUser.username() : currentUserId;
-                followEventPublisher.publishFollowEvent(
-                        currentUserId,
-                        followerUsername,
-                        targetUserId,
-                        targetStats.getFollowerCount(),
-                        followerStats.getFollowingCount()
-                );
-            } catch (Exception e) {
-                log.warn("Failed to publish follow event for user {}: {}", targetUserId, e.getMessage());
-            }
+            String followerUsername = currentUser != null ? currentUser.username() : currentUserId;
+            followEventPublisher.publishFollowEvent(
+                    currentUserId,
+                    followerUsername,
+                    targetUserId,
+                    targetStats.getFollowerCount(),
+                    followerStats.getFollowingCount()
+            );
         }
 
         return followInspector.getFollowStats(targetUserId);
     }
 
+    @Transactional
     @Override
     public FollowStatsDTO unfollow(String currentUserId, String targetUserId) {
         if (currentUserId.equals(targetUserId)) {

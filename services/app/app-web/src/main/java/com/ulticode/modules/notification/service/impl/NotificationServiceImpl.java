@@ -17,11 +17,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -188,7 +190,36 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationVO createNotificationRowOnly(String userId, String type, String category,
                                                      String title, String body, String link,
                                                      Map<String, Object> metadata) {
+        Notification notification = newNotification(null, userId, type, category,
+                title, body, link, metadata);
+        notificationMapper.insert(notification);
+        log.debug("Created notification {} for user {}", notification.getId(), userId);
+        return toVO(notification);
+    }
+
+    @Override
+    @Transactional
+    public NotificationVO createNotificationRowOnlyIdempotent(
+            String sourceIntentId, String userId, String type, String category,
+            String title, String body, String link, Map<String, Object> metadata) {
+        if (sourceIntentId == null || sourceIntentId.isBlank()) {
+            throw new IllegalArgumentException("Source notification intent id must not be blank");
+        }
+        String notificationId = UUID.nameUUIDFromBytes(
+                ("notification:in_app:" + sourceIntentId).getBytes(StandardCharsets.UTF_8))
+                .toString();
+        Notification notification = newNotification(notificationId, userId, type, category,
+                title, body, link, metadata);
+        notificationMapper.insertIfAbsent(notification);
+        log.debug("Recorded idempotent notification {} for user {}", notification.getId(), userId);
+        return toVO(notification);
+    }
+
+    private Notification newNotification(String id, String userId, String type, String category,
+                                         String title, String body, String link,
+                                         Map<String, Object> metadata) {
         Notification notification = new Notification();
+        notification.setId(id);
         notification.setUserId(userId);
         notification.setType(type);
         notification.setCategory(category);
@@ -197,10 +228,13 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setLink(link);
         notification.setIsRead(false);
         notification.setMetadata(metadata);
-
-        notificationMapper.insert(notification);
-        log.debug("Created notification {} for user {}", notification.getId(), userId);
-        return toVO(notification);
+        if (id != null) {
+            LocalDateTime now = LocalDateTime.now(clock);
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notification.setDeleted(0);
+        }
+        return notification;
     }
 
     // ==================== Private Helper Methods ====================

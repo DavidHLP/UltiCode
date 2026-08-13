@@ -39,17 +39,19 @@ class InAppNotificationChannelTest {
     }
 
     @Test
-    void sendSubmitsRowViaCreateNotificationRowOnly() {
-        when(notificationService.createNotificationRowOnly(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()))
+    void sendSubmitsIdempotentRowWithCanonicalType() {
+        when(notificationService.createNotificationRowOnlyIdempotent(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
+                anyString(), any()))
                 .thenReturn(null);
 
         InAppNotificationChannel ch = new InAppNotificationChannel(notificationService);
-        ch.send(sampleAchievement());
+        AchievementEarnedIntent intent = sampleAchievement();
+        ch.send(intent);
 
         ArgumentCaptor<String> typeCap = ArgumentCaptor.forClass(String.class);
-        verify(notificationService).createNotificationRowOnly(
-                eq("user-1"), typeCap.capture(), eq("SYSTEM"),
+        verify(notificationService).createNotificationRowOnlyIdempotent(
+                eq(intent.intentId()), eq("user-1"), typeCap.capture(), eq("SYSTEM"),
                 anyString(), anyString(), anyString(), any());
         // Type is the canonical wire-type constant (NotificationIntent.wireType),
         // not the Java class name, so the front-end normalizeType classifies it.
@@ -58,34 +60,38 @@ class InAppNotificationChannelTest {
 
     @Test
     void submissionMetadataIncludesIsAccepted() {
-        when(notificationService.createNotificationRowOnly(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()))
+        when(notificationService.createNotificationRowOnlyIdempotent(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
+                anyString(), any()))
                 .thenReturn(null);
 
         InAppNotificationChannel ch = new InAppNotificationChannel(notificationService);
-        ch.send(sampleSubmission());
+        SubmissionCompletedIntent intent = sampleSubmission();
+        ch.send(intent);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<java.util.Map<String, Object>> metaCap =
                 ArgumentCaptor.forClass(java.util.Map.class);
-        verify(notificationService).createNotificationRowOnly(
-                anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), metaCap.capture());
+        verify(notificationService).createNotificationRowOnlyIdempotent(
+                eq(intent.intentId()), anyString(), anyString(), anyString(),
+                anyString(), anyString(), anyString(), metaCap.capture());
         assertThat(metaCap.getValue()).containsEntry("isAccepted", true);
         assertThat(metaCap.getValue()).containsEntry("submissionId", "sub-1");
     }
 
     @Test
     void followRendersLinkAndTitle() {
-        when(notificationService.createNotificationRowOnly(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()))
+        when(notificationService.createNotificationRowOnlyIdempotent(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
+                anyString(), any()))
                 .thenReturn(null);
 
         InAppNotificationChannel ch = new InAppNotificationChannel(notificationService);
-        ch.send(sampleFollow());
+        FollowReceivedIntent intent = sampleFollow();
+        ch.send(intent);
 
-        verify(notificationService).createNotificationRowOnly(
-                eq("target-1"), eq("FOLLOW"), eq("COMMUNICATION"),
+        verify(notificationService).createNotificationRowOnlyIdempotent(
+                eq(intent.intentId()), eq("target-1"), eq("FOLLOW"), eq("COMMUNICATION"),
                 eq("alice followed you"), eq(""), eq("/profile/alice"), anyMap());
     }
 

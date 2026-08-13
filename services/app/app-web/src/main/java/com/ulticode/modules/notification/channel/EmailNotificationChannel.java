@@ -1,6 +1,7 @@
 package com.ulticode.modules.notification.channel;
 
-import com.ulticode.common.exception.BusinessException;
+import com.ulticode.modules.email.constants.EmailStatus;
+import com.ulticode.modules.email.dto.EmailLogDTO;
 import com.ulticode.modules.email.dto.SendEmailDTO;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.notification.email.EmailTemplates;
@@ -15,10 +16,10 @@ import org.springframework.stereotype.Component;
  * Email channel — looks up the recipient's email and projects the intent to
  * a templated {@code SendEmailDTO} via {@link EmailTemplates}.
  *
- * <p>Behavior on missing email or missing template: per ADR-004 §2.5, email
- * failures are best-effort — we catch {@link BusinessException} from
- * {@code EmailService.sendEmail} and let the dispatcher mark the ledger row
- * {@code FAILED}. We do not block other channels.
+ * <p>Behavior on missing email: per ADR-004 §2.5, the channel treats a
+ * recipient without an email as an intentional skip. Transport failures are
+ * surfaced to the dispatcher so the ledger records {@code FAILED} and can
+ * apply its bounded retry policy. We do not block other channels.
  *
  * <p>Reference: notification/channel/EmailNotificationChannel + the per-channel
  * ledger key in V20260613120000__Create_Notification_Delivery_Ledger.sql.
@@ -92,7 +93,11 @@ public class EmailNotificationChannel implements NotificationChannel {
         }
         SendEmailDTO dto = EmailTemplates.forIntent(intent);
         dto.setTo(recipient);
-        emailService.sendEmail(dto);
+        EmailLogDTO result = emailService.sendEmail(dto);
+        if (result != null && EmailStatus.FAILED.equals(result.getStatus())) {
+            throw new IllegalStateException("Email transport failed for intent "
+                    + intent.intentId());
+        }
     }
 
     private String resolveRecipientEmail(String userId) {

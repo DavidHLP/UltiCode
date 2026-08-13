@@ -68,18 +68,8 @@ public sealed interface NotificationIntent
 
     /**
      * Project this intent to the canonical generic {@link NotificationPayload}
-     * wire format used by the WebSocket channel. The default implementation is
-     * an exhaustive {@code switch} on {@code this.getClass().getSimpleName()}
-     * covering the five non-achievement intents — the channel calls this and
-     * pushes the result without further branching.
-     *
-     * <p>{@link AchievementEarnedIntent} does NOT override this — the channel
-     * detects it with a single {@code instanceof} and pushes the typed
-     * {@code BadgeEarnedPayload} via {@code BadgePushPort}. The two-channel
-     * split (typed achievement payload vs generic everything-else) is the one
-     * seam the visitor pattern does not flatten, and that is the right
-     * judgement call: the achievement payload is a genuinely different DTO
-     * consumed by a different frontend handler.
+     * wire format used by the WebSocket channel. Achievement intents use a
+     * typed badge payload through the dedicated badge port instead.
      */
     NotificationPayload toPushPayload();
 }

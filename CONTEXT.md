@@ -137,6 +137,16 @@
   and `services/app/app-web/src/main/java/com/ulticode/app/config/AppClockConfig.java`,
   which cover `LocalDateTime.now()`; wall millis + monotonic nanos were the
   two remaining JVM-time primitives.
+- **Notification Delivery worker** — the App runtime role
+  (`ulticode.notification.worker.enabled`; `api` profile turns it off,
+  `worker` profile enables it) that runs the durable delivery schedulers:
+  `SubmissionJudgedInboxBridge` (Redis stream → `consumer_inbox` staging →
+  handler fan-out) and `NotificationLedgerReaper` (stale ledger-claim
+  recovery). It shares the App-owned `ConsumerInboxMapper` /
+  `NotificationDeliveryLedgerMapper` storage seam and never writes through a
+  second writer; multi-replica safety comes from inbox/outbox/ledger
+  lease-CAS and Redis consumer groups. NOTIFY-004 delivers this role without
+  creating a fourth logical service.
 
 ## Design invariants
 

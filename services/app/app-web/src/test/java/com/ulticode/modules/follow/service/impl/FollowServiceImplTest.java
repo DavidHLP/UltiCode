@@ -85,8 +85,8 @@ class FollowServiceImplTest {
     }
 
     @Test
-    @DisplayName("follow succeeds even if event publisher throws")
-    void follow_publisherThrows_doesNotBreakFollow() {
+    @DisplayName("follow fails if durable event publication fails")
+    void follow_publisherThrows_abortsFollow() {
         when(userReadPort.findById("target-123")).thenReturn(testUser);
         when(userReadPort.findById("user-1")).thenReturn(currentUser);
         when(followMapper.exists("user-1", "target-123")).thenReturn(false);
@@ -96,9 +96,9 @@ class FollowServiceImplTest {
         doThrow(new RuntimeException("Publisher error"))
                 .when(followEventPublisher).publishFollowEvent(anyString(), anyString(), anyString(), anyInt(), anyInt());
 
-        FollowStatsDTO result = followService.follow("user-1", "target-123");
-
-        assertThat(result.getFollowerCount()).isEqualTo(1);
+        assertThatThrownBy(() -> followService.follow("user-1", "target-123"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Publisher error");
         verify(followMapper).insertIdempotent("user-1", "target-123");
     }
 

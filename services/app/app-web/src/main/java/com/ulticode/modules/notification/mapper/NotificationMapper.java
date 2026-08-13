@@ -52,6 +52,27 @@ public interface NotificationMapper extends BaseMapper<Notification> {
  + "#{item.announcementId}, #{item.isRead}, #{item.readAt}, #{item.createdAt}, #{item.updatedAt}, #{item.deleted})"
  + "</foreach></script>")
  int batchInsert(@Param("list") List<Notification> list);
+ /**
+  * Insert one durable in-app notification once for its deterministic id.
+  *
+  * <p>The id is derived from the source intent, so a retry after a
+  * send-success/confirm-fail window becomes a no-op instead of creating a
+  * second user-visible row.
+  */
+ @Insert("""
+     INSERT INTO notifications
+       (id, user_id, type, category, title, body, link, metadata,
+        announcement_id, is_read, read_at, created_at, updated_at, is_deleted)
+     VALUES
+       (#{notification.id}, #{notification.userId}, #{notification.type},
+        #{notification.category}, #{notification.title}, #{notification.body},
+        #{notification.link},
+        #{notification.metadata, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+        #{notification.announcementId}, #{notification.isRead}, #{notification.readAt},
+        #{notification.createdAt}, #{notification.updatedAt}, #{notification.deleted})
+     ON DUPLICATE KEY UPDATE id = id
+     """)
+ int insertIfAbsent(@Param("notification") Notification notification);
 
  /**
  * Paginated query for deduplicated system announcements by announcement_id.

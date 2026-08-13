@@ -4,6 +4,7 @@ import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedge
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,27 +21,35 @@ import org.springframework.stereotype.Component;
  *
  * <p>Operation:
  * <ol>
- *   <li>{@code reapStaleClaimed} transitions stuck rows to {@code FAILED}
- *       with a clear {@code failure_reason}.</li>
- *   <li>{@code reclaimFailedLegacy} clears the retry marker for eligible
- *       legacy rows; the next synchronous dispatch calls {@code tryClaim} and
- *       owns the new lease.</li>
- *   <li>Durable submission intents are retried by their owning inbox
- *       consumer.</li>
- *   <li>The counters {@code notification.ledger.reaper.reaped} and
- *       {@code notification.ledger.reaper.reclaimed} expose both paths.</li>
+ *   <li>{@code reapStaleClaimed} transitions stale claims to
+ *       {@code FAILED} with a clear {@code failure_reason}.</li>
+ *   <li>FAILED rows are reclaimed by their owning dispatcher or inbox
+ *       consumer through {@code tryClaim} after the bounded backoff; the
+ *       reaper does not mutate their retry clock.</li>
+ *   <li>The counter {@code notification.ledger.reaper.reaped} exposes the
+ *       stale-lease path.</li>
  * </ol>
- *
- * <p>Durable submission rows are excluded from the global FAILED reclaim so
- * the inbox consumer remains the sole owner of their retry lease.
  *
  * <p>Reference: notification/ledger/reaper/NotificationLedgerReaper + the
  * (intent_id, channel_id) UNIQUE index in
  * V20260613120000__Create_Notification_Delivery_Ledger.sql.
+ *
+ * <p>Runtime role (NOTIFY-004): this reaper is part of the App Notification
+ * Delivery worker. It is registered only while
+ * {@code ulticode.notification.worker.enabled} is true (default; the
+ * {@code worker} profile sets it explicitly, the {@code api} profile turns it
+ * off). It shares the App-owned ledger mapper and only mutates stale lease
+ * rows, so multiple delivery replicas may run it safely (the reaper UPDATE is
+ * idempotent under the state/lease predicate).
+ *
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        name = "ulticode.notification.worker.enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class NotificationLedgerReaper {
 
     private final NotificationDeliveryLedgerMapper ledgerMapper;
@@ -57,17 +66,12 @@ public class NotificationLedgerReaper {
                         reaped);
                 meterRegistry.counter("notification.ledger.reaper.reaped").increment(reaped);
             }
-            int reclaimed = ledgerMapper.reclaimFailedLegacy();
-            if (reclaimed > 0) {
-                log.info("Reaper marked {} legacy FAILED rows eligible for retry "
-                        + "(bounded at 5 attempts)", reclaimed);
-                meterRegistry.counter("notification.ledger.reaper.reclaimed").increment(reclaimed);
-            }
 
-            // Durable inbox retries and legacy synchronous dispatches call
-            // tryClaim to acquire their own lease; the reaper never owns it.
+            // Failed rows retain their backoff timestamp. The dispatcher owns
+            // the next claim, including durable inbox retries.
         } catch (Exception e) {
-            log.warn("NotificationLedgerReaper.reap failed: {}", e.getMessage());
+            log.warn("NotificationLedgerReaper.reap failed: {}",
+                    e.getClass().getSimpleName());
         }
     }
 }

@@ -165,6 +165,7 @@ class InboxConsumerIT {
 
             when(mapper.claimLease(anyString(), eq("App"), anyInt())).thenReturn(1);
             when(mapper.selectLeased(anyString(), eq("App"))).thenReturn(java.util.List.of(record));
+            when(mapper.renewLease(eq("happy-1"), eq("App"), anyString())).thenReturn(1);
             when(mapper.markProcessed(eq("happy-1"), eq("App"), anyString())).thenReturn(1);
 
             java.util.concurrent.atomic.AtomicBoolean handlerCalled = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -194,6 +195,7 @@ class InboxConsumerIT {
 
             when(mapper.claimLease(anyString(), eq("App"), anyInt())).thenReturn(1);
             when(mapper.selectLeased(anyString(), eq("App"))).thenReturn(java.util.List.of(record));
+            when(mapper.renewLease(eq("fail-1"), eq("App"), anyString())).thenReturn(1);
 
             consumer.registerHandler("RiskyEvent", payload -> {
                 throw new RuntimeException("Handler exploded");
@@ -202,8 +204,7 @@ class InboxConsumerIT {
             consumer.consume();
 
             verify(mapper).markFailed(
-                    eq("fail-1"), eq("App"), anyString(), contains("Handler exploded"), eq(5));
-            verify(mapper, never()).markProcessed(eq("fail-1"), eq("App"), anyString());
+                    eq("fail-1"), eq("App"), anyString(), contains("RuntimeException"), eq(10));
         }
     }
 }

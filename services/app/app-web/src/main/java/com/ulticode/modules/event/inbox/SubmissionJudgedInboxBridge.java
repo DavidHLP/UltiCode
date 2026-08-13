@@ -5,10 +5,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
-import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
+import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
+import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
@@ -21,6 +25,8 @@ import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,21 +44,37 @@ import java.util.Set;
  * MySQL, then acknowledges the stream entry. The inbox workers therefore own
  * retry, lease reclaim, and handler failure semantics, while the
  * {@code (consumer, event_id)} key absorbs replay and duplicate XADD delivery.
+ *
+ * <p>Runtime role (NOTIFY-004): this is part of the App Notification Delivery
+ * worker. It is registered only while {@code ulticode.notification.worker.enabled}
+ * is true (default; the {@code worker} profile sets it explicitly, the
+ * {@code api} profile turns it off). Delivery replicas share the App-owned
+ * {@link ConsumerInboxMapper}/{@link NotificationDeliveryLedgerMapper} storage
+ * seam and never write through a second writer; cross-replica safety comes from
+ * the inbox lease-CAS and Redis consumer groups. Graceful shutdown: scheduled
+ * invocations are cancelled by Spring's {@code TaskScheduler} on context close,
+ * and each batch owns a bounded per-call lease-heartbeat executor that is
+ * always shut down in {@code finally}.
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(
+        name = "ulticode.notification.worker.enabled",
+        havingValue = "true",
+        matchIfMissing = true)
 public class SubmissionJudgedInboxBridge {
 
     private static final String STREAM_KEY = "stream:integration";
     private static final String POISON_EVENT_TYPE = "IntegrationEventPoison";
     private static final String EVENT_TYPE = "SubmissionJudged";
+    private static final String NOTIFICATION_EVENT_TYPE = "NotificationIntentCreated";
     private static final int MAX_EVENT_ID_LENGTH = 40;
     private static final int BATCH_SIZE = 50;
-
     private final StringRedisTemplate redisTemplate;
     private final ConsumerInboxMapper inboxMapper;
     private final ObjectMapper objectMapper;
     private final UuidGenerator uuidGenerator;
+    private final TransactionTemplate transactionTemplate;
     private final List<Binding> bindings;
 
     public SubmissionJudgedInboxBridge(
@@ -61,30 +83,64 @@ public class SubmissionJudgedInboxBridge {
             ObjectMapper objectMapper,
             UuidGenerator uuidGenerator,
             SubmissionJudgedNotificationConsumer notificationConsumer,
+            NotificationIntentEventConsumer notificationIntentConsumer,
             SubmissionJudgedAchievementConsumer achievementConsumer,
             SubmissionJudgedWebSocketConsumer webSocketConsumer,
             SubmissionJudgedContestConsumer contestConsumer) {
+        this(redisTemplate, inboxMapper, objectMapper, uuidGenerator, null,
+                notificationConsumer, notificationIntentConsumer, achievementConsumer,
+                webSocketConsumer, contestConsumer);
+    }
+
+    @Autowired
+    public SubmissionJudgedInboxBridge(
+            StringRedisTemplate redisTemplate,
+            ConsumerInboxMapper inboxMapper,
+            ObjectMapper objectMapper,
+            UuidGenerator uuidGenerator,
+            ObjectProvider<PlatformTransactionManager> transactionManagerProvider,
+            SubmissionJudgedNotificationConsumer notificationConsumer,
+            NotificationIntentEventConsumer notificationIntentConsumer,
+            SubmissionJudgedAchievementConsumer achievementConsumer,
+            SubmissionJudgedWebSocketConsumer webSocketConsumer,
+            SubmissionJudgedContestConsumer contestConsumer) {
+        PlatformTransactionManager transactionManager = transactionManagerProvider == null
+                ? null
+                : transactionManagerProvider.getIfAvailable();
+        TransactionTemplate transactionTemplate = transactionManager == null
+                ? null
+                : new TransactionTemplate(transactionManager);
         this.redisTemplate = redisTemplate;
         this.inboxMapper = inboxMapper;
         this.objectMapper = objectMapper;
         this.uuidGenerator = uuidGenerator;
-        InboxConsumer notificationInbox = new InboxConsumer(inboxMapper, "App-Notification");
-        notificationInbox.registerHandler(EVENT_TYPE, notificationConsumer::consume);
+        this.transactionTemplate = transactionTemplate;
+        InboxConsumer notificationInbox = new InboxConsumer(
+                inboxMapper, "App-Notification", transactionTemplate);
+        notificationInbox.registerHandlerOutsideTransaction(
+                EVENT_TYPE, (eventId, payload) -> notificationConsumer.consume(payload));
+        notificationInbox.registerHandlerOutsideTransaction(
+                NOTIFICATION_EVENT_TYPE,
+                (eventId, payload) -> notificationIntentConsumer.consume(eventId, payload));
         notificationInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
-        InboxConsumer achievementInbox = new InboxConsumer(inboxMapper, "App-Achievement");
+        InboxConsumer achievementInbox = new InboxConsumer(
+                inboxMapper, "App-Achievement", transactionTemplate);
         achievementInbox.registerHandler(EVENT_TYPE, achievementConsumer::consume);
         achievementInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
-        InboxConsumer webSocketInbox = new InboxConsumer(inboxMapper, "App-WebSocket");
+        InboxConsumer webSocketInbox = new InboxConsumer(
+                inboxMapper, "App-WebSocket", transactionTemplate);
         webSocketInbox.registerHandler(EVENT_TYPE, webSocketConsumer::consume);
         webSocketInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
-        InboxConsumer contestInbox = new InboxConsumer(inboxMapper, "App-Contest");
+        InboxConsumer contestInbox = new InboxConsumer(
+                inboxMapper, "App-Contest", transactionTemplate);
         contestInbox.registerHandler(EVENT_TYPE, contestConsumer::consume);
         contestInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
         this.bindings = List.of(
-                new Binding("App-Notification", notificationInbox),
-                new Binding("App-Achievement", achievementInbox),
-                new Binding("App-WebSocket", webSocketInbox),
-                new Binding("App-Contest", contestInbox));
+                new Binding("App-Notification", notificationInbox,
+                        Set.of(EVENT_TYPE, NOTIFICATION_EVENT_TYPE)),
+                new Binding("App-Achievement", achievementInbox, Set.of(EVENT_TYPE)),
+                new Binding("App-WebSocket", webSocketInbox, Set.of(EVENT_TYPE)),
+                new Binding("App-Contest", contestInbox, Set.of(EVENT_TYPE)));
     }
 
     /**
@@ -192,10 +248,10 @@ public class SubmissionJudgedInboxBridge {
             return stagePoison(binding, record, eventId, e);
         }
 
-        if (!EVENT_TYPE.equals(eventType)) {
+        if (!binding.accepts(eventType)) {
             try {
-                // ACK is scoped to this dedicated group; other event-type groups
-                // retain their own delivery independently on the shared stream.
+                // ACK is scoped to this dedicated group; other event-type
+                // groups retain their own delivery independently.
                 acknowledge(binding, record);
             } catch (RuntimeException e) {
                 log.warn("Failed to acknowledge ignored integration event {} for {}: {}",
@@ -302,12 +358,18 @@ public class SubmissionJudgedInboxBridge {
     private static final class Binding {
         private final String group;
         private final InboxConsumer inboxConsumer;
+        private final Set<String> eventTypes;
         private final String redisConsumerName;
         private boolean groupReady;
-        private Binding(String group, InboxConsumer inboxConsumer) {
+        private Binding(String group, InboxConsumer inboxConsumer, Set<String> eventTypes) {
             this.group = group;
             this.inboxConsumer = inboxConsumer;
+            this.eventTypes = eventTypes;
             this.redisConsumerName = group + ":" + UUID.randomUUID();
+        }
+
+        private boolean accepts(String eventType) {
+            return eventTypes.contains(eventType);
         }
 
         private String redisConsumerName() {

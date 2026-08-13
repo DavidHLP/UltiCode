@@ -91,4 +91,15 @@ public interface NotificationService {
     NotificationVO createNotificationRowOnly(String userId, String type, String category,
                                               String title, String body, String link,
                                               Map<String, Object> metadata);
+
+    /**
+     * Insert the in-app projection once for a durable source intent.
+     *
+     * <p>The source intent id is used only to derive a stable row id; it is not
+     * copied into the user-visible metadata.
+     */
+    NotificationVO createNotificationRowOnlyIdempotent(String sourceIntentId,
+                                                        String userId, String type, String category,
+                                                        String title, String body, String link,
+                                                        Map<String, Object> metadata);
 }

@@ -11,12 +11,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.util.Map;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceImplTest {
@@ -74,5 +77,33 @@ class NotificationServiceImplTest {
 
         assertThat(result.getId()).isEqualTo("notif-789");
         verify(notificationMapper).insert(any(Notification.class));
+    }
+    @Test
+    @DisplayName("idempotent row-only insert reuses the source intent's deterministic id")
+    void createNotificationRowOnlyIdempotent_reusesStableId() {
+        when(notificationMapper.insertIfAbsent(any(Notification.class))).thenReturn(1);
+
+        var first = notificationService.createNotificationRowOnlyIdempotent(
+                "intent-123", "user-123", "FOLLOW", "COMMUNICATION",
+                "Follow", "alice followed you", "/profile/alice", Map.of());
+        var second = notificationService.createNotificationRowOnlyIdempotent(
+                "intent-123", "user-123", "FOLLOW", "COMMUNICATION",
+                "Follow", "alice followed you", "/profile/alice", Map.of());
+
+        assertThat(second.getId()).isEqualTo(first.getId());
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationMapper, times(2)).insertIfAbsent(captor.capture());
+        assertThat(captor.getAllValues().get(0).getId()).isEqualTo(first.getId());
+        assertThat(captor.getAllValues().get(1).getId()).isEqualTo(first.getId());
+    }
+
+    @Test
+    @DisplayName("idempotent row-only insert rejects a blank source intent id")
+    void createNotificationRowOnlyIdempotent_rejectsBlankIntentId() {
+        assertThatThrownBy(() -> notificationService.createNotificationRowOnlyIdempotent(
+                " ", "user-123", "FOLLOW", "COMMUNICATION",
+                "Follow", "body", "/profile/alice", Map.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Source notification intent id must not be blank");
     }
 }

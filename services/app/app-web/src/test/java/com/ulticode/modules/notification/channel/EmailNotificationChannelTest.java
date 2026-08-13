@@ -1,5 +1,7 @@
 package com.ulticode.modules.notification.channel;
 
+import com.ulticode.modules.email.constants.EmailStatus;
+import com.ulticode.modules.email.dto.EmailLogDTO;
 import com.ulticode.modules.email.dto.SendEmailDTO;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
@@ -15,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,6 +82,21 @@ class EmailNotificationChannelTest {
         verify(emailService).sendEmail(cap.capture());
         assertThat(cap.getValue().getTo()).isEqualTo("user@example.com");
         assertThat(cap.getValue().getTemplateId()).isEqualTo("notification.achievement.earned");
+    }
+
+    @Test
+    void sendThrowsWhenEmailServiceReportsTransportFailure() {
+        EmailNotificationChannel ch = new EmailNotificationChannel(emailService);
+        ch.userEmailPort = userEmailPort;
+        when(userEmailPort.findEmail("user-1")).thenReturn("user@example.com");
+
+        EmailLogDTO failed = new EmailLogDTO();
+        failed.setStatus(EmailStatus.FAILED);
+        when(emailService.sendEmail(any(SendEmailDTO.class))).thenReturn(failed);
+
+        assertThatThrownBy(() -> ch.send(sampleAchievement()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Email transport failed");
     }
 
     private static SubmissionCompletedIntent sampleSubmission() {

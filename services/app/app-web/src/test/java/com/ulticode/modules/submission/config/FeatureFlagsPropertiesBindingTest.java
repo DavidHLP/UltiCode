@@ -56,7 +56,9 @@ class FeatureFlagsPropertiesBindingTest {
     void defaultsWhenOmitted() throws Exception {
         FeatureFlagsProperties props = bind("app:\n  features:\n    use-judge-outbox: false\n");
         assertThat(props.getJudgeQueue().isUsePort()).isFalse();
-        assertThat(props.getJudgeQueue().getEnvelopeVersion()).isEqualTo(1);
+        // Matches both shipped application.ymls' bound default; v1 is only
+        // reachable via an explicit override.
+        assertThat(props.getJudgeQueue().getEnvelopeVersion()).isEqualTo(2);
         assertThat(props.getJudgeQueue().getCutoverAt()).isNull();
     }
 

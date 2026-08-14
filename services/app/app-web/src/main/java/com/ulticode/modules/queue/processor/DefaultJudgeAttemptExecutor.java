@@ -150,7 +150,17 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         if (!acquired) {
             log.debug("Fenced judge: lease not acquired for submission {} gen {} (already moved)",
                     submissionId, generation);
-            releaseIfLeased(port, handle, true, submissionId);
+            // The attempt is still owned elsewhere (the original worker
+            // heartbeats its lease, or the DB-side reaper is recovering).
+            // Do NOT ack: acking would retire the entry from the shared
+            // consumer group's PEL while the first processing is still in
+            // flight — a reaper reclaim of a slow job must not silently
+            // drop the broker-level retry contract. nack leaves the entry
+            // in the PEL: the owner's eventual XACK (same entry id) removes
+            // it, and a superseded entry (generation bumped by DB recovery)
+            // is acked by the stale-generation check above on the next
+            // reclaim.
+            releaseIfLeased(port, handle, false, submissionId);
             return;
         }
 

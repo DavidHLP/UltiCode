@@ -113,13 +113,16 @@ NACOS_AUTH_IDENTITY_VALUE="$nacos_identity_value"
 SPRINGDOC_ENABLED=true
 MEILISEARCH_ENABLED=false
 # Sandbox (D-form) — image must be built locally, see
-# CLAUDE.md § Sandbox Harness. SANDBOX_ENABLED has NO effect on execution
-# (the executor keys off sandbox.executor, default docker); it is a historical
-# placeholder, keep false. SANDBOX_SECCOMP_PROFILE is a repository-root-relative
-# path (no ../). The backend re-roots it by walking up from the JVM working
-# directory, so it resolves identically under mvn spring-boot:run, a packaged
-# jar, and PM2 — a ../ prefix here silently broke every judge call with a
-# masked "Runtime Error" because the JVM cwd drifts per launch mode.
+# CLAUDE.md § Sandbox Harness. Under local PM2 SANDBOX_ENABLED has NO effect
+# on execution (the executor keys off sandbox.executor, default docker); it is
+# a historical placeholder, keep false. The production compose Judge Worker
+# forwards every SANDBOX_* variable and defaults SANDBOX_ENABLED=true, so on
+# the deployment host these are live tuning knobs. SANDBOX_SECCOMP_PROFILE is
+# a repository-root-relative path (no ../). The backend re-roots it by walking
+# up from the JVM working directory, so it resolves identically under mvn
+# spring-boot:run, a packaged jar, and PM2 — a ../ prefix here silently broke
+# every judge call with a masked "Runtime Error" because the JVM cwd drifts
+# per launch mode.
 SANDBOX_ENABLED=false
 SANDBOX_IMAGE=ulticode-sandbox:latest
 SANDBOX_MEMORY=256m
@@ -130,6 +133,9 @@ SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json
 # Production Compose Judge Worker only; local PM2 uses the repository-relative
 # seccomp path above. Set these in the deployment host's .env when applicable.
 SANDBOX_HOST_DIR=/opt/ulticode/sandbox
+# Production Compose Judge Worker only: compose prepends the -Djava.io.tmpdir
+# redirect to this value. Leave empty unless you need extra JVM flags.
+JAVA_TOOL_OPTIONS=
 DOCKER_GID=999
 # Repository-relative backup directory; deployment environments may override
 # BACKUP_DIR with their own relative mount point.

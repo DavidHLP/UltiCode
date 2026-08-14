@@ -60,8 +60,16 @@ public final class JudgeStreamKeys {
     /**
      * Visibility timeout (ms) for the M3c-2 Streams adapter. After this
      * many ms without an {@code XACK}, the unacked reaper will
-     * {@code XCLAIM} the entry. Defaults to 60s &mdash; same cadence as
-     * {@code LeaseConstants#LEASE_TTL_SECONDS}.
+     * {@code XCLAIM} the entry.
+     *
+     * <p>Must exceed the worst-case in-flight judge duration (sandbox hard
+     * timeout is capped at {@code MAX_BATCH_HARD_TIMEOUT_SECONDS=180s} plus
+     * compile budget and scheduling slack). 30 minutes keeps slow jobs owned
+     * by their original worker; crash recovery is handled in seconds by the
+     * DB-side {@code JudgingLeaseReaper} (generation bump + fresh outbox
+     * row), so the stream reaper only serves as the final backstop and PEL
+     * sweeper. Also drives the dedup-key TTL ({@code visibility x 5}) in
+     * {@code RedissonStreamsJudgeQueueAdapter#enqueue}.
      */
-    public static final long JUDGE_STREAM_VISIBILITY_TIMEOUT_MS = 60_000L;
+    public static final long JUDGE_STREAM_VISIBILITY_TIMEOUT_MS = 1_800_000L;
 }

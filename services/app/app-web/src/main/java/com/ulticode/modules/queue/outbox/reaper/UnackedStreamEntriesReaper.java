@@ -3,6 +3,7 @@ package com.ulticode.modules.queue.outbox.reaper;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
 import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
+import com.ulticode.modules.queue.redis.JudgeStreamKeys;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,8 +42,11 @@ import org.springframework.stereotype.Component;
         "'${app.runtime.role:api}' == 'judge'")
 public class UnackedStreamEntriesReaper {
 
-    /** Reaper sweep cadence. 10s is the ADR-003 §2.6 default. */
-    private static final long VISIBILITY_TIMEOUT_MS = 60_000L;
+    /**
+     * Reaper sweep cadence. 10s is the ADR-003 §2.6 default. The reclaim
+     * threshold reuses {@link JudgeStreamKeys#JUDGE_STREAM_VISIBILITY_TIMEOUT_MS}
+     * so it cannot drift from the adapter's dedup TTL and poll semantics.
+     */
 
     private final RedissonStreamsJudgeQueueAdapter streamsAdapter;
     /**
@@ -68,7 +72,7 @@ public class UnackedStreamEntriesReaper {
         // so we don't race a slow worker.
         try {
             java.util.Optional<JudgeJobHandle> reclaimed =
-                    streamsAdapter.claimIdle(VISIBILITY_TIMEOUT_MS);
+                    streamsAdapter.claimIdle(JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS);
             if (reclaimed.isEmpty()) {
                 return;
             }
@@ -76,7 +80,7 @@ public class UnackedStreamEntriesReaper {
             log.info("Unacked Streams reaper reclaimed submission={} gen={} (idle >= {}ms)",
                     handle.envelope().submissionId(),
                     handle.envelope().generation(),
-                    VISIBILITY_TIMEOUT_MS);
+                    JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS);
             // codex P1 #3 fix: route the reclaimed handle to the worker
             // for fenced processing + ack. Without this, the reclaimed
             // entry sits in the PEL and is never consumed (worker's

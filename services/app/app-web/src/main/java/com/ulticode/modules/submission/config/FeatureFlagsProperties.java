@@ -89,12 +89,15 @@ public class FeatureFlagsProperties {
     private boolean usePort = false;
 
     /**
-     * Envelope version the port writes. {@code 1} (default) = legacy fields
-     * only; {@code 2} = adds {@code generation}/{@code attemptId} for the
-     * fence-CAS write path. Bumping to {@code 2} is the M3c-3 cutover for
-     * fence-aware dispatches.
+     * Envelope version the port writes. {@code 2} (default, matching both
+     * shipped application.ymls' {@code APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION}
+     * default) = adds {@code generation}/{@code attemptId} for the
+     * fence-CAS write path. {@code 1} = legacy fields only, reachable only
+     * via an explicit override; the dispatcher
+     * ({@code JudgeOutboxDispatcher.toEnvelope}) hard-codes v2 and ignores
+     * this flag until ADR-005 §2.4 consumes it.
      */
-    private int envelopeVersion = 1;
+    private int envelopeVersion = 2;
 
     /**
      * F13 cutover watermark (ISO-8601 date-time). When set, only outbox rows

@@ -217,7 +217,7 @@ UltiCode/
 | 领域 | 技术 |
 |------|------|
 | 容器 | Docker Compose v2 · 非 root 用户 (`appuser:appgroup`) · 多阶段构建 |
-| 进程管理 | PM2（6 个长生命周期 + 1 个一次性 Flyway 任务） |
+| 进程管理 | PM2（6 个长生命周期 app：auth · admin · app · judge · console · management） |
 | 运行时诊断 | Arthas 4.2.2 · STATELESS MCP（端口 8563） |
 | 服务发现 / 配置 | Nacos 2.3.2 |
 | CI/CD | GitHub Actions（路径触发） · CD 滚动发布与回滚 |
@@ -422,6 +422,8 @@ sudo install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json "$SANDBOX_HOST_
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-app backend-judge
 ```
 
+> 部署主机 `.env` 必须设 `SANDBOX_ENABLED=true`（本地开发默认 `false` 的占位值会传入容器并禁用沙箱执行，所有判题将退化且无报错）。Worker 镜像固定以 uid/gid 1000 运行，与上面 `-o 1000 -g 1000` 的 workspace 属主及沙箱子容器的 `--user 1000:1000` 一致。
+
 `SANDBOX_HOST_DIR` 必须是宿主机绝对路径，并在 Worker 容器内使用同一路径；否则 Docker daemon 无法看到 Worker 创建的作业目录。Docker socket 等同宿主机 Docker 管理权限，只应授予专用部署主机。
 
 ```bash
@@ -544,7 +546,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 
 > **pm2 env 缓存陷阱**：`pm2 restart --update-env` 不会重读 `.env`。
 > 改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
-> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-judge && pm2 start ecosystem.config.cjs --only auth,admin,app,judge`
+> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-judge && pm2 start ecosystem.config.cjs --only ulticode-auth,ulticode-admin,ulticode-app,ulticode-judge`
 
 ---
 

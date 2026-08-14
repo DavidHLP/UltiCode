@@ -70,6 +70,19 @@ jobs:
                -v \$(pwd)/init-db/migrations:/flyway/sql:ro \
                flyway/flyway:10.17.0 -connectRetries=10 migrate"
 
+      - name: Provision sandbox prerequisites on host
+        # The judge worker healthcheck requires the sandbox image and seccomp
+        # profile to exist on the host; without this step a fresh host would
+        # fail the whole deploy (and unrelated rollbacks) with no hint.
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
+                    export SANDBOX_HOST_DIR=\"\${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}\" && \
+                    sudo -n install -d -o 1000 -g 1000 \"\$SANDBOX_HOST_DIR/workspace\" && \
+                    sudo -n install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && \
+                    docker/sandbox/harness/build.sh && \
+                    echo 'sandbox prerequisites ready'"
+
       - name: Pull and deploy services
         run: |
           SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"

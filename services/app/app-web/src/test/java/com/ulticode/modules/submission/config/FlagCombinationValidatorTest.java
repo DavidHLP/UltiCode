@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.config;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
@@ -17,7 +18,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class FlagCombinationValidatorTest {
 
     private FlagCombinationValidator validator(FeatureFlagsProperties flags) {
-        return new FlagCombinationValidator(flags);
+        FlagCombinationValidator validator = new FlagCombinationValidator(flags);
+        // The runtime role is @Value-injected in production; default to the
+        // api runtime here so F1/F2/W1/W2 tests are not affected by F3.
+        ReflectionTestUtils.setField(validator, "runtimeRole", "api");
+        return validator;
     }
 
     private FeatureFlagsProperties flags(boolean usePort, boolean useJudgeOutbox,
@@ -84,5 +89,28 @@ class FlagCombinationValidatorTest {
     void w2FutureCutoverPasses() {
         FeatureFlagsProperties f = flags(true, true, true, 2, LocalDateTime.now().plusDays(1));
         assertThatCode(() -> validator(f).validate()).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("F3: unrecognized app.runtime.role fails fast (worker/reaper silently unregistered)")
+    void f3ThrowsOnUnknownRole() {
+        FeatureFlagsProperties f = flags(true, true, true, 2, null);
+        FlagCombinationValidator v = validator(f);
+        ReflectionTestUtils.setField(v, "runtimeRole", "judge-typo");
+        assertThatThrownBy(v::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("app.runtime.role")
+                .hasMessageContaining("judge-typo");
+    }
+
+    @Test
+    @DisplayName("F3: api and judge roles both pass")
+    void f3AcceptsApiAndJudgeRoles() {
+        FeatureFlagsProperties f = flags(true, true, true, 2, null);
+        FlagCombinationValidator api = validator(f);
+        assertThatCode(api::validate).doesNotThrowAnyException();
+        FlagCombinationValidator judge = validator(f);
+        ReflectionTestUtils.setField(judge, "runtimeRole", "judge");
+        assertThatCode(judge::validate).doesNotThrowAnyException();
     }
 }

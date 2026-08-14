@@ -181,6 +181,12 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         job.setUserId(envelope.userId());
         job.setLanguage(envelope.language());
         job.setCode(envelope.code());
+        // The envelope is the only per-dispatch source for the limits (the
+        // outbox payload carries them); without this the rebuilt job keeps
+        // JudgeJob's hard-coded defaults and the v2 contract fields are
+        // silently discarded at the consumer boundary.
+        job.setTimeLimitMs(envelope.timeLimitMs());
+        job.setMemoryLimitKb(envelope.memoryLimitKb());
         attemptExecutor.runAttempt(job, port, handle);
     }
 

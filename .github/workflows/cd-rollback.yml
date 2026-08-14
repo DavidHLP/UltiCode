@@ -76,6 +76,18 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Provision sandbox prerequisites on host
+        # Idempotent; keeps rollback from failing on hosts without the sandbox
+        # image/profile (the judge healthcheck depends on them).
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
+                    export SANDBOX_HOST_DIR=\"\${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}\" && \
+                    sudo -n install -d -o 1000 -g 1000 \"\$SANDBOX_HOST_DIR/workspace\" && \
+                    sudo -n install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && \
+                    docker/sandbox/harness/build.sh && \
+                    echo 'sandbox prerequisites ready'"
+
       - name: Pull and deploy services
         run: |
           SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"

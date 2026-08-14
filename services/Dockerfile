@@ -20,7 +20,7 @@ COPY services/ ./services/
 
 WORKDIR /app/services
 
-RUN chmod +x ./mvnw \
+RUN --mount=type=cache,target=/root/.m2 chmod +x ./mvnw \
     && ./mvnw -pl "${SERVICE_MODULE}" -am -B -DskipTests package \
     && cp "${SERVICE_MODULE}/target/${SERVICE_ARTIFACT}" /app/service.jar
 
@@ -38,7 +38,12 @@ RUN apk add --no-cache curl \
 
 COPY --from=builder /app/service.jar ./app.jar
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Pin the runtime user to uid/gid 1000: the judge worker (a) writes the
+# shared sandbox workspace provisioned on the Docker host for uid 1000
+# (README § Docker) and (b) launches sandbox child containers with
+# `--user 1000:1000` that mount the per-run job dir read-only — the dir is
+# created 0700 by the worker, so worker and sandbox user must be identical.
+RUN addgroup -S -g 1000 appgroup && adduser -S -u 1000 -G appgroup appuser
 USER appuser
 
 ENV SERVER_PORT=${SERVICE_PORT}
@@ -47,7 +52,7 @@ ENV SERVICE_HEALTHCHECK=${SERVICE_HEALTHCHECK}
 EXPOSE ${SERVICE_PORT}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD-SHELL if [ "${SERVICE_HEALTHCHECK}" != "true" ]; then exit 0; fi; \
-    curl -fsS "http://localhost:${SERVER_PORT}${HEALTH_PATH}" >/dev/null || exit 1
+    CMD if [ "${SERVICE_HEALTHCHECK}" != "true" ]; then exit 0; fi; \
+        curl -fsS "http://localhost:${SERVER_PORT}${HEALTH_PATH}" >/dev/null || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

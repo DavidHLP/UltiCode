@@ -347,9 +347,21 @@ check_port() {
 }
 
 check_pm2_online() {
-  local app="$1" pid
-  pid="$(pm2 pid "$app" 2>/dev/null | tr -d '[:space:]')"
-  [[ "$pid" =~ ^[1-9][0-9]*$ ]]
+  local app="$1" jlist status restarts log
+  jlist="$(pm2 jlist 2>/dev/null)" || return 1
+  # pm2 jlist is compact JSON; grab this app's object up to the first '}'.
+  local match
+  match="$(printf '%s' "$jlist" | grep -o "\"name\":\"${app}\"[^}]*" | head -1)"
+  # 只认 online 状态: crash-loop 期间 pid 存在但 status 会周期性离开 online。
+  status="$(printf '%s' "$match" | grep -o '"status":"[a-z]*"' | head -1 | cut -d'"' -f4)"
+  [[ "$status" == "online" ]] || return 1
+  # 重启次数持续增长 = crash-loop, 即使瞬间 online 也不算就绪。
+  restarts="$(printf '%s' "$match" | grep -o '"restart_time":[0-9]*' | head -1 | cut -d: -f2)"
+  [[ "${restarts:-0}" -lt 5 ]] || return 1
+  # Judge Worker 无 HTTP 端点, 以 Spring 启动完成 banner 为准
+  # (pid/status 在 JVM 完全起来之前就可能就位)。
+  log="$HOME/.pm2/logs/${app}-out.log"
+  grep -q "Started BackendJudgeApplication" "$log" 2>/dev/null
 }
 
 apps_csv=",$PM2_APPS,"

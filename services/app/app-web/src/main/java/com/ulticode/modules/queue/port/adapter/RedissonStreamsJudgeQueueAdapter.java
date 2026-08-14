@@ -70,6 +70,17 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     @PostConstruct
     public void ensureGroup() {
         RStream<String, String> stream = redissonClient.getStream(streamKey);
+        if (!stream.isExists()) {
+            // Redisson 4.3.1's StreamCreateGroupArgs has no MKSTREAM flag and
+            // XGROUP CREATE fails with "no such key" before the first dispatch
+            // created the stream (fresh deploy). Bootstrap the key with a
+            // no-op entry, then delete it — the empty stream key stays alive,
+            // so the group creation below succeeds.
+            StreamMessageId noop = stream.add(
+                    org.redisson.api.stream.StreamAddArgs.entry("__noop", "1"));
+            stream.remove(noop);
+            log.info("Bootstrapped empty stream {} for consumer group creation", streamKey);
+        }
         List<StreamGroup> groups = stream.listGroups();
         boolean exists = groups.stream().anyMatch(g -> groupName.equals(g.getName()));
         if (!exists) {
@@ -212,19 +223,20 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
         if (stream.getPendingInfo(groupName).getTotal() == 0) {
             return Optional.empty();
         }
-        // List a window of pending entries; filter by idle time; claim the
-        // oldest one to this consumer; read it back via the PEL (id "0"
-        // relative to this consumer).
+        // List pending entries idle longer than minIdleMs (XPENDING IDLE
+        // filter), oldest first. Filtering by idle time — instead of
+        // inspecting only the single oldest entry — prevents a recently
+        // re-claimed entry with the oldest ID from starving genuinely stale
+        // entries behind it (each XCLAIM resets the idle clock on the entry
+        // it touches).
         List<PendingEntry> pending = stream.listPending(
                 groupName,
-                StreamMessageId.MIN, StreamMessageId.MAX, 1);
+                StreamMessageId.MIN, StreamMessageId.MAX,
+                minIdleMs, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
         if (pending.isEmpty()) {
             return Optional.empty();
         }
         PendingEntry first = pending.get(0);
-        if (first.getIdleTime() < minIdleMs) {
-            return Optional.empty();
-        }
         // XCLAIM moves ownership. The claimed entries are returned in the
         // map; we use the first one and return it to the worker for
         // processing and eventual ack.

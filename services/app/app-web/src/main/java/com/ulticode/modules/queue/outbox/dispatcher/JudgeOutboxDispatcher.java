@@ -16,9 +16,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -115,30 +118,61 @@ public class JudgeOutboxDispatcher {
      * present here after a Streams rollback or a partial cutover; replay it
      * through the legacy port before marking it SENT so rollback cannot lose
      * a job.
+     *
+     * <p>The legacy {@code RQueue} enqueue is deferred to
+     * {@code afterCommit} (matching {@code JudgingLeaseReaper} and
+     * {@code DefaultRejudgePolicy}): the enqueue is a Redis side-effect that
+     * cannot be rolled back with the DB transaction, so doing it inside the
+     * sweep transaction would duplicate the judge job whenever a later
+     * statement (e.g. {@code markSent}) failed and the transaction rolled
+     * back. An {@code afterCommit} enqueue failure is logged at ERROR — the
+     * row is already SENT and ops must replay it manually, mirroring the
+     * shadow rows' delivery contract.
      */
     private void dispatchShadow() {
         List<JudgeOutboxRecord> claimed = judgeOutboxMapper.claim(CLAIM_BATCH_SIZE);
         if (claimed.isEmpty()) {
             return;
         }
+        List<JudgeOutboxRecord> toReplay = new ArrayList<>(claimed.size());
         for (JudgeOutboxRecord row : claimed) {
-            try {
-                incrementRowsObserved();
-                if (Boolean.TRUE.equals(row.getIsShadow())) {
-                    log.debug("Outbox shadow-observed row: submission={}, generation={}",
-                            row.getSubmissionId(), row.getGeneration());
-                } else {
-                    replayLegacy(row);
-                    log.info("Replayed non-shadow outbox row to legacy queue: submission={}, generation={}",
-                            row.getSubmissionId(), row.getGeneration());
-                }
-                judgeOutboxMapper.markSent(row.getId());
-            } catch (Exception e) {
-                LocalDateTime nextRetry = LocalDateTime.now(clock).plusSeconds(backoffSeconds(row));
-                judgeOutboxMapper.markRetry(row.getId(), nextRetry, truncate(e.getMessage()));
-                log.warn("Legacy outbox replay failed for submission={} gen={}: {}",
-                        row.getSubmissionId(), row.getGeneration(), e.getMessage());
+            incrementRowsObserved();
+            if (Boolean.TRUE.equals(row.getIsShadow())) {
+                log.debug("Outbox shadow-observed row: submission={}, generation={}",
+                        row.getSubmissionId(), row.getGeneration());
+            } else {
+                toReplay.add(row);
             }
+            judgeOutboxMapper.markSent(row.getId());
+        }
+        if (!toReplay.isEmpty()) {
+            boolean replayDeferred =
+                    TransactionSynchronizationManager.isSynchronizationActive();
+            for (JudgeOutboxRecord row : toReplay) {
+                if (replayDeferred) {
+                    TransactionSynchronizationManager.registerSynchronization(
+                            new TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                    replayLegacySafely(row);
+                                }
+                            });
+                } else {
+                    replayLegacySafely(row);
+                }
+            }
+        }
+    }
+
+    private void replayLegacySafely(JudgeOutboxRecord row) {
+        try {
+            replayLegacy(row);
+            log.info("Replayed non-shadow outbox row to legacy queue: submission={}, generation={}",
+                    row.getSubmissionId(), row.getGeneration());
+        } catch (Exception e) {
+            log.error("Post-commit legacy replay FAILED for submission={} gen={} (row is SENT; "
+                            + "manual replay required to avoid a lost judge job): {}",
+                    row.getSubmissionId(), row.getGeneration(), e.getMessage());
         }
     }
 

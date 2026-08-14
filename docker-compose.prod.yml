@@ -234,10 +234,18 @@ services:
       - JUDGE_SERVER_PORT=9104
       - JUDGE_DUBBO_PORT=20884
       - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
-      - SANDBOX_ENABLED=true
+      - SANDBOX_ENABLED=${SANDBOX_ENABLED:-true}
       - SANDBOX_IMAGE=${SANDBOX_IMAGE:-ulticode-sandbox:latest}
-      - SANDBOX_SECCOMP_PROFILE=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json
-      - JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/workspace
+      - SANDBOX_MEMORY=${SANDBOX_MEMORY:-256m}
+      - SANDBOX_CPUS=${SANDBOX_CPUS:-1.0}
+      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-10}
+      - SANDBOX_PIDS_LIMIT=${SANDBOX_PIDS_LIMIT:-128}
+      # Operator-set profile wins; otherwise derive from the shared host dir.
+      - SANDBOX_SECCOMP_PROFILE=${SANDBOX_SECCOMP_PROFILE:-${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json}
+      # Redirect the JVM temp dir into the shared workspace so per-run sandbox
+      # job dirs are visible to the host daemon. Operator JVM options from the
+      # deployment .env are appended, not clobbered.
+      - JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/workspace ${JAVA_TOOL_OPTIONS:-}
     depends_on:
       backend-app:
         condition: service_healthy

@@ -91,7 +91,9 @@ class DefaultJudgeAttemptExecutorTest {
                 uuidGenerator);
         setHeartbeatExecutor();
         lenient().when(uuidGenerator.newId()).thenReturn("attempt-1");
-        when(featureFlags.isUseGenerationFence()).thenReturn(true);
+        // Envelope-fence runs short-circuit the flag check, so the stub is
+        // unused in those tests — keep it lenient.
+        lenient().when(featureFlags.isUseGenerationFence()).thenReturn(true);
         lenient().when(submissionFencePort.currentGeneration("submission-1")).thenReturn(Optional.of(3L));
         lenient().when(submissionFencePort.acquireLease("submission-1", "attempt-1", 3L, 60L))
                 .thenReturn(true);
@@ -199,6 +201,25 @@ class DefaultJudgeAttemptExecutorTest {
         verify(executionPipeline, never()).execute(any(), any(), anyLong(), any(), any());
         verify(submissionWritePort, never()).updateSubmissionResultFenced(
                 any(), any(), anyInt(), any(), any(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("rejected lease on a stream handle nacks instead of acking (owner still in flight)")
+    void rejectedLeaseNacksHandleInsteadOfAcking() throws Exception {
+        // The entry's original worker may still be heartbeating (reaper
+        // reclaimed a slow job). Acking would retire it from the shared PEL
+        // while the first processing is in flight; nack keeps it retryable.
+        when(submissionFencePort.acquireLease("submission-1", "attempt-1", 3L, 60L)).thenReturn(false);
+        JudgeJobEnvelope envelope = new JudgeJobEnvelope(
+                JudgeJobEnvelope.VERSION_2, "outbox-1", "submission-1", "100", "user-1",
+                "java", "class Main {}", 2000, 262144, 3L, "attempt-1");
+        JudgeJobHandle handle = new JudgeJobHandle(envelope, "ack-token");
+
+        executor.runAttempt(job(), judgeQueue, handle);
+
+        verify(executionPipeline, never()).execute(any(), any(), anyLong(), any(), any());
+        verify(judgeQueue, never()).ack(any(JudgeJobHandle.class));
+        verify(judgeQueue).nack(eq(handle), any(String.class));
     }
 
     @Test

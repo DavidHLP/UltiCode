@@ -131,6 +131,28 @@ class JudgeWorkerProcessorTest {
         assertThat(reconstructed.getUserId()).isEqualTo("user-2");
         assertThat(reconstructed.getLanguage()).isEqualTo("java");
         assertThat(reconstructed.getCode()).isEqualTo("class Solution {}");
+        // Envelope is the only per-dispatch limit source; a regression here
+        // silently falls back to JudgeJob's hard-coded defaults.
+        assertThat(reconstructed.getTimeLimitMs()).isEqualTo(2000);
+        assertThat(reconstructed.getMemoryLimitKb()).isEqualTo(262144);
+    }
+
+    @Test
+    @DisplayName("reclaimed handle routes through the same fenced processing path")
+    void processReclaimedHandleDelegates() {
+        JudgeJobEnvelope envelope = new JudgeJobEnvelope(
+                JudgeJobEnvelope.VERSION_2, "outbox-9", "submission-9", "100", "user-9",
+                "java", "class Reclaimed {}", 1500, 131072, 4L, "attempt-9");
+        JudgeJobHandle handle = new JudgeJobHandle(envelope, "ack-token");
+
+        processor.processReclaimedHandle(judgeQueue, handle);
+
+        ArgumentCaptor<JudgeJob> jobCaptor = ArgumentCaptor.forClass(JudgeJob.class);
+        verify(attemptExecutor).runAttempt(jobCaptor.capture(), same(judgeQueue), same(handle));
+        JudgeJob job = jobCaptor.getValue();
+        assertThat(job.getSubmissionId()).isEqualTo("submission-9");
+        assertThat(job.getTimeLimitMs()).isEqualTo(1500);
+        assertThat(job.getMemoryLimitKb()).isEqualTo(131072);
     }
 
     @Test

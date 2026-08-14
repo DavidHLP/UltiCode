@@ -17,6 +17,7 @@ import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
 import com.ulticode.modules.queue.service.impl.QueueServiceImpl;
 import com.ulticode.modules.submission.config.DockerSandboxConfigRegistrar;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.config.FlagCombinationValidator;
 import com.ulticode.modules.submission.config.JudgeSourceProperties;
 import com.ulticode.modules.submission.port.DefaultJudgeFeatureFlagsPort;
 import com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport;
@@ -49,6 +50,7 @@ import org.springframework.context.annotation.Import;
         CommonUuidGeneratorAdapter.class,
         DockerSandboxConfigRegistrar.class,
         FeatureFlagsProperties.class,
+        FlagCombinationValidator.class,
         JudgeSourceProperties.class,
         QueueConfig.class,
         QueueServiceImpl.class,

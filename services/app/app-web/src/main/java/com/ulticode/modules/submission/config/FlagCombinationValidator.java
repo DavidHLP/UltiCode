@@ -28,9 +28,17 @@ import java.time.LocalDateTime;
  *       polls the port (flag-on) — a split that strands submissions Pending
  *       forever.</li>
  *   <li><b>F2 (hard fail)</b> {@code judge-queue.use-port=true} AND
- *       {@code use-generation-fence=false}: rejudge and lease-recovery paths
- *       do not write generation-aware outbox rows in that mode, while the
- *       cutover adapter intentionally skips the legacy RQueue.</li>
+ *       {@code use-generation-fence=false}: with the fence off, rejudge and
+ *       lease-recovery fall back to the legacy producer path, which calls
+ *       {@code JudgeEnqueuePort}; the cutover adapter
+ *       ({@code JudgeEnqueueAdapter}) intentionally skips the legacy RQueue
+ *       once the Streams outbox is active, so the job is silently lost and
+ *       the submission strands Pending forever.</li>
+ *   <li><b>F3 (hard fail)</b> {@code app.runtime.role} is not one of
+ *       {@code api} / {@code judge}: the worker and reaper beans are
+ *       registered via {@code @ConditionalOnExpression} on that property, so
+ *       a typo would start a runtime with no consumer and submissions would
+ *       stall without any startup error.</li>
  *   <li><b>W1 (soft warn)</b> {@code judge-queue.use-port=true} AND
  *       {@code judge-queue.envelope-version=1}: the dispatcher
  *       ({@code JudgeOutboxDispatcher.toEnvelope}) currently hard-codes
@@ -56,6 +64,9 @@ public class FlagCombinationValidator {
 
     private final FeatureFlagsProperties flags;
 
+    @org.springframework.beans.factory.annotation.Value("${app.runtime.role:api}")
+    private String runtimeRole;
+
     @EventListener(ApplicationReadyEvent.class)
     public void validate() {
         FeatureFlagsProperties.JudgeQueue jq = flags.getJudgeQueue();
@@ -68,13 +79,26 @@ public class FlagCombinationValidator {
                             + "dispatcher's downstream; without the outbox there is no producer).");
         }
 
-        // F2 (hard fail): rejudge/reaper need the generation-aware outbox when
-        // the legacy enqueue adapter is disabled by the Streams cutover.
+        // F2 (hard fail): with the fence off, rejudge/lease-recovery call the
+        // legacy enqueue port, which the cutover adapter skips once the
+        // Streams outbox is active — the job is silently lost.
         if (jq.isUsePort() && !flags.isUseGenerationFence()) {
             throw new IllegalStateException(
                     "Invalid feature flag combination: app.features.judge-queue.use-port=true "
-                            + "requires app.features.use-generation-fence=true (rejudge and "
-                            + "lease-recovery must write generation-aware outbox rows).");
+                            + "requires app.features.use-generation-fence=true (without the fence, "
+                            + "rejudge and lease-recovery go through JudgeEnqueuePort, which the "
+                            + "cutover adapter skips when the Streams outbox is active — the job "
+                            + "would be silently lost).");
+        }
+
+        // F3 (hard fail): an unrecognized runtime role would register neither
+        // the worker nor the reaper (both are role-gated), stalling every
+        // submission with no startup error.
+        if (!"api".equals(runtimeRole) && !"judge".equals(runtimeRole)) {
+            throw new IllegalStateException(
+                    "Invalid app.runtime.role='" + runtimeRole
+                            + "'; expected 'api' or 'judge' (the role gates the judge worker "
+                            + "and Streams reaper bean registration).");
         }
 
         // W1 (soft warn): envelope-version=1 with port on is a config lie —

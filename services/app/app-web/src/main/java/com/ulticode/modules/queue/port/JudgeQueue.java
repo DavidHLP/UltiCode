@@ -6,13 +6,12 @@ import java.util.Optional;
  * Port for the judge job queue (ADR-003 §2.4 M3c, hex-arch template
  * adapted from ADR-002 {@code SandboxExecutor}).
  *
- * <p>M3c-1 introduces the interface and the envelope type; concrete adapters
- * (Redisson Streams with consumer group + ack, InMemory for tests) are
- * delivered in M3c-2. Workers call {@link #poll} for the next available
- * job and {@link #ack} / {@link #nack} to commit or reject. The legacy
- * {@code QueueService.enqueueJudgeJob(RQueue.add)} path is not behind this
- * port yet — that switch is the M3c cutover, gated by
- * {@code app.features.judge-queue.use-port} (default {@code false}).
+ * <p>The production adapter is Redis Streams with consumer group + ack;
+ * InMemory remains available for tests. Workers call {@link #poll} for the
+ * next available job and {@link #ack} / {@link #nack} to commit or reject.
+ * The legacy {@code QueueService.enqueueJudgeJob(RQueue.add)} path remains a
+ * compatibility rollback path, gated by {@code app.features.judge-queue.use-port}
+ * (default {@code false}).
  *
  * <p><b>Idempotency contract</b>: {@link #enqueue} must be a noop on repeat
  * {@code (submissionId, generation)} — never a duplicate dispatch. Adapters

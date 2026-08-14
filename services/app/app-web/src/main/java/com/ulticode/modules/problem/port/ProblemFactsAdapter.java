@@ -25,6 +25,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
+@org.springframework.context.annotation.Primary
 @RequiredArgsConstructor
 public class ProblemFactsAdapter implements ProblemFactsPort {
 

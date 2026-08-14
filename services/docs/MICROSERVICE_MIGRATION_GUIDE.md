@@ -1,6 +1,6 @@
 # UltiCode 后端微服务化迁移指导
 
-> 本文只做架构调查与迁移设计，不实施拆分。代码、`init-db/migrations/`、运行配置和 Compose 是现状真源；文中所有“目标态”均需通过后续独立变更落地。文内行号用于调查快照定位，后续维护应以文件路径和符号名为准。
+> 本文保留迁移调查与决策依据；代码、`init-db/migrations/`、运行配置和 Compose 是现状真源。`backend-judge` 的独立运行时已按本文边界落地，其他“目标态”仍需以后续变更推进。文内行号用于调查快照定位，后续维护应以文件路径和符号名为准。
 > 历史快照说明：第 1 节和第 2.1–2.3 节保留迁移启动时的单体架构快照；
 > 其中的 `backend-spring` 相对源码路径不代表当前 owner 服务入口。第 10 节、
 > Appendix A 及其他明确标注的 source link 按当前 repository-root owner
@@ -22,13 +22,14 @@
 
 ### 1.2 推荐目标
 
-最终保留三个粗粒度服务：
+最终保留三个数据 Owner 服务，另设一个不拥有业务表的判题执行运行时：
 
 - **`backend-auth`**：账号、凭证、OAuth identity、JWT、refresh session、账号状态和 RBAC；不拥有用户画像、题目、竞赛或运营数据。
 - **`backend-admin`**：管理端 BFF、审核治理、审计、系统配置、监控和备份；“能管理某数据”不等于“拥有该数据”。题目、竞赛、投稿等管理命令仍由其业务 Owner 执行。
 - **`backend-app`**：在线判题核心和普通用户业务，包括用户画像、题目、提交/判题、竞赛、题解、论坛、互动、通知、搜索、WebSocket 等。首轮迁移刻意保持为一个较大的业务服务，避免过早继续拆分。
+- **`backend-judge`**：独立判题 Worker；消费 App 写入的 Redis Streams，沙箱执行后通过 `backend-app-api` 的 Dubbo port 回写 verdict。它不拥有 Submission/Problem/TestCase 表，App 仍是唯一数据 Owner。
 
-核心内部同步 RPC 使用 **Apache Dubbo 3**；注册发现使用仓库已部署但尚未被后端使用的 **Nacos**。外部 HTTP/WS 先由 **Nginx 逻辑 Gateway** 路由，暂不引入 Spring Cloud Gateway/Higress。数据先保持同一 MySQL 实例，按 Owner 收敛写入口和账号权限，再逐步分 schema/database；不一次性物理拆库。
+核心内部同步 RPC 使用 **Apache Dubbo 3**；注册发现使用 **Nacos**。外部 HTTP/WS 先由 **Nginx 逻辑 Gateway** 路由，暂不引入 Spring Cloud Gateway/Higress。数据先保持同一 MySQL 实例，按 Owner 收敛写入口和账号权限，再逐步分 schema/database；不一次性物理拆库。
 
 ### 1.3 总体迁移策略
 
@@ -186,10 +187,12 @@ flowchart TB
     AUTH -->|注册/发现| NACOS[Nacos Registry]
     ADMIN -->|注册/发现| NACOS
     APP -->|注册/发现| NACOS
+    JUDGE[backend-judge] -->|注册/发现| NACOS
 
     AUTH --> R[(Redis，按服务 key namespace)]
     ADMIN --> R
     APP --> R
+    JUDGE --> R
 
     AUTH -.->|Outbox events| BUS[Redis Streams；后期按准入条件换 RocketMQ]
     ADMIN -.->|Outbox events| BUS
@@ -198,7 +201,10 @@ flowchart TB
     BUS -.->|Inbox/idempotent consume| ADMIN
     BUS -.->|Inbox/idempotent consume| APP
 
-    APP --> SANDBOX[Docker Judge Sandbox]
+    APP -->|Redis Streams judge queue| JQ[(judge stream)]
+    JQ --> JUDGE
+    JUDGE -->|Dubbo facts / fence / verdict ports| APP
+    JUDGE --> SANDBOX[Docker Judge Sandbox]
     APP -.-> MEILI[MeiliSearch]
     AUTH -.-> SMTP[SMTP: security mail]
     APP -.-> SMTP
@@ -273,18 +279,31 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 | 项 | 定义 |
 |---|---|
-| Responsibility | 普通用户 profile、题目、题单、题解、论坛、提交/判题、竞赛、互动、成就、订阅、通知、搜索、WebSocket/实时排名、文件/头像 |
-| Owned Domain | UserProfile、Problem、Submission/Judge Dispatch、Contest、Solution、Forum、Engagement、Achievement、Subscription、Notification、Search Index、Realtime |
+| Responsibility | 普通用户 profile、题目、题单、题解、论坛、提交 intake/判题 dispatch、竞赛、互动、成就、订阅、通知、搜索、WebSocket/实时排名、文件/头像 |
+| Owned Domain | UserProfile、Problem、Submission/Judge Dispatch、Contest、Solution、Forum、Engagement、Achievement、Subscription、Notification、Search Index、Realtime；不包含 Judge 执行进程 |
 | Owned Tables | 除 Auth/Admin 明确列出的表外，现有 OJ/内容/互动/通知表均归 App；详见 §5 |
 | Exposed HTTP API | `/users` profile、`/problems`、`/submissions`、`/contest`、`/solutions`、`/forum`、`/problem-lists`、`/bookmarks`、`/vote`、`/notifications`、`/search`、`/i18n` read 等；WebSocket `/ws/**` |
-| Dubbo Provider | `ProblemAdministrationService`、`ContestAdministrationService`、`SubmissionAdministrationService`、`ContentModerationService`、批量管理查询 Contract |
+| Dubbo Provider | `ProblemAdministrationService`、`ContestAdministrationService`、`SubmissionAdministrationService`、`ContentModerationService`、批量管理查询 Contract，以及 Judge 的 `ProblemFactsPort`/case reads/`SubmissionWritePort`/`SubmissionFencePort` |
 | Dubbo Consumer | Auth identity snapshot 仅用于 cache miss、高风险状态或批量补偿；正常 HTTP 只本地验 JWT；不调用 Admin |
 | Events | `ProfileUpdated`、`SubmissionCreated/Judged`、`ContestRated`、`FollowCreated`、`AchievementEarned`、`NotificationIntentCreated`、`SearchDocumentChanged` 等 |
-| External Dependencies | App MySQL、Redis queue/cache/lock、Docker sandbox、可选 MeiliSearch、SMTP、对象存储（中期）、Nacos、Prometheus/OTel |
+| External Dependencies | App MySQL、Redis queue/cache/lock、可选 MeiliSearch、SMTP、对象存储（中期）、Nacos、Prometheus/OTel |
 
-Judge Worker 和 Realtime 初期是 `backend-app` 内的独立 package/profile，可按同一 artifact 的 `api`/`worker` 运行角色独立扩容，但不成为新的数据 Owner 或第四个逻辑服务。
+### 4.4 `backend-judge`
 
-### 4.4 身份模型裁决
+| 项 | 定义 |
+|---|---|
+| Responsibility | 消费 Redis Streams judge queue，读取 App-owned facts/test cases，执行 Docker sandbox，调用 App-owned verdict/fence port |
+| Owned Domain | 无业务表；仅拥有 Worker 运行状态、Streams consumer identity 和进程级指标 |
+| Dubbo Consumer | `ProblemFactsPort`、`ProblemJudgingCaseReadPort`、`ProblemExampleReadPort`、`SubmissionFencePort`、`SubmissionWritePort` |
+| Broker Contract | `judge_outbox` 由 App 写入；`JudgeQueue` v2 envelope 携带 generation/attemptId；Streams PEL/reaper 支持 at-least-once |
+| Failure Boundary | Worker、Docker daemon、沙箱镜像故障不阻塞 App HTTP；结果写入失败保留 PEL，不能 ACK 未完成 job |
+| Scaling | 按 CPU/Docker 并发独立扩容；App 只承担提交、Owner 事务和 durable result outbox |
+
+Judge 与 App 的同步依赖方向只有 Worker → App；App → Judge 通过 Redis Streams 异步投递，不形成服务启动/同步 RPC 环。
+
+Realtime 仍是 `backend-app` 内的独立 package/profile，可按同一 artifact 的 `api`/`worker` 运行角色独立扩容，但不成为新的数据 Owner。
+
+### 4.5 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |
 |---|---|---|---|
@@ -601,7 +620,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### 8.3 迁移前必须补齐的一致性机制
 
-- 当前 feature flag 默认仍可走 DB + legacy Redis 双写。迁移前完成 `judge_outbox + generation fence + JudgeQueue port` 受控切换并删除 Legacy 双写；
+- Judge 已完成 `judge_outbox + generation fence + JudgeQueue port` 的受控切换；生产 App 使用 Streams v2，独立 `backend-judge` 消费者负责执行。回滚开关仍必须保留 legacy RQueue 重放保护，不能把未投递的 non-shadow row 直接标记为 SENT；
 - `judge_outbox` 只覆盖“送去判题”，不覆盖“verdict 已落库”。新增 result outbox，避免 commit 后 JVM 崩溃丢失 Contest/Notification/Achievement；
 - Notification ledger 支持 stale `CLAIMED` 回收和有上限的 `FAILED` 重试；`DELIVERED`、`SKIPPED` 及达到重试上限的 `FAILED` 为终态；integration outbox 的 stale lease 回收、投递确认和失败回写必须按 `claim_owner` 做 CAS fencing；
 - SMTP 从事务内发送改为 email intent/outbox worker；
@@ -633,7 +652,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### Phase 1 — Maven 多模块骨架、Gateway、Nacos 与可观测
 
-- **Goal**：建立三个可独立启动的空壳/共享契约，不迁业务。
+- **Goal**：建立三个 Owner 服务与可独立启动的执行运行时/共享契约，不迁业务表。
 - **Code Changes**：父 POM、`backend-common`、`backend-api/*`、三个 service module、临时 `backend-legacy`；接入 Dubbo starter/Triple/Nacos registry；Nginx Gateway 保留 `:9001`；统一 trace/filter。
 - **Database Changes**：仍使用旧 DB；只创建各服务 Flyway history/未来 outbox 基础表（若需要），不搬业务表。
 - **Compatibility Strategy**：所有业务路由默认 Legacy；新服务只暴露内部 smoke contract；前端 API origin 不变。
@@ -693,7 +712,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### Phase 7 — 删除 Legacy 与收尾
 
-- **Goal**：删除旧实现、兼容路由、共享权限和无用表/配置，形成稳定三服务仓库。
+- **Goal**：删除旧实现、兼容路由、共享权限和无用表/配置，形成稳定的三 Owner 服务 + Judge runtime 仓库。
 - **Code Changes**：删除 `backend-legacy`、旧 local adapters、legacy judge queue 路径、重复 JWT util、无 Consumer Contract；更新启动/部署/开发脚本。
 - **Database Changes**：观察期和审批后执行 contract migration；归档/删除已确认无用 migration-only 表；旧 schema 只读后下线。
 - **Compatibility Strategy**：在删除前完成 N-1 客户端/Provider 支持期；发布说明明确不再支持的旧 API/version。
@@ -836,7 +855,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - App 单实例迁移期可继续 SimpleBroker；多实例前使用粘性会话 + Redis broadcast bridge，或按负载证明引入 broker relay；
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
-- Judge worker 可用同一 `backend-app` artifact 的 worker profile 独立进程；提交、outbox、lease/fence 的数据 Owner 仍是 App。
+- `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 `backend-app-api` 的 Dubbo port 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 仍是 App。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - Notification Delivery worker 同样用同一 artifact 的 `worker` profile（`ulticode.notification.worker.enabled`，`api` profile 关闭）独立扩缩容；运行 durable inbox bridge + ledger reaper，数据 Owner 仍是 App，不创建第四个 logical service。
 
 ## 12. Risks

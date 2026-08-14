@@ -5,6 +5,7 @@ import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
+import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
@@ -61,7 +62,10 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     @Override
     public void runAttempt(JudgeJob job, JudgeQueue port, JudgeJobHandle handle) {
-        if (featureFlags != null && featureFlags.isUseGenerationFence()) {
+        boolean envelopeFence = handle != null
+                && handle.envelope() != null
+                && handle.envelope().isFenceAware();
+        if (envelopeFence || (featureFlags != null && featureFlags.isUseGenerationFence())) {
             processJobFenced(job, port, handle);
         } else {
             processJobLegacy(job, port, handle);
@@ -79,22 +83,30 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     private void processJobLegacy(JudgeJob job, JudgeQueue port, JudgeJobHandle handle) {
         String submissionId = job.getSubmissionId();
-
+        boolean completed = false;
         try {
             transitionToJudging(submissionId);
 
             Optional<JudgeExecutionResult> result = runPipeline(job);
             if (result.isEmpty()) {
                 markSystemError(submissionId);
-                releaseIfLeased(port, handle);
+                completed = true;
                 return;
             }
             applyLegacyVerdict(submissionId, result.get());
-            releaseIfLeased(port, handle);
+            completed = true;
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
-            markSystemError(submissionId);
-            releaseIfLeased(port, handle);
+            try {
+                markSystemError(submissionId);
+                completed = true;
+            } catch (Exception terminalWriteFailure) {
+                e.addSuppressed(terminalWriteFailure);
+                log.error("Unable to persist System Error for submission {}", submissionId,
+                        terminalWriteFailure);
+            }
+        } finally {
+            releaseIfLeased(port, handle, completed, submissionId);
         }
     }
 
@@ -115,51 +127,68 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     private void processJobFenced(JudgeJob job, JudgeQueue port, JudgeJobHandle handle) {
         String submissionId = job.getSubmissionId();
-        String attemptId = uuidGenerator.newId();
+        JudgeJobEnvelope envelope = handle != null ? handle.envelope() : null;
+        boolean envelopeFence = envelope != null && envelope.isFenceAware();
+        String attemptId = envelopeFence ? envelope.attemptId() : uuidGenerator.newId();
 
         Optional<Long> observed = submissionFencePort.currentGeneration(submissionId);
         if (observed.isEmpty()) {
             log.warn("Fenced judge: submission {} not found, abandoning", submissionId);
-            releaseIfLeased(port, handle);
+            releaseIfLeased(port, handle, true, submissionId);
             return;
         }
-        long generation = observed.get();
+        long generation = envelopeFence ? envelope.generation() : observed.get();
+        if (envelopeFence && observed.get() != generation) {
+            log.info("Fenced judge: submission {} envelope gen {} is stale; current gen {}",
+                    submissionId, generation, observed.get());
+            releaseIfLeased(port, handle, true, submissionId);
+            return;
+        }
 
         boolean acquired = submissionFencePort.acquireLease(
                 submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
         if (!acquired) {
             log.debug("Fenced judge: lease not acquired for submission {} gen {} (already moved)",
                     submissionId, generation);
-            releaseIfLeased(port, handle);
+            releaseIfLeased(port, handle, true, submissionId);
             return;
         }
 
         ScheduledFuture<?> heartbeatTask = startHeartbeat(submissionId, attemptId);
+        boolean completed = false;
         try {
-            executeAndWriteFenced(job, attemptId, generation);
+            completed = executeAndWriteFenced(job, attemptId, generation);
         } finally {
             stopHeartbeat(heartbeatTask);
-            releaseIfLeased(port, handle);
+            releaseIfLeased(port, handle, completed, submissionId);
         }
     }
 
-    private void executeAndWriteFenced(JudgeJob job, String attemptId, long generation) {
+    private boolean executeAndWriteFenced(JudgeJob job, String attemptId, long generation) {
         String submissionId = job.getSubmissionId();
         try {
             Optional<JudgeExecutionResult> result = runPipeline(job);
             if (result.isEmpty()) {
                 markSystemErrorFenced(submissionId, generation, attemptId);
-                return;
+                return true;
             }
-            writeVerdictFenced(submissionId, attemptId, generation, result.get());
+            return writeVerdictFenced(submissionId, attemptId, generation, result.get());
         } catch (Exception e) {
             log.error("Failed to process fenced judge job for submission {}", submissionId, e);
-            markSystemErrorFenced(submissionId, generation, attemptId);
+            try {
+                markSystemErrorFenced(submissionId, generation, attemptId);
+                return true;
+            } catch (Exception terminalWriteFailure) {
+                e.addSuppressed(terminalWriteFailure);
+                log.error("Unable to persist fenced System Error for submission {}",
+                        submissionId, terminalWriteFailure);
+                return false;
+            }
         }
     }
 
-    private void writeVerdictFenced(String submissionId, String attemptId, long generation,
-                                    JudgeExecutionResult pipelineResult) {
+    private boolean writeVerdictFenced(String submissionId, String attemptId, long generation,
+                                       JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
         String testDetailsJson = TestCaseDetailCodec.toJson(pipelineResult.testCaseDetails());
         boolean written = submissionWritePort.updateSubmissionResultFenced(
@@ -171,6 +200,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
                     status.wireValue(), submissionId, generation);
         }
+        return true;
     }
 
 
@@ -238,13 +268,19 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     // Helpers
     // -----------------------------------------------------------------------
 
-    private void releaseIfLeased(JudgeQueue port, JudgeJobHandle handle) {
+    private void releaseIfLeased(JudgeQueue port, JudgeJobHandle handle,
+                                 boolean completed, String submissionId) {
         if (port != null && handle != null) {
             try {
-                port.ack(handle);
+                if (completed) {
+                    port.ack(handle);
+                } else {
+                    port.nack(handle, "judge result was not durably written for " + submissionId);
+                }
             } catch (Exception e) {
-                log.warn("Failed to ack job handle {} on {}: {}",
-                        handle, port.getClass().getSimpleName(), e.getMessage());
+                log.warn("Failed to {} job handle {} on {}: {}",
+                        completed ? "ack" : "nack", handle,
+                        port.getClass().getSimpleName(), e.getMessage());
             }
         }
     }

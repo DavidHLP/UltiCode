@@ -52,8 +52,8 @@ public final class JudgeStreamKeys {
     public static final String JUDGE_STREAM_KEY = "judge:stream";
 
     /**
-     * Consumer group on the {@link #JUDGE_STREAM_KEY} stream. Single group,
-     * single consumer (current JVM); multi-consumer / multi-JVM is M3d scope.
+     * Consumer group on the {@link #JUDGE_STREAM_KEY} stream. One shared group
+     * distributes entries across independently deployed Judge Worker consumers.
      */
     public static final String JUDGE_STREAM_GROUP = "judge-workers";
 

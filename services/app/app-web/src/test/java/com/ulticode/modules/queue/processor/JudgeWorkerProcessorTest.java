@@ -80,6 +80,16 @@ class JudgeWorkerProcessorTest {
     }
 
     @Test
+    @DisplayName("legacy poll is disabled while the Streams cutover is active")
+    void legacyPollDisabledDuringStreamsCutover() {
+        when(featureFlags.isJudgeQueueUsePort()).thenReturn(true);
+
+        processor.pollAndProcess();
+
+        verifyNoInteractions(queueService, attemptExecutor);
+    }
+
+    @Test
     @DisplayName("port poll is a no-op when the queue-port flag is disabled")
     void portPollDisabledIsNoOp() {
         when(featureFlags.isJudgeQueueUsePort()).thenReturn(false);

@@ -39,7 +39,8 @@ import java.util.Optional;
  * {@code judge:dispatch:seen:{submissionId}:{generation}} short-circuits
  * repeat dispatches. The same key is reused by the M3a shadow comparator.
  *
- * <p>Single-consumer group, single JVM. The handle's
+ * <p>One shared consumer group can contain consumers from multiple Judge Worker
+ * JVMs. The handle's
  * {@link JudgeJobHandle#ackToken()} is the Redisson {@code StreamMessageId}
  * (kept as {@code Object} so the port package stays broker-agnostic per
  * the ADR-002 hex-arch rule).
@@ -171,8 +172,8 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     public void nack(JudgeJobHandle handle, String reason) {
         // Leave the entry in the PEL. The unacked reaper
         // (UnackedStreamEntriesReaper) will XCLAIM it after
-        // visibilityTimeoutMs and the worker (M3c-3) will re-read its PEL
-        // to actually consume reclaimed entries. No re-enqueue — that
+        // visibilityTimeoutMs and route the reclaimed handle to the worker.
+        // No re-enqueue — that
         // would create a duplicate Stream entry and the dedup SETNX would
         // (correctly) reject it, but we'd still be paying for the write.
         log.debug("Streams nack: leaving id {} in PEL (reason: {})",
@@ -225,9 +226,8 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
             return Optional.empty();
         }
         // XCLAIM moves ownership. The claimed entries are returned in the
-        // map; we use the first one and ack it on behalf of the lost
-        // worker (the M3c-3 path will re-read the PEL to actually
-        // process the payload).
+        // map; we use the first one and return it to the worker for
+        // processing and eventual ack.
         Map<StreamMessageId, Map<String, String>> claimed = stream.claim(
                 groupName, consumerId, minIdleMs, java.util.concurrent.TimeUnit.MILLISECONDS,
                 first.getId());

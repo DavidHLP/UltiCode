@@ -39,8 +39,8 @@ Options:
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
   --only <apps>        只起指定 PM2 app, 逗号分隔
-                       (如 auth,admin,app 或 9101,9102; 前端仍可用 9002/9003)
-  --no-frontend        不起前端 (等同 --only auth,admin,app)
+                       (如 auth,admin,app,judge 或 9101,9102; 前端仍可用 9002/9003)
+  --no-frontend        不起前端 (等同 --only auth,admin,app,judge)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   -h, --help           显示此帮助
 
@@ -85,7 +85,7 @@ if [[ "$FRONTEND_ONLY" == true ]]; then
   SKIP_BOOTSTRAP=true
 fi
 
-# 把 owner 名、service 名或 9101/9102/9103 统一规范化为 PM2 app 名
+# 把 owner 名、service 名或端口统一规范化为 PM2 app 名
 normalize_apps() {
   local IFS=','
   local out=""
@@ -101,6 +101,9 @@ normalize_apps() {
         ;;
       app|backend-app|ulticode-app|9103)
         a="ulticode-app"
+        ;;
+      judge|backend-judge|ulticode-judge|9104)
+        a="ulticode-judge"
         ;;
       console|ulticode-9002|9002)
         a="ulticode-9002"
@@ -124,9 +127,9 @@ if [[ -n "$ONLY" ]]; then
 elif [[ "$FRONTEND_ONLY" == true ]]; then
   PM2_APPS="ulticode-9002,ulticode-9003"
 elif [[ "$NO_FRONTEND" == true ]]; then
-  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app"
+  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-judge"
 else
-  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-9002,ulticode-9003"
+  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-judge,ulticode-9002,ulticode-9003"
 fi
 
 # ===== 前置检查 =====
@@ -313,12 +316,11 @@ else
 fi
 
 # ===== 步骤 5a: 沙箱镜像前置告警(判题功能依赖;不阻塞启动) =====
-# 镜像不随仓库分发。缺失时所有 /submissions/run + /submissions 会返回笼统
-# "Runtime Error" + memory=0.0MB(CLAUDE.md § Sandbox Harness 的诊断指纹)。
-# 仅告警不 exit:启动后端/前端不依赖沙箱,只有判题需要。
+# 镜像不随仓库分发。缺失时判题 Worker 会返回 SANDBOX_ERROR。
+# 仅告警不 exit: 启动后端/前端不依赖沙箱, 只有判题需要。
 if ! docker image inspect "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" >/dev/null 2>&1; then
-  echo "[WARN] ${SANDBOX_IMAGE:-ulticode-sandbox:latest} not found — judging will fail with a masked 'Runtime Error' (memory=0.0MB) until built." >&2
-  echo "[WARN]   Build runbook: CLAUDE.md § Sandbox Harness  |  Code: docker/sandbox/harness/build.sh" >&2
+  echo "[WARN] ${SANDBOX_IMAGE:-ulticode-sandbox:latest} not found — judging will fail with SANDBOX_ERROR until built." >&2
+  echo "[WARN]   Build runbook: README.md § Docker  |  Code: docker/sandbox/harness/build.sh" >&2
 fi
 
 # ===== 步骤 6: PM2 服务 =====
@@ -344,6 +346,12 @@ check_port() {
   return 1
 }
 
+check_pm2_online() {
+  local app="$1" pid
+  pid="$(pm2 pid "$app" 2>/dev/null | tr -d '[:space:]')"
+  [[ "$pid" =~ ^[1-9][0-9]*$ ]]
+}
+
 apps_csv=",$PM2_APPS,"
 for _ in $(seq 1 90); do
   all_ok=true
@@ -355,6 +363,9 @@ for _ in $(seq 1 90); do
   fi
   if [[ "$apps_csv" == *",ulticode-app,"* ]]; then
     check_port 9103 '/api/v1/app/health' || all_ok=false
+  fi
+  if [[ "$apps_csv" == *",ulticode-judge,"* ]]; then
+    check_pm2_online ulticode-judge || all_ok=false
   fi
   if [[ "$apps_csv" == *",ulticode-9002,"* ]]; then
     check_port 9002 '/' || all_ok=false
@@ -371,6 +382,7 @@ Development stack is ready (services: $PM2_APPS).
   Auth API:   http://localhost:9101
   Admin API:  http://localhost:9102
   App API:    http://localhost:9103
+  Judge Worker: PM2 ulticode-judge (Dubbo 20884)
   Nacos:      http://localhost:28848/nacos
 EOF
     # admin 凭据只在起了后端时显示 (admin 由 dev-admin bootstrap 维护)

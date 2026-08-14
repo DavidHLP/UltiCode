@@ -64,7 +64,7 @@ public class JudgingLeaseReaper {
                 continue;
             }
 
-            if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
+            if (featureFlags.isUseJudgeOutbox()) {
                 boolean portActive = featureFlags.getJudgeQueue().isUsePort();
                 try {
                     judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
@@ -72,6 +72,11 @@ public class JudgingLeaseReaper {
                     log.info("reaper.outbox.insert submissionId={} problemId={} generation={} is_shadow={} portActive={}",
                             s.getId(), s.getProblemId(), newGen, !portActive, portActive);
                 } catch (Exception e) {
+                    if (portActive) {
+                        throw new IllegalStateException(
+                                "Judge outbox insert failed during Streams cutover for submission "
+                                        + s.getId(), e);
+                    }
                     log.debug("Outbox insert skipped for submission {} gen {}: {}",
                             s.getId(), newGen, e.getMessage());
                 }

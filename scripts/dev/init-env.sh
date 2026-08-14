@@ -127,6 +127,10 @@ SANDBOX_CPUS=1.0
 SANDBOX_TIMEOUT=10
 SANDBOX_PIDS_LIMIT=128
 SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json
+# Production Compose Judge Worker only; local PM2 uses the repository-relative
+# seccomp path above. Set these in the deployment host's .env when applicable.
+SANDBOX_HOST_DIR=/opt/ulticode/sandbox
+DOCKER_GID=999
 # Repository-relative backup directory; deployment environments may override
 # BACKUP_DIR with their own relative mount point.
 BACKUP_DIR=.local/backups

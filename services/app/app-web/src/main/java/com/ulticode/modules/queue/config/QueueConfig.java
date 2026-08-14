@@ -14,6 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.UUID;
+
 /**
  * Configuration for the queue system.
  * Configures Redisson queues and queue properties.
@@ -43,6 +45,9 @@ public class QueueConfig {
      * Poll interval for job processing in milliseconds.
      */
     private long pollIntervalMs = 1000;
+
+    /** Stable prefix used to identify a Streams consumer instance by runtime role. */
+    private String consumerIdPrefix = "ulticode-app";
 
     /**
      * Enable judge worker processing.
@@ -96,11 +101,11 @@ public class QueueConfig {
     @ConditionalOnProperty(
             name = "app.features.judge-queue.use-port",
             havingValue = "true")
-    public JudgeQueue redissonStreamsJudgeQueue(
+    public RedissonStreamsJudgeQueueAdapter redissonStreamsJudgeQueue(
             RedissonClient redissonClient,
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry) {
-        String consumerId = "ulticode-app-" + ProcessHandle.current().pid();
+        String consumerId = consumerIdPrefix + "-" + UUID.randomUUID();
         return new RedissonStreamsJudgeQueueAdapter(
                 redissonClient,
                 objectMapper,

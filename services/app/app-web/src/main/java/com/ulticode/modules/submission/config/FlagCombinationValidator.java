@@ -27,6 +27,10 @@ import java.time.LocalDateTime;
  *       so submissions would be enqueued to RQueue (flag-off) while the worker
  *       polls the port (flag-on) — a split that strands submissions Pending
  *       forever.</li>
+ *   <li><b>F2 (hard fail)</b> {@code judge-queue.use-port=true} AND
+ *       {@code use-generation-fence=false}: rejudge and lease-recovery paths
+ *       do not write generation-aware outbox rows in that mode, while the
+ *       cutover adapter intentionally skips the legacy RQueue.</li>
  *   <li><b>W1 (soft warn)</b> {@code judge-queue.use-port=true} AND
  *       {@code judge-queue.envelope-version=1}: the dispatcher
  *       ({@code JudgeOutboxDispatcher.toEnvelope}) currently hard-codes
@@ -62,6 +66,15 @@ public class FlagCombinationValidator {
                     "Invalid feature flag combination: app.features.judge-queue.use-port=true "
                             + "requires app.features.use-judge-outbox=true (the port is the outbox "
                             + "dispatcher's downstream; without the outbox there is no producer).");
+        }
+
+        // F2 (hard fail): rejudge/reaper need the generation-aware outbox when
+        // the legacy enqueue adapter is disabled by the Streams cutover.
+        if (jq.isUsePort() && !flags.isUseGenerationFence()) {
+            throw new IllegalStateException(
+                    "Invalid feature flag combination: app.features.judge-queue.use-port=true "
+                            + "requires app.features.use-generation-fence=true (rejudge and "
+                            + "lease-recovery must write generation-aware outbox rows).");
         }
 
         // W1 (soft warn): envelope-version=1 with port on is a config lie —

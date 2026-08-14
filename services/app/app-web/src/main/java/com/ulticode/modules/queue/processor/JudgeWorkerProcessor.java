@@ -49,6 +49,8 @@ import java.util.Map;
         havingValue = "true",
         matchIfMissing = true
 )
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.role:api}' == 'judge'")
 public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
     private final QueueService queueService;
@@ -75,6 +77,9 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     )
     public void pollAndProcess() {
         try {
+            if (featureFlags.isJudgeQueueUsePort()) {
+                return;
+            }
             if (activeJobs.get() >= queueConfig.getMaxConcurrentJobs()) {
                 return;
             }

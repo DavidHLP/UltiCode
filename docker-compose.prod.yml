@@ -184,6 +184,10 @@ services:
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9103
+      - APP_FEATURES_USE_JUDGE_OUTBOX=true
+      - APP_FEATURES_USE_GENERATION_FENCE=true
+      - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
+      - APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION=2
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
     depends_on:
       mysql:
@@ -197,6 +201,69 @@ services:
       - infrastructure
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9103/api/v1/app/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  backend-judge:
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-judge:${IMAGE_TAG:-latest}
+    container_name: ulticode-backend-judge
+    restart: unless-stopped
+    expose:
+      - "20884"
+    deploy:
+      resources:
+        limits:
+          memory: ${JUDGE_MEMORY_LIMIT:-2G}
+          cpus: "${JUDGE_CPU_LIMIT:-4.0}"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
+      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - DUBBO_REGISTRY_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - JUDGE_SERVER_PORT=9104
+      - JUDGE_DUBBO_PORT=20884
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
+      - SANDBOX_ENABLED=true
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-ulticode-sandbox:latest}
+      - SANDBOX_SECCOMP_PROFILE=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json
+      - JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/workspace
+    depends_on:
+      backend-app:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - default
+      - infrastructure
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    group_add:
+      - "${DOCKER_GID:-999}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The path is identical inside the worker and on the Docker host. The
+      # sandbox executor passes child-container mounts to the host daemon.
+      - ${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}:${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}
+    healthcheck:
+      test: ["CMD-SHELL", "docker info >/dev/null 2>&1 && docker image inspect $${SANDBOX_IMAGE} >/dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       start_period: 30s

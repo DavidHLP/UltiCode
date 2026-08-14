@@ -1,5 +1,7 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
+
 /**
  * Read seam through which the submission module obtains Problem facts
  * (title / slug / limits / starter code) without importing problem mappers.
@@ -36,9 +38,9 @@ public interface ProblemFactsPort {
      */
     String findStarterCode(Long problemId, String language);
 
-    record ProblemDisplayFacts(Long id, String title, String slug) {}
+    record ProblemDisplayFacts(Long id, String title, String slug) implements Serializable {}
 
-    record ProblemLimits(Integer timeLimitSeconds, Integer memoryLimitMb) {}
+    record ProblemLimits(Integer timeLimitSeconds, Integer memoryLimitMb) implements Serializable {}
 
     /**
      * Contest-facing facts (title / slug / difficulty / acceptanceRate).
@@ -49,5 +51,5 @@ public interface ProblemFactsPort {
     ContestProblemFacts findContestProblemFacts(Long problemId);
 
     record ContestProblemFacts(Long id, String title, String slug, String difficulty,
-                               java.math.BigDecimal acceptanceRate) {}
+                               java.math.BigDecimal acceptanceRate) implements Serializable {}
 }

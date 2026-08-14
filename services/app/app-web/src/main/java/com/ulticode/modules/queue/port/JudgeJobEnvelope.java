@@ -19,8 +19,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * {@link com.ulticode.modules.queue.job.JudgeJob} POJO that the legacy
  * {@code RQueue} path still uses in parallel. The discriminator field
  * {@code version} is enough for the dispatcher to encode and the worker to
- * decode. M3c-3 worker upgrade is the natural place to migrate to sealed
- * subtypes if a v3 envelope needs extra fields.
+ * decode. A future v3 envelope can migrate to sealed subtypes if it needs a
+ * materially different payload.
  *
  * <p>JSON contract:
  * <pre>

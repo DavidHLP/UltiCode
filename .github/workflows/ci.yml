@@ -584,6 +584,14 @@ jobs:
             artifact: app-exec.jar
             port: 9103
             health_path: /api/v1/app/health
+          - name: backend-judge
+            dockerfile: ./services/Dockerfile
+            module: judge
+            artifact: judge-exec.jar
+            port: 9104
+            health_path: /disabled
+            install_docker_cli: 'true'
+            healthcheck: 'false'
           - name: console
             dockerfile: ./console/Dockerfile
           - name: management
@@ -606,5 +614,7 @@ jobs:
             SERVICE_ARTIFACT=${{ matrix.service.artifact }}
             SERVICE_PORT=${{ matrix.service.port }}
             SERVICE_HEALTH_PATH=${{ matrix.service.health_path }}
+            INSTALL_DOCKER_CLI=${{ matrix.service.install_docker_cli || false }}
+            SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

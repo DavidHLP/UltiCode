@@ -9,6 +9,9 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
+import com.ulticode.modules.queue.port.JudgeJobEnvelope;
+import com.ulticode.modules.queue.port.JudgeJobHandle;
+import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.submission.entity.Submission;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -71,6 +74,9 @@ class DefaultJudgeAttemptExecutorTest {
     @Mock
     private ScheduledFuture<?> heartbeatTask;
 
+    @Mock
+    private JudgeQueue judgeQueue;
+
     private final AtomicReference<Runnable> heartbeat = new AtomicReference<>();
     private DefaultJudgeAttemptExecutor executor;
 
@@ -129,6 +135,32 @@ class DefaultJudgeAttemptExecutorTest {
 
         executor.runAttempt(job(), null, null);
 
+    }
+
+    @Test
+    @DisplayName("v2 envelope metadata is used for the lease and fenced verdict")
+    void v2EnvelopeMetadataIsPreserved() throws Exception {
+        JudgeExecutionResult result = new JudgeExecutionResult(SubmissionStatus.ACCEPTED, 2, 1.0, List.of());
+        when(executionPipeline.execute("java", "class Main {}", 100L, "user-1", "submission-1"))
+                .thenReturn(result);
+        when(submissionFencePort.currentGeneration("submission-1")).thenReturn(Optional.of(7L));
+        when(submissionFencePort.acquireLease("submission-1", "dispatch-attempt", 7L, 60L))
+                .thenReturn(true);
+        when(submissionWritePort.updateSubmissionResultFenced(
+                eq("submission-1"), eq(SubmissionStatus.ACCEPTED), eq(2), eq(1.0), any(),
+                eq(7L), eq("dispatch-attempt"))).thenReturn(true);
+
+        JudgeJobEnvelope envelope = new JudgeJobEnvelope(
+                JudgeJobEnvelope.VERSION_2, "outbox-1", "submission-1", "100", "user-1",
+                "java", "class Main {}", 2000, 262144, 7L, "dispatch-attempt");
+        executor.runAttempt(job(), judgeQueue, new JudgeJobHandle(envelope, "ack-token"));
+
+        verify(uuidGenerator, never()).newId();
+        verify(submissionFencePort).acquireLease("submission-1", "dispatch-attempt", 7L, 60L);
+        verify(submissionWritePort).updateSubmissionResultFenced(
+                eq("submission-1"), eq(SubmissionStatus.ACCEPTED), eq(2), eq(1.0), any(),
+                eq(7L), eq("dispatch-attempt"));
+        verify(judgeQueue).ack(any(JudgeJobHandle.class));
     }
 
     @Test

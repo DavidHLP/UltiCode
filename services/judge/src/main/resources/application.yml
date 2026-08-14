@@ -1,0 +1,129 @@
+server:
+  # The worker does not expose an HTTP API. Keep a private port only because
+  # the generic Spring Boot container image expects SERVER_PORT to exist.
+  port: ${JUDGE_SERVER_PORT:9104}
+
+spring:
+  application:
+    name: backend-judge
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+      - com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+  task:
+    scheduling:
+      pool:
+        size: ${JUDGE_SCHEDULING_POOL_SIZE:4}
+      thread-name-prefix: judge-scheduled-
+
+app:
+  runtime:
+    role: judge
+  features:
+    use-judge-outbox: true
+    use-generation-fence: true
+    judge-source:
+      use-test-cases: ${JUDGE_USE_TEST_CASES:false}
+    judge-queue:
+      use-port: true
+      envelope-version: 2
+
+queue:
+  judge:
+    enabled: true
+  consumer-id-prefix: ulticode-judge
+  max-concurrent-jobs: ${JUDGE_MAX_CONCURRENT_JOBS:10}
+  poll-interval-ms: ${JUDGE_POLL_INTERVAL_MS:1000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  health:
+    db:
+      enabled: false
+    redis:
+      enabled: true
+
+code-execution:
+  sandbox:
+    enabled: ${SANDBOX_ENABLED:true}
+    image: ${SANDBOX_IMAGE:ulticode-sandbox:latest}
+    memory: ${SANDBOX_MEMORY:256m}
+    cpus: ${SANDBOX_CPUS:1.0}
+    timeout: ${SANDBOX_TIMEOUT:10}
+    pids-limit: ${SANDBOX_PIDS_LIMIT:128}
+    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
+    d-form:
+      enabled: ${SANDBOX_DFORM_ENABLED:true}
+      harness-root: ${SANDBOX_DFORM_HARNESS_ROOT:/opt/harness}
+    languages:
+      java:
+        timeout-seconds: 10
+        memory: 256m
+      python:
+        timeout-seconds: 5
+        memory: 128m
+      c:
+        timeout-seconds: 5
+        memory: 128m
+      cpp:
+        timeout-seconds: 5
+        memory: 128m
+
+dubbo:
+  application:
+    name: ${DUBBO_APPLICATION_NAME:backend-judge}
+    register-mode: instance
+    qos-enable: false
+    protocol: tri
+    metadata-type: local
+  protocol:
+    name: tri
+    port: ${JUDGE_DUBBO_PORT:20884}
+    triple:
+      max-requests-per-connection: 50
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
+    username: ${DUBBO_REGISTRY_USERNAME:${NACOS_USERNAME:}}
+    password: ${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}
+    timeout: 5000
+    use-as-config-center: true
+    use-as-metadata-center: true
+    parameters:
+      namespace: ${DUBBO_NAMESPACE:dev}
+      group: DEFAULT_GROUP
+  scan:
+    base-packages: com.ulticode.judge
+  consumer:
+    check: false
+    timeout: 5000
+    retries: 0
+  cloud:
+    subscribed-services: ''
+
+logging:
+  level:
+    root: INFO
+    com.ulticode.judge: INFO
+    com.ulticode.modules.queue: INFO

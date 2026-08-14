@@ -13,6 +13,7 @@ import java.util.List;
  * Default implementation of ProblemExampleReadPort.
  */
 @Component
+@org.springframework.context.annotation.Primary
 @RequiredArgsConstructor
 public class DefaultProblemExampleReadPort implements ProblemExampleReadPort {
 

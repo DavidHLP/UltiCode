@@ -163,12 +163,13 @@
 
 ```
 UltiCode/
-├── services/         # 后端 Maven reactor（platform · api · auth · admin · app）
+├── services/         # 后端 Maven reactor（platform · api · auth · admin · app · judge）
 │   ├── platform/     # 共享平台层（common · web-security）
 │   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api）
 │   ├── auth/         # Auth owner — 9101
 │   ├── admin/        # Admin owner — 9102
-│   └── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
+│   ├── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
+│   └── judge/        # Judge worker — 独立进程，消费 Redis Streams
 ├── apps/
 │   ├── console/      # Vue 3 用户前端 — 端口 9002
 │   └── management/   # Vue 3 管理后台 — 端口 9003
@@ -216,7 +217,7 @@ UltiCode/
 | 领域 | 技术 |
 |------|------|
 | 容器 | Docker Compose v2 · 非 root 用户 (`appuser:appgroup`) · 多阶段构建 |
-| 进程管理 | PM2（4 个长生命周期 + 1 个一次性 Flyway 任务） |
+| 进程管理 | PM2（6 个长生命周期 + 1 个一次性 Flyway 任务） |
 | 运行时诊断 | Arthas 4.2.2 · STATELESS MCP（端口 8563） |
 | 服务发现 / 配置 | Nacos 2.3.2 |
 | CI/CD | GitHub Actions（路径触发） · CD 滚动发布与回滚 |
@@ -227,13 +228,14 @@ UltiCode/
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/` 是三个可独立运行的 owner 服务；`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和 owner 服务。
+`services/auth/`、`services/admin/`、`services/app/` 是三个数据 owner 服务；`services/judge/` 是不拥有业务表的独立判题运行时。`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和这些运行模块。
 
 | Owner / 模块 | 主代码路径 | 职责 |
 |------|------|------|
 | `services/auth` | `services/auth/src/main/java/com/ulticode/auth/` | 登录 / 注册 / OAuth / 找回密码 / refresh token / 账号状态 / RBAC |
 | `services/admin` | `services/admin/src/main/java/com/ulticode/admin/`、`services/admin/src/main/java/com/ulticode/modules/admin/` | 管理端 BFF / 审核 / 审计 / 设置 / 监控 / 备份 |
 | `services/app` | `services/app/app-web/src/main/java/com/ulticode/app/`、`services/app/app-web/src/main/java/com/ulticode/modules/` | 用户画像 / 题目 / 提交判题 / 竞赛 / 题解 / 论坛 / 通知 / 搜索 / WebSocket |
+| `services/judge` | `services/judge/src/main/java/com/ulticode/judge/` | Redis Streams 判题消费 / Docker 沙箱 / App verdict RPC；不拥有业务表 |
 
 共享 reactor 的主要模块：
 
@@ -319,6 +321,7 @@ dev 数据库会自动创建固定管理员账号：
 | Auth API | <http://localhost:9101> | 认证 / 凭据 Owner |
 | Admin API | <http://localhost:9102> | 治理 / 管理 Owner |
 | App API | <http://localhost:9103> | OJ / 用户业务 Owner |
+| Judge Worker | Dubbo `20884` / PM2 `ulticode-judge` | 独立判题执行进程，无 HTTP API |
 | Nacos 控制台 | <http://localhost:28848/nacos> | 配置中心 / 服务发现 |
 | Arthas MCP | <http://localhost:8563/mcp> | STATELESS · Claude Code / IDE 直连 |
 
@@ -331,17 +334,18 @@ dev 数据库会自动创建固定管理员账号：
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/` 是三个可独立运行的 owner 服务；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
+`services/auth/`、`services/admin/`、`services/app/` 是三个数据 owner 服务，`services/judge/` 是独立判题运行时；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
 
 ```bash
-# 通过 PM2（完整三 owner 后端）
-pm2 restart ulticode-auth ulticode-admin ulticode-app
+# 通过 PM2（完整后端 + 独立 Judge）
+pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-judge
 pm2 logs ulticode-auth
 
 # 直接启动单个 owner
 (cd services && ./mvnw -pl auth -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl admin -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl app/app-web -am spring-boot:run -Dmaven.test.skip=true)
+(cd services && ./mvnw -pl judge -am spring-boot:run -Dmaven.test.skip=true)
 
 # 编译 / 测试 / 集成
 (cd services && ./mvnw compile -B)
@@ -405,7 +409,22 @@ docker compose --env-file .env \
 
 # 生产
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
 
+生产 Judge Worker 还需要在 Docker 宿主机预置沙箱目录、seccomp 文件和沙箱镜像；Worker 通过 Docker socket 启动隔离子容器，socket 不对公网发布：
+
+```bash
+export SANDBOX_HOST_DIR=/opt/ulticode/sandbox
+export DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
+sudo install -d -o 1000 -g 1000 "$SANDBOX_HOST_DIR/workspace"
+sudo install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json "$SANDBOX_HOST_DIR/seccomp-profile.json"
+./docker/sandbox/harness/build.sh
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-app backend-judge
+```
+
+`SANDBOX_HOST_DIR` 必须是宿主机绝对路径，并在 Worker 容器内使用同一路径；否则 Docker daemon 无法看到 Worker 创建的作业目录。Docker socket 等同宿主机 Docker 管理权限，只应授予专用部署主机。
+
+```bash
 # 直接进 MySQL（容器默认 latin1，必须显式指定 utf8mb4）
 set -a; source .env; set +a
 docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
@@ -465,6 +484,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | 9101 | `ulticode-auth` | Auth Spring Boot | Auth Owner |
 | 9102 | `ulticode-admin` | Admin Spring Boot | Admin Owner |
 | 9103 | `ulticode-app` | App Spring Boot | App Owner |
+| 20884 | `ulticode-judge` | Judge Spring Boot | Redis Streams consumer；Dubbo internal only |
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |
 | 9003 | `ulticode-9003` | Management (Vite) | dev: Vite · prod: 静态服务 |
 | — | `ulticode-init-db` | Flyway 一次性任务 | `stopped` 是**预期终态** |
@@ -473,7 +493,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 ### 常用命令
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动三 owner + 两个前端
+pm2 start ecosystem.config.cjs   # 首次启动三 owner + Judge + 两个前端
 pm2 start all                    # 后续启动
 pm2 restart all                  # 重启
 pm2 stop all
@@ -497,7 +517,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 
 1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
 2. `pm2 restart ulticode-init-db`（跑 Flyway）
-3. `pm2 restart ulticode-auth ulticode-admin ulticode-app`
+3. `pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-judge`
 4. 启动两个前端
 
 > 一键修复： `./scripts/dev/up.sh --skip-install`
@@ -518,12 +538,13 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 | `CORS_ALLOWED_ORIGINS` | 跨域白名单 | dev: `http://localhost:9002,http://localhost:9003` |
 | `NACOS_SERVER_ADDR` | Nacos 地址 | dev: `localhost:28848` |
 | `NACOS_USERNAME` / `NACOS_PASSWORD` | Nacos 鉴权 | dev profile 专用账号 |
+| `SANDBOX_HOST_DIR` / `DOCKER_GID` | 生产 Judge Worker 的 Docker socket / 沙箱工作目录 | 仅 Compose 部署；目录必须与宿主机路径一致 |
 | `FRONTEND_URL` | 邮件 / 回调拼接 | dev: `http://localhost:9002` |
 | `SPRING_PROFILES_ACTIVE` | Spring Profile | dev / prod |
 
 > **pm2 env 缓存陷阱**：`pm2 restart --update-env` 不会重读 `.env`。
 > 改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
-> `pm2 delete ulticode-auth ulticode-admin ulticode-app && pm2 start ecosystem.config.cjs --only auth,admin,app`
+> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-judge && pm2 start ecosystem.config.cjs --only auth,admin,app,judge`
 
 ---
 

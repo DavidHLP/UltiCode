@@ -24,6 +24,7 @@
 		<module>auth</module>
 		<module>admin</module>
 		<module>app</module>
+		<module>judge</module>
 	</modules>
 
 	<properties>

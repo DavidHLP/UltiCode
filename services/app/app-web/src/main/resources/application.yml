@@ -47,12 +47,21 @@ mybatis-plus:
       id-type: input
 
 app:
+  runtime:
+    # HTTP/API is the default App role after judge extraction. The independent
+    # backend-judge runtime is the only role allowed to poll judge queues.
+    role: ${APP_RUNTIME_ROLE:api}
   monitoring:
     # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor
     # + /monitoring/database.slowQueries (moved from backend-legacy application.yml).
     slow-query-ms: 500
 
   features:
+    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
+    judge-queue:
+      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
+      envelope-version: ${APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION:2}
     judge-source:
       # Use legacy problem_examples as test cases (test_cases table has no data yet).
       # Switch to true after seeding test_cases for all problems.

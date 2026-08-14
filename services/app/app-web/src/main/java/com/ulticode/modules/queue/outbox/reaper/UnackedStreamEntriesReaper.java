@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
  *       {@link RedissonStreamsJudgeQueueAdapter#claimIdle(long)} so a
  *       subsequent {@code XREADGROUP > 0} re-delivers the entry to this
  *       consumer;</li>
- *   <li>leaves the actual processing to the worker (M3c-3).</li>
+ *   <li>routes the reclaimed handle to the worker for processing.</li>
  * </ol>
  *
  * <p>Only active when {@code app.features.judge-queue.use-port=true}.
@@ -37,6 +37,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(
         name = "app.features.judge-queue.use-port",
         havingValue = "true")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.role:api}' == 'judge'")
 public class UnackedStreamEntriesReaper {
 
     /** Reaper sweep cadence. 10s is the ADR-003 §2.6 default. */
@@ -44,13 +46,10 @@ public class UnackedStreamEntriesReaper {
 
     private final RedissonStreamsJudgeQueueAdapter streamsAdapter;
     /**
-     * Provider (not direct injection) so the reaper compiles even when
-     * {@link JudgeWorkerProcessor} is not registered (e.g. before
-     * M3c-3a worker port-poll wiring is live in tests). Resolves to
-     * null in that case — the reaper then keeps reclaiming ownership
-     * via {@code XCLAIM} but cannot process the reclaimed entry;
-     * M3c-3b follow-up wires the worker's PEL-first poll so the next
-     * sweep picks it up.
+     * Provider (not direct injection) so the reaper also remains usable in
+     * contexts that do not register {@link JudgeWorkerProcessor}. Resolves to
+     * null in that case; the claimed entry remains in the PEL and a later
+     * reaper sweep can retry it after the worker is available.
      */
     private final ObjectProvider<JudgeWorkerProcessor> workerProvider;
     /** Nullable so unit tests without a registry still compile. */
@@ -84,14 +83,14 @@ public class UnackedStreamEntriesReaper {
             // neverDelivered() poll ignores it). We delegate to the
             // worker so a single fencing pass handles the whole job
             // (acquireLease -> heartbeat -> execute -> writeVerdictFenced
-            // -> XACK). The worker's async retry on its own poll is the
-            // fallback when the worker bean is not yet wired.
+            // -> XACK). A later reaper sweep is the fallback when the worker
+            // bean is not wired.
             JudgeWorkerProcessor worker = workerProvider.getIfAvailable();
             if (worker != null) {
                 worker.processReclaimedHandle(streamsAdapter, handle);
             } else {
                 log.warn("Reaper reclaimed submission={} but worker not wired; "
-                        + "next worker poll will pick it up via PEL",
+                        + "a later reaper sweep will retry it",
                         handle.envelope().submissionId());
             }
         } catch (Exception e) {

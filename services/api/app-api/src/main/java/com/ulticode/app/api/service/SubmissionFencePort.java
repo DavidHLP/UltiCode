@@ -12,9 +12,10 @@ import java.util.Optional;
  * and renewing it from the heartbeat so a slow sandbox run does not lose its
  * hold on the row.
  *
- * <p>Dependency category: <b>in-process</b>. The default adapter
- * ({@code DefaultSubmissionFencePort}) is the only provider today and delegates
- * to {@code SubmissionMapper}; tests can substitute a fake.
+ * <p>Dependency category: <b>local or Dubbo RPC</b>. The App owner exposes the
+ * default adapter ({@code DefaultSubmissionFencePort}) through the
+ * {@code backend-app-api} contract; the independent Judge Worker consumes the
+ * same port remotely. Tests can substitute a fake.
  *
  * @author ulticode
  */

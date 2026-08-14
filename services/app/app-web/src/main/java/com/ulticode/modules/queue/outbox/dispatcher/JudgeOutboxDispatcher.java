@@ -1,6 +1,7 @@
 package com.ulticode.modules.queue.outbox.dispatcher;
 
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
@@ -24,9 +25,10 @@ import java.util.Map;
 /**
  * Judge outbox dispatcher (ADR-003 M3a / M3c-2).
  *
- * <p><b>M3a mode</b> (default): claim rows, log + increment
- * {@code outbox.row.observed}, mark SENT. Never enqueues. The legacy RQueue
- * remains the sole active producer.
+ * <p><b>Shadow/rollback mode</b> (default): shadow rows are observed and
+ * marked SENT because the submission transaction already enqueued the legacy
+ * RQueue. A non-shadow row is replayed to the legacy port before it is marked
+ * SENT, protecting rollback from a lost job.
  *
  * <p><b>M3c-2 mode</b> (cutover): when {@code app.features.judge-queue.use-port=true},
  * the dispatcher hands claimed rows to the {@link JudgeQueue} port (the
@@ -45,7 +47,7 @@ import java.util.Map;
  * is only registered (via {@link RedissonStreamsJudgeQueueAdapter}'s
  * {@code @ConditionalOnProperty}) when the port is enabled, so when the
  * flag is off the {@link ObjectProvider} returns null and the dispatcher
- * stays in M3a shadow mode even if its own flag is on.
+ * stays in compatibility mode even if its own flag is on.
  */
 @Slf4j
 @Component
@@ -71,6 +73,7 @@ public class JudgeOutboxDispatcher {
     private final MeterRegistry meterRegistry;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final JudgeEnqueuePort legacyEnqueuePort;
 
     /**
      * Boot-time mirror of {@code app.features.judge-queue.use-port}; when
@@ -97,7 +100,9 @@ public class JudgeOutboxDispatcher {
         JudgeQueue judgeQueue = judgeQueuePortEnabled
                 ? judgeQueueProvider.getIfAvailable()
                 : null;
-        if (judgeQueue != null) {
+        if (judgeQueuePortEnabled && judgeQueue == null) {
+            dispatchUnavailable();
+        } else if (judgeQueue != null) {
             dispatchReal(judgeQueue);
         } else {
             dispatchShadow();
@@ -105,8 +110,11 @@ public class JudgeOutboxDispatcher {
     }
 
     /**
-     * M3a shadow path: claim (any is_shadow) → observe + mark SENT. Never
-     * enqueues.
+     * Shadow/rollback path. Shadow rows were already handed to the legacy
+     * producer by the submission transaction. A non-shadow row can only be
+     * present here after a Streams rollback or a partial cutover; replay it
+     * through the legacy port before marking it SENT so rollback cannot lose
+     * a job.
      */
     private void dispatchShadow() {
         List<JudgeOutboxRecord> claimed = judgeOutboxMapper.claim(CLAIM_BATCH_SIZE);
@@ -114,11 +122,47 @@ public class JudgeOutboxDispatcher {
             return;
         }
         for (JudgeOutboxRecord row : claimed) {
-            incrementRowsObserved();
-            log.debug("Outbox shadow-observed row: submission={}, generation={}, is_shadow={}",
-                    row.getSubmissionId(), row.getGeneration(), row.getIsShadow());
-            judgeOutboxMapper.markSent(row.getId());
+            try {
+                incrementRowsObserved();
+                if (Boolean.TRUE.equals(row.getIsShadow())) {
+                    log.debug("Outbox shadow-observed row: submission={}, generation={}",
+                            row.getSubmissionId(), row.getGeneration());
+                } else {
+                    replayLegacy(row);
+                    log.info("Replayed non-shadow outbox row to legacy queue: submission={}, generation={}",
+                            row.getSubmissionId(), row.getGeneration());
+                }
+                judgeOutboxMapper.markSent(row.getId());
+            } catch (Exception e) {
+                LocalDateTime nextRetry = LocalDateTime.now(clock).plusSeconds(backoffSeconds(row));
+                judgeOutboxMapper.markRetry(row.getId(), nextRetry, truncate(e.getMessage()));
+                log.warn("Legacy outbox replay failed for submission={} gen={}: {}",
+                        row.getSubmissionId(), row.getGeneration(), e.getMessage());
+            }
         }
+    }
+
+    /** Keep real rows retryable when cutover is configured but its provider is absent. */
+    private void dispatchUnavailable() {
+        List<JudgeOutboxRecord> claimed = judgeOutboxMapper.claimRealDispatch(CLAIM_BATCH_SIZE, cutoverAt);
+        for (JudgeOutboxRecord row : claimed) {
+            judgeOutboxMapper.markRetry(row.getId(),
+                    LocalDateTime.now(clock).plusSeconds(backoffSeconds(row)),
+                    "judge queue provider unavailable");
+        }
+        if (!claimed.isEmpty()) {
+            log.error("Judge Streams provider unavailable; kept {} outbox rows retryable", claimed.size());
+        }
+    }
+
+    private void replayLegacy(JudgeOutboxRecord row) {
+        Map<String, Object> payload = row.getPayload();
+        legacyEnqueuePort.enqueueJudgeJob(
+                row.getSubmissionId(),
+                stringOrNull(payload, "problemId"),
+                stringOrNull(payload, "userId"),
+                stringOrNull(payload, "language"),
+                stringOrNull(payload, "code"));
     }
 
     /**

@@ -19,6 +19,7 @@ on:
           - backend-auth
           - backend-admin
           - backend-app
+          - backend-judge
           - console
           - management
       skip_migrations:
@@ -108,6 +109,20 @@ jobs:
               echo "  Waiting for $NAME... ($i/15)"
               sleep 5
             done
+          done
+
+          echo "Checking backend-judge container health..."
+          for i in $(seq 1 15); do
+            if $SSH_CMD "test \"\$(docker inspect -f '{{.State.Health.Status}}' ulticode-backend-judge 2>/dev/null)\" = healthy"; then
+              echo "  backend-judge is healthy"
+              break
+            fi
+            if [ "$i" -eq 15 ]; then
+              echo "::error::backend-judge failed health check after 75 seconds"
+              exit 1
+            fi
+            echo "  Waiting for backend-judge... ($i/15)"
+            sleep 5
           done
 
       - name: Health check - frontends

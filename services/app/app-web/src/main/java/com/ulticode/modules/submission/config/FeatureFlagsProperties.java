@@ -23,11 +23,11 @@ public class FeatureFlagsProperties {
   private boolean contestAnalyticsEnabled = true;
 
   /**
-   * Enable the judge outbox shadow write (ADR-003 M3a). When {@code true},
-   * submit/rejudge/reaper write a {@code judge_outbox} row alongside the
-   * existing RQueue enqueue, but the outbox dispatcher stays in shadow mode
-   * (it never enqueues — the old RQueue remains the sole active producer).
-   * Default {@code false} so the production path is unchanged until M3c cutover.
+   * Enable durable judge dispatch (ADR-003 M3a/M3c). When {@code true},
+   * submit/rejudge/reaper write a {@code judge_outbox} row. With
+   * {@code judge-queue.use-port=true}, the dispatcher sends those rows to
+   * Redis Streams; with the port flag off, rows remain in shadow/legacy
+   * compatibility mode. Default {@code false} preserves the pre-cutover path.
    */
   private boolean useJudgeOutbox = false;
 

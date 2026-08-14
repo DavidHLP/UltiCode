@@ -53,6 +53,7 @@ import java.util.Map;
  */
 @Slf4j
 @Service
+@org.springframework.context.annotation.Primary
 @RequiredArgsConstructor
 public class DefaultSubmissionWritePort implements SubmissionWritePort {
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
+@org.springframework.context.annotation.Primary
 @RequiredArgsConstructor
 public class DefaultProblemJudgingCaseReadPort implements ProblemJudgingCaseReadPort {
 

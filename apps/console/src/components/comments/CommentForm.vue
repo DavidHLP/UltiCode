@@ -2,18 +2,18 @@
   <form @submit.prevent="submit" class="w-full">
     <!-- Terminal-styled comment input container -->
     <div
-      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)]/30 transition-all duration-200"
+      class="overflow-hidden rounded-md border border-border-control bg-surface-elevated shadow-xs transition-colors duration-200 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
     >
       <!-- Textarea area -->
       <Textarea
         v-model="content"
         :placeholder="t('forum.comments.placeholder')"
-        class="min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm placeholder:text-[var(--foreground-muted)]/60 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 font-mono leading-relaxed"
+        class="min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-3 font-mono text-sm leading-relaxed text-foreground placeholder:text-foreground-muted focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
       />
 
       <!-- Action bar -->
       <div
-        class="flex items-center justify-between px-3 py-2 bg-[var(--surface-sunken)] border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
+        class="flex items-center justify-between border-t border-border-control bg-surface-sunken px-3 py-2"
       >
         <!-- Left: Attachment buttons -->
         <div class="flex items-center gap-1">
@@ -21,17 +21,17 @@
             type="button"
             variant="ghost"
             size="icon"
-            class="h-8 w-8 text-[var(--foreground-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors duration-200"
+            class="h-8 w-8 rounded-md text-foreground-muted transition-colors duration-200 hover:bg-surface-highlight hover:text-primary"
           >
-            <ImageIcon class="h-4 w-4" />
+            <ImageIcon class="size-4" aria-hidden="true" />
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            class="h-8 w-8 text-[var(--foreground-muted)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors duration-200"
+            class="h-8 w-8 rounded-md text-foreground-muted transition-colors duration-200 hover:bg-surface-highlight hover:text-primary"
           >
-            <Type class="h-4 w-4" />
+            <Type class="size-4" aria-hidden="true" />
           </Button>
         </div>
 
@@ -42,7 +42,7 @@
             type="button"
             variant="ghost"
             size="sm"
-            class="h-8 px-3 font-mono text-xs uppercase tracking-wider"
+            class="h-8 rounded-md px-3 font-data text-xs uppercase tracking-wider text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong"
             @click="onCancel"
           >
             {{ t("common.actions.cancel") }}
@@ -51,7 +51,7 @@
             type="submit"
             variant="default"
             size="sm"
-            class="h-8 px-4 font-mono text-xs uppercase tracking-wider"
+            class="h-8 rounded-md px-4 font-data text-xs uppercase tracking-wider"
             :disabled="!content.trim()"
           >
             {{ t("forum.comments.submit") }}

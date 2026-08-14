@@ -157,6 +157,7 @@ async function handleLogout() {
               </RouterLink>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <ThemeSwitcher />
             <LanguageSwitcher />
           </DropdownMenuContent>
         </DropdownMenu>

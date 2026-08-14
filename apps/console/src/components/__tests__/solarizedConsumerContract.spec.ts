@@ -239,6 +239,38 @@ describe("Solarized component consumers", () => {
     expect(localeTypes).not.toContain("flag:");
   });
 
+  it("keeps theme controls available to guests", () => {
+    const navUser = source("../../features/sider/NavUser.vue");
+    const guestMenu = navUser.slice(
+      navUser.indexOf("<!-- Guest: unified dropdown -->"),
+      navUser.indexOf("<!-- Authenticated: show user dropdown menu -->"),
+    );
+
+    expect(guestMenu).toContain("<ThemeSwitcher />");
+  });
+
+  it("uses semantic control tokens for the comment composer trigger", () => {
+    const comments = source("../../components/comments/CommentThread.vue");
+
+    expect(comments).toContain("<button");
+    expect(comments).toContain("rounded-md border border-border-control");
+    expect(comments).toContain("bg-surface-sunken");
+    expect(comments).toContain("hover:bg-surface-highlight");
+    expect(comments).toContain("focus-visible:ring-2");
+    expect(comments).not.toContain("border-[var(--border-subtle)]");
+  });
+
+  it("uses semantic control tokens for the comment editor", () => {
+    const form = source("../../components/comments/CommentForm.vue");
+
+    expect(form).toContain("rounded-md border border-border-control");
+    expect(form).toContain("bg-surface-elevated");
+    expect(form).toContain("border-t border-border-control bg-surface-sunken");
+    expect(form).toContain("placeholder:text-foreground-muted");
+    expect(form).toContain("hover:bg-surface-highlight");
+    expect(form).not.toContain("border-[var(--border-subtle)]");
+  });
+
   it("keeps each top-level navigation item active across nested routes", () => {
     const layout = source("../../features/sider/AppLayout.vue");
 

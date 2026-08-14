@@ -61,8 +61,8 @@ public interface SearchSource {
 
     /**
      * Build the frontend URL for a single entity of this source by its
-     * natural identifier (slug for problems, username for users, permalink
-     * for posts, id for solutions). Each source owns its URL template so
+     * natural identifier (slug for problems, username for users, id for
+     * posts and solutions). Each source owns its URL template so
      * the search module never needs to know about per-domain permalink
      * formats.
      *

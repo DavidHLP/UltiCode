@@ -222,8 +222,8 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
     /**
      * Resolve the URL for a MeiliSearch hit. The owning source owns the
      * URL template via {@link SearchSource#buildUrl(String)}; the per-source
-     * hit may carry a richer identifier (problem slug, username, post
-     * permalink) that should be preferred over the raw id when available.
+     * hit may carry a richer identifier (problem slug or username) that
+     * should be preferred over the raw id when the URL contract supports it.
      */
     private String resolveMeiliUrl(SearchIndexType type, String id, Map<String, Object> hit) {
         SearchSource source = sourcesByType.get(type);
@@ -240,8 +240,7 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
                 return source.buildUrl(username != null ? username : id);
             }
             case POSTS: {
-                String permalink = hit.get("permalink") != null ? hit.get("permalink").toString() : null;
-                return source.buildUrl(permalink != null ? permalink : id);
+                return source.buildUrl(id);
             }
             case SOLUTIONS: {
                 Object problemId = hit.get("problemId");

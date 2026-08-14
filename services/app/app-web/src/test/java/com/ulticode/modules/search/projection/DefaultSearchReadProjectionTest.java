@@ -3,6 +3,7 @@ package com.ulticode.modules.search.projection;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
+import com.meilisearch.sdk.model.Searchable;
 import com.ulticode.app.api.dto.ForumPostIndexDTO;
 import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.problem.entity.Problem;
@@ -28,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,6 +64,9 @@ class DefaultSearchReadProjectionTest {
 
     @Mock
     private Index index;
+
+    @Mock
+    private Searchable searchable;
 
     private DefaultSearchReadProjection searchProjection;
 
@@ -172,7 +177,7 @@ class DefaultSearchReadProjectionTest {
             assertEquals("post-123", item.getId());
             assertEquals("POSTS", item.getType());
             assertEquals("Test Post", item.getTitle());
-            assertEquals("/forum/post/test-post", item.getUrl());
+            assertEquals("/forum/detailed/post-123", item.getUrl());
         }
 
         @Test
@@ -315,6 +320,29 @@ class DefaultSearchReadProjectionTest {
             // Verify that database fallback was NOT called (since we didn't set up mocks for it)
             verify(problemSearchReadPort, never()).searchForIndex(anyString(), anyInt());
             verify(userSearchReadPort, never()).searchForIndex(anyString(), anyInt());
+        }
+
+        @Test
+        @DisplayName("should use the post id in MeiliSearch forum URLs")
+        void shouldUsePostIdInMeiliSearchForumUrls() throws Exception {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            queryDTO.setIndex(SearchIndexType.POSTS);
+
+            HashMap<String, Object> hit = new HashMap<>();
+            hit.put("id", "post-123");
+            hit.put("title", "Test Post");
+            hit.put("permalink", "test-post");
+            ArrayList<HashMap<String, Object>> hits = new ArrayList<>();
+            hits.add(hit);
+
+            when(meiliSearchClient.index(anyString())).thenReturn(index);
+            when(index.search(any(SearchRequest.class))).thenReturn(searchable);
+            when(searchable.getHits()).thenReturn(hits);
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertEquals(1, response.getResults().size());
+            assertEquals("/forum/detailed/post-123", response.getResults().get(0).getUrl());
         }
     }
 

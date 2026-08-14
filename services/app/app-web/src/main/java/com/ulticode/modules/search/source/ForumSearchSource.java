@@ -42,7 +42,7 @@ public class ForumSearchSource implements SearchSource {
                     .type(SearchIndexType.POSTS.name())
                     .title(post.title())
                     .description(post.excerpt())
-                    .url(buildUrl(post.permalink()))
+                    .url(buildUrl(post.id()))
                     .build());
         }
         return results;
@@ -50,6 +50,6 @@ public class ForumSearchSource implements SearchSource {
 
     @Override
     public String buildUrl(String entityId) {
-        return "/forum/post/" + entityId;
+        return "/forum/detailed/" + entityId;
     }
 }

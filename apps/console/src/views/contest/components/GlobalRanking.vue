@@ -76,6 +76,12 @@ const { t } = useI18n();
               <div
                 class="absolute inset-0 bg-surface/5 skew-y-12 opacity-50"
               ></div>
+              <div
+                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground-strong font-mono"
+                data-testid="podium-rank-number"
+              >
+                2
+              </div>
             </div>
           </div>
 
@@ -125,7 +131,8 @@ const { t } = useI18n();
                 class="absolute inset-0 bg-surface/10 skew-y-12 opacity-50"
               ></div>
               <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-5 font-black text-4xl text-foreground-strong font-mono"
+                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground-strong font-mono"
+                data-testid="podium-rank-number"
               >
                 1
               </div>
@@ -172,6 +179,12 @@ const { t } = useI18n();
               <div
                 class="absolute inset-0 bg-surface/5 skew-y-12 opacity-50"
               ></div>
+              <div
+                class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground-strong font-mono"
+                data-testid="podium-rank-number"
+              >
+                3
+              </div>
             </div>
           </div>
         </div>

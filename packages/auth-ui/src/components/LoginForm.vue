@@ -39,6 +39,8 @@ const props = withDefaults(
      * route's `?redirect=` query string, falling back to `/`.
      */
     redirectAfter?: string;
+    /** Fallback redirect when neither an explicit nor query redirect is valid. */
+    fallbackRedirect?: string;
     /** Hide the "no account / sign up" footer (management uses this) */
     hideSignUp?: boolean;
     /** Hide the OAuth buttons (set when only password auth is allowed) */
@@ -48,6 +50,7 @@ const props = withDefaults(
   }>(),
   {
     redirectAfter: "",
+    fallbackRedirect: "/",
     hideSignUp: false,
     hideOAuth: false,
     hideForgot: false,
@@ -87,6 +90,7 @@ async function handleSubmit(event: Event) {
     const target =
       resolveInternalRedirect(props.redirectAfter) ??
       resolveInternalRedirect(route.query.redirect) ??
+      resolveInternalRedirect(props.fallbackRedirect) ??
       "/";
     await router.push(target);
   } catch (err: unknown) {

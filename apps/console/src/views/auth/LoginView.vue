@@ -29,7 +29,7 @@ defineOptions({
   <AuthLayout badge="CODE" version="v2.0.0">
     <template #form>
       <AuthCard :title="t('auth.login.terminal')">
-        <LoginForm :on-submit="handleLogin" />
+        <LoginForm :on-submit="handleLogin" fallback-redirect="/problemset" />
       </AuthCard>
     </template>
     <template #pattern>

@@ -44,6 +44,16 @@ describe("LoginForm", () => {
     expect(routerPush).toHaveBeenCalledWith("/")
   })
 
+  it("uses fallbackRedirect when no explicit or query redirect is set", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    const wrapper = mount(LoginForm, {
+      props: { onSubmit, fallbackRedirect: "/problemset" },
+    })
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+    expect(routerPush).toHaveBeenCalledWith("/problemset")
+  })
+
   it("redirects to redirectAfter prop when set", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     const wrapper = mount(LoginForm, {

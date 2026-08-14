@@ -1,6 +1,31 @@
 -- Manual rollback for V20260811180000__Create_App_Contest_Schema.sql.
 -- Flyway does not execute rollback files automatically.
 -- Run only after stopping App writers and taking a verified backup.
+-- This rollback is for the dedicated App-owner migration chain only. The
+-- shared chain already owns these tables/columns; refuse to run there rather
+-- than dropping shared data.
+
+DROP PROCEDURE IF EXISTS `_guard_app_contest_rollback`;
+DELIMITER //
+CREATE PROCEDURE `_guard_app_contest_rollback`()
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'flyway_schema_history'
+    ) AND EXISTS (
+        SELECT 1
+        FROM flyway_schema_history
+        WHERE description = 'Create All Tables'
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Refusing App Contest rollback on shared migration chain';
+    END IF;
+END //
+DELIMITER ;
+CALL `_guard_app_contest_rollback`();
+DROP PROCEDURE IF EXISTS `_guard_app_contest_rollback`;
 
 -- Restore values that cannot be represented by the original baseline schema.
 UPDATE contests

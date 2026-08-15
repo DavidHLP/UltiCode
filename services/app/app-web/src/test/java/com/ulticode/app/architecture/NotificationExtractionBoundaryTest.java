@@ -26,7 +26,9 @@ class NotificationExtractionBoundaryTest {
                 "com/ulticode/modules/notification/channel",
                 "com/ulticode/modules/notification/ledger",
                 "com/ulticode/modules/notification/mapper",
-                "com/ulticode/modules/notification/service")) {
+                "com/ulticode/modules/notification/service",
+                "com/ulticode/modules/notification/dto",
+                "com/ulticode/modules/notification/consumer")) {
             assertNoRegularFiles(source.resolve(movedPath));
         }
         for (String movedFile : List.of(
@@ -73,6 +75,7 @@ class NotificationExtractionBoundaryTest {
                                             "com.ulticode.modules.notification.ledger",
                                             "com.ulticode.modules.notification.mapper",
                                             "com.ulticode.modules.notification.service.impl",
+                                            "com.ulticode.modules.notification.dto",
                                             "com.ulticode.modules.email",
                                             "org.springframework.mail");
                         } catch (IOException e) {

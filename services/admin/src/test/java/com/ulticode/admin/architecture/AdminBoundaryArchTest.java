@@ -122,9 +122,11 @@ class AdminBoundaryArchTest {
             .that().resideInAPackage("com.ulticode.admin..")
             .or().resideInAPackage("com.ulticode.modules.admin..")
             .should().dependOnClassesThat().resideInAnyPackage(
-                "com.ulticode.modules.notification..")
-            .because("ADMIN-008: Notification is independently owned; Admin must use "
-                + "backend-app-api contracts and never import notification-private "
-                + "notification internals.");
+                "com.ulticode.modules.notification..",
+                "com.ulticode.modules.email..",
+                "com.ulticode.notification..")
+            .because("ADMIN-008: Notification and email are independently owned "
+                + "(backend-notification); Admin must use backend-app-api contracts "
+                + "and never import owner-private internals.");
 
 }

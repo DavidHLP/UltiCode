@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -156,7 +158,7 @@ public class InboxConsumer {
 
                 String failureReason = safeFailureReason(failure);
                 log.error("Failed to process inbox event {} (type={}): {}",
-                        record.getEventId(), record.getEventType(), failureReason);
+                        record.getEventId(), record.getEventType(), failureReason, failure);
                 try {
                     inboxMapper.markFailed(
                             record.getId(),
@@ -242,7 +244,9 @@ public class InboxConsumer {
         if (failure == null) {
             return "UnknownFailure";
         }
-        String name = failure.getClass().getSimpleName();
-        return name == null || name.isBlank() ? "UnknownFailure" : name;
+        StringWriter writer = new StringWriter();
+        failure.printStackTrace(new PrintWriter(writer));
+        String stack = writer.toString();
+        return stack.length() > 2000 ? stack.substring(0, 2000) : stack;
     }
 }

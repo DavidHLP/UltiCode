@@ -9,7 +9,7 @@ import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
-import com.ulticode.app.api.service.UserNotificationReadPort;
+import com.ulticode.notification.recipient.DubboUserNotificationReadAdapter;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 class EmailNotificationChannelTest {
 
     @Mock private EmailService emailService;
-    @Mock private UserNotificationReadPort userNotificationReadPort;
+    @Mock private DubboUserNotificationReadAdapter userNotificationReadPort;
 
     @Test
     void channelIdIsEmail() {

@@ -7,8 +7,10 @@ import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.modules.notification.port.NotificationAdministrationWritePort;
 import com.ulticode.modules.notification.service.NotificationAdministrationDomainService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
+@Service
 public class NotificationAdministrationDomainServiceImpl implements NotificationAdministrationDomainService {
 
     private final NotificationAdministrationWritePort writePort;

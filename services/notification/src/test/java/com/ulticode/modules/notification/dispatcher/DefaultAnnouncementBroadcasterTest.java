@@ -1,11 +1,11 @@
 package com.ulticode.modules.notification.dispatcher;
 
-import com.ulticode.app.api.service.UserNotificationReadPort;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
+import com.ulticode.notification.recipient.DubboUserNotificationReadAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class DefaultAnnouncementBroadcasterTest {
     private NotificationPreferenceMapper preferenceMapper;
 
     @Mock
-    private UserNotificationReadPort userNotificationReadPort;
+    private DubboUserNotificationReadAdapter userNotificationReadPort;
 
     @Mock
     private UuidGenerator uuidGenerator;

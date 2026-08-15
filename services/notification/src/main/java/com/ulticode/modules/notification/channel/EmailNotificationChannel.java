@@ -8,6 +8,7 @@ import com.ulticode.modules.email.dto.SendEmailDTO;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.notification.email.EmailTemplates;
 import com.ulticode.modules.notification.intent.NotificationIntent;
+import com.ulticode.notification.recipient.DubboUserNotificationReadAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +40,17 @@ public class EmailNotificationChannel implements NotificationChannel {
      * not be wired in. We tolerate the bean being absent and treat lookup
      * failure as a missing-recipient (handled in {@link #send}).
      *
+     * <p>The concrete adapter type avoids the ambiguity between the local
+     * {@link DubboUserNotificationReadAdapter} component and the
+     * {@code @DubboReference} proxy bean ({@code appRecipientReadPort}), both
+     * of which implement {@link UserNotificationReadPort}.
+     *
      * <p>Package-private to allow unit tests in the same package to inject
      * a mock directly (the {@code @Autowired(required = false)} path is
      * exercised by Spring in production).
      */
     @Autowired(required = false)
-    UserNotificationReadPort userNotificationReadPort;
+    DubboUserNotificationReadAdapter userNotificationReadPort;
 
     @Override
     public String channelId() {

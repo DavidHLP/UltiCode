@@ -366,6 +366,7 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | `audit_logs` | admin mapper；各域同步 audit sink | Admin | 各服务、Admin 查询 | 生产者 E，Admin I/Q |
 | `collection_items` | bookmark R/W；edgeoperations 读 | App | App | I |
 | `collections` | bookmark folder/service | App | App | I |
+| `consumer_inbox` | 集成事件暂存；App 过渡期仍写 App-* bindings | Notification | Notification、App（过渡） | Notification I；App 过渡期 C/Q/E |
 | `contest_analytics` | 仅 migration，当前实时 projection 计算 | App（R 候选） | Admin analytics | R 或 App I + Admin Q/E |
 | `contest_announcements` | contest 读；admin 直接写 | App | Admin、WebSocket | Admin C/Q；App I/E |
 | `contest_participants` | contest R/W；admin analytics 读 | App | Admin | App I；Admin Q/投影 |
@@ -392,6 +393,7 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | `judge_outbox` | submission 写，queue dispatcher/reaper 更新 | App/Submission-Judge | App worker | 与 submission 同库 I；不跨服务 SQL |
 | `moderation_actions` | moderation | Admin | Admin | I |
 | `moderation_queue` | moderation，引用多种 App 内容 | Admin | App 内容 Owner | Admin I；App C/Q/E |
+| `notification_command_receipt` | Notification 命令回执（幂等重放） | Notification | Notification | I |
 | `notification_delivery_ledger` | notification dispatcher/reaper | Notification | Admin 运维读 | Notification I；Admin Q |
 | `notification_preferences` | notification | Notification | Notification | I |
 | `notifications` | notification | Notification | Admin、WebSocket | Notification I；Admin Q/E |

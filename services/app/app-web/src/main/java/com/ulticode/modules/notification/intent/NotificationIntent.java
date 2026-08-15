@@ -17,8 +17,9 @@ import com.ulticode.app.api.dto.NotificationPayload;
  * <ul>
  *   <li>{@link #userId()} — the recipient. Used by all channels.</li>
  *   <li>{@link #category()} — coarse preference category (COMMUNICATION /
- *       MARKETING / SECURITY / SYSTEM). Used by the dispatcher to consult
- *       {@code NotificationPreference} before fanning out to channels.</li>
+ *       MARKETING / SECURITY / SYSTEM). Used by the notification-owner
+ *       dispatcher to consult {@code NotificationPreference} before fanning
+ *       out to channels.</li>
  *   <li>{@link #intentId()} — stable idempotency key. Each concrete record
  *       derives this from its domain-natural fields (e.g. {@code
  *       submissionId + ":" + generation} for {@link SubmissionCompletedIntent})
@@ -36,8 +37,10 @@ import com.ulticode.app.api.dto.NotificationPayload;
  * disappears for non-achievement events. Locality: payload rules live with the
  * data they describe. Adding a new intent — the channel doesn't change.
  *
- * <p>Reference: notification/intent/NotificationIntent + EmailTemplates
- * (same package); see also V20260613120000__Create_Notification_Delivery_Ledger.sql.
+ * <p>Reference: the consuming runtime (dispatcher, channels, email templates,
+ * ledger) moved to {@code services/notification} with the NOTIFY-006
+ * extraction; app-web keeps only the intent definitions and the event
+ * publisher.
  */
 public sealed interface NotificationIntent
         permits SubmissionCompletedIntent,

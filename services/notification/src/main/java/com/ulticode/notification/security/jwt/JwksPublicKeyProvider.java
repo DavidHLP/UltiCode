@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
@@ -36,6 +37,8 @@ public class JwksPublicKeyProvider {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private static final int MIN_RSA_MODULUS_BITS = 2048;
+
     @Value("${jwt.rsa.enabled:false}")
     private boolean rsaEnabled;
 
@@ -53,6 +56,12 @@ public class JwksPublicKeyProvider {
     /**
      * Look up an RSA public key by its key ID.
      *
+     * <p>Key rotation is served by the TTL-based cache refresh only: a cache
+     * miss never triggers an immediate HTTP fetch, so unauthenticated traffic
+     * with random {@code kid} values cannot amplify requests against the Auth
+     * JWKS endpoint. A rotated key therefore takes effect within one TTL
+     * (default 15 min) instead of on the first miss.
+     *
      * @param kid the {@code kid} from the JWT header
      * @return the matching public key, or {@code null} if not found / JWKS disabled
      */
@@ -61,13 +70,7 @@ public class JwksPublicKeyProvider {
             return null;
         }
         ensureCacheFresh();
-        RSAPublicKey key = keyCache.get(kid);
-        if (key == null) {
-            // Cache miss: force one refresh in case the key rotated
-            refreshCache();
-            key = keyCache.get(kid);
-        }
-        return key;
+        return keyCache.get(kid);
     }
 
     private synchronized void ensureCacheFresh() {
@@ -78,6 +81,7 @@ public class JwksPublicKeyProvider {
 
     private void refreshCache() {
         try {
+            validateJwksUri();
             String body = httpClient.get()
                     .uri(jwksUri)
                     .retrieve()
@@ -93,7 +97,17 @@ public class JwksPublicKeyProvider {
                 String k = entry.path("kid").asText();
                 String n = entry.path("n").asText();
                 String e = entry.path("e").asText();
+                String kty = entry.path("kty").asText();
+                String use = entry.path("use").asText("");
                 if (k.isEmpty() || n.isEmpty() || e.isEmpty()) {
+                    continue;
+                }
+                if (!"RSA".equalsIgnoreCase(kty)) {
+                    log.warn("Skipping JWK kid={}: kty is not RSA ({})", k, kty);
+                    continue;
+                }
+                if (!use.isEmpty() && !"sig".equalsIgnoreCase(use)) {
+                    log.warn("Skipping JWK kid={}: use is not sig ({})", k, use);
                     continue;
                 }
                 try {
@@ -111,9 +125,35 @@ public class JwksPublicKeyProvider {
         }
     }
 
+    /**
+     * Reject plain-HTTP JWKS URIs for non-loopback hosts: an on-path attacker
+     * could otherwise substitute the trust anchor and mint valid RS256 tokens.
+     * Loopback stays allowed over HTTP for local development.
+     */
+    private void validateJwksUri() {
+        URI uri = URI.create(jwksUri);
+        if ("https".equalsIgnoreCase(uri.getScheme())) {
+            return;
+        }
+        String host = uri.getHost();
+        boolean loopback = host == null
+                || "localhost".equalsIgnoreCase(host)
+                || "127.0.0.1".equals(host)
+                || "::1".equals(host);
+        if (!loopback) {
+            throw new IllegalStateException(
+                    "JWKS URI must use HTTPS for non-loopback host: " + jwksUri);
+        }
+    }
+
     private RSAPublicKey buildRsaKey(String nB64, String eB64) throws Exception {
-        BigInteger n = new BigInteger(1, Base64.getUrlDecoder().decode(nB64));
+        byte[] nBytes = Base64.getUrlDecoder().decode(nB64);
+        BigInteger n = new BigInteger(1, nBytes);
         BigInteger e = new BigInteger(1, Base64.getUrlDecoder().decode(eB64));
+        if (n.bitLength() < MIN_RSA_MODULUS_BITS) {
+            throw new IllegalArgumentException(
+                    "RSA modulus too small: " + n.bitLength() + " bits");
+        }
         return (RSAPublicKey) KeyFactory.getInstance("RSA")
                 .generatePublic(new RSAPublicKeySpec(n, e));
     }

@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -142,7 +143,7 @@ class SubmissionJudgedInboxBridgeTest {
 
         verify(inboxMapper).markFailed(
                 eq("inbox-1"), eq("App-Achievement"), anyString(),
-                eq("IllegalStateException"), eq(10));
+                contains("IllegalStateException"), eq(10));
         verify(inboxMapper, never()).markProcessed(eq("inbox-1"), anyString(), anyString());
     }
 

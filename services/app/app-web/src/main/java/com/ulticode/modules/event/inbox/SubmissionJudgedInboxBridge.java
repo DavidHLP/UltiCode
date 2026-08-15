@@ -17,6 +17,7 @@ import org.springframework.data.redis.connection.stream.PendingMessage;
 import org.springframework.data.redis.connection.stream.PendingMessages;
 import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
+import org.springframework.data.redis.connection.stream.StreamInfo;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StreamOperations;
@@ -308,12 +309,28 @@ public class SubmissionJudgedInboxBridge {
             binding.groupReady = true;
             return true;
         } catch (RuntimeException e) {
-            String message = e.getMessage();
-            if (message != null && message.contains("BUSYGROUP")) {
+            // Lettuce surfaces the BUSYGROUP response as RedisSystemException
+            // ("Error in execution") whose message never contains "BUSYGROUP",
+            // so message matching is unreliable. Decide by re-querying the
+            // group list instead: an existing group is the common restart case.
+            if (groupExists(binding.group)) {
                 binding.groupReady = true;
                 return true;
             }
-            log.debug("Integration stream group {} unavailable: {}", binding.group, message);
+            log.debug("Integration stream group {} unavailable: {}", binding.group, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean groupExists(String group) {
+        try {
+            StreamInfo.XInfoGroups groups = redisTemplate.opsForStream().groups(STREAM_KEY);
+            if (groups == null) {
+                return false;
+            }
+            return groups.stream()
+                    .anyMatch(info -> group.equals(info.groupName()));
+        } catch (RuntimeException e) {
             return false;
         }
     }

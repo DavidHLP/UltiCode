@@ -51,9 +51,6 @@ app:
     from-name: ${APP_EMAIL_FROM_NAME:${EMAIL_FROM_NAME:UltiCode}}
 
 ulticode:
-  app:
-    inbox:
-      enabled: false
   notification:
     worker:
       enabled: ${NOTIFICATION_WORKER_ENABLED:true}
@@ -78,7 +75,7 @@ security:
   internal-delegation:
     secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
     issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
-    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-notification}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-app}
 
 dubbo:
   application:
@@ -93,7 +90,7 @@ dubbo:
     triple:
       max-requests-per-connection: 50
   registry:
-    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
     username: ${DUBBO_REGISTRY_USERNAME:${NACOS_USERNAME:}}
     password: ${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}
     timeout: 5000

@@ -61,6 +61,13 @@ app:
       # Use legacy problem_examples as test cases (test_cases table has no data yet).
       # Switch to true after seeding test_cases for all problems.
       use-test-cases: ${JUDGE_USE_TEST_CASES:false}
+  websocket:
+    broadcast:
+      # backend-notification publishes real-time notification/badge pushes on
+      # the Redis channel consumed by this listener (NOTIFY-006). Default enabled
+      # to preserve the pre-cutover local STOMP push behavior; the bridge falls
+      # back to local push when Redis is unavailable.
+      enabled: ${APP_WEBSOCKET_BROADCAST_ENABLED:true}
 
 ulticode:
   app:

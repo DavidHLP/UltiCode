@@ -19,6 +19,6 @@ CREATE TABLE IF NOT EXISTS `notification_command_receipt` (
   `trace_id`            VARCHAR(80)  DEFAULT NULL COMMENT 'Distributed trace ID',
   `created_at`          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_notification_command_receipt` (`service`, `operation`, `idempotency_key`),
-  KEY `idx_notification_cmd_created` (`created_at`)
+  UNIQUE KEY `uk_notification_command_receipt` (`service`, `operation`, `idempotency_key`),
+  KEY `idx_notification_command_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

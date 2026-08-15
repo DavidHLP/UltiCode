@@ -40,8 +40,8 @@ MIGRATION_PASSWORD="${MIGRATION_DB_PASSWORD:-$DB_PASSWORD}"
 APP_DB_USER="${NOTIFICATION_APP_DB_USER:-}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-}"
 
-for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER"; do
-  if [[ ! "$identifier" =~ ^[A-Za-z0-9_]+$ ]]; then
+for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_USER"; do
+  if [[ -n "$identifier" && ! "$identifier" =~ ^[A-Za-z0-9_]+$ ]]; then
     echo "Invalid schema/user identifier: $identifier" >&2
     exit 1
   fi
@@ -55,6 +55,17 @@ TABLES=(
   email_logs
   consumer_inbox
 )
+
+# Tables owned exclusively by the notification runtime after cutover.
+# consumer_inbox stays shared: backend-app still stages App-Achievement /
+# App-WebSocket / App-Contest bindings through the same table, so its grants
+# are never revoked.
+NOTIFICATION_ONLY_TABLES=()
+for table in "${TABLES[@]}"; do
+  if [[ "$table" != "consumer_inbox" ]]; then
+    NOTIFICATION_ONLY_TABLES+=("$table")
+  fi
+done
 
 mysql_query() {
   local query="$1"
@@ -170,7 +181,15 @@ copy_forward() {
   local receipt
   receipt="$(receipt_source_table)"
   if [[ "$receipt" == "notification_command_receipt" ]]; then
-    mysql_query "INSERT INTO \`$TARGET_SCHEMA\`.\`notification_command_receipt\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`$receipt\`;"
+    # Compat-mode table exists: copy it fully, then also carry over legacy
+    # App-side receipts for the notification service that were written to
+    # app_command_receipt before the cutover. INSERT IGNORE keeps the fresher
+    # compat row when the same (service, operation, idempotency_key) exists in
+    # both tables.
+    mysql_query "INSERT IGNORE INTO \`$TARGET_SCHEMA\`.\`notification_command_receipt\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`$receipt\`;"
+    if table_exists "$SOURCE_SCHEMA" app_command_receipt; then
+      mysql_query "INSERT IGNORE INTO \`$TARGET_SCHEMA\`.\`notification_command_receipt\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`app_command_receipt\` WHERE service = 'NotificationAdministrationService';"
+    fi
   else
     mysql_query "INSERT INTO \`$TARGET_SCHEMA\`.\`notification_command_receipt\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`$receipt\` WHERE service = 'NotificationAdministrationService';"
   fi
@@ -224,16 +243,15 @@ case "$ACTION" in
       echo "Source and target are identical; refusing a no-op cutover." >&2
       exit 1
     fi
-    if [[ -z "$APP_DB_USER" || "$SOURCE_SCHEMA" != "app" ]]; then
-      echo "Cutover requires NOTIFICATION_SOURCE_SCHEMA=app and NOTIFICATION_APP_DB_USER=... so App grants can be revoked safely." >&2
+    if [[ -z "$APP_DB_USER" ]]; then
+      echo "Cutover requires NOTIFICATION_APP_DB_USER=... so App grants on the notification-only tables can be revoked safely." >&2
       exit 1
     fi
     assert_ready
     copy_forward
-    for table in "${TABLES[@]}"; do
+    for table in "${NOTIFICATION_ONLY_TABLES[@]}"; do
       mysql_query "REVOKE SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` FROM '$APP_DB_USER'@'%';"
     done
-    mysql_query "REVOKE SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`app_command_receipt\` FROM '$APP_DB_USER'@'%';" || true
     mysql_query "FLUSH PRIVILEGES;"
     print_snapshot "$SOURCE_SCHEMA" source-after-cutover
     print_snapshot "$TARGET_SCHEMA" target-after-cutover
@@ -244,8 +262,8 @@ case "$ACTION" in
       echo "Source and target are identical; no rollback required." >&2
       exit 1
     fi
-    if [[ -z "$APP_DB_USER" || "$SOURCE_SCHEMA" != "app" ]]; then
-      echo "Rollback requires the same app-schema/user variables used for cutover." >&2
+    if [[ -z "$APP_DB_USER" ]]; then
+      echo "Rollback requires NOTIFICATION_APP_DB_USER=... (the same app-schema user used for cutover)." >&2
       exit 1
     fi
     copy_back

@@ -1,9 +1,12 @@
 package com.ulticode.modules.event.inbox;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -68,6 +71,22 @@ public interface ConsumerInboxMapper extends BaseMapper<ConsumerInboxRecord> {
           AND state = 'PROCESSING' AND lease_owner = #{leaseOwner}
         ORDER BY created_at
         """)
+    @Results(id = "consumerInboxResultMap", value = {
+        @Result(column = "id", property = "id"),
+        @Result(column = "consumer", property = "consumer"),
+        @Result(column = "event_id", property = "eventId"),
+        @Result(column = "event_type", property = "eventType"),
+        @Result(column = "payload", property = "payload",
+                typeHandler = JacksonTypeHandler.class),
+        @Result(column = "state", property = "state"),
+        @Result(column = "attempts", property = "attempts"),
+        @Result(column = "last_error", property = "lastError"),
+        @Result(column = "lease_owner", property = "leaseOwner"),
+        @Result(column = "lease_expires_at", property = "leaseExpiresAt"),
+        @Result(column = "created_at", property = "createdAt"),
+        @Result(column = "processed_at", property = "processedAt"),
+        @Result(column = "next_retry_at", property = "nextRetryAt")
+    })
     List<ConsumerInboxRecord> selectLeased(@Param("leaseOwner") String leaseOwner,
                                            @Param("consumer") String consumer);
 

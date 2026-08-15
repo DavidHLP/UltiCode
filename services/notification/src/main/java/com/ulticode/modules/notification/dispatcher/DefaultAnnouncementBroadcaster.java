@@ -2,6 +2,7 @@ package com.ulticode.modules.notification.dispatcher;
 
 import com.ulticode.app.api.dto.NotificationRecipientDTO;
 import com.ulticode.app.api.service.UserNotificationReadPort;
+import com.ulticode.notification.recipient.DubboUserNotificationReadAdapter;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.NotificationPreference;
@@ -58,7 +59,7 @@ public class DefaultAnnouncementBroadcaster implements AnnouncementBroadcaster {
 
     private final NotificationMapper notificationMapper;
     private final NotificationPreferenceMapper preferenceMapper;
-    private final UserNotificationReadPort userNotificationReadPort;
+    private final DubboUserNotificationReadAdapter userNotificationReadPort;
     private final UuidGenerator uuidGenerator;
     private final Clock clock;
 

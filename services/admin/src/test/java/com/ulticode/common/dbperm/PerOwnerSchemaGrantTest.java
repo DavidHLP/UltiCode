@@ -41,7 +41,7 @@ class PerOwnerSchemaGrantTest {
 
     private static final Set<String> NOTIFICATION_TABLES = Set.of(
         "notifications", "notification_preferences", "notification_delivery_ledger",
-        "email_templates", "email_logs"
+        "email_templates", "email_logs", "consumer_inbox", "notification_command_receipt"
     );
 
     @Test
@@ -75,9 +75,11 @@ class PerOwnerSchemaGrantTest {
         assertThat(new File(initDbDir, "flyway-auth.conf")).exists();
         assertThat(new File(initDbDir, "flyway-admin.conf")).exists();
         assertThat(new File(initDbDir, "flyway-app.conf")).exists();
+        assertThat(new File(initDbDir, "flyway-notification.conf")).exists();
         assertThat(new File(initDbDir, "migrations/auth")).exists();
         assertThat(new File(initDbDir, "migrations/admin")).exists();
         assertThat(new File(initDbDir, "migrations/app")).exists();
+        assertThat(new File(initDbDir, "migrations/notification")).exists();
     }
 
     private static void assertManifestOwner(Set<String> tables, String owner) throws IOException {

@@ -324,12 +324,55 @@ if ! docker image inspect "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" >/dev/null
 fi
 
 # ===== 步骤 6: PM2 服务 =====
+# Judge 依赖 backend-app 的 Dubbo provider (SubmissionFencePort 等)。
+# 若本次同时启动 app 与 judge, 先起 app 并等其健康, 再起 judge,
+# 避免 judge 冷启动时 provider 尚未注册导致的连接超时噪音;
+# Dubbo 框架本身会自动重连, 此顺序只为让首次启动即干净连接。
 echo "Starting PM2 services: $PM2_APPS"
 (
   cd "$ROOT_DIR"
-  pm2 startOrRestart ecosystem.config.cjs \
-    --only "$PM2_APPS" \
-    --update-env
+  # 记录 judge 启动前日志偏移: PM2 持久 out_file 含历史 banner,
+  # 就绪检查必须只认本次启动产生的新内容 (见 check_pm2_online)。
+  # 必须在 startOrRestart judge 之前一刻才捕获——若提前到等待 app 前,
+  # 等待期间旧 judge 实例 crash 自动重启产生的 banner 会被误算作本次内容。
+  # 全新 checkout 时 logs/ 可能不存在, 先 mkdir 保证重定向不因 set -e 中止。
+  record_judge_offset() {
+    mkdir -p "$ROOT_DIR/logs"
+    if ! wc -c < "$ROOT_DIR/logs/backend-judge.out.log" 2>/dev/null | tr -d ' ' \
+      > "$ROOT_DIR/logs/.judge-ready-offset"; then
+      echo 0 > "$ROOT_DIR/logs/.judge-ready-offset"
+    fi
+  }
+  if [[ ",$PM2_APPS," == *",ulticode-judge,"* && ",$PM2_APPS," == *",ulticode-app,"* ]]; then
+    first="${PM2_APPS//ulticode-judge,/}"
+    first="${first//,ulticode-judge/}"
+    pm2 startOrRestart ecosystem.config.cjs \
+      --only "$first" \
+      --update-env
+    app_ready=false
+    for _ in $(seq 1 90); do
+      if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+        http://127.0.0.1:9103/api/v1/app/health 2>/dev/null || true)" == "200" ]]; then
+        app_ready=true
+        break
+      fi
+      sleep 2
+    done
+    if [[ "$app_ready" != true ]]; then
+      echo "backend-app did not become healthy; starting ulticode-judge anyway (Dubbo auto-reconnect)." >&2
+    fi
+    record_judge_offset
+    pm2 startOrRestart ecosystem.config.cjs \
+      --only ulticode-judge \
+      --update-env
+  else
+    if [[ ",$PM2_APPS," == *",ulticode-judge,"* ]]; then
+      record_judge_offset
+    fi
+    pm2 startOrRestart ecosystem.config.cjs \
+      --only "$PM2_APPS" \
+      --update-env
+  fi
   pm2 save
 )
 
@@ -349,19 +392,41 @@ check_port() {
 check_pm2_online() {
   local app="$1" jlist status restarts log
   jlist="$(pm2 jlist 2>/dev/null)" || return 1
-  # pm2 jlist is compact JSON; grab this app's object up to the first '}'.
-  local match
-  match="$(printf '%s' "$jlist" | grep -o "\"name\":\"${app}\"[^}]*" | head -1)"
+  # pm2 jlist 是紧凑 JSON: 外层 {"name":..,"pm2_env":{"name":..,"status":..,"restart_time":..},..}。
+  # 老实现用 grep -o '"name":"app"[^}]*' 匹配到 pm2_env 内嵌的 '}' 即截断,
+  # status/restart_time 在外层对象尾部取不到 → judge 就绪检查永远失败。
+  # 用 jq 精确取 pm2_env 下的字段; jq 缺失时退化为进程存在性判断。
+  if command -v jq >/dev/null 2>&1; then
+    status="$(printf '%s' "$jlist" | jq -r ".[] | select(.name==\"$app\") | .pm2_env.status" 2>/dev/null)"
+    restarts="$(printf '%s' "$jlist" | jq -r ".[] | select(.name==\"$app\") | .pm2_env.unstable_restarts" 2>/dev/null)"
+  else
+    # jq 缺失: 至少验证 PM2 进程存在。pm2 pid 对 stopped 进程返回 "0",
+    # 非空检查无法区分, 必须校验为正整数。
+    [[ "$(pm2 pid "$app" 2>/dev/null)" =~ ^[1-9][0-9]*$ ]] || return 1
+    status="online"
+    restarts="0"
+  fi
   # 只认 online 状态: crash-loop 期间 pid 存在但 status 会周期性离开 online。
-  status="$(printf '%s' "$match" | grep -o '"status":"[a-z]*"' | head -1 | cut -d'"' -f4)"
   [[ "$status" == "online" ]] || return 1
-  # 重启次数持续增长 = crash-loop, 即使瞬间 online 也不算就绪。
-  restarts="$(printf '%s' "$match" | grep -o '"restart_time":[0-9]*' | head -1 | cut -d: -f2)"
+  # unstable_restarts 只统计 crash 触发的自动重启; 手动 startOrRestart 不计入。
+  # 不能用 restart_time (累计值, 连续多次跑 up.sh 也会增长, 会把健康实例误判为 crash-loop)。
+  # 持续增长 = crash-loop, 即使瞬间 online 也不算就绪。
   [[ "${restarts:-0}" -lt 5 ]] || return 1
   # Judge Worker 无 HTTP 端点, 以 Spring 启动完成 banner 为准
   # (pid/status 在 JVM 完全起来之前就可能就位)。
-  log="$HOME/.pm2/logs/${app}-out.log"
-  grep -q "Started BackendJudgeApplication" "$log" 2>/dev/null
+  # ecosystem.config.cjs 将 judge 日志写到 logs/backend-judge.out.log,
+  # 不是 PM2 默认目录 (此前 grep 错路径导致 judge 就绪检查永远失败)。
+  log="$ROOT_DIR/logs/backend-judge.out.log"
+  # 只搜本次启动 (步骤 6 记录偏移) 之后的新内容, 忽略历史 banner,
+  # 否则慢启动/重启中的 judge 会被上一次运行的旧 banner 误判就绪。
+  local offset=0
+  if [[ -f "$ROOT_DIR/logs/.judge-ready-offset" ]]; then
+    offset="$(<"$ROOT_DIR/logs/.judge-ready-offset")"
+  fi
+  # 不用 grep -q: 它在首个匹配即提前退出, tail 收到 SIGPIPE(141),
+  # 在 set -o pipefail 下管道非零 → 假阴性。改为读完全部输入并丢弃输出。
+  tail -c +$((offset + 1)) "$log" 2>/dev/null \
+    | grep "Started BackendJudgeApplication" >/dev/null 2>&1
 }
 
 apps_csv=",$PM2_APPS,"

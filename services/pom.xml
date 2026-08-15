@@ -18,12 +18,14 @@
 	<modules>
 		<module>platform/common</module>
 		<module>platform/web-security</module>
+		<module>platform/integration-inbox</module>
 		<module>api/auth-api</module>
 		<module>api/admin-api</module>
 		<module>api/app-api</module>
 		<module>auth</module>
 		<module>admin</module>
 		<module>app</module>
+		<module>notification</module>
 		<module>judge</module>
 	</modules>
 
@@ -74,11 +76,6 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
-				<artifactId>backend-notification-domain</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.ulticode</groupId>
 				<artifactId>backend-moderation-domain</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -110,6 +107,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-web-security</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-integration-inbox</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

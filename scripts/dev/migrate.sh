@@ -47,27 +47,45 @@ export DB_PASSWORD="$MIGRATION_DB_PASSWORD"
 : "${DB_PASSWORD:?DB_PASSWORD is required}"
 : "${DB_NAME:?DB_NAME is required}"
 
+if [[ -n "${NOTIFICATION_DB_NAME:-}" && "$NOTIFICATION_DB_NAME" != "notification" ]]; then
+  echo "NOTIFICATION_DB_NAME must be 'notification' with flyway-notification.conf; arbitrary owner database names are not supported by this migration set." >&2
+  exit 1
+fi
+
 cd "$ROOT_DIR/init-db"
 
-run_flyway() {
-  local config_file="flyway.conf"
+run_flyway_config() {
+  local config_file="$1"
+  local flyway_command="$2"
   if [[ -n "${MIGRATION_SCHEMA:-}" && -f "flyway-${MIGRATION_SCHEMA}.conf" ]]; then
     config_file="flyway-${MIGRATION_SCHEMA}.conf"
   fi
-  mvn "flyway:$1" \
+  mvn "flyway:$flyway_command" \
     -Dflyway.configFiles="$config_file" \
     --no-transfer-progress \
     -B
 }
 
-# 自愈: migrate 失败(checksum 漂移 / failed migration 记录残留 / 历史遗留 baseline-增量冲突)时,
-# repair 清理 flyway_schema_history 中的失败记录后重试一次。根因(如迁移文件本身冲突)仍需人工修。
+run_flyway() {
+  run_flyway_config "flyway.conf" "$1"
+}
+
+# 仅保留既有主库迁移的自愈行为。owner schema 的历史漂移必须显式处理，
+# 不能自动 repair 后继续，否则可能把版本冲突伪装成成功。
 if [[ "$COMMAND" == "migrate" ]]; then
-  if ! run_flyway migrate; then
+  if [[ -n "${MIGRATION_SCHEMA:-}" ]]; then
+    run_flyway migrate
+  elif ! run_flyway migrate; then
     echo "Flyway migrate failed; running repair then retrying..." >&2
     run_flyway repair
     run_flyway migrate
+    run_flyway_config "flyway-notification.conf" migrate
+  else
+    run_flyway_config "flyway-notification.conf" migrate
   fi
 else
   run_flyway "$COMMAND"
+  if [[ -z "${MIGRATION_SCHEMA:-}" ]]; then
+    run_flyway_config "flyway-notification.conf" "$COMMAND"
+  fi
 fi

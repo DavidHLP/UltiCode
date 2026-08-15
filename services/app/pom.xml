@@ -17,7 +17,6 @@
 		<module>modules/problem</module>
 		<module>modules/contest</module>
 		<module>modules/submission</module>
-		<module>modules/notification</module>
 		<module>modules/moderation</module>
 		<module>app-web</module>
 	</modules>

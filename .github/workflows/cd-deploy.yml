@@ -19,6 +19,7 @@ on:
           - backend-auth
           - backend-admin
           - backend-app
+          - backend-notification
           - backend-judge
           - console
           - management
@@ -103,6 +104,7 @@ jobs:
             "backend-auth:9101:/api/v1/auth/health"
             "backend-admin:9102:/api/v1/admin/health"
             "backend-app:9103:/api/v1/app/health"
+            "backend-notification:9105:/api/v1/notification/health"
           )
           for svc in "${SERVICES[@]}"; do
             NAME="${svc%%:*}"

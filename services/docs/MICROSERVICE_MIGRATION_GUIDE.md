@@ -22,11 +22,12 @@
 
 ### 1.2 推荐目标
 
-最终保留三个数据 Owner 服务，另设一个不拥有业务表的判题执行运行时：
+最终保留四个数据 Owner 服务，另设一个不拥有业务表的判题执行运行时：
 
 - **`backend-auth`**：账号、凭证、OAuth identity、JWT、refresh session、账号状态和 RBAC；不拥有用户画像、题目、竞赛或运营数据。
 - **`backend-admin`**：管理端 BFF、审核治理、审计、系统配置、监控和备份；“能管理某数据”不等于“拥有该数据”。题目、竞赛、投稿等管理命令仍由其业务 Owner 执行。
-- **`backend-app`**：在线判题核心和普通用户业务，包括用户画像、题目、提交/判题、竞赛、题解、论坛、互动、通知、搜索、WebSocket 等。首轮迁移刻意保持为一个较大的业务服务，避免过早继续拆分。
+- **`backend-app`**：在线判题核心和普通用户业务，包括用户画像、题目、提交/判题、竞赛、题解、论坛、互动、搜索、WebSocket 等。通知意图仍由 App 发布，但通知状态和投递不再由 App 持有。
+- **`backend-notification`**：通知、偏好、投递台账、邮件和通知相关管理查询/命令；消费 App 的通知意图事件，通过 App 的用户读契约取得收件人信息，并经 Redis Pub/Sub 请求 App 的本地 WebSocket 中继。
 - **`backend-judge`**：独立判题 Worker；消费 App 写入的 Redis Streams，沙箱执行后通过 `backend-app-api` 的 Dubbo port 回写 verdict。它不拥有 Submission/Problem/TestCase 表，App 仍是唯一数据 Owner。
 
 核心内部同步 RPC 使用 **Apache Dubbo 3**；注册发现使用 **Nacos**。外部 HTTP/WS 先由 **Nginx 逻辑 Gateway** 路由，暂不引入 Spring Cloud Gateway/Higress。数据先保持同一 MySQL 实例，按 Owner 收敛写入口和账号权限，再逐步分 schema/database；不一次性物理拆库。
@@ -159,7 +160,7 @@ flowchart LR
 
 ### 2.6 配置、Filter、异常与数据库访问横切面
 
-- 三个 owner 分别由 `AuthSecurityConfig`、`AdminSecurityConfig`、`AppSecurityConfig` 组装无状态安全链，并在各自入口注册 JWT/CSRF filter（`services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java`、`services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java`、`services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java`）。
+- 四个 owner 分别由各自的安全配置组装无状态安全链，并在各自入口注册 JWT/CSRF filter；Auth、Admin、App 的现有配置为 `AuthSecurityConfig`、`AdminSecurityConfig`、`AppSecurityConfig`，Notification 复用同等入口安全约束。
 - 异常映射由 owner-scoped `*WebExceptionHandler` 维护；共享 `Result<T>` / `RpcResult` 仍定义在 `services/platform/common/src/main/java/com/ulticode/common/response/Result.java` 与 `services/platform/common/src/main/java/com/ulticode/common/rpc/RpcResult.java`，当前示例为 `services/auth/src/main/java/com/ulticode/auth/error/AuthWebExceptionHandler.java`、`services/admin/src/main/java/com/ulticode/admin/error/AdminWebExceptionHandler.java`、`services/app/app-web/src/main/java/com/ulticode/app/error/ProblemWebExceptionHandler.java`。
 - `RateLimitAspect`、`BanCheckAspect`、`AuditAspect` 和 `SqlTimingInterceptor` 是当前请求/数据库横切能力（`services/platform/web-security/src/main/java/com/ulticode/websecurity/aspect/RateLimitAspect.java`、`services/app/app-web/src/main/java/com/ulticode/app/security/BanCheckAspect.java`、`services/platform/web-security/src/main/java/com/ulticode/audit/AuditAspect.java`、`services/app/app-web/src/main/java/com/ulticode/common/metrics/SqlTimingInterceptor.java`）。拆分时按职责复制配置或替换为服务入口/事件 adapter，不能把整个 common Spring context 做成共享 runtime jar。
 - MyBatis 使用 annotation mapper，源码不存在 XML Mapper；各 owner 的 `application.yml` 分别位于 `services/auth/src/main/resources/application.yml`、`services/admin/src/main/resources/application.yml`、`services/app/app-web/src/main/resources/application.yml`，mapper/type-alias 等配置不得迁入共享 Contract。
@@ -174,31 +175,39 @@ flowchart TB
     CLIENT[Console / Management / API Client] -->|HTTPS / WSS| GW[Nginx Gateway :9001]
     GW -->|HTTP /auth/**| AUTH[backend-auth]
     GW -->|HTTP /admin/** /moderation/**| ADMIN[backend-admin]
+    GW -->|HTTP /notifications/**| NOTIFY[backend-notification]
     GW -->|HTTP / WS 用户业务| APP[backend-app]
 
     ADMIN -->|Dubbo 单跳：账号管理| AUTH
     ADMIN -->|Dubbo 单跳：内容管理/查询| APP
+    ADMIN -->|Dubbo 单跳：通知管理/查询| NOTIFY
+    NOTIFY -.->|Dubbo：用户收件人读契约| APP
     APP -.->|Dubbo：少量 batch identity fallback| AUTH
 
     AUTH --> ADB[(auth schema/database)]
     ADMIN --> MDB[(admin schema/database)]
+    NOTIFY --> NDB[(notification schema/database)]
     APP --> PDB[(app schema/database)]
 
     AUTH -->|注册/发现| NACOS[Nacos Registry]
     ADMIN -->|注册/发现| NACOS
+    NOTIFY -->|注册/发现| NACOS
     APP -->|注册/发现| NACOS
     JUDGE[backend-judge] -->|注册/发现| NACOS
 
     AUTH --> R[(Redis，按服务 key namespace)]
     ADMIN --> R
+    NOTIFY --> R
     APP --> R
     JUDGE --> R
 
     AUTH -.->|Outbox events| BUS[Redis Streams；后期按准入条件换 RocketMQ]
     ADMIN -.->|Outbox events| BUS
     APP -.->|Outbox events| BUS
+    NOTIFY -.->|Outbox/inbox events| BUS
     BUS -.->|Inbox/idempotent consume| AUTH
     BUS -.->|Inbox/idempotent consume| ADMIN
+    BUS -.->|Inbox/idempotent consume| NOTIFY
     BUS -.->|Inbox/idempotent consume| APP
 
     APP -->|Redis Streams judge queue| JQ[(judge stream)]
@@ -206,15 +215,15 @@ flowchart TB
     JUDGE -->|Dubbo facts / fence / verdict ports| APP
     JUDGE --> SANDBOX[Docker Judge Sandbox]
     APP -.-> MEILI[MeiliSearch]
-    AUTH -.-> SMTP[SMTP: security mail]
-    APP -.-> SMTP
+    AUTH -.-> SEC_SMTP[SMTP: security mail]
+    NOTIFY -.-> NOTIFY_SMTP[SMTP: notification mail]
 
     AUTH --> OBS[Micrometer / Prometheus / OpenTelemetry]
     ADMIN --> OBS
     APP --> OBS
 ```
 
-物理拆库是后期状态。迁移早期三个服务可以连接同一 MySQL 实例和旧 schema，但只能作为有期限的兼容阶段；先由代码/API 和数据库账号权限形成唯一写 Owner，再搬表。
+物理拆库是后期状态。迁移早期四个服务可以连接同一 MySQL 实例和旧 schema，但只能作为有期限的兼容阶段；先由代码/API 和数据库账号权限形成唯一写 Owner，再搬表。
 
 ### 3.2 服务依赖方向
 
@@ -226,6 +235,7 @@ backend-admin ───────> backend-auth
        └─────────────> backend-app
 
 backend-app ──(少量、可缓存、非每请求)──> backend-auth
+backend-notification ──(收件人读)──> backend-app ──> backend-auth
 backend-auth ──X──> backend-app/backend-admin（只发事件，不同步回调）
 backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路由到 Admin）
 ```
@@ -234,14 +244,14 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 - 一个 HTTP 请求最多进入一个业务 Provider 单跳；Provider 不再同步调用第三个服务完成同一业务命令；
 - Admin Dashboard 等组合读优先使用 Admin 自有事件投影；确需实时数据时，从 Admin 并行调用少量批量 RPC，而不是逐行 N+1；
-- Gateway 只做路由、TLS、header 清理、基础限流和 trace，不是唯一安全边界；三个服务都验证自己的 JWT/服务身份；
+- Gateway 只做路由、TLS、header 清理、基础限流和 trace，不是唯一安全边界；四个服务都验证自己的 JWT/服务身份；
 - Auth 下线时，未过期 access token 仍可被 App/Admin 本地验证；登录、刷新和高风险 fresh-auth 操作 fail closed。
 
 ### 3.3 关键架构决策
 
 主决策是：**按数据聚合 Owner 拆，而不是按“谁有 Admin 页面”拆。** `backend-admin` 是治理域与管理 BFF；Problem、Contest、Submission、Forum、Solution 等即使有 `/admin/**` Controller，数据仍由 `backend-app` 的对应聚合拥有。这样把当前大量 Admin→Mapper 写收敛为少量粗粒度 Admin→App command，并保持 App 内的本地事务。
 
-`backend-app` 初期较大是有意选择。Contest/Submission/Queue、Notification/WebSocket、Forum/Vote 等现有双向关系若继续拆为更多服务，会超出本任务三个服务的目标，并扩大分布式一致性成本。它们应先在 App 内通过模块/port 继续隔离，只有出现独立伸缩或团队边界后再评估第四个服务。
+`backend-app` 初期仍较大是有意选择。Contest/Submission/Queue、WebSocket、Forum/Vote 等现有双向关系继续留在 App 内；Notification 已具备独立数据、inbox、ledger 和 worker 边界，作为唯一优先拆出的业务服务。Search 仍需先完成索引同步事件化，Contest 等强实时域暂不拆。
 
 ## 4. Service Boundaries
 
@@ -279,16 +289,43 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 | 项 | 定义 |
 |---|---|
-| Responsibility | 普通用户 profile、题目、题单、题解、论坛、提交 intake/判题 dispatch、竞赛、互动、成就、订阅、通知、搜索、WebSocket/实时排名、文件/头像 |
-| Owned Domain | UserProfile、Problem、Submission/Judge Dispatch、Contest、Solution、Forum、Engagement、Achievement、Subscription、Notification、Search Index、Realtime；不包含 Judge 执行进程 |
-| Owned Tables | 除 Auth/Admin 明确列出的表外，现有 OJ/内容/互动/通知表均归 App；详见 §5 |
-| Exposed HTTP API | `/users` profile、`/problems`、`/submissions`、`/contest`、`/solutions`、`/forum`、`/problem-lists`、`/bookmarks`、`/vote`、`/notifications`、`/search`、`/i18n` read 等；WebSocket `/ws/**` |
+| Responsibility | 普通用户 profile、题目、题单、题解、论坛、提交 intake/判题 dispatch、竞赛、互动、成就、订阅、搜索、WebSocket/实时排名、文件/头像 |
+| Owned Domain | UserProfile、Problem、Submission/Judge Dispatch、Contest、Solution、Forum、Engagement、Achievement、Subscription、Search Index、Realtime；不包含 Notification 和 Judge 执行进程 |
+| Owned Tables | 除 Auth/Admin/Notification 明确列出的表外，现有 OJ/内容/互动表均归 App；详见 §5 |
+| Exposed HTTP API | `/users` profile、`/problems`、`/submissions`、`/contest`、`/solutions`、`/forum`、`/problem-lists`、`/bookmarks`、`/vote`、`/search`、`/i18n` read 等；WebSocket `/ws/**` |
 | Dubbo Provider | `ProblemAdministrationService`、`ContestAdministrationService`、`SubmissionAdministrationService`、`ContentModerationService`、批量管理查询 Contract，以及 Judge 的 `ProblemFactsPort`/case reads/`SubmissionWritePort`/`SubmissionFencePort` |
 | Dubbo Consumer | Auth identity snapshot 仅用于 cache miss、高风险状态或批量补偿；正常 HTTP 只本地验 JWT；不调用 Admin |
 | Events | `ProfileUpdated`、`SubmissionCreated/Judged`、`ContestRated`、`FollowCreated`、`AchievementEarned`、`NotificationIntentCreated`、`SearchDocumentChanged` 等 |
-| External Dependencies | App MySQL、Redis queue/cache/lock、可选 MeiliSearch、SMTP、对象存储（中期）、Nacos、Prometheus/OTel |
+| External Dependencies | App MySQL、Redis queue/cache/lock/Streams、可选 MeiliSearch、对象存储（中期）、Nacos、Prometheus/OTel |
 
-### 4.4 `backend-judge`
+### 4.4 `backend-notification`
+
+| 项 | 定义 |
+|---|---|
+| Responsibility | 通知 HTTP/BFF、通知偏好与历史、意图事件消费、站内/邮件/WebSocket fan-out、投递台账与回收重试 |
+| Owned Domain | Notification、NotificationPreference、NotificationDeliveryLedger、Email |
+| Owned Tables | `notifications`、`notification_preferences`、`notification_delivery_ledger`、`notification_command_receipt`、Notification `consumer_inbox`、email 相关表 |
+| Exposed HTTP API | `/notifications/**`；通知偏好、历史、未读计数和管理端通知查询/操作 |
+| Dubbo Provider | `NotificationAdminReadPort`、`NotificationAdministrationService`；provider group 为 `backend-notification` |
+| Dubbo Consumer | App 的 `UserNotificationReadPort`；不直接读取 App/Auth mapper 或表 |
+| Events | 消费 App 发布的 `SubmissionJudged` 与 `NotificationIntentCreated`；按投递结果发布可选 delivery outcome event |
+| External Dependencies | Notification MySQL、Redis Streams/Pub/Sub、SMTP、App recipient read port、Nacos、Prometheus/OTel |
+| Failure Boundary | 邮件、WebSocket 或通知 worker 故障不阻塞 App 提交/判题；inbox、ledger、lease/retry 保证重放和进程恢复 |
+| Scaling | API 与 worker 角色独立扩容；worker 由 `ulticode.notification.worker.enabled` 控制，目标部署为独立 `backend-notification` |
+
+Notification 不承载 WebSocket endpoint。它将允许的 payload 发布到 Redis Pub/Sub，由 App 保留的本地 STOMP/SockJS relay 转发；unknown payload kind 必须丢弃。
+
+兼容期 `backend-notification` 默认仍可使用 `DB_NAME`，但回执表已使用
+`notification_command_receipt`，不再复用 App 的 `app_command_receipt`。目标物理库由
+`NOTIFICATION_DB_NAME/USER/PASSWORD` 指定（当前 Flyway owner schema/database 名称固定为
+`notification`）；先执行
+`MIGRATION_SCHEMA=notification ./scripts/dev/migrate.sh migrate`，再用
+`scripts/dev/notification-schema-cutover.sh preflight` 做行数、checksum、列形状和
+目标空表核对。只有在停止旧 writer、核对通过且显式确认后才执行 cutover；失败时先停
+Notification、恢复 App grant/路由，再执行 rollback 子命令回写新增行。整个过程不启用
+第二个通知 writer。
+
+### 4.5 `backend-judge`
 
 | 项 | 定义 |
 |---|---|
@@ -301,9 +338,9 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 Judge 与 App 的同步依赖方向只有 Worker → App；App → Judge 通过 Redis Streams 异步投递，不形成服务启动/同步 RPC 环。
 
-Realtime 仍是 `backend-app` 内的独立 package/profile，可按同一 artifact 的 `api`/`worker` 运行角色独立扩容，但不成为新的数据 Owner。
+WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`backend-notification` 只发布 Redis Pub/Sub payload，不拥有 WS endpoint 或实时房间状态。
 
-### 4.5 身份模型裁决
+### 4.6 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |
 |---|---|---|---|
@@ -355,9 +392,9 @@ Realtime 仍是 `backend-app` 内的独立 package/profile，可按同一 artifa
 | `judge_outbox` | submission 写，queue dispatcher/reaper 更新 | App/Submission-Judge | App worker | 与 submission 同库 I；不跨服务 SQL |
 | `moderation_actions` | moderation | Admin | Admin | I |
 | `moderation_queue` | moderation，引用多种 App 内容 | Admin | App 内容 Owner | Admin I；App C/Q/E |
-| `notification_delivery_ledger` | notification dispatcher/reaper | App/Notification | Admin 运维读 | App I；Admin Q |
-| `notification_preferences` | notification | App/Notification | App | I |
-| `notifications` | notification 与 admin 多写 | App/Notification | Admin、WebSocket | App I；Admin C/E |
+| `notification_delivery_ledger` | notification dispatcher/reaper | Notification | Admin 运维读 | Notification I；Admin Q |
+| `notification_preferences` | notification | Notification | Notification | I |
+| `notifications` | notification | Notification | Admin、WebSocket | Notification I；Admin Q/E |
 | `oauth_provider_identities` | Auth OAuth workflow/mapper；provider + provider_user_id 的账号绑定 | Auth | Auth | I；唯一约束保证同一 provider identity 只绑定一个账号 |
 | `password_resets` | 仅 migration；实际 hash 存 `users.password_reset_*` | Auth（R 候选） | Auth | 核数据后 R；保留 hash-only 流程 |
 | `problem_details` | problem；admin 直接读写 | App | Admin | App I；Admin C/Q |
@@ -394,8 +431,8 @@ Realtime 仍是 `backend-app` 内的独立 package/profile，可按同一 artifa
 | `users` | Auth/User/Admin/Moderation 多方写的混合表 | 迁移态 Auth；目标 Auth account + App `user_profiles` | App/Admin | Auth I；JWT/Q/C/E；App 不再写旧行 |
 | `views` | 仅 migration；与 edge operations 语义重叠 | App（R 候选） | App | 核数据后合并/R |
 | `virtual_contest_sessions` | 仅 migration；活动态已在 participants | App（R 候选） | App | 核历史数据后合并/R |
-| `email_templates` | email | App/Notification | Admin、Auth（不共享业务模板） | App I；Admin C/Q；Auth 自有安全模板 |
-| `email_logs` | email intake | App/Notification | Admin | App I；Admin Q |
+| `email_templates` | email | Notification | Admin、Auth（不共享业务模板） | Notification I；Admin C/Q；Auth 自有安全模板 |
+| `email_logs` | email intake | Notification | Admin | Notification I；Admin Q |
 | **`backups`（canonical migration 已补齐）** | Backup Entity/Mapper/Service CRUD，canonical migration `V20260724162738__Create_Backups_Table.sql` 已定义 CREATE TABLE | Admin/Ops | Admin | I（owner 已迁移至 backend-admin） |
 
 ### 5.1 当前 schema 风险必须先处理
@@ -413,7 +450,12 @@ Realtime 仍是 `backend-app` 内的独立 package/profile，可按同一 artifa
 4. **垂直拆 `users`**：新增 App `user_profiles(account_id PK, ...)`，回填和校验；Auth 独占旧 `users`/account 字段；App 切读写 profile；最终删除 Auth 表中的 profile 列属于后续 contract migration。
 5. **独立实例按需**：只有资源隔离、SLA、备份或伸缩需要时再把逻辑 database 搬到独立 MySQL 实例，不作为完成微服务化的前置条件。
 
-生产迁移不可让三个服务同时执行同一份全局 Flyway history。过渡期由单独 migration job 串行执行；分 schema 后把 migration 仍保留在 canonical `init-db/migrations/` 下按 Owner 分目录，并使用各自 schema history。
+生产迁移不可让四个服务同时执行同一份全局 Flyway history。过渡期由单独 migration job 串行执行；分 schema 后把 migration 仍保留在 canonical `init-db/migrations/` 下按 Owner 分目录，并使用各自 schema history。
+
+Notification 的物理搬迁使用独立的 `notification` schema history；根 history 只负责创建
+schema 和锁定的 shadow user。`notification_rw` 不带可用默认密码，部署必须在密管中配置
+凭据并在窗口内解锁。`notification-schema-cutover.sh` 默认只做 preflight，任何写入都需要
+`--execute` 与一次性确认 token；rollback 先把目标数据回写源表，再恢复 App 表级权限。
 
 ## 6. Dubbo Design
 
@@ -611,7 +653,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 | Contest adjudication | contest submission/participant/problem result | App Contest | Inbox dedup + Owner 本地 L/S |
 | Vote/counter | edge operation + solution denormalized counter | App Engagement/Solution | 共置则 L/S；否则 ledger L、counter E；禁止独立 recount |
 | Forum/Follow/Achievement | 内容/关系写 + counter + async notification | App | 核心状态 L；首次插入结果触发 outbox；通知/成就 E |
-| Notification/email | notification/ledger + WS/SMTP 同步 fan-out | App Notification | intent/outbox L；reclaimable worker/ledger E |
+| Notification/email | notification/ledger + WS/SMTP 同步 fan-out | Notification | intent/outbox L；reclaimable worker/ledger E |
 | Moderation action | Admin 表 + App 内容 + Auth ban 同一 DB 事务 | Admin decision workflow + Auth/App commands | Admin L + durable outbox；幂等 C/E；不做 2PC |
 | Audit | Aspect/Recorder 在请求线程同步 sink，事务顺序不明确 | 各 Owner audit outbox → Admin | 最终一致；actor 显式传播；不依赖 ThreadLocal 跨 RPC |
 | Rating/global ranking | participant rank + global ranking 同事务 | App 内可暂时 L；若分模块则 event | ContestRated E；ranking inbox |
@@ -743,7 +785,7 @@ repository root/
 │   │   └── backend-app-api/
 │   ├── backend-contest-domain/
 │   ├── backend-moderation-domain/
-│   ├── backend-notification-domain/
+│   ├── backend-notification/
 │   ├── backend-problem-domain/
 │   └── backend-submission-domain/
 ├── backend-auth/                   # Auth owner service
@@ -758,6 +800,10 @@ repository root/
 │   └── src/main/java/com/ulticode/
 │       ├── admin/
 │       └── modules/admin/
+├── backend-notification/           # Notification/email owner service
+│   └── src/main/java/com/ulticode/
+│       ├── notification/
+│       └── modules/{notification,email}/
 └── backend-app/                    # App owner service
     └── src/main/java/com/ulticode/
         ├── app/
@@ -768,7 +814,6 @@ repository root/
             ├── forum/
             ├── solution/
             ├── user/
-            ├── notification/
             └── websocket/
 ```
 
@@ -783,6 +828,7 @@ repository root/
 backend-common <- backend-*-api <- provider implementation
 backend-admin  -> backend-auth-api + backend-app-api
 backend-app    -> backend-auth-api（仅真实 Consumer）
+backend-notification -> backend-auth-api + backend-app-api（仅 Contract/Consumer）
 backend-auth   -> 不依赖 app/admin API
 ```
 
@@ -856,7 +902,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 `backend-app-api` 的 Dubbo port 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 仍是 App。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
-- Notification Delivery worker 同样用同一 artifact 的 `worker` profile（`ulticode.notification.worker.enabled`，`api` profile 关闭）独立扩缩容；运行 durable inbox bridge + ledger reaper，数据 Owner 仍是 App，不创建第四个 logical service。
+- `backend-notification` 使用独立 artifact/image；`api` 角色承接 HTTP/Dubbo，`worker` 角色运行 durable inbox bridge + ledger reaper。过渡期保留 `ulticode.app.inbox.enabled` 作为 App 侧回滚开关，切换完成后关闭 App inbox bridge，Notification 成为 `notifications`、偏好、投递台账和 email 表的唯一 Owner。
 
 ## 12. Risks
 
@@ -977,7 +1023,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - 提交/判题：`services/app/app-web/src/main/java/com/ulticode/modules/submission/**`、`services/app/app-web/src/main/java/com/ulticode/modules/queue/**`；
 - 审核跨域事务：`services/app/app-web/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java`；
 - WebSocket：`services/app/app-web/src/main/java/com/ulticode/modules/websocket/**`；
-- 通知可靠性：`services/app/app-web/src/main/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcher.java`、`services/app/app-web/src/main/java/com/ulticode/modules/notification/ledger/**`；
+- 通知可靠性：`services/notification/src/main/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcher.java`、`services/notification/src/main/java/com/ulticode/modules/notification/ledger/**`；
 - 用户画像写入：`services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java:39-89`；
 - 运行拓扑：`docker-compose*.yml`、`console/nginx.conf`、`management/nginx.conf`、`scripts/dev/**`。
 

@@ -39,8 +39,8 @@ Options:
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
   --only <apps>        只起指定 PM2 app, 逗号分隔
-                       (如 auth,admin,app,judge 或 9101,9102; 前端仍可用 9002/9003)
-  --no-frontend        不起前端 (等同 --only auth,admin,app,judge)
+                       (如 auth,admin,app,notification,judge 或 9101,9102; 前端仍可用 9002/9003)
+  --no-frontend        不起前端 (等同 --only auth,admin,app,notification,judge)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   -h, --help           显示此帮助
 
@@ -102,8 +102,11 @@ normalize_apps() {
       app|backend-app|ulticode-app|9103)
         a="ulticode-app"
         ;;
-      judge|backend-judge|ulticode-judge|9104)
+  judge|backend-judge|ulticode-judge|9104)
         a="ulticode-judge"
+        ;;
+      notification|backend-notification|ulticode-notification|9105)
+        a="ulticode-notification"
         ;;
       console|ulticode-9002|9002)
         a="ulticode-9002"
@@ -127,9 +130,9 @@ if [[ -n "$ONLY" ]]; then
 elif [[ "$FRONTEND_ONLY" == true ]]; then
   PM2_APPS="ulticode-9002,ulticode-9003"
 elif [[ "$NO_FRONTEND" == true ]]; then
-  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-judge"
+  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-judge"
 else
-  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-judge,ulticode-9002,ulticode-9003"
+  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-judge,ulticode-9002,ulticode-9003"
 fi
 
 # ===== 前置检查 =====
@@ -441,6 +444,9 @@ for _ in $(seq 1 90); do
   if [[ "$apps_csv" == *",ulticode-app,"* ]]; then
     check_port 9103 '/api/v1/app/health' || all_ok=false
   fi
+  if [[ "$apps_csv" == *",ulticode-notification,"* ]]; then
+    check_port 9105 '/api/v1/notification/health' || all_ok=false
+  fi
   if [[ "$apps_csv" == *",ulticode-judge,"* ]]; then
     check_pm2_online ulticode-judge || all_ok=false
   fi
@@ -459,6 +465,7 @@ Development stack is ready (services: $PM2_APPS).
   Auth API:   http://localhost:9101
   Admin API:  http://localhost:9102
   App API:    http://localhost:9103
+  Notification API: http://localhost:9105
   Judge Worker: PM2 ulticode-judge (Dubbo 20884)
   Nacos:      http://localhost:28848/nacos
 EOF

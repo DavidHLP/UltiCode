@@ -36,8 +36,12 @@ class PerOwnerSchemaGrantTest {
         "contests", "contest_problems", "contest_participants", "contest_announcements",
         "submissions", "judge_outbox", "solutions",
         "solution_comments", "forum_posts", "forum_comments",
-        "forum_communities", "notifications", "notification_delivery_ledger",
-        "achievements"
+        "forum_communities", "achievements"
+    );
+
+    private static final Set<String> NOTIFICATION_TABLES = Set.of(
+        "notifications", "notification_preferences", "notification_delivery_ledger",
+        "email_templates", "email_logs"
     );
 
     @Test
@@ -56,6 +60,12 @@ class PerOwnerSchemaGrantTest {
     @DisplayName("P5-SCHEMA-001: App tables map to the App owner")
     void appTables_belongToAppOwner() throws IOException {
         assertManifestOwner(APP_TABLES, "App");
+    }
+
+    @Test
+    @DisplayName("NOTIFY-001: Notification tables map to the Notification owner")
+    void notificationTables_belongToNotificationOwner() throws IOException {
+        assertManifestOwner(NOTIFICATION_TABLES, "Notification");
     }
 
     @Test

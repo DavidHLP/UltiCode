@@ -211,6 +211,71 @@ services:
         max-size: "50m"
         max-file: "5"
 
+  backend-notification:
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-notification:${IMAGE_TAG:-latest}
+    container_name: ulticode-backend-notification
+    restart: unless-stopped
+    expose:
+      - "9105"
+      - "20885"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "2.0"
+    environment:
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-ulticode}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - DB_NAME=${DB_NAME:-ulticode}
+      - NOTIFICATION_DB_USER=${NOTIFICATION_DB_USER:-${DB_USER:-ulticode}}
+      - NOTIFICATION_DB_PASSWORD=${NOTIFICATION_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      - NOTIFICATION_DB_NAME=${NOTIFICATION_DB_NAME:-${DB_NAME:-ulticode}}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - NACOS_HOST=nacos
+      - NACOS_PORT=8848
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
+      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - SERVER_PORT=9105
+      - NOTIFICATION_DUBBO_PORT=20885
+      - NOTIFICATION_WORKER_ENABLED=${NOTIFICATION_WORKER_ENABLED:-true}
+      - APP_EMAIL_ENABLED=${APP_EMAIL_ENABLED:-false}
+      - APP_EMAIL_FROM_NAME=${APP_EMAIL_FROM_NAME:-UltiCode}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-${SMTP_USER:-}}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+    depends_on:
+      backend-auth:
+        condition: service_healthy
+      backend-app:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - default
+      - infrastructure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9105/api/v1/notification/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
   backend-judge:
     image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-judge:${IMAGE_TAG:-latest}
     container_name: ulticode-backend-judge
@@ -295,6 +360,8 @@ services:
         condition: service_healthy
       backend-app:
         condition: service_healthy
+      backend-notification:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -323,6 +390,8 @@ services:
       backend-admin:
         condition: service_healthy
       backend-app:
+        condition: service_healthy
+      backend-notification:
         condition: service_healthy
     deploy:
       resources:

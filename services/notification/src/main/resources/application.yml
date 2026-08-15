@@ -1,0 +1,140 @@
+server:
+  port: ${NOTIFICATION_SERVER_PORT:9105}
+
+spring:
+  application:
+    name: backend-notification
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${NOTIFICATION_DB_NAME:${DB_NAME:ulticode}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    username: ${NOTIFICATION_DB_USER:${DB_USER:ulticode}}
+    password: ${NOTIFICATION_DB_PASSWORD:${DB_PASSWORD:}}
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:${SMTP_USER:}}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 10000
+      "[mail.smtp.writetimeout]": 10000
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+  task:
+    scheduling:
+      pool:
+        size: 4
+        thread-name-prefix: notification-scheduled-
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: input
+
+app:
+  email:
+    enabled: ${APP_EMAIL_ENABLED:${EMAIL_ENABLED:false}}
+    from-name: ${APP_EMAIL_FROM_NAME:${EMAIL_FROM_NAME:UltiCode}}
+
+ulticode:
+  app:
+    inbox:
+      enabled: false
+  notification:
+    worker:
+      enabled: ${NOTIFICATION_WORKER_ENABLED:true}
+    ledger:
+      reaper-interval-ms: ${NOTIFICATION_LEDGER_REAPER_INTERVAL_MS:300000}
+      reaper-initial-delay-ms: ${NOTIFICATION_LEDGER_REAPER_INITIAL_DELAY_MS:60000}
+
+notification:
+  websocket:
+    broadcast:
+      channel: ${NOTIFICATION_WS_BROADCAST_CHANNEL:ulticode:ws:broadcast}
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expected-issuer: ${JWT_EXPECTED_ISSUER:ulticode-auth}
+  expected-audience: ${JWT_EXPECTED_AUDIENCE:ulticode-api}
+  rsa:
+    enabled: ${JWT_RSA_ENABLED:false}
+  jwks-uri: ${JWT_JWKS_URI:http://localhost:9101/auth/jwks}
+
+security:
+  internal-delegation:
+    secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
+    issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-notification}
+
+dubbo:
+  application:
+    name: ${DUBBO_APPLICATION_NAME:backend-notification}
+    register-mode: instance
+    qos-enable: false
+    protocol: tri
+    metadata-type: local
+  protocol:
+    name: tri
+    port: ${NOTIFICATION_DUBBO_PORT:20885}
+    triple:
+      max-requests-per-connection: 50
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}
+    username: ${DUBBO_REGISTRY_USERNAME:${NACOS_USERNAME:}}
+    password: ${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}
+    timeout: 5000
+    use-as-config-center: true
+    use-as-metadata-center: true
+    parameters:
+      namespace: ${DUBBO_NAMESPACE:dev}
+      group: DEFAULT_GROUP
+  scan:
+    base-packages: com.ulticode.notification
+  consumer:
+    version: 1.0.0
+    check: false
+    timeout: 3000
+    retries: 0
+  provider:
+    filter: default
+  cloud:
+    subscribed-services: ''
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+    db:
+      enabled: true
+    redis:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.ulticode: INFO

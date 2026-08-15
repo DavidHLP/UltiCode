@@ -296,17 +296,12 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
     @MockBean private com.ulticode.app.api.service.ModerationAccountPort moderationAccountPort;
     @MockBean private com.ulticode.app.api.service.ModerationContentActionPort moderationContentActionPort;
-    // P7-INFRA-S4: achievement + notification + email
+    // P7-INFRA-S4: achievement (notification delivery is owned by backend-notification)
     @MockBean private com.ulticode.modules.achievement.mapper.AchievementMapper achievementMapper;
     @MockBean private com.ulticode.modules.achievement.mapper.UserAchievementMapper userAchievementMapper;
-    @MockBean private com.ulticode.modules.notification.mapper.NotificationMapper notificationMapper;
-    @MockBean private com.ulticode.modules.notification.mapper.NotificationPreferenceMapper notificationPreferenceMapper;
-    @MockBean private com.ulticode.modules.email.mapper.EmailLogMapper emailLogMapper;
-    @MockBean private com.ulticode.modules.email.mapper.EmailTemplateMapper emailTemplateMapper;
     @MockBean private com.ulticode.app.api.service.UserReadPort userReadPortBean;
     @MockBean private com.ulticode.modules.notification.port.NotificationPushPort notificationPushPortBean;
     @MockBean private com.ulticode.modules.achievement.port.BadgePushPort badgePushPortBean;
-    @MockBean private com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper notificationDeliveryLedgerMapper;
     // P7-RELOCATE-WEBSOCKET-001
     @MockBean private com.ulticode.app.api.service.JwtValidationPort jwtValidationPort;
     @MockBean private com.ulticode.app.api.service.AccountReadPort accountReadPort;

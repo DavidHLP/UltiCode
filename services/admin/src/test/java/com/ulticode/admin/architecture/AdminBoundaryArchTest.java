@@ -112,7 +112,7 @@ class AdminBoundaryArchTest {
 
     /**
      * ADMIN-008 (consumer-side guard): Admin classes must not import
-     * App-owned notification entities, mappers, or dispatchers. Reads go
+     * Notification-owned entities, mappers, or dispatchers. Reads go
      * through {@code NotificationAdminReadPort} and writes through
      * {@code NotificationAdministrationService} (both in backend-app-api).
      */
@@ -123,8 +123,8 @@ class AdminBoundaryArchTest {
             .or().resideInAPackage("com.ulticode.modules.admin..")
             .should().dependOnClassesThat().resideInAnyPackage(
                 "com.ulticode.modules.notification..")
-            .because("ADMIN-008: Notification is App-owned; Admin must use "
-                + "backend-app-api contracts and never import App-private "
+            .because("ADMIN-008: Notification is independently owned; Admin must use "
+                + "backend-app-api contracts and never import notification-private "
                 + "notification internals.");
 
 }

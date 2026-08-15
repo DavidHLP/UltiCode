@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
-import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
-import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +36,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,10 +51,6 @@ class SubmissionJudgedInboxBridgeTest {
     @Mock
     private UuidGenerator uuidGenerator;
     @Mock
-    private SubmissionJudgedNotificationConsumer notificationConsumer;
-    @Mock
-    private NotificationIntentEventConsumer notificationIntentConsumer;
-    @Mock
     private SubmissionJudgedAchievementConsumer achievementConsumer;
     @Mock
     private SubmissionJudgedWebSocketConsumer webSocketConsumer;
@@ -68,12 +61,12 @@ class SubmissionJudgedInboxBridgeTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn(
-                "inbox-notification", "inbox-achievement", "inbox-websocket", "inbox-contest");
+                "inbox-achievement", "inbox-websocket", "inbox-contest");
         when(inboxMapper.insertIfAbsent(anyString(), anyString(), eq("event-1"),
                 eq("SubmissionJudged"), anyString())).thenReturn(1);
 
         MapRecord<String, String, String> record = record("event-1", "Accepted");
-        doReturn(List.of(record), List.of(), List.of(record), List.of(), List.of(record), List.of(), List.of(record), List.of())
+        doReturn(List.of(record), List.of(), List.of(record), List.of(), List.of(record), List.of())
                 .when(streamOperations)
                 .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
                         any(StreamReadOptions.class), any(StreamOffset.class));
@@ -82,20 +75,18 @@ class SubmissionJudgedInboxBridgeTest {
 
         int staged = bridge.consume();
 
-        assertThat(staged).isEqualTo(4);
-        verify(inboxMapper).insertIfAbsent(eq("inbox-notification"), eq("App-Notification"),
-                eq("event-1"), eq("SubmissionJudged"), anyString());
+        assertThat(staged).isEqualTo(3);
         verify(inboxMapper).insertIfAbsent(eq("inbox-achievement"), eq("App-Achievement"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
         verify(inboxMapper).insertIfAbsent(eq("inbox-websocket"), eq("App-WebSocket"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
         verify(inboxMapper).insertIfAbsent(eq("inbox-contest"), eq("App-Contest"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
-        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
-                (RecordId) eq(record.getId()));
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Achievement"),
                 (RecordId) eq(record.getId()));
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-WebSocket"),
+                (RecordId) eq(record.getId()));
+        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Contest"),
                 (RecordId) eq(record.getId()));
     }
 
@@ -104,7 +95,7 @@ class SubmissionJudgedInboxBridgeTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn(
-                "inbox-notification", "inbox-achievement", "inbox-websocket", "inbox-contest");
+                "inbox-achievement", "inbox-websocket", "inbox-contest");
         when(inboxMapper.insertIfAbsent(anyString(), anyString(), eq("event-1"),
                 eq("SubmissionJudged"), anyString())).thenReturn(1);
 
@@ -123,9 +114,7 @@ class SubmissionJudgedInboxBridgeTest {
 
         int staged = bridge().consume();
 
-        assertThat(staged).isEqualTo(4);
-        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
-                (RecordId) eq(record.getId()));
+        assertThat(staged).isEqualTo(3);
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Achievement"),
                 (RecordId) eq(record.getId()));
         verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-WebSocket"),
@@ -144,15 +133,15 @@ class SubmissionJudgedInboxBridgeTest {
         inboxRecord.setEventType("SubmissionJudged");
         inboxRecord.setPayload(Map.of("submissionId", "submission-1"));
         when(inboxMapper.selectLeased(anyString(), anyString())).thenReturn(List.of(inboxRecord));
-        when(inboxMapper.renewLease(eq("inbox-1"), eq("App-Notification"), anyString()))
+        when(inboxMapper.renewLease(eq("inbox-1"), eq("App-Achievement"), anyString()))
                 .thenReturn(1);
         doThrow(new IllegalStateException("handler unavailable"))
-                .when(notificationConsumer).consume(anyMap());
+                .when(achievementConsumer).consume(anyMap());
 
         bridge().consume();
 
         verify(inboxMapper).markFailed(
-                eq("inbox-1"), eq("App-Notification"), anyString(),
+                eq("inbox-1"), eq("App-Achievement"), anyString(),
                 eq("IllegalStateException"), eq(10));
         verify(inboxMapper, never()).markProcessed(eq("inbox-1"), anyString(), anyString());
     }
@@ -162,7 +151,7 @@ class SubmissionJudgedInboxBridgeTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn("poison-inbox");
-        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Notification"),
+        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("event-bad"), eq("IntegrationEventPoison"), anyString())).thenReturn(1);
         MapRecord<String, String, String> record = StreamRecords.mapBacked(Map.of(
                         "eventId", "event-bad",
@@ -178,9 +167,9 @@ class SubmissionJudgedInboxBridgeTest {
         int staged = bridge().consume();
 
         assertThat(staged).isEqualTo(1);
-        verify(inboxMapper).insertIfAbsent(eq("poison-inbox"), eq("App-Notification"),
+        verify(inboxMapper).insertIfAbsent(eq("poison-inbox"), eq("App-Achievement"),
                 eq("event-bad"), eq("IntegrationEventPoison"), anyString());
-        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
+        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Achievement"),
                 (RecordId) eq(record.getId()));
     }
 
@@ -189,7 +178,7 @@ class SubmissionJudgedInboxBridgeTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn("poison-inbox");
-        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Notification"),
+        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("event-null"), eq("IntegrationEventPoison"), anyString())).thenReturn(1);
         MapRecord<String, String, String> record = StreamRecords.mapBacked(Map.of(
                         "eventId", "event-null",
@@ -205,9 +194,9 @@ class SubmissionJudgedInboxBridgeTest {
         int staged = bridge().consume();
 
         assertThat(staged).isEqualTo(1);
-        verify(inboxMapper).insertIfAbsent(eq("poison-inbox"), eq("App-Notification"),
+        verify(inboxMapper).insertIfAbsent(eq("poison-inbox"), eq("App-Achievement"),
                 eq("event-null"), eq("IntegrationEventPoison"), anyString());
-        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
+        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Achievement"),
                 (RecordId) eq(record.getId()));
     }
 
@@ -216,7 +205,7 @@ class SubmissionJudgedInboxBridgeTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
         when(uuidGenerator.newId()).thenReturn("poison-inbox");
-        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Notification"),
+        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("poison:4-0"), eq("IntegrationEventPoison"), anyString())).thenReturn(1);
         MapRecord<String, String, String> record = StreamRecords.mapBacked(Map.of(
                         "eventId", "e".repeat(41),
@@ -232,20 +221,20 @@ class SubmissionJudgedInboxBridgeTest {
         int staged = bridge().consume();
 
         assertThat(staged).isEqualTo(1);
-        verify(inboxMapper).insertIfAbsent(eq("poison-inbox"), eq("App-Notification"),
+        verify(inboxMapper).insertIfAbsent(eq("poison-inbox"), eq("App-Achievement"),
                 eq("poison:4-0"), eq("IntegrationEventPoison"), anyString());
-        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Notification"),
+        verify(streamOperations).acknowledge(eq("stream:integration"), eq("App-Achievement"),
                 (RecordId) eq(record.getId()));
     }
 
     @Test
     void stagingFailureLeavesStreamEntryPendingInsteadOfPoisoning() {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
-        when(uuidGenerator.newId()).thenReturn("inbox-notification",
+        when(uuidGenerator.newId()).thenReturn("inbox-achievement",
                 "inbox-achievement", "inbox-websocket");
         doThrow(new IllegalStateException("database unavailable"))
                 .when(inboxMapper)
-                .insertIfAbsent(anyString(), eq("App-Notification"), eq("event-1"),
+                .insertIfAbsent(anyString(), eq("App-Achievement"), eq("event-1"),
                         eq("SubmissionJudged"), anyString());
 
         MapRecord<String, String, String> record = record("event-1", "Accepted");
@@ -257,27 +246,27 @@ class SubmissionJudgedInboxBridgeTest {
         int staged = bridge().consume();
 
         assertThat(staged).isEqualTo(0);
-        verify(inboxMapper).insertIfAbsent(anyString(), eq("App-Notification"),
+        verify(inboxMapper).insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
-        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Notification"),
+        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("event-1"), eq("IntegrationEventPoison"), anyString());
         verify(streamOperations, never()).acknowledge(
-                eq("stream:integration"), eq("App-Notification"), (RecordId) eq(record.getId()));
+                eq("stream:integration"), eq("App-Achievement"), (RecordId) eq(record.getId()));
     }
 
     @Test
     void acknowledgeFailureLeavesStagedEventPendingWithoutPoisoning() {
         when(redisTemplate.opsForStream()).thenReturn(streamOperations);
         when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
-        when(uuidGenerator.newId()).thenReturn("inbox-notification",
+        when(uuidGenerator.newId()).thenReturn("inbox-achievement",
                 "inbox-achievement", "inbox-websocket");
-        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Notification"), eq("event-1"),
+        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Achievement"), eq("event-1"),
                 eq("SubmissionJudged"), anyString())).thenReturn(1);
 
         MapRecord<String, String, String> record = record("event-1", "Accepted");
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(streamOperations)
-                .acknowledge(eq("stream:integration"), eq("App-Notification"),
+                .acknowledge(eq("stream:integration"), eq("App-Achievement"),
                         (RecordId) eq(record.getId()));
         doReturn(List.of(record), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of())
                 .when(streamOperations)
@@ -285,44 +274,14 @@ class SubmissionJudgedInboxBridgeTest {
                         any(StreamReadOptions.class), any(StreamOffset.class));
 
         int staged = bridge().consume();
-        verify(inboxMapper).insertIfAbsent(anyString(), eq("App-Notification"),
+        verify(inboxMapper).insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("event-1"), eq("SubmissionJudged"), anyString());
 
         assertThat(staged).isEqualTo(0);
-        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Notification"),
+        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Achievement"),
                 eq("event-1"), eq("IntegrationEventPoison"), anyString());
         verify(streamOperations).acknowledge(
-                eq("stream:integration"), eq("App-Notification"), (RecordId) eq(record.getId()));
-    }
-
-    @Test
-    void stagesNotificationIntentOnlyIntoNotificationInbox() {
-        when(redisTemplate.opsForStream()).thenReturn(streamOperations);
-        when(streamOperations.createGroup(anyString(), any(), anyString())).thenReturn("OK");
-        when(uuidGenerator.newId()).thenReturn("inbox-notification");
-        when(inboxMapper.insertIfAbsent(anyString(), eq("App-Notification"),
-                eq("intent-event-1"), eq("NotificationIntentCreated"), anyString())).thenReturn(1);
-
-        MapRecord<String, String, String> record = notificationRecord();
-        doReturn(List.of(record), List.of(), List.of(record), List.of(),
-                List.of(record), List.of(), List.of(record), List.of())
-                .when(streamOperations)
-                .read(any(org.springframework.data.redis.connection.stream.Consumer.class),
-                        any(StreamReadOptions.class), any(StreamOffset.class));
-
-        int staged = bridge().consume();
-
-        assertThat(staged).isEqualTo(1);
-        verify(inboxMapper).insertIfAbsent(anyString(), eq("App-Notification"),
-                eq("intent-event-1"), eq("NotificationIntentCreated"), anyString());
-        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Achievement"),
-                anyString(), anyString(), anyString());
-        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-WebSocket"),
-                anyString(), anyString(), anyString());
-        verify(inboxMapper, never()).insertIfAbsent(anyString(), eq("App-Contest"),
-                anyString(), anyString(), anyString());
-        verify(streamOperations, times(4)).acknowledge(
-                eq("stream:integration"), anyString(), (RecordId) eq(record.getId()));
+                eq("stream:integration"), eq("App-Achievement"), (RecordId) eq(record.getId()));
     }
 
     private SubmissionJudgedInboxBridge bridge() {
@@ -331,29 +290,9 @@ class SubmissionJudgedInboxBridgeTest {
                 inboxMapper,
                 new ObjectMapper(),
                 uuidGenerator,
-                notificationConsumer,
-                notificationIntentConsumer,
                 achievementConsumer,
                 webSocketConsumer,
                 contestConsumer);
-    }
-
-    private static MapRecord<String, String, String> notificationRecord() {
-        return StreamRecords.mapBacked(Map.of(
-                        "eventId", "intent-event-1",
-                        "owner", "App",
-                        "aggregateId", "follow:user-1:follower-1:2026-08-13",
-                        "aggregateVersion", "0",
-                        "eventType", "NotificationIntentCreated",
-                        "schemaVersion", "1",
-                        "payload", "{\"intentType\":\"FOLLOW\","
-                                + "\"intentId\":\"follow:user-1:follower-1:2026-08-13\","
-                                + "\"userId\":\"user-1\",\"category\":\"COMMUNICATION\","
-                                + "\"followerUserId\":\"follower-1\","
-                                + "\"followerUsername\":\"alice\","
-                                + "\"followDay\":\"2026-08-13\"}"))
-                .withStreamKey("stream:integration")
-                .withId(RecordId.of("3-0"));
     }
 
     private static MapRecord<String, String, String> record(String eventId, String verdict) {

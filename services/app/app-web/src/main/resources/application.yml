@@ -15,11 +15,6 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
     username: ${DB_USER:ulticode}
     password: ${DB_PASSWORD:}
-  mail:
-    properties:
-      "[mail.smtp.connectiontimeout]": 5000
-      "[mail.smtp.timeout]": 10000
-      "[mail.smtp.writetimeout]": 10000
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -68,14 +63,10 @@ app:
       use-test-cases: ${JUDGE_USE_TEST_CASES:false}
 
 ulticode:
-  notification:
-    worker:
-      # NOTIFY-004: Notification Delivery worker runtime role gate.
-      # Default true keeps the combined App profile behavior. Set false on
-      # HTTP-only replicas so the delivery schedulers (durable inbox bridge
-      # and ledger reaper) are not registered; the dedicated `worker` profile
-      # enables them explicitly for independently scalable delivery replicas.
-      enabled: ${NOTIFICATION_WORKER_ENABLED:true}
+  app:
+    inbox:
+      # App retains only achievement, contest, and WebSocket inbox bindings.
+      enabled: ${APP_INBOX_ENABLED:true}
 
 management:
   endpoints:
@@ -88,8 +79,6 @@ management:
       probes:
         enabled: true
   health:
-    mail:
-      enabled: false
     db:
       enabled: true
     redis:
@@ -200,30 +189,3 @@ meilisearch:
   enabled: ${MEILISEARCH_ENABLED:false}
   host: ${MEILISEARCH_HOST:}
   api-key: ${MEILISEARCH_API_KEY:}
-
----
-spring:
-  config:
-    activate:
-      on-profile: api
-
-# HTTP/API runtime role: do not run the Notification Delivery worker.
-ulticode:
-  notification:
-    worker:
-      enabled: false
-
----
-spring:
-  config:
-    activate:
-      on-profile: worker
-
-# Dedicated delivery runtime role: run the Notification Delivery worker.
-# Replicas share the App owner storage seam; cross-replica safety comes from
-# consumer_inbox/outbox/ledger lease-CAS and Redis consumer groups, never from
-# a second writer.
-ulticode:
-  notification:
-    worker:
-      enabled: true

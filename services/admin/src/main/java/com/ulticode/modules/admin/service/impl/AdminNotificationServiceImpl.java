@@ -10,6 +10,7 @@ import com.ulticode.app.api.dto.NotificationAdminDTO;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.service.NotificationAdminReadPort;
 import com.ulticode.app.api.service.NotificationAdministrationService;
+import com.ulticode.app.api.service.NotificationServiceContract;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
@@ -39,10 +40,9 @@ import java.util.UUID;
 /**
  * Admin system-notification service &mdash; ADMIN-008.
  *
- * <p>The legacy write state machine (create / update / soft-delete
- * system announcements via the App-private notification mapper and
- * broadcaster) is replaced by remote administration commands against the
- * App-owned {@link NotificationAdministrationService} provider. Admin no
+ * <p>The legacy in-process write state machine is replaced by remote
+ * administration commands against the notification-owner
+ * {@link NotificationAdministrationService} provider. Admin no
  * longer imports any notification entity/mapper/dispatcher class:
  * reads go through {@link NotificationAdminReadPort}, writes through the
  * command RPC, and the {@link AdminNotificationProjection} keeps the
@@ -67,7 +67,8 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     private final NotificationAdminReadPort notificationAdminReadPort;
     private final CurrentUserProvider currentUserProvider;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = NotificationServiceContract.DUBBO_GROUP,
+            version = NotificationServiceContract.DUBBO_VERSION,
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private NotificationAdministrationService dubboProvider;
 

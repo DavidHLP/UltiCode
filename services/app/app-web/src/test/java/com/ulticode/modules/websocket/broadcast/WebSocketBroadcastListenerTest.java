@@ -1,8 +1,8 @@
 package com.ulticode.modules.websocket.broadcast;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.app.api.dto.NotificationPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
-import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,5 +1,6 @@
 package com.ulticode.modules.notification.event;
 
+import com.ulticode.app.api.event.NotificationIntentEventContract;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.CommentReplyIntent;
@@ -31,8 +32,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NotificationIntentEventPublisher {
 
-    public static final String EVENT_TYPE = "NotificationIntentCreated";
-    private static final String OWNER = "App";
+    public static final String EVENT_TYPE = NotificationIntentEventContract.EVENT_TYPE;
+    private static final String OWNER = NotificationIntentEventContract.OWNER;
     private static final int EVENT_ID_LENGTH = 40;
 
     private final IntegrationEventPublisher integrationEventPublisher;
@@ -76,50 +77,56 @@ public class NotificationIntentEventPublisher {
 
     private static Map<String, Object> payload(NotificationIntent intent) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("intentType", intent.wireType());
-        payload.put("intentId", intent.intentId());
-        payload.put("userId", intent.userId());
-        payload.put("category", intent.category().name());
+        payload.put(NotificationIntentEventContract.INTENT_TYPE, intent.wireType());
+        payload.put(NotificationIntentEventContract.INTENT_ID, intent.intentId());
+        payload.put(NotificationIntentEventContract.USER_ID, intent.userId());
+        payload.put(NotificationIntentEventContract.CATEGORY, intent.category().name());
 
         if (intent instanceof SubmissionCompletedIntent submission) {
-            payload.put("submissionId", submission.submissionId());
-            payload.put("generation", submission.generation());
-            payload.put("status", submission.status().wireValue());
-            payload.put("problemId", submission.problemId());
-            payload.put("problemTitle", submission.problemTitle());
-            payload.put("elapsedMs", submission.elapsedMs());
-            payload.put("memoryBytes", submission.memoryBytes());
-            payload.put("contestId", submission.contestId());
-            payload.put("contestScoreDelta", submission.contestScoreDelta());
+            payload.put(NotificationIntentEventContract.SUBMISSION_ID, submission.submissionId());
+            payload.put(NotificationIntentEventContract.GENERATION, submission.generation());
+            payload.put(NotificationIntentEventContract.STATUS, submission.status().wireValue());
+            payload.put(NotificationIntentEventContract.PROBLEM_ID, submission.problemId());
+            payload.put(NotificationIntentEventContract.PROBLEM_TITLE, submission.problemTitle());
+            payload.put(NotificationIntentEventContract.ELAPSED_MS, submission.elapsedMs());
+            payload.put(NotificationIntentEventContract.MEMORY_BYTES, submission.memoryBytes());
+            payload.put(NotificationIntentEventContract.CONTEST_ID, submission.contestId());
+            payload.put(NotificationIntentEventContract.CONTEST_SCORE_DELTA,
+                    submission.contestScoreDelta());
         } else if (intent instanceof AchievementEarnedIntent achievement) {
-            payload.put("achievementId", achievement.achievementId());
-            payload.put("achievementKey", achievement.achievementKey());
-            payload.put("achievementName", achievement.achievementName());
-            payload.put("achievementDescription", achievement.achievementDescription());
-            payload.put("achievementIconUrl", achievement.achievementIconUrl());
-            payload.put("achievementTier", achievement.achievementTier());
-            payload.put("points", achievement.points());
-            payload.put("earnedAt", achievement.earnedAt() == null ? null : achievement.earnedAt().toString());
+            payload.put(NotificationIntentEventContract.ACHIEVEMENT_ID, achievement.achievementId());
+            payload.put(NotificationIntentEventContract.ACHIEVEMENT_KEY, achievement.achievementKey());
+            payload.put(NotificationIntentEventContract.ACHIEVEMENT_NAME, achievement.achievementName());
+            payload.put(NotificationIntentEventContract.ACHIEVEMENT_DESCRIPTION,
+                    achievement.achievementDescription());
+            payload.put(NotificationIntentEventContract.ACHIEVEMENT_ICON_URL,
+                    achievement.achievementIconUrl());
+            payload.put(NotificationIntentEventContract.ACHIEVEMENT_TIER, achievement.achievementTier());
+            payload.put(NotificationIntentEventContract.POINTS, achievement.points());
+            payload.put(NotificationIntentEventContract.EARNED_AT,
+                    achievement.earnedAt() == null ? null : achievement.earnedAt().toString());
         } else if (intent instanceof ContestStartingIntent contest) {
-            payload.put("contestId", contest.contestId());
-            payload.put("contestTitle", contest.contestTitle());
-            payload.put("startTime", contest.startTime() == null ? null : contest.startTime().toString());
-            payload.put("reminderType", contest.reminderType());
+            payload.put(NotificationIntentEventContract.CONTEST_ID, contest.contestId());
+            payload.put(NotificationIntentEventContract.CONTEST_TITLE, contest.contestTitle());
+            payload.put(NotificationIntentEventContract.START_TIME,
+                    contest.startTime() == null ? null : contest.startTime().toString());
+            payload.put(NotificationIntentEventContract.REMINDER_TYPE, contest.reminderType());
         } else if (intent instanceof FollowReceivedIntent follow) {
-            payload.put("followerUserId", follow.followerUserId());
-            payload.put("followerUsername", follow.followerUsername());
-            payload.put("followDay", follow.followDay() == null ? null : follow.followDay().toString());
+            payload.put(NotificationIntentEventContract.FOLLOWER_USER_ID, follow.followerUserId());
+            payload.put(NotificationIntentEventContract.FOLLOWER_USERNAME, follow.followerUsername());
+            payload.put(NotificationIntentEventContract.FOLLOW_DAY,
+                    follow.followDay() == null ? null : follow.followDay().toString());
         } else if (intent instanceof CommentReplyIntent reply) {
-            payload.put("commentId", reply.commentId());
-            payload.put("replierUserId", reply.replierUserId());
-            payload.put("replierUsername", reply.replierUsername());
-            payload.put("preview", reply.preview());
-            payload.put("link", reply.link());
+            payload.put(NotificationIntentEventContract.COMMENT_ID, reply.commentId());
+            payload.put(NotificationIntentEventContract.REPLIER_USER_ID, reply.replierUserId());
+            payload.put(NotificationIntentEventContract.REPLIER_USERNAME, reply.replierUsername());
+            payload.put(NotificationIntentEventContract.PREVIEW, reply.preview());
+            payload.put(NotificationIntentEventContract.LINK, reply.link());
         } else if (intent instanceof SystemAlertIntent alert) {
-            payload.put("alertKey", alert.alertKey());
-            payload.put("title", alert.title());
-            payload.put("body", alert.body());
-            payload.put("link", alert.link());
+            payload.put(NotificationIntentEventContract.ALERT_KEY, alert.alertKey());
+            payload.put(NotificationIntentEventContract.TITLE, alert.title());
+            payload.put(NotificationIntentEventContract.BODY, alert.body());
+            payload.put(NotificationIntentEventContract.LINK, alert.link());
         } else {
             throw new IllegalArgumentException("Unsupported notification intent: "
                     + intent.getClass().getName());

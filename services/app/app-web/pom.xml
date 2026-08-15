@@ -28,16 +28,16 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
-			<artifactId>backend-notification-domain</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ulticode</groupId>
 			<artifactId>backend-moderation-domain</artifactId>
 		</dependency>
 		<!-- P1-INFRA-002: dependency-free shared atoms. -->
 		<dependency>
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-integration-inbox</artifactId>
 		</dependency>
 		<!-- Security infrastructure: CurrentUserProvider port, @RateLimit AOP. -->
 		<dependency>
@@ -84,12 +84,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		<!-- P7-INFRA-S4-COMMS: email transport (jakarta.mail) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
-
 		<!-- P7-MIGRATE-PROBLEM-001: data layer for problem domain migration -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

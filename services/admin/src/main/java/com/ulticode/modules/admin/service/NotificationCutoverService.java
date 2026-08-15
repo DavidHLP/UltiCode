@@ -10,6 +10,7 @@ import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.NotificationAdministrationService;
 import com.ulticode.app.api.service.NotificationAdminReadPort;
+import com.ulticode.app.api.service.NotificationServiceContract;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
@@ -37,12 +38,12 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Admin-side adapter for the App-owned notification write contract.
+ * Admin-side compatibility adapter for the notification-owner write contract.
  *
- * <p>The feature flag keeps the default path backward-compatible while the
- * enabled path sends the command directly to App. Both paths receive the
- * same client idempotency key; a supplied key is never replaced by a new
- * UUID, so retries can be replayed by the App receipt boundary.
+ * <p>The feature flag preserves the existing call shape while the enabled path
+ * sends the command directly to the notification owner. Both paths use the
+ * owner RPC and carry the same client idempotency key; a supplied key is never
+ * replaced by a new UUID.
  */
 @Service
 public class NotificationCutoverService {
@@ -77,7 +78,8 @@ public class NotificationCutoverService {
     @Value("${app.features.notification-dubbo-cutover:false}")
     private boolean dubboEnabled;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = NotificationServiceContract.DUBBO_GROUP,
+            version = NotificationServiceContract.DUBBO_VERSION,
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private NotificationAdministrationService dubboProvider;
 

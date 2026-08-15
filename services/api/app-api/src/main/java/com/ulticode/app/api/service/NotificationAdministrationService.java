@@ -7,14 +7,13 @@ import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.common.rpc.RpcResult;
 
 /**
- * App-owned administrative provider for notification/announcement
+ * Notification-owner administrative provider for notification/announcement
  * lifecycle operations.
  *
- * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.3
- * as part of {@code backend-app}'s Dubbo providers. The
- * {@code notifications} and {@code contest_announcements} tables are
- * App-owned per {@code TABLE_OWNERS.md}; the Admin BFF must route
- * writes through this contract so that App is the sole writer.
+ * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.4
+ * as part of the notification owner's Dubbo providers. The Admin BFF must
+ * route writes through this contract so that the notification service is the
+ * sole notification-table writer.
  *
  * Three write methods mirror the Admin BFF's
  * {@code AdminNotificationService} interface. The App provider delegates
@@ -23,7 +22,8 @@ import com.ulticode.common.rpc.RpcResult;
  * preference filtering, and batch row insert.
  *
  * <p>This interface is contract-only; no ServiceImpl lives in this
- * module. The provider implementation belongs to {@code backend-app}.
+ * module. The provider implementation belongs to
+ * {@code backend-notification}.
  */
 public interface NotificationAdministrationService {
 

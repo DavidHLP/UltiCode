@@ -3,8 +3,6 @@ package com.ulticode.modules.event.inbox;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
-import com.ulticode.modules.notification.consumer.NotificationIntentEventConsumer;
-import com.ulticode.modules.notification.consumer.SubmissionJudgedNotificationConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,7 +42,7 @@ import static org.mockito.Mockito.when;
  * contract that mocks cannot: stream group creation, XREAD-into-MySQL staging,
  * group-scoped acknowledgement (no leftover pending entries), idempotent
  * acknowledgement of duplicate {@code eventId}s, and graceful degradation when
- * Redis is unreachable. The {@code ConsumerInboxMapper} and the four
+ * Redis is unreachable. The {@code ConsumerInboxMapper} and the three
  * consumers remain Mockito stubs because their seams are already covered by
  * {@link InboxConsumerIT} and the notification channel tests.
  */
@@ -62,8 +60,6 @@ class SubmissionJudgedInboxBridgeRedisIT {
     private static StringRedisTemplate realRedis;
     private static StringRedisTemplate unreachableRedis;
     private static ConsumerInboxMapper inboxMapper;
-    private static SubmissionJudgedNotificationConsumer notificationConsumer;
-    private static NotificationIntentEventConsumer notificationIntentConsumer;
     private static SubmissionJudgedAchievementConsumer achievementConsumer;
     private static SubmissionJudgedWebSocketConsumer webSocketConsumer;
     private static SubmissionJudgedContestConsumer contestConsumer;
@@ -82,8 +78,6 @@ class SubmissionJudgedInboxBridgeRedisIT {
         unreachableRedis = new StringRedisTemplate(deadFactory);
 
         inboxMapper = mock(ConsumerInboxMapper.class);
-        notificationConsumer = mock(SubmissionJudgedNotificationConsumer.class);
-        notificationIntentConsumer = mock(NotificationIntentEventConsumer.class);
         achievementConsumer = mock(SubmissionJudgedAchievementConsumer.class);
         webSocketConsumer = mock(SubmissionJudgedWebSocketConsumer.class);
         contestConsumer = mock(SubmissionJudgedContestConsumer.class);
@@ -110,8 +104,6 @@ class SubmissionJudgedInboxBridgeRedisIT {
                 inboxMapper,
                 new ObjectMapper(),
                 UUID.randomUUID()::toString,
-                notificationConsumer,
-                notificationIntentConsumer,
                 achievementConsumer,
                 webSocketConsumer,
                 contestConsumer);
@@ -143,9 +135,9 @@ class SubmissionJudgedInboxBridgeRedisIT {
         int result = bridge.consume();
 
         assertThat(result).isGreaterThan(0);
-        verify(inboxMapper, times(4)).insertIfAbsent(
+        verify(inboxMapper, times(3)).insertIfAbsent(
                 anyString(), anyString(), eq("real-1"), eq(EVENT_TYPE), anyString());
-        for (String group : List.of("App-Notification", "App-Achievement",
+        for (String group : List.of("App-Achievement",
                 "App-WebSocket", "App-Contest")) {
             assertThat(realRedis.opsForStream().pending(
                     STREAM_KEY, group, Range.unbounded(), 100))
@@ -172,9 +164,9 @@ class SubmissionJudgedInboxBridgeRedisIT {
 
         // Both copies reach the idempotency seam; only the first returns 1,
         // mirroring the (consumer, event_id) unique constraint in MySQL.
-        verify(inboxMapper, times(8)).insertIfAbsent(
+        verify(inboxMapper, times(6)).insertIfAbsent(
                 anyString(), anyString(), eq("dup-1"), eq(EVENT_TYPE), anyString());
-        for (String group : List.of("App-Notification", "App-Achievement",
+        for (String group : List.of("App-Achievement",
                 "App-WebSocket", "App-Contest")) {
             assertThat(realRedis.opsForStream().pending(
                     STREAM_KEY, group, Range.unbounded(), 100))

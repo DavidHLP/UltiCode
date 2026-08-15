@@ -5,13 +5,14 @@ import com.ulticode.common.response.PageResult;
 
 /**
  * Entity-free notification read port consumed by backend-admin
- * projections/services after the notification family stays App-owned
- * (ADMIN-008).
+ * projections/services after the notification family moves to its own owner
+ * service (ADMIN-008).
  *
  * <p>Method set is the exact minimum derived from the verified admin
  * consumer call sites: the paginated deduplicated system-announcement list
  * (admin notification panel) and single-row read-back for the write
- * response shape. The provider lives in {@code backend-app} and owns the
+ * response shape. The provider is exported under the
+ * {@link NotificationServiceContract#DUBBO_GROUP} group and owns the
  * {@code notifications} table; backend-admin never imports notification
  * entities or mappers.
  *

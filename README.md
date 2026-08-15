@@ -141,6 +141,7 @@
                        ┌────────────────────────────────────────────┐
                        │          Owner API gateway (/api)           │
                        │ Auth :9101 · Admin :9102 · App :9103       │
+                       │ Notification :9105                       │
                        │ JWT + Redis Session · SpringDoc OpenAPI   │
                        └──┬──────────────┬──────────────┬───────────┘
                           │              │              │
@@ -163,12 +164,13 @@
 
 ```
 UltiCode/
-├── services/         # 后端 Maven reactor（platform · api · auth · admin · app · judge）
+├── services/         # 后端 Maven reactor（platform · api · auth · admin · app · notification · judge）
 │   ├── platform/     # 共享平台层（common · web-security）
 │   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api）
 │   ├── auth/         # Auth owner — 9101
 │   ├── admin/        # Admin owner — 9102
 │   ├── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
+│   ├── notification/ # Notification/email owner — 9105
 │   └── judge/        # Judge worker — 独立进程，消费 Redis Streams
 ├── apps/
 │   ├── console/      # Vue 3 用户前端 — 端口 9002
@@ -217,7 +219,7 @@ UltiCode/
 | 领域 | 技术 |
 |------|------|
 | 容器 | Docker Compose v2 · 非 root 用户 (`appuser:appgroup`) · 多阶段构建 |
-| 进程管理 | PM2（6 个长生命周期 app：auth · admin · app · judge · console · management） |
+| 进程管理 | PM2（7 个长生命周期 app：auth · admin · app · notification · judge · console · management） |
 | 运行时诊断 | Arthas 4.2.2 · STATELESS MCP（端口 8563） |
 | 服务发现 / 配置 | Nacos 2.3.2 |
 | CI/CD | GitHub Actions（路径触发） · CD 滚动发布与回滚 |
@@ -228,20 +230,22 @@ UltiCode/
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/` 是三个数据 owner 服务；`services/judge/` 是不拥有业务表的独立判题运行时。`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和这些运行模块。
+`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务；`services/judge/` 是不拥有业务表的独立判题运行时。`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和这些运行模块。
 
 | Owner / 模块 | 主代码路径 | 职责 |
 |------|------|------|
 | `services/auth` | `services/auth/src/main/java/com/ulticode/auth/` | 登录 / 注册 / OAuth / 找回密码 / refresh token / 账号状态 / RBAC |
 | `services/admin` | `services/admin/src/main/java/com/ulticode/admin/`、`services/admin/src/main/java/com/ulticode/modules/admin/` | 管理端 BFF / 审核 / 审计 / 设置 / 监控 / 备份 |
-| `services/app` | `services/app/app-web/src/main/java/com/ulticode/app/`、`services/app/app-web/src/main/java/com/ulticode/modules/` | 用户画像 / 题目 / 提交判题 / 竞赛 / 题解 / 论坛 / 通知 / 搜索 / WebSocket |
+| `services/app` | `services/app/app-web/src/main/java/com/ulticode/app/`、`services/app/app-web/src/main/java/com/ulticode/modules/` | 用户画像 / 题目 / 提交判题 / 竞赛 / 题解 / 论坛 / 搜索 / WebSocket；发布通知事件 |
+| `services/notification` | `services/notification/src/main/java/com/ulticode/notification/`、`services/notification/src/main/java/com/ulticode/modules/` | 通知 HTTP / 意图投递 / 邮件 / 投递台账 / Redis 实时广播 |
 | `services/judge` | `services/judge/src/main/java/com/ulticode/judge/` | Redis Streams 判题消费 / Docker 沙箱 / App verdict RPC；不拥有业务表 |
 
 共享 reactor 的主要模块：
 
 - `services/platform/common/`、`services/platform/web-security/`
 - `services/api/auth-api/`、`services/api/admin-api/`、`services/api/app-api/`
-- `services/app/modules/contest/`、`services/app/modules/moderation/`、`services/app/modules/notification/`
+- `services/app/modules/contest/`、`services/app/modules/moderation/`（App 保留通知事件发布与非通知消费者）
+- `services/notification/`（通知与邮件运行时）
 - `services/app/modules/problem/`、`services/app/modules/submission/`
 
 各 owner 内部继续遵循 `controller → service/projection/port → mapper → entity` 分层；跨 owner 访问使用公开 contract 或 consumer-owned port，不直接依赖另一个 owner 的 Mapper / Entity。
@@ -321,6 +325,7 @@ dev 数据库会自动创建固定管理员账号：
 | Auth API | <http://localhost:9101> | 认证 / 凭据 Owner |
 | Admin API | <http://localhost:9102> | 治理 / 管理 Owner |
 | App API | <http://localhost:9103> | OJ / 用户业务 Owner |
+| Notification API | <http://localhost:9105> | 通知 / 邮件 Owner |
 | Judge Worker | Dubbo `20884` / PM2 `ulticode-judge` | 独立判题执行进程，无 HTTP API |
 | Nacos 控制台 | <http://localhost:28848/nacos> | 配置中心 / 服务发现 |
 | Arthas MCP | <http://localhost:8563/mcp> | STATELESS · Claude Code / IDE 直连 |
@@ -334,17 +339,18 @@ dev 数据库会自动创建固定管理员账号：
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/` 是三个数据 owner 服务，`services/judge/` 是独立判题运行时；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
+`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务，`services/judge/` 是独立判题运行时；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
 
 ```bash
 # 通过 PM2（完整后端 + 独立 Judge）
-pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-judge
+pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-notification ulticode-judge
 pm2 logs ulticode-auth
 
 # 直接启动单个 owner
 (cd services && ./mvnw -pl auth -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl admin -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl app/app-web -am spring-boot:run -Dmaven.test.skip=true)
+(cd services && ./mvnw -pl notification -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl judge -am spring-boot:run -Dmaven.test.skip=true)
 
 # 编译 / 测试 / 集成
@@ -395,6 +401,18 @@ pnpm --dir packages/auth-core type-check
 ./scripts/dev/migrate.sh info        # 状态
 ./scripts/dev/migrate.sh validate    # 校验
 ./scripts/dev/migrate.sh repair      # 修复 checksum mismatch
+
+# 只运行 Notification owner schema 的 Flyway history
+MIGRATION_SCHEMA=notification ./scripts/dev/migrate.sh migrate
+
+# 物理搬表前只读核对；写入动作必须显式确认
+./scripts/dev/notification-schema-cutover.sh preflight
+# NOTIFICATION_SOURCE_SCHEMA=app NOTIFICATION_APP_DB_USER=app_rw \
+#   NOTIFICATION_CUTOVER_CONFIRM=I_UNDERSTAND_NOTIFICATION_CUTOVER \
+#   ./scripts/dev/notification-schema-cutover.sh cutover --execute
+# NOTIFICATION_SOURCE_SCHEMA=app NOTIFICATION_APP_DB_USER=app_rw \
+#   NOTIFICATION_CUTOVER_CONFIRM=I_UNDERSTAND_NOTIFICATION_ROLLBACK \
+#   ./scripts/dev/notification-schema-cutover.sh rollback --execute
 ```
 
 迁移文件命名：`V{N}__{description}.sql`，**唯一真源**在 `init-db/migrations/`。
@@ -419,7 +437,7 @@ export DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
 sudo install -d -o 1000 -g 1000 "$SANDBOX_HOST_DIR/workspace"
 sudo install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json "$SANDBOX_HOST_DIR/seccomp-profile.json"
 ./docker/sandbox/harness/build.sh
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-app backend-judge
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-app backend-notification backend-judge
 ```
 
 > 部署主机 `.env` 必须设 `SANDBOX_ENABLED=true`（本地开发默认 `false` 的占位值会传入容器并禁用沙箱执行，所有判题将退化且无报错）。Worker 镜像固定以 uid/gid 1000 运行，与上面 `-o 1000 -g 1000` 的 workspace 属主及沙箱子容器的 `--user 1000:1000` 一致。
@@ -486,6 +504,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | 9101 | `ulticode-auth` | Auth Spring Boot | Auth Owner |
 | 9102 | `ulticode-admin` | Admin Spring Boot | Admin Owner |
 | 9103 | `ulticode-app` | App Spring Boot | App Owner |
+| 9105 | `ulticode-notification` | Notification Spring Boot | Notification/email Owner |
 | 20884 | `ulticode-judge` | Judge Spring Boot | Redis Streams consumer；Dubbo internal only |
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |
 | 9003 | `ulticode-9003` | Management (Vite) | dev: Vite · prod: 静态服务 |
@@ -495,7 +514,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 ### 常用命令
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动三 owner + Judge + 两个前端
+pm2 start ecosystem.config.cjs   # 首次启动四 owner + Judge + 两个前端
 pm2 start all                    # 后续启动
 pm2 restart all                  # 重启
 pm2 stop all
@@ -535,6 +554,8 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 |------|------|------|
 | `DB_HOST` / `DB_PORT` | MySQL 地址 | dev: `localhost:23306` |
 | `DB_USER` / `DB_PASSWORD` / `DB_NAME` | MySQL 凭据 | — |
+| `NOTIFICATION_DB_USER` / `NOTIFICATION_DB_PASSWORD` / `NOTIFICATION_DB_NAME` | Notification owner schema/database（当前 Flyway 目标名为 `notification`）；未设置时兼容 `DB_*` | 物理切库时由部署密管提供 |
+| `NOTIFICATION_SOURCE_SCHEMA` / `NOTIFICATION_APP_DB_USER` | Notification 搬表前的源 schema 与 App grant 用户 | 仅执行 cutover/rollback 时设置 |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | Redis 配置 | dev: `localhost:26379` |
 | `JWT_SECRET` | JWT 签名密钥 | **≥ 32 字符**，由 init-env 随机生成 |
 | `CORS_ALLOWED_ORIGINS` | 跨域白名单 | dev: `http://localhost:9002,http://localhost:9003` |
@@ -546,7 +567,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 
 > **pm2 env 缓存陷阱**：`pm2 restart --update-env` 不会重读 `.env`。
 > 改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
-> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-judge && pm2 start ecosystem.config.cjs --only ulticode-auth,ulticode-admin,ulticode-app,ulticode-judge`
+> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-notification ulticode-judge && pm2 start ecosystem.config.cjs --only ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-judge`
 
 ---
 

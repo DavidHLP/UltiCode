@@ -584,6 +584,12 @@ jobs:
             artifact: app-exec.jar
             port: 9103
             health_path: /api/v1/app/health
+          - name: backend-notification
+            dockerfile: ./services/Dockerfile
+            module: notification
+            artifact: notification-exec.jar
+            port: 9105
+            health_path: /api/v1/notification/health
           - name: backend-judge
             dockerfile: ./services/Dockerfile
             module: judge

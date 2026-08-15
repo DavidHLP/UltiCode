@@ -170,6 +170,14 @@ for var in "${required_vars[@]}"; do
   }
 done
 
+# Per-owner shadow-user 迁移 (CREATE USER / 跨库 GRANT / 建库) 需要 DBA 权限,
+# 运行账号 ulticode 只持有 ulticode.* 权限 (官方 mysql 镜像授予), 不能执行。
+# .env 的 DB_ROOT_PASSWORD 由 init-env.sh 生成; 显式调用者可 export 覆盖为
+# 专用迁移账户。migrate.sh 会继承这些环境变量 (其 MIGRATION_DB_USER:= 不再覆盖)。
+: "${MIGRATION_DB_USER:=root}"
+: "${MIGRATION_DB_PASSWORD:=${DB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}}"
+export MIGRATION_DB_USER MIGRATION_DB_PASSWORD
+
 compose=(
   docker compose --env-file "$ENV_FILE"
   -f "$ROOT_DIR/docker-compose.yml"

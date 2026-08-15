@@ -26,7 +26,11 @@ import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.modules.submission.service.impl.DFormEnvelopeCodecImpl;
 import com.ulticode.modules.submission.service.impl.SandboxOutputFormatterImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -72,4 +76,19 @@ import org.springframework.context.annotation.Import;
         UnackedStreamEntriesReaper.class
 })
 public class JudgeRuntimeConfiguration {
+
+    /**
+     * The worker runs with web-application-type=none and without spring-web on
+     * the classpath, so Spring Boot's Jackson auto-configuration cannot back the
+     * ObjectMapper bean (JacksonObjectMapperConfiguration requires
+     * Jackson2ObjectMapperBuilder). The queue/sandbox pipeline
+     * (DFormEnvelopeCodecImpl, judge queue adapters) injects ObjectMapper for
+     * JSON envelopes and harness input; provide it explicitly.
+     */
+    @Bean
+    ObjectMapper objectMapper() {
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 }

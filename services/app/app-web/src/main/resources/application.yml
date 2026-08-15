@@ -46,6 +46,11 @@ app:
     # HTTP/API is the default App role after judge extraction. The independent
     # backend-judge runtime is the only role allowed to poll judge queues.
     role: ${APP_RUNTIME_ROLE:api}
+  submission:
+    routing:
+      # local is the only valid mode until SPLIT-003 makes backend-submission
+      # the sole storage writer; remote is the reversible provider seam.
+      mode: ${APP_SUBMISSION_ROUTING_MODE:local}
   monitoring:
     # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor
     # + /monitoring/database.slowQueries (moved from backend-legacy application.yml).

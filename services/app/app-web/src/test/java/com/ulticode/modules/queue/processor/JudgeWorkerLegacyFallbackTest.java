@@ -3,10 +3,10 @@ package com.ulticode.modules.queue.processor;
 import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.modules.queue.pipeline.DefaultJudgeExecutionPipeline;
+import com.ulticode.modules.queue.pipeline.JudgeTestCaseDetail;
 import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
-import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,10 +78,10 @@ class JudgeWorkerLegacyFallbackTest {
                 "java", "class Solution {}", 100L, "u-1", "sub-legacy");
 
         assertThat(executionResult).isNotNull();
-        List<Submission.TestCaseDetail> written = executionResult.testCaseDetails();
+        List<JudgeTestCaseDetail> written = executionResult.testCaseDetails();
         assertThat(written).hasSize(1);
-        assertThat(written.get(0).getCaseScope()).isNull();
-        assertThat(written.get(0).getCaseId()).isEqualTo("1");
+        assertThat(written.get(0).caseScope()).isNull();
+        assertThat(written.get(0).caseId()).isEqualTo("1");
         verify(judgingCaseSource).loadCases(100L);
     }
 }

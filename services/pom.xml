@@ -22,9 +22,11 @@
 		<module>api/auth-api</module>
 		<module>api/admin-api</module>
 		<module>api/app-api</module>
+		<module>judge-runtime</module>
 		<module>auth</module>
 		<module>admin</module>
 		<module>app</module>
+		<module>submission</module>
 		<module>notification</module>
 		<module>judge</module>
 	</modules>
@@ -72,6 +74,16 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission-domain</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-judge-runtime</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-submission</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

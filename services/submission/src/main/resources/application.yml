@@ -1,0 +1,56 @@
+server:
+  port: ${SUBMISSION_SERVER_PORT:9106}
+
+spring:
+  application:
+    name: backend-submission
+  autoconfigure:
+    # SPLIT-002 is a provider seam only. Storage and its transaction graph
+    # remain in backend-app until SPLIT-003 moves the owner tables.
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+dubbo:
+  application:
+    name: ${DUBBO_APPLICATION_NAME:backend-submission}
+    register-mode: instance
+    qos-enable: false
+    protocol: tri
+    metadata-type: local
+  protocol:
+    name: tri
+    port: ${SUBMISSION_DUBBO_PORT:20886}
+    triple:
+      max-requests-per-connection: 50
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
+    username: ${DUBBO_REGISTRY_USERNAME:${NACOS_USERNAME:}}
+    password: ${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}
+    timeout: 5000
+    use-as-config-center: true
+    use-as-metadata-center: true
+    parameters:
+      namespace: ${DUBBO_NAMESPACE:dev}
+      group: DEFAULT_GROUP
+  scan:
+    base-packages: com.ulticode.submission
+  consumer:
+    check: false
+    timeout: 5000
+    retries: 0
+  cloud:
+    subscribed-services: ''
+
+logging:
+  level:
+    root: INFO
+    com.ulticode.submission: INFO

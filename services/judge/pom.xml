@@ -16,11 +16,10 @@
     <description>Independent judge execution runtime; backend-app remains the submission/problem data owner.</description>
 
     <dependencies>
-        <!-- Reuse the existing queue and sandbox deep modules without booting App's DB graph. -->
+        <!-- Reuse the storage-free queue and sandbox runtime without importing App. -->
         <dependency>
             <groupId>com.ulticode</groupId>
-            <artifactId>backend-app-web</artifactId>
-            <version>${project.version}</version>
+            <artifactId>backend-judge-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>

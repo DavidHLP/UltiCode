@@ -49,6 +49,7 @@ queue:
     enabled: true
   consumer-id-prefix: ulticode-judge
   max-concurrent-jobs: ${JUDGE_MAX_CONCURRENT_JOBS:10}
+  max-delivery-attempts: ${JUDGE_MAX_DELIVERY_ATTEMPTS:5}
   poll-interval-ms: ${JUDGE_POLL_INTERVAL_MS:1000}
 
 management:

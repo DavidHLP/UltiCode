@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Primary
 public class RemoteSubmissionWritePort implements SubmissionWritePort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.0.0",
             timeout = 10000, retries = 0, check = false)
     private SubmissionWritePort submissionWritePort;
 

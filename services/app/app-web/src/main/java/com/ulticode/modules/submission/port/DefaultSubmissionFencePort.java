@@ -19,7 +19,6 @@ import java.util.Optional;
  * @author ulticode
  */
 @Service
-@org.springframework.context.annotation.Primary
 @RequiredArgsConstructor
 public class DefaultSubmissionFencePort implements SubmissionFencePort {
 

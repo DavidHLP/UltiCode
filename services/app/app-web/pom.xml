@@ -50,6 +50,10 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-app-api</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-judge-runtime</artifactId>
+		</dependency>
 		<!-- P7-SEARCH-RELOCATE-001: full-text search backend (optional, gated by meilisearch.enabled). -->
 		<dependency>
 			<groupId>com.meilisearch.sdk</groupId>

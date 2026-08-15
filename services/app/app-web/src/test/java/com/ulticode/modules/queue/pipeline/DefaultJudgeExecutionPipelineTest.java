@@ -7,7 +7,6 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
-import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -87,12 +86,12 @@ class DefaultJudgeExecutionPipelineTest {
             assertThat(result.maxRuntimeMs()).isEqualTo(20);
             assertThat(result.maxMemoryMb()).isEqualTo(2.0);
             assertThat(result.testCaseDetails()).hasSize(2);
-            Submission.TestCaseDetail sampleDetail = result.testCaseDetails().stream()
-                    .filter(detail -> "tc-s-1".equals(detail.getCaseId())).findFirst().orElseThrow();
-            Submission.TestCaseDetail hiddenDetail = result.testCaseDetails().stream()
-                    .filter(detail -> "tc-h-1".equals(detail.getCaseId())).findFirst().orElseThrow();
-            assertThat(sampleDetail.getCaseScope()).isEqualTo(CaseScope.SAMPLE);
-            assertThat(hiddenDetail.getCaseScope()).isEqualTo(CaseScope.HIDDEN);
+            JudgeTestCaseDetail sampleDetail = result.testCaseDetails().stream()
+                    .filter(detail -> "tc-s-1".equals(detail.caseId())).findFirst().orElseThrow();
+            JudgeTestCaseDetail hiddenDetail = result.testCaseDetails().stream()
+                    .filter(detail -> "tc-h-1".equals(detail.caseId())).findFirst().orElseThrow();
+            assertThat(sampleDetail.caseScope()).isEqualTo(CaseScope.SAMPLE);
+            assertThat(hiddenDetail.caseScope()).isEqualTo(CaseScope.HIDDEN);
         }
 
         @Test
@@ -112,8 +111,8 @@ class DefaultJudgeExecutionPipelineTest {
             assertThat(result).isNotNull();
             assertThat(result.status()).isEqualTo(SubmissionStatus.ACCEPTED);
             assertThat(result.testCaseDetails()).hasSize(1);
-            assertThat(result.testCaseDetails().get(0).getCaseScope()).isNull();
-            assertThat(result.testCaseDetails().get(0).getCaseId()).isEqualTo("c-1");
+            assertThat(result.testCaseDetails().get(0).caseScope()).isNull();
+            assertThat(result.testCaseDetails().get(0).caseId()).isEqualTo("c-1");
         }
     }
 

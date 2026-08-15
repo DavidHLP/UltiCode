@@ -19,6 +19,7 @@ on:
           - backend-auth
           - backend-admin
           - backend-app
+          - backend-submission
           - backend-notification
           - backend-judge
           - console

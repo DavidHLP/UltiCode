@@ -30,10 +30,22 @@ services:
       context: .
       dockerfile: services/Dockerfile
       args:
-        SERVICE_MODULE: backend-app
+        SERVICE_MODULE: app/app-web
         SERVICE_ARTIFACT: app-exec.jar
         SERVICE_PORT: "9103"
         SERVICE_HEALTH_PATH: /api/v1/app/health
+
+  backend-submission:
+    image: ulticode-backend-submission:latest
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_MODULE: submission
+        SERVICE_ARTIFACT: submission-exec.jar
+        SERVICE_PORT: "9106"
+        SERVICE_HEALTH_PATH: /disabled
+        SERVICE_HEALTHCHECK: "false"
 
   console:
     image: ulticode-console:latest

@@ -251,7 +251,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 主决策是：**按数据聚合 Owner 拆，而不是按“谁有 Admin 页面”拆。** `backend-admin` 是治理域与管理 BFF；Problem、Contest、Submission、Forum、Solution 等即使有 `/admin/**` Controller，数据仍由 `backend-app` 的对应聚合拥有。这样把当前大量 Admin→Mapper 写收敛为少量粗粒度 Admin→App command，并保持 App 内的本地事务。
 
-`backend-app` 初期仍较大是有意选择。Contest/Submission/Queue、WebSocket、Forum/Vote 等现有双向关系继续留在 App 内；Notification 已具备独立数据、inbox、ledger 和 worker 边界，作为唯一优先拆出的业务服务。Search 仍需先完成索引同步事件化，Contest 等强实时域暂不拆。
+`backend-app` 初期仍较大是有意选择。Contest、WebSocket、Forum/Vote 等现有双向关系继续留在 App 内；Notification 已具备独立数据、inbox、ledger 和 worker 边界。2026-08-15 的新目标以 DEC-011 修订边界：Submission 判题生命周期与 Search 索引 worker 进入独立服务迁移，其余强实时/浅接缝域暂不拆。
 
 ## 4. Service Boundaries
 
@@ -289,13 +289,13 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 | 项 | 定义 |
 |---|---|
-| Responsibility | 普通用户 profile、题目、题单、题解、论坛、提交 intake/判题 dispatch、竞赛、互动、成就、订阅、搜索、WebSocket/实时排名、文件/头像 |
-| Owned Domain | UserProfile、Problem、Submission/Judge Dispatch、Contest、Solution、Forum、Engagement、Achievement、Subscription、Search Index、Realtime；不包含 Notification 和 Judge 执行进程 |
+| Responsibility | 普通用户 profile、题目、题单、题解、论坛、竞赛、互动、成就、订阅、WebSocket/实时排名、文件/头像；过渡期提供 Submission/Search facade |
+| Owned Domain | UserProfile、Problem、Contest、Solution、Forum、Engagement、Achievement、Subscription、Realtime；Submission/Judge Dispatch 迁至 `backend-submission`，Search index writes 迁至 `backend-search`；不包含 Notification 和 Judge 执行进程 |
 | Owned Tables | 除 Auth/Admin/Notification 明确列出的表外，现有 OJ/内容/互动表均归 App；详见 §5 |
 | Exposed HTTP API | `/users` profile、`/problems`、`/submissions`、`/contest`、`/solutions`、`/forum`、`/problem-lists`、`/bookmarks`、`/vote`、`/search`、`/i18n` read 等；WebSocket `/ws/**` |
-| Dubbo Provider | `ProblemAdministrationService`、`ContestAdministrationService`、`SubmissionAdministrationService`、`ContentModerationService`、批量管理查询 Contract，以及 Judge 的 `ProblemFactsPort`/case reads/`SubmissionWritePort`/`SubmissionFencePort` |
+| Dubbo Provider | `ProblemAdministrationService`、`ContestAdministrationService`、`ContentModerationService`、批量管理查询 Contract；过渡期保留 Submission facade，最终由 `backend-submission` 提供 Submission read/write/fence contracts |
 | Dubbo Consumer | Auth identity snapshot 仅用于 cache miss、高风险状态或批量补偿；正常 HTTP 只本地验 JWT；不调用 Admin |
-| Events | `ProfileUpdated`、`SubmissionCreated/Judged`、`ContestRated`、`FollowCreated`、`AchievementEarned`、`NotificationIntentCreated`、`SearchDocumentChanged` 等 |
+| Events | `ProfileUpdated`、`SubmissionCreated/Judged`、`ContestRated`、`FollowCreated`、`AchievementEarned`、`NotificationIntentCreated`、`SearchDocumentChanged` 等；Submission/Search event 的 Owner 与 consumer 见 DEC-011 |
 | External Dependencies | App MySQL、Redis queue/cache/lock/Streams、可选 MeiliSearch、对象存储（中期）、Nacos、Prometheus/OTel |
 
 ### 4.4 `backend-notification`
@@ -329,16 +329,30 @@ Notification、恢复 App grant/路由，再执行 rollback 子命令回写新�
 
 | 项 | 定义 |
 |---|---|
-| Responsibility | 消费 Redis Streams judge queue，读取 App-owned facts/test cases，执行 Docker sandbox，调用 App-owned verdict/fence port |
+| Responsibility | 消费 Redis Streams judge queue，读取 Problem-owned facts/test cases，执行 Docker sandbox，调用 Submission-owned verdict/fence contract |
 | Owned Domain | 无业务表；仅拥有 Worker 运行状态、Streams consumer identity 和进程级指标 |
-| Dubbo Consumer | `ProblemFactsPort`、`ProblemJudgingCaseReadPort`、`ProblemExampleReadPort`、`SubmissionFencePort`、`SubmissionWritePort` |
-| Broker Contract | `judge_outbox` 由 App 写入；`JudgeQueue` v2 envelope 携带 generation/attemptId；Streams PEL/reaper 支持 at-least-once |
-| Failure Boundary | Worker、Docker daemon、沙箱镜像故障不阻塞 App HTTP；结果写入失败保留 PEL，不能 ACK 未完成 job |
-| Scaling | 按 CPU/Docker 并发独立扩容；App 只承担提交、Owner 事务和 durable result outbox |
+| Dubbo Consumer | `ProblemFactsPort`、`ProblemJudgingCaseReadPort`、`ProblemExampleReadPort`、Submission owner 的 `SubmissionFencePort`、`SubmissionWritePort` |
+| Broker Contract | `judge_outbox` 由 Submission 写入；`JudgeQueue` v2 envelope 携带 generation/attemptId；Streams PEL/reaper 支持 at-least-once，超过 `queue.max-delivery-attempts` 写入 `judge:{judge-stream}:dlq` |
+| Failure Boundary | Worker、Docker daemon、沙箱镜像故障不阻塞 App HTTP；结果写入失败保留 PEL，不能 ACK 未完成 job；DLQ 写入失败也保留 PEL 以便重试 |
+| Scaling | 按 CPU/Docker 并发独立扩容；Submission 只承担提交、Owner 事务和 durable result outbox |
 
 Judge 与 App 的同步依赖方向只有 Worker → App；App → Judge 通过 Redis Streams 异步投递，不形成服务启动/同步 RPC 环。
 
 WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`backend-notification` 只发布 Redis Pub/Sub payload，不拥有 WS endpoint 或实时房间状态。
+
+### 4.5.1 `backend-submission`（SPLIT-002 过渡运行时）
+
+| 项 | 定义 |
+|---|---|
+| Responsibility | 暴露 Submission write/fence 的独立 HTTP/Dubbo 进程边界；当前仅兼容代理到 App |
+| Owned Domain | 目标为 Submission intake、verdict、generation/lease fence、judge/result outbox；本切片尚未迁移存储 |
+| Owned Tables | 当前无；App 仍是唯一数据库 writer，SPLIT-003 才执行 expand/backfill/verify/cutover |
+| Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort`，group=`backend-submission` |
+| Dubbo Consumer | 过渡期仅调用 App 同名 owner contract；目标态移除该回访 |
+| HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
+| Rollback | `APP_SUBMISSION_ROUTING_MODE=local`，停止该进程；不改 schema、不恢复双写 |
+
+该运行时不引入 Submission/Problem/Contest/User/Notification Entity、Mapper 或业务表；兼容 provider 的唯一实现依赖是 `backend-app-api`。App 通过显式 `app.submission.routing.mode=local|remote` 选择单一路径，默认 `local`。
 
 ### 4.6 身份模型裁决
 
@@ -390,7 +404,7 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | `forum_tags` | forum；admin tag 管理 | App | Admin | App I；Admin C/Q |
 | `forum_users` | forum 的身份投影 | App | Forum | Auth Account event → App I |
 | `global_rankings` | contest rating/ranking；SQL join users | App | Admin/App | I；身份显示用 profile 投影 |
-| `judge_outbox` | submission 写，queue dispatcher/reaper 更新 | App/Submission-Judge | App worker | 与 submission 同库 I；不跨服务 SQL |
+| `judge_outbox` | Submission 写，queue dispatcher/reaper 更新 | Submission | Submission/Judge worker | 与 submission 同 Owner DB I；不跨服务 SQL |
 | `moderation_actions` | moderation | Admin | Admin | I |
 | `moderation_queue` | moderation，引用多种 App 内容 | Admin | App 内容 Owner | Admin I；App C/Q/E |
 | `notification_command_receipt` | Notification 命令回执（幂等重放） | Notification | Notification | I |
@@ -649,9 +663,9 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 | Contest 创建/题集更新 | Admin 事务直接写 contest + contest_problems | App Contest Owner | 必须本地 L/S；Admin C |
 | Contest 报名/虚拟赛 | participant + registered_count + unique/CAS | App Contest Owner | 必须本地 L/S；成就 AFTER_COMMIT outbox |
 | 比赛提交 | Contest 外层事务包 Submission/Outbox/association | App 内仍分聚合 | 资格同步；Submission+judge outbox L/S；association E |
-| 普通 submission intake | `submissions` + 可选 judge outbox + legacy Redis + contest port | App Submission Owner | 强制 outbox/stream/fence；DB L，queue E |
-| 判题 verdict | generation/attempt fence；下游进程内 event/push | App Submission | verdict CAS + result outbox L/S；Contest/Notification/Achievement inbox E |
-| Judge outbox dispatch | DB tx 持锁跨 Redis enqueue | App worker | 短 claim tx → tx 外 send → 短 confirm；at-least-once+幂等 |
+| 普通 submission intake | `submissions` + judge outbox + Submission owner queue contract + Contest event | Submission Owner | 强制 outbox/stream/fence；DB L，queue E；Contest association E |
+| 判题 verdict | generation/attempt fence；下游 durable event/push | Submission Owner | verdict CAS + result outbox L/S；Contest/Notification/Achievement inbox E |
+| Judge outbox dispatch | Submission DB claim tx + tx 外 Redis enqueue | Submission worker | 短 claim tx → tx 外 send → 短 confirm；at-least-once+幂等 |
 | Contest adjudication | contest submission/participant/problem result | App Contest | Inbox dedup + Owner 本地 L/S |
 | Vote/counter | edge operation + solution denormalized counter | App Engagement/Solution | 共置则 L/S；否则 ledger L、counter E；禁止独立 recount |
 | Forum/Follow/Achievement | 内容/关系写 + counter + async notification | App | 核心状态 L；首次插入结果触发 outbox；通知/成就 E |
@@ -664,7 +678,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### 8.3 迁移前必须补齐的一致性机制
 
-- Judge 已完成 `judge_outbox + generation fence + JudgeQueue port` 的受控切换；生产 App 使用 Streams v2，独立 `backend-judge` 消费者负责执行。回滚开关仍必须保留 legacy RQueue 重放保护，不能把未投递的 non-shadow row 直接标记为 SENT；
+- Judge 已完成 `judge_outbox + generation fence + JudgeQueue port` 的受控切换；目标态由 Submission owner 写入 Streams v2，独立 `backend-judge` 消费者负责执行。回滚开关仍必须保留 legacy RQueue 重放保护，不能把未投递的 non-shadow row 直接标记为 SENT；
 - `judge_outbox` 只覆盖“送去判题”，不覆盖“verdict 已落库”。新增 result outbox，避免 commit 后 JVM 崩溃丢失 Contest/Notification/Achievement；
 - Notification ledger 支持 stale `CLAIMED` 回收和有上限的 `FAILED` 重试；`DELIVERED`、`SKIPPED` 及达到重试上限的 `FAILED` 为终态；integration outbox 的 stale lease 回收、投递确认和失败回写必须按 `claim_owner` 做 CAS fencing；
 - SMTP 从事务内发送改为 email intent/outbox worker；
@@ -738,7 +752,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 - **Goal**：从“服务分进程、共库”进入“独立 schema/database Owner”。
 - **Code Changes**：跨 owner join 改 batch query/事件投影；`users` 垂直拆 profile；reconciliation job；服务 migration location 分离。
-- **Database Changes**：按 Auth → Admin governance → App aggregate 整组迁移；expand/backfill/checksum/dual-read/cutover；撤销非 Owner grant；不先拆 `submissions+judge_outbox`、Contest aggregate、Problem+test cases。
+- **Database Changes**：按 Auth → Admin governance → App aggregate 整组迁移；Submission 作为本目标新增 owner 组执行 expand/backfill/checksum/dual-read/cutover；撤销非 Owner grant；Contest aggregate、Problem+test cases 仍不拆。
 - **Compatibility Strategy**：读先切投影，写保持单 Owner；旧表 CDC/镜像只读；保留 replay watermark；一个完整业务周期后才停止复制。
 - **Validation**：fresh Flyway、主键 count/checksum、唯一冲突、逻辑孤儿、读写 shadow compare、备份恢复演练、旧账号权限拒绝测试。
 - **Rollback**：切回旧读路径/旧 schema writer；新库写通过 outbox 可回放；只做 additive migration，不 DROP/rename 关键列。
@@ -892,7 +906,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 ### 11.3 Registry、配置与网络
 
-- Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；业务配置继续 env/application，避免同时改变 discovery 和 config source；
+- Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；`backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`、`backend-judge` 使用不同 service name；业务配置继续 env/application，避免同时改变 discovery 和 config source；
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
 - Gateway 是唯一外部 API/WS 入口，Dubbo 端口只在 internal network；
 - Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential；
@@ -903,7 +917,9 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - App 单实例迁移期可继续 SimpleBroker；多实例前使用粘性会话 + Redis broadcast bridge，或按负载证明引入 broker relay；
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
-- `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 `backend-app-api` 的 Dubbo port 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 仍是 App。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
+- `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
+- `backend-submission` 是独立 Maven module/image；SPLIT-002 只提供无业务表的兼容 provider seam，默认端口为内部 HTTP `9106`、Dubbo `20886`，并通过 `APP_SUBMISSION_ROUTING_MODE` 保证 App 在 local/remote 中只有一个 writer 路径。SPLIT-003 才迁移 Submission 与 outbox 存储 Owner。
+- `backend-search` 是独立 no-HTTP/no-business-DB worker；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch，具备 inbox/claim/replay/lag；App 业务写路径不得直连或隐式写索引。
 - `backend-notification` 使用独立 artifact/image；`api` 角色承接 HTTP/Dubbo，`worker` 角色运行 durable inbox bridge + ledger reaper。过渡期保留 `ulticode.app.inbox.enabled` 作为 App 侧回滚开关，切换完成后关闭 App inbox bridge，Notification 成为 `notifications`、偏好、投递台账和 email 表的唯一 Owner。
 
 ## 12. Risks
@@ -974,7 +990,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - [ ] Admin 不再直接写 App/Auth 表。
 - [ ] Moderation decision、Auth ban、App content flag 分解为 workflow + 幂等 command。
 - [ ] `users` 先由 Auth 独占，再 backfill App `user_profiles`。
-- [ ] `submissions + judge_outbox`、Problem+test cases、Contest aggregate 不被错误拆库。
+- [ ] `submissions + judge_outbox` 仅由 `backend-submission` Owner 写入；Problem+test cases、Contest aggregate 不被错误拆库。
 - [ ] 每服务使用独立 DB user/grant；兼容账号设置删除日期。
 - [ ] 使用 expand/backfill/checksum/shadow/cutover/contract，不做 Big Bang。
 - [ ] 跨服务事件有 eventId、aggregateId/version、causationId、traceId、schemaVersion。

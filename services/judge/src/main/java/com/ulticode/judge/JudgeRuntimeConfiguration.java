@@ -36,10 +36,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 /**
- * Explicit judge-only bean graph. The dependency on backend-app-web provides
- * the existing deep queue/sandbox implementation; this import list prevents
- * App controllers, mappers, datasource config, and owner services from being
- * discovered in the worker JVM.
+ * Explicit judge-only bean graph. The storage-free judge runtime provides the
+ * queue/sandbox implementation; this import list prevents App controllers,
+ * mappers, datasource config, and owner services from being discovered in the
+ * worker JVM.
  */
 @Configuration
 @EnableAutoConfiguration

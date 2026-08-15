@@ -12,6 +12,7 @@ import {
   TagFilter,
 } from "@/components/common/data-table";
 import CheckIcon from "~icons/radix-icons/check";
+import { Shuffle } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -44,12 +45,11 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="space-y-4 terminal-card animate-stagger p-3 md:p-4 problem-explorer-controls"
+    class="space-y-3 terminal-card animate-stagger p-3 md:p-4 problem-explorer-controls"
   >
     <CategoryFilter
       :categories="categoryOptions"
       :model-value="selectedCategory"
-      class="pt-0.5"
       @update:model-value="emit('update:selectedCategory', $event)"
     />
 
@@ -57,6 +57,7 @@ const emit = defineEmits<{
       :model-value="searchQuery"
       :placeholder="t('problem.list.searchPlaceholder')"
       :filter-label="t('problem.explorer.filters')"
+      :filter-icon-only="true"
       :active-filter-count="activeFilterCount"
       :show-clear="hasActiveFilters"
       :clear-label="
@@ -202,21 +203,26 @@ const emit = defineEmits<{
       <template #actions>
         <Button
           variant="outline"
+          size="icon"
+          :aria-label="t('problem.explorer.pickOne')"
+          :title="t('problem.explorer.pickOne')"
           class="h-9 rounded-md border-border-control bg-surface-highlight font-mono text-xs font-bold uppercase tracking-wider text-foreground-strong hover:bg-surface-highlight/80 transition-all cursor-pointer"
           @click="emit('pickOne')"
         >
-          {{ t("problem.explorer.pickOne") }}
+          <Shuffle class="h-4 w-4" aria-hidden="true" />
         </Button>
       </template>
     </DataTableToolbar>
 
-    <TagFilter
-      :model-value="$props.selectedTags"
-      @update:model-value="emit('update:selectedTags', $event)"
-      :popular-tags="popularTags"
-      :other-tags="otherTags"
-      :show-more-label="t('problem.explorer.showMoreTags')"
-    />
+    <div class="border-t border-border-subtle pt-3">
+      <TagFilter
+        :model-value="$props.selectedTags"
+        @update:model-value="emit('update:selectedTags', $event)"
+        :popular-tags="popularTags"
+        :other-tags="otherTags"
+        :show-more-label="t('problem.explorer.showMoreTags')"
+      />
+    </div>
   </div>
 </template>
 

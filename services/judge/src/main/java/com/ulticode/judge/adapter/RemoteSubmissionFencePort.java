@@ -12,7 +12,7 @@ import java.util.Optional;
 @Primary
 public class RemoteSubmissionFencePort implements SubmissionFencePort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.0.0",
             timeout = 5000, retries = 0, check = false)
     private SubmissionFencePort submissionFencePort;
 

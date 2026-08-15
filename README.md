@@ -141,7 +141,7 @@
                        ┌────────────────────────────────────────────┐
                        │          Owner API gateway (/api)           │
                        │ Auth :9101 · Admin :9102 · App :9103       │
-                       │ Notification :9105                       │
+                       │ Submission :9106 · Notification :9105    │
                        │ JWT + Redis Session · SpringDoc OpenAPI   │
                        └──┬──────────────┬──────────────┬───────────┘
                           │              │              │
@@ -164,12 +164,13 @@
 
 ```
 UltiCode/
-├── services/         # 后端 Maven reactor（platform · api · auth · admin · app · notification · judge）
+├── services/         # 后端 Maven reactor（platform · api · auth · admin · app · submission · notification · judge）
 │   ├── platform/     # 共享平台层（common · web-security）
 │   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api）
 │   ├── auth/         # Auth owner — 9101
 │   ├── admin/        # Admin owner — 9102
 │   ├── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
+│   ├── submission/   # Submission compatibility owner seam — 9106 / Dubbo 20886
 │   ├── notification/ # Notification/email owner — 9105
 │   └── judge/        # Judge worker — 独立进程，消费 Redis Streams
 ├── apps/
@@ -325,6 +326,7 @@ dev 数据库会自动创建固定管理员账号：
 | Auth API | <http://localhost:9101> | 认证 / 凭据 Owner |
 | Admin API | <http://localhost:9102> | 治理 / 管理 Owner |
 | App API | <http://localhost:9103> | OJ / 用户业务 Owner |
+| Submission owner | 内部 HTTP `9106` / Dubbo `20886` | 过渡期兼容 provider；不拥有业务表 |
 | Notification API | <http://localhost:9105> | 通知 / 邮件 Owner |
 | Judge Worker | Dubbo `20884` / PM2 `ulticode-judge` | 独立判题执行进程，无 HTTP API |
 | Nacos 控制台 | <http://localhost:28848/nacos> | 配置中心 / 服务发现 |
@@ -504,6 +506,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | 9101 | `ulticode-auth` | Auth Spring Boot | Auth Owner |
 | 9102 | `ulticode-admin` | Admin Spring Boot | Admin Owner |
 | 9103 | `ulticode-app` | App Spring Boot | App Owner |
+| 9106 | `ulticode-submission` | Submission Spring Boot | 过渡期兼容 provider；Dubbo internal only |
 | 9105 | `ulticode-notification` | Notification Spring Boot | Notification/email Owner |
 | 20884 | `ulticode-judge` | Judge Spring Boot | Redis Streams consumer；Dubbo internal only |
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |

@@ -9,10 +9,10 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
+import com.ulticode.modules.queue.pipeline.JudgeTestCaseDetail;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
-import com.ulticode.modules.submission.entity.Submission;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,10 +102,8 @@ class DefaultJudgeAttemptExecutorTest {
     @Test
     @DisplayName("fenced verdict serializes details and writes through the fenced port")
     void fencedVerdictWritesDetailsBeforeNotification() throws Exception {
-        Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
-        detail.setCaseId("case-1");
-        detail.setStatus("Accepted");
-        detail.setCaseScope(CaseScope.SAMPLE);
+        JudgeTestCaseDetail detail = new JudgeTestCaseDetail(
+                "Accepted", null, null, null, null, null, null, "case-1", CaseScope.SAMPLE);
         JudgeExecutionResult result = new JudgeExecutionResult(SubmissionStatus.ACCEPTED, 37, 12.5,
                 List.of(detail));
         when(executionPipeline.execute("java", "class Main {}", 100L, "user-1", "submission-1"))
@@ -169,9 +167,8 @@ class DefaultJudgeAttemptExecutorTest {
     @DisplayName("flag-off execution uses the unfenced write path and still serializes details")
     void legacyFlagUsesUnfencedWrite() throws Exception {
         when(featureFlags.isUseGenerationFence()).thenReturn(false);
-        Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
-        detail.setCaseId("legacy-case");
-        detail.setStatus("Accepted");
+        JudgeTestCaseDetail detail = new JudgeTestCaseDetail(
+                "Accepted", null, null, null, null, null, null, "legacy-case", null);
         JudgeExecutionResult result = new JudgeExecutionResult(SubmissionStatus.ACCEPTED, 5, 2.0,
                 List.of(detail));
         when(executionPipeline.execute("java", "class Main {}", 100L, "user-1", "submission-1"))

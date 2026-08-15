@@ -13,6 +13,7 @@ defineProps<{
   modelValue: string; // Search query
   placeholder?: string;
   filterLabel?: string;
+  filterIconOnly?: boolean;
   activeFilterCount?: number;
   showClear?: boolean;
   clearLabel?: string;
@@ -48,11 +49,18 @@ const emit = defineEmits<{
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button
+            :size="filterIconOnly ? 'icon' : 'default'"
+            :aria-label="filterIconOnly ? filterLabel || 'Filters' : undefined"
+            :title="filterIconOnly ? filterLabel || 'Filters' : undefined"
             variant="outline"
             class="h-9 gap-1.5 rounded-md border-border-control bg-surface-highlight text-xs text-foreground-strong hover:bg-surface-highlight/80 cursor-pointer"
+            :class="filterIconOnly ? 'p-0' : undefined"
           >
-            <ListFilter class="h-3.5 w-3.5 text-muted-foreground" />
-            {{ filterLabel || "Filters" }}
+            <ListFilter
+              class="h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <span v-if="!filterIconOnly">{{ filterLabel || "Filters" }}</span>
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"

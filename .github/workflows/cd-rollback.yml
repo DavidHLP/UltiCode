@@ -16,6 +16,7 @@ on:
           - backend-auth
           - backend-admin
           - backend-app
+          - backend-submission
           - backend-notification
           - backend-judge
           - console
@@ -44,7 +45,7 @@ jobs:
           TAG="${{ github.event.inputs.image_tag }}"
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.repository }}"
-          SERVICES=("backend-auth" "backend-admin" "backend-app" "backend-notification" "backend-judge" "console" "management")
+          SERVICES=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-judge" "console" "management")
 
           for SVC in "${SERVICES[@]}"; do
             echo "Checking ${SVC}:${TAG}..."

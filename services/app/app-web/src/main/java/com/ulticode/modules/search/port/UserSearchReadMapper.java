@@ -35,4 +35,19 @@ public interface UserSearchReadMapper {
             + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
             + "WHERE u.id = #{id} AND u.is_deleted = 0")
     UserSearchRow findIndexRowById(@Param("id") String id);
+
+    /**
+     * SEARCH-003 backfill enumeration page (DEC-017): stable id-ordered
+     * paging of the same Q-read shape as {@link #searchIndex}, plus the
+     * version columns (users.updated_at/deleted_at/joined_at and the
+     * App-owned profile updated_at) for the backfill watermark.
+     */
+    @Select("SELECT u.id, u.username, p.name, p.avatar, "
+            + "u.updated_at, u.deleted_at, u.joined_at, "
+            + "p.updated_at AS profile_updated_at "
+            + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
+            + "WHERE u.is_deleted = 0 "
+            + "ORDER BY u.id ASC "
+            + "LIMIT #{limit} OFFSET #{offset}")
+    List<UserSearchRow> enumerateIndex(@Param("offset") int offset, @Param("limit") int limit);
 }

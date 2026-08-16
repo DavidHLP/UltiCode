@@ -56,6 +56,14 @@ app:
       # App local writer (DEC-013), so App keeps its submission grants until the
       # contest owner migration completes.
       mode: ${APP_SUBMISSION_ROUTING_MODE:local}
+  search:
+    backfill:
+      # SEARCH-003 backfill runner (DEC-017). Off by default; the runner bean
+      # only exists when both this flag and meilisearch.enabled are true.
+      enabled: ${APP_SEARCH_BACKFILL_ENABLED:false}
+      # Comma-separated index selection; blank = all four (problems,users,posts,solutions).
+      indexes: ${APP_SEARCH_BACKFILL_INDEXES:}
+      page-size: 500
   monitoring:
     # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor
     # + /monitoring/database.slowQueries (moved from backend-legacy application.yml).

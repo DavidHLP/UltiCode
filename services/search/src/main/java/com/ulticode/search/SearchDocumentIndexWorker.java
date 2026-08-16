@@ -44,9 +44,10 @@ import org.springframework.stereotype.Component;
  * written version per document. An incoming UPSERT whose version is strictly
  * older than the ledger entry is skipped (counted, still ACKed) so a backfill
  * snapshot can never overwrite a newer live write; equal versions rewrite
- * (idempotent, content-convergent). The version is also embedded in the
- * Meili document as {@code _aggregateVersion} for diff watermark and
- * observability. DELETEs clear the ledger entry.
+ * (idempotent, content-convergent). DELETEs record a negative tombstone
+ * version so an equal-or-older UPSERT cannot resurrect a deleted document.
+ * The version is also embedded in the Meili document as
+ * {@code _aggregateVersion} for diff watermark and observability.
  */
 @Slf4j
 @Component
@@ -258,9 +259,10 @@ public class SearchDocumentIndexWorker {
                     throw new IllegalArgumentException("UPSERT search event without document");
                 }
                 String existing = ledgerVersion(versionKey, documentId);
-                if (existing != null && Long.parseLong(existing) > incomingVersion) {
-                    // Stale snapshot (e.g. backfill racing a newer live write):
-                    // skip the write but still ACK — the newer version is indexed.
+                if (isStale(existing, incomingVersion)) {
+                    // Stale snapshot or a write older than a tombstone (e.g.
+                    // backfill racing a newer live write or an unpublish):
+                    // skip the write but still ACK — the newer state is indexed.
                     staleCounter.increment();
                     ack(record);
                     return true;
@@ -272,7 +274,12 @@ public class SearchDocumentIndexWorker {
                 redisTemplate.opsForHash().put(versionKey, documentId, String.valueOf(incomingVersion));
             } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
                 meiliSearchClient.index(index).deleteDocument(documentId);
-                redisTemplate.opsForHash().delete(versionKey, documentId);
+                // Tombstone the ledger with the delete's version (stored
+                // negative): a later UPSERT that is not strictly newer than
+                // the delete is skipped, so a stale backfill snapshot can
+                // never resurrect a deleted document (DEC-016 revision).
+                redisTemplate.opsForHash().put(
+                        versionKey, documentId, "-" + incomingVersion);
             } else {
                 throw new IllegalArgumentException("unsupported operation: " + operation);
             }
@@ -284,6 +291,33 @@ public class SearchDocumentIndexWorker {
             // Leave in PEL: reclaimed on the next cycle, dead-lettered after
             // maxAttempts deliveries.
             log.warn("Search event {} processing failed (will retry): {}", record.getId().getValue(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Whether an incoming UPSERT must be skipped because the ledger already
+     * holds a newer state for the document:
+     * <ul>
+     *   <li>positive ledger value = last written version: skip iff
+     *       existing &gt; incoming (equal rewrites, idempotent);</li>
+     *   <li>negative ledger value = tombstone version {@code -T} recorded by
+     *       a DELETE: skip iff {@code T &gt;= incoming} (a delete never loses
+     *       to an equal-or-older snapshot);</li>
+     *   <li>absent/corrupt ledger: never skip (first write or self-heal).
+     * </ul>
+     */
+    private boolean isStale(String existing, long incomingVersion) {
+        if (existing == null) {
+            return false;
+        }
+        try {
+            long existingVersion = Long.parseLong(existing);
+            if (existingVersion < 0) {
+                return -existingVersion >= incomingVersion;
+            }
+            return existingVersion > incomingVersion;
+        } catch (NumberFormatException e) {
             return false;
         }
     }

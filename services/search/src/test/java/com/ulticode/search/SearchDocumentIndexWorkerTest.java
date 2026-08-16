@@ -178,18 +178,50 @@ class SearchDocumentIndexWorkerTest {
     }
 
     @Test
-    @DisplayName("DELETE tombstones the document by aggregate id, clears the ledger and ACKs")
+    @DisplayName("DELETE tombstones the document, records a negative ledger version and ACKs")
     void deleteTombstonesAndAcks() {
         stubBusyGroup();
         stubEmptyReads();
         when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
-                .thenReturn(List.of(record("2", SearchDocumentChangedEventContract.EVENT_TYPE, deletePayload("users"))));
+                .thenReturn(List.of(record("2", SearchDocumentChangedEventContract.EVENT_TYPE, deletePayload("users"), "200")));
 
         worker.consume();
 
         verify(meiliIndex).deleteDocument("doc-2");
-        verify(hashOps).delete("search:doc-version:users", "doc-2");
+        verify(hashOps).put("search:doc-version:users", "doc-2", "-200");
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-2"));
+    }
+
+    @Test
+    @DisplayName("UPSERT not newer than a tombstone is skipped (no resurrection)")
+    void upsertNotNewerThanTombstoneIsSkipped() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:problems", "doc-1")).thenReturn("-200");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "200")));
+
+        worker.consume();
+
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
+    }
+
+    @Test
+    @DisplayName("UPSERT strictly newer than a tombstone republishes (re-create)")
+    void upsertNewerThanTombstoneRepublishes() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:problems", "doc-1")).thenReturn("-200");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "250")));
+
+        worker.consume();
+
+        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":250}");
+        verify(hashOps).put("search:doc-version:problems", "doc-1", "250");
     }
 
     @Test

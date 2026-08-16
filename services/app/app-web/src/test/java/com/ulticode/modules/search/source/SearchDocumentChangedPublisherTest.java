@@ -1,7 +1,10 @@
 package com.ulticode.modules.search.source;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
@@ -40,12 +43,17 @@ class SearchDocumentChangedPublisherTest {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> capturePayload(String aggregateId) {
+        return capturePayload(aggregateId, FIXED_VERSION_MILLIS);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> capturePayload(String aggregateId, long versionMillis) {
         ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
         verify(integrationEventPublisher).publish(
                 eq(SearchDocumentChangedEventContract.APP_PUBLISHER),
                 eq(SearchDocumentChangedEventContract.EVENT_TYPE),
                 eq(aggregateId),
-                eq(FIXED_VERSION_MILLIS),
+                eq(versionMillis),
                 eq(null),
                 eq(null),
                 captor.capture());
@@ -126,5 +134,40 @@ class SearchDocumentChangedPublisherTest {
                 .containsEntry("username", "alice")
                 .containsEntry("name", "Alice")
                 .containsEntry("avatar", "/a.png");
+    }
+
+    @Test
+    @DisplayName("backfill UPSERT passes the explicit row version through the envelope")
+    void publishBackfill_upsertCarriesExplicitVersion() {
+        publisher.publishBackfill("problems", "p-1", 123_456_789L, Map.of("id", "p-1"));
+
+        verify(integrationEventPublisher).publish(
+                eq(SearchDocumentChangedEventContract.APP_PUBLISHER),
+                eq(SearchDocumentChangedEventContract.EVENT_TYPE),
+                eq("p-1"),
+                eq(123_456_789L),
+                eq(null),
+                eq(null),
+                any(Map.class));
+    }
+
+    @Test
+    @DisplayName("backfill DELETE publishes a tombstone with the explicit version")
+    void publishBackfill_deletePublishesTombstone() {
+        publisher.publishBackfill("problems", "p-1", 123_456_789L, null);
+
+        Map<String, Object> payload = capturePayload("p-1", 123_456_789L);
+        assertThat(payload.get(SearchDocumentChangedEventContract.OPERATION))
+                .isEqualTo(SearchDocumentChangedEventContract.DELETE);
+        assertThat(payload).doesNotContainKey(SearchDocumentChangedEventContract.DOCUMENT);
+    }
+
+    @Test
+    @DisplayName("backfill with a blank document id is ignored")
+    void publishBackfill_blankIdIsIgnored() {
+        publisher.publishBackfill("problems", "  ", 123L, Map.of("id", "x"));
+        verify(integrationEventPublisher, never())
+                .publish(anyString(), anyString(), anyString(), any(Long.class),
+                        any(), any(), any());
     }
 }

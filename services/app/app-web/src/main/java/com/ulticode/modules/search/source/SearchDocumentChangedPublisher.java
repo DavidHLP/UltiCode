@@ -48,13 +48,9 @@ public class SearchDocumentChangedPublisher {
         if (problem == null || problem.getId() == null) {
             return;
         }
-        Map<String, Object> document = new LinkedHashMap<>();
-        document.put("id", problem.getId());
-        document.put("title", problem.getTitle());
-        document.put("slug", problem.getSlug());
-        document.put("difficulty", problem.getDifficulty());
         publish(SearchDocumentChangedEventContract.PROBLEMS_INDEX,
-                String.valueOf(problem.getId()), upsert ? document : null);
+                String.valueOf(problem.getId()),
+                upsert ? SearchDocumentBuilders.problem(problem) : null);
     }
 
     /**
@@ -67,13 +63,8 @@ public class SearchDocumentChangedPublisher {
         if (post == null || post.getId() == null) {
             return;
         }
-        Map<String, Object> document = new LinkedHashMap<>();
-        document.put("id", post.getId());
-        document.put("title", post.getTitle());
-        document.put("excerpt", post.getExcerpt());
-        document.put("permalink", post.getPermalink());
         publish(SearchDocumentChangedEventContract.POSTS_INDEX,
-                post.getId(), upsert ? document : null);
+                post.getId(), upsert ? SearchDocumentBuilders.forumPost(post) : null);
     }
 
     /**
@@ -86,13 +77,8 @@ public class SearchDocumentChangedPublisher {
         if (solution == null || solution.getId() == null) {
             return;
         }
-        Map<String, Object> document = new LinkedHashMap<>();
-        document.put("id", solution.getId());
-        document.put("title", solution.getTitle());
-        document.put("summary", solution.getSummary());
-        document.put("problemId", solution.getProblemId());
         publish(SearchDocumentChangedEventContract.SOLUTIONS_INDEX,
-                solution.getId(), upsert ? document : null);
+                solution.getId(), upsert ? SearchDocumentBuilders.solution(solution) : null);
     }
 
     /**
@@ -114,23 +100,40 @@ public class SearchDocumentChangedPublisher {
         if (aggregateId == null || aggregateId.isBlank()) {
             return;
         }
-        Map<String, Object> document = null;
-        if (upsert) {
-            document = new LinkedHashMap<>();
-            document.put("id", aggregateId);
-            document.put("username", username);
-            if (name != null) {
-                document.put("name", name);
-            }
-            if (avatar != null) {
-                document.put("avatar", avatar);
-            }
-        }
-        publish(SearchDocumentChangedEventContract.USERS_INDEX, aggregateId, document);
+        publish(SearchDocumentChangedEventContract.USERS_INDEX, aggregateId,
+                upsert ? SearchDocumentBuilders.user(aggregateId, username, name, avatar) : null);
     }
 
+    /**
+     * Publish a backfill UPSERT or DELETE with an explicit document version
+     * (DEC-016/017). The version is the row's last-change epoch millis, so a
+     * snapshot can never overwrite a newer live write at the worker ledger.
+     * Each call commits its own outbox row transaction; a failed run is safe
+     * to re-run because backfill converges idempotently.
+     *
+     * @param index        allowlisted index ({@code problems|users|posts|solutions})
+     * @param documentId   the document id (envelope aggregate id)
+     * @param versionMillis row last-change epoch millis
+     * @param document     full index-safe document, or {@code null} for DELETE
+     */
     @org.springframework.transaction.annotation.Transactional
+    public void publishBackfill(String index, String documentId, long versionMillis,
+                                Map<String, Object> document) {
+        if (documentId == null || documentId.isBlank()) {
+            return;
+        }
+        if (document != null) {
+            SearchDocumentChangedEventContract.requireSafeDocument(document);
+        }
+        publish(index, documentId, document, versionMillis);
+    }
+
     private void publish(String index, String documentId, Map<String, Object> document) {
+        publish(index, documentId, document, clock.instant().toEpochMilli());
+    }
+
+    private void publish(String index, String documentId, Map<String, Object> document,
+                         long versionMillis) {
         Map<String, Object> payload = new LinkedHashMap<>();
             payload.put(SearchDocumentChangedEventContract.INDEX, index);
             payload.put(SearchDocumentChangedEventContract.OPERATION,
@@ -148,11 +151,11 @@ public class SearchDocumentChangedPublisher {
                     SearchDocumentChangedEventContract.APP_PUBLISHER,
                     SearchDocumentChangedEventContract.EVENT_TYPE,
                     documentId,
-                    clock.instant().toEpochMilli(),
+                    versionMillis,
                     null,
                     null,
                     payload);
-            log.debug("Published {} {} event for {}", index,
-                    payload.get(SearchDocumentChangedEventContract.OPERATION), documentId);
+            log.debug("Published {} {} event for {} at version {}", index,
+                    payload.get(SearchDocumentChangedEventContract.OPERATION), documentId, versionMillis);
     }
 }

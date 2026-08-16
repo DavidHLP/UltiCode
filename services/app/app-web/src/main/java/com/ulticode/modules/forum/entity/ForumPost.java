@@ -159,4 +159,10 @@ public class ForumPost {
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * Record last update timestamp (SEARCH-003 backfill version source)
+     */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
 }

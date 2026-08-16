@@ -369,6 +369,8 @@ slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：�
 
 grant revocation 完整性 PARTIAL：contest intake/verdict 仍走 App local writer（DEC-013），App 对 `ulticode` schema 三表的 grant 须保留至 contest owner 迁移完成后才可全量撤销；此前的撤销仅对 regular 路径生效，观察窗必须记录该 PARTIAL 状态。
 
+slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION_OWNER_MODE=local` 下 backend-submission 全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + contest 守卫 CR P1-2 本地提交）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；**全量 grant revocation 保持 PARTIAL**（依赖 contest owner 迁移切片）。
+
 ### 4.6 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |

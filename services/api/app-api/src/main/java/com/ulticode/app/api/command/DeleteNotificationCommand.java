@@ -2,7 +2,6 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Command to delete a system notification and all its user copies.
@@ -16,7 +15,9 @@ public record DeleteNotificationCommand(
         IdMetadata idempotency,
         ActorDelegation actor,
         TraceMetadata trace,
-        String notificationId) implements Serializable, WriteCommand {
+        String notificationId) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public DeleteNotificationCommand {
         if (commandId == null || commandId.isBlank()) {

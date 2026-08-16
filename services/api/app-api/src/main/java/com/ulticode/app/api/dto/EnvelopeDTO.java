@@ -15,6 +15,8 @@ public record EnvelopeDTO(
         long totalElapsedMs,
         List<PerCaseResultDTO> results
 ) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @SuppressWarnings("unchecked")
     public static EnvelopeDTO fromMap(Map<String, Object> m) {
         if (m == null) {

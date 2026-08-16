@@ -65,6 +65,8 @@ public record RpcResult<T>(
         String traceId,
         Long deadlineMs,
         String idempotencyKey) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Pagination sub-payload; null for non-paginated RPCs. The {@code items}
@@ -78,6 +80,8 @@ public record RpcResult<T>(
             Integer page,
             Integer pageSize,
             Integer totalPages) implements Serializable {
+        private static final long serialVersionUID = 1L;
+
     }
 
     /**
@@ -93,6 +97,8 @@ public record RpcResult<T>(
             String namespace,
             int code,
             String message) implements Serializable {
+        private static final long serialVersionUID = 1L;
+
 
         /**
          * @return this payload's namespace, or {@code ""} for

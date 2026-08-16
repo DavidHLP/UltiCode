@@ -2,7 +2,6 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Auth-owned command for creating an account.
@@ -18,7 +17,9 @@ public record CreateAccountCommand(
         String username,
         String email,
         String password,
-        String role) implements Serializable, WriteCommand {
+        String role) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public CreateAccountCommand {
         requireNonBlank(commandId, "commandId");

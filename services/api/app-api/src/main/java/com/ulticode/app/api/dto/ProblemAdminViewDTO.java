@@ -18,4 +18,6 @@ public record ProblemAdminViewDTO(
         String title,
         long version,
         String status) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

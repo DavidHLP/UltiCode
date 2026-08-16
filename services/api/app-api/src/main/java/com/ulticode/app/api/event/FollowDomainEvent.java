@@ -12,4 +12,6 @@ public record FollowDomainEvent(
         int targetFollowerCount,
         int followerFollowingCount,
         boolean isFollow
-) implements Serializable {}
+) implements Serializable {
+    private static final long serialVersionUID = 1L;
+}

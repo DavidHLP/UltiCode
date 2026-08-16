@@ -10,4 +10,6 @@ import java.io.Serializable;
  * @param slug URL slug
  * @param difficulty optional difficulty label
  */
-public record ProblemIndexDTO(String id, String title, String slug, String difficulty) implements Serializable {}
+public record ProblemIndexDTO(String id, String title, String slug, String difficulty) implements Serializable {
+    private static final long serialVersionUID = 1L;
+}

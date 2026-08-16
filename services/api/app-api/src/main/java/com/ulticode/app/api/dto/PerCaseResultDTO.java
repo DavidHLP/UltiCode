@@ -21,7 +21,11 @@ public record PerCaseResultDTO(
         String userStdout,
         String userStderr
 ) implements Serializable {
-    public record ErrorDTO(String type, String message, List<String> stack) implements Serializable {}
+    private static final long serialVersionUID = 1L;
+
+    public record ErrorDTO(String type, String message, List<String> stack) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     @SuppressWarnings("unchecked")
     public static PerCaseResultDTO fromMap(Map<String, Object> m) {

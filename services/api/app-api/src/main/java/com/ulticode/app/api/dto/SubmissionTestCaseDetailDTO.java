@@ -25,6 +25,8 @@ public record SubmissionTestCaseDetailDTO(
         List<InputParam> inputs,
         String caseId,
         CaseScope caseScope) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public SubmissionTestCaseDetailDTO {
         inputs = inputs == null ? List.of() : List.copyOf(inputs);
@@ -36,5 +38,7 @@ public record SubmissionTestCaseDetailDTO(
             String label,
             String name,
             String value) implements Serializable {
+        private static final long serialVersionUID = 1L;
+
     }
 }

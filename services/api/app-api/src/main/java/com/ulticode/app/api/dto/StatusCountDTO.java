@@ -15,6 +15,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StatusCountDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     /** Submission status string (e.g. "Accepted", "WrongAnswer"). */
     private String status;
     /** Number of submissions in this status. */

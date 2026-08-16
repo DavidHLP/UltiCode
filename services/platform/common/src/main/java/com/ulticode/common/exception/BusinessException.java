@@ -11,6 +11,8 @@ import java.io.Serializable;
  */
 @Getter
 public class BusinessException extends RuntimeException implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private final NamespacedErrorCode errorCode;
     private final String traceId;

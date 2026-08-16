@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
  */
 @Data
 public class AdminForumPostRowDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /** Post unique identifier. */
     private String id;

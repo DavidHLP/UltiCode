@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
  * consumers process the published durable event after commit.</p>
  */
 public class SubmissionJudgedEvent extends ApplicationEvent implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private final String submissionId;
     private final String userId;

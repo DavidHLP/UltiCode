@@ -27,6 +27,8 @@ public record ModerationApplyResultDTO(
         String contentId,
         ModerationAction appliedAction,
         ContentLifecycleState newContentState) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ModerationApplyResultDTO {
         if (moderationCaseId == null || moderationCaseId.isBlank()) {

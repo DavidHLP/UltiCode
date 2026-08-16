@@ -8,4 +8,6 @@ import java.io.Serializable;
  * Extracted from auth.util.JwtUtils for P7-RELOCATE-WEBSOCKET-001.
  */
 public record JwtPayload(String userId, String username, String role) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

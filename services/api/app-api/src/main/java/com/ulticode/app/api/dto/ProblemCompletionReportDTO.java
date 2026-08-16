@@ -18,6 +18,8 @@ public record ProblemCompletionReportDTO(
         List<TagStats> byTag,
         List<TrendingProblem> trendingProblems,
         List<HardestProblem> hardestProblems) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ProblemCompletionReportDTO {
         byDifficulty = byDifficulty == null ? List.of() : List.copyOf(byDifficulty);
@@ -27,16 +29,24 @@ public record ProblemCompletionReportDTO(
     }
 
     /** Completion rate grouped by difficulty. */
-    public record DifficultyStats(String difficulty, int total, int completed, double rate) implements Serializable {}
+    public record DifficultyStats(String difficulty, int total, int completed, double rate) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /** Completion rate grouped by tag. */
-    public record TagStats(String tagId, String label, int total, int completed, double rate) implements Serializable {}
+    public record TagStats(String tagId, String label, int total, int completed, double rate) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /** Most-attempted Problem data point. */
     public record TrendingProblem(String problemId, String title, int attempts,
-                                  double completionRate) implements Serializable {}
+                                  double completionRate) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /** Lowest-completion-rate Problem data point. */
     public record HardestProblem(String problemId, String title, String difficulty,
-                                 double completionRate) implements Serializable {}
+                                 double completionRate) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 }

@@ -7,6 +7,8 @@ import java.io.Serializable;
  * DTO for submission history data.
  */
 public class SubmissionHistoryDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private List<MonthlySubmission> monthly;
     private List<LanguageSubmission> languages;
@@ -73,6 +75,8 @@ public class SubmissionHistoryDTO implements Serializable {
      * Monthly submission stats.
      */
     public static class MonthlySubmission implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String month;
         private int count;
         private int accepted;
@@ -115,6 +119,8 @@ public class SubmissionHistoryDTO implements Serializable {
      * Language usage stats.
      */
     public static class LanguageSubmission implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String language;
         private int count;
 

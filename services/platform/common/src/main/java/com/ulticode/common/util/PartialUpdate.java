@@ -1,7 +1,6 @@
 package com.ulticode.common.util;
 
 import org.springframework.util.StringUtils;
-import java.io.Serializable;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -39,7 +38,7 @@ import java.util.function.Function;
  * PartialUpdate.setIfPresentText(dto, AdminUpdateUserDTO::getUsername, user::setUsername);
  * }</pre>
  */
-public final class PartialUpdate implements Serializable {
+public final class PartialUpdate {
 
     private PartialUpdate() {
         // Utility class

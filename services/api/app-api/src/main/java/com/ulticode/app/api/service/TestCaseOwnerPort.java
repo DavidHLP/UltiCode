@@ -56,7 +56,9 @@ public interface TestCaseOwnerPort {
     /**
      * Complete test-case order command. Field order is part of the contract.
      */
-    record TestCaseOrder(String id, int testOrder, LocalDateTime updatedAt) implements Serializable {}
+    record TestCaseOrder(String id, int testOrder, LocalDateTime updatedAt) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /**
      * Complete test-case row command. Field order is part of the contract.

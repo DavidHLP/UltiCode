@@ -32,6 +32,8 @@ public record PerformanceStats(
         Double memoryPercentile,
         List<Map<String, Number>> memoryDistBinsMb
 ) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Empty stats instance. Returned when no peer data is available or

@@ -8,6 +8,8 @@ import java.io.Serializable;
  */
 @Data
 public class SubmissionQueryDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Page number (1-based)

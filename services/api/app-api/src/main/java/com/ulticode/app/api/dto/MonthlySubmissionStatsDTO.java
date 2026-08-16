@@ -8,6 +8,8 @@ import java.io.Serializable;
  */
 @Data
 public class MonthlySubmissionStatsDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String month;
     private Integer totalCount;
     private Integer acceptedCount;

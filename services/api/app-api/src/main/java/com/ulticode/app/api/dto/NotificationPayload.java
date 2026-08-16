@@ -19,9 +19,13 @@ public record NotificationPayload(
     Map<String, Object> data,
     Instant createdAt,
     boolean read) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
   /** Notification types. */
   public static class NotificationType implements Serializable {
+      private static final long serialVersionUID = 1L;
+
     public static final String MENTION = "mention";
     public static final String REPLY = "reply";
     public static final String SYSTEM = "system";

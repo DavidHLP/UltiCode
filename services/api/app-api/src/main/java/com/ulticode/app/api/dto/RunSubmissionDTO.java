@@ -9,6 +9,8 @@ import java.util.List;
 
 @Data
 public class RunSubmissionDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     @NotBlank(message = "Language is required")
     private String language;
@@ -21,6 +23,8 @@ public class RunSubmissionDTO implements Serializable {
 
     @Data
     public static class RunTestCase implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String label;
         private String output;
@@ -29,6 +33,8 @@ public class RunSubmissionDTO implements Serializable {
 
     @Data
     public static class RunInput implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String label;
         private String name;

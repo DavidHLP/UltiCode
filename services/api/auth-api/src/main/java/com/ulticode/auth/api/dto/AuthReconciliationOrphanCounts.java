@@ -25,6 +25,8 @@ public record AuthReconciliationOrphanCounts(
         long passwordResets,
         long oauthProviderIdentities,
         long userPermissions) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public static final AuthReconciliationOrphanCounts ZERO =
             new AuthReconciliationOrphanCounts(0, 0, 0, 0);

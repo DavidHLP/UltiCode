@@ -16,4 +16,6 @@ public record ProblemJudgingCaseDTO(
         String outputText,
         String inputs,
         Boolean isHidden,
-        Boolean isSample) implements Serializable {}
+        Boolean isSample) implements Serializable {
+    private static final long serialVersionUID = 1L;
+}

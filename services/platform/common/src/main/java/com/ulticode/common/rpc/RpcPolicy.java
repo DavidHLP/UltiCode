@@ -1,6 +1,5 @@
 package com.ulticode.common.rpc;
 
-import java.io.Serializable;
 
 /**
  * P4-RPC-002: centralized RPC timeout / retry / idempotency policy constants.
@@ -54,7 +53,7 @@ import java.io.Serializable;
  *
  * @see com.ulticode.common.tracing.TraceMetadata for deadline propagation
  */
-public final class RpcPolicy implements Serializable {
+public final class RpcPolicy {
 
     private RpcPolicy() {
     }

@@ -38,4 +38,6 @@ public record AdminForumPostQuery(
         String sortOrder,
         int page,
         int limit) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

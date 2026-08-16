@@ -2,7 +2,6 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Command to mutate an account's lifecycle state (active / banned /
@@ -25,7 +24,9 @@ public record ChangeAccountStateCommand(
         String accountId,
         Long expectedVersion,
         AccountStateAction action,
-        String rationale) implements Serializable, WriteCommand {
+        String rationale) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Discriminated lifecycle action. The provider must validate the

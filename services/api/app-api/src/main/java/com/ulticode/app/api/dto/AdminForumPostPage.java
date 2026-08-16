@@ -10,4 +10,6 @@ import java.util.List;
  * @param total total match count (unbounded by pagination)
  */
 public record AdminForumPostPage(List<AdminForumPostRowDTO> rows, long total) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

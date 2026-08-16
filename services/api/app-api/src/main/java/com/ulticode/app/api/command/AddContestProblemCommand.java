@@ -4,7 +4,6 @@ import com.ulticode.app.api.dto.ContestProblemInputDTO;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /** Owner command for adding one problem to a contest. */
 public record AddContestProblemCommand(
@@ -13,7 +12,9 @@ public record AddContestProblemCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String contestId,
-        ContestProblemInputDTO problem) implements Serializable, WriteCommand {
+        ContestProblemInputDTO problem) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public AddContestProblemCommand {
         require(commandId, "commandId");

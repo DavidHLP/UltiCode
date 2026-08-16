@@ -9,6 +9,8 @@ public record ChangePasswordDTO(
         String currentPassword,
         String newPassword,
         String confirmPassword) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ChangePasswordDTO {
         if (currentPassword == null || currentPassword.isBlank()) {

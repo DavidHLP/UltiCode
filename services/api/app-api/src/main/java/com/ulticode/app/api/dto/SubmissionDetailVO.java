@@ -14,6 +14,8 @@ import java.util.List;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SubmissionDetailVO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private String id;
     private Long problemId;
@@ -85,6 +87,8 @@ public class SubmissionDetailVO implements Serializable {
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class UserInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String username;
         private String name;
@@ -94,6 +98,8 @@ public class SubmissionDetailVO implements Serializable {
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ProblemInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private Long id;
         private String title;
         private String slug;
@@ -102,6 +108,8 @@ public class SubmissionDetailVO implements Serializable {
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TestResult implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String status;
         private Integer runtime;

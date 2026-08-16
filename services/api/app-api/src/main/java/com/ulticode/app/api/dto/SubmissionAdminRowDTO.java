@@ -38,6 +38,8 @@ public record SubmissionAdminRowDTO(
         List<SubmissionTestCaseDetailDTO> testDetails,
         List<Integer> memoryDistBinsMb,
         List<Integer> runtimeDistBinsMs) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public SubmissionAdminRowDTO {
         testDetails = testDetails == null ? List.of() : List.copyOf(testDetails);

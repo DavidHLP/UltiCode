@@ -23,6 +23,8 @@ public record IdMetadata(
         String idempotencyKey,
         String fingerprint,
         String issuedBy) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Convenience: mint a fresh UUID-v4 idempotency key with no fingerprint

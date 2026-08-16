@@ -65,7 +65,7 @@ public class QueueConfig {
      */
     @Bean(name = "judgeQueue")
     public RQueue<Object> judgeQueue(RedissonClient redissonClient) {
-        // Use SerializationCodec: JudgeJob implements Serializable and contains
+        // Use SerializationCodec: JudgeJob and contains
         // LocalDateTime fields that the default JsonJacksonCodec cannot deserialize.
         return redissonClient.getQueue(QueueConstants.JUDGE_QUEUE,
                 new org.redisson.codec.SerializationCodec());

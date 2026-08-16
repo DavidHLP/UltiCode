@@ -38,9 +38,15 @@ public interface ProblemFactsPort {
      */
     String findStarterCode(Long problemId, String language);
 
-    record ProblemDisplayFacts(Long id, String title, String slug) implements Serializable {}
+    record ProblemDisplayFacts(Long id, String title, String slug) implements Serializable {
 
-    record ProblemLimits(Integer timeLimitSeconds, Integer memoryLimitMb) implements Serializable {}
+        private static final long serialVersionUID = 1L;
+}
+
+    record ProblemLimits(Integer timeLimitSeconds, Integer memoryLimitMb) implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+}
 
     /**
      * Contest-facing facts (title / slug / difficulty / acceptanceRate).
@@ -51,5 +57,8 @@ public interface ProblemFactsPort {
     ContestProblemFacts findContestProblemFacts(Long problemId);
 
     record ContestProblemFacts(Long id, String title, String slug, String difficulty,
-                               java.math.BigDecimal acceptanceRate) implements Serializable {}
+                               java.math.BigDecimal acceptanceRate) implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+}
 }

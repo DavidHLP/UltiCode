@@ -44,6 +44,8 @@ public record ProblemAdminRowDTO(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Long version) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Source-compatible constructor for read consumers that predate the

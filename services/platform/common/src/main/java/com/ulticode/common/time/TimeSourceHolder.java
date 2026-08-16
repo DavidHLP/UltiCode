@@ -1,7 +1,6 @@
 package com.ulticode.common.time;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.io.Serializable;
 
 /**
  * Static accessor that static utility paths (e.g. {@code TraceIdUtil})
@@ -23,7 +22,7 @@ import java.io.Serializable;
  * place and lets a test install a fake for the rare case where a
  * pinned wall value matters.
  */
-public final class TimeSourceHolder implements Serializable {
+public final class TimeSourceHolder {
 
     private static final AtomicReference<TimeSource> CURRENT = new AtomicReference<>();
 

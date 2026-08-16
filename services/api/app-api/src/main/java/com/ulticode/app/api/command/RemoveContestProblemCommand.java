@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /** Owner command for removing one problem from a contest. */
 public record RemoveContestProblemCommand(
@@ -12,7 +11,9 @@ public record RemoveContestProblemCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String contestId,
-        Long problemId) implements Serializable, WriteCommand {
+        Long problemId) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public RemoveContestProblemCommand {
         require(commandId, "commandId");

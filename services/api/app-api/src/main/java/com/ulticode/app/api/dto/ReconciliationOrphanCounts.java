@@ -35,6 +35,8 @@ public record ReconciliationOrphanCounts(
         long userAchievements,
         long userFollowsByFollower,
         long userFollowsByFollowing) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public static final ReconciliationOrphanCounts ZERO = new ReconciliationOrphanCounts(0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

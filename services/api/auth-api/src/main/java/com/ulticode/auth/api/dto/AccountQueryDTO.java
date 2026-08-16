@@ -24,6 +24,8 @@ public record AccountQueryDTO(
         int limit,
         String sortBy,
         String sortOrder) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public AccountQueryDTO {
         if (page < 1) {

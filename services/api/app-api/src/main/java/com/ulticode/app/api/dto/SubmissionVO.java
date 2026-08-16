@@ -14,6 +14,8 @@ import java.util.List;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SubmissionVO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Submission unique identifier
@@ -120,6 +122,8 @@ public class SubmissionVO implements Serializable {
      */
     @Data
     public static class UserInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String username;
         private String name;
@@ -131,6 +135,8 @@ public class SubmissionVO implements Serializable {
      */
     @Data
     public static class ProblemInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private Long id;
         private String title;
         private String slug;
@@ -141,6 +147,8 @@ public class SubmissionVO implements Serializable {
      */
     @Data
     public static class TestResult implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String status;
         private Integer runtime;

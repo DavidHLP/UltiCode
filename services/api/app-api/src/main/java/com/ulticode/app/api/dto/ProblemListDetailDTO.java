@@ -18,6 +18,8 @@ import java.util.List;
  * the problem statuses.
  */
 public class ProblemListDetailDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private String id;
     private String name;
@@ -98,6 +100,8 @@ public class ProblemListDetailDTO implements Serializable {
             Boolean isPremium,
             Boolean hasSolution,
             List<TagDTO> tags) implements Serializable {
+        private static final long serialVersionUID = 1L;
+
 
         public ProblemInListDTO {
             tags = tags == null ? List.of() : List.copyOf(tags);
@@ -105,10 +109,14 @@ public class ProblemListDetailDTO implements Serializable {
     }
 
     /** Lightweight tag projection attached to a list item. */
-    public record TagDTO(String id, String label) implements Serializable {}
+    public record TagDTO(String id, String label) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /** Solved/attempted/todo statistics computed from the item statuses. */
     public static class ProblemListStatsDTO implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String listId;
         private Integer totalCount;
         private Integer solvedCount;
@@ -132,6 +140,8 @@ public class ProblemListDetailDTO implements Serializable {
 
     /** Viewer-specific state; admin view keeps it null. */
     public static class ViewerStateDTO implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private Boolean isSaved;
         private String categoryId;
 
@@ -143,6 +153,8 @@ public class ProblemListDetailDTO implements Serializable {
 
     /** Category option for dropdowns; admin view keeps it empty. */
     public static class CategoryOptionDTO implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String name;
         private Integer sortOrder;

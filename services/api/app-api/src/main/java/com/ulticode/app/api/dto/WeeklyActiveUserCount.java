@@ -14,6 +14,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WeeklyActiveUserCount implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String weekStart;
     private Integer yearWeek;
     private Long count;

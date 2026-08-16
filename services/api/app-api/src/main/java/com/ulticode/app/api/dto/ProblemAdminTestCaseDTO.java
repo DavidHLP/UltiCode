@@ -27,4 +27,6 @@ public record ProblemAdminTestCaseDTO(
         LocalDateTime updatedAt,
         Boolean isDeleted,
         LocalDateTime deletedAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

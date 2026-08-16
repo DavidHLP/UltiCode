@@ -30,6 +30,8 @@ import java.util.List;
 @Data
 @Builder
 public class RunResultDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private String id;
     private Long problemId;
@@ -55,6 +57,8 @@ public class RunResultDTO implements Serializable {
     @Data
     @Builder
     public static class RunCaseResult implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String id;
         private String runId;
         private String submissionTestId;
@@ -79,6 +83,8 @@ public class RunResultDTO implements Serializable {
         @Data
         @Builder
         public static class InputParam implements Serializable {
+            private static final long serialVersionUID = 1L;
+
             private String id;
             private String label;
             private String name;

@@ -16,4 +16,6 @@ public record ProblemAdminExampleDTO(
         String outputText,
         String explanation,
         String inputs) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

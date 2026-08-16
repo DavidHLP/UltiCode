@@ -10,6 +10,8 @@ import java.util.List;
 public record ProblemAdminCodeDTO(
         ProblemAdminRowDTO problem,
         List<ProblemAdminLanguageDTO> languages) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ProblemAdminCodeDTO {
         languages = languages == null ? List.of() : List.copyOf(languages);

@@ -2,7 +2,6 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /** Auth-owned command for a user-verified password change. */
 public record ChangePasswordCommand(
@@ -12,7 +11,9 @@ public record ChangePasswordCommand(
         TraceMetadata trace,
         String accountId,
         String currentPassword,
-        String newPassword) implements Serializable, WriteCommand {
+        String newPassword) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public ChangePasswordCommand {
         requireNonBlank(commandId, "commandId");

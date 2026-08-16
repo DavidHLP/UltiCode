@@ -2,7 +2,6 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Command to create a new problem. Issued by the Admin BFF against
@@ -24,7 +23,9 @@ public record CreateProblemCommand(
         TraceMetadata trace,
         String slug,
         String title,
-        String authorAccountId) implements Serializable, WriteCommand {
+        String authorAccountId) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public CreateProblemCommand {
         if (commandId == null || commandId.isBlank()) {

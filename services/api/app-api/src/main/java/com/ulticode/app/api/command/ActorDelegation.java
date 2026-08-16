@@ -24,6 +24,8 @@ public record ActorDelegation(
         String actorId,
         String delegatorId,
         String rationale) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ActorDelegation {
         if (actorType == null || actorType.isBlank()) {

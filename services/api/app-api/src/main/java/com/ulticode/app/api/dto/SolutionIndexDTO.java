@@ -18,4 +18,6 @@ public record SolutionIndexDTO(
         String title,
         String summary,
         Long problemId) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

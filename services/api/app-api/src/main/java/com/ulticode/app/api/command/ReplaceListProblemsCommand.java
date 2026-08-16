@@ -3,8 +3,8 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 import java.util.List;
+import java.io.Serializable;
 
 /**
  * Command to fully replace the problem set of a problem list. Issued by
@@ -19,7 +19,9 @@ public record ReplaceListProblemsCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String listId,
-        List<ProblemEntry> problems) implements Serializable, WriteCommand {
+        List<ProblemEntry> problems) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public ReplaceListProblemsCommand {
         if (commandId == null || commandId.isBlank()) {
@@ -45,5 +47,7 @@ public record ReplaceListProblemsCommand(
     }
 
     /** One problem in the replacement set, with its sort order. */
-    public record ProblemEntry(Long problemId, Integer sortOrder) implements Serializable {}
+    public record ProblemEntry(Long problemId, Integer sortOrder) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 }

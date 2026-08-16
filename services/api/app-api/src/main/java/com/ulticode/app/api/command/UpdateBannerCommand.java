@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to update the banner settings of a problem list. Issued by the
@@ -19,7 +18,9 @@ public record UpdateBannerCommand(
         String bannerTag,
         String bannerIcon,
         String bannerTheme,
-        Integer bannerOrder) implements Serializable, WriteCommand {
+        Integer bannerOrder) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public UpdateBannerCommand {
         if (commandId == null || commandId.isBlank()) {

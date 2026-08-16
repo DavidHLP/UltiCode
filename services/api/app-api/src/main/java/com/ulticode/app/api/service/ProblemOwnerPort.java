@@ -25,13 +25,17 @@ public interface ProblemOwnerPort {
      */
     record ImportWriteRequest(String key, boolean create, Long id, String slug,
                               String title, String difficulty, String status,
-                              Boolean isPremium, Boolean isPublished) implements Serializable {}
+                              Boolean isPremium, Boolean isPublished) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /**
      * Per-row outcome for an import write. A failed row does not prevent later
      * requests in the same bounded batch from being attempted.
      */
-    record ImportWriteResult(String key, boolean success, String error) implements Serializable {}
+    record ImportWriteResult(String key, boolean success, String error) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 
     /**
      * Apply an import batch in request order, isolating failures per row.

@@ -35,6 +35,8 @@ public record PermissionEntry(
         String resource,
         String source,
         OffsetDateTime expiresAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public PermissionEntry {
         if (action == null || action.isBlank()) {

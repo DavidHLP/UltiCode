@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to update the basic info (name / description) of a problem
@@ -17,7 +16,9 @@ public record UpdateBasicInfoCommand(
         TraceMetadata trace,
         String listId,
         String name,
-        String description) implements Serializable, WriteCommand {
+        String description) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public UpdateBasicInfoCommand {
         if (commandId == null || commandId.isBlank()) {

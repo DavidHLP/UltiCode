@@ -2,7 +2,6 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /** Auth-owned command for an administrator-driven password reset. */
 public record ResetPasswordCommand(
@@ -12,7 +11,9 @@ public record ResetPasswordCommand(
         TraceMetadata trace,
         String accountId,
         String newPassword,
-        String rationale) implements Serializable, WriteCommand {
+        String rationale) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public ResetPasswordCommand {
         requireNonBlank(commandId, "commandId");

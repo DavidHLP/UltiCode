@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to delete a problem list and its problem relations. Issued by
@@ -15,7 +14,9 @@ public record DeleteProblemListCommand(
         IdMetadata idempotency,
         ActorDelegation actor,
         TraceMetadata trace,
-        String listId) implements Serializable, WriteCommand {
+        String listId) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public DeleteProblemListCommand {
         if (commandId == null || commandId.isBlank()) {

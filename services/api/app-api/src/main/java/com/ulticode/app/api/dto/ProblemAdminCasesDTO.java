@@ -14,6 +14,8 @@ public record ProblemAdminCasesDTO(
         List<String> constraintsJson,
         List<String> hints,
         List<ProblemAdminTagDTO> tags) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ProblemAdminCasesDTO {
         // examples/tags default to empty (legacy empty-list behaviour);

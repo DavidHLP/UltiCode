@@ -7,6 +7,8 @@ import java.io.Serializable;
  * The DTO contains no contest implementation types.
  */
 public record ContestProblemInputDTO(Long problemId, Integer score) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ContestProblemInputDTO {
         if (problemId == null) {

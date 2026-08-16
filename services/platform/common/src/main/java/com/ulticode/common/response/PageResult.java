@@ -13,6 +13,8 @@ import java.util.List;
  */
 @Data
 public class PageResult<T> implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * List of items in the current page

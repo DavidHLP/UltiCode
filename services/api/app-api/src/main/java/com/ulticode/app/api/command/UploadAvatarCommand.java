@@ -2,7 +2,6 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * App-owned command to set the avatar for an account.
@@ -31,7 +30,9 @@ public record UploadAvatarCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String accountId,
-        String avatarUrl) implements Serializable, WriteCommand {
+        String avatarUrl) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Compact constructor with boundary validation.

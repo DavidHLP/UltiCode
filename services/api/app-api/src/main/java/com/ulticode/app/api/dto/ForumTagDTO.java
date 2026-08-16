@@ -24,4 +24,6 @@ public record ForumTagDTO(
         String color,
         Integer usageCount,
         LocalDateTime createdAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to create a problem list. Issued by the Admin BFF against
@@ -32,7 +31,9 @@ public record CreateProblemListCommand(
         String bannerTag,
         String bannerIcon,
         String bannerTheme,
-        Integer bannerOrder) implements Serializable, WriteCommand {
+        Integer bannerOrder) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public CreateProblemListCommand {
         if (commandId == null || commandId.isBlank()) {

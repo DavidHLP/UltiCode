@@ -40,6 +40,8 @@ public record AuthorizationSnapshotDTO(
         Set<String> permissions,
         long version,
         List<PermissionEntry> permissionEntries) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Convenience constructor for callers that do not have structured

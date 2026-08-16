@@ -13,6 +13,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HourlyActiveUserCount implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private Integer hour;
     private Long count;
 }

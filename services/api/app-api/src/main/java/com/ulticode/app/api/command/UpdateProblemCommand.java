@@ -2,7 +2,6 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Command to update an existing problem. Issued by the Admin BFF
@@ -25,7 +24,9 @@ public record UpdateProblemCommand(
         String problemId,
         Long expectedVersion,
         String title,
-        String rationale) implements Serializable, WriteCommand {
+        String rationale) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public UpdateProblemCommand {
         if (commandId == null || commandId.isBlank()) {

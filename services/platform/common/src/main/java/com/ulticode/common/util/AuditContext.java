@@ -1,13 +1,12 @@
 package com.ulticode.common.util;
 
 import java.util.Map;
-import java.io.Serializable;
 
 /**
  * Thread-local holder for audit metadata that the method body can populate
  * before/after business logic, to be consumed by {@link com.ulticode.common.aspect.AuditAspect}.
  */
-public final class AuditContext implements Serializable {
+public final class AuditContext {
 
     private AuditContext() {}
 

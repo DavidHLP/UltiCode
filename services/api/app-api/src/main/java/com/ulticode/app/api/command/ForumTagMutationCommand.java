@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * ADMIN-007: command to apply a single forum-tag mutation owned by
@@ -35,7 +34,9 @@ public record ForumTagMutationCommand(
         String name,
         String slug,
         String description,
-        String color) implements Serializable, WriteCommand {
+        String color) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Discriminated mutation action for forum tags.

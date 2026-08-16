@@ -14,6 +14,8 @@ import java.io.Serializable;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Response code (0 for success, error code otherwise)

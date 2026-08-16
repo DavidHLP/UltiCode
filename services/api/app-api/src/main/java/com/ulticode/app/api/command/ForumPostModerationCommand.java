@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * ADMIN-007: command for App-owned forum-post moderation fields.
@@ -23,7 +22,9 @@ public record ForumPostModerationCommand(
         TraceMetadata trace,
         String postId,
         Action action,
-        String reason) implements Serializable, WriteCommand {
+        String reason) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public enum Action {
         FLAG,

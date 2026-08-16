@@ -10,6 +10,8 @@ import java.io.Serializable;
  */
 @Data
 public class CreateSubmissionDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     @NotNull(message = "Problem ID is required")
     private Long problemId;

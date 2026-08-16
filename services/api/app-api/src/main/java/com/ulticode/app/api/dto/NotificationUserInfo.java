@@ -20,6 +20,8 @@ import java.io.Serializable;
  * @param name     display name (may be null when the source has none)
  */
 public record NotificationUserInfo(String id, String username, String email, String name) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Backwards-compatible convenience constructor for consumers that

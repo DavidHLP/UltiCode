@@ -15,6 +15,8 @@ import java.io.Serializable;
  */
 @Schema(description = "Live contest ranking entry")
 public class ContestRankingEntryDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     @Schema(description = "User rank in the contest")
     private Integer rank;

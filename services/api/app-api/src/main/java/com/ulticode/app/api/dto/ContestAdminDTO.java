@@ -15,6 +15,8 @@ import java.io.Serializable;
  * @author ulticode
  */
 public class ContestAdminDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private String id;
     private String slug;

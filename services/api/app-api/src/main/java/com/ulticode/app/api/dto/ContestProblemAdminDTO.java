@@ -19,4 +19,6 @@ public record ContestProblemAdminDTO(
         Integer solvedCount,
         Integer submissionCount,
         BigDecimal acceptanceRate) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SubmissionListItemVO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private String id;
     private String status;
@@ -30,6 +32,8 @@ public class SubmissionListItemVO implements Serializable {
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ProblemSummary implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private Long id;
         private String title;
         private String slug;

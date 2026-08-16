@@ -20,6 +20,8 @@ public record ProblemAdminDescriptionDTO(
         List<String> hints,
         List<ProblemAdminTagDTO> tags,
         List<ProblemAdminExampleDTO> examples) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ProblemAdminDescriptionDTO {
         // tags/examples default to empty (legacy empty-list behaviour);

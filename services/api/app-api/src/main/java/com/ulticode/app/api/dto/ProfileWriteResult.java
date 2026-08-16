@@ -21,4 +21,6 @@ public record ProfileWriteResult(
         String twitter,
         String website,
         String preferredLanguage) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

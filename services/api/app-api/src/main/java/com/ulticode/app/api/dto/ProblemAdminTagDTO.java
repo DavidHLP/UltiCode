@@ -18,4 +18,6 @@ public record ProblemAdminTagDTO(
         Integer usageCount,
         java.time.LocalDateTime createdAt,
         java.time.LocalDateTime updatedAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

@@ -14,6 +14,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LanguageCountDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     /** Programming language (e.g. "java", "python"). */
     private String language;
     /** Number of submissions in this language. */

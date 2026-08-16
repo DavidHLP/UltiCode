@@ -13,6 +13,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProblemDifficultyCompletion implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String difficulty;
     private Long totalProblems;
     private Long solvedProblems;

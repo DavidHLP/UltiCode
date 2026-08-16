@@ -37,6 +37,8 @@ public record TraceMetadata(
         String spanId,
         String parentSpanId,
         Long deadlineMs) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * @return true when {@link #traceId} is non-null and non-blank.

@@ -24,6 +24,8 @@ public record RejudgeResultDTO(
         Boolean success,
         Integer errorCode,
         String error) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Backward-compatible successful result constructor used by existing

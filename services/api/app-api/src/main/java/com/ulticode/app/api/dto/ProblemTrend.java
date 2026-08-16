@@ -13,6 +13,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProblemTrend implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private Long problemId;
     private Long attemptCount;
     private Long acceptedCount;

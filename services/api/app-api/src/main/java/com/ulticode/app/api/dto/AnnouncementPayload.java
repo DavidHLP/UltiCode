@@ -15,6 +15,8 @@ public record AnnouncementPayload(
     String content,
     String authorId,
     Instant createdAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
   public static AnnouncementPayload of(String contestId, String announcementId,
       String title, String content, String authorId) {

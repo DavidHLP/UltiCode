@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * ADMIN-007: command to apply a single moderation write to a forum
@@ -28,7 +27,9 @@ public record ForumCommentModerationCommand(
         String commentId,
         Action action,
         String reason,
-        String deletedBy) implements Serializable, WriteCommand {
+        String deletedBy) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Discriminated moderation action for forum comments.

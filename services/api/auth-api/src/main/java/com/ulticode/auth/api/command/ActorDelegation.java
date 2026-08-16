@@ -36,6 +36,8 @@ public record ActorDelegation(
         String actorId,
         String delegatorId,
         String rationale) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /**
      * Compact constructor enforcing the non-blank {@link #actorType} rule.

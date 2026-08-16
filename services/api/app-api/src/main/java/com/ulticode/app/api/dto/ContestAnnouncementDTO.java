@@ -12,6 +12,8 @@ import java.io.Serializable;
  * @author ulticode
  */
 public class ContestAnnouncementDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private String id;
     private String contestId;

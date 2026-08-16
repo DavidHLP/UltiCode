@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to soft-delete a problem. Issued by the Admin BFF against
@@ -20,7 +19,9 @@ public record DeleteProblemCommand(
         TraceMetadata trace,
         String problemId,
         Long expectedVersion,
-        String rationale) implements Serializable, WriteCommand {
+        String rationale) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public DeleteProblemCommand {
         if (commandId == null || commandId.isBlank()) {

@@ -24,4 +24,6 @@ public record AuthUserVO(
         boolean is_active,
         boolean is_banned,
         String joined_at) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

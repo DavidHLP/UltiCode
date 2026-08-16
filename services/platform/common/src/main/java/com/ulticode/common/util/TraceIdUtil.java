@@ -1,7 +1,6 @@
 package com.ulticode.common.util;
 
 import com.ulticode.common.time.TimeSourceHolder;
-import java.io.Serializable;
 
 /**
  * Generates request-scoped trace IDs in the project's standard {@code t-<epochMillis>} format.
@@ -24,7 +23,7 @@ import java.io.Serializable;
  * {@code FakeTimeSource} via {@code TimeSourceHolder.install(...)} for
  * the rare case where a deterministic trace id matters.
  */
-public final class TraceIdUtil implements Serializable {
+public final class TraceIdUtil {
 
     /** Prefix used by every trace ID in the project. Visible for tests. */
     public static final String PREFIX = "t-";

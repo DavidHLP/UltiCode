@@ -17,4 +17,6 @@ public record AccountStateDTO(
         boolean active,
         boolean banned,
         long version) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

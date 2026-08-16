@@ -5,10 +5,10 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-import java.io.Serializable;
 
 @Data
-public class AdminNotificationQueryDTO implements Serializable {
+public class AdminNotificationQueryDTO {
+
 
     @Size(max = 200, message = "keyword must be <= 200 characters")
     private String keyword;

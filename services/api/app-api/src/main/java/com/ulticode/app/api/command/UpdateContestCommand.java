@@ -4,7 +4,6 @@ import com.ulticode.app.api.dto.ContestProblemInputDTO;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -30,7 +29,9 @@ public record UpdateContestCommand(
         String contestType,
         String scoringRuleId,
         List<Long> problemIds,
-        List<ContestProblemInputDTO> problems) implements Serializable, WriteCommand {
+        List<ContestProblemInputDTO> problems) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     /** Compatibility constructor for existing producers using the minimum shape. */
     public UpdateContestCommand(

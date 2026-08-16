@@ -7,6 +7,8 @@ import java.io.Serializable;
  * DTO for learning progress data.
  */
 public class LearningProgressDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private List<WeeklyProgress> weeklyProgress;
     private List<DifficultyProgress> difficultyProgress;
@@ -95,6 +97,8 @@ public class LearningProgressDTO implements Serializable {
      * Weekly submission progress entry.
      */
     public static class WeeklyProgress implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String week;
         private int solved;
         private double timeSpent;
@@ -137,6 +141,8 @@ public class LearningProgressDTO implements Serializable {
      * Difficulty-based progress entry.
      */
     public static class DifficultyProgress implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String difficulty;
         private int count;
         private double avgTime;

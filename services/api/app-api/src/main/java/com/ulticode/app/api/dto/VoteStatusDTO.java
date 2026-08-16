@@ -21,6 +21,8 @@ public record VoteStatusDTO(
         long likes,
         long dislikes
 ) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     /** Net score: likes minus dislikes. */
     public long score() {
         return likes - dislikes;

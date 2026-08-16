@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to update a problem list (partial update; null fields are
@@ -24,7 +23,9 @@ public record UpdateProblemListCommand(
         String bannerTag,
         String bannerIcon,
         String bannerTheme,
-        Integer bannerOrder) implements Serializable, WriteCommand {
+        Integer bannerOrder) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public UpdateProblemListCommand {
         if (commandId == null || commandId.isBlank()) {

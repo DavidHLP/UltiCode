@@ -3,7 +3,6 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
-import java.io.Serializable;
 
 /**
  * Command to update the visibility (public / featured flags) of a
@@ -17,7 +16,9 @@ public record UpdateVisibilityCommand(
         TraceMetadata trace,
         String listId,
         Boolean isPublic,
-        Boolean isFeatured) implements Serializable, WriteCommand {
+        Boolean isFeatured) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public UpdateVisibilityCommand {
         if (commandId == null || commandId.isBlank()) {

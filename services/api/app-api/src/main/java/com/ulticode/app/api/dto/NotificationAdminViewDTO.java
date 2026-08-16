@@ -27,4 +27,6 @@ public record NotificationAdminViewDTO(
         String type,
         String category,
         long createdEpochMs) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

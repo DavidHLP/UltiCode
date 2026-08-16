@@ -21,11 +21,15 @@ public record ProblemListItemDTO(
         Boolean isPremium,
         Boolean hasSolution,
         List<Tag> tags) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     public ProblemListItemDTO {
         tags = tags == null ? List.of() : List.copyOf(tags);
     }
 
     /** Lightweight tag projection attached to a Problem list item. */
-    public record Tag(String id, String label) implements Serializable {}
+    public record Tag(String id, String label) implements Serializable {
+        private static final long serialVersionUID = 1L;
+}
 }

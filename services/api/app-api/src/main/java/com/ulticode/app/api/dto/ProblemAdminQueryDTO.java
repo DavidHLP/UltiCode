@@ -12,6 +12,8 @@ import java.io.Serializable;
  * surface is unchanged.
  */
 public class ProblemAdminQueryDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     private Integer page;
     private Integer pageSize;

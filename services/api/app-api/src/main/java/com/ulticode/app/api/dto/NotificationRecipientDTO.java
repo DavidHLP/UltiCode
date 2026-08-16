@@ -14,4 +14,6 @@ public record NotificationRecipientDTO(
         String email,
         boolean active,
         boolean banned) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

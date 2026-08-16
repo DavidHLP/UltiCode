@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TopActiveUserCount implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String userId;
     private Long submissionCount;
     private LocalDateTime lastActive;

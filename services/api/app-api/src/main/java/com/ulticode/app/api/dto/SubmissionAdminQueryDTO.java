@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
  */
 @Data
 public class SubmissionAdminQueryDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /** Search by submission id / language / problem title. */
     private String search;

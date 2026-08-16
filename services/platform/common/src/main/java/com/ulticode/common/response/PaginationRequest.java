@@ -35,6 +35,8 @@ import java.io.Serializable;
  * Tests cross the same seam as callers.
  */
 public record PaginationRequest(int page, int pageSize) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
     /** Default page number (1-based). */
     public static final int DEFAULT_PAGE = 1;

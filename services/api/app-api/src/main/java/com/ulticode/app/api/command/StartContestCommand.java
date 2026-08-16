@@ -2,7 +2,6 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Command to transition a contest from UPCOMING to RUNNING. Issued by
@@ -31,7 +30,9 @@ public record StartContestCommand(
         TraceMetadata trace,
         String contestId,
         Long expectedVersion,
-        String rationale) implements Serializable, WriteCommand {
+        String rationale) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public StartContestCommand {
         if (commandId == null || commandId.isBlank()) {

@@ -21,6 +21,8 @@ public record SubmissionResultPayload(
     Integer timeUsed,
     Long memoryUsed,
     Instant judgedAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
   public static SubmissionResultPayload of(
       String submissionId,

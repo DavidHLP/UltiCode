@@ -1,6 +1,5 @@
 package com.ulticode.common.audit;
 
-import java.io.Serializable;
 
 /**
  * Audit action and entity-type vocabulary — owned by the admin audit module.
@@ -21,7 +20,7 @@ import java.io.Serializable;
  *
  * @author ulticode
  */
-public final class AuditVocabulary implements Serializable {
+public final class AuditVocabulary {
 
     private AuditVocabulary() {
         // Utility class

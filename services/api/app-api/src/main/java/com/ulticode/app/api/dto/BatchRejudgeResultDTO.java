@@ -20,4 +20,6 @@ public record BatchRejudgeResultDTO(
         int successful,
         int failed,
         List<RejudgeResultDTO> results) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 }

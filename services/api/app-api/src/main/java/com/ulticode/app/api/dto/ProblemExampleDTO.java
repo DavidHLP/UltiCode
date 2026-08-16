@@ -17,4 +17,6 @@ public record ProblemExampleDTO(
     String inputText,
     String outputText,
     String inputs
-) implements Serializable {}
+) implements Serializable {
+    private static final long serialVersionUID = 1L;
+}

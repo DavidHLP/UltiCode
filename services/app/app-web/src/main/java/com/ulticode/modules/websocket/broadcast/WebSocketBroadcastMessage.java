@@ -1,6 +1,5 @@
 package com.ulticode.modules.websocket.broadcast;
 
-import java.io.Serializable;
 
 /**
  * Message envelope serialized over Redis Pub/Sub for multi-instance STOMP WebSocket broadcasting.
@@ -10,7 +9,7 @@ import java.io.Serializable;
  *
  * @author ulticode
  */
-public class WebSocketBroadcastMessage implements Serializable {
+public class WebSocketBroadcastMessage {
 
   public enum Type {
     BROADCAST,

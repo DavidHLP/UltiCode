@@ -2,7 +2,6 @@ package com.ulticode.auth.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /** Auth-owned command for soft-deleting an account. */
 public record DeleteAccountCommand(
@@ -11,7 +10,9 @@ public record DeleteAccountCommand(
         ActorDelegation actor,
         TraceMetadata trace,
         String accountId,
-        String rationale) implements Serializable, WriteCommand {
+        String rationale) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public DeleteAccountCommand {
         requireNonBlank(commandId, "commandId");

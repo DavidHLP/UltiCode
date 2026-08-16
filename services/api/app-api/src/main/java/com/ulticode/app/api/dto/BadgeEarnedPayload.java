@@ -18,9 +18,13 @@ public record BadgeEarnedPayload(
     String badgeTier,
     String userId,
     Instant earnedAt) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
 
   /** Badge tiers. */
   public static class BadgeTier implements Serializable {
+      private static final long serialVersionUID = 1L;
+
     public static final String BRONZE = "bronze";
     public static final String SILVER = "silver";
     public static final String GOLD = "gold";

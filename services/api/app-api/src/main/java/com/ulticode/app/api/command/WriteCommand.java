@@ -3,6 +3,8 @@ package com.ulticode.app.api.command;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 
+import java.io.Serializable;
+
 /**
  * Base contract every write command issued against
  * {@code backend-app-api} must implement.
@@ -20,8 +22,12 @@ import com.ulticode.common.tracing.TraceMetadata;
  * <p>Concrete commands embed the metadata via {@link #idempotency()},
  * {@link #actor()}, {@link #trace()} and {@link #commandId()}. The
  * shape is intentionally narrow (no business fields).
+ *
+ * <p>Commands cross the Dubbo wire, so this marker also extends
+ * {@link Serializable} — every concrete command automatically satisfies
+ * Dubbo's serializable check without repeating the declaration.
  */
-public interface WriteCommand {
+public interface WriteCommand extends Serializable {
 
     /**
      * @return a stable command id (UUID String) used for log

@@ -2,7 +2,6 @@ package com.ulticode.app.api.command;
 
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import java.io.Serializable;
 
 /**
  * Command to update a system notification and all its user copies.
@@ -28,7 +27,9 @@ public record UpdateNotificationCommand(
         String title,
         String content,
         String type,
-        String category) implements Serializable, WriteCommand {
+        String category) implements WriteCommand {
+    private static final long serialVersionUID = 1L;
+
 
     public UpdateNotificationCommand {
         if (commandId == null || commandId.isBlank()) {

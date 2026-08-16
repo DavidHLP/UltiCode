@@ -1,0 +1,71 @@
+package com.ulticode.modules.submission.port.adapter;
+
+import com.ulticode.app.api.dto.LearningProgressDTO;
+import com.ulticode.app.api.dto.SubmissionDetailVO;
+import com.ulticode.app.api.dto.SubmissionHistoryDTO;
+import com.ulticode.app.api.dto.SubmissionQueryDTO;
+import com.ulticode.app.api.dto.SubmissionStatusMeta;
+import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.app.api.service.SubmissionUserQueryPort;
+import com.ulticode.common.response.PageResult;
+import com.ulticode.common.rpc.RpcPolicy;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+/**
+ * Remote route for {@link SubmissionUserQueryPort}: reads the Submission
+ * owner over Dubbo once read-routing cutover is enabled.
+ *
+ * <p>SPLIT-004 slice-8: activated only when
+ * {@code app.submission.routing.mode=remote} (the same flag that turns on
+ * the remote write route). The read endpoints then hit
+ * {@code backend-submission}, which runs the queries against the Submission
+ * owner schema and enriches problem facts through the App-owned
+ * {@code ProblemFactsPort} batch seam — no cross-owner JOIN (DEC-011).
+ */
+@Component
+@ConditionalOnProperty(prefix = "app.submission.routing", name = "mode", havingValue = "remote")
+public class RemoteSubmissionUserQueryAdapter implements SubmissionUserQueryPort {
+
+    @DubboReference(group = "backend-submission", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private SubmissionUserQueryPort submissionUserQuery;
+
+    @Override
+    public List<String> aggregateDates(String userId, Integer year) {
+        return submissionUserQuery.aggregateDates(userId, year);
+    }
+
+    @Override
+    public LearningProgressDTO aggregateLearningProgress(String userId) {
+        return submissionUserQuery.aggregateLearningProgress(userId);
+    }
+
+    @Override
+    public SubmissionHistoryDTO aggregateHistory(String userId) {
+        return submissionUserQuery.aggregateHistory(userId);
+    }
+
+    @Override
+    public List<SubmissionStatusMeta> getStatusCatalog() {
+        return submissionUserQuery.getStatusCatalog();
+    }
+
+    @Override
+    public SubmissionDetailVO findById(String id, String userId) {
+        return submissionUserQuery.findById(id, userId);
+    }
+
+    @Override
+    public PageResult<SubmissionVO> findByUserId(String userId, SubmissionQueryDTO query) {
+        return submissionUserQuery.findByUserId(userId, query);
+    }
+
+    @Override
+    public SubmissionVO findBest(Long problemId, String userId) {
+        return submissionUserQuery.findBest(problemId, userId);
+    }
+}

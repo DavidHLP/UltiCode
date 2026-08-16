@@ -2,6 +2,9 @@ package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.modules.problem.port.ProblemFactsAdapter;
+
+import java.util.Collection;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.context.annotation.Profile;
@@ -17,6 +20,11 @@ public class ProblemFactsProvider implements ProblemFactsPort {
     @Override
     public ProblemDisplayFacts findDisplayFacts(Long problemId) {
         return delegate.findDisplayFacts(problemId);
+    }
+
+    @Override
+    public Map<Long, ProblemDisplayFacts> findDisplayFactsBatch(Collection<Long> problemIds) {
+        return delegate.findDisplayFactsBatch(problemIds);
     }
 
     @Override

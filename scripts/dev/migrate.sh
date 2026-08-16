@@ -52,6 +52,11 @@ if [[ -n "${NOTIFICATION_DB_NAME:-}" && "$NOTIFICATION_DB_NAME" != "notification
   exit 1
 fi
 
+if [[ -n "${SUBMISSION_DB_NAME:-}" && "$SUBMISSION_DB_NAME" != "submission" ]]; then
+  echo "SUBMISSION_DB_NAME must be 'submission' with flyway-submission.conf; arbitrary owner database names are not supported by this migration set." >&2
+  exit 1
+fi
+
 cd "$ROOT_DIR/init-db"
 
 run_flyway_config() {

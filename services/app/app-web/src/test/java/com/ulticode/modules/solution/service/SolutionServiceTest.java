@@ -51,6 +51,8 @@ class SolutionServiceTest {
     private Clock clock;
     @Mock
     private AppUuidGenerator uuidGenerator;
+    @Mock
+    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     @InjectMocks
     private SolutionServiceImpl solutionService;

@@ -34,13 +34,15 @@ class PerOwnerSchemaGrantTest {
         "problems", "problem_details", "problem_examples", "problem_languages",
         "problem_notes", "problem_lists",
         "contests", "contest_problems", "contest_participants", "contest_announcements",
-        "submissions", "solutions",
+        "solutions",
         "solution_comments", "forum_posts", "forum_comments",
         "forum_communities", "achievements"
     );
 
-    /** DEC-011: the Submission owner manifest (SPLIT-003 target) claims judge_outbox. */
-    private static final Set<String> SUBMISSION_TABLES = Set.of("judge_outbox");
+    /** DEC-011: the Submission owner manifest (SPLIT-003) claims the submission aggregate and outboxes. */
+    private static final Set<String> SUBMISSION_TABLES = Set.of(
+        "submissions", "judge_outbox", "submission_result_outbox"
+    );
 
     private static final Set<String> NOTIFICATION_TABLES = Set.of(
         "notifications", "notification_preferences", "notification_delivery_ledger",
@@ -85,10 +87,12 @@ class PerOwnerSchemaGrantTest {
         assertThat(new File(initDbDir, "flyway-admin.conf")).exists();
         assertThat(new File(initDbDir, "flyway-app.conf")).exists();
         assertThat(new File(initDbDir, "flyway-notification.conf")).exists();
+        assertThat(new File(initDbDir, "flyway-submission.conf")).exists();
         assertThat(new File(initDbDir, "migrations/auth")).exists();
         assertThat(new File(initDbDir, "migrations/admin")).exists();
         assertThat(new File(initDbDir, "migrations/app")).exists();
         assertThat(new File(initDbDir, "migrations/notification")).exists();
+        assertThat(new File(initDbDir, "migrations/submission")).exists();
     }
 
     private static void assertManifestOwner(Set<String> tables, String owner) throws IOException {

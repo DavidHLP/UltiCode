@@ -13,9 +13,8 @@ import com.ulticode.app.api.dto.SubmissionQueryDTO;
 import com.ulticode.app.api.dto.SubmissionDetailVO;
 import com.ulticode.app.api.dto.SubmissionStatusMeta;
 import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.app.api.service.SubmissionUserQueryPort;
 import com.ulticode.app.api.service.SubmissionWritePort;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
-import com.ulticode.modules.submission.service.SubmissionService;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,9 +35,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SubmissionController {
 
-    private final SubmissionService submissionService;
+    private final SubmissionUserQueryPort submissionUserQuery;
     private final SubmissionWritePort submissionWritePort;
-    private final SubmissionProjection submissionProjection;
     private final CurrentUserProvider currentUserProvider;
 
     /**
@@ -97,7 +95,10 @@ public class SubmissionController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        SubmissionDetailVO submission = submissionService.findById(id, userId);
+        SubmissionDetailVO submission = submissionUserQuery.findById(id, userId);
+        if (submission == null) {
+            throw new BusinessException(BaseErrorCode.NOT_FOUND);
+        }
         return Result.success(submission);
     }
 
@@ -132,7 +133,7 @@ public class SubmissionController {
         query.setPageSize(pageSize);
         query.setProblemId(problemId);
 
-        PageResult<SubmissionVO> result = submissionService.findByUserId(userId, query);
+        PageResult<SubmissionVO> result = submissionUserQuery.findByUserId(userId, query);
         return Result.success(result);
     }
 
@@ -154,7 +155,7 @@ public class SubmissionController {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
-        List<String> dates = submissionProjection.aggregateDates(userId, year);
+        List<String> dates = submissionUserQuery.aggregateDates(userId, year);
         return Result.success(dates);
     }
 
@@ -179,7 +180,7 @@ public class SubmissionController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        SubmissionVO submission = submissionService.findBest(problemId, userId);
+        SubmissionVO submission = submissionUserQuery.findBest(problemId, userId);
         return Result.success(submission);
     }
 
@@ -198,7 +199,7 @@ public class SubmissionController {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
-        LearningProgressDTO progress = submissionProjection.aggregateLearningProgress(userId);
+        LearningProgressDTO progress = submissionUserQuery.aggregateLearningProgress(userId);
         return Result.success(progress);
     }
 
@@ -217,7 +218,7 @@ public class SubmissionController {
         if (userId == null) {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
-        SubmissionHistoryDTO history = submissionProjection.aggregateHistory(userId);
+        SubmissionHistoryDTO history = submissionUserQuery.aggregateHistory(userId);
         return Result.success(history);
     }
 
@@ -231,7 +232,7 @@ public class SubmissionController {
     @ApiResponse(responseCode = "200", description = "Statuses retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
     @GetMapping("/statuses")
     public Result<List<SubmissionStatusMeta>> getSubmissionStatuses() {
-        List<SubmissionStatusMeta> statuses = submissionProjection.getStatusCatalog();
+        List<SubmissionStatusMeta> statuses = submissionUserQuery.getStatusCatalog();
         return Result.success(statuses);
     }
 }

@@ -51,6 +51,7 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemMapper problemMapper;
     private final ProblemProjection problemProjection;
     private final CurrentUserProvider currentUserProvider;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     /**
      * Composition root: assembles the canonical domain service from its port
@@ -66,10 +67,12 @@ public class ProblemServiceImpl implements ProblemService {
             Clock clock,
             ProblemWritePort problemWritePort,
             ProblemDetailDomainPort problemDetailDomainPort,
-            ProblemVersionPort problemVersionPort) {
+            ProblemVersionPort problemVersionPort,
+            com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher) {
         this.problemMapper = problemMapper;
         this.problemProjection = problemProjection;
         this.currentUserProvider = currentUserProvider;
+        this.searchPublisher = searchPublisher;
         this.domainService = new ProblemAdministrationDomainServiceImpl(
                 problemWritePort,
                 problemDetailDomainPort,
@@ -130,6 +133,7 @@ public class ProblemServiceImpl implements ProblemService {
     public ProblemVO createProblem(CreateProblemDTO createDTO) {
         String actorId = currentUserProvider.getCurrentUserId();
         Problem created = domainService.createProblem(createDTO, actorId);
+        searchPublisher.publishProblem(created, true);
         return toVO(created);
     }
 
@@ -139,6 +143,7 @@ public class ProblemServiceImpl implements ProblemService {
     public ProblemVO updateProblem(Long id, UpdateProblemDTO updateDTO) {
         String actorId = currentUserProvider.getCurrentUserId();
         Problem updated = domainService.updateProblem(id, updateDTO, actorId);
+        searchPublisher.publishProblem(updated, true);
         return toVO(updated);
     }
 
@@ -147,7 +152,11 @@ public class ProblemServiceImpl implements ProblemService {
     @CacheEvict(value = "problem", allEntries = true)
     public void deleteProblem(Long id) {
         String actorId = currentUserProvider.getCurrentUserId();
+        Problem before = problemMapper.selectById(id);
         domainService.deleteProblem(id, actorId);
+        if (before != null) {
+            searchPublisher.publishProblem(before, false);
+        }
     }
 
     @Override

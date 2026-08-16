@@ -9,7 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Production adapter for {@link ProblemFactsPort}. Owns every
@@ -47,6 +50,30 @@ public class ProblemFactsAdapter implements ProblemFactsPort {
             log.debug("Failed to read problem {} display facts: {}", problemId, e.getMessage());
             return null;
         }
+    }
+
+    @Override
+    public Map<Long, ProblemDisplayFacts> findDisplayFactsBatch(Collection<Long> problemIds) {
+        Map<Long, ProblemDisplayFacts> result = new LinkedHashMap<>();
+        if (problemIds == null || problemIds.isEmpty()) {
+            return result;
+        }
+        List<Long> ids = problemIds.stream().distinct().filter(java.util.Objects::nonNull).toList();
+        if (ids.isEmpty()) {
+            return result;
+        }
+        try {
+            List<Problem> problems = problemMapper.selectBatchIds(ids);
+            for (Problem problem : problems) {
+                if (problem != null) {
+                    result.put(problem.getId(),
+                            new ProblemDisplayFacts(problem.getId(), problem.getTitle(), problem.getSlug()));
+                }
+            }
+        } catch (RuntimeException e) {
+            log.debug("Failed to read batch problem display facts: {}", e.getMessage());
+        }
+        return result;
     }
 
     @Override

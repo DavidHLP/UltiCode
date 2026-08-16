@@ -46,6 +46,7 @@ public class SolutionServiceImpl implements SolutionService {
     private final SolutionProjection solutionProjection;
     private final Clock clock;
     private final AppUuidGenerator uuidGenerator;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     private static final int MAX_SUMMARY_LENGTH = 180;
 
@@ -190,6 +191,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setIsDeleted(false);
 
         solutionMapper.insert(solution);
+        searchPublisher.publishSolution(solution, true);
 
         problemExistencePort.markHasSolution(problemId, true);
 
@@ -221,6 +223,7 @@ public class SolutionServiceImpl implements SolutionService {
         }
 
         solutionMapper.updateById(solution);
+        searchPublisher.publishSolution(solution, true);
 
         log.info("Solution updated: {} by user {}", id, userId);
         return solutionProjection.toVO(solution);
@@ -237,6 +240,7 @@ public class SolutionServiceImpl implements SolutionService {
             throw new BusinessException(SolutionErrorCode.SOLUTION_CANNOT_DELETE_OTHERS);
         }
 
+        searchPublisher.publishSolution(solution, false);
         Long problemId = solution.getProblemId();
 
         // Soft delete is handled by MyBatis-Plus @TableLogic

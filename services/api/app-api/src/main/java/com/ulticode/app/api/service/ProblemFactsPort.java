@@ -1,6 +1,8 @@
 package com.ulticode.app.api.service;
 
 import java.io.Serializable;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * Read seam through which the submission module obtains Problem facts
@@ -19,6 +21,20 @@ public interface ProblemFactsPort {
      * @return the facts, or {@code null} if the problem row is missing
      */
     ProblemDisplayFacts findDisplayFacts(Long problemId);
+
+    /**
+     * Bulk display facts keyed by problem id.
+     *
+     * <p>SPLIT-004 slice-8: list/detail read routing needs problem title/slug
+     * for a page of submissions; a single batched read avoids the N+1
+     * pattern of calling {@link #findDisplayFacts(Long)} per row. The map
+     * contains only ids that resolve to a problem row (missing ids are
+     * simply absent). Implementations must not throw for unknown ids.
+     *
+     * @param problemIds problem ids to resolve (may be empty)
+     * @return display facts keyed by problem id, never {@code null}
+     */
+    Map<Long, ProblemDisplayFacts> findDisplayFactsBatch(Collection<Long> problemIds);
 
     /**
      * Per-problem resource limits. Individual fields may be {@code null}

@@ -340,19 +340,22 @@ Judge 的同步依赖方向只有 Worker → App（Problem facts/test cases）�
 
 WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`backend-notification` 只发布 Redis Pub/Sub payload，不拥有 WS endpoint 或实时房间状态。
 
-### 4.5.1 `backend-submission`（SPLIT-002 过渡运行时）
+### 4.5.1 `backend-submission`（SPLIT-003 过渡运行时）
 
 | 项 | 定义 |
 |---|---|
-| Responsibility | 暴露 Submission write/fence 的独立 HTTP/Dubbo 进程边界；当前仅兼容代理到 App |
-| Owned Domain | 目标为 Submission intake、verdict、generation/lease fence、judge/result outbox；本切片尚未迁移存储 |
-| Owned Tables | 当前无；App 仍是唯一数据库 writer，SPLIT-003 才执行 expand/backfill/verify/cutover |
-| Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort`，group=`backend-submission` |
-| Dubbo Consumer | 过渡期仅调用 App 同名 owner contract；目标态移除该回访 |
+| Responsibility | Submission write/fence 的独立 HTTP/Dubbo 进程边界；SPLIT-003 slice-2 落地本地存储 writer、slice-3 落地本地 outbox 消费者、slice-4 落地 cutover runbook 与 provider 本地化机制（均未切流） |
+| Owned Domain | Submission intake、verdict、generation/lease fence、judge/result outbox；写路径类（entity/mapper/codec/stats/result outbox）已复制到本服务，outbox 消费者（`JudgeOutboxDispatcher`/`SubmissionResultDispatcher`）与 `ResultEventPublisher`（直接 XADD `stream:integration`）已迁移到本服务 |
+| Owned Tables | `submission` schema 的 `submissions`/`judge_outbox`/`submission_result_outbox` 目标态表已建（expand-slice-1）；App 仍是唯一生产 writer，路由未切 |
+| Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort`，group=`backend-submission`；`app.submission.owner.mode=compat`（默认）转发 App，`local` 委托进程内 writer/fence 直写 `submission` schema（slice-4 新增，未启用） |
+| Dubbo Consumer | ProblemFacts（backend-app）、UserExistence（backend-auth IdentityQueryService）；过渡期 write/fence 仍转发 App，目标态移除该回访 |
+| Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 三表（单事务强一致）；judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox`（本 owner 无本地事件消费者，outbox 是唯一 durable 通道） |
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
-| Rollback | `APP_SUBMISSION_ROUTING_MODE=local`，停止该进程；不改 schema、不恢复双写 |
+| Rollback | `APP_SUBMISSION_ROUTING_MODE=local` + `app.submission.owner.mode=compat`，停止该进程；数据回写用 `scripts/dev/submission-schema-cutover.sh rollback`；本地 writer 未切流前不影响 App 现有路径 |
 
-该运行时不引入 Submission/Problem/Contest/User/Notification Entity、Mapper 或业务表；兼容 provider 的唯一实现依赖是 `backend-app-api`。App 通过显式 `app.submission.routing.mode=local|remote` 选择单一路径，默认 `local`。
+slice-3 边界：outbox 消费者已迁移到 backend-submission（读 `submission` schema 的 outbox 行；`JudgeOutboxDispatcher` 仅 real dispatch，无 legacy shadow/replay），App 侧 dispatcher 不再消费 submission schema 行，因此切换 `APP_SUBMISSION_ROUTING_MODE=remote` 的前置（dispatcher 迁移）已满足。
+
+slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant），`app.submission.owner.mode=local` 使 provider 直写本地库。但**不得**在 SPLIT-004 之前启用 remote+local：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
 
 ### 4.6 身份模型裁决
 
@@ -432,7 +435,8 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | `solution_topics` | solution reference | App | Admin/App | App I；Admin C/Q |
 | `solutions` | solution；admin/mod/search/problem/interaction 使用 | App | Admin/Search | App I；Admin C/Q；Search E |
 | `submission_statuses` | 仅 migration；代码用 `SubmissionStatusCatalog` | App（R 候选） | App | 确认 enum 真源后 R |
-| `submissions` | submission；admin/problem/contest 直读 | App | Admin、Contest/Problem | App I；Admin Q；结果 E |
+| `submissions` | submission；admin/problem/contest 直读 | Submission | Admin、Contest/Problem | Submission I；Admin Q；结果 E |
+| `submission_result_outbox` | submission result dispatcher/worker 写 | Submission | Submission/Judge worker | Submission I；不跨服务 SQL |
 | `subscriptions` | subscription；admin analytics | App | Admin | App I；Admin Q/C |
 | `system_announcement_reads` | 仅 migration | Admin（R/启用候选） | App 用户 | 启用则 Admin I + HTTP/Q/E |
 | `system_announcements` | 仅 migration | Admin（R/启用候选） | App 用户 | Admin I；App Q/E projection |

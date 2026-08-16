@@ -25,7 +25,7 @@ import java.util.List;
 @Component
 public class DubboSubmissionAdminReadAdapter implements SubmissionAdminReadPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "${app.submission.admin.read-group:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionAdminReadPort submissionAdminReadPort;
 

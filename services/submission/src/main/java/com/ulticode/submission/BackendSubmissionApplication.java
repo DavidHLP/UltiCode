@@ -1,16 +1,33 @@
 package com.ulticode.submission;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Boot shell for the Submission owner seam.
+ * Boot shell for the Submission owner runtime.
  *
- * <p>SPLIT-002 deliberately keeps the existing App database writer behind a
- * Dubbo compatibility adapter. SPLIT-003 moves the writer and its tables here;
- * this shell already has its own process, service identity and port boundary.
+ * <p>SPLIT-002 kept the existing App database writer behind a Dubbo
+ * compatibility adapter. SPLIT-003 slice-2 adds the local storage writer:
+ * the same submission domain classes (entity/mapper/outbox/result/stats)
+ * are scanned from {@code com.ulticode.modules.submission}, and the
+ * {@code submission} schema tables are written in one local transaction.
+ * SPLIT-003 slice-3 adds the local outbox consumers
+ * ({@code JudgeOutboxDispatcher}, {@code SubmissionResultDispatcher}).
+ * App routing stays {@code local} until cutover.
  */
 @SpringBootApplication(scanBasePackages = "com.ulticode.submission")
+@EnableScheduling
+@ComponentScan(basePackages = {
+        "com.ulticode.submission",
+        "com.ulticode.modules.submission",
+        "com.ulticode.modules.queue"
+})
+@MapperScan({"com.ulticode.modules.submission.mapper",
+        "com.ulticode.modules.submission.outbox.mapper",
+        "com.ulticode.modules.submission.result"})
 public class BackendSubmissionApplication {
 
     public static void main(String[] args) {

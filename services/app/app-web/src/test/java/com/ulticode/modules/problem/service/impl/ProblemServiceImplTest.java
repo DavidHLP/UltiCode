@@ -50,6 +50,7 @@ class ProblemServiceImplTest {
     @Mock private ProblemMapper problemMapper;
     @Mock private ProblemProjection problemProjection;
     @Mock private CurrentUserProvider currentUserProvider;
+    @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     private ProblemServiceImpl problemService;
 
@@ -62,7 +63,8 @@ class ProblemServiceImplTest {
                 FIXED_CLOCK,
                 problemWritePort,
                 problemDetailDomainPort,
-                problemVersionPort
+                problemVersionPort,
+                searchPublisher
         );
     }
 

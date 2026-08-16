@@ -1,12 +1,14 @@
 package com.ulticode.submission;
 
-import com.ulticode.submission.compat.SubmissionFenceCompatibilityProvider;
-import com.ulticode.submission.compat.SubmissionWriteCompatibilityProvider;
+import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import javax.sql.DataSource;
@@ -19,22 +21,27 @@ import static org.assertj.core.api.Assertions.assertThat;
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {
                 "spring.autoconfigure.exclude="
-                        + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
-                        + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration"
+                        + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration",
+                "spring.datasource.url=jdbc:mysql://localhost:1/none?useSSL=false",
+                "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver"
         })
 @DisplayName("Submission owner boot boundary")
 class BackendSubmissionApplicationTest {
+
+    @MockBean
+    private StringRedisTemplate stringRedisTemplate;
+
+    @MockBean
+    private RedissonClient redissonClient;
 
     @Autowired
     private ApplicationContext context;
 
     @Test
-    @DisplayName("boots without a business datasource and keeps compatibility providers test-disabled")
-    void bootsWithoutBusinessDatabase() {
+    @DisplayName("boots the local storage writer without Dubbo")
+    void bootsLocalStorageWriter() {
         assertThat(context).isNotNull();
-        assertThat(context.getBeansOfType(DataSource.class)).isEmpty();
-        assertThat(context.getBeansOfType(SubmissionWriteCompatibilityProvider.class)).isEmpty();
-        assertThat(context.getBeansOfType(SubmissionFenceCompatibilityProvider.class)).isEmpty();
+        assertThat(context.getBeansOfType(DefaultSubmissionWritePort.class)).hasSize(1);
     }
 }

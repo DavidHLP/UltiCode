@@ -48,6 +48,7 @@ public class ForumPostServiceImpl implements ForumPostService {
     private final ForumUserLifecyclePort forumUserLifecycle;
     private final ForumUserReadPort forumUserReadPort;
     private final AppUuidGenerator uuidGenerator;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
     private final ForumPostProjection postProjection;
 
     // =========================================================================
@@ -81,6 +82,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         post.setViews(0);
         post.setIsFlagged(false);
         postMapper.insert(post);
+        searchPublisher.publishForumPost(post, true);
         communityMapper.incrementPostsCount(dto.getCommunityId());
         ForumUserReadPort.UserSummary author = forumUserReadPort.findById(post.getUserId());
         return postProjection.toPostVO(post, userId, author);
@@ -102,6 +104,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         if (dto.getIsPinned() != null) post.setIsPinned(dto.getIsPinned());
         if (dto.getIsLocked() != null) post.setIsLocked(dto.getIsLocked());
         postMapper.updateById(post);
+        searchPublisher.publishForumPost(post, true);
         ForumUserReadPort.UserSummary author = forumUserReadPort.findById(post.getUserId());
         ForumCommunity community = post.getCommunityId() != null ? communityMapper.selectById(post.getCommunityId()) : null;
         return postProjection.toPostVO(post, userId, author, community, 0L);
@@ -113,6 +116,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         ForumPost post = postMapper.selectById(id);
         if (post == null) throw new BusinessException(ForumErrorCode.FORUM_POST_NOT_FOUND);
         if (!post.getUserId().equals(userId)) throw new BusinessException(ForumErrorCode.FORUM_CANNOT_DELETE_POST);
+        searchPublisher.publishForumPost(post, false);
         postMapper.softDelete(id, userId);
         communityMapper.decrementPostsCount(post.getCommunityId());
     }

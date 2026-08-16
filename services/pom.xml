@@ -29,6 +29,7 @@
 		<module>submission</module>
 		<module>notification</module>
 		<module>judge</module>
+		<module>search</module>
 	</modules>
 
 	<properties>

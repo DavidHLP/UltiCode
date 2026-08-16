@@ -937,7 +937,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；SPLIT-002 只提供无业务表的兼容 provider seam，默认端口为内部 HTTP `9106`、Dubbo `20886`，并通过 `APP_SUBMISSION_ROUTING_MODE` 保证 App 在 local/remote 中只有一个 writer 路径。SPLIT-003 才迁移 Submission 与 outbox 存储 Owner。
-- `backend-search` 是独立 no-HTTP/no-business-DB worker；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch，具备 inbox/claim/replay/lag；App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结；App 侧三源 publisher 已接线（SEARCH-001 slice-a：Problem/Forum/Solution 全部 owner writer 事务内发布，含 Admin Dubbo 与 moderation 路径），Auth 用户源 publisher 属 SEARCH-001 slice-b；`backend-search` worker 未建（SEARCH-002/003），落线前消费方不得假定事件已生效。
+- `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 单测 7/7 + boot 无 web/无业务表契约 + compose（meilisearch 服务 + backend-search 服务，内网 expose）校验通过；真实 Redis+Meili E2E 与 SEARCH-003 backfill/watermark 未完成，落线前消费方不得假定事件已生效。
 
 ### 11.1 `SearchDocumentChanged` 发布矩阵（SEARCH-001）
 

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ulticode</groupId>
+        <artifactId>ulticode-backend</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>backend-search</artifactId>
+    <name>backend-search</name>
+    <description>Indexing worker: Redis Streams SearchDocumentChanged consumer + MeiliSearch writer</description>
+
+    <dependencies>
+        <!-- DEC-011: shared event/error atoms. No app-api: the worker consumes
+             the wire stream only and must stay free of business contracts. -->
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- No spring-boot-starter-web: the worker exposes no HTTP surface
+             (judge worker precedent: web-application-type=none). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+        <!-- Sole MeiliSearch index writer (same SDK version as backend-app). -->
+        <dependency>
+            <groupId>com.meilisearch.sdk</groupId>
+            <artifactId>meilisearch-java</artifactId>
+            <version>0.20.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.ulticode.search.SearchWorkerApplication</mainClass>
+                </configuration>
+            </plugin>
+            <!-- No jacoco agent here, so the parent's @{argLine} placeholder
+                 would reach the forked JVM literally and crash `java -jar`.
+                 Plain attach flag is enough for ByteBuddy inline mocks
+                 (backend-common precedent). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

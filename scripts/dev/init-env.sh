@@ -66,6 +66,7 @@ nacos_password="Nacos!$(random_hex 18)"
 nacos_auth_token="$(random_base64 48)"
 nacos_identity_key="dev_$(random_hex 12)"
 nacos_identity_value="$(random_hex 24)"
+meili_master_key="meili_$(random_base64 32)"
 
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 umask 077
@@ -112,6 +113,7 @@ NACOS_AUTH_IDENTITY_VALUE="$nacos_identity_value"
 
 SPRINGDOC_ENABLED=true
 MEILISEARCH_ENABLED=false
+MEILI_MASTER_KEY="$meili_master_key"
 # Sandbox (D-form) — image must be built locally, see
 # CLAUDE.md § Sandbox Harness. Under local PM2 SANDBOX_ENABLED has NO effect
 # on execution (the executor keys off sandbox.executor, default docker); it is

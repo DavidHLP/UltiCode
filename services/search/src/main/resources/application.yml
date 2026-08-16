@@ -1,0 +1,54 @@
+server:
+  # The worker exposes no HTTP API. Keep a private port only because the
+  # generic Spring Boot container image expects SERVER_PORT to exist.
+  port: ${SEARCH_SERVER_PORT:9107}
+
+spring:
+  application:
+    name: backend-search
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+      - com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+
+search:
+  worker:
+    # Default off: unit-test contexts boot without Redis/MeiliSearch. Enable in
+    # the deployed runtime once the App/Auth publishers are live (SEARCH-001).
+    enabled: ${SEARCH_WORKER_ENABLED:false}
+    stream-key: ${SEARCH_WORKER_STREAM_KEY:stream:integration}
+    group: ${SEARCH_WORKER_GROUP:search-worker}
+    consumer-name: ${SEARCH_WORKER_CONSUMER_NAME:search-worker-1}
+    batch-size: 50
+    max-attempts: 5
+    dlq-key: ${SEARCH_WORKER_DLQ_KEY:search:stream:dlq}
+    interval-ms: 2000
+
+meilisearch:
+  host: ${MEILI_HOST:http://localhost:7700}
+  api-key: ${MEILI_MASTER_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

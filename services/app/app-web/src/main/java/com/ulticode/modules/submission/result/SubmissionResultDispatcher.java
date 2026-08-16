@@ -22,6 +22,17 @@ import java.util.UUID;
  *
  * <p>{@link IntegrationEventPublisher} writes each event to the shared durable
  * integration outbox before the result row is acknowledged as delivered.
+ *
+ * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> with the runtime
+ * cutover active ({@code app.submission.routing.mode=remote} +
+ * {@code app.submission.owner.mode=local}), the regular verdict path writes
+ * {@code submission_result_outbox} rows in the Submission owner schema and
+ * backend-submission publishes the integration stream directly. This
+ * dispatcher remains active only for result rows produced by the contest
+ * compatibility path (DEC-013 keeps contest intake/verdicts on the App local
+ * writer) and for rollback when the routing flags are reverted. Kept as a
+ * clearly labeled compatibility component; do not extend it with new
+ * regular-path behavior.
  */
 @Slf4j
 @Component

@@ -51,6 +51,16 @@ import java.util.Map;
  * {@code @ConditionalOnProperty}) when the port is enabled, so when the
  * flag is off the {@link ObjectProvider} returns null and the dispatcher
  * stays in compatibility mode even if its own flag is on.
+ *
+ * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> once the runtime
+ * cutover is active ({@code app.submission.routing.mode=remote} +
+ * {@code app.submission.owner.mode=local}), the regular submission path writes
+ * {@code judge_outbox} rows to the Submission owner schema and this dispatcher
+ * no longer handles them. It remains the active dispatcher only for the
+ * contest compatibility path (DEC-013 keeps contest intake on the App local
+ * writer) and as the rollback path when the routing flags are reverted. It is
+ * kept as a clearly labeled compatibility component; do not extend it with new
+ * regular-path behavior.
  */
 @Slf4j
 @Component

@@ -16,6 +16,15 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * If the transaction rolls back, both the verdict and the outbox row are discarded.
  * If the transaction commits, the outbox row survives JVM crash and the
  * {@link SubmissionResultDispatcher} will publish it to the integration bus.
+ *
+ * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> this listener fires
+ * on in-process {@code SubmissionJudgedEvent}s, which the regular path stops
+ * publishing once the runtime cutover is active ({@code
+ * app.submission.routing.mode=remote} + {@code app.submission.owner.mode=local});
+ * regular verdicts are written by backend-submission. It remains active only
+ * for verdicts written by the App local writer (contest compatibility path,
+ * DEC-013, and rollback). Kept as a clearly labeled compatibility component;
+ * do not extend it with new regular-path behavior.
  */
 @Slf4j
 @Component

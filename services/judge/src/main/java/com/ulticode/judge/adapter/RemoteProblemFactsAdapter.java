@@ -5,6 +5,9 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.Map;
+
 /** Judge-side RPC adapter for App-owned problem facts. */
 @Component
 @Primary
@@ -17,6 +20,11 @@ public class RemoteProblemFactsAdapter implements ProblemFactsPort {
     @Override
     public ProblemDisplayFacts findDisplayFacts(Long problemId) {
         return problemFactsPort.findDisplayFacts(problemId);
+    }
+
+    @Override
+    public Map<Long, ProblemDisplayFacts> findDisplayFactsBatch(Collection<Long> problemIds) {
+        return problemFactsPort.findDisplayFactsBatch(problemIds);
     }
 
     @Override

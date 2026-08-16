@@ -48,8 +48,13 @@ app:
     role: ${APP_RUNTIME_ROLE:api}
   submission:
     routing:
-      # local is the only valid mode until SPLIT-003 makes backend-submission
-      # the sole storage writer; remote is the reversible provider seam.
+      # local (default) keeps every submission read/write on the App schema.
+      # remote is the cutover mode: reads go through SubmissionUserQueryRoutingPort
+      # to backend-submission and writes through SubmissionWriteRoutingPort, both
+      # enabled only after the SPLIT-004 read-path migration + schema cutover
+      # (scripts/dev/submission-schema-cutover.sh). Contest intake stays on the
+      # App local writer (DEC-013), so App keeps its submission grants until the
+      # contest owner migration completes.
       mode: ${APP_SUBMISSION_ROUTING_MODE:local}
   monitoring:
     # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor

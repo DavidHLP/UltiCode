@@ -35,6 +35,14 @@ import java.util.List;
  * an outbox insert exceeding a column width) rolls back only itself and is
  * retried on the next sweep, instead of wedging the whole recovery batch
  * every cycle.
+ *
+ * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> with the runtime
+ * cutover active ({@code app.submission.routing.mode=remote} +
+ * {@code app.submission.owner.mode=local}), the regular path reaps leases in
+ * the Submission owner schema (backend-submission owns it). This reaper
+ * remains active only for the contest compatibility path (DEC-013) and for
+ * rollback when the routing flags are reverted. Kept as a clearly labeled
+ * compatibility component; do not extend it with new regular-path behavior.
  */
 @Slf4j
 @Component

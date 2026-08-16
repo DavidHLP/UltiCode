@@ -357,6 +357,18 @@ slice-3 边界：outbox 消费者已迁移到 backend-submission（读 `submissi
 
 slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant），`app.submission.owner.mode=local` 使 provider 直写本地库。但**不得**在 SPLIT-004 之前启用 remote+local：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
 
+slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：数据 cutover 已在可丢弃 MySQL 8.0 环境全链路执行（preflight→cutover 三表 72/2/2 行 checksum 一致→App 表级 grant 撤销→App 用户读写被拒（本环境 1044；表级 grant 姿态下为 1142）、`submission_rw` 解锁后读写正常）。运行时切换 = App `APP_SUBMISSION_ROUTING_MODE=remote`（读经 `SubmissionUserQueryRoutingPort` 委托 backend-submission）+ Admin `app.submission.admin.read-group=backend-submission`。**AC4 退役证据**：以下 App 组件在切流状态仅剩 contest 兼容路径（DEC-013）与回滚路径职责，Dispatcher/Listener 已在类 javadoc 标注（Writer/Mapper 为支撑类，由所在包的 Dispatcher/Listener 标注覆盖），不得扩展新 regular-path 行为：
+
+| App 组件 | 切流后状态 |
+|---|---|
+| `JudgeOutboxDispatcher`（App） | contest 兼容 + 回滚；regular judge_outbox 由 backend-submission 消费 |
+| `JudgingLeaseReaper`（App） | 同上；regular lease 回收由 backend-submission 承担 |
+| `SubmissionResultDispatcher`（App） | 同上；regular result outbox 由 backend-submission 直发 `stream:integration` |
+| `SubmissionResultOutboxListener`/`Writer`/`Mapper`（App） | 仅 App local verdict（contest + 回滚）触发 |
+| `SubmissionMapper`/`DefaultSubmissionWritePort`/`SubmissionReadAdapter`/`DefaultSubmissionUserReadAdapter`（App） | local 默认模式与 contest 路径的 read/write adapter，保持兼容职责 |
+
+grant revocation 完整性 PARTIAL：contest intake/verdict 仍走 App local writer（DEC-013），App 对 `ulticode` schema 三表的 grant 须保留至 contest owner 迁移完成后才可全量撤销；此前的撤销仅对 regular 路径生效，观察窗必须记录该 PARTIAL 状态。
+
 ### 4.6 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |

@@ -31,6 +31,7 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -42,6 +43,7 @@ class SearchDocumentIndexWorkerTest {
 
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private StreamOperations<String, Object, Object> streamOps;
+    @Mock private HashOperations<String, Object, Object> hashOps;
     @Mock private Client meiliSearchClient;
     @Mock private Index meiliIndex;
 
@@ -55,14 +57,20 @@ class SearchDocumentIndexWorkerTest {
         worker = new SearchDocumentIndexWorker(redisTemplate, meiliSearchClient, objectMapper, props,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
+        when(redisTemplate.opsForHash()).thenReturn(hashOps);
         when(meiliSearchClient.index(anyString())).thenReturn(meiliIndex);
     }
 
     private MapRecord<String, String, String> record(String id, String eventType, String payload) {
+        return record(id, eventType, payload, "0");
+    }
+
+    private MapRecord<String, String, String> record(String id, String eventType, String payload, String version) {
         return StreamRecords.mapBacked(Map.of(
                         "eventId", "evt-" + id,
                         "eventType", eventType,
                         "aggregateId", "doc-" + id,
+                        "aggregateVersion", version,
                         "payload", payload))
                 .withStreamKey("stream:integration")
                 .withId(RecordId.of("evt-" + id));
@@ -112,17 +120,65 @@ class SearchDocumentIndexWorkerTest {
         stubBusyGroup();
         stubEmptyReads();
         when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
-                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("problems"))));
+                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("problems"), "100")));
 
         int processed = worker.consume();
 
         assertThat(processed).isEqualTo(1);
-        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\"}");
+        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(hashOps).put("search:doc-version:problems", "doc-1", "100");
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
     }
 
     @Test
-    @DisplayName("DELETE tombstones the document by aggregate id and ACKs")
+    @DisplayName("stale UPSERT (ledger newer) is skipped, not written, and still ACKed")
+    void staleSnapshotIsSkippedAndAcked() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:problems", "doc-1")).thenReturn("200");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("problems"), "150")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isEqualTo(1);
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
+    }
+
+    @Test
+    @DisplayName("equal-version UPSERT rewrites (idempotent) and keeps the ledger")
+    void equalVersionRewrites() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:posts", "doc-1")).thenReturn("100");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("posts"), "100")));
+
+        worker.consume();
+
+        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(hashOps).put("search:doc-version:posts", "doc-1", "100");
+    }
+
+    @Test
+    @DisplayName("unparsable or missing ledger entry does not block the write")
+    void corruptLedgerEntryIsIgnored() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:problems", "doc-1")).thenReturn("not-a-number");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("1", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("problems"), "100")));
+
+        worker.consume();
+
+        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        verify(hashOps).put("search:doc-version:problems", "doc-1", "100");
+    }
+
+    @Test
+    @DisplayName("DELETE tombstones the document by aggregate id, clears the ledger and ACKs")
     void deleteTombstonesAndAcks() {
         stubBusyGroup();
         stubEmptyReads();
@@ -132,6 +188,7 @@ class SearchDocumentIndexWorkerTest {
         worker.consume();
 
         verify(meiliIndex).deleteDocument("doc-2");
+        verify(hashOps).delete("search:doc-version:users", "doc-2");
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-2"));
     }
 
@@ -162,6 +219,8 @@ class SearchDocumentIndexWorkerTest {
         worker.consume();
 
         verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
+        // Ledger must not advance until MeiliSearch accepted the write (DEC-016).
+        verify(hashOps, never()).put(anyString(), any(), any());
     }
 
     @Test

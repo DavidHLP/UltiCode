@@ -38,6 +38,7 @@ search:
     batch-size: 50
     max-attempts: 5
     dlq-key: ${SEARCH_WORKER_DLQ_KEY:search:stream:dlq}
+    version-key-prefix: ${SEARCH_WORKER_VERSION_KEY_PREFIX:search:doc-version}
     interval-ms: 2000
 
 meilisearch:

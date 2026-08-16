@@ -141,14 +141,14 @@ public class SearchDocumentChangedPublisher {
                 SearchDocumentChangedEventContract.requireSafeDocument(document);
                 payload.put(SearchDocumentChangedEventContract.DOCUMENT, document);
             }
-            payload.put(SearchDocumentChangedEventContract.OCCURRED_AT,
-                    LocalDateTime.now(clock).toString());
+            LocalDateTime occurredAt = LocalDateTime.now(clock);
+            payload.put(SearchDocumentChangedEventContract.OCCURRED_AT, occurredAt.toString());
 
             integrationEventPublisher.publish(
                     SearchDocumentChangedEventContract.APP_PUBLISHER,
                     SearchDocumentChangedEventContract.EVENT_TYPE,
                     documentId,
-                    0L,
+                    clock.instant().toEpochMilli(),
                     null,
                     null,
                     payload);

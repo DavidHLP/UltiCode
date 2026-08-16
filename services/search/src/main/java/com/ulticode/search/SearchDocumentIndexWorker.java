@@ -37,6 +37,16 @@ import org.springframework.stereotype.Component;
  * dead-lettered to {@code dlqKey}. Non-{@code SearchDocumentChanged} events
  * on the shared stream are ACKed unprocessed (per-group cursor; other groups
  * keep their own delivery). Only allowlisted indexes are written.
+ *
+ * <p>Version ledger (DEC-016): each UPSERT carries the document version
+ * (epoch millis, {@code aggregateVersion} envelope field). The worker keeps a
+ * per-index Redis hash ({@code versionKeyPrefix}:{@code index}) of the last
+ * written version per document. An incoming UPSERT whose version is strictly
+ * older than the ledger entry is skipped (counted, still ACKed) so a backfill
+ * snapshot can never overwrite a newer live write; equal versions rewrite
+ * (idempotent, content-convergent). The version is also embedded in the
+ * Meili document as {@code _aggregateVersion} for diff watermark and
+ * observability. DELETEs clear the ledger entry.
  */
 @Slf4j
 @Component
@@ -45,6 +55,7 @@ public class SearchDocumentIndexWorker {
 
     private static final String EVENT_TYPE = SearchDocumentChangedEventContract.EVENT_TYPE;
     private static final Duration CLAIM_MIN_IDLE = Duration.ofSeconds(30);
+    private static final String DOCUMENT_VERSION_FIELD = "_aggregateVersion";
 
     private final StringRedisTemplate redisTemplate;
     private final Client meiliSearchClient;
@@ -54,6 +65,7 @@ public class SearchDocumentIndexWorker {
 
     private final io.micrometer.core.instrument.Counter processedCounter;
     private final io.micrometer.core.instrument.Counter deadLetterCounter;
+    private final io.micrometer.core.instrument.Counter staleCounter;
 
     public SearchDocumentIndexWorker(
             StringRedisTemplate redisTemplate,
@@ -68,6 +80,7 @@ public class SearchDocumentIndexWorker {
         this.meterRegistry = meterRegistry;
         this.processedCounter = meterRegistry.counter("search.worker.processed");
         this.deadLetterCounter = meterRegistry.counter("search.worker.deadlettered");
+        this.staleCounter = meterRegistry.counter("search.worker.stale_skipped");
     }
 
     private final TypeReference<Map<String, Object>> payloadType = new TypeReference<>() {
@@ -236,15 +249,30 @@ public class SearchDocumentIndexWorker {
             if (documentId == null || documentId.isBlank()) {
                 throw new IllegalArgumentException("missing aggregateId for search event");
             }
+            long incomingVersion = parseVersion(fields.get(SearchDocumentChangedEventContract.AGGREGATE_VERSION));
+            String versionKey = props.getVersionKeyPrefix() + ":" + index;
 
             if (SearchDocumentChangedEventContract.UPSERT.equals(operation)) {
                 Object document = payload.get(SearchDocumentChangedEventContract.DOCUMENT);
                 if (document == null) {
                     throw new IllegalArgumentException("UPSERT search event without document");
                 }
-                meiliSearchClient.index(index).addDocuments(objectMapper.writeValueAsString(document));
+                String existing = ledgerVersion(versionKey, documentId);
+                if (existing != null && Long.parseLong(existing) > incomingVersion) {
+                    // Stale snapshot (e.g. backfill racing a newer live write):
+                    // skip the write but still ACK — the newer version is indexed.
+                    staleCounter.increment();
+                    ack(record);
+                    return true;
+                }
+                Map<String, Object> doc = objectMapper.readValue(
+                        objectMapper.writeValueAsString(document), payloadType);
+                doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
+                meiliSearchClient.index(index).addDocuments(objectMapper.writeValueAsString(doc));
+                redisTemplate.opsForHash().put(versionKey, documentId, String.valueOf(incomingVersion));
             } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
                 meiliSearchClient.index(index).deleteDocument(documentId);
+                redisTemplate.opsForHash().delete(versionKey, documentId);
             } else {
                 throw new IllegalArgumentException("unsupported operation: " + operation);
             }
@@ -257,6 +285,42 @@ public class SearchDocumentIndexWorker {
             // maxAttempts deliveries.
             log.warn("Search event {} processing failed (will retry): {}", record.getId().getValue(), e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Last-written version for a document, or {@code null} when the ledger
+     * has no entry (first write, or index rebuilt). An unparsable ledger
+     * value is treated as absent so a corrupt entry cannot wedge the stream.
+     */
+    private String ledgerVersion(String versionKey, String documentId) {
+        try {
+            Object existing = redisTemplate.opsForHash().get(versionKey, documentId);
+            if (existing == null) {
+                return null;
+            }
+            Long.parseLong(String.valueOf(existing));
+            return String.valueOf(existing);
+        } catch (RuntimeException e) {
+            log.warn("Ignoring unparsable ledger version for {} in {}", documentId, versionKey);
+            return null;
+        }
+    }
+
+    /**
+     * Event version (epoch millis). Events published before the version
+     * semantic (aggregateVersion=0) are treated as version 0: they can
+     * never be stale-skipped and always write, which is safe for legacy
+     * replay.
+     */
+    private long parseVersion(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException e) {
+            return 0L;
         }
     }
 

@@ -67,18 +67,18 @@ public class SearchDocumentChangedAuthPublisher {
         if (document != null) {
             payload.put(SearchDocumentChangedEventContract.DOCUMENT, document);
         }
-        payload.put(SearchDocumentChangedEventContract.OCCURRED_AT,
-                LocalDateTime.now(clock).toString());
+        LocalDateTime occurredAt = LocalDateTime.now(clock);
+        payload.put(SearchDocumentChangedEventContract.OCCURRED_AT, occurredAt.toString());
 
         SearchDocumentChangedOutboxRecord record = new SearchDocumentChangedOutboxRecord();
         record.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
         record.setOwner(SearchDocumentChangedEventContract.AUTH_PUBLISHER);
         record.setAggregateId(aggregateId);
-        record.setAggregateVersion(0L);
+        record.setAggregateVersion(clock.instant().toEpochMilli());
         record.setEventType(SearchDocumentChangedEventContract.EVENT_TYPE);
         record.setSchemaVersion(SearchDocumentChangedEventContract.SCHEMA_VERSION);
         record.setPayload(payload);
-        record.setCreatedAt(LocalDateTime.now(clock));
+        record.setCreatedAt(occurredAt);
         outboxMapper.insert(record);
         log.debug("Queued {} user event for {}", payload.get(SearchDocumentChangedEventContract.OPERATION),
                 aggregateId);

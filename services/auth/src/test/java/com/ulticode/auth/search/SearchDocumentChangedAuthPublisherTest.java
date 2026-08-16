@@ -48,6 +48,9 @@ class SearchDocumentChangedAuthPublisherTest {
         assertThat(record.getAggregateId()).isEqualTo("u-1");
         assertThat(record.getEventType()).isEqualTo(SearchDocumentChangedEventContract.EVENT_TYPE);
         assertThat(record.getSchemaVersion()).isEqualTo(SearchDocumentChangedEventContract.SCHEMA_VERSION);
+        assertThat(record.getAggregateVersion()).isEqualTo(1_786_874_400_000L);
+        assertThat(record.getPayload().get(SearchDocumentChangedEventContract.OCCURRED_AT))
+                .isEqualTo("2026-08-16T10:00");
         assertThat(record.getPayload().get(SearchDocumentChangedEventContract.INDEX))
                 .isEqualTo(SearchDocumentChangedEventContract.USERS_INDEX);
         assertThat(record.getPayload().get(SearchDocumentChangedEventContract.OPERATION))

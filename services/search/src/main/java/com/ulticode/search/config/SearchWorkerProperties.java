@@ -33,6 +33,9 @@ public class SearchWorkerProperties {
     /** DLQ stream key for entries that exhausted retries. */
     private String dlqKey = "search:stream:dlq";
 
+    /** Redis hash key prefix of the per-index document-version ledger (key: {@code prefix}:{index}). */
+    private String versionKeyPrefix = "search:doc-version";
+
     /** Poll interval in milliseconds. */
     private long intervalMs = 2000;
 }

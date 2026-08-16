@@ -1,0 +1,785 @@
+objective: "将 submission 判题生命周期与 search 索引 worker 拆分为独立的微服务"
+tasks:
+  - id: TASK-001
+    title: "重构共享 Solarized 语义色并验证 console 双主题"
+    source:
+      - "user-request-2026-08-11"
+      - "https://ethanschoonover.com/solarized/"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "light 使用 base3/base01，强调面使用 base2/base03"
+      - "dark 使用 base03/base1，强调面使用 base02/base1"
+      - "交互强调与状态色仅使用 Solarized 八个 accent 色"
+      - "localhost:9002 light/dark 均无颜色回退或视觉失配"
+      - "相关静态检查、构建与浏览器回归通过"
+    validation:
+      - "pnpm --dir packages/design-system type-check"
+      - "pnpm --dir apps/console type-check"
+      - "pnpm --dir apps/console test"
+      - "pnpm --dir apps/console build"
+      - "browser light/dark visual audit"
+    rollback:
+      - "revert only TASK-001 palette token changes"
+    evidence:
+      - "official Solarized palette and Usage & Development mappings"
+      - "exact light/dark computed tokens verified in browser on /problemset"
+      - "62 test files / 543 tests pass when excluding the protected dirty VirtualContestTimer test"
+      - "console and design-system type checks pass; console production build passes"
+      - "two formal reviewers report 0 confirmed findings"
+    commits: []
+    notes: "Protect pre-existing dirty landing and contest changes; merge only task-related palette work."
+    updated_at: "2026-08-11T23:50:00+08:00"
+  - id: TASK-002
+    title: "发布 Solarized v1.0 公共主题接口与设计契约"
+    source:
+      - "user-request-2026-08-11-public-theme-design"
+      - "UltiCode Solarized Theme Design v1.0"
+    status: done
+    depends_on:
+      - "TASK-001"
+    acceptance_criteria:
+      - "packages/design-system 是色板、语义 Token、组件状态与文档的唯一公共 Owner"
+      - "Light/Dark 使用同一强调色语义，并为必要正文与控件提供可访问映射"
+      - "设计样式通过包导出供 Console 与 Management 消费"
+      - "公共契约具有独立、可运行的回归测试"
+    validation:
+      - "pnpm --dir packages/design-system type-check"
+      - "pnpm --dir packages/design-system test"
+      - "pnpm install --lockfile-only"
+    rollback:
+      - "revert TASK-002 public exports, token contract, docs, and dependency declarations"
+    evidence:
+      - "public stylesheet export resolves from both Console and Management"
+      - "package contract tests: 7 passed"
+      - "design-system type-check passed"
+      - "canonical palette and accessible text/control pairs are asserted"
+      - "TASK-002 review: 0 confirmed findings"
+    commits: []
+    notes: "Do not touch protected landing or contest work."
+    updated_at: "2026-08-12T00:15:00+08:00"
+  - id: TASK-003
+    title: "迁移双应用视觉适配层到公共 Solarized Token"
+    source:
+      - "user-request-2026-08-11-public-theme-design"
+      - "UltiCode Solarized Theme Design v1.0"
+    status: done
+    depends_on:
+      - "TASK-002"
+    acceptance_criteria:
+      - "图表公共色阶不再由 Console 私有定义"
+      - "Console 与 Management 核心交互组件不再硬编码非 Solarized 状态色"
+      - "Management 不再覆盖公共 Dark surface"
+      - "代码高亮、链接、按钮和状态反馈遵循公共可访问语义"
+    validation:
+      - "pnpm --dir apps/console type-check"
+      - "pnpm --dir apps/console test"
+      - "pnpm --dir apps/console build"
+      - "pnpm --dir apps/management type-check"
+      - "pnpm --dir apps/management test"
+      - "pnpm --dir apps/management build"
+      - "browser light/dark audit for both applications"
+    rollback:
+      - "revert TASK-003 app adapter consumption while retaining TASK-002 public contract"
+    evidence:
+      - "Console 与 Management 仅从 @ulticode/design-system/style.css 消费公共主题"
+      - "公共 Button/Badge/Menu variants、difficulty badge 与 8 色 chart series 均有契约测试"
+      - "Theme tests 31/31、Design tests 7/7、两端 type-check/targeted ESLint/full tests/builds 通过"
+      - "Console 生产 CSS 与 Management 生产 CSS 均包含公共 link/destructive variants"
+      - "localhost:9002 Light/Dark 计算 token、选中日期、难度徽标与浏览器错误日志验收通过"
+      - "Standards 与 Spec 最终复审 Confirmed Findings 均为 0"
+    commits: []
+    notes: "App-specific business colors remain adapters only when they represent external brand/data contracts."
+    updated_at: "2026-08-12T00:45:00+08:00"
+  - id: TASK-004
+    title: "发布 renderer 颜色桥与全端消费者扫描契约"
+    source:
+      - "user-request-2026-08-12-all-frontend-design"
+      - "UltiCode Solarized Theme Design v1.0 §2 §5 §8 §9 §13"
+    status: done
+    depends_on:
+      - "TASK-003"
+    acceptance_criteria:
+      - "@ulticode/design-system 导出唯一的 canonical Solarized runtime palette bridge 与 readCssColor helper"
+      - "ECharts、Monaco、WebGL 等非 CSS renderer 能从公共 Token 解析当前主题，并保留无 DOM 的安全 fallback"
+      - "16 个官方 HEX 仍由独立回归测试锁定；renderer bridge 不允许出现第二份非 canonical palette"
+      - "契约测试扫描第一方 runtime source，拒绝非 Solarized HEX/RGB/OKLCH/HSL 字面量，并明确外部品牌、用户数据、第三方 vendor 与 canonical adapter 例外"
+      - "packages/design-system 文档更新 public ownership、renderer adapter 与例外边界"
+    validation:
+      - "pnpm --dir packages/design-system type-check"
+      - "pnpm --dir packages/design-system test"
+      - "git diff --check"
+    rollback:
+      - "revert TASK-004 public renderer bridge and scanner while retaining existing CSS contract"
+    evidence:
+      - "packages/design-system/src/palette.ts exports SOLARIZED_PALETTE and readCssColor; package ./palette export is public"
+      - "packages/design-system/test/color-contract.test.mjs and solarized-theme.test.mjs lock canonical 16 colors and first-party literal scanner boundary"
+      - "README documents CSS/runtime ownership and vendor, brand, API/data exceptions"
+      - "design-system type-check and 11 package tests pass"
+      - "final Standards/Spec review reports 0 confirmed findings"
+    commits: []
+    notes: "First executable task. No app behavior changes until the public bridge and scanner pass."
+    updated_at: "2026-08-12T16:03:00+00:00"
+  - id: TASK-005
+    title: "迁移 Console 全部第一方视觉消费者"
+    source:
+      - "user-request-2026-08-12-all-frontend-design"
+      - "UltiCode Solarized Theme Design v1.0 §6 §7 §8 §9"
+    status: done
+    depends_on:
+      - "TASK-004"
+    acceptance_criteria:
+      - "Console runtime 的成就、竞赛等级、论坛、侧栏、Problemset、Profile、UserStats、LayoutHeader 与 Markdown 样式只消费公共语义 Token"
+      - "个人学习/提交图表、Problem 分布图与所有现有图表入口使用当前 Light/Dark computed Token，不向 ECharts 传入非标准 oklch/纯白/黑色"
+      - "Legacy hsl(var(--token)) 包装被移除；ProblemListAnalytics 与两端 Sidebar/Markdown 的 hex-token 组合保持有效渲染"
+      - "Monaco 语法与编辑器表面遵循规定的 Light/Dark 配对，颜色只来自公共 runtime bridge"
+      - "动态 community/tag/API 颜色保留既有数据契约，仅保留为显式外部数据适配并使用 canonical fallback"
+      - "Console PWA 元数据、Owned landing CSS override 与 first-party static assets 不再使用非 Solarized 颜色"
+      - "External Codeforces rating convention remains an explicit domain adapter and is not mistaken for a theme token"
+    validation:
+      - "pnpm --dir apps/console type-check"
+      - "pnpm --dir apps/console test"
+      - "pnpm --dir apps/console build"
+      - "pnpm --dir apps/console verify:theme-sync"
+      - "pnpm --dir apps/console verify:typography-tokens"
+    rollback:
+      - "revert only TASK-005 Console consumer adapters; retain TASK-004 public bridge"
+    evidence:
+      - "Console runtime consumers migrated for charts, Monaco, Markdown, status/difficulty, layout, PWA metadata and owned Landing CSS"
+      - "Console type-check, 65-file/560-test in-scope suite, verify:theme-sync, verify:typography-tokens and production build pass"
+      - "Console consumer contract, Monaco semantic mapping and renderer fallback tests pass"
+      - "localhost:9002 Light/Dark computed-token, theme-switch, no-page-error and screenshot smoke evidence recorded"
+    commits: []
+    notes: "Do not rewrite third-party landing vendor bundle or Google brand SVG."
+    updated_at: "2026-08-12T16:03:00+00:00"
+  - id: TASK-006
+    title: "迁移 Management 全部第一方视觉消费者"
+    source:
+      - "user-request-2026-08-12-all-frontend-design"
+      - "UltiCode Solarized Theme Design v1.0 §6 §7 §8 §9"
+    status: done
+    depends_on:
+      - "TASK-004"
+    acceptance_criteria:
+      - "Management analytics、dashboard、problem-list editor、command/input/table/chart primitives 只消费公共语义 Token"
+      - "ECharts/SVG chart options 使用公共 computed Token 与 canonical fallback，不再硬编码旧 palette"
+      - "ChartContainer 不再以旧 HEX 作为 SVG attribute selector；图表结构规则通过 token-driven stylesheet 或通用类选择器表达"
+      - "编辑器按钮、switch、边界与代码查看器在 Light/Dark 不出现纯白纯黑或非 Solarized 品牌色"
+      - "Problem-list editor 的局部变量、颜色混合与管理端状态映射均只引用公共 Token"
+      - "Management placeholder asset 与颜色输入 placeholder 使用 canonical Solarized values"
+      - "管理端权限/状态语义保持原有文字、图标、边框冗余表达"
+    validation:
+      - "pnpm --dir apps/management type-check"
+      - "pnpm --dir apps/management test"
+      - "pnpm --dir apps/management validate:i18n-keys"
+      - "pnpm --dir apps/management build"
+    rollback:
+      - "revert only TASK-006 Management consumer adapters; retain TASK-004 public bridge"
+    evidence:
+      - "Management runtime consumers migrated for ECharts/SVG, editor controls, status/difficulty and local theme surfaces"
+      - "Management type-check, 53-file/420-test suite, validate:i18n-keys and production build pass"
+      - "Management consumer contract, chart fallback and theme-color contract tests pass"
+      - "localhost:9003 Light/Dark computed-token, no-page-error and screenshot smoke evidence recorded"
+    commits: []
+    notes: "Keep management-only UI and API boundaries unchanged."
+    updated_at: "2026-08-12T16:03:00+00:00"
+  - id: TASK-007
+    title: "完成 Landing WebGL 双主题与 Reduced Motion 适配"
+    source:
+      - "user-request-2026-08-12-all-frontend-design"
+      - "UltiCode Solarized Theme Design v1.0 §10 §12 §13"
+    status: done
+    depends_on:
+      - "TASK-004"
+    acceptance_criteria:
+      - "Landing theme.js、MainScene、fog、particles、mouse pointer、MSDFText 与 shader color inputs 只使用公共 Solarized palette bridge 或主题语义输入"
+      - "Landing owned CSS override 使用公共 CSS variables；第三方 Bootstrap/vendor 内容保持未改动且不承担 UltiCode 主题 Owner"
+      - "删除随机 HSL、0x101010、纯黑/纯白 runtime fallback；透明 alpha-0 render-target clear 仅作为显式 renderer sentinel 保留"
+      - "prefers-reduced-motion 下停用粒子漂移、连续镜头/鼠标运动与持续 CSS 过渡，并在媒体设置变化后安全恢复"
+      - "主题切换只读取 packages/theme 写入的 dark class，不新建 landing 主题状态或丢失场景状态"
+    validation:
+      - "pnpm --dir apps/console type-check"
+      - "pnpm --dir apps/console test -- src/views/landing/experience"
+      - "pnpm --dir apps/console build"
+      - "browser landing light/dark and reduced-motion audit"
+    rollback:
+      - "revert only TASK-007 landing adapter changes; retain public bridge and app consumers"
+    evidence:
+      - "Landing MainScene owns reduced-motion state; particle drift, camera motion and CSS transitions are frozen without changing resource cleanup"
+      - "Landing CSS override consumes semantic tokens while Bootstrap/vendor and alpha-0 renderer sentinels remain bounded exceptions"
+      - "Landing and Monaco tests pass; console browser audit observes canvas after initialization, reduced-motion=true and no page errors"
+    commits: []
+    notes: "Renderer animation changes must preserve destroy/resize/resource cleanup paths."
+    updated_at: "2026-08-12T16:03:00+00:00"
+  - id: TASK-008
+    title: "执行双应用视觉可访问性回归并固化文档"
+    source:
+      - "user-request-2026-08-12-all-frontend-design"
+      - "UltiCode Solarized Theme Design v1.0 §4 §7 §8 §10 §11 §14"
+    status: done
+    depends_on:
+      - "TASK-005"
+      - "TASK-006"
+      - "TASK-007"
+    acceptance_criteria:
+      - "普通正文达到 4.5:1，必要控件/图标/图表边界达到 3:1，且状态、图表、语法有非颜色冗余表达"
+      - "Light/Dark 截图回归覆盖 Landing、Problemset、Problem、Editor、Submission、Profile、Dialog、Toast 与 Management 核心壳层"
+      - "主题切换无闪烁、业务状态/编辑器内容/图表数据不重建丢失、浏览器 console 无错误"
+      - "200% zoom、keyboard focus、prefers-reduced-motion 与常见色觉缺陷模拟通过"
+      - "packages/design-system README、Coverage 与例外边界反映实际实现，未映射来源条目为零"
+    validation:
+      - "focused package/app tests and type checks"
+      - "browser computed-token and screenshot matrix"
+      - "keyboard/zoom/reduced-motion/color-vision manual audit"
+      - "git diff --check"
+    rollback:
+      - "revert visual adapter commits by task boundary; never roll back the public token contract without restoring consumers"
+    evidence:
+      - "Design-system contrast/status contracts cover normal text, controls, primary action and status marks"
+      - "Chrome computed status-success-mark contrast is 5.50:1 Light and 6.70:1 Dark in both apps; 200% zoom smoke has no horizontal overflow"
+      - "Keyboard Tab focus, prefers-reduced-motion and CDP protanopia/deuteranopia/tritanopia smoke checks pass without console errors"
+      - "Light/Dark screenshots generated for Console and Management; existing route visual audit and diff-check evidence retained"
+      - "Review blocker fixed: SolutionList glyphs and both app Switch thumbs use primary-control-foreground; dark warning/success mark contrast is 6.68:1/6.70:1"
+      - "Console/Management source contracts and design-system dark-state regression tests pass; both app type-checks pass"
+    commits: []
+    notes: "Final review blocker fixed and revalidated; status-mark controls now use adaptive foregrounds."
+    updated_at: "2026-08-12T16:30:00+00:00"
+  - id: TASK-010
+    title: "统一 Console 顶栏交互内容的公共 Solarized 基准"
+    source:
+      - "user-browser-comment-2026-08-12-header-baseline"
+      - "http://localhost:9002/problemset"
+    status: done
+    depends_on:
+      - "TASK-009"
+    acceptance_criteria:
+      - "顶栏导航、搜索、通知及弹层使用统一 surface-elevated/surface-sunken/surface-highlight 层级"
+      - "顶栏内按钮、导航链接、Popover、搜索结果和快捷键徽标使用统一圆角、边框、阴影与两像素焦点环"
+      - "公共 Button/Badge/Menu 状态不再以 accent 或 dark input 作为通用 hover/outline 层"
+      - "Light/Dark 顶栏交互保持可读、键盘可达且无颜色回退"
+    validation:
+      - "apps/console consumer contract test"
+      - "packages/design-system test"
+      - "apps/console type-check and build"
+      - "apps/management build"
+      - "browser /problemset header and notification/search smoke"
+      - "git diff --check"
+    rollback:
+      - "revert TASK-010 header/navigation/popover consumer changes without reverting TASK-009 public theme gate"
+    evidence:
+      - "Console /problemset dark browser audit: header, nav rail, search dialog and notification popover resolve to Solarized semantic surfaces, 6/8/12px geometry and shadow-float"
+      - "Console /problemset light browser audit: header, nav rail, search dialog and notification popover resolve to base3/base2 surfaces with readable border-control focus states"
+      - "Console consumer contract: 65 files / 569 tests pass"
+      - "Management contract: 53 files / 422 tests pass"
+      - "Design-system tests: 2 files pass; outline/secondary hover markers are asserted for both mode mappings"
+      - "Console and Management type-check/build pass; git diff --check passes"
+      - "Scoped review re-check reports Confirmed=0 after fixing dark outline/secondary hover feedback"
+    commits: []
+    notes: "Keep the full-width header surface; group only its interactive rails so content shares one baseline."
+    updated_at: "2026-08-12T14:40:00+08:00"
+  - id: TASK-009
+    title: "关闭 Solarized 前端 Design Gate"
+    source:
+      - "user-request-2026-08-12-all-frontend-design"
+      - "UltiCode Solarized Theme Design v1.0 §14"
+    status: done
+    depends_on:
+      - "TASK-008"
+    acceptance_criteria:
+      - "所有第一方 frontend acceptance criteria 与 required evidence 均由任务或回归证据覆盖"
+      - "Standards/Spec/security/accessibility review 无 Confirmed Finding，或每项均已修复复审"
+      - "控制面 HANDOFF outcome=complete，next_goal 为空；不执行 commit/push/远端写入"
+    validation:
+      - "final package and both app validation tiers"
+      - "formal diff review"
+      - "git status and git diff --check"
+    rollback:
+      - "reopen the specific task whose acceptance or evidence is missing; do not mark the gate complete"
+    evidence:
+      - "TASK-004 through TASK-008 acceptance and validation evidence reconciled in the control plane"
+      - "Final Standards and Spec reviews report 0 confirmed findings after fixes"
+      - "git diff --check passes; delivery remains local with no commit, push, PR or remote resource change"
+      - "HANDOFF.yaml outcome is complete with next_goal empty"
+      - "Final Standards/Spec review of the status-mark fix returned Confirmed=0"
+    commits: []
+    notes: "Final accessibility review closed; delivery authority remains local implementation only unless the user separately authorizes commit or publish."
+    updated_at: "2026-08-12T16:30:00+00:00"
+  - id: TASK-011
+    title: "统一顶栏题库、平台与比赛的 active 状态"
+    source:
+      - "user-browser-comment-2026-08-12-contest-active"
+      - "http://localhost:9002/forum"
+    status: done
+    depends_on:
+      - "TASK-010"
+    acceptance_criteria:
+      - "题库、平台与比赛使用同一 active 视觉类"
+      - "比赛入口重定向及所有 /contest/* 嵌套路由仍保持比赛 active"
+      - "路径前缀边界不误匹配相似路径"
+    validation:
+      - "Console Solarized consumer contract"
+      - "Console Vue type-check"
+      - "scoped review"
+      - "git diff --check"
+    rollback:
+      - "revert TASK-011 AppLayout activePath and contract-test changes only"
+    evidence:
+      - "AppLayout matches exact /problemset, /forum and /contest roots or descendant paths, covering contest-list redirect to contest-home"
+      - "Browser audit on /contest/list and /contest/browse resolves to /contest paths and applies the same border-primary active class to 比赛"
+      - "Console consumer contract: 16 tests pass"
+      - "Console Vue type-check passes; scoped review reports no confirmed findings"
+      - "git diff --check passes"
+    commits: []
+    notes: "Keep navigation visual classes shared; route semantics determine only which item receives the existing active state."
+    updated_at: "2026-08-12T14:55:00+08:00"
+  - id: TASK-012
+    title: "统一语言菜单公共基准并移除国旗 emoji"
+    source:
+      - "user-browser-comment-2026-08-12-language-menu"
+      - "http://localhost:9002/contest"
+    status: done
+    depends_on:
+      - "TASK-011"
+    acceptance_criteria:
+      - "Console 与 Management 语言菜单使用同一套 Solarized surface、border、radius、shadow 与 focus 语义"
+      - "语言选项不再渲染国旗 emoji，改用可读的 locale code 标记"
+      - "选中态、键盘焦点和菜单可访问名称保持完整"
+    validation:
+      - "Console Solarized consumer contract"
+      - "Management theme color contract"
+      - "Console and Management Vue type-check"
+      - "Console and Management production build"
+      - "browser language-menu smoke"
+      - "scoped review"
+      - "git diff --check"
+    rollback:
+      - "revert TASK-012 language switcher, locale metadata and contract-test changes only"
+    evidence:
+      - "Both language switchers use ZH/EN semantic markers with aria-hidden and native language names remain visible to assistive technology"
+      - "Browser menu resolves to Solarized base3/elevated surface, border-control, 8px radius and shadow-float"
+      - "Console contract: 17 tests pass; Management contract: 5 tests pass"
+      - "Both app Vue type-checks and production builds pass; build output contains only existing dependency warnings"
+      - "Scoped review reports no confirmed findings; git diff --check passes"
+    commits: []
+    notes: "Locale metadata now carries language identity only; presentation uses locale code instead of platform-dependent emoji glyphs."
+    updated_at: "2026-08-12T15:15:00+08:00"
+  - id: NOTIFY-001
+    title: "冻结 Notification Delivery ownership 与 intent interface"
+    source:
+      - "/tmp/architecture-review-20260813.html#notification"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md:595,604-607"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification/"
+      - "CONTEXT.md: Notification delivery ledger and push seams"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "明确 App 继续拥有 notifications、notification_preferences、email_templates、email_logs、notification_delivery_ledger 与 intent/outbox 的写入；本阶段不创建 backend-notification 或第四个数据 Owner"
+      - "冻结 NotificationIntent、NotificationChannel、NotificationPushPort、SmtpSenderPort/EmailRenderPort 的 caller-facing interface、幂等键、错误语义、channel_id 与 payload 不泄露规则"
+      - "明确业务事实发布、delivery claim、channel adapter、ledger terminal state 的 ownership；禁止业务事务同步调用 SMTP/WebSocket"
+      - "保留现有 HTTP、Dubbo、Result/RpcResult、JWT/cookie、WebSocket token 认证契约；不引入每请求 Auth RPC、2PC 或 speculative broker"
+    validation:
+      - "审阅 notification/email/event source inventory 与现有 migration guide owner matrix"
+      - "新增或更新 interface-level contract tests 的测试矩阵，不实现业务行为"
+      - "git diff --check"
+    rollback:
+      - "删除本任务新增的 contract/ownership 文档与测试计划，不触碰现有 runtime"
+    evidence:
+      - "Execution Packet and DEC-009 freeze App as the sole Notification data Owner; no backend-notification or fourth Owner exists"
+      - "Direct source inventory covered NotificationIntent, NotificationChannel, NotificationPushPort, SmtpSenderPort, EmailRenderPort, event outbox/inbox, ledger and migration owner matrix"
+      - "NotificationDeliveryContractTest locks the sealed intent set, caller-facing method shapes, stable generation-aware identity, canonical channel IDs, port boundaries and sensitive payload-key redaction"
+      - "Focused contract test: NotificationDeliveryContractTest — 5 tests passed"
+      - "Focused Notification/Inbox/Outbox suite: 90 tests passed; git diff --check passed"
+      - "Manual standards/spec/runtime/security review of changed Javadocs and contract test: Confirmed Findings=0; known pre-existing runtime gaps remain assigned to NOTIFY-002/003/004"
+    commits: []
+    notes: "Contract-only implementation; no runtime or migration behavior changed. Long intent-id/schema compatibility, channel delivery gaps and worker-role work remain in later tasks."
+    updated_at: "2026-08-13T16:27:00+08:00"
+  - id: NOTIFY-002
+    title: "接通 durable NotificationIntent publication 与 inbox 幂等"
+    source:
+      - "NOTIFY-001"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/event/"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification/consumer/SubmissionJudgedNotificationConsumer.java"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification/dispatcher/NotificationDispatcher.java"
+    status: done
+    depends_on:
+      - "NOTIFY-001"
+    acceptance_criteria:
+      - "SubmissionJudged 等通知事实只通过 durable outbox/inbox path 进入 Notification dispatcher；任何 publish 失败不得标记 DELIVERED"
+      - "event_id/intent_id/source generation 的重复、乱序、consumer crash、send-success/confirm-fail 都是幂等且可重放"
+      - "verdict transaction 不同步 fan-out 到 Notification、Email、WebSocket；用户可见 payload 与 virtual-replay suppression 保持不变"
+    validation:
+      - "Notification consumer/dispatcher unit tests"
+      - "IntegrationOutboxDispatcher、inbox dedup 与 crash-window MySQL/Redis integration tests"
+      - "Submission result outbox contract tests"
+    rollback:
+      - "保留可重放 outbox rows，按版本回退 consumer/dispatcher；不得恢复不可持久的同步 fan-out"
+    evidence:
+      - "Notification focused contract/consumer/dispatcher suite: 51 tests passed"
+      - "Inbox/outbox/ledger integration command: 17 tests passed; real MySQL Testcontainers startup succeeded"
+      - "Submission result outbox contract/integration tests: 7 tests passed"
+      - "git diff --check passed; changed-file Standards/Spec/Runtime/Security review Confirmed=0"
+    commits: []
+    notes: "依赖 NOTIFY-001 冻结 event envelope 与 idempotency semantics；durable publication、inbox lease/crash-window、ordering 与 false-DELIVERED 已验证。"
+    updated_at: "2026-08-13T22:56:00+08:00"
+  - id: NOTIFY-003
+    title: "实现 delivery ledger reclaim 与通道故障隔离"
+    source:
+      - "NOTIFY-002"
+      - "init-db/migrations/V20260613120000__Create_Notification_Delivery_Ledger.sql"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification/ledger/"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification/channel/"
+    status: done
+    depends_on:
+      - "NOTIFY-002"
+    acceptance_criteria:
+      - "CLAIMED stale row 可按 claim_owner/CAS reclaim；FAILED 仅在明确上限和退避内重试；DELIVERED、SKIPPED、达到上限的 FAILED 为终态"
+      - "intent + channel 唯一约束、claim fencing、重复投递和 send-success/confirm-fail 不产生错误状态覆盖"
+      - "SMTP、WebSocket、in_app adapter 各自失败只影响对应 channel；Notification 核心写入与用户请求不被外部 I/O 阻塞"
+      - "HIDDEN testcase、token、cookie、密码和完整敏感 DTO 不进入 intent、ledger、日志或测试证据"
+    validation:
+      - "NotificationDeliveryLedgerMapperIT 与真实 MySQL 状态迁移测试"
+      - "NotificationDispatcher、NotificationChannelContract、EmailNotificationChannel、WebSocketNotificationChannel tests"
+      - "故障注入：stale claim、bounded retry、Redis/SMTP/WS unavailable、duplicate delivery"
+    rollback:
+      - "保留 ledger 状态与 replay watermark，回退 dispatcher/worker 代码；不恢复同步 SMTP"
+    evidence:
+      - "NotificationDeliveryLedgerMapperIT 真实 MySQL 6 tests：stale claim reclaim、并发 claim 单 winner、owner fencing、terminal 不可再 claim、reaper 释放 durable CLAIMED 供 inbox replay"
+      - "NotificationDispatcher 14 tests：fresh lease owner、durable retry 传播 ledger failure 而不错误 markFailed、send-success/confirm-fail、supports 失败隔离"
+      - "新增 SubmissionJudgedInboxBridgeRedisIT 真实 Redis 3 tests：stream staging→group-scoped ACK、duplicate eventId 幂等、Redis 不可用容错不抛"
+      - "NOTIFY-003 focused suite 63 tests + Notification/Inbox/Outbox 通配 103 tests 全过；git diff --check 通过"
+      - "Review：privacy finding（durable retry 保留 raw cause）已修复为 class-only 脱敏；stale durable CLAIMED 无恢复路径 finding 已修复（reaper 全量回收）；SMTP/WS duplicate on confirm-fail 与 PENDING email_log 为文档化 at-least-once 取舍"
+    commits: []
+    notes: "Schema 只允许新增 forward migration；不得编辑已应用 migration。NOTIFY-003 已完成，NOTIFY-004 为下一 ready task。"
+    updated_at: "2026-08-14T01:20:00+08:00"
+  - id: NOTIFY-004
+    title: "建立独立 Notification worker runtime role"
+    source:
+      - "NOTIFY-003"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md:283-285,595,834-839"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification/"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/email/"
+    status: done
+    depends_on:
+      - "NOTIFY-003"
+    acceptance_criteria:
+      - "Notification delivery scheduler/dispatcher 可通过 App worker profile 单独启动与扩缩容；HTTP App profile 不运行 delivery worker"
+      - "worker 与 HTTP role 共享 App owner 的 typed storage seam，不共享第二套 writer；scheduler 使用 lease/CAS 防重复"
+      - "worker startup、disable flag、oldest-outbox/ledger lag、retry/failure metrics 和 graceful shutdown 有可验证契约"
+      - "不创建 backend-notification、独立物理数据库、独立 WebSocket transport 或未经证据支持的 broker"
+    validation:
+      - "App api/worker profile context/startup tests"
+      - "worker disabled/enabled smoke、duplicate scheduler lease、graceful shutdown checks"
+      - "Compose/config validation 与 focused notification suite"
+    rollback:
+      - "切回 combined App profile，但保留 durable intent/ledger 与 failure isolation；不得恢复同步 SMTP"
+    evidence:
+      - "application.yml 新增 ulticode.notification.worker.enabled（默认 true）与 api（false）/worker（true）on-profile 段；YAML 3 文档解析验证通过"
+      - "SubmissionJudgedInboxBridge 与 NotificationLedgerReaper 以相同 @ConditionalOnProperty 门控；NotificationWorkerProfileTest 3 tests 覆盖 enabled/missing/disabled 三态"
+      - "NotificationLedgerReaperTest 3 tests：reap 计数 notification.ledger.reaper.reaped、零行不计数、ledger 失败被吞不污染 worker"
+      - "NotificationDeliveryLedgerMapper.oldestClaimedAgeSeconds ledger lag 查询 + 真实 MySQL IT 断言（oldest in-flight CLAIMED ≥ 300s）"
+      - "多副本安全复用现有 consumer_inbox lease-CAS、outbox claimPending、Redis consumer groups、ledger claim_owner CAS；无第二 writer"
+      - "graceful shutdown：@Scheduled 由 Spring TaskScheduler 关闭；InboxConsumer 每批 lease-heartbeat executor 在 finally shutdownNow"
+      - "App boot test 5 tests、Notification/Inbox/Outbox pattern 112 tests、focused 13 新 tests 全过；git diff --check 干净；NOTIFY-004 delta review Confirmed=0"
+    commits: []
+    notes: "运行角色拆分完成，不是新数据 Owner；未来物理微服务必须另立 ADR/Execution Packet。NOTIFY-005 为阶段收口 gate。"
+    updated_at: "2026-08-14T01:35:00+08:00"
+  - id: NOTIFY-005
+    title: "关闭 Notification Delivery phase gate"
+    source:
+      - "NOTIFY-001"
+      - "NOTIFY-002"
+      - "NOTIFY-003"
+      - "NOTIFY-004"
+      - "/tmp/architecture-review-20260813.html#top-recommendation"
+    status: done
+    depends_on:
+      - "NOTIFY-004"
+      - "CONTEST-011"
+    acceptance_criteria:
+      - "所有 Notification candidate、迁移指南 P4、CONTEXT glossary、security invariants 与本 Execution Packet 条目均有唯一 Task 和证据"
+      - "focused → app module test/IT → services verify → Compose/config → architecture/security/concurrency review 全部完成；真实失败已消除并保留证据"
+      - "owner/runtime matrix、CONTEXT 或迁移指南中受影响的行为文档已同步；没有未授权跨 owner import、同步 fan-out 或敏感数据泄漏"
+      - "phase terminal condition 明确为可独立伸缩的 App Notification worker；未声称 backend-notification 已完成"
+    validation:
+      - "cd services && ./mvnw -pl app/app-web -Dtest='*Notification*Test,*Inbox*Test,*Outbox*Test' test -B"
+      - "相关 *IT suites for ledger reclaim and outbox/inbox"
+      - "cd services && ./mvnw verify -B"
+      - "./scripts/dev/test.sh quick"
+      - "git diff --check"
+    rollback:
+      - "reopen the missing Task or roll back that seam only; do not clear evidence or mark the phase complete"
+    evidence:
+      - "Notification/Inbox/Outbox pattern suite 112 tests + NOTIFY-004 focused 13 tests + App boot test 5 tests 全过"
+      - "services reactor ./mvnw verify -B BUILD SUCCESS（15 modules，含 JaCoCo 阈值）"
+      - "Compose base+dev / base+prod config 校验通过；git diff --check 通过"
+      - "architecture/security/concurrency review：NotifySecurityReview（privacy finding 已修）、NotifyCorrectnessReview（stale durable CLAIMED finding 已修）、Notify004Review（Confirmed=0）"
+      - "文档同步：CONTEXT.md 增加 Notification Delivery worker 术语；MICROSERVICE_MIGRATION_GUIDE.md 11.4 补充 worker profile 说明"
+      - "4 个 NOTIFY migrations 已在真实 MySQL 9.1 临时 schema 上验证可应用（claim fencing 列存在）"
+      - "./scripts/dev/test.sh quick 通过：Flyway、15 个后端模块、auth-core 70、Console 571、Management 423 tests 全通过"
+      - "共享基线 ulticode_test 与 App 轻量基线 app 均成功应用 V20260811180000；重复执行 SQL 两边均成功；两边各 26 个目标字段、7 个目标索引和 scoring-rule 外键"
+      - "字段收敛核验：contest_type DEFAULT CUSTOM、duration_minutes DEFAULT 0、tie_breaker 包含 TOTAL_TIME"
+      - "App Flyway validate 通过；git diff --check 通过；rollback 在共享基线 guard test 中以 Error 1644 安全拒绝"
+      - "Spec review 初始 HIGH（字段未收敛）已修复；Standards review 的共享 rollback 风险已通过拒绝共享链 rollback 修复；无未决 Confirmed finding"
+    commits: []
+    notes: "CONTEST-011 已修复共享基线与 App Contest migration 冲突；quick gate、双基线 smoke、重复执行、字段收敛和 rollback guard 均通过，Notification phase 可关闭。"
+    updated_at: "2026-08-14T02:46:00+08:00"
+  - id: CONTEST-011
+    title: "使 App Contest migration 兼容共享基线"
+    source:
+      - "NOTIFY-005 blocker"
+      - "init-db/migrations/V20260602_120000__Create_All_Tables.sql:273-316"
+      - "init-db/migrations/app/V20260811180000__Create_App_Contest_Schema.sql:14-83"
+      - "init-db/migrations/V20260610140000__Add_User_Permission_Expires_At.sql:1-22"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "V20260811180000 在共享基线已包含 contests 字段/索引时不再触发 Error 1060/1061，并完成必要的 status/column convergence"
+      - "V20260811180000 在 App 轻量 contests/submissions 基线时仍补齐字段、索引、外键和 contest 关联表"
+      - "迁移重复执行的条件 DDL 不产生重复 column、index 或 foreign key；不改变 App owner、业务契约和现有回滚边界"
+    validation:
+      - "./scripts/dev/test.sh quick"
+      - "共享基线与 App 轻量基线的迁移 smoke/assertion"
+      - "git diff --check"
+    rollback:
+      - "在目标迁移未成功应用的环境恢复原 SQL 并 repair failed history；已成功应用环境不得改写历史，按发布窗口执行等价 corrective migration"
+    evidence:
+      - "Flyway shared-chain quick gate：ulticode_test 成功校验 73 migrations 并保持 at v20260813230000；初始 failed/checksum history 由本地 repair 后验证通过"
+      - "App-only Flyway：空 app schema 成功应用 4 migrations 至 v20260811180000；App validate 与 migrate repair 后均通过"
+      - "两种基线重放 V20260811180000 成功；ulticode_test 与 app 各有 26 个目标 contest 字段、7 个目标索引和 fk_app_contests_scoring_rule"
+      - "共享基线字段收敛为 contest_type DEFAULT CUSTOM、duration_minutes DEFAULT 0、tie_breaker enum 包含 TOTAL_TIME"
+      - "重复执行目标 SQL 在两个 schema 均成功；git diff --check 通过"
+      - "rollback guard test 在带 Create All Tables history 的临时 schema 以 Error 1644 拒绝，临时 schema 已清理"
+      - "Standards/Spec review：字段收敛 HIGH 与共享 rollback CRITICAL 已修复；仅重复 INFORMATION_SCHEMA guard 为低风险维护备注"
+    commits: []
+    notes: "采用用户允许的幂等重构：共享根链在目标版本失败前无法等待 later corrective migration，因此目标 migration 使用既有 INFORMATION_SCHEMA + PREPARE 模式；手工 rollback 仅允许 App-owner chain。"
+    updated_at: "2026-08-14T02:46:00+08:00"
+  - id: SPLIT-001
+    title: "冻结 Submission/Search Owner 边界与跨服务事件契约"
+    source:
+      - "user-request-2026-08-15-submission-search-microservices"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md:152,283-345,393,652-675,741,906,977"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/queue/outbox/dispatcher/JudgeOutboxDispatcher.java"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "目标 Owner、唯一 writer、事务边界、事件流、兼容开关和最终退役条件写入 Execution Packet 与 DEC-011"
+      - "SubmissionCreated/SubmissionJudged 与 SearchDocumentChanged 的 eventType、schemaVersion、aggregate/version、幂等 identity 和 payload redaction 规则具有公共契约"
+      - "契约模块不依赖 Entity、Mapper、Repository、ServiceImpl、MyBatis、Spring bean 或安全上下文；契约测试锁定字段名、Owner 和敏感字段禁入"
+      - "明确保留 backend-judge 为无业务表执行 worker；Contest ranking、moderation 独立化、Notification 物理拆分不进入本次范围"
+    validation:
+      - "cd services && ./mvnw -pl api/app-api -Dtest='*EventContractTest' test -B"
+      - "契约 ArchUnit/静态依赖边界检查"
+      - "git diff --check"
+    rollback:
+      - "删除本 Task 新增的契约类型与文档决策；不改写既有 migration、App writer 或 judge runtime"
+    evidence:
+      - "graph project UltiCode architecture generation: 32,314 nodes / 117,680 edges；target symbols and source call-chain evidence recorded in PLAN.md"
+      - "existing SubmissionWritePort/DefaultSubmissionWritePort, judge outbox dispatcher/reaper/result outbox and SearchReadProjection seams verified"
+      - "IntegrationEventEnvelopeContract centralizes eventId, owner, eventType, schemaVersion, aggregateId, aggregateVersion, causationId, traceId and payload; both owner contracts reuse the same field set"
+      - "SearchDocumentChanged recursive map/list sensitive-field checks cover sourceCode and token; top-level key compatibility remains covered"
+      - "app-api focused contract tests: 5 passed; app-api full tests: 41 passed including ArchUnit; graphify update completed; git diff --check and changed-file whitespace checks passed"
+      - "SPLIT-001 implementation review: no Confirmed findings in main-thread source, dependency, compatibility and protected-worktree checks"
+    commits: []
+    notes: "契约/决策切片已完成 Review、Validation 和 Completion Audit；只关闭本 Task，不宣称两个服务已拆完。"
+    updated_at: "2026-08-15T22:02:00+08:00"
+  - id: SPLIT-002
+    title: "建立独立 backend-submission runtime 与兼容 provider seam"
+    source:
+      - "SPLIT-001"
+      - "services/app/modules/submission/pom.xml"
+      - "services/app/app-web/src/main/java/com/ulticode/BackendAppApplication.java"
+      - "services/judge/src/main/java/com/ulticode/judge/BackendJudgeApplication.java"
+    status: done
+    depends_on:
+      - "SPLIT-001"
+    acceptance_criteria:
+      - "新增可独立构建/启动的 backend-submission 单元，HTTP 与 Dubbo/内部 provider contract 不引入共享业务 Entity/Mapper"
+      - "App 现有提交路由保持 Result、认证、限流和错误映射兼容；local/remote 路径由显式 feature flag 选择且同一时间只有一个 writer"
+      - "backend-judge 不再以 backend-app-web 作为业务实现依赖，仍只执行 sandbox 并通过 Submission owner contract 读/写"
+      - "submission 服务不拥有 Problem、Contest、User 或 Notification 表"
+    validation:
+      - "services reactor compile + submission boot/context contract tests"
+      - "App/Judge/Submission dependency and route contract tests"
+      - "Compose/Nacos service-name and internal-port config validation"
+      - "services/judge-runtime full tests; backend-judge package; backend-app focused routing/judge tests"
+      - "Redis Streams atomic enqueue and bounded PEL/DLQ regression tests"
+      - "platform/common focused tests; judge dependency tree; git diff --check"
+    rollback:
+      - "关闭 remote submission flag，停止新 runtime，保留本地 App writer；不回退已应用 schema"
+    evidence:
+      - "新增 services/submission 与 services/judge-runtime；Submission provider 无业务 Entity/Mapper，Judge runtime 无 HTTP/业务表并独立构建"
+      - "App local/remote submission routing 保持单 writer；backend-judge dependency tree 未出现 backend-app-web"
+      - "Redisson Streams enqueue 使用单 Lua SET NX + XADD，XADD 失败回滚 marker；PEL delivery budget 超限写 judge:{judge-stream}:dlq 后 ACK"
+      - "judge-runtime 4 tests、Submission 2 tests、common 88 tests、App 定向 submission/judge/queue tests 通过；backend-judge package BUILD SUCCESS"
+      - "dev/prod Compose config、git diff --check 通过；graphify update . 完成"
+      - "Aquinas Java/Redis review rechecked atomic enqueue, Redis Cluster slot safety, DLQ idempotency and delivery-count semantics; Confirmed findings=0"
+    commits: []
+    notes: "SPLIT-002 只落地 network/runtime compatibility seam；Submission storage owner、DB/outbox writer cutover 留给 SPLIT-003，Search-001 是下一条 ready task。"
+    updated_at: "2026-08-15T23:45:00+08:00"
+  - id: SPLIT-003
+    title: "迁移 Submission aggregate、judge/result outbox 的存储 Owner"
+    source:
+      - "SPLIT-002"
+      - "init-db/migrations/V20260602_120000__Create_All_Tables.sql:926"
+      - "init-db/migrations/V20260613100000__Create_Judge_Outbox.sql"
+      - "init-db/migrations/V20260729190000__Create_Submission_Result_Outbox.sql"
+    status: in_progress
+    depends_on:
+      - "SPLIT-002"
+    acceptance_criteria:
+      - "submissions、submission_test_details、judge_outbox、submission_result_outbox 具有唯一 Submission writer 和独立 DB grant"
+      - "采用 expand → backfill → verify → cutover → observe；旧 App writer 可回滚且不编辑已应用 migration"
+      - "submission + judge_outbox 与 verdict fence + result outbox 仍在 Submission owner 本地强一致事务内"
+      - "跨服务只发送不含 source code/hidden testcase/token 的事件；重复、乱序、stale generation 有幂等/拒绝证据"
+    validation:
+      - "真实 MySQL Testcontainers migration/backfill/row-count/checksum/grant checks"
+      - "submission mapper/outbox/fence/reaper/result-outbox integration tests"
+      - "crash-window、duplicate dispatch、stale generation、rollback flag tests"
+    rollback:
+      - "停止远端 writer，恢复 App compatibility adapter；仅在新 owner 未成为唯一 writer 前回退路由，数据按 reconciliation 对账"
+    evidence:
+      - "expand-slice-1: init-db/migrations/submission/V20260816040000__Create_Submission_Owner_Tables.sql + V20260816040100__Grant_Submission_Owner.sql + init-db/flyway-submission.conf"
+      - "migrate.sh 校验 SUBMISSION_DB_NAME=submission；PerOwnerSchemaGrantTest SUBMISSION_TABLES=submissions/judge_outbox/submission_result_outbox 且 APP_TABLES 移除 submissions；flyway-submission.conf/migrations/submission 存在断言通过 (6/6)"
+      - "迁移指南 §5 数据矩阵 submissions/submission_result_outbox Target Owner 改为 Submission"
+      - "真实 MySQL 8.0 容器 flyway migrate 成功：schema=submission 自动创建，3 表 + flyway_schema_history success=1；重复执行幂等；submission_rw 用户 ACCOUNT LOCK；bash -n 与 git diff --check 通过"
+      - "slice-2: backend-submission 本地写路径（Submission entity/mapper/outbox/codec/stats/projection/DefaultSubmissionWritePort/Dubbo 适配器）；IT Testcontainers MySQL 8.0 4/4（submit 持久化+judge_outbox、fence CAS 接受/拒绝 stale、contest 拒绝）；复制类 12/12 IDENTICAL；Focused 9/9 + PerOwnerSchemaGrantTest 6/6 + reactor compile + compose dev/prod + git diff --check 全过；Review Confirmed=0；不切流（App 路由保持 local）"
+      - "slice-3: backend-submission outbox 消费者（JudgeOutboxDispatcher M3c-2 裁剪 + SubmissionResultDispatcher + ResultEventPublisher 直接 XADD stream:integration + QueueConfig 精简）；IT Testcontainers MySQL+Redis 4/4（judge enqueue markSent、provider absent 重试、result XADD markDelivered、XADD 失败重试）；复制类 5/5 IDENTICAL；@EnableScheduling 修复；Focused 13/13 + reactor compile + compose dev/prod + git diff --check 全过；Review Confirmed=0；不切流（App 路由保持 local）"
+      - "slice-4: cutover 能力建设（不切流）：scripts/dev/submission-schema-cutover.sh（preflight 列形状/空目标核对→cutover 复制三表+撤销 App 表级 grant→rollback 回写+恢复 grant；真实 MySQL 8.0 全链路 PASS）；app.submission.owner.mode=compat|local（默认 compat 转发 App，local 委托本地 writer/fence 直写 submission schema）；补齐 DefaultSubmissionFencePort + mapper acquireLease/renewLease（SQL 与 App IDENTICAL）；IT 7/7（cutover 3/3 Testcontainers + contract 4/4）+ 模块 5/5 + Focused 16/16 + PerOwnerSchemaGrantTest 6/6 + reactor compile + compose dev/prod + bash -n + git diff --check 全过；Review Confirmed=1（@Autowired 修复）→0；runbook 加固：assert_revoke_ready 复制前拦截 grant 缺失 + cleanup_failed_cutover 失败清理（真实 MySQL 复测：拦截 exit 1 / cutover/rollback 全链路 PASS），残余运维风险 R1-R3 记录于 WORKLOG；实际切流 gate 在 SPLIT-004 读路径迁移后（DEC-015）"
+    commits: []
+    notes: "不得把 Contest association 作为第二个 writer 搬进 Submission 库；关联改为 App Contest inbox/event。用户 2026-08-16 在恢复上下文后明确选择 SPLIT-003 作为下一条执行任务（而非 SEARCH-001）。expand 切片已完成 schema 目标态/Flyway/grant/manifest；writer 迁移、backfill/verify/cutover、grant revocation 属后续切片。"
+    updated_at: "2026-08-16T15:45:00+08:00"
+  - id: SPLIT-004
+    title: "切换 Judge/Contest/Admin/Notification/App consumers 到 Submission owner"
+    source:
+      - "SPLIT-003"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/queue/"
+      - "services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminSubmissionController.java"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/service/Submission*"
+    status: pending
+    depends_on:
+      - "SPLIT-003"
+    acceptance_criteria:
+      - "用户/管理提交查询与 rejudge 只经 Submission owner contract；外部 URL/Result/权限语义不变"
+      - "backend-judge 通过 Streams + Submission contract 完成 claim/fence/verdict；未完成结果不得 ACK"
+      - "Contest submission association、Notification、Achievement、WebSocket 和 Admin projection 通过 durable event/inbox 或粗粒度 read，不跨服务 SQL"
+      - "App 中原 Submission mapper/writer、judge dispatcher/reaper、result dispatcher 仅保留明确 compatibility/read adapter，并有退役证据"
+    validation:
+      - "App/Admin/Judge/Submission contract and integration suites"
+      - "Redis Streams PEL/reaper/duplicate/ordering/failure tests"
+      - "HTTP/Dubbo authz, rate-limit, audit actor and sensitive-payload tests"
+    rollback:
+      - "按 owner flag 回到旧路由；保留事件 replay watermark 与 reconciliation，不恢复双写"
+    commits: []
+    notes: "需要先完成存储唯一 writer 和 consumer contract；不得用同步回调重建分布式长事务。slice-5（admin read provider 能力建设）已交付；后续切片：用户读路径 provider、App/Admin read routing 切换、AC4 退役证据。"
+    updated_at: "2026-08-15T12:00:00+08:00"
+    evidence:
+      - "slice-5 (in_progress): backend-submission Admin read provider 能力建设（不切流）：SubmissionAdminReadProvider（group=backend-submission，search/counts/languages/distinct-users 与 App 8/8 语义 MATCH）+ ProblemAdminReadDubboAdapter（DEC-011：problem-title 搜索仅经 Dubbo seam，未用方法 fail-loud）+ SubmissionMapper 补 read 方法（SQL 与 App 6/6 IDENTICAL）+ MybatisPlusConfig 分页拦截器（F1 修复，selectPage total 曾恒 0）+ pom 补 mybatis-plus-jsqlparser；F2 修复 renewLease @Select→@Update；IT Testcontainers MySQL 4/4（分页/过滤/标题搜索/详情/计数）；Focused 20/20 + 模块 5/5 + reactor compile + compose dev/prod + bash -n + git diff --check 全过；Review Confirmed=2→0；不切流（Admin 仍调 backend-app）"
+      - "slice-6 (in_progress): backend-submission 用户读 provider 能力建设（不切流）：App 暴露 SubmissionUserReadProvider（group=backend-app，user 摘要 seam，DEC-011 合规）+ backend-submission SubmissionUserReadDubboAdapter + SubmissionReadProvider（group=backend-submission，toVO 本地 P0-1 projection + 经 Dubbo 补 user/problem 摘要，语义与 App DefaultSubmissionProjection 一致）；IT Testcontainers MySQL 2/2（toVO 读 submission schema + 摘要 enrichment、missing→null）；Focused 22/22 + App boot 5/5 + 模块 5/5 + reactor compile + compose dev/prod + bash -n + git diff --check 全过；Review Confirmed=0；不切流（contest 仍用 App 本地 SubmissionReadAdapter）"
+      - "slice-7 (in_progress): backend-submission 用户聚合 provider 能力建设（不切流）：SubmissionMapper 补聚合 SQL（dates/streak/monthly/language/weekly，与 App 5/5 IDENTICAL）+ SubmissionProjection 接口扩展与 DefaultSubmissionProjection 聚合实现（learning/history/status 语义与 App 一致）+ SubmissionStatusCatalog 复制（IDENTICAL）+ 新 contract SubmissionUserQueryPort（app-api additive）+ SubmissionUserQueryProvider（group=backend-submission）；F1 修复 calculateStreak day_num 基数（0→1 与 App 一致）；IT Testcontainers MySQL 4/4（dates/learning+streak/history+acceptance/status catalog）；Focused 26/26 + 模块 5/5 + App boot 5/5 + PerOwnerSchemaGrantTest 6/6 + reactor compile + compose dev/prod + bash -n + git diff --check 全过；Review Confirmed=1→0；不切流（App 本地 projection 未动）"
+      - "slice-8 (in_progress): read-routing 能力建设（不切流）：ProblemFactsPort 批量 seam（App adapter selectBatchIds/provider/backend-submission adapter 三方同步，消除 list N+1）+ SubmissionUserQueryPort 扩展 findById/findByUserId/findBest + backend-submission SubmissionUserQueryProvider 实现（list 批量 facts + detail 权限/performanceStats + best；projection toVO 摘要提取 applyUserSummary/applyProblemSummary + toDetailVO 复制与 App 语义一致）+ App SubmissionController 7 读端点经 SubmissionUserQueryPort（Local/Remote 双 adapter，写路径仍 writePort，findById null→NOT_FOUND）+ Admin Dubbo read-group 参数化（默认 backend-app 可切 backend-submission）；IT 8/8（findById 权限/list 分页/批量 enrichment/findBest + 既有 4 聚合）；Focused 30/30 + 模块 5/5 + App boot 5/5 + PerOwnerSchemaGrantTest 6/6 + reactor compile + compose dev/prod + bash -n + git diff --check 全过；Review Confirmed=0；不切流（routing.mode 默认 local）"
+  - id: SEARCH-001
+    title: "实现四类来源的 SearchDocumentChanged 发布 seam"
+    source:
+      - "SPLIT-001"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/search/source/"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/event/outbox/IntegrationEventPublisher.java"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/service/{ProblemSearchReadPort,UserSearchReadPort,ForumPostReadPort,SolutionReadPort}.java"
+    status: ready
+    depends_on:
+      - "SPLIT-001"
+    acceptance_criteria:
+      - "Problem/User/Forum/Solution 的真实写路径在本地事务内生成 SearchDocumentChanged outbox event；不是在查询路径临时写索引"
+      - "UPSERT/DELETE、documentId、aggregateVersion、eventId/consumer identity 和 schemaVersion 稳定；事件 payload 只含索引安全字段"
+      - "同一变更重复发布不会产生不可控索引覆盖；删除事件可 tombstone/replay"
+      - "没有遗漏写 caller 的证据：按四个 source 的 owner writer 做双向调用链核验"
+    validation:
+      - "四类 source producer contract tests and outbox idempotency tests"
+      - "malicious/sensitive field redaction regression tests"
+      - "graph/source fallback caller inventory"
+    rollback:
+      - "停止 SearchDocumentChanged producer 或回退其 feature flag；App DB writes remain authoritative"
+    evidence: []
+    commits: []
+    notes: "Search 只拆索引 worker；Problem/User/Forum/Solution 业务表仍归 App/Auth owner，不复制数据库。"
+    updated_at: "2026-08-15T12:00:00+08:00"
+  - id: SEARCH-002
+    title: "建立无 HTTP/无业务表的 backend-search indexing worker"
+    source:
+      - "SEARCH-001"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/search/config/MeiliSearchConfig.java"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java"
+      - "services/notification/src/main/java/com/ulticode/notification/BackendNotificationApplication.java"
+    status: pending
+    depends_on:
+      - "SEARCH-001"
+    acceptance_criteria:
+      - "backend-search 可独立构建/部署，只消费 Redis Streams SearchDocumentChanged 并写 MeiliSearch，不连接 App/Auth/MySQL 业务表，不暴露 HTTP"
+      - "consumer inbox/claim/reclaim/ACK、UPSERT/DELETE、bounded retry/DLQ、lag/error metrics 具备 at-least-once 幂等语义"
+      - "MeiliSearch unavailable 不阻塞 App 写入；恢复后可 replay；document key/index allowlist 防止任意索引写入"
+      - "worker config、Nacos identity、Compose internal network 与 secrets 不发布到公网"
+    validation:
+      - "Search worker unit tests"
+      - "real Redis Streams + MeiliSearch/Testcontainers integration tests"
+      - "worker boot/no-HTTP/no-DB dependency contract and Compose config checks"
+    rollback:
+      - "停止 worker，继续保留事件 outbox/replay；App search read 使用 DB fallback，恢复 worker 后从 watermark 重放"
+    evidence: []
+    commits: []
+    notes: "复用已有 integration outbox/Redis Streams/inbox 模式；不引入第二个 broker 或自定义队列。"
+    updated_at: "2026-08-15T12:00:00+08:00"
+  - id: SEARCH-003
+    title: "执行索引 backfill、读路径兼容与 Search owner cutover"
+    source:
+      - "SEARCH-002"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/search/controller/SearchController.java"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java"
+    status: pending
+    depends_on:
+      - "SEARCH-002"
+    acceptance_criteria:
+      - "四类索引可从 App owner 的安全 snapshot/backfill 生成；backfill 与 live event 有 watermark/版本核对，不覆盖新版本"
+      - "现有 /search Result、分页、URL、highlight、DB fallback 行为保持兼容；MeiliSearch 读/写 owner 不再由 App 业务代码隐式承担"
+      - "旧 App MeiliSearch write path（若存在）被扫描确认不存在或已退役；worker 成为唯一 index writer"
+      - "索引丢失、删除、乱序、重复、MeiliSearch 故障可重放并有可观测证据"
+    validation:
+      - "backfill/replay/dual-read index consistency checks"
+      - "Search projection/controller contract tests and source owner tests"
+      - "Compose config, docs, diff check and targeted production build"
+    rollback:
+      - "停止 cutover，保留 App DB fallback 和 outbox；不回滚源数据或删除 index，按 watermark 继续重放"
+    evidence: []
+    commits: []
+    notes: "不把 SearchSource 的 DB 查询 adapter 搬进 worker；worker 接收完整安全 document，避免跨服务读业务库。"
+    updated_at: "2026-08-15T12:00:00+08:00"
+  - id: SPLIT-005
+    title: "Submission/Search 微服务迁移最终 Phase Gate"
+    source:
+      - "SPLIT-004"
+      - "SEARCH-003"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
+      - "AGENTS.md"
+    status: pending
+    depends_on:
+      - "SPLIT-004"
+      - "SEARCH-003"
+    acceptance_criteria:
+      - "Submission owner、backend-judge、backend-search、App/Admin/Notification/Contest 的 owner/runtime matrix 与路由契约一致"
+      - "Submission 旧 writer、Search 旧 index writer、兼容开关和临时 DB grants 均有删除/关闭证据；没有双写或共享业务表 writer"
+      - "focused → module/integration → services verify → Compose/base+dev+prod → security/concurrency/architecture review 全部通过"
+      - "回滚只回路由/consumer watermark，不回写已应用 migration；所有 outstanding event/reconciliation 可观测"
+      - "本次明确跳过的 contest ranking、moderation 物理拆分、Notification 物理拆分保持未声称完成"
+    validation:
+      - "./scripts/dev/test.sh quick"
+      - "cd services && ./mvnw verify -B && ./mvnw -Dtest='*IT' test -B"
+      - "docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config"
+      - "docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml config"
+      - "git diff --check and formal review"
+    rollback:
+      - "恢复最后一个已验证 cutover watermark/route；保留数据和 outbox，按 reconciliation 清理，不执行 destructive reset"
+    evidence: []
+    commits: []
+    notes: "仅此 Gate 通过后才可对外宣称两个独立微服务完成；未完成前 handoff 必须保留 active task。"
+    updated_at: "2026-08-15T12:00:00+08:00"

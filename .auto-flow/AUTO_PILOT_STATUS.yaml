@@ -1,0 +1,32 @@
+objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
+domain: "research + skill-creation"
+scope:
+  - "发现并验证本地 arthas-mcp 运行时"
+  - "记录 tools/list 返回的全部工具契约"
+  - "创建用户级 Arthas MCP Skill 与动态客户端"
+  - "创建项目级 JVM 诊断 Agent 配置"
+out_of_scope:
+  - "修改现有业务代码"
+  - "修复 wrapper 的 9001/9103 端口漂移"
+  - "执行热更新、堆转储、停止 Arthas 等高风险动作"
+terminal_condition:
+  - "tools/list 已核验，工具数和快照已记录"
+  - "Skill/Agent 文件可加载，脚本语法与 Skill validator 通过"
+  - "客户端可连接当前 endpoint 并执行安全列表/探测"
+nodes:
+  - id: NODE-001
+    goal: "发现并验证运行时与全部工具"
+    status: done
+    evidence: "当前 endpoint tools/list 返回 31 个工具；已完成受限只读探测"
+  - id: NODE-002
+    goal: "创建 Skill、客户端和工具快照"
+    status: done
+    artifact: "/home/davidhlp/.codex/skills/arthas-mcp-diagnostics"
+  - id: NODE-003
+    goal: "创建项目级 Arthas 诊断 Agent"
+    status: done
+    artifact: ".codex/agents/arthas-mcp-diagnostics.toml"
+  - id: NODE-004
+    goal: "验证产物与工作区边界"
+    status: done
+resume_point: "Objective terminal evidence complete"

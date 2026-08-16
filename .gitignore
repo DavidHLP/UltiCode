@@ -43,6 +43,7 @@
 !/docker-compose.gateway-test.yml
 !/.env.example
 !/.env.test.example
+!/.auto-flow/**
 
 # =====================================================================
 # 3. 后端 (Spring Boot / Java 17)

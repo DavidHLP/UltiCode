@@ -1,0 +1,39 @@
+outcome: pass
+outputs:
+  - "SPLIT-004 slice-8（read-routing 能力建设，不切流）实现+Review+Validation 闭环"
+  - "ProblemFactsPort 批量 seam：findDisplayFactsBatch（app-api）+ App ProblemFactsAdapter（selectBatchIds）/ProblemFactsProvider + backend-submission ProblemFactsDubboAdapter 三方同步，消除 list N+1"
+  - "SubmissionUserQueryPort 扩展 findById/findByUserId/findBest；backend-submission SubmissionUserQueryProvider 实现（list 批量 facts + detail 权限/performanceStats + best；projection toVO 摘要提取 + toDetailVO 复制与 App 语义一致）"
+  - "App SubmissionController 7 读端点经 SubmissionUserQueryPort（Local/Remote 双 adapter，写路径仍 writePort，findById null→NOT_FOUND 语义保持）"
+  - "Admin Dubbo read-group 参数化（app.submission.admin.read-group 默认 backend-app，可切 backend-submission）"
+  - "IT 8/8（findById 权限/list 分页/批量 enrichment/findBest + 既有 4 聚合）；控制面更新"
+evidence:
+  - "Focused: ./mvnw test -pl submission -Dtest='*IT,BackendSubmissionApplicationTest,SubmissionProviderContractTest' → 30/30 PASS（user query IT 8/8 新增）"
+  - "App boot 5/5 PASS; 模块 5/5 PASS; PerOwnerSchemaGrantTest 6/6 PASS; reactor compile exit 0; compose dev/prod config PASS; bash -n PASS; git diff --check PASS; App test-compile PASS"
+  - "toVO 摘要关键值（user 4 字段 + problem 3 字段 + BeanUtils.copyProperties）与 App 8/8 一致；无跨库 JOIN（DEC-011）；批量 seam 生效（findDisplayFactsBatch 在 provider 使用）；不切流（routing.mode 默认 local、admin read-group 默认 backend-app）"
+  - "用户 3 commit（57e95363f/34c3a8c9d/e0ab90489）完好"
+review:
+  status: pass
+  scope: "toVO 摘要语义与 App 一致、DEC-011 合规（无跨库 JOIN，problem facts 经批量 seam）、不切流（默认 local/compat 行为保持）、批量 seam 消除 list N+1、Admin group 参数化不改变默认路由、controller 无残留本地依赖、无 TODO/FIXME"
+  confirmed_findings:
+    - "F1 (Confirmed→Fixed，advisory blocker 采纳)：Local/Remote 双 adapter 无条件+条件实现同一接口 → remote 模式下 NoUniqueBeanDefinitionException，App 无法在切流目标模式 boot。修复：新建 SubmissionUserQueryRoutingPort（@Primary wrapper，注入 Local 具体类型 + ObjectProvider<Remote> + SubmissionRoutingProperties，按 routing.mode 委托），镜像写路径 SubmissionWriteRoutingPort 先例。复检：BackendAppApplicationTest 在 -Dapp.submission.routing.mode=remote 下 5/5 PASS。"
+  observations:
+    - "App findByUserId 实际忽略 problemId（SQL 仅 user_id），backend-submission 实现一致，不扩大行为差异"
+validation:
+  tier: C
+  risk_reason: "app-api contract 扩展 + 双服务读路径 + controller 改造（默认 local 行为保持）+ admin 参数化；不切流故不改变现有路由"
+  status: pass
+  checks:
+    - "Focused 30/30 PASS（user query IT 8/8 + read 2/2 + admin read 4/4 + cutover 3/3 + write 4/4 + dispatcher 4/4 + boot 1 + contract 4）"
+    - "App boot 5/5 默认 local + 5/5 remote（-Dapp.submission.routing.mode=remote）；模块 5/5; PerOwnerSchemaGrantTest 6/6; reactor compile; compose dev/prod; bash -n; git diff --check"
+  failures_fixed:
+    - "app-api port 变更需重新 install 后下游编译"
+    - "3 个既有 IT 的 DefaultSubmissionProjection 构造 4 参适配；PageResult getRecords→getItems"
+    - "toVO 无条件调用 seam 在 null 注入 IT 下 NPE → 加 null 守卫（生产非 null 不受影响）"
+    - "list 批量 seam 设计修正：provider 一次 findDisplayFactsBatch + projection toVO(Submission, Map) 重载，避免逐行单条 Dubbo N+1"
+  external_gaps:
+    - "实际 read-routing 切换（routing.mode=remote + admin read-group=backend-submission 翻转）必须在 cutover 数据复制后执行；AC4 退役证据仍未做"
+next_goal: "执行 SPLIT-004 下一切片：实际 read-routing 切换与 AC4（cutover 后翻转 routing flag + Admin group + 旧 App read adapter 退役证据），随后 SPLIT-003 实际切流 gate（remote write + local read + grant revocation 观察窗）"
+next_skill: run-development-loop
+reason: "slice-8 Review PASS（F1 advisory blocker 已修复复检）+ Validation Tier C PASS；SPLIT-004 其余 AC（实际路由翻转、AC4 退役证据）与 SPLIT-003 实际切流 gate 仍未满足，按 close 契约续跑"
+alternatives: []
+blockers: []

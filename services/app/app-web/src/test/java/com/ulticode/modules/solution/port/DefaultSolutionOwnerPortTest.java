@@ -32,11 +32,14 @@ class DefaultSolutionOwnerPortTest {
     @Mock
     private ProblemExistencePort problemExistencePort;
 
+    @Mock
+    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+
     private DefaultSolutionOwnerPort port;
 
     @BeforeEach
     void setUp() {
-        port = new DefaultSolutionOwnerPort(solutionMapper, problemExistencePort);
+        port = new DefaultSolutionOwnerPort(solutionMapper, problemExistencePort, searchPublisher);
     }
 
     private Solution createSolution(String id, String userId, Long problemId) {
@@ -102,6 +105,7 @@ class DefaultSolutionOwnerPortTest {
 
         verify(solutionMapper).deleteById("s1");
         verify(problemExistencePort).markHasSolution(100L, false);
+        verify(searchPublisher).publishSolution(solution, false);
     }
 
     @Test
@@ -113,5 +117,31 @@ class DefaultSolutionOwnerPortTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("code")
                 .isEqualTo(SolutionErrorCode.SOLUTION_NOT_FOUND.code());
+    }
+
+    @Test
+    @DisplayName("setPublished(true) persists the flag and publishes an UPSERT document")
+    void setPublished_true_publishesUpsert() {
+        Solution solution = createSolution("s1", "u1", 100L);
+        when(solutionMapper.selectById("s1")).thenReturn(solution);
+
+        port.setPublished("s1", true, LocalDateTime.of(2026, 8, 16, 12, 0));
+
+        assertThat(solution.getIsPublished()).isTrue();
+        verify(solutionMapper).updateById(solution);
+        verify(searchPublisher).publishSolution(solution, true);
+    }
+
+    @Test
+    @DisplayName("setPublished(false) publishes a DELETE tombstone document")
+    void setPublished_false_publishesTombstone() {
+        Solution solution = createSolution("s1", "u1", 100L);
+        when(solutionMapper.selectById("s1")).thenReturn(solution);
+
+        port.setPublished("s1", false, null);
+
+        assertThat(solution.getIsPublished()).isFalse();
+        verify(solutionMapper).updateById(solution);
+        verify(searchPublisher).publishSolution(solution, false);
     }
 }

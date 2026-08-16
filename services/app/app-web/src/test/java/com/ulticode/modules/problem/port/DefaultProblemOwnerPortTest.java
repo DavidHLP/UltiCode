@@ -42,11 +42,14 @@ class DefaultProblemOwnerPortTest {
     @Mock
     private ProblemMapper problemMapper;
 
+    @Mock
+    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+
     private ProblemOwnerPort port;
 
     @BeforeEach
     void setUp() {
-        port = new DefaultProblemOwnerPort(problemMapper);
+        port = new DefaultProblemOwnerPort(problemMapper, searchPublisher);
     }
 
     @Nested

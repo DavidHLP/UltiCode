@@ -269,6 +269,7 @@ class ProblemServiceImplTest {
             assertThat(result.getId()).isEqualTo(1L);
             verify(problemWritePort).updateById(any(Problem.class));
             verify(problemProjection).toVO(any(Problem.class));
+            verify(searchPublisher).publishProblem(existing, true);
         }
 
         @Test
@@ -288,6 +289,7 @@ class ProblemServiceImplTest {
             assertThat(result.getId()).isEqualTo(1L);
             verify(problemWritePort).updateById(any(Problem.class));
             verify(problemProjection).toVO(any(Problem.class));
+            verify(searchPublisher).publishProblem(existing, false);
         }
     }
 }

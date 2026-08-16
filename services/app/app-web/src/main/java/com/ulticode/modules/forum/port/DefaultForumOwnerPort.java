@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 public class DefaultForumOwnerPort implements ForumOwnerPort {
 
     private final ForumPostMapper forumPostMapper;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     @Override
     @Transactional
@@ -182,6 +183,7 @@ public class DefaultForumOwnerPort implements ForumOwnerPort {
             }
             throw new BusinessException(BaseErrorCode.CONFLICT);
         }
+        searchPublisher.publishForumPost(post, false);
         log.info("Soft-deleted forum post {}", postId);
         return new DeleteResult(post.getUserId(), post.getTitle());
     }

@@ -35,6 +35,7 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
 
     private final SolutionMapper solutionMapper;
     private final ProblemExistencePort problemExistencePort;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     @Override
     @Transactional
@@ -78,6 +79,7 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
         Solution solution = loadOrThrow(id);
 
         solutionMapper.deleteById(id);
+        searchPublisher.publishSolution(solution, false);
 
         LambdaQueryWrapper<Solution> countWrapper = new LambdaQueryWrapper<>();
         countWrapper.eq(Solution::getProblemId, solution.getProblemId());
@@ -100,6 +102,9 @@ public class DefaultSolutionOwnerPort implements SolutionOwnerPort {
         solution.setPublishedAt(published ? publishedAt : null);
 
         solutionMapper.updateById(solution);
+        // DefaultSolutionReadAdapter filters is_published=true; keep the index
+        // coherent (UPSERT on publish, tombstone on unpublish).
+        searchPublisher.publishSolution(solution, published);
         log.info("Solution setPublished id={} published={}", id, published);
     }
 

@@ -14,9 +14,11 @@ import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
+import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Dubbo Provider implementation of {@link ProblemAdministrationService} in {@code backend-app}.
@@ -29,8 +31,10 @@ import org.apache.dubbo.config.annotation.DubboService;
 public class ProblemAdministrationProvider implements ProblemAdministrationService {
 
     private final ProblemAdministrationDomainService domainService;
+    private final SearchDocumentChangedPublisher searchPublisher;
 
     @Override
+    @Transactional
     public RpcResult<ProblemAdminViewDTO> createProblem(CreateProblemCommand command) {
         log.info("ProblemAdministrationProvider.createProblem slug={} commandId={} actor={}",
                 command.slug(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
@@ -40,6 +44,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
             dto.setTitle(command.title());
             String actorId = command.actor() != null ? command.actor().actorId() : null;
             Problem entity = domainService.createProblem(dto, actorId);
+            searchPublisher.publishProblem(entity, true);
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
@@ -51,6 +56,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     }
 
     @Override
+    @Transactional
     public RpcResult<ProblemAdminViewDTO> updateProblem(UpdateProblemCommand command) {
         Long id = parseId(command.problemId(), command.trace().traceId());
         if (id == null) {
@@ -63,6 +69,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
             dto.setTitle(command.title());
             String actorId = command.actor() != null ? command.actor().actorId() : null;
             Problem entity = domainService.updateProblem(id, dto, actorId, command.expectedVersion());
+            searchPublisher.publishProblem(entity, true);
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
@@ -74,6 +81,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     }
 
     @Override
+    @Transactional
     public RpcResult<Void> publishProblem(PublishProblemCommand command) {
         Long id = parseId(command.problemId(), command.trace().traceId());
         if (id == null) {
@@ -83,11 +91,15 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
                 id, command.publish(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
             String actorId = command.actor() != null ? command.actor().actorId() : null;
+            Problem entity;
             if (command.publish()) {
-                domainService.publishProblem(id, actorId, command.expectedVersion());
+                entity = domainService.publishProblem(id, actorId, command.expectedVersion());
             } else {
-                domainService.unpublishProblem(id, actorId, command.expectedVersion());
+                entity = domainService.unpublishProblem(id, actorId, command.expectedVersion());
             }
+            // DefaultProblemSearchReadPort filters is_published=true; keep the
+            // index coherent (UPSERT on publish, tombstone on unpublish).
+            searchPublisher.publishProblem(entity, command.publish());
             return RpcResult.success(command.trace().traceId());
         } catch (BusinessException e) {
             return toFailure(e, command.trace().traceId());
@@ -98,6 +110,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     }
 
     @Override
+    @Transactional
     public RpcResult<Void> deleteProblem(DeleteProblemCommand command) {
         Long id = parseId(command.problemId(), command.trace().traceId());
         if (id == null) {
@@ -107,7 +120,14 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
                 id, command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
             String actorId = command.actor() != null ? command.actor().actorId() : null;
+            Problem before = java.util.Optional
+                    .ofNullable(domainService.findById(id))
+                    .flatMap(o -> o)
+                    .orElse(null);
             domainService.deleteProblem(id, actorId, command.expectedVersion());
+            if (before != null) {
+                searchPublisher.publishProblem(before, false);
+            }
             return RpcResult.success(command.trace().traceId());
         } catch (BusinessException e) {
             return toFailure(e, command.trace().traceId());

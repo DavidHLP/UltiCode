@@ -138,6 +138,7 @@ class SolutionServiceTest {
         ArgumentCaptor<Solution> captor = ArgumentCaptor.forClass(Solution.class);
         verify(solutionMapper).insert(captor.capture());
         assertEquals("dp,array", captor.getValue().getTags());
+        verify(searchPublisher).publishSolution(captor.getValue(), true);
     }
 
     @Test
@@ -157,5 +158,6 @@ class SolutionServiceTest {
         ArgumentCaptor<Solution> captor = ArgumentCaptor.forClass(Solution.class);
         verify(solutionMapper).insert(captor.capture());
         assertEquals("", captor.getValue().getTags());
+        verify(searchPublisher).publishSolution(captor.getValue(), true);
     }
 }

@@ -45,6 +45,7 @@ import java.util.Map;
 public class DefaultProblemOwnerPort implements ProblemOwnerPort {
 
     private final ProblemMapper problemMapper;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     @Override
     @Transactional
@@ -129,6 +130,9 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         problem.setIsDeleted(false);
         problem.setVersion(1);
         problemMapper.insert(problem);
+        // SEARCH-001: import writes must publish like any other problem write.
+        // UPSERT only when published; the search Q-read filters is_published=true.
+        searchPublisher.publishProblem(problem, Boolean.TRUE.equals(problem.getIsPublished()));
         log.info("ProblemOwnerPort.insertImportedProblem slug={} id={}", slug, problem.getId());
         return problem;
     }
@@ -163,6 +167,9 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
             existing.setIsPublished(isPublished);
         }
         problemMapper.updateById(existing);
+        // SEARCH-001: import updates must publish like any other problem write.
+        // Tombstone when unpublished (Q-read filters is_published=true).
+        searchPublisher.publishProblem(existing, Boolean.TRUE.equals(existing.getIsPublished()));
         log.info("ProblemOwnerPort.applyImportedUpdate id={}", id);
     }
 

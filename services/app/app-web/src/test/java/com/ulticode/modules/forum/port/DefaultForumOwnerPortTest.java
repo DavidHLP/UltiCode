@@ -25,11 +25,14 @@ class DefaultForumOwnerPortTest {
     @Mock
     private ForumPostMapper forumPostMapper;
 
+    @Mock
+    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+
     private DefaultForumOwnerPort forumOwnerPort;
 
     @BeforeEach
     void setUp() {
-        forumOwnerPort = new DefaultForumOwnerPort(forumPostMapper);
+        forumOwnerPort = new DefaultForumOwnerPort(forumPostMapper, searchPublisher);
     }
 
     private ForumPost createPost(String id, String userId) {
@@ -194,6 +197,7 @@ class DefaultForumOwnerPortTest {
             assertThat(result.authorUserId()).isEqualTo("u-1");
             assertThat(result.title()).isEqualTo("Title");
             verify(forumPostMapper).softDelete("p-1", "admin-1");
+            verify(searchPublisher).publishForumPost(post, false);
         }
 
         private ForumPost deletedPost(String id, String userId) {

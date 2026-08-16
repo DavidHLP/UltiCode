@@ -164,6 +164,7 @@ public class ProblemServiceImpl implements ProblemService {
     public ProblemVO publishProblem(Long id) {
         String actorId = currentUserProvider.getCurrentUserId();
         Problem published = domainService.publishProblem(id, actorId);
+        searchPublisher.publishProblem(published, true);
         return toVO(published);
     }
 
@@ -172,6 +173,9 @@ public class ProblemServiceImpl implements ProblemService {
     public ProblemVO unpublishProblem(Long id) {
         String actorId = currentUserProvider.getCurrentUserId();
         Problem unpublished = domainService.unpublishProblem(id, actorId);
+        // DefaultProblemSearchReadPort filters is_published=true; keep the
+        // search index coherent by tombstoning unpublished documents (SEARCH-001).
+        searchPublisher.publishProblem(unpublished, false);
         return toVO(unpublished);
     }
 

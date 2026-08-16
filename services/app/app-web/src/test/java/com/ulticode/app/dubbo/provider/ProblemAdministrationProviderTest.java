@@ -42,11 +42,14 @@ class ProblemAdministrationProviderTest {
     @Mock
     private ProblemAdministrationDomainService domainService;
 
+    @Mock
+    private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+
     private ProblemAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
-        provider = new ProblemAdministrationProvider(domainService);
+        provider = new ProblemAdministrationProvider(domainService, searchPublisher);
     }
 
     private static ActorDelegation adminActor() {
@@ -206,11 +209,14 @@ class ProblemAdministrationProviderTest {
             DeleteProblemCommand command = new DeleteProblemCommand(
                     UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
                     "42", 3L, "deleting");
+            Problem existing = problemEntity(42L, "two-sum", "Two Sum", 3);
+            when(domainService.findById(42L)).thenReturn(java.util.Optional.of(existing));
 
             RpcResult<Void> result = provider.deleteProblem(command);
 
             assertThat(result.success()).isTrue();
             verify(domainService).deleteProblem(42L, "admin-1", 3L);
+            verify(searchPublisher).publishProblem(existing, false);
         }
     }
 }

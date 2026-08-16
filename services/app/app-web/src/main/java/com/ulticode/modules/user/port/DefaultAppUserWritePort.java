@@ -35,6 +35,17 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
 
     private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
+    private final com.ulticode.modules.search.port.UserSearchReadMapper userSearchReadMapper;
+    private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+
+    /** Publish a complete user-document UPSERT after a profile write. */
+    private void publishUserDocument(String userId) {
+        var row = userSearchReadMapper.findIndexRowById(userId);
+        if (row == null) {
+            return;
+        }
+        searchPublisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
+    }
 
     @Override
     @Transactional
@@ -85,6 +96,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             userProfileMapper.updateById(profile);
         }
 
+        publishUserDocument(userId);
         log.info("User profile updated: {}", userId);
         return toVO(profile);
     }
@@ -146,6 +158,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
             userProfileMapper.updateById(profile);
         }
 
+        publishUserDocument(userId);
         log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
         return avatarUrl;
     }

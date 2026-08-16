@@ -21,6 +21,7 @@ import java.util.Set;
 public class MyBatisAuthAccountAdapter implements AuthAccountPort {
 
     private final AuthAccountMapper mapper;
+    private final com.ulticode.auth.search.SearchDocumentChangedAuthPublisher searchPublisher;
 
     @Override
     public Optional<AuthAccountRecord> findByUsername(String username) {
@@ -70,9 +71,11 @@ public class MyBatisAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public AuthAccountRecord create(AuthAccountRecord record) {
         AuthAccountEntity entity = toEntity(record);
         mapper.insert(entity);
+        searchPublisher.publishUser(record.id(), record.username(), null, null, true);
         return toRecord(entity);
     }
 

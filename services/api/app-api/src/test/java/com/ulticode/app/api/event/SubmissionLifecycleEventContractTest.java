@@ -1,6 +1,7 @@
 package com.ulticode.app.api.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

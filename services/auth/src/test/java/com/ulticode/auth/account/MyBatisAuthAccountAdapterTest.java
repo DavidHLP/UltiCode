@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,6 +25,9 @@ class MyBatisAuthAccountAdapterTest {
 
     @Mock
     private AuthAccountMapper mapper;
+
+    @Mock
+    private com.ulticode.auth.search.SearchDocumentChangedAuthPublisher searchPublisher;
 
     @InjectMocks
     private MyBatisAuthAccountAdapter adapter;
@@ -78,5 +83,18 @@ class MyBatisAuthAccountAdapterTest {
 
         assertThat(success).isTrue();
         assertThat(stale).isFalse();
+    }
+
+    @Test
+    @DisplayName("create persists the account and publishes a user UPSERT (SEARCH-001)")
+    void createPublishesUserUpsert() {
+        AuthAccountRecord record = new AuthAccountRecord(
+                "user-1", "alice", "alice@example.com", "hash", "USER",
+                true, false, null, LocalDateTime.now());
+
+        adapter.create(record);
+
+        verify(mapper).insert(any(AuthAccountEntity.class));
+        verify(searchPublisher).publishUser("user-1", "alice", null, null, true);
     }
 }

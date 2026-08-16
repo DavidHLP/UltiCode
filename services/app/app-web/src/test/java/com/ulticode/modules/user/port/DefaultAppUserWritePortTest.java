@@ -40,12 +40,15 @@ class DefaultAppUserWritePortTest {
 
     @Mock private UserProfileMapper userProfileMapper;
     @Mock private UuidGenerator uuidGenerator;
+    @Mock private com.ulticode.modules.search.port.UserSearchReadMapper userSearchReadMapper;
+    @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     private DefaultAppUserWritePort port;
 
     @BeforeEach
     void setUp() {
-        port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator);
+        port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
+                userSearchReadMapper, searchPublisher);
     }
 
     @Nested
@@ -98,6 +101,31 @@ class DefaultAppUserWritePortTest {
             port.updateProfile(userId, dto);
 
             verify(userProfileMapper).updateById(any(UserProfile.class));
+        }
+
+        @Test
+        @DisplayName("profile update publishes a complete user document (SEARCH-001)")
+        void profileUpdatePublishesUserDocument() {
+            String userId = "u-002";
+            UserProfile existing = new UserProfile();
+            existing.setAccountId(userId);
+            existing.setName("OldName");
+            when(userProfileMapper.selectById(userId)).thenReturn(existing);
+
+            com.ulticode.modules.search.port.UserSearchRow row =
+                    new com.ulticode.modules.search.port.UserSearchRow();
+            row.setId(userId);
+            row.setUsername("alice");
+            row.setName("NewName");
+            row.setAvatar("/a.png");
+            when(userSearchReadMapper.findIndexRowById(userId)).thenReturn(row);
+
+            UpdateUserDTO dto = new UpdateUserDTO();
+            dto.setName("NewName");
+
+            port.updateProfile(userId, dto);
+
+            verify(searchPublisher).publishUser(userId, "alice", "NewName", "/a.png", true);
         }
 
         @Test

@@ -1,5 +1,7 @@
 package com.ulticode.app.api.event;
 
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
+
 import java.util.Set;
 
 /**

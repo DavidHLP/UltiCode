@@ -16,6 +16,7 @@ import java.util.Optional;
 public class MyBatisAccountManagementAdapter implements AccountManagementPort {
 
     private final AccountManagementMapper mapper;
+    private final com.ulticode.auth.search.SearchDocumentChangedAuthPublisher searchPublisher;
 
     @Override
     public Optional<AuthAccountRecord> findById(String accountId) {
@@ -49,6 +50,7 @@ public class MyBatisAccountManagementAdapter implements AccountManagementPort {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public boolean updateCredentials(String accountId, String username, String email,
                                      String updatedBy) {
         if (accountId == null || accountId.isBlank()
@@ -56,7 +58,11 @@ public class MyBatisAccountManagementAdapter implements AccountManagementPort {
                 || email == null || email.isBlank()) {
             return false;
         }
-        return mapper.updateCredentials(accountId.trim(), username.trim(), email.trim(), updatedBy) > 0;
+        boolean updated = mapper.updateCredentials(accountId.trim(), username.trim(), email.trim(), updatedBy) > 0;
+        if (updated) {
+            searchPublisher.publishUser(accountId.trim(), username.trim(), null, null, true);
+        }
+        return updated;
     }
 
     @Override
@@ -69,11 +75,16 @@ public class MyBatisAccountManagementAdapter implements AccountManagementPort {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public boolean softDelete(String accountId, String deletedBy) {
         if (accountId == null || accountId.isBlank()) {
             return false;
         }
-        return mapper.softDelete(accountId.trim(), deletedBy) > 0;
+        boolean deleted = mapper.softDelete(accountId.trim(), deletedBy) > 0;
+        if (deleted) {
+            searchPublisher.publishUser(accountId.trim(), null, null, null, false);
+        }
+        return deleted;
     }
 
     private AuthAccountRecord toRecord(AuthAccountEntity entity) {

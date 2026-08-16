@@ -1,6 +1,6 @@
 package com.ulticode.modules.search.source;
 
-import com.ulticode.app.api.event.SearchDocumentChangedEventContract;
+import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.modules.problem.entity.Problem;
@@ -93,6 +93,40 @@ public class SearchDocumentChangedPublisher {
         document.put("problemId", solution.getProblemId());
         publish(SearchDocumentChangedEventContract.SOLUTIONS_INDEX,
                 solution.getId(), upsert ? document : null);
+    }
+
+    /**
+     * Publish an UPSERT or DELETE for a user document (SEARCH-001 slice-b).
+     *
+     * <p>Auth publishes identity writes ({@code id}/{@code username}); App
+     * publishes profile enrichment ({@code name}/{@code avatar}) after
+     * {@code user_profiles} writes. Each side publishes a complete,
+     * self-sufficient document; last write wins per document id.
+     *
+     * @param aggregateId the user id (document id)
+     * @param username    display username ({@code null} for DELETE)
+     * @param name        optional display name
+     * @param avatar      optional avatar URL
+     * @param upsert      {@code true} for create/update, {@code false} for delete tombstone
+     */
+    public void publishUser(String aggregateId, String username, String name, String avatar,
+                            boolean upsert) {
+        if (aggregateId == null || aggregateId.isBlank()) {
+            return;
+        }
+        Map<String, Object> document = null;
+        if (upsert) {
+            document = new LinkedHashMap<>();
+            document.put("id", aggregateId);
+            document.put("username", username);
+            if (name != null) {
+                document.put("name", name);
+            }
+            if (avatar != null) {
+                document.put("avatar", avatar);
+            }
+        }
+        publish(SearchDocumentChangedEventContract.USERS_INDEX, aggregateId, document);
     }
 
     @org.springframework.transaction.annotation.Transactional

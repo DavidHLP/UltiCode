@@ -1,4 +1,4 @@
-package com.ulticode.app.api.event;
+package com.ulticode.common.event;
 
 import java.util.Set;
 
@@ -7,6 +7,10 @@ import java.util.Set;
  *
  * <p>Owner-specific contracts add event values and payload fields, but they
  * must not invent a second routing envelope.</p>
+ *
+ * <p>Lives in backend-common (not app-api) so the leaf provider
+ * backend-auth can reference it without forming a forbidden App-contract
+ * dependency (AuthSingleHopArchTest, §6.5).</p>
  */
 public final class IntegrationEventEnvelopeContract {
 

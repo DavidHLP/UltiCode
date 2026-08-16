@@ -955,7 +955,8 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 | Solution | `DefaultSolutionOwnerPort` deleteSolution（moderation） | DELETE | 物理删即 tombstone |
 | Solution | `DefaultSolutionOwnerPort` setPublished | UPSERT/DELETE（按 published） | visibility 同步 |
 | Solution | `DefaultSolutionOwnerPort` flag/unflag/updateVoteCounts | 无事件 | Q-read 不过滤 flag；文档字段未变 |
-| User | backend-auth 写路径（register/profile/ban-delete） | 待 slice-b | AUTH_PUBLISHER，用户文档 id/username/name/avatar |
+| User | backend-auth 写路径：`AuthAccountPort.create`（注册）、`AccountManagementPort.updateCredentials`/`softDelete` | UPSERT/UPSERT/DELETE | AUTH_PUBLISHER；auth 链新增 `search_document_changed_outbox`（V20260816170000，auth_rw 表级 grant），Auth dispatcher XADD `stream:integration`（属性 `auth.search.outbox.dispatcher.enabled` 门控） |
+| User | App `DefaultAppUserWritePort` updateProfile/uploadAvatar（user_profiles name/avatar） | UPSERT（完整文档 id/username/name/avatar） | 与 Auth 事件同 documentId，last-write-wins |
 
 发布语义：每个事件在 owner 本地写事务内经 `IntegrationEventPublisher` 写 integration outbox（App）；DELETE 事件 document=null（tombstone/replay 语义）；payload 经 `SearchDocumentChangedEventContract.requireSafeDocument` 递归校验（禁 code/testCases/token 等字段）。
 - `backend-notification` 使用独立 artifact/image；`api` 角色承接 HTTP/Dubbo，`worker` 角色运行 durable inbox bridge + ledger reaper。过渡期保留 `ulticode.app.inbox.enabled` 作为 App 侧回滚开关，切换完成后关闭 App inbox bridge，Notification 成为 `notifications`、偏好、投递台账和 email 表的唯一 Owner。

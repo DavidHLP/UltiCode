@@ -1,4 +1,4 @@
-package com.ulticode.app.api.event;
+package com.ulticode.common.event;
 
 import java.util.Collection;
 import java.util.Map;
@@ -10,10 +10,9 @@ import java.util.Set;
  * <p>Source owners publish a complete, safe document snapshot. The Search
  * worker never reads an App/Auth business table to fill in missing fields.
  *
- * <p><strong>Wiring status:</strong> the contract is frozen; no
- * App/Auth publisher and no {@code backend-search} consumer exist yet.
- * Consumers must not assume this event is live until the search worker
- * module and the owner outbox publishers land.
+ * <p>Lives in backend-common (not app-api) so the leaf provider
+ * backend-auth can reference it without forming a forbidden App-contract
+ * dependency (AuthSingleHopArchTest, §6.5).</p>
  */
 public final class SearchDocumentChangedEventContract {
 

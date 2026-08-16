@@ -1,4 +1,4 @@
-package com.ulticode.app.api.event;
+package com.ulticode.common.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

@@ -25,4 +25,14 @@ public interface UserSearchReadMapper {
             + "ORDER BY u.username ASC "
             + "LIMIT #{limit}")
     List<UserSearchRow> searchIndex(@Param("query") String query, @Param("limit") int limit);
+
+    /**
+     * Single-row read for the user search document after a profile write
+     * (SEARCH-001 slice-b): returns the complete index-safe row so the App
+     * publisher can emit a self-sufficient UPSERT.
+     */
+    @Select("SELECT u.id, u.username, p.name, p.avatar "
+            + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
+            + "WHERE u.id = #{id} AND u.is_deleted = 0")
+    UserSearchRow findIndexRowById(@Param("id") String id);
 }

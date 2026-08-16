@@ -17,6 +17,17 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
+auth:
+  search:
+    outbox:
+      dispatcher:
+        # SEARCH-001 slice-b: dispatch user-document events from the Auth
+        # outbox to stream:integration. Default off: unit-test contexts boot
+        # without Redis, and events must not pile up on the stream before the
+        # backend-search worker consumer exists (SEARCH-002). Enable in the
+        # deployed runtime once the worker is live.
+        enabled: ${AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED:false}
+
   # Redisson Configuration (distributed locks, OAuth state, CSRF nonce)
   redis:
     redisson:

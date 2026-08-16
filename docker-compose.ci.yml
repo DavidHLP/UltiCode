@@ -44,8 +44,8 @@ services:
         SERVICE_MODULE: submission
         SERVICE_ARTIFACT: submission-exec.jar
         SERVICE_PORT: "9106"
-        SERVICE_HEALTH_PATH: /disabled
-        SERVICE_HEALTHCHECK: "false"
+        SERVICE_HEALTH_PATH: /actuator/health
+        SERVICE_HEALTHCHECK: "true"
 
   console:
     image: ulticode-console:latest

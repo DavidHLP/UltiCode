@@ -9,6 +9,11 @@ import java.util.Set;
  *
  * <p>Source owners publish a complete, safe document snapshot. The Search
  * worker never reads an App/Auth business table to fill in missing fields.
+ *
+ * <p><strong>Wiring status:</strong> the contract is frozen; no
+ * App/Auth publisher and no {@code backend-search} consumer exist yet.
+ * Consumers must not assume this event is live until the search worker
+ * module and the owner outbox publishers land.
  */
 public final class SearchDocumentChangedEventContract {
 
@@ -52,35 +57,39 @@ public final class SearchDocumentChangedEventContract {
     private SearchDocumentChangedEventContract() {
     }
 
-    /** Validate a legacy key collection while applying the recursive document check. */
+    /** Validate a key collection (legacy flat-key entry point). */
     public static void requireSafeDocumentKeys(Collection<?> keys) {
-        requireSafeDocument(keys);
-    }
-
-    /** Validate map/list document trees, including nested object keys. */
-    public static void requireSafeDocument(Object document) {
-        if (document == null) {
-            throw new IllegalArgumentException("search document is required");
-        }
-        if (document instanceof Iterable<?> values) {
-            for (Object value : values) {
-                if (value instanceof String key) {
-                    rejectForbiddenKey(key);
-                } else {
-                    validateDocumentNode(value);
-                }
-            }
+        if (keys == null) {
             return;
         }
-        validateDocumentNode(document);
+        for (Object key : keys) {
+            if (key instanceof String k) {
+                rejectForbiddenKey(k);
+            }
+        }
+    }
+
+    /**
+     * Validate a document tree: the root must be a JSON object (map) and
+     * every nested object key must be a String, recursively. Rejects scalar
+     * or list roots and non-String map keys, which Jackson would silently
+     * stringify into unexpected field names.
+     */
+    public static void requireSafeDocument(Object document) {
+        if (!(document instanceof Map<?, ?> map)) {
+            throw new IllegalArgumentException("search document must be a JSON object");
+        }
+        validateDocumentNode(map);
     }
 
     private static void validateDocumentNode(Object node) {
         if (node instanceof Map<?, ?> map) {
             for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (entry.getKey() instanceof String key) {
-                    rejectForbiddenKey(key);
+                if (!(entry.getKey() instanceof String key)) {
+                    throw new IllegalArgumentException(
+                            "search document object keys must be strings: " + entry.getKey());
                 }
+                rejectForbiddenKey(key);
                 validateDocumentNode(entry.getValue());
             }
         } else if (node instanceof Iterable<?> values) {

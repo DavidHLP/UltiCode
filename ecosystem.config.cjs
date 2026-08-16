@@ -102,6 +102,11 @@ module.exports = {
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
+        // SERVER_PORT must be pinned like the other services: the shared
+        // .env still carries the legacy SERVER_PORT=9001, and Spring Boot's
+        // relaxed binding gives the env var precedence over
+        // ${SUBMISSION_SERVER_PORT:9106} in application.yml.
+        SERVER_PORT: '9106',
         SUBMISSION_SERVER_PORT: '9106',
         SUBMISSION_DUBBO_PORT: '20886',
         ...dubboRegistryEnv(),

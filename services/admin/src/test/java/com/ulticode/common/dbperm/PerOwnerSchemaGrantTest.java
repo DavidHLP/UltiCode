@@ -34,10 +34,13 @@ class PerOwnerSchemaGrantTest {
         "problems", "problem_details", "problem_examples", "problem_languages",
         "problem_notes", "problem_lists",
         "contests", "contest_problems", "contest_participants", "contest_announcements",
-        "submissions", "judge_outbox", "solutions",
+        "submissions", "solutions",
         "solution_comments", "forum_posts", "forum_comments",
         "forum_communities", "achievements"
     );
+
+    /** DEC-011: the Submission owner manifest (SPLIT-003 target) claims judge_outbox. */
+    private static final Set<String> SUBMISSION_TABLES = Set.of("judge_outbox");
 
     private static final Set<String> NOTIFICATION_TABLES = Set.of(
         "notifications", "notification_preferences", "notification_delivery_ledger",
@@ -60,6 +63,12 @@ class PerOwnerSchemaGrantTest {
     @DisplayName("P5-SCHEMA-001: App tables map to the App owner")
     void appTables_belongToAppOwner() throws IOException {
         assertManifestOwner(APP_TABLES, "App");
+    }
+
+    @Test
+    @DisplayName("DEC-011: Submission-manifest tables map to the Submission owner")
+    void submissionTables_belongToSubmissionOwner() throws IOException {
+        assertManifestOwner(SUBMISSION_TABLES, "Submission");
     }
 
     @Test

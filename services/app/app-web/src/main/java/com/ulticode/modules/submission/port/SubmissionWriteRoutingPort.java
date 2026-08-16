@@ -34,6 +34,16 @@ public class SubmissionWriteRoutingPort implements SubmissionWritePort {
 
     @Override
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
+        if (createDTO != null && createDTO.getContestId() != null && routing.isRemote()) {
+            // CR P1-2: contest submissions must stay in the local App
+            // transaction. ContestServiceImpl.submitContestProblem holds the
+            // contest row FOR UPDATE across this call; the remote route would
+            // re-enter App through the submission service and re-lock the same
+            // row in a second transaction, deadlocking until the Dubbo timeout.
+            // Contest admission + write stay in one owner transaction until the
+            // whole contest command moves behind a single owner RPC.
+            return local.submit(userId, createDTO);
+        }
         return delegate().submit(userId, createDTO);
     }
 

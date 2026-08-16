@@ -50,8 +50,24 @@ public final class JudgeStreamKeys {
      * Redis Streams key for judge job dispatches (ADR-003 M3c-2). A
      * single stream carries both v1 (legacy) and v2 (fence-aware) envelopes;
      * the {@code version} field on each entry discriminates.
+     *
+     * <p>The {@code {judge-stream}} hash tag keeps this key in the same
+     * Redis Cluster slot as the dedup / DLQ keys used inside the atomic Lua
+     * scripts. The pre-extraction key {@code judge:stream} had no hash tag
+     * and is drained by {@code JudgeStreamLegacyMigration} on upgrade.
      */
     public static final String JUDGE_STREAM_KEY = "judge:{judge-stream}:stream";
+
+    /**
+     * Pre-extraction stream key ({@code judge:stream}) written by the
+     * fused App before the judge-runtime cutover. Entries on this key (and
+     * its consumer-group PEL) are drained into {@link #JUDGE_STREAM_KEY} by
+     * {@code JudgeStreamLegacyMigration} once, then the key is deleted.
+     */
+    public static final String LEGACY_JUDGE_STREAM_KEY = "judge:stream";
+
+    /** One-shot SETNX lock guarding the legacy stream drain across judge instances. */
+    public static final String JUDGE_STREAM_MIGRATION_LOCK_KEY = "judge:{judge-stream}:migration:lock";
 
     /** Stream receiving entries that exhausted the broker retry budget. */
     public static final String JUDGE_STREAM_DLQ_KEY = "judge:{judge-stream}:dlq";

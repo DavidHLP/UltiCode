@@ -6,6 +6,7 @@ import com.ulticode.app.uuid.AppUuidGenerator;
 import com.ulticode.app.uuid.CommonUuidGeneratorAdapter;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.inspector.DefaultQueueInspector;
+import com.ulticode.modules.queue.migration.JudgeStreamLegacyMigration;
 import com.ulticode.modules.queue.outbox.reaper.UnackedStreamEntriesReaper;
 import com.ulticode.modules.queue.pipeline.DefaultJudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.source.ConfiguredJudgingCaseSource;
@@ -26,6 +27,7 @@ import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.modules.submission.service.impl.DFormEnvelopeCodecImpl;
 import com.ulticode.modules.submission.service.impl.SandboxOutputFormatterImpl;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -73,7 +75,8 @@ import org.springframework.context.annotation.Import;
         DefaultJudgeExecutionPipeline.class,
         DefaultJudgeAttemptExecutor.class,
         JudgeWorkerProcessor.class,
-        UnackedStreamEntriesReaper.class
+        UnackedStreamEntriesReaper.class,
+        JudgeStreamLegacyMigration.class
 })
 public class JudgeRuntimeConfiguration {
 
@@ -89,6 +92,13 @@ public class JudgeRuntimeConfiguration {
     ObjectMapper objectMapper() {
         return new ObjectMapper()
                 .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                // Match Spring Boot's default: the judge envelope carries
+                // derived getters (e.g. JudgeJobEnvelope#isFenceAware) that
+                // are serialized but are not wire fields. A strict mapper
+                // rejects every v2 entry as a poison message, which the
+                // fused app-web build never hit because Boot's
+                // JacksonAutoConfiguration disables FAIL_ON_UNKNOWN_PROPERTIES.
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 }

@@ -9,6 +9,18 @@ import java.util.Set;
  * hidden test data. The outbox envelope supplies {@code eventId}, aggregate
  * version, causation and trace metadata; these names keep the payload stable
  * across the App-to-Submission cutover.
+ *
+ * <p>Field sets below describe <strong>payload</strong> fields only; envelope
+ * fields live in {@link IntegrationEventEnvelopeContract#FIELDS} and must not
+ * be mixed into payloads. Wiring status:
+ * <ul>
+ *   <li>{@link #JUDGED_EVENT_TYPE} — live: App's
+ *       {@code SubmissionResultDispatcher} publishes schema-v1
+ *       {@code SubmissionJudged} payloads exactly matching
+ *       {@link #JUDGED_FIELDS} (contestId omitted when absent).</li>
+ *   <li>{@link #CREATED_EVENT_TYPE} — contract frozen, intake-side
+ *       publication not wired yet; consumers must tolerate its absence.</li>
+ * </ul>
  */
 public final class SubmissionLifecycleEventContract {
 
@@ -41,12 +53,11 @@ public final class SubmissionLifecycleEventContract {
     public static final String OCCURRED_AT = "occurredAt";
 
     public static final Set<String> CREATED_FIELDS = Set.of(
-            EVENT_ID, SUBMISSION_ID, USER_ID, PROBLEM_ID, CONTEST_ID,
+            SUBMISSION_ID, USER_ID, PROBLEM_ID, CONTEST_ID,
             GENERATION, LANGUAGE, OCCURRED_AT);
     public static final Set<String> JUDGED_FIELDS = Set.of(
-            EVENT_ID, SUBMISSION_ID, USER_ID, PROBLEM_ID, CONTEST_ID,
-            GENERATION, ATTEMPT_ID, STATUS, VERDICT, RUNTIME_MS, MEMORY_MB,
-            OCCURRED_AT);
+            SUBMISSION_ID, USER_ID, PROBLEM_ID, CONTEST_ID,
+            GENERATION, VERDICT, RUNTIME_MS, MEMORY_MB);
     public static final Set<String> FORBIDDEN_FIELDS = Set.of(
             "code", "sourceCode", "testCases", "hiddenTestCases",
             "accessToken", "refreshToken", "cookie", "password");

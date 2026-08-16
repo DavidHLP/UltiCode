@@ -127,6 +127,20 @@ jobs:
             done
           done
 
+          echo "Checking backend-submission container health..."
+          for i in $(seq 1 15); do
+            if $SSH_CMD "test \"\$(docker inspect -f '{{.State.Health.Status}}' ulticode-backend-submission 2>/dev/null)\" = healthy"; then
+              echo "  backend-submission is healthy"
+              break
+            fi
+            if [ "$i" -eq 15 ]; then
+              echo "::error::backend-submission failed health check after 75 seconds"
+              exit 1
+            fi
+            echo "  Waiting for backend-submission... ($i/15)"
+            sleep 5
+          done
+
           echo "Checking backend-judge container health..."
           for i in $(seq 1 15); do
             if $SSH_CMD "test \"\$(docker inspect -f '{{.State.Health.Status}}' ulticode-backend-judge 2>/dev/null)\" = healthy"; then

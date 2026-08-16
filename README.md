@@ -141,9 +141,11 @@
                        ┌────────────────────────────────────────────┐
                        │          Owner API gateway (/api)           │
                        │ Auth :9101 · Admin :9102 · App :9103       │
-                       │ Submission :9106 · Notification :9105    │
+                       │ Notification :9105                        │
                        │ JWT + Redis Session · SpringDoc OpenAPI   │
                        └──┬──────────────┬──────────────┬───────────┘
+                          │  Submission owner :20886 Dubbo internal
+                          │  (过渡期兼容 seam，无业务 HTTP)
                           │              │              │
                           ▼              ▼              ▼
                     ┌──────────┐  ┌──────────┐  ┌───────────────┐
@@ -220,7 +222,7 @@ UltiCode/
 | 领域 | 技术 |
 |------|------|
 | 容器 | Docker Compose v2 · 非 root 用户 (`appuser:appgroup`) · 多阶段构建 |
-| 进程管理 | PM2（7 个长生命周期 app：auth · admin · app · notification · judge · console · management） |
+| 进程管理 | PM2（8 个长生命周期 app：auth · admin · app · submission · notification · judge · console · management） |
 | 运行时诊断 | Arthas 4.2.2 · STATELESS MCP（端口 8563） |
 | 服务发现 / 配置 | Nacos 2.3.2 |
 | CI/CD | GitHub Actions（路径触发） · CD 滚动发布与回滚 |
@@ -231,7 +233,7 @@ UltiCode/
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务；`services/judge/` 是不拥有业务表的独立判题运行时。`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和这些运行模块。
+`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务；`services/submission/` 是过渡期兼容 seam（不拥有业务表，Dubbo 转发到 App）；`services/judge/` 是不拥有业务表的独立判题运行时。`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和这些运行模块。
 
 | Owner / 模块 | 主代码路径 | 职责 |
 |------|------|------|
@@ -341,11 +343,11 @@ dev 数据库会自动创建固定管理员账号：
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务，`services/judge/` 是独立判题运行时；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
+`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务，`services/submission/` 是过渡期兼容 seam，`services/judge/` 是独立判题运行时；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
 
 ```bash
 # 通过 PM2（完整后端 + 独立 Judge）
-pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-notification ulticode-judge
+pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-notification ulticode-judge
 pm2 logs ulticode-auth
 
 # 直接启动单个 owner
@@ -517,7 +519,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 ### 常用命令
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动四 owner + Judge + 两个前端
+pm2 start ecosystem.config.cjs   # 首次启动 owner 服务 + Judge + 两个前端
 pm2 start all                    # 后续启动
 pm2 restart all                  # 重启
 pm2 stop all
@@ -541,7 +543,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 
 1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
 2. `pm2 restart ulticode-init-db`（跑 Flyway）
-3. `pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-judge`
+3. `pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-judge`
 4. 启动两个前端
 
 > 一键修复： `./scripts/dev/up.sh --skip-install`

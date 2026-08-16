@@ -47,8 +47,7 @@ jobs:
             module: submission
             artifact: submission-exec.jar
             port: 9106
-            health_path: /disabled
-            healthcheck: 'false'
+            health_path: /actuator/health
           - name: backend-notification
             dockerfile: ./services/Dockerfile
             module: notification

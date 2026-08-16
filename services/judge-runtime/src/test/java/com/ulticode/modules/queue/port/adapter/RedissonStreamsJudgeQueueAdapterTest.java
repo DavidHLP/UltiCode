@@ -13,6 +13,7 @@ import org.redisson.api.stream.PendingEntry;
 import org.redisson.api.stream.PendingResult;
 import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.api.stream.StreamMessageId;
+import org.redisson.client.codec.Codec;
 
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,7 @@ class RedissonStreamsJudgeQueueAdapterTest {
     void enqueueUsesAtomicScript() throws Exception {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
-        when(redisson.getScript()).thenReturn(script);
+        when(redisson.getScript(any(Codec.class))).thenReturn(script);
         doReturn(1L).when(script).eval(
                 any(RScript.Mode.class), anyString(), eq(RScript.ReturnType.LONG),
                 anyList(), any(Object[].class));
@@ -61,20 +62,17 @@ class RedissonStreamsJudgeQueueAdapterTest {
     }
 
     @Test
-    @DisplayName("an exhausted PEL entry is written to the DLQ and acked")
-    void exhaustedDeliveryIsDeadLettered() {
+    @DisplayName("an exhausted PEL entry is dead-lettered BEFORE any XCLAIM")
+    void exhaustedDeliveryIsDeadLetteredWithoutClaim() {
         RedissonClient redisson = mock(RedissonClient.class);
         @SuppressWarnings("unchecked")
         RStream<String, String> source = mock(RStream.class);
-        @SuppressWarnings("unchecked")
-        RStream<String, String> dlq = mock(RStream.class);
         RScript script = mock(RScript.class);
         StreamMessageId id = new StreamMessageId(12, 0);
         PendingEntry pending = new PendingEntry(id, "old-consumer", 5_000, 3);
 
-        when(redisson.<String, String>getStream(STREAM_KEY)).thenReturn(source);
-        when(redisson.<String, String>getStream(JudgeStreamKeys.JUDGE_STREAM_DLQ_KEY)).thenReturn(dlq);
-        when(redisson.getScript()).thenReturn(script);
+        when(redisson.<String, String>getStream(eq(STREAM_KEY), any(Codec.class))).thenReturn(source);
+        when(redisson.getScript(any(Codec.class))).thenReturn(script);
         doReturn(1L).when(script).eval(
                 any(RScript.Mode.class), anyString(), eq(RScript.ReturnType.LONG),
                 anyList(), any(Object[].class));
@@ -84,8 +82,7 @@ class RedissonStreamsJudgeQueueAdapterTest {
                 eq(GROUP), eq(StreamMessageId.MIN), eq(StreamMessageId.MAX),
                 eq(1_000L), eq(TimeUnit.MILLISECONDS), eq(1)))
                 .thenReturn(List.of(pending));
-        when(source.claim(
-                eq(GROUP), eq(CONSUMER), eq(1_000L), eq(TimeUnit.MILLISECONDS), eq(id)))
+        when(source.range(eq(1), eq(id), eq(id)))
                 .thenReturn(Map.of(id, Map.of("payload", "{}")));
 
         RedissonStreamsJudgeQueueAdapter adapter = adapter(redisson, 3);
@@ -93,6 +90,11 @@ class RedissonStreamsJudgeQueueAdapterTest {
         Optional<JudgeJobHandle> result = adapter.claimIdle(1_000L);
 
         assertThat(result).isEmpty();
+        // The exhausted entry must never be claimed: XCLAIM would increment
+        // the broker delivery counter without a judge attempt (CR P1-4).
+        verify(source, never()).claim(
+                eq(GROUP), eq(CONSUMER), eq(1_000L), eq(TimeUnit.MILLISECONDS),
+                any(StreamMessageId[].class));
         verify(script).eval(
                 eq(RScript.Mode.READ_WRITE),
                 org.mockito.ArgumentMatchers.argThat(lua -> lua.contains("XADD")
@@ -103,9 +105,43 @@ class RedissonStreamsJudgeQueueAdapterTest {
                         JudgeStreamKeys.JUDGE_STREAM_DLQ_SEEN_PREFIX + "12-0")),
                 eq("{}"), eq("12-0"), eq("3"), eq(CONSUMER),
                 eq("max-delivery-attempts"), eq("3600"), eq(GROUP));
-        verify(dlq, never()).add(any(StreamAddArgs.class));
         verify(source, never()).ack(GROUP, id);
-        verify(source, never()).range(any(StreamMessageId.class), any(StreamMessageId.class));
+    }
+
+    @Test
+    @DisplayName("an entry within the budget is claimed and returned to the worker")
+    void unexhaustedEntryIsClaimed() {
+        RedissonClient redisson = mock(RedissonClient.class);
+        @SuppressWarnings("unchecked")
+        RStream<String, String> source = mock(RStream.class);
+        StreamMessageId id = new StreamMessageId(12, 0);
+        PendingEntry pending = new PendingEntry(id, "old-consumer", 5_000, 2);
+
+        when(redisson.<String, String>getStream(eq(STREAM_KEY), any(Codec.class))).thenReturn(source);
+        when(source.getPendingInfo(GROUP)).thenReturn(
+                new PendingResult(1, id, id, Map.of()));
+        when(source.listPending(
+                eq(GROUP), eq(StreamMessageId.MIN), eq(StreamMessageId.MAX),
+                eq(1_000L), eq(TimeUnit.MILLISECONDS), eq(1)))
+                .thenReturn(List.of(pending));
+        when(source.claim(
+                eq(GROUP), eq(CONSUMER), eq(1_000L), eq(TimeUnit.MILLISECONDS), eq(id)))
+                .thenReturn(Map.of(id, Map.of("payload",
+                        "{\"version\":2,\"id\":\"job-1\",\"submissionId\":\"submission-1\","
+                                + "\"problemId\":\"problem-1\",\"userId\":\"user-1\","
+                                + "\"language\":\"java\",\"code\":\"class Main {}\","
+                                + "\"timeLimitMs\":2000,\"memoryLimitKb\":262144,"
+                                + "\"generation\":2,\"attemptId\":\"attempt-1\"}")));
+
+        RedissonStreamsJudgeQueueAdapter adapter = adapter(redisson, 3);
+
+        Optional<JudgeJobHandle> result = adapter.claimIdle(1_000L);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().envelope().submissionId()).isEqualTo("submission-1");
+        verify(source).claim(
+                eq(GROUP), eq(CONSUMER), eq(1_000L), eq(TimeUnit.MILLISECONDS),
+                any(StreamMessageId[].class));
     }
 
     private RedissonStreamsJudgeQueueAdapter adapter(RedissonClient redisson,

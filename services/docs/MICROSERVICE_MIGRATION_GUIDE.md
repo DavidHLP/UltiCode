@@ -336,7 +336,7 @@ Notification、恢复 App grant/路由，再执行 rollback 子命令回写新�
 | Failure Boundary | Worker、Docker daemon、沙箱镜像故障不阻塞 App HTTP；结果写入失败保留 PEL，不能 ACK 未完成 job；DLQ 写入失败也保留 PEL 以便重试 |
 | Scaling | 按 CPU/Docker 并发独立扩容；Submission 只承担提交、Owner 事务和 durable result outbox |
 
-Judge 与 App 的同步依赖方向只有 Worker → App；App → Judge 通过 Redis Streams 异步投递，不形成服务启动/同步 RPC 环。
+Judge 的同步依赖方向只有 Worker → App（Problem facts/test cases）与 Worker → Submission（verdict/fence，经 `backend-submission` 转发）；App → Judge 通过 Redis Streams 异步投递，不形成服务启动/同步 RPC 环。
 
 WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`backend-notification` 只发布 Redis Pub/Sub payload，不拥有 WS endpoint 或实时房间状态。
 
@@ -919,7 +919,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；SPLIT-002 只提供无业务表的兼容 provider seam，默认端口为内部 HTTP `9106`、Dubbo `20886`，并通过 `APP_SUBMISSION_ROUTING_MODE` 保证 App 在 local/remote 中只有一个 writer 路径。SPLIT-003 才迁移 Submission 与 outbox 存储 Owner。
-- `backend-search` 是独立 no-HTTP/no-business-DB worker；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch，具备 inbox/claim/replay/lag；App 业务写路径不得直连或隐式写索引。
+- `backend-search` 是独立 no-HTTP/no-business-DB worker；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch，具备 inbox/claim/replay/lag；App 业务写路径不得直连或隐式写索引。当前 `SearchDocumentChanged` 契约已冻结但尚未接线（无 App/Auth publisher、无 search worker），落线前消费方不得假定事件已生效。
 - `backend-notification` 使用独立 artifact/image；`api` 角色承接 HTTP/Dubbo，`worker` 角色运行 durable inbox bridge + ledger reaper。过渡期保留 `ulticode.app.inbox.enabled` 作为 App 侧回滚开关，切换完成后关闭 App inbox bridge，Notification 成为 `notifications`、偏好、投递台账和 email 表的唯一 Owner。
 
 ## 12. Risks

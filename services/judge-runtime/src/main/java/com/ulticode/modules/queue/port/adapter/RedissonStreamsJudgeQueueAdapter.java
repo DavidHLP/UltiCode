@@ -19,6 +19,7 @@ import org.redisson.api.stream.StreamCreateGroupArgs;
 import org.redisson.api.stream.StreamGroup;
 import org.redisson.api.stream.StreamMessageId;
 import org.redisson.api.stream.StreamReadGroupArgs;
+import org.redisson.client.codec.StringCodec;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.time.Duration;
@@ -46,6 +47,17 @@ import java.util.Optional;
  * the ADR-002 hex-arch rule).
  *
  * <p>Only active when {@code app.features.judge-queue.use-port=true}.
+ *
+ * <p><strong>Codec contract:</strong> this adapter explicitly uses
+ * {@link StringCodec} for both the RScript calls and the RStream, regardless
+ * of the client-wide Redisson config codec (default Kryo5). The Lua scripts
+ * write literal plain-text field names ({@code payload}, {@code sourceId},
+ * ...) and pass plain control arguments (TTL seconds, XACK group), so every
+ * read/write of the stream and every script ARGV must stay plain text. The
+ * generic {@code RStream<String, String>} type does not select the codec;
+ * without this explicit {@code StringCodec.INSTANCE} the default Kryo5 codec
+ * would corrupt script ARGV (EX/XACK reject binary) and fail to decode the
+ * literal XADD fields. Legacy RQueue usage keeps the client-wide codec.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -101,7 +113,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
      */
     @PostConstruct
     public void ensureGroup() {
-        RStream<String, String> stream = redissonClient.getStream(streamKey);
+        RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
         if (!stream.isExists()) {
             // Redisson 4.3.1's StreamCreateGroupArgs has no MKSTREAM flag and
             // XGROUP CREATE fails with "no such key" before the first dispatch
@@ -146,7 +158,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
             throw new IllegalStateException("Failed to serialize JudgeJobEnvelope", e);
         }
 
-        Long result = redissonClient.getScript().eval(
+        Long result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 ATOMIC_ENQUEUE_SCRIPT,
                 RScript.ReturnType.LONG,
@@ -166,7 +178,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
 
     @Override
     public Optional<JudgeJobHandle> poll(long timeoutMillis) {
-        RStream<String, String> stream = redissonClient.getStream(streamKey);
+        RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
         // XREADGROUP > for new entries. count(1) so the worker holds at
         // most one job at a time per consumer.
         StreamReadGroupArgs readArgs = StreamReadGroupArgs.neverDelivered().count(1);
@@ -205,7 +217,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
                     handle.ackToken().getClass().getName());
             return;
         }
-        redissonClient.getStream(streamKey).ack(groupName, id);
+        redissonClient.getStream(streamKey, StringCodec.INSTANCE).ack(groupName, id);
     }
 
     @Override
@@ -227,7 +239,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
      * port method) to normalize monitoring depth across backends.
      */
     public long pendingCount() {
-        RStream<String, String> stream = redissonClient.getStream(streamKey);
+        RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
         PendingResult info = stream.getPendingInfo(groupName);
         return info == null ? 0L : info.getTotal();
     }
@@ -248,7 +260,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
      * rate equals the visibility timeout.
      */
     public Optional<JudgeJobHandle> claimIdle(long minIdleMs) {
-        RStream<String, String> stream = redissonClient.getStream(streamKey);
+        RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
         PendingResult pendingInfo = stream.getPendingInfo(groupName);
         if (pendingInfo == null || pendingInfo.getTotal() == 0) {
             return Optional.empty();
@@ -267,6 +279,23 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
             return Optional.empty();
         }
         PendingEntry first = pending.get(0);
+        if (first.getDeliveryCount() >= Math.max(1, maxDeliveryAttempts)) {
+            // Budget exhausted BEFORE any XCLAIM: each XCLAIM increments the
+            // broker delivery counter, so claiming here would burn an attempt
+            // on a pure ownership hand-off (e.g. the worker fills up between
+            // the reaper's capacity check and this claim, and the handle is
+            // nacked without a judge run). Read the payload read-only and
+            // dead-letter directly.
+            Map<StreamMessageId, Map<String, String>> entry = stream.range(
+                    1, first.getId(), first.getId());
+            if (entry != null && !entry.isEmpty()) {
+                deadLetter(entry.entrySet().iterator().next(), first.getDeliveryCount());
+            } else {
+                // Entry was trimmed/removed; just clear the PEL reference.
+                stream.ack(groupName, first.getId());
+            }
+            return Optional.empty();
+        }
         // XCLAIM moves ownership. The claimed entries are returned in the
         // map; we use the first one and return it to the worker for
         // processing and eventual ack.
@@ -278,13 +307,6 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
         }
         Map.Entry<StreamMessageId, Map<String, String>> claimedEntry =
                 claimed.entrySet().iterator().next();
-        if (first.getDeliveryCount() >= Math.max(1, maxDeliveryAttempts)) {
-            // XCLAIM itself increments Redis' broker delivery counter, but this
-            // claim is only the ownership hand-off to the DLQ path. The
-            // configured limit describes actual judge processing attempts.
-            deadLetter(claimedEntry, first.getDeliveryCount());
-            return Optional.empty();
-        }
         JudgeJobEnvelope envelope = decode(claimedEntry.getValue());
         if (envelope == null) {
             stream.ack(groupName, claimedEntry.getKey());
@@ -299,7 +321,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
                             long deliveryCount) {
         String sourceId = claimedEntry.getKey().toString();
         String markerKey = JudgeStreamKeys.JUDGE_STREAM_DLQ_SEEN_PREFIX + sourceId;
-        Long result = redissonClient.getScript().eval(
+        Long result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 ATOMIC_DEAD_LETTER_SCRIPT,
                 RScript.ReturnType.LONG,

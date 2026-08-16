@@ -1239,25 +1239,25 @@ const initMainScene = () => {
                 onUpdate: ()=> {
                     scene.setTextLineReveal('recognitionR', 0, recognitionRow1.val)
                 }
-            })
+            },'afterexp+=0.1')
             .to(recognitionRow2,{
                 val: 1,
                 onUpdate: ()=> {
                     scene.setTextLineReveal('recognitionR', 1, recognitionRow2.val)
                 }
-            })
+            },'afterexp+=0.175')
             .to(recognitionRow3,{
                 val: 1,
                 onUpdate: ()=> {
                     scene.setTextLineReveal('recognitionR', 2, recognitionRow3.val)
                 }
-            })
+            },'afterexp+=0.25')
             .to(recognitionRow4,{
                 val: 1,
                 onUpdate: ()=> {
                     scene.setTextLineReveal('recognitionR', 3, recognitionRow4.val)
                 }
-            })
+            },'afterexp+=0.325')
 
             .to(scene.awards,{
                 active: 1,

@@ -244,6 +244,14 @@ services:
     networks:
       - default
       - infrastructure
+    healthcheck:
+      # Internal container probe only; the actuator endpoint is never exposed
+      # outside the container network (CD inspects State.Health.Status).
+      test: ["CMD", "curl", "-f", "http://localhost:9106/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
     logging:
       driver: json-file
       options:
@@ -352,6 +360,8 @@ services:
       - JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/workspace ${JAVA_TOOL_OPTIONS:-}
     depends_on:
       backend-app:
+        condition: service_healthy
+      backend-submission:
         condition: service_healthy
       redis:
         condition: service_healthy

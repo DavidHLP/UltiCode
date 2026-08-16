@@ -85,6 +85,9 @@ services:
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9101
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
+      # SEARCH-003 gate: dispatch Auth user-document events to the search stream
+      # (worker consumer is live in prod; see guide §11.5 enable order).
+      - AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED=${AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED:-true}
     depends_on:
       mysql:
         condition: service_healthy
@@ -190,6 +193,11 @@ services:
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION=2
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
+      # SEARCH-003 gate: App /search reads MeiliSearch first with DB fallback
+      # (guide §11.5); backfill runner is enabled via APP_SEARCH_BACKFILL_ENABLED.
+      - MEILISEARCH_ENABLED=${MEILISEARCH_ENABLED:-true}
+      - MEILI_HOST=${MEILI_HOST:-http://meilisearch:7700}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
     depends_on:
       mysql:
         condition: service_healthy
@@ -275,9 +283,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       - MEILI_HOST=http://meilisearch:7700
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
-      # Enabled only after SEARCH-001 publishers are live and SEARCH-003
-      # backfill/watermark readiness is confirmed.
-      - SEARCH_WORKER_ENABLED=${SEARCH_WORKER_ENABLED:-false}
+      # SEARCH-003 gate: worker is the sole MeiliSearch writer; the App
+      # backfill runner must be run before/while it drains (guide §11.5).
+      - SEARCH_WORKER_ENABLED=${SEARCH_WORKER_ENABLED:-true}
       - SEARCH_SERVER_PORT=9107
     depends_on:
       redis:

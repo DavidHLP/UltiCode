@@ -344,6 +344,39 @@ class DefaultSearchReadProjectionTest {
             assertEquals(1, response.getResults().size());
             assertEquals("/forum/detailed/post-123", response.getResults().get(0).getUrl());
         }
+
+        @Test
+        @DisplayName("should ignore the worker _aggregateVersion field and unknown hit keys")
+        void shouldIgnoreAggregateVersionFieldAndUnknownKeys() throws Exception {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            queryDTO.setIndex(SearchIndexType.PROBLEMS);
+
+            HashMap<String, Object> hit = new HashMap<>();
+            hit.put("id", "1");
+            hit.put("title", "Two Sum");
+            hit.put("slug", "two-sum");
+            hit.put("difficulty", "Easy");
+            // SEARCH-003 worker writes this field into every document (DEC-016);
+            // the read path must ignore it and any forward-compatible keys.
+            hit.put("_aggregateVersion", 1_786_874_400_000L);
+            hit.put("someFutureField", "x");
+            ArrayList<HashMap<String, Object>> hits = new ArrayList<>();
+            hits.add(hit);
+
+            when(meiliSearchClient.index(anyString())).thenReturn(index);
+            when(index.search(any(SearchRequest.class))).thenReturn(searchable);
+            when(searchable.getHits()).thenReturn(hits);
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertEquals(1, response.getResults().size());
+            SearchResponseVO.SearchResultItem item = response.getResults().get(0);
+            assertEquals("Two Sum", item.getTitle());
+            assertEquals("two-sum", item.getMetadata().get("slug"));
+            assertEquals("Easy", item.getMetadata().get("difficulty"));
+            assertFalse(item.getMetadata().containsKey("_aggregateVersion"));
+            assertFalse(item.getMetadata().containsKey("someFutureField"));
+        }
     }
 
     @Nested

@@ -937,7 +937,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；SPLIT-002 只提供无业务表的兼容 provider seam，默认端口为内部 HTTP `9106`、Dubbo `20886`，并通过 `APP_SUBMISSION_ROUTING_MODE` 保证 App 在 local/remote 中只有一个 writer 路径。SPLIT-003 才迁移 Submission 与 outbox 存储 Owner。
-- `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 单测 7/7 + boot 无 web/无业务表契约 + compose（meilisearch 服务 + backend-search 服务，内网 expose）校验通过；真实 Redis+Meili E2E 与 SEARCH-003 backfill/watermark 未完成，落线前消费方不得假定事件已生效。
+- `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 版本账本与 tombstone 语义见 §11.5（SEARCH-003）。worker 单测 12/12 + boot 无 web/无业务表契约 + compose（meilisearch 服务 + backend-search 服务，内网 expose）校验通过；真实 Redis+Meili E2E 仍受网络阻塞（记录 gap），落线前消费方不得假定事件已生效。
 
 ### 11.1 `SearchDocumentChanged` 发布矩阵（SEARCH-001）
 
@@ -959,6 +959,20 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 | User | App `DefaultAppUserWritePort` updateProfile/uploadAvatar（user_profiles name/avatar） | UPSERT（完整文档 id/username/name/avatar） | 与 Auth 事件同 documentId，last-write-wins |
 
 发布语义：每个事件在 owner 本地写事务内经 `IntegrationEventPublisher` 写 integration outbox（App）；DELETE 事件 document=null（tombstone/replay 语义）；payload 经 `SearchDocumentChangedEventContract.requireSafeDocument` 递归校验（禁 code/testCases/token 等字段）。
+
+### 11.5 Search 版本语义与 backfill（SEARCH-003，DEC-016/017）
+
+**版本语义**：`aggregateVersion` = 事件发布时刻（live publisher）或行最后变更时间（backfill）的 epoch 毫秒（同一墙钟域）。worker 对每索引维护 Redis 版本账本 `search:doc-version:{index}`（field=documentId）：UPSERT 仅当 incoming 严格新于账本版本才写（stale 跳过计数 `search.worker.stale_skipped`，仍 ACK）；DELETE 写负值 tombstone（`-V`），非严格新于 tombstone 的 UPSERT 一律跳过（防 backfill 乱序复活已删文档）；写入文档的 `_aggregateVersion` 供 diff watermark 与可观测。多副本并发 HGET/HSET 非原子：worker 按单副本运行，账本为 best-effort 排序辅助。外部重建 Meili 索引后必须 `DEL search:doc-version:{index}` 再重跑 backfill。
+
+**Backfill（App 侧 `SearchBackfillRunner`）**：唯一写者仍是 worker——runner 只枚举 owner 库并发布 `SearchDocumentChanged` 事件（经 integration outbox → stream）。门控 `app.search.backfill.enabled=true` + `meilisearch.enabled=true`（默认关；索引选择 `app.search.backfill.indexes`，空=全部）。协议：watermark W=now → 分页枚举快照（谓词与 Q-read 一致；文档形状与 live publisher 逐字一致）→ 预检读 Meili 现有 `id+_aggregateVersion`（不可达即失败不半跑）→ 全量 UPSERT（版本=行 updated_at；用户=max(users.updated_at, profile.updated_at, deleted_at, joined_at)）→ 仅 `_aggregateVersion < W` 且不在快照的 id 发 DELETE（backfill 期间新建/更新的文档由 live 事件负责）。重跑幂等收敛；每次输出 snapshot/existing/upserts/deletes/watermark 计数日志。
+
+**启用顺序（SEARCH-003-slice-4 后）**：
+1. 启动 MeiliSearch（compose 已含 meilisearch 服务与 `MEILI_MASTER_KEY`）并将 App 读路径 `meilisearch.enabled=true`；
+2. 启用 worker（`SEARCH_WORKER_ENABLED=true`，compose prod backend-search）与 Auth dispatcher（`AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED=true`）；
+3. 对每个索引执行 backfill（可先 `problems` 冒烟）；
+4. 观察 worker 计数/lag 与 `_aggregateVersion` 单调性后开放全量。
+
+**回滚**：停 worker/backfill flag 即回退；App `/search` 读路径保持 DB fallback；索引保留，事件 outbox/PEL 可重放；不删除源数据。
 - `backend-notification` 使用独立 artifact/image；`api` 角色承接 HTTP/Dubbo，`worker` 角色运行 durable inbox bridge + ledger reaper。过渡期保留 `ulticode.app.inbox.enabled` 作为 App 侧回滚开关，切换完成后关闭 App inbox bridge，Notification 成为 `notifications`、偏好、投递台账和 email 表的唯一 Owner。
 
 ## 12. Risks

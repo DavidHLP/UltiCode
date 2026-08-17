@@ -279,3 +279,82 @@
 - Focused current-reactor check (`app-web -am`, `SandboxNamespaceIsolationIT`) passed; Surefire recorded `Tests run: 6, Failures: 0, Errors: 0, Skipped: 6` because `ulticode-sandbox:latest` is absent. This is an honest prerequisite skip, not sandbox coverage.
 - A services-wide `*IT` rerun was not claimable: its main thread waited in Testcontainers `JdbcDatabaseContainer.createConnection/waitUntilContainerStarted` while Docker dependencies were unavailable. The command was interrupted at exit 130; temporary Testcontainers resources self-cleaned. `SPLIT-005-env-sandbox` remains blocked until that runtime is stable and the full suite can be rerun.
 - Graphify update was attempted after code changes but remained unavailable/hung in the current environment; no source conclusions depend on it.
+## 2026-08-17 (contract boundary convergence planning)
+
+- User objective classified the app-api contract monolith as the structural cause of Submission two-hop compat forwarding and duplicated codec/status semantics; plan scope is now tracked as CONTRACT-001 through CONTRACT-008 without rewriting historical SPLIT/SEARCH tasks.
+- Verified source: `backend-app-api` is a reactor module consumed by App, Submission, Notification, Judge/Judge-runtime and Admin; `SubmissionWritePort` and `NotificationAdministrationService` live under app-api; `SubmissionWriteCompatibilityProvider` defaults to `compat` and forwards to App; App still registers `SubmissionWriteProvider`; Submission and App each contain `TestCaseDetailCodec` and `SubmissionStatusCatalog`.
+- Graph evidence: graphify code-only completed with 25,482 nodes/76,151 edges; codebase-memory moderate index reports 36,448 nodes/173,902 edges. Coverage check records only excluded target/scripts/docs gaps; those non-code claims were verified by direct read/grep fallback.
+- DEC-019 freezes owner-specific API artifacts/package namespaces, App fact exceptions, DTO-based canonical Submission utility seam, matched-release FQCN constraint, and no shared Entity/Mapper/alias/broker path.
+- Control-plane result: CONTRACT-001 is the only new `ready` task. CONTRACT-007 is explicitly blocked by existing sandbox/Testcontainers evidence and release/cutover authority; no business source, runtime default, grant, migration or deployment action was performed.
+
+## 2026-08-17 (CONTRACT-001 owner matrix implementation)
+
+- Reconciled the stale control-plane objective and branch pointer with the active contract-boundary objective at
+  `dc32f114e`; preserved the existing `.auto-flow` user changes and left `AUTO_PILOT_STATUS.yaml` untouched because it
+  describes a separate completed historical objective.
+- Added `.auto-flow/CONTRACT-001-OWNER-MATRIX.md`: all 219 `app-api` top-level source types and 66 nested types are
+  uniquely assigned to App, Submission, Notification, Auth-backed common/local security, common metadata/value,
+  App-provided fact/recipient exceptions, or Judge-runtime internal.
+- Frozen `backend-submission-api` / `com.ulticode.submission.api` and `backend-notification-api` /
+  `com.ulticode.notification.api`, both at their existing `backend-*-` group and `1.0.0` version, with matched release
+  and no alias/re-export/mixed rollout constraints. DEC-020 records the residual seam decisions.
+- No business Java, POM, runtime config, migration, route/grant, database, provider registration, or deployment file was
+  changed. CONTRACT-001 was then closed after the correction/review/validation gates; CONTRACT-001-COMMON is the next
+  active implementation slice.
+
+## 2026-08-17 (CONTRACT-001 review)
+
+- Initial review found the omitted `security/DelegationAssertionContract.java`; the matrix now covers all 219 top-level
+  source types and keeps the 66 nested-type count. The credential-free assertion contract is assigned to the common
+  web-security seam alongside `AccountReadPort` and `JwtValidationPort`.
+- Re-review is required after this correction; the prior PASS claim is superseded.
+
+## 2026-08-17 (CONTRACT-001 planning rework)
+
+- Direct source comparison found that the matrix's common-owner rows had no implementation task: eight
+  implementation-free security/metadata/value seams would otherwise remain in `backend-app-api` while the final gate
+  requires App-only contracts plus explicit App facts.
+- Added `CONTRACT-001-COMMON` and DEC-021 as a bounded prerequisite for the Submission/Notification API tasks. No
+  business source or runtime state changed; the task now explicitly covers all eight types, including the four
+  `ProblemCompletionReportDTO` App records after correcting the initial count/list omission.
+- Provider/consumer identity review confirmed the existing transition state (App group providers plus direct Submission
+  group providers/compat forwarders) and the frozen target identities; no mixed-release or permanent-alias path was
+  added. `SubmissionNotificationPort` has no implementation/caller beyond its declaration.
+- `./mvnw -pl api/app-api -am test -B` passed: backend-common 93 tests and backend-app-api 39 tests, zero failures.
+- `git diff --check` passed; changed tracked paths remain control-plane only and no business source/POM/runtime/database
+  file was modified. Parent two-axis standards/spec review is PASS; the two formal review workers timed out and the
+  bounded local fallback found no confirmed findings. CONTRACT-001 validation and completion audit are PASS.
+
+## 2026-08-17 (CONTRACT-001 completion and control-plane synchronization)
+
+- Closed `CONTRACT-001` as `done` after source inventory, owner-matrix, graph/coverage, POM/import, Maven regression,
+  YAML and whitespace evidence passed. `CONTRACT-001-COMMON` is now the only new ready implementation task.
+- Synchronized `AUTO_PILOT_STATUS.yaml`, `PLAN.md`, `RESUME.md`, `TASKS.yaml`, `HANDOFF.yaml` and `COVERAGE.md` to the
+  active contract objective; preserved the historical Arthas objective as completed metadata instead of leaving a
+  contradictory control-plane objective.
+
+## 2026-08-17 (CONTRACT-001-COMMON completion)
+
+- Added the eight Java-only common/security/metadata/value contracts to `backend-common`, removed the old app-api
+  declarations and an unused app-private `DifficultyCountDTO`, and migrated all discovered App/Admin/Notification/
+  WebSocket/security consumers and tests. Auth API's independent command contracts remain unchanged.
+- TDD red/green and affected-owner validation passed: the new common test initially failed before production types
+  existed; `api/app-api -am test` passed with common 96/app-api 39 tests, and the affected App/Admin/Notification
+  reactor passed. Negative FQCN/duplicate/forbidden-import/dependency scans, whitespace and diff checks passed.
+- `graphify update .` passed with 26,499 nodes/77,037 edges. The migration guide now records common ownership,
+  Auth authority and matched-release/no-alias rules. New common files are not tracked by the existing codebase-memory
+  generation; direct source inspection is recorded as the authoritative fallback.
+- Formal code-review workers timed out and were shut down. Parent bounded standards/spec/security review found no
+  confirmed finding. CONTRACT-001-COMMON is closed; CONTRACT-002 and CONTRACT-003 are ready in parallel.
+
+## 2026-08-17 (CONTRACT-002 through CONTRACT-006 implementation loop)
+
+- Created the provider-owned Submission/Notification API modules and migrated the owner contracts, consumers,
+  providers, tests and POMs. Kept App fact/recipient seams and runtime route defaults unchanged.
+- Completed Notification error ownership and receipt identity correction; added the canonical Submission DTO codec and
+  status catalog with private App/Submission entity mapping and separate Judge codec.
+- TDD red/green, focused checks, Submission MySQL/Redis IT (28), and the full affected 20-module reactor passed.
+- Final boundary audit fixed one implementation-only Javadoc reference in `UserBestStats`; API tests passed again.
+  `graphify update .` completed at 26,513 nodes / 77,128 edges.
+- Closed CONTRACT-002, CONTRACT-003, CONTRACT-004, CONTRACT-005 and CONTRACT-006. Left CONTRACT-007 blocked by
+  release authority and SPLIT-005 runtime evidence; no commit or external cutover performed.

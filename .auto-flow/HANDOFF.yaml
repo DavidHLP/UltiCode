@@ -1,59 +1,56 @@
-outcome: blocked
+outcome: pass
 outputs:
-  - "Execution Packet updated in .auto-flow/PLAN.md: unique repair path for the official quick credential drift and sandbox image prerequisite"
-  - "Coverage mapping updated in .auto-flow/COVERAGE.md; SPLIT-005-env-quick is done and SPLIT-005-env-sandbox is partial/blocked on external Testcontainers runtime"
-  - "Task DAG updated in .auto-flow/TASKS.yaml: SPLIT-005-env-quick done, SPLIT-005-env-sandbox blocked, SPLIT-005-retirement-authority blocked pending release authority"
-  - "SPLIT-005-env-quick implementation: scripts/dev/test.sh probes existing root credentials, falls back to local mysql:8.0 on an ephemeral loopback port, uses a temporary ENV_FILE for Flyway, and cleans up only its disposable resources"
-  - "Official ./scripts/dev/test.sh quick PASS: services reactor tests, auth-core 70/70, console 576/576, management 423/423 and type checks; Flyway migrated 85 versions in disposable ulticode"
-  - "Review Packet: scripts/dev/test.sh caller/data/security/cleanup review PASS with Confirmed=0; negative missing-image preflight failed fast without registry pull"
-  - "Completion Audit: SPLIT-005-env-quick acceptance, coverage, protected worktree, rollback and delivery-authority checks PASS; task closed done without commit"
-  - "SPLIT-005-env-sandbox implementation/review: per-test bounded image assumption, original 6 assertions unchanged; focused reactor report 6/6 skipped, 0 failures"
-  - "Validation Packet: services-wide *IT reached Testcontainers MySQL waitUntilContainerStarted and was safely interrupted with exit 130; no full-suite PASS claimed"
-  - "SEARCH-003 done（四切片 commits a4be5ac58/f5c5e058e/bd2c42291/d09411d19）：版本语义 + worker 版本账本/tombstone（DEC-016 修订）；版本列 migration（V20260816220000）+ 共享链前置修复（V20260816165000，修复 slice-b 引入的全新库共享链必挂回归）；SearchBackfillReadPort 四源枚举 + SearchDocumentBuilders 文档形状统一 + SearchBackfillRunner（watermark/diff/预检/重跑幂等，DEC-017）；/search 兼容回归（含 _aggregateVersion 容忍）+ Meili 写路径静态扫描；worker E2E IT（真实 Redis + Meili REST stub）；compose prod 启用（worker/auth dispatcher/App 读路径）；指南 §11.4/§11.5"
-  - "SEARCH-003 四 AC 证据齐；Coverage 行 PASS；SPLIT-005 依赖 SEARCH-003 侧已满足"
-  - "SPLIT-003-slice-7 已实现：显式 submitContest、SubmissionCreated durable outbox/App-Contest inbox、judged missing-association retry、remote verdict contest context 回读；Submission owner 事务与 real MySQL/Redis IT 通过"
-  - "SPLIT-005 validation：隔离数据库上的 services `test` 与 `verify`、frontend quick-equivalent、Compose base+dev/prod、diff check 均通过；临时 phase-gate MySQL/volume 已清理，既有 ulticode-mysql 未触碰"
-  - "Validation repair：Auth AccountManagementTransactionalIT 补齐 canonical search_document_changed_outbox fixture 后 class 5/5、auth *IT 10/10；InboxConsumerTransactionIT 将 stale exact-error assertion 收窄为 class containment 后 focused 5/5"
+  - "Execution Packet remains in .auto-flow/PLAN.md with the Service Contract Boundary Convergence scope, matched-release boundary, rollback rules and terminal gates"
+  - "Owner matrix written to .auto-flow/CONTRACT-001-OWNER-MATRIX.md: 219 app-api top-level types and 66 nested declarations assigned to App, Submission, Notification, common/security, App facts or Judge-runtime"
+  - "CONTRACT-001-COMMON is closed: eight Java-only common/security/metadata/value contracts moved to backend-common with consumers and tests migrated"
+  - "CONTRACT-002 and CONTRACT-003 are complete: provider-owned API artifacts and all discovered callers/providers/tests/POMs are migrated"
+  - "CONTRACT-004 and CONTRACT-005 are complete at the source boundary; CONTRACT-006 is complete with the canonical DTO codec/catalog and storage-edge mapping"
+  - "AUTO_PILOT_STATUS.yaml, TASKS.yaml, RESUME.md, COVERAGE.md and this handoff are synchronized; CONTRACT-007 remains explicitly blocked"
 evidence:
-  - "search 模块 15（12 单测 + 3 E2E IT）+ boot 1/1；auth search 7/7；app-web search+wiring+scan 92/92；SearchBackfillReadPortIT 6/6（真实 MySQL 8.0 全链 Flyway：migration 生效、谓词/形状/版本/ON UPDATE/分页）；reactor compile；compose prod/dev config；git diff --check 全过"
-  - "Review 各切片 Confirmed=0（slice-2 的 tombstone 复活缺口、IT NPE、mock 页循环均已修复复审）"
-  - "真实 MeiliSearch 镜像 E2E 受 Docker Hub 不可达阻塞（外部 gap，E2E IT 以 stub 提供可执行传输证据）"
+  - "codebase-memory project ulticode generation 2026-08-17T06:05:20Z: 36,448 nodes / 173,902 edges; relevant app-api/service scopes covered, with direct-source fallback for missing POM and excluded non-code paths"
+  - "graphify code-only query: 25,482 nodes / 76,151 edges; SubmissionWritePort, NotificationAdministrationService, SubmissionWriteCompatibilityProvider and provider/consumer seams located"
+  - "owner matrix source accounting: service=93, command=31, dto=87, event=6, error=1, security=1; 219 top-level files and 66 nested declarations; all matrix simple names and full nested paths checked"
+  - "Common extraction changed only Java contract sources, consumers/tests and the migration guide; no runtime config, migration, route/grant, database or provider registration changed"
+  - "cd services && ./mvnw -pl api/app-api -am test -B: BUILD SUCCESS; backend-common 96 tests and backend-app-api 39 tests, 0 failures"
+  - "cd services && ./mvnw -pl app/app-web,admin,notification -am test -B: BUILD SUCCESS; affected owner reactor suites pass"
+  - "BackendCommonMovedContractsTest and BackendCommonArchTest pass; old-FQCN, duplicate, forbidden-import and backend-common dependency scans pass"
+  - "graphify update . passed at 26,513 nodes/77,128 edges; direct source remains authoritative for newly added files not tracked by the codebase-memory index"
+  - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md §6.2/§13.2 documents common ownership and matched-release/no-alias constraints"
+  - "SnakeYAML parse passed for TASKS.yaml, HANDOFF.yaml and AUTO_PILOT_STATUS.yaml; git diff --check and changed-file whitespace scans passed"
+  - "existing SPLIT-005 gaps retained: sandbox/Testcontainers evidence and compatibility/grant retirement authority are future gates, not CONTRACT-001 blockers"
+  - "Current validation: affected 20-module Maven reactor BUILD SUCCESS; submission owner *IT 28/0/0; canonical API duplicate/boundary scans and Notification namespace checks pass"
+  - "Current source review found and fixed one implementation-only UserBestStats Javadoc mapper reference; no confirmed finding remains after the API reactor rerun"
 review:
   status: pass
-  scope: "SEARCH-003 四切片：版本/账本/tombstone、migration+共享链回归、枚举/backfill 协议、/search 兼容+扫描、compose 启用+E2E"
-  confirmed_findings:
-    - "slice-b 回归：V20260816170000 表级 GRANT 使全新库共享链失败（test.sh quick 自 slice-b 起未跑）；修复 V20260816165000 前置 migration，真实 MySQL 全链 IT 验证"
-    - "DELETE/backfill 乱序可复活已删文档 → worker tombstone 账本（DEC-016 修订）"
+  scope: "CONTRACT-002 through CONTRACT-006 source-boundary review: owner FQCN/POM convergence, provider/reference identities, API purity, DTO codec/catalog locality, compatibility and security regressions"
+  confirmed_findings: []
+  execution_note: "Formal review workers timed out; parent performed bounded local standards/spec/security review against the final diff, direct source and graph/coverage evidence. One Javadoc implementation reference was fixed; no confirmed finding remains."
 validation:
   tier: C
-  risk_reason: "跨服务事件版本语义、共享链 migration、启用开关（生产 compose 默认开但代码默认关）"
-  status: blocked
+  risk_reason: "The task changes cross-module Java FQCNs, POM edges and pure DTO utility ownership while preserving runtime defaults; provider cutover, grants and compatibility retirement remain separate gated tasks"
+  status: pass
   checks:
-    - "search 15 + auth search 7 + app-web search 92 + IT 6/6 + reactor compile + compose prod/dev + git diff --check"
-    - "SPLIT-005-env-quick official quick PASS; SPLIT-005-env-sandbox focused reactor PASS with 6 skipped; services-wide *IT externally blocked in Testcontainers MySQL startup"
-  failures_failed:
-    - "官方 `scripts/dev/test.sh quick`：既有 `ulticode-mysql` root credential mismatch（MySQL 1045）"
-    - "services-wide `*IT`：`SandboxNamespaceIsolationIT` 4/6 failures because `ulticode-sandbox:latest` is unavailable; documented base build hit Docker Hub timeout"
-  failures_fixed:
-    - "Flyway 10.10.0 依赖 jackson-dataformat-toml 2.15.4 不在离线 m2 → pom 排除（程序化 API 不需要）"
-    - "IT 容器库名需为 ulticode（基础 migration 硬引用）；FK 清理用 SET FOREIGN_KEY_CHECKS"
-    - "Auth AccountManagementTransactionalIT fixture missing `search_document_changed_outbox` → canonical-compatible table added; focused 5/5 and auth `*IT` 10/10"
-    - "InboxConsumerTransactionIT expected exact exception text while consumer persists a bounded stack trace → class-containment assertion; focused 5/5"
-    - "test.sh fallback first exposed the canonical migration's hard-coded `ALTER DATABASE ulticode`; disposable path now defaults TEST_MYSQL_DB_NAME to `ulticode` and reruns quick successfully"
-    - "SandboxNamespaceIsolationIT @BeforeAll assumption initially reported tests=0; changed to @BeforeEach so missing image reports 6 explicit skipped tests"
+    - "backend-common 96, submission-api 15, notification-api 7, app-api 28 and affected 20-module reactor tests pass"
+    - "Submission owner *IT 28/0/0, including DefaultSubmissionWritePortIT 6/0/0; App wire compatibility focused 13/13"
+    - "owner FQCN/POM/import/provider/reference scans, API purity scan, duplicate codec/catalog scan and dependency tree pass"
+    - "graphify update . at 26,513 nodes/77,128 edges; control-plane YAML and git diff --check pass"
+failures_failed: []
+failures_fixed:
+  - "Added the omitted security/DelegationAssertionContract.java to the owner matrix"
+  - "Replanned the seven-to-eight implementation-free common/security/metadata types into CONTRACT-001-COMMON"
+  - "Made the dead SubmissionNotificationPort disposition deterministic: remove unless a separately planned caller is discovered"
+  - "Removed the implementation-only SubmissionMapper Javadoc reference from submission-api UserBestStats after final boundary scan"
 external_gaps:
-    - "真实 MeiliSearch 镜像 E2E（Docker Hub 不可达）；已用 JDK HttpServer stub IT 覆盖传输链"
-    - "SPLIT-003-slice-7 已完成：显式 contest command、SubmissionCreated durable outbox/App-Contest inbox、judged missing-association retry、remote verdict contest context 回读"
-    - "官方 `scripts/dev/test.sh quick` 已通过：既有 ulticode-mysql 的 1045 被隔离为 local mysql:8.0 disposable path；临时容器/ENV_FILE 已清理"
-    - "services-wide `*IT` 已越过 auth；remaining app-web failure is SandboxNamespaceIsolationIT 4/6 because documented `ulticode-sandbox:latest` is absent and Docker Hub timed out while building its base image"
-    - "A resumed services-wide `*IT` run could not complete: jstack showed Surefire main waiting in Testcontainers JdbcDatabaseContainer.createConnection/waitUntilContainerStarted; command was interrupted with exit 130 and temporary Testcontainers resources self-cleaned"
-    - "Read-only retirement audit confirms `docker-compose.prod.yml` defaults `APP_SUBMISSION_ROUTING_MODE=local` and `services/submission/application.yml` defaults `APP_SUBMISSION_OWNER_MODE=compat`; switching both and revoking App grants is a release/cutover decision"
-    - "SPLIT-005 compatibility writer/flag/grant retirement 尚未执行；无 production cutover、applied migration rewrite 或 destructive reset 授权"
-next_goal: "在 Docker/Testcontainers 可稳定启动本地 integration dependencies 且 sandbox image 可用后，重跑 focused 与 services-wide *IT；另取得 retirement authority"
+  - "SPLIT-005-env-sandbox: real sandbox image and stable Testcontainers runtime remain unavailable"
+  - "SPLIT-005-retirement-authority: compatibility provider/route/grant retirement requires explicit release/cutover authority"
+next_goal: "Await explicit release/cutover authority and stable SPLIT-005 runtime evidence before CONTRACT-007 Submission single-hop/single-writer cutover; then run CONTRACT-008 final gate"
 next_skill: run-development-loop
-reason: "quick 已完成；sandbox 门禁实现与 focused evidence 通过，但全量 IT 被外部 Testcontainers 启动等待阻塞；compatibility/grant retirement 仍需明确授权"
+reason: "CONTRACT-002 through CONTRACT-006 are review/validation complete; runtime provider retirement remains a separately authorized gate"
 alternatives:
-  - "不执行生产 cutover、删除已应用 migration 或 destructive reset；回滚范围保持 route/watermark/reconciliation"
+  - "Leave all types in app-api: rejected because the final App-only gate would remain false"
+  - "Put business DTOs/entities/mappers in backend-common: rejected by DEC-011 and common ArchUnit boundaries"
+  - "Keep old FQCN aliases or a mixed rollout: rejected by the matched-release/no-alias rule"
+  - "Execute compat retirement or production route/grant changes now: rejected because authority and runtime evidence are separate gates"
 blockers:
-  - "SPLIT-005-env-sandbox：focused 6/6 skipped 已证实，但 services-wide *IT 仍需可用 Testcontainers/Docker runtime；真实 sandbox coverage 仍需 image/registry"
-  - "SPLIT-005-retirement-authority：compatibility writer/flag/grant retirement 需要明确 release/cutover authority；本轮未执行 production 或 destructive 操作"
+  - "CONTRACT-007 requires explicit release/cutover authority and real single-hop/single-writer runtime evidence"
+  - "SPLIT-005-env-sandbox remains blocked on sandbox image and stable Docker/Testcontainers runtime"

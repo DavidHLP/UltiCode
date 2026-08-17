@@ -1166,3 +1166,124 @@ Notification Delivery phase 仅在 `NOTIFY-001`–`NOTIFY-005` 全部 `done`、�
 ### Dependencies
 
 `NOTIFY-001 → NOTIFY-002 → NOTIFY-003 → NOTIFY-004 → NOTIFY-005`。历史 `TASK-027`–`TASK-044` 的 App deepening 方向作为来源与约束保留；本次以 `NOTIFY-*` 任务真源跟踪 Notification phase，不重写历史完成状态。
+
+## Active Execution Packet — Service Contract Boundary Convergence (2026-08-17)
+
+### Objective
+
+把 `backend-app-api` 从跨服务契约单体收敛为 App-owned contract seam；为 Submission 与 Notification 建立 provider-owned API artifact，迁移全部真实 caller/provider/test/POM 引用，消除 Submission codec/status catalog 漂移，并在既有 SPLIT-004 cutover 与明确 release authority 之后删除 Submission compat 两跳代理，恢复 Judge/App/Admin 到 `backend-submission` 的单跳、单 writer 路径。
+
+### In Scope / Out of Scope
+
+**In Scope**
+
+- 新增 `services/api/submission-api`（`backend-submission-api`、`com.ulticode.submission.api`）与 `services/api/notification-api`（`backend-notification-api`、`com.ulticode.notification.api`）。
+- 将 implementation-free 的通用安全、命令元数据和值契约从 `backend-app-api` 提取到 `backend-common`：`ActorDelegation`、`WriteCommand`、`DifficultyCountDTO`、`AccountInfo`、`JwtPayload`、`AccountReadPort`、`JwtValidationPort` 与 `DelegationAssertionContract`；Auth API 自有 provider contract 不在本次改写。
+- 按 owner matrix 移动 Submission owner contracts（write/fence/read/admin/rejudge/contest collaboration、Submission events 和 reachable wire DTOs）与 Notification owner contracts（admin read/write、commands/DTOs、service identity、intent event/payload）；每个 caller、provider、test、POM 和文档引用一并迁移。
+- 保留 App-owned Problem facts、user/recipient facts 和 App-local collaboration seams 的明确例外；Judge 的 app-api 直接引用收敛为允许的 App facts/runtime seams。
+- 将 `SubmissionTestCaseDetailDTO`、DTO-based `TestCaseDetailCodec` 和 `SubmissionStatusCatalog` 收敛到 Submission contract seam；不移动或共享 Submission Entity/Mapper。
+- 在授权 cutover 后将 backend-submission local writer/fence 直接注册为唯一 Submission provider，删除 compat forwarder、App duplicate provider、owner mode 和两跳写回链；按 runbook 验证 grants/outbox/fence/contest/event 回滚。
+- 更新 ArchUnit/contract tests、迁移指南 §4/§6/§11、owner/runtime matrix、DEC-019 和 `.auto-flow` 证据。
+
+**Out of Scope**
+
+- 不新增 broker、HTTP API、独立业务表、跨 owner SQL/2PC、共享 Entity/Mapper 或永久双写/alias。
+- 不改变 `Result`/`RpcResult`、HTTP route、JWT/cookie、security/audit、Dubbo group/version、事件字段/版本、Submission/Contest 强一致与 outbox/inbox 语义。
+- 不在本计划中物理拆 Contest ranking、Moderation 或 Notification delivery worker；不重做 Search worker 或已应用 migration。
+- 不执行未授权的 production/shared DB cutover、REVOKE、部署、commit、push、PR、merge 或 destructive reset。
+
+### Root Cause or Capability Gap
+
+- verified `app-api` 目录把 Submission、Notification、Contest、Problem、Forum、Solution、Moderation contracts 共置；各 owner service 通过同一个 `backend-app-api` artifact 学习非本 Owner 接口。
+- `SubmissionWriteCompatibilityProvider` 的默认 `compat` 分支持有 `@DubboReference(group="backend-app") appWriter`，而 App 仍注册 `SubmissionWriteProvider(group="backend-app")`；Judge/remote callers 因此形成 `backend-submission → backend-app` 两跳。
+- `backend-app-api` 还保留了被 App/Admin/Notification/WebSocket 共同消费的 credential-free security seam、command metadata 和 difficulty/count value；若没有独立 common slice，最终 App-only gate 会留下非 App owner。
+- App 与 Submission 各有 `Submission.java`、`JudgeOutboxRecord`、`JudgeOutboxMapper`、`TestCaseDetailCodec`、`SubmissionStatusCatalog`；DEC-011 允许 Entity/Mapper 私有复制，但 codec/catalog 的逐字节复制是可漂移的共享语义缺口。
+- Existing auth-api/admin-api owner-specific artifact precedent and migration-guide target owner make service-owned contract modules the smallest complete fix; deleting one port without moving its callers would only spread complexity.
+
+### Behavioral Invariants
+
+1. Contract modules stay dependency-free from implementation: no Entity/Mapper/ServiceImpl/Repository/MyBatis/Spring bean/security or implementation-module dependency.
+2. Submission and Notification wire shapes, schemaVersion/owner, IDs, metadata, redaction, Result/RpcResult, timeout/retry, audit actor and Dubbo group/version remain unchanged; only Java contract owner/package changes under a matched release.
+3. At any runtime point there is one Submission writer/provider for regular paths. No `backend-submission → backend-app` synchronous write/fence hop, no second Dubbo group, no double writer, and no cross-owner SQL/2PC.
+4. Submission intake, verdict CAS/generation fence, judge/result/created outbox and Contest association semantics remain as already verified; Contest tables stay App-owned and association remains durable event/inbox based.
+5. `TestCaseDetailCodec` preserves persisted field names, null/blank/legacy behavior and JSON round-trip; `SubmissionStatusCatalog` and the common `SubmissionStatus` wire values remain canonical. Private Entity/Mapper mapping remains owner-local.
+6. App-provided Problem/user/recipient fact seams remain explicit and bounded; Notification does not read App tables directly; Judge remains storage-free and sandbox/security behavior is unchanged.
+7. Tokens, cookies, passwords, hidden tests and sensitive DTOs never enter new contracts/events/logs; all production cutover rollback uses route/grant/watermark/reconciliation, never applied-migration rewrite.
+8. Common extraction moves only Java-only, credential-free contract/value shapes; Auth remains authoritative for account/JWT facts and no implementation or persistence dependency enters `backend-common`.
+
+### Acceptance Criteria
+
+- `CONTRACT-001` freezes a complete type-level owner matrix and matched-release boundary with no unclassified app-api contract.
+- `CONTRACT-001-COMMON` moves every matrix-assigned implementation-free common/security seam out of app-api and proves the common module remains dependency-safe.
+- `CONTRACT-002` and `CONTRACT-003` create compiling provider-owned Submission/Notification API modules with contract/ArchUnit/event evidence and no old alias path.
+- `CONTRACT-004` and `CONTRACT-005` migrate every caller/provider/test/POM; app-api retains only App-owned contracts and explicit fact exceptions; Judge's direct app-api surface is allowlisted.
+- `CONTRACT-006` leaves exactly one Submission codec and one status catalog with DTO-based golden-vector/persistence evidence and no shared Entity/Mapper.
+- `CONTRACT-007` closes the existing authority gate, switches remote/local, proves one direct Submission provider and removes compat/double registration; failure uses the existing reversible runbook.
+- `CONTRACT-008` closes the final architecture/documentation/review/validation gate without claiming unrelated physical splits.
+
+### Required Evidence
+
+- Type-level owner matrix, graph/source evidence and coverage record for all app-api scopes; direct fallback for excluded scripts/docs/target ranges.
+- New API module compile/test, ArchUnit, contract-shape, event JSON and forbidden import/dependency scans; all affected caller/provider focused tests.
+- Canonical codec/catalog count scan, legacy JSON/golden vectors and real `test_details` persistence round-trip.
+- Single-hop/provider registration audit, Judge/App/Admin/Notification boot and Dubbo reference evidence, no sensitive payload evidence.
+- Authorized disposable MySQL/Redis schema cutover, row/checksum/grant/outbox/fence/contest/event and rollback evidence; no production claim without release record.
+- `./scripts/dev/test.sh quick`, services focused/module/`verify`/`*IT`, Compose base+dev+prod, `graphify update .`, `git diff --check`, formal standards/spec/security/concurrency/compatibility review and Completion Audit.
+
+### Active Task
+
+`CONTRACT-007` — source-boundary convergence through `CONTRACT-006` is complete and reviewed; the authorized Submission single-hop/single-writer cutover remains blocked by explicit release authority plus the existing SPLIT-005 sandbox/Testcontainers gate. `CONTRACT-008` remains pending behind that gate.
+
+### Dependencies / Task DAG
+
+`CONTRACT-001 → CONTRACT-001-COMMON → {CONTRACT-002, CONTRACT-003}`；`CONTRACT-002 → CONTRACT-004`；`CONTRACT-003 → CONTRACT-005`；`{CONTRACT-002, CONTRACT-004} → CONTRACT-006`；`{CONTRACT-004, CONTRACT-006, SPLIT-005-retirement-authority} → CONTRACT-007`；`{CONTRACT-005, CONTRACT-006, CONTRACT-007, SPLIT-005} → CONTRACT-008`。`SPLIT-005-env-sandbox` 与 `SPLIT-005-retirement-authority` 的既有 blocked 状态不能被本计划绕过。
+
+### Files / Symbols / Call Chains
+
+- Contract source and tests: `services/api/app-api/src/main/java/com/ulticode/app/api/{service,command,dto,event,error}`, `services/platform/common/src/main/java/com/ulticode/common/{command,dto,auth,security}`, existing `auth-api`/`admin-api` precedents, and new `api/submission-api`/`api/notification-api`.
+- Submission write/fence chain: `judge.RemoteSubmissionWritePort` / App `RemoteSubmissionWritePort` → `backend-submission` provider → `DefaultSubmissionWritePort`/`DefaultSubmissionFencePort`; current forbidden chain is `SubmissionWriteCompatibilityProvider.appWriter` → App `SubmissionWriteProvider`.
+- Submission owner callers: `ContestServiceImpl`, `SubmissionServiceImpl`, `SubmissionController`, `SubmissionAdministrationProvider`/rejudge path, `SubmissionReadProvider`, `SubmissionUserQueryProvider`, Admin submission adapters/projections, Judge `DefaultJudgeAttemptExecutor`.
+- Notification chain: `NotificationAdministrationProvider`, `NotificationAdminReadProvider`, Admin notification adapters/services, App `NotificationIntentEventPublisher`/inbox; App-owned `UserNotificationReadProvider` remains a fact provider.
+- Drift seam: App and Submission `SubmissionStatusCatalog`/`TestCaseDetailCodec`; API `SubmissionTestCaseDetailDTO`; private entity mapping and separate Judge `JudgeTestCaseDetailCodec`.
+- Build/config/docs: `services/pom.xml`, each affected service POM, `docker-compose.prod.yml`, `services/app/app-web/src/main/resources/application.yml`, `services/submission/src/main/resources/application.yml`, `scripts/dev/submission-schema-cutover.sh`, `services/docs/MICROSERVICE_MIGRATION_GUIDE.md`.
+
+### Implementation Steps
+
+1. Execute CONTRACT-001 owner/type/FQCN matrix and matched-release decision; do not edit business source before it is accepted.
+2. Extract and test CONTRACT-001-COMMON's eight Java-only security/metadata/value types; migrate App/Admin/Notification/WebSocket consumers and tests while keeping Auth API's provider-owned duplicate contracts independent.
+3. Create and test Submission/Notification API artifacts in parallel dependency branches; move only matrix-approved pure contracts.
+4. Migrate Submission and Notification callers/providers/tests/POMs; add negative import/dependency/registration gates; keep runtime route defaults unchanged.
+5. Make DTO-based Submission codec/catalog the single implementation and preserve every existing persistence/wire vector.
+6. After SPLIT-005 read/cutover evidence and explicit release authority, execute remote/local cutover, direct provider registration, compat provider deletion and single-hop verification.
+7. Update guide/ADR/matrix, run final validation/review/Completion Audit, and stop only when every coverage row has evidence.
+
+### Compatibility / Rollback
+
+Package/FQCN relocation is an internal Dubbo contract release boundary: provider and all consumers ship as a matched version; if the release system cannot coordinate that deployment, CONTRACT-007 stays blocked and no alias/re-export is added. Before runtime cutover, all route defaults and grants remain local/compat. After authorized cutover, failure runs `submission-schema-cutover.sh rollback` to restore route/grant/watermark/reconciliation; if code removal itself fails, first deploy the prior verified compat artifact, then run the data rollback. No applied migration is edited and no destructive reset is used.
+
+### Focused Checks
+
+- `cd services && ./mvnw -pl platform/common -am test -B`, then `./mvnw -pl api/submission-api test -B` and `./mvnw -pl api/notification-api test -B`.
+- Affected module focused suites for `submission`, `notification`, `judge-runtime`, `judge`, `app/app-web`, `admin`; API remaining-contract tests and ArchUnit negative scans.
+- Import/POM/provider registration scans; canonical codec/catalog duplicate scan; contract JSON and test_details round-trip tests.
+- Read-only `scripts/dev/submission-schema-cutover.sh preflight`; only after authority, disposable cutover/rollback and single-writer/contest/event smoke.
+
+### Final Validation Tier
+
+Tier D: contract module tests → affected module focused/integration tests → boot/Dubbo/single-hop/security/concurrency checks → services `verify` and `*IT` → official quick → Compose base/dev/prod → graphify update/diff check → formal review and Completion Audit. Any sandbox, Docker, release or cutover gap remains explicitly blocked; it is never reported as pass.
+
+### Expected Review Areas
+
+FQCN/serialization and matched-release safety; owner matrix completeness; app-api residual leakage; provider/reference group duplication; Submission rejudge/fence/outbox transaction boundaries; Contest association and event ordering; codec legacy JSON; sensitive payload/redaction; Judge no-business-DB/no-HTTP boundary; App fact seam direction; grant/cutover rollback; test realism; documentation drift; protected dirty worktree.
+
+### State Files to Update
+
+`.auto-flow/TASKS.yaml`, `.auto-flow/COVERAGE.md`, `.auto-flow/DECISIONS.md`, `.auto-flow/PLAN.md`, `.auto-flow/RESUME.md`, `.auto-flow/HANDOFF.yaml`, `.auto-flow/WORKLOG.md`; bookkeeping only, never staged as delivery.
+
+### Delivery Authority
+
+本轮只授权本地 planning 与后续本地 implementation/review/validation。未授权 commit、push、PR、merge、deploy、共享数据库 migration/REVOKE、外部 registry 或 destructive Git。CONTRACT-007 还需要 release/cutover owner 的明确授权。
+
+### Terminal Condition
+
+CONTRACT-001–CONTRACT-008 全部 `done`，SPLIT-005 旧 gate 与 sandbox/authority blocker 已有真实证据，Coverage 每行闭合，app-api 无非 App owner contract，Submission/Notification API 与所有 callers/providers/tests/docs 一致，codec/catalog/Submission writer 单一，最终 review 无 Confirmed Finding；否则保持 active/blocked，不制造完成状态。

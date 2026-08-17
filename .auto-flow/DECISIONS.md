@@ -152,3 +152,62 @@
 - **Alternatives**: 保留 App local contest writer（拒绝：grant revocation 永远 PARTIAL）；把 contest_submissions 搬入 Submission schema（拒绝：违反 Contest owner 边界）；用同步 RPC/跨服务 SQL 写关联（拒绝：长事务/2PC 与 DEC-011 冲突）；让 judged consumer 丢弃 missing mapping（拒绝：Created/Judged 乱序会丢分）。
 - **Consequences**: remote+local 观察窗可以让 backend-submission 成为 submissions/judge/result/created 四张 Submission 表的唯一 writer；contest association、ranking 与 scoring 仍由 App inbox/consumer 拥有。事件使用既有 Redis Stream 与 Inbox 设施，不新增 broker；local rollback 继续同步调用 ContestSubmissionPort。
 - **Affected Tasks**: SPLIT-003-slice-6、SPLIT-003-slice-7、SPLIT-004、SPLIT-005。
+
+## DEC-019: Contract ownership follows service boundaries; Submission utilities stay on the Submission contract seam
+
+- **Context**: `backend-app-api` currently contains Submission, Notification, Contest, Problem, Forum, Solution and Moderation contracts. The verified graph/source inventory shows `SubmissionWritePort` and `NotificationAdministrationService` in `app-api`, five service/runtime consumers of the artifact, two `SubmissionWritePort` implementations, a default Submission compat provider that forwards `backend-submission` to `backend-app`, and byte-identical `SubmissionStatusCatalog`/`TestCaseDetailCodec` copies in App and Submission. Existing `auth-api` and `admin-api` already demonstrate provider-owned contract modules. DEC-011 forbids shared business Entity/Mapper and cross-owner SQL.
+- **Decision**: create `backend-submission-api` under `com.ulticode.submission.api` and `backend-notification-api` under `com.ulticode.notification.api`. Move every type proven by the owner matrix to the service that owns its provider/behavior; keep App-provided Problem/user/recipient fact seams in `backend-app-api` with explicit exceptions. Move the entity-free `SubmissionTestCaseDetailDTO`, a DTO-based `TestCaseDetailCodec`, and `SubmissionStatusCatalog` to the Submission contract seam so App rollback/projection code consumes one implementation without sharing Submission Entity/Mapper. After the existing SPLIT-004 cutover gate and explicit release authority, register only the local Submission provider in `backend-submission`, remove the App provider and compat forwarder, and keep Judge/App/Admin on one direct `backend-submission` group.
+- **Alternatives**: keep all contracts in app-api (rejected: ownership drift and future self-reinforcing coupling); add new artifacts while retaining old package aliases/re-exports (rejected: second contract path with no exit condition and hidden dependency leakage); put codec/catalog/entity/mapper in `backend-common` (rejected: widens shared implementation surface and violates DEC-011 locality); delete compat before cutover authority (rejected: unsafe writer/grant transition).
+- **Consequences**: package/FQCN changes require a matched provider/consumer release; no mixed-version rollout is allowed. App-api becomes smaller and service consumers learn only their owner contract. Submission keeps one pure DTO utility seam while each owner retains private entity mapping. Runtime cutover and provider deletion remain separately gated by release authority, checksum/grant evidence and rollback runbook.
+- **Affected Tasks**: CONTRACT-001, CONTRACT-002, CONTRACT-003, CONTRACT-004, CONTRACT-005, CONTRACT-006, CONTRACT-007, CONTRACT-008.
+
+## DEC-020: CONTRACT-001 owner matrix resolves app-api residual seams
+
+- **Context**: The complete `backend-app-api` inventory contains App business contracts mixed with Submission,
+  Notification, Auth-backed WebSocket seams, generic command metadata, Judge-runtime execution DTOs, and a small
+  generic difficulty/count value shape. Empty `CALLS` traces on interfaces are not evidence of no consumers; field/type
+  usage, implementations, providers and direct source were used instead.
+- **Decision**: Keep App Problem/user/recipient facts and App-local Contest/WebSocket collaboration in `backend-app-api`.
+  Move Submission contracts to `backend-submission-api` and Notification contracts to `backend-notification-api` under
+  the namespaces and matched release rules in `.auto-flow/CONTRACT-001-OWNER-MATRIX.md`. Put the credential-free local
+  WebSocket security seam and generic command metadata in `backend-common`; keep Auth as the authority for the facts.
+  Keep queue/sandbox/execution contracts private to Judge-runtime, and classify `ProblemSubmissionStatsPort` as
+  Submission-owned because its provider reads Submission storage. Classify the unused `SubmissionNotificationPort` as a
+  Notification-owned legacy/dead seam for bounded cleanup, never as an App contract.
+- **Alternatives**: Leave all types in app-api (rejected: owner drift); put all cross-service DTOs in common (rejected:
+  leaks business ownership); treat empty interface call traces as no-consumer evidence (rejected: graph edge type is
+  insufficient); keep old FQCN aliases (rejected by DEC-019 matched release/no-alias rule).
+- **Consequences**: CONTRACT-002/003 have a complete migration list; App fact exceptions remain an explicit, bounded
+  dependency; common receives only implementation-free metadata/value shapes; runtime cutover remains separately gated.
+- **Affected Tasks**: CONTRACT-001, CONTRACT-001-COMMON, CONTRACT-002, CONTRACT-003, CONTRACT-004, CONTRACT-005, CONTRACT-006.
+
+## DEC-021: Common extraction is a bounded prerequisite for owner API convergence
+
+- **Context**: CONTRACT-001 found eight implementation-free types in `backend-app-api` that are consumed by more than
+  one owner: command metadata (`ActorDelegation`, `WriteCommand`), generic `DifficultyCountDTO`, credential-free
+  account/JWT projections and ports, and `DelegationAssertionContract`. Leaving them in app-api would contradict the
+  final App-only contract gate; putting business DTOs or persistence types in common would violate DEC-011.
+- **Decision**: Add `CONTRACT-001-COMMON` before Submission/Notification API creation. Move only those eight types into
+  `backend-common` with stable concern packages (`common.command`, `common.dto`, `common.auth`, `common.security`),
+  migrate their App/Admin/Notification/WebSocket consumers and tests, and retain Auth API's provider-owned command
+  copies where its own public identity requires them. The common module remains Java-only and implementation-free.
+- **Alternatives**: leave the seams in app-api (rejected: final owner gate cannot close); put all App/Submission/Notification
+  DTOs in common (rejected: leaks ownership); rewrite Auth API's provider contract in the same task (rejected: expands
+  the boundary beyond the app-api objective).
+- **Consequences**: API artifact tasks consume one canonical common shape; FQCN migration still requires matched release,
+  but no new runtime route, database, JWT key, cookie, broker or provider behavior is introduced.
+- **Affected Tasks**: CONTRACT-001-COMMON, CONTRACT-002, CONTRACT-003, CONTRACT-004, CONTRACT-005, CONTRACT-008.
+
+## DEC-022: Source-boundary completion does not authorize runtime Submission cutover
+
+- **Context**: CONTRACT-002 through CONTRACT-006 now provide the owner-specific API artifacts, migrated callers,
+  provider/reference contracts, and the canonical DTO codec/catalog. The App rejudge/administration providers still
+  depend on App-owned entities, mappers, Contest/Judge adapters and outbox behavior; Submission write/fence
+  compatibility providers and the current Admin backend-app route preserve rollback behavior.
+- **Decision**: Close CONTRACT-004 and CONTRACT-005 for source/POM/provider-reference convergence and close
+  CONTRACT-006 for the canonical utility seam. Do not change runtime defaults, provider registration, grants or
+  compatibility forwarding here. Direct Submission provider handoff, compat deletion and single-hop/single-writer
+  verification remain CONTRACT-007 and require explicit release/cutover authority plus SPLIT-005 evidence.
+- **Consequences**: The API boundary can be consumed at the next matched release, while the current runtime remains
+  reversible. Coverage row 76 stays PARTIAL; CONTRACT-008 cannot close until CONTRACT-007 is authorized and verified.
+- **Affected Tasks**: CONTRACT-004, CONTRACT-005, CONTRACT-006, CONTRACT-007, CONTRACT-008.

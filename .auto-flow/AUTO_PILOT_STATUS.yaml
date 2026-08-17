@@ -1,32 +1,75 @@
-objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
-domain: "research + skill-creation"
+objective: "将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界"
+domain: "backend contract boundary convergence"
 scope:
-  - "发现并验证本地 arthas-mcp 运行时"
-  - "记录 tools/list 返回的全部工具契约"
-  - "创建用户级 Arthas MCP Skill 与动态客户端"
-  - "创建项目级 JVM 诊断 Agent 配置"
+  - "冻结 app-api 全量 owner/exception matrix 与 matched provider-consumer release boundary"
+  - "将 implementation-free common/security/metadata/value types clean move 到 backend-common"
+  - "建立 backend-submission-api 与 backend-notification-api，并迁移 callers/providers/tests"
+  - "在明确 authority 与运行时证据后完成 Submission single-writer/codec/catalog closure"
 out_of_scope:
-  - "修改现有业务代码"
-  - "修复 wrapper 的 9001/9103 端口漂移"
-  - "执行热更新、堆转储、停止 Arthas 等高风险动作"
+  - "未授权的 production/shared-DB route、grant、REVOKE、部署、commit、push、merge 或 destructive reset"
+  - "新增 broker、HTTP API、业务表、跨 owner SQL/2PC、共享 Entity/Mapper 或永久 alias"
+  - "物理拆分 Contest、Moderation、Notification delivery worker 或重做 Search worker"
 terminal_condition:
-  - "tools/list 已核验，工具数和快照已记录"
-  - "Skill/Agent 文件可加载，脚本语法与 Skill validator 通过"
-  - "客户端可连接当前 endpoint 并执行安全列表/探测"
+  - "app-api 只保留 App-owned contracts 与显式 App fact/recipient exceptions"
+  - "Submission/Notification API artifacts、所有 callers/providers/tests/POM 与 contract evidence 完成"
+  - "Submission codec/status catalog 唯一化，single-hop/single-writer 与授权 cutover rollback evidence 完成"
+  - "CONTRACT-008 review/validation/Completion Audit 通过；不绕过既有 SPLIT-005 blockers"
 nodes:
-  - id: NODE-001
-    goal: "发现并验证运行时与全部工具"
+  - id: CONTRACT-001
+    goal: "冻结 app-api owner matrix、例外集合、模块包名、Dubbo identity 与 matched release"
     status: done
-    evidence: "当前 endpoint tools/list 返回 31 个工具；已完成受限只读探测"
-  - id: NODE-002
-    goal: "创建 Skill、客户端和工具快照"
+    artifact: ".auto-flow/CONTRACT-001-OWNER-MATRIX.md"
+  - id: CONTRACT-001-COMMON
+    goal: "将八个 implementation-free common/security/metadata/value 类型迁移到 backend-common"
     status: done
-    artifact: "/home/davidhlp/.codex/skills/arthas-mcp-diagnostics"
-  - id: NODE-003
-    goal: "创建项目级 Arthas 诊断 Agent"
+  - id: CONTRACT-002
+    goal: "建立 backend-submission-api 并迁移 Submission contracts"
     status: done
-    artifact: ".codex/agents/arthas-mcp-diagnostics.toml"
-  - id: NODE-004
-    goal: "验证产物与工作区边界"
+    depends_on:
+      - CONTRACT-001-COMMON
+  - id: CONTRACT-003
+    goal: "建立 backend-notification-api 并迁移 Notification contracts"
     status: done
-resume_point: "Objective terminal evidence complete"
+    depends_on:
+      - CONTRACT-001-COMMON
+  - id: CONTRACT-004
+    goal: "重接 Submission/Judge/App/Admin callers and providers"
+    status: done
+    depends_on:
+      - CONTRACT-002
+  - id: CONTRACT-005
+    goal: "重接 Notification/App/Admin callers and providers"
+    status: done
+    depends_on:
+      - CONTRACT-003
+  - id: CONTRACT-006
+    goal: "收敛 Submission codec/status catalog 到单一 owner"
+    status: done
+    depends_on:
+      - CONTRACT-002
+      - CONTRACT-004
+  - id: CONTRACT-007
+    goal: "在授权后完成 Submission single-hop/single-writer cutover 与 compat retirement"
+    status: blocked
+    depends_on:
+      - CONTRACT-004
+      - CONTRACT-006
+      - SPLIT-005-retirement-authority
+  - id: CONTRACT-008
+    goal: "完成最终 contract-boundary review、validation、docs 与 Completion Audit"
+    status: pending
+    depends_on:
+      - CONTRACT-005
+      - CONTRACT-006
+      - CONTRACT-007
+  - id: SPLIT-005-env-sandbox
+    goal: "取得真实 sandbox image 与稳定 Docker/Testcontainers evidence"
+    status: blocked
+  - id: SPLIT-005-retirement-authority
+    goal: "取得 compatibility route/grant retirement 的明确 release/cutover authority"
+    status: blocked
+resume_point: "CONTRACT-002 through CONTRACT-006 are closed at the source-boundary/codec stage; CONTRACT-007 remains blocked pending explicit release authority and runtime evidence"
+historical_objective:
+  objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
+  status: complete
+  artifact: "/home/davidhlp/.codex/skills/arthas-mcp-diagnostics"

@@ -489,3 +489,68 @@
 - `localhost:9002/problemset` Light computed background/foreground were base3/base01; Dark were base03/base1. Primary selected dates used inverted monotones with a blue border, and difficulty badges used neutral text with semantic surfaces and accent borders.
 - Browser error log was empty. Standards and Spec reviews each closed with 0 confirmed findings. `git diff --check` passed.
 - Existing contest timer and landing work remained protected. No commit, push, deployment or external mutation was performed.
+
+## CONTRACT-001 Owner Matrix and Common-Prerequisite Closure (2026-08-17)
+
+- `CONTRACT-001-OWNER-MATRIX.md` is the authoritative inventory for `backend-app-api`: 93 service, 31 command, 87
+  DTO, 6 event, 1 error and 1 security top-level Java files (219 total), plus 66 nested declarations. The matrix
+  records App, Submission, Notification, common/security, App fact/recipient and Judge-runtime ownership, full nested
+  paths, target package roots, Dubbo identities, matched-release/no-alias rules and DEC-011 guardrails.
+- Validation caught and fixed the omitted `DelegationAssertionContract.java`; the later nested-path check confirmed
+  `RunResultDTO.RunCaseResult.InputParam` was already present under its complete nesting path. The matrix now has no
+  missing top-level or nested owner entry.
+- `CONTRACT-001-COMMON` was added as a bounded prerequisite for the eight implementation-free common/security/
+  metadata/value types; `CONTRACT-002` and `CONTRACT-003` depend on it. `SubmissionNotificationPort` has a
+  deterministic dead-contract removal disposition unless a separately planned caller is discovered.
+- `cd services && ./mvnw -pl api/app-api -am test -B` passed with backend-common 93 tests and backend-app-api 39 tests,
+  zero failures. SnakeYAML parsing for the active control-plane files, `git diff --check`, and matrix whitespace checks
+  passed. No business source/POM/runtime/migration/route/grant/database/provider-registration file changed.
+- The formal review workers timed out; the parent completed the bounded local standards/spec fallback against HEAD and
+  the untracked matrix with zero confirmed findings. `CONTRACT-001` is closed; the common slice was then implemented
+  and closed below.
+
+## CONTRACT-001-COMMON completion evidence
+
+- Added eight implementation-free contracts to `backend-common`: `common.command.ActorDelegation`,
+  `common.command.WriteCommand`, `common.dto.DifficultyCountDTO`, `common.auth.AccountInfo`,
+  `common.auth.JwtPayload`, `common.security.AccountReadPort`, `common.security.JwtValidationPort`, and
+  `common.security.DelegationAssertionContract`. Removed their old `backend-app-api` declarations without aliases.
+- Migrated App, Admin, Notification, WebSocket/security consumers and tests to the common packages while leaving
+  Auth API's independent provider-owned command types unchanged; removed the unused app-private duplicate
+  `DifficultyCountDTO`.
+- TDD evidence: the new common contract test first failed at test compilation before the eight production types were
+  added, then `cd services && ./mvnw -pl api/app-api -am test -B` passed with backend-common 96 tests and app-api 39
+  tests; the affected App/Admin/Notification reactor test also passed.
+- Static evidence: old-FQCN and duplicate-declaration scans, common forbidden-import scan, backend-common dependency
+  tree scan, changed-file whitespace and `git diff --check` passed. `graphify update .` rebuilt 26,499 nodes and
+  77,037 edges. New files are not tracked by the codebase-memory generation, so direct source checks remain the
+  authoritative evidence for those paths.
+- Review/validation: formal review workers timed out and were shut down; the parent completed the bounded local
+  standards/spec/security fallback with no confirmed findings. Migration-guide ownership and matched-release/no-alias
+  documentation is current. CONTRACT-002 and CONTRACT-003 are now ready.
+
+## 2026-08-17 (CONTRACT-002 through CONTRACT-006 completion evidence)
+
+- Added `backend-submission-api` and `backend-notification-api` to the Maven reactor; moved the owner-matrix
+  Submission/Notification contracts, migrated all discovered callers/providers/tests/POMs, and removed old FQCNs and
+  the dead `SubmissionNotificationPort`. App API architecture tests now cover only App-owned contracts plus explicit
+  fact/recipient exceptions.
+- Notification ownership was completed without changing delivery runtime behavior: `NotificationErrorCode` retains
+  the notification namespace and numeric values, and the command receipt key now names
+  `NotificationAdministrationService`. Notification provider/reference tests preserve group/version, idempotency,
+  audit actor and `RpcResult` behavior.
+- Added the single DTO-based Submission `TestCaseDetailCodec` and `SubmissionStatusCatalog` to submission-api. App and
+  Submission map DTOs to their private entities at storage edges; the separate Judge codec remains untouched. The
+  canonical-file scan finds one API codec/catalog/meta set plus the independent Judge codec.
+- TDD red/green and validation passed: backend-common 96, submission-api 15, notification-api 7, app-api 28;
+  affected 20-module Maven reactor BUILD SUCCESS; Submission owner `*IT` 28/0/0, including
+  `DefaultSubmissionWritePortIT` 6/0/0. App wire-compatibility focused tests passed 13/13.
+- Boundary scans found no new API imports of App/Auth/Admin/modules implementation packages, no Notification
+  `AppErrorCode` use, and no backend-app-api dependency from either new API. A review scan caught and removed one
+  implementation-only `SubmissionMapper` Javadoc link from `UserBestStats`; the API reactor was rerun successfully.
+- `graphify update .` completed at 26,513 nodes / 77,128 edges; migration guide §6.2/§13.2, `git diff --check`,
+  duplicate scans and control-plane reconciliation are current. No runtime default, route, grant, migration, commit,
+  push or deployment action was performed.
+- CONTRACT-007 remains blocked: direct Submission provider handoff, compat retirement, grant/cutover and
+  single-writer evidence still require explicit release authority plus the existing SPLIT-005 sandbox/Testcontainers
+  gate. CONTRACT-008 remains pending behind it.

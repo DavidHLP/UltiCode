@@ -1,13 +1,13 @@
 # Resume
 
-- Active task: SPLIT-005 final Phase Gate（Contest association 已迁为显式 submitContest + SubmissionCreated durable inbox）；SEARCH-003、SPLIT-003、SPLIT-004 已完成，最终验证证据已收集但兼容退役 gate 仍未闭合
-- Branch: main @ 3b9020c01（工作区保留两处验证用测试修复；不 commit）
-- Objective: 将 submission 判题生命周期与 search 索引 worker 拆分为独立的微服务。
-- Dependencies: SPLIT-001 → SPLIT-002(done) → SPLIT-003(done) → SPLIT-004(done) → SPLIT-005; SPLIT-001 → SEARCH-001(done) → SEARCH-002(done) → SEARCH-003(done) → SPLIT-005
-- Completed: SPLIT-001/002/003/004；SPLIT-003-slice-7 explicit contest command + durable association handoff；SEARCH-001/002/003（21ad12a4d/c81bfab1c/16cecd994/d09411d19）
-- In progress: SPLIT-005 final Phase Gate (services-wide verification, compatibility retirement audit, security/concurrency/architecture review)
-- Next ready: none；SPLIT-005-env-quick 已完成；SPLIT-005-env-sandbox blocked on Testcontainers/Docker runtime stability；SPLIT-005-retirement-authority blocked pending explicit release/cutover authority
-- Environment: Docker 可用但无外网；本轮最终门禁使用的 disposable MySQL/Redis 环境已清理，既有 `ulticode-mysql` 持久卷未触碰；redis:7.2-alpine 本地 tag；`.env` 已含 MEILI_MASTER_KEY；Compose 含 meilisearch + backend-search 服务
-- Protected boundaries: 不编辑已应用 migration；`.auto-flow/` 不 commit；auth 叶子 Provider 禁 app-api；search.worker.enabled 默认关（SEARCH-003 后启用）；不删除既有 mysql_data 卷
-- Evidence: HANDOFF.yaml + WORKLOG.md（SPLIT slice-4..9、SPLIT-003-slice-7、SEARCH-001/002/003、2026-08-17 isolated services test/verify/frontend checks）；SPLIT-005-env-quick 已以 disposable MySQL 修复官方 quick；sandbox focused IT 6/6 skipped（无镜像）且全量 IT 卡在 Testcontainers MySQL 启动；兼容退役 gate 已记录
-- Rollback: worker 停用即回退（事件留在 stream PEL/outbox 可重放）；模块随 commit 回滚
+- Active task: CONTRACT-007 remains blocked at the authorized Submission single-hop/single-writer cutover; CONTRACT-002 through CONTRACT-006 source-boundary and codec/catalog work is review/validation complete; SPLIT-005 final Phase Gate remains an independent in-progress historical stage
+- Branch: main @ dc32f114e（工作区保留既有验证用测试修复；不 commit）
+- Objective: 将 backend-app-api 收敛为 App-owned contract seam，建立 backend-submission-api/backend-notification-api，迁移全部 callers/providers，并在授权 cutover 后删除 Submission compat 两跳代理与重复 codec/status catalog
+- Dependencies: CONTRACT-001(done) → CONTRACT-001-COMMON(done) → {CONTRACT-002, CONTRACT-003}(done) → {CONTRACT-004, CONTRACT-005}(done) → CONTRACT-006(done) → CONTRACT-007 authorized cutover → CONTRACT-008 final gate; SPLIT-004/SPLIT-005 and existing SEARCH/SPLIT history remain prerequisite evidence
+- Completed: SPLIT-001/002/003/004、SEARCH-001/002/003、SPLIT-005-env-quick、CONTRACT-001 owner/release matrix、CONTRACT-001-COMMON common extraction、CONTRACT-002/003 API artifacts、CONTRACT-004/005 caller/provider migration、CONTRACT-006 canonical codec/catalog
+- In progress: SPLIT-005 final gate（sandbox/Testcontainers evidence 与 retirement authority 未闭合）
+- Next ready: none — CONTRACT-007 is blocked on explicit release/cutover authority and the existing SPLIT-005 sandbox/Testcontainers evidence; CONTRACT-008 waits for that gate
+- Environment: Docker 可用但无外网；既有 ulticode-mysql 持久卷未触碰；disposable verification resources 已清理；`.auto-flow/` 不 commit
+- Protected boundaries: 不编辑 applied migration；不执行生产 route/grant/REVOKE；不删除 mysql_data；不新增 Entity/Mapper shared module、broker 或永久兼容 alias；保留 App/Auth/Contest ownership
+- Evidence: `.auto-flow/CONTRACT-001-OWNER-MATRIX.md` 完成 219 个顶层类型与 66 个 nested 类型的 owner、例外、模块包名、Dubbo group/version、matched release 和 DEC-011 盘点；common extraction 新增八个 common types；Submission/Notification API artifacts、调用方/POM/provider references、canonical DTO codec/catalog 已迁移；affected Maven tests、28 个 Submission IT 与 direct negative scans pass；graphify updated to 26,513 nodes/77,128 edges
+- Rollback: contract package/source 回到上一 verified artifact；runtime cutover 只走 route/grant/watermark/reconciliation runbook，compat 删除失败先回滚 artifact，不改 migration

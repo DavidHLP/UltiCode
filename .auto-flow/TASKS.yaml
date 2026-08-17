@@ -1,4 +1,4 @@
-objective: "将 submission 判题生命周期与 search 索引 worker 拆分为独立的微服务"
+objective: "将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界"
 tasks:
   - id: TASK-001
     title: "重构共享 Solarized 语义色并验证 console 双主题"
@@ -1149,3 +1149,323 @@ tasks:
     commits: []
     notes: "当前没有明确授权；不得通过改默认值、删除 compatibility writer 或执行 REVOKE 来制造 Gate 通过。"
     updated_at: "2026-08-17T18:20:00+08:00"
+  - id: CONTRACT-001
+    title: "冻结服务契约 Owner 与发布边界"
+    source:
+      - "user-objective-2026-08-17-contract-boundary"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md:4.3-4.5.1,6.2-6.5"
+      - "DEC-011"
+      - "graphify/codebase-memory contract ownership query 2026-08-17"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "逐类型盘点 app-api 的 service/command/dto/event/error；每个类型唯一映射到 App、Submission、Notification、Auth/Admin、common 或 judge-runtime internal，并记录保留/移动理由"
+      - "冻结 backend-submission-api/com.ulticode.submission.api 与 backend-notification-api/com.ulticode.notification.api 的模块、包名、Dubbo group/version 和发布边界"
+      - "Submission owner contract、Notification owner contract、App-provided fact/recipient contract 的例外集合均有明确名单；不存在未决的 app-api owner"
+      - "冻结 matched contract release 约束：新包名不允许混合旧消费者/提供者滚动运行，不增加永久 alias 或兼容第二套契约"
+      - "明确 DEC-011 约束：不共享 Entity/Mapper，不跨服务 SQL/2PC，不新增 broker、migration 或业务 writer"
+    validation:
+      - "graph/source inventory 对照 provider、consumer、POM 和直接源码 fallback；对 app-api 全 scope 负向结论记录覆盖缺口"
+      - "只读 Maven dependency/import scan；owner matrix review 覆盖 Submission、Notification、Judge、Admin、App 五类运行时"
+      - "git diff --check（仅控制面变更）"
+    rollback:
+      - "仅回退本任务的 owner matrix、包名和发布边界记录；不改变业务源码、数据库、路由或运行时状态"
+    evidence:
+      - "逐类型 owner matrix 已写入 .auto-flow/CONTRACT-001-OWNER-MATRIX.md；覆盖 219 个 app-api 顶层类型和 66 个 nested 类型，无未决 owner"
+      - "已验证：graphify code-only 生成 25,482 nodes/76,151 edges；SubmissionWritePort、NotificationAdministrationService、两套 DefaultSubmissionWritePort 与 compat provider 均可定位"
+      - "已验证：codebase-memory moderate index 36,448 nodes/173,902 edges；services/api/app-api、submission、notification、judge、admin 的源码覆盖已检查，target/脚本/文档排除项已记录"
+      - "已验证：app-api POM 被 app/submission/notification/judge/judge-runtime/admin 直接或传递使用；auth-api/admin-api 已提供 owner-specific precedent"
+      - "已验证：219 个顶层 Java 文件与 66 个完整嵌套声明均可映射；DelegationAssertionContract.java 与 RunResultDTO.RunCaseResult.InputParam 均按完整路径覆盖"
+      - "已验证：CONTRACT-001 依赖矩阵、common prerequisite、Submission/Notification API DAG、App fact/recipient exceptions 与 dead SubmissionNotificationPort disposition 已完成 re-plan"
+      - "已验证：cd services && ./mvnw -pl api/app-api -am test -B 通过；backend-common 93 tests、backend-app-api 39 tests，0 failures"
+      - "已验证：TASKS/HANDOFF/AUTO_PILOT_STATUS SnakeYAML parse、git diff --check、owner matrix whitespace 与 source-count/matrix-name checks 通过"
+    commits: []
+    notes: "Owner matrix and matched-release boundary closed after inventory correction and common-contract planning rework; no business contract moved. SPLIT-005 sandbox/release-authority blockers remain independent."
+    updated_at: "2026-08-17T23:24:30+08:00"
+  - id: CONTRACT-001-COMMON
+    title: "提取 backend-app-api 的通用安全、元数据和值契约"
+    source:
+      - "CONTRACT-001"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/{command,dto,security,service}"
+      - "services/platform/common"
+      - "DEC-020"
+      - "DEC-021"
+    status: done
+    depends_on:
+      - "CONTRACT-001"
+    acceptance_criteria:
+      - "backend-common 提供 implementation-free 的八个类型：ActorDelegation、WriteCommand、DifficultyCountDTO、AccountInfo、JwtPayload、AccountReadPort、JwtValidationPort 与 DelegationAssertionContract；目标包分别固定在 common.command、common.dto、common.auth、common.security"
+      - "上述 app-api 类型 clean move 到 backend-common，旧 app-api FQCN、重复 re-export 与 alias 删除；Auth API 自有 provider contract 保持独立且不被错误改写"
+      - "App、Admin、Notification、WebSocket/security consumers 与测试切换到 common 类型，字段、Optional/Serializable、常量、JWT/Delegation wire semantics 不变"
+      - "backend-common 仍不依赖 Entity、Mapper、Repository、MyBatis、ServiceImpl、Dubbo provider 或业务实现；common tests/ArchUnit 锁定禁止依赖与 required types"
+    validation:
+      - "cd services && ./mvnw -pl platform/common -am test -B"
+      - "common contract shape/JSON/serialization tests；App/Admin/Notification security and command focused tests"
+      - "direct import scan proves no production/test com.ulticode.app.api imports for moved common types and no app-api duplicate declarations"
+      - "git diff --check"
+    rollback:
+      - "在 Submission/Notification API caller release 前回滚 common contract package and imports；不改变 routes, JWT keys, cookies, database or runtime defaults"
+    evidence:
+      - "backend-common 新增 common.command、common.auth、common.dto、common.security 八个 Java-only contract types；旧 app-api FQCN 与 app-private 未使用 DifficultyCountDTO 已删除，无 alias/re-export"
+      - "BackendCommonMovedContractsTest 覆盖 command validation/serialization、DTO bean JSON、auth projections、security ports 与 delegation constants；BackendCommonArchTest required-type and forbidden-dependency rules pass"
+      - "cd services && ./mvnw -pl api/app-api -am test -B 通过：backend-common 96 tests、backend-app-api 39 tests，0 failures"
+      - "cd services && ./mvnw -pl app/app-web,admin,notification -am test -B 通过；affected owner reactor BUILD SUCCESS，Admin/App/Notification suites 0 failures"
+      - "old moved FQCN repository scan、old source-file absence、common forbidden-import/declaration scan、backend-common dependency tree、changed-file whitespace and git diff --check pass"
+      - "graphify update . pass：26,499 nodes/77,037 edges；post-update query locates all eight common contract nodes; codebase-memory coverage is no_recorded_issue but new files are not_tracked, so direct source is authoritative"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md §6.2/§13.2 documents the common ownership and matched-release/no-alias rule"
+    review:
+      status: pass
+      scope: "Java/common contract move, consumer/provider import migration, serialization/security semantics, dependency direction, no-old-FQCN/no-duplicate boundary"
+      confirmed_findings: []
+      execution_note: "Formal code-review/java-reviewer workers timed out and were shut down; parent completed the bounded local standards/spec/security fallback against the full diff and source scans."
+    validation:
+      tier: D
+      risk_reason: "Cross-module Java package relocation affects contract compilation and local security projections; no runtime route, cookie, JWT key, database, migration, provider registration or business behavior changed"
+      status: pass
+      checks:
+        - "common and app-api contract tests"
+        - "affected Admin/App/Notification compile and unit-test reactor"
+        - "old-FQCN, duplicate declaration, forbidden common dependency and dependency-tree scans"
+        - "graphify update/query, documentation update, whitespace and diff checks"
+    failures_failed: []
+    failures_fixed: []
+    commits: []
+    notes: "这是 CONTRACT-001 发现的 bounded planning slice；只移动无业务状态的 common contract，不把 App/Submission/Notification DTO 或 Entity 塞入 common。"
+    updated_at: "2026-08-17T23:42:23+08:00"
+  - id: CONTRACT-002
+    title: "建立 backend-submission-api 并迁移 Submission 合同"
+    source:
+      - "CONTRACT-001"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/service/*Submission*"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/event/Submission*"
+      - "services/submission/src/main/java/com/ulticode/submission"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md:328-374"
+    status: done
+    depends_on:
+      - "CONTRACT-001-COMMON"
+    acceptance_criteria:
+      - "services/api/submission-api 加入 services reactor，artifactId=backend-submission-api，包根为 com.ulticode.submission.api，并可独立 test"
+      - "owner matrix 标记为 Submission 的 port、command、DTO、事件与 group/version 常量从 app-api clean move 到 submission-api；旧 app-api 类型被删除，不保留 re-export/alias"
+      - "SubmissionWritePort、SubmissionFencePort、SubmissionRead/UserRead/UserQuery/AdminRead、rejudge/admin command、ContestSubmissionPort 与 Submission lifecycle wire contracts 的字段、返回/错误语义保持兼容"
+      - "Submission API 不依赖 Entity、Mapper、ServiceImpl、Repository、MyBatis、Spring bean/security 或任何 implementation module"
+      - "Submission API contract/ArchUnit tests 锁定 UUID/metadata、事件 schemaVersion/owner、敏感字段禁止集合、Dubbo group/version 与 Java wire shape"
+    validation:
+      - "cd services && ./mvnw -pl api/submission-api test -B"
+      - "Submission API ArchUnit、contract-shape、event round-trip 与 forbidden import scan"
+      - "cd services && ./mvnw -pl api/app-api -DskipTests compile -B（确认删除旧类型后的剩余 App 合同仍可编译）"
+      - "git diff --check"
+    rollback:
+      - "在消费者重接前回滚 submission-api 文件移动和 reactor/POM 修改；不执行数据库或 runtime cutover"
+    evidence:
+      - "backend-submission-api 已加入 services reactor，artifactId=backend-submission-api，包根为 com.ulticode.submission.api；其 POM 仅声明 backend-common 与纯 contract/test 依赖。"
+      - "按 owner matrix clean move 了 Submission command/DTO/event/service contracts；旧 app-api source 已删除，Submission API contract/ArchUnit/event/command tests 共 10 项通过。"
+      - "TDD red/green：新 API contract tests 在 production source 移动前按预期编译失败，source move 后 api/submission-api -am test 通过；app-api -am test 与受影响 owner reactor compile/test 均通过。"
+      - "所有 Submission consumers/providers/tests 已切换新 FQCN；旧 moved FQCN 扫描无结果，Submission API production source 无 App/Auth/Admin/modules implementation import，dependency:tree 未发现 backend-app-api。"
+      - "Submission provider registration 的 local/compat runtime route 仍由 CONTRACT-004/007 单独处理；本 Task 未改变 route、grant、schema 或 provider default。"
+      - "migration guide §6.2/§13.2 已记录 provider-owned API artifact、App residual seam、matched-release/no-alias 规则。"
+      - "git diff --check 通过。"
+    commits: []
+    notes: "以 CONTRACT-001 owner matrix 为唯一搬迁清单；Judge runtime 内部执行 DTO/port 若未被判定为 Submission wire contract，不借机塞入该模块。"
+    updated_at: "2026-08-17T16:20:00+08:00"
+  - id: CONTRACT-003
+    title: "建立 backend-notification-api 并迁移 Notification 合同"
+    source:
+      - "CONTRACT-001"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/service/*Notification*"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/command/*Notification*"
+      - "services/notification/src/main/java/com/ulticode/notification"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md:301-326"
+    status: done
+    depends_on:
+      - "CONTRACT-001-COMMON"
+    acceptance_criteria:
+      - "services/api/notification-api 加入 services reactor，artifactId=backend-notification-api，包根为 com.ulticode.notification.api，并可独立 test"
+      - "NotificationAdminReadPort、NotificationAdministrationService、NotificationServiceContract、管理 command/DTO、NotificationIntentEventContract 及其 payload contract 从 app-api clean move；旧类型删除"
+      - "App-owned UserNotificationReadPort/UserReadPort、recipient/user fact DTO 与 App-local ContestNotificationPort 的保留理由写入 matrix，不被错误搬入 Notification API"
+      - "Notification API 仅依赖 backend-common 与必要的纯注解/序列化 API；不依赖 App/Notification entity、mapper 或实现模块"
+      - "Notification contract tests 锁定 commandId/idempotency/actor/trace、recipient redaction、event schemaVersion、backend-notification group/version 和 RpcResult shape"
+    validation:
+      - "cd services && ./mvnw -pl api/notification-api test -B"
+      - "Notification API ArchUnit、contract-shape、event JSON round-trip 与 forbidden import scan"
+      - "cd services && ./mvnw -pl api/app-api -DskipTests compile -B"
+      - "git diff --check"
+    rollback:
+      - "在 Notification consumers 重接前回滚 notification-api 文件移动和 reactor/POM 修改；不改变通知数据或 worker flags"
+    evidence:
+      - "backend-notification-api 已加入 services reactor，artifactId=backend-notification-api，包根为 com.ulticode.notification.api；其 POM 仅声明 backend-common 与纯 contract/test 依赖。"
+      - "按 owner matrix clean move 了 Notification command/DTO/event/service contracts，并删除死的 SubmissionNotificationPort；Notification API ArchUnit/contract tests 共 7 项通过。"
+      - "TDD red/green：新 API contract tests 在 production source 移动前按预期失败，source move 后 api/notification-api -am test 通过；app-api -am test 与受影响 owner reactor compile/test 均通过。"
+      - "Admin/Notification/App intent publisher/inbox/tests 已切换新 FQCN；旧 moved FQCN 扫描无结果，Notification API production source 无 App/Auth/Admin/modules implementation import，dependency:tree 未发现 backend-app-api。"
+      - "App-owned UserNotificationReadPort、NotificationRecipientDTO 与 App error/fact seams 保留在 app-api，并由 App API architecture test 显式锁定；Notification group/version 与 idempotency/RpcResult shape regression 通过。"
+      - "migration guide §6.2/§13.2 已记录 provider-owned API artifact、App fact/recipient exception、matched-release/no-alias 规则。"
+      - "git diff --check 通过。"
+    commits: []
+    notes: "Notification physical worker 已有既定 owner 方向；本 Task 只收敛 contract artifact，不重新设计 intent/outbox/ledger。"
+    updated_at: "2026-08-17T16:20:00+08:00"
+  - id: CONTRACT-004
+    title: "重接 Submission/Judge/App/Admin 调用方"
+    source:
+      - "CONTRACT-002"
+      - "services/submission/pom.xml"
+      - "services/judge/pom.xml"
+      - "services/judge-runtime/pom.xml"
+      - "services/app/app-web/src/main/java/com/ulticode/app/dubbo"
+      - "services/admin/src/main/java/com/ulticode/modules/admin"
+    status: done
+    depends_on:
+      - "CONTRACT-002"
+    acceptance_criteria:
+      - "submission、judge、judge-runtime、app-web、admin 的所有 Submission owner import/test fixture/POM 依赖切到 backend-submission-api；app-api 不再作为这些类型的传递入口"
+      - "Judge 直接依赖 submission-api；其 backend-app-api 引用严格收敛到 owner matrix 允许的 Problem facts/test-case 与必要 App fact seams，不携带 Submission contract"
+      - "Submission providers/consumers、App remote adapters、Admin read/rejudge adapters 与 Contest submission caller 的方法签名、Result/RpcResult、timeout/retry、group/version 不变"
+      - "Submission-owned read/write/fence capabilities and all migrated provider/consumer contract references use backend-submission API; App rejudge/administration providers and the Admin backend-app route remain explicitly unchanged until CONTRACT-007 authority/cutover"
+      - "主源码和测试中不存在对已移动 Submission FQCN 的 com.ulticode.app.api import；不以排除测试、反射字符串或兼容 re-export 掩盖漏迁"
+    validation:
+      - "受影响模块 focused compile/test：submission、judge-runtime、judge、app/app-web、admin"
+      - "Submission provider/reference contract tests、Admin rejudge/read tests、Judge fenced write tests 与 Contest submit tests"
+      - "直接 import scan + Maven dependency tree + single-hop provider/reference audit"
+      - "git diff --check"
+    rollback:
+      - "仅回滚契约包和调用方版本，保持现有 local/compat runtime defaults；不改变 submission schema/grants"
+    evidence:
+      - "所有 owner-matrix Submission imports、provider/consumer/test references 与受影响 POM 已切换到 backend-submission-api；旧 moved FQCN 扫描为空，new API dependency tree 未出现 backend-app-api。"
+      - "Judge/Judge-runtime 直接使用 backend-submission group；Judge 保留的 backend-app-api 依赖仅为 owner matrix 允许的 Problem facts/test-case seams。App remote adapters、Admin read/rejudge adapters 与 Contest caller 的签名、Result/RpcResult、timeout/retry、group/version 保持不变。"
+      - "Provider audit 确认 Submission read/admin/read-user registrations 直连 backend-submission；write/fence 的 backend-submission compatibility providers 明确保留 backend-app forwarding；App rejudge/administration providers 与 Admin backend-app route 未做 runtime cutover。"
+      - "验证：backend-submission-api 15 tests、backend-app-api 28 tests、Admin 559/0/3 skipped、App 1357/0/14 skipped、Submission 10 tests、Judge-runtime 9/0/4 skipped、Judge no tests；受影响 20-module reactor BUILD SUCCESS；Submission *IT 28/0/0。"
+      - "graphify update . 完成（26,513 nodes / 77,128 edges）；migration guide §6.2/§13.2、git diff --check 与 boundary negative scans 通过。"
+    commits: []
+    notes: "source boundary 与调用方迁移已完成；真正启用 remote/local、删除 compat provider、single-hop/single-writer 与 release authority 仍由 CONTRACT-007 处理。"
+    updated_at: "2026-08-17T17:00:00+08:00"
+  - id: CONTRACT-005
+    title: "重接 Notification provider 与 App consumers"
+    source:
+      - "CONTRACT-003"
+      - "services/notification/src/main/java/com/ulticode/notification/dubbo"
+      - "services/admin/src/main/java/com/ulticode/modules/admin/{service,projection,port}"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/notification"
+      - "services/api/app-api/src/test/java/com/ulticode/app/api/architecture/NotificationApiContractShapeTest.java"
+    status: done
+    depends_on:
+      - "CONTRACT-003"
+    acceptance_criteria:
+      - "Notification provider、Admin notification adapter/service、App intent publisher/inbox bridge 的 owner contract import/POM 全部切到 backend-notification-api"
+      - "UserNotificationReadPort/UserReadPort 仍由 App 提供，Notification 通过显式 App fact contract 消费；不产生 Notification→App mapper/table 访问"
+      - "backend-notification group 只保留一套 provider registration；Admin 的 query/write timeout、RpcResult、audit actor 和 command idempotency 语义不变"
+      - "App API 架构测试改为只锁 App-owned contracts；Notification tests 从 app-api 搬到 notification-api 并覆盖 unknown/forbidden payload"
+    validation:
+      - "notification、admin、app/app-web 的 focused contract/provider/service tests"
+      - "Dubbo provider/reference group/version scan、App/Notification import scan、架构规则测试"
+      - "cd services && ./mvnw -pl notification,admin,app/app-web -am test -B"
+      - "git diff --check"
+    rollback:
+      - "回滚 notification-api 与三类 consumers 的同一版本；保留已有 Notification worker flags、outbox/inbox 和 DB owner"
+    evidence:
+      - "Notification provider、Admin adapter/service、App intent publisher/inbox 与 tests 已切换到 backend-notification-api；旧 moved FQCN 扫描为空，Notification API dependency tree 未出现 backend-app-api。"
+      - "App-owned UserNotificationReadPort、recipient/user fact DTO 与 App-local ContestNotificationPort 保留并由架构测试显式锁定；Notification main source 不再引用 AppErrorCode。"
+      - "NotificationErrorCode 保留 notification namespace 与既有 numeric values；CommandReceiptExecutor 使用 NotificationAdministrationService receipt key，避免跨 owner Submission service identity。"
+      - "验证：backend-notification-api 7 tests；Notification 115/0/0；Admin/App 受影响 reactor suites 与 provider/reference group/version/idempotency/RpcResult tests 全部通过。"
+      - "Notification API production source 无 App/Auth/Admin/modules implementation import；migration guide §6.2/§13.2、git diff --check 与 boundary scans 通过。"
+    commits: []
+    notes: "Notification contract ownership 与调用方迁移已完成；不创建第四个服务、不改变 delivery worker/outbox/inbox 或 runtime route。"
+    updated_at: "2026-08-17T17:00:00+08:00"
+  - id: CONTRACT-006
+    title: "收敛 Submission codec 与状态目录唯一实现"
+    source:
+      - "CONTRACT-002"
+      - "services/submission/src/main/java/com/ulticode/modules/submission/{codec,enums}"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/submission/{codec,enums}"
+      - "services/api/app-api/src/main/java/com/ulticode/app/api/dto/SubmissionTestCaseDetailDTO.java"
+      - "DEC-011"
+    status: done
+    depends_on:
+      - "CONTRACT-002"
+      - "CONTRACT-004"
+    acceptance_criteria:
+      - "TestCaseDetailCodec 以 submission-api 的 entity-free SubmissionTestCaseDetailDTO 为输入/输出，只存在一个 canonical implementation；App/Submission entity mapping 留在各自 Owner，不共享 Entity/Mapper"
+      - "SubmissionStatusCatalog 只存在于 submission-api 的 Submission contract seam；App/Submission projections 均调用同一实现，不保留逐字节复制类"
+      - "空/null/blank、旧 JSON、字段名、CaseScope、legacy row 与序列化失败日志语义保持兼容；JudgeTestCaseDetailCodec 仍是独立的 execution-side codec，不错误合并"
+      - "重复文件扫描证明 app/modules 与 services/submission 不再各有 TestCaseDetailCodec/SubmissionStatusCatalog；status enum 的 common owner 不被重复定义"
+    validation:
+      - "submission-api codec/catalog contract tests 与 golden JSON vectors"
+      - "app-web/submission wire compatibility and persistence round-trip focused tests；必要的 MySQL IT 验证 test_details"
+      - "canonical class count/duplicate scanner、旧 JSON regression、git diff --check"
+    rollback:
+      - "回滚 API utility/mapping 变更即可；不触碰已有 JSON 列数据、migration 或 schema"
+    evidence:
+      - "canonical com.ulticode.submission.api.codec.TestCaseDetailCodec 与 catalog.SubmissionStatusCatalog 已加入 submission-api；codec 只处理 SubmissionTestCaseDetailDTO，catalog 保留 12 个既有 status metadata entries。"
+      - "App/Submission DefaultSubmissionWritePort 在存储边界完成 DTO→private Entity.TestCaseDetail 映射；App/Submission projections 共享 API catalog；Entity、Mapper、Repository 未进入 API。"
+      - "重复扫描只发现 submission-api 的 TestCaseDetailCodec/SubmissionStatusCatalog/SubmissionStatusMeta 与独立 judge-runtime JudgeTestCaseDetailCodec；App/Submission duplicate files 已删除。"
+      - "TDD red/green：API production source 缺失时 codec/catalog tests 先按预期失败；修复后 backend-common 96、submission-api 15、notification-api 7 通过；App wire compatibility focused 13 通过；Submission owner *IT 28 通过，其中 DefaultSubmissionWritePortIT 6。"
+      - "null/empty/blank/invalid/legacy JSON、CaseScope、input vectors 与 status catalog defaults 有回归覆盖；JudgeTestCaseDetailCodec 保持独立。"
+      - "API boundary scan、git diff --check、migration guide §6.2/§13.2 与 graphify update .（26,513 nodes / 77,128 edges）通过；复审修复了 UserBestStats Javadoc 对 implementation mapper 的泄漏。"
+    commits: []
+    notes: "唯一 Owner 选择 submission-api 的纯 contract seam，避免把 Entity/Mapper 重新做成共享业务模块。"
+    updated_at: "2026-08-17T17:00:00+08:00"
+  - id: CONTRACT-007
+    title: "切流并删除 Submission compat 双 provider"
+    source:
+      - "CONTRACT-004"
+      - "CONTRACT-006"
+      - "SPLIT-004"
+      - "SPLIT-005-retirement-authority"
+      - "services/submission/src/main/java/com/ulticode/submission/compat/SubmissionWriteCompatibilityProvider.java"
+      - "services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionWriteProvider.java"
+      - "scripts/dev/submission-schema-cutover.sh"
+    status: blocked
+    depends_on:
+      - "CONTRACT-004"
+      - "CONTRACT-006"
+      - "SPLIT-005-retirement-authority"
+    acceptance_criteria:
+      - "只在 release/cutover authority、schema checksum/outstanding event/contest read/rollback watermark preflight 全部有证据后，启用 APP_SUBMISSION_ROUTING_MODE=remote + APP_SUBMISSION_OWNER_MODE=local"
+      - "backend-submission 的 local DefaultSubmissionWritePort/DefaultSubmissionFencePort 直接注册 backend-submission provider；SubmissionWriteCompatibilityProvider、SubmissionFenceCompatibilityProvider、App backend-app write/fence provider 与 appWriter/appFence 两跳引用删除"
+      - "Judge/App/Admin/Contest regular path 的唯一 Submission writer/provider 是 backend-submission；App local 仅作为旧 artifact rollback/contest compatibility，不再注册第二个 Dubbo group"
+      - "真实 MySQL/Redis 观察窗验证四张 Submission owner 表、judge/result/created outbox、fence/reaper、Contest association 与 Notification event 链；App 源表 grant 撤销后无跨 owner 写入"
+    validation:
+      - "只读 preflight；获授权后 disposable MySQL cutover/REVOKE/rollback 全链与 checksum/grant evidence"
+      - "backend-submission + judge + app/admin focused boot/provider/IT；services-wide *IT、security/concurrency/single-hop review"
+      - "静态扫描零 SubmissionWriteCompatibilityProvider/appWriter/双 registration；Compose prod route/default 与 runbook 一致"
+      - "git diff --check"
+    rollback:
+      - "cutover 失败按既有 runbook 恢复 route/grant/watermark/reconciliation；compat 删除后的代码故障先回滚到上一已验证 artifact，再执行 runbook，不编辑 applied migration 或 destructive reset"
+    evidence:
+      - "只读审计已确认 docker-compose.prod.yml 默认 routing=local、services/submission 默认 owner.mode=compat；因此当前未授权删除 provider/改默认值"
+      - "解除条件：SPLIT-005-env-sandbox 的 Docker/Testcontainers 全量 evidence 与 SPLIT-005-retirement-authority 的 release owner 记录"
+    commits: []
+    notes: "当前明确 blocked；不得通过改默认配置、删除 compatibility 类或执行 REVOKE 人为制造 Gate 通过。"
+    updated_at: "2026-08-17T22:30:00+08:00"
+  - id: CONTRACT-008
+    title: "完成契约收敛最终架构门禁"
+    source:
+      - "CONTRACT-002"
+      - "CONTRACT-003"
+      - "CONTRACT-004"
+      - "CONTRACT-005"
+      - "CONTRACT-006"
+      - "CONTRACT-007"
+      - "SPLIT-005"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
+    status: pending
+    depends_on:
+      - "CONTRACT-005"
+      - "CONTRACT-006"
+      - "CONTRACT-007"
+      - "SPLIT-005"
+    acceptance_criteria:
+      - "app-api 只保留 App-owned contracts 与明确的 App fact seams；Submission/Notification owner 类型、POM 依赖、测试和文档引用全部收敛到专属 API"
+      - "submission-api/notification-api 的 provider-owned ArchUnit/contract tests、所有 caller/provider/references、package/FQCN 发布矩阵和 wire compatibility evidence 完整"
+      - "Submission codec/status catalog 单份、Submission writer/provider 单份、Judge 无两跳回写、无 Entity/Mapper 共享与无双写"
+      - "迁移指南 §4/§6/§11、owner/runtime matrix、rollback runbook、DEC-019 与 `.auto-flow` coverage 一致；未宣称 Contest ranking/Moderation/Notification physical split"
+      - "focused → module/integration → services verify/*IT → Compose → security/concurrency/architecture review 全部通过，所有外部 gap 明确列出"
+    validation:
+      - "两专属 API module tests + app-api remaining contract tests + all affected service focused suites"
+      - "cd services && ./mvnw verify -B && ./mvnw -Dtest='*IT' test -B"
+      - "./scripts/dev/test.sh quick；docker compose base+dev/prod config；graphify update .；git diff --check"
+      - "formal code/spec/security/concurrency/compatibility review and Completion Audit"
+    rollback:
+      - "交付前回滚到上一已验证 contract/runtime artifact；数据切流后只使用 route/grant/watermark/reconciliation runbook，不回写 migration"
+    evidence: []
+    commits: []
+    notes: "本 Task 是最终 Gate；若 package release、sandbox 或 cutover authority 任何一项未闭合，保持 pending/blocked，不降级验收。"
+    updated_at: "2026-08-17T22:30:00+08:00"

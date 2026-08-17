@@ -60,6 +60,23 @@ class SubmissionRoutingPortTest {
     }
 
     @Test
+    @DisplayName("local mode keeps the contest command on the local writer")
+    void localModeRoutesContestCommandLocally() {
+        SubmissionRoutingProperties properties = properties("local");
+        CreateSubmissionDTO contestRequest = new CreateSubmissionDTO();
+        contestRequest.setContestId("contest-1");
+        SubmissionVO expected = new SubmissionVO();
+        when(localWrite.submitContest("user-1", contestRequest)).thenReturn(expected);
+
+        SubmissionWriteRoutingPort routing = new SubmissionWriteRoutingPort(
+                localWrite, remoteWriteProvider, properties);
+
+        assertThat(routing.submitContest("user-1", contestRequest)).isSameAs(expected);
+        verify(localWrite).submitContest("user-1", contestRequest);
+        verifyNoInteractions(remoteWriteProvider, remoteWrite);
+    }
+
+    @Test
     @DisplayName("remote mode delegates the fenced verdict to the single remote writer")
     void remoteModeUsesRemoteWriter() {
         SubmissionRoutingProperties properties = properties("remote");

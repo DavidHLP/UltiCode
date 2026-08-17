@@ -116,6 +116,13 @@ print_snapshot() {
       echo "  $table MISSING"
     fi
   done
+  for table in "${TARGET_ONLY_TABLES[@]}"; do
+    if table_exists "$schema" "$table"; then
+      echo "  $table (target-only) rows=$(row_count "$schema" "$table") checksum=$(checksum "$schema" "$table")"
+    else
+      echo "  $table (target-only) MISSING"
+    fi
+  done
 }
 
 assert_ready() {

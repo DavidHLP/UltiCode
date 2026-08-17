@@ -355,7 +355,9 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 
 slice-3 边界：outbox 消费者已迁移到 backend-submission（读 `submission` schema 的 outbox 行；`JudgeOutboxDispatcher` 仅 real dispatch，无 legacy shadow/replay），App 侧 dispatcher 不再消费 submission schema 行，因此切换 `APP_SUBMISSION_ROUTING_MODE=remote` 的前置（dispatcher 迁移）已满足。
 
-slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant），`app.submission.owner.mode=local` 使 provider 直写本地库。但**不得**在 SPLIT-004 之前启用 remote+local：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
+slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对 + target-only `submission_created_outbox` 存在且为空核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant），`app.submission.owner.mode=local` 使 provider 直写本地库。但**不得**在 SPLIT-004 之前启用 remote+local：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
+
+slice-7 边界（contest association 事件化）：切流后 contest 提交经 `submitContest` → `submission_created_outbox` → App-Contest 幂等消费写 `contest_submissions`。**历史 contest 提交无 created-outbox 行**：cutover 前已存在的 contest 提交，其 verdict 仍由 App 本地 dispatcher（contest 兼容路径）处理，contestId 从 App 自身 `contest_submissions` 解析，不受影响；若未来 contest 路径整体迁移到 backend-submission 处理历史 verdict，需先从 App `contest_submissions` 回填 `submission_created_outbox`（当前 runbook 未做回填，属已知边界）。
 
 slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：数据 cutover 已在可丢弃 MySQL 8.0 环境全链路执行（preflight→cutover 三表 72/2/2 行 checksum 一致→App 表级 grant 撤销→App 用户读写被拒（本环境 1044；表级 grant 姿态下为 1142）、`submission_rw` 解锁后读写正常）。运行时切换 = App `APP_SUBMISSION_ROUTING_MODE=remote`（读经 `SubmissionUserQueryRoutingPort` 委托 backend-submission）+ Admin `app.submission.admin.read-group=backend-submission`。**AC4 退役证据**：以下 App 组件在切流状态仅剩 local contest rollback 与回滚路径职责；DEC-018 已移除原先的 contest 本地 writer guard。Dispatcher/Listener 已在类 javadoc 标注（Writer/Mapper 为支撑类，由所在包的 Dispatcher/Listener 标注覆盖），不得扩展新 regular-path 行为：
 

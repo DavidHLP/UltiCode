@@ -172,6 +172,66 @@ class ContestSubmissionAdapterTest {
         verify(rankingMarkDirtyPort).markDirty(CONTEST_ID);
     }
 
+    @Test
+    @DisplayName("created event replay is a no-op when the association already exists")
+    void createdEvent_replay_isNoOp() {
+        ContestSubmission existing = new ContestSubmission();
+        existing.setSubmissionId("submission-event");
+        existing.setContestId(CONTEST_ID);
+        existing.setVirtualSessionId("session-1");
+        when(contestSubmissionMapper.findBySubmissionId("submission-event"))
+                .thenReturn(Optional.of(existing));
+
+        adapter.recordSubmissionFromEvent("submission-event", USER_ID, PROBLEM_ID,
+                CONTEST_ID, "session-1", NOW);
+
+        verifyNoInteractions(contestMapper, contestProblemMapper, contestParticipantMapper,
+                contestClock);
+        verify(contestSubmissionMapper, never()).insert(any(ContestSubmission.class));
+        verify(rankingMarkDirtyPort, never()).markDirty(any());
+    }
+
+    @Test
+    @DisplayName("created event with conflicting association is rejected without insert")
+    void createdEvent_conflictingAssociation_isRejected() {
+        ContestSubmission existing = new ContestSubmission();
+        existing.setSubmissionId("submission-event");
+        existing.setContestId("contest-other");
+        existing.setVirtualSessionId(null);
+        when(contestSubmissionMapper.findBySubmissionId("submission-event"))
+                .thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> adapter.recordSubmissionFromEvent(
+                "submission-event", USER_ID, PROBLEM_ID, CONTEST_ID, null, NOW))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Conflicting contest association");
+        verify(contestSubmissionMapper, never()).insert(any(ContestSubmission.class));
+        verify(rankingMarkDirtyPort, never()).markDirty(any());
+    }
+
+    @Test
+    @DisplayName("created event with mismatched participant user is rejected")
+    void createdEvent_userMismatch_isRejected() {
+        Contest contest = contest(ContestStatus.RUNNING.name());
+        ContestProblem problem = contestProblem();
+        ContestParticipant participant = participant(true, "session-1");
+        participant.setUserId("user-other");
+        when(contestSubmissionMapper.findBySubmissionId("submission-event"))
+                .thenReturn(Optional.empty());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(contest);
+        when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, PROBLEM_ID))
+                .thenReturn(problem);
+        when(contestParticipantMapper.findVirtualForSubmissionAdmission(
+                CONTEST_ID, USER_ID, "session-1")).thenReturn(Optional.of(participant));
+
+        assertThatThrownBy(() -> adapter.recordSubmissionFromEvent(
+                "submission-event", USER_ID, PROBLEM_ID, CONTEST_ID, "session-1", NOW))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("user mismatch");
+        verify(contestSubmissionMapper, never()).insert(any(ContestSubmission.class));
+        verify(rankingMarkDirtyPort, never()).markDirty(any());
+    }
+
     private static Contest contest(String status) {
         Contest contest = new Contest();
         contest.setId(CONTEST_ID);

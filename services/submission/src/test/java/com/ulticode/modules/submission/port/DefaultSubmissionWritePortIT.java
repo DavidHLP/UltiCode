@@ -366,6 +366,19 @@ class DefaultSubmissionWritePortIT {
     }
 
     @Test
+    @DisplayName("virtual-session-only context is rejected by the local writer")
+    void virtualSessionOnlySubmissionRejected() {
+        CreateSubmissionDTO dto = new CreateSubmissionDTO();
+        dto.setProblemId(101L);
+        dto.setLanguage("python");
+        dto.setCode("print(1)");
+        dto.setVirtualSessionId("session-1");
+
+        assertThatThrownBy(() -> writer.submit("user-1", dto))
+                .hasMessageContaining("contest command");
+    }
+
+    @Test
     @DisplayName("explicit contest command writes the durable association outbox")
     void contestCommandWritesCreatedOutbox() {
         CreateSubmissionDTO dto = new CreateSubmissionDTO();

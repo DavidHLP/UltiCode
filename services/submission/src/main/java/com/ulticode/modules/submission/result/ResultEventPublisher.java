@@ -37,7 +37,8 @@ public class ResultEventPublisher {
      * Publish one lifecycle event via Redis Streams XADD.
      *
      * @param eventId     outbox row id (stable idempotency key for consumers)
-     * @param owner       publishing owner tag (kept "App" for consumer compatibility)
+     * @param owner       publishing owner tag; consumers read by eventType and
+     *                    do not filter on owner (kept explicit for auditability)
      * @param eventType   domain event type
      * @param aggregateId root aggregate identifier
      * @param generation  fence generation (aggregate version)

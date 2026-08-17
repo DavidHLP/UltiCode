@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,5 +29,30 @@ class NoopContestSubmissionPortTest {
         assertThat(port.findContestId("submission-1")).isEqualTo("contest-1");
         assertThat(port.isContestSubmission("submission-1")).isTrue();
         assertThat(port.isVirtualParticipation("submission-1")).isTrue();
+    }
+
+    @Test
+    void returnsNullWhenCreatedRowIsGenuinelyAbsent() {
+        when(createdOutboxMapper.findLatestBySubmissionId("submission-2")).thenReturn(null);
+
+        NoopContestSubmissionPort port = new NoopContestSubmissionPort(createdOutboxMapper);
+
+        assertThat(port.findContestId("submission-2")).isNull();
+        assertThat(port.isContestSubmission("submission-2")).isFalse();
+        assertThat(port.isVirtualParticipation("submission-2")).isFalse();
+    }
+
+    @Test
+    void propagatesReadFailureInsteadOfSwallowingIt() {
+        when(createdOutboxMapper.findLatestBySubmissionId("submission-3"))
+                .thenThrow(new IllegalStateException("connection lost"));
+
+        NoopContestSubmissionPort port = new NoopContestSubmissionPort(createdOutboxMapper);
+
+        // Fail-closed: verdict writers must roll back and retry rather than
+        // emit a judged event without contest context.
+        assertThatThrownBy(() -> port.findContestId("submission-3"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("connection lost");
     }
 }

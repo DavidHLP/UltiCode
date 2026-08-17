@@ -124,10 +124,12 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
     }
 
     /**
-     * Apply an already-admitted remote contest submission. The Submission
-     * owner performed admission before emitting the event, so this consumer
-     * preserves the original occurrence time and does not re-run the current
-     * contest deadline check.
+     * Apply an already-admitted remote contest submission. Admission is the
+     * App's non-locking pre-check in {@code ContestServiceImpl} (DEC-018);
+     * the Submission owner does not re-run status/deadline checks. The
+     * bounded admission→write window is accepted by design, and this method
+     * preserves the original occurrence time without re-checking the current
+     * contest deadline.
      */
     public void recordSubmissionFromEvent(String submissionId, String userId, Long problemId,
                                           String contestId, String virtualSessionId,

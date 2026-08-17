@@ -19,8 +19,13 @@ import org.springframework.stereotype.Component;
  *   <li>contest context needed by result events is read from the durable
  *       {@code SubmissionCreated} row; ordinary submissions still return
  *       {@code null};</li>
- *   <li>virtual-participation queries return false.</li>
+ *   <li>virtual-participation and contest flags are derived from the durable
+ *       {@code SubmissionCreated} row.</li>
  * </ul>
+ *
+ * <p>{@link #findContestId} is fail-closed: a transient read failure
+ * propagates so the result-outbox write rolls back and the dispatcher
+ * retries, rather than emitting a judged event without contest context.</p>
  */
 @Slf4j
 @Component
@@ -53,14 +58,13 @@ public class NoopContestSubmissionPort implements ContestSubmissionPort {
 
     @Override
     public String findContestId(String submissionId) {
-        try {
-            SubmissionCreatedOutboxRecord record =
-                    createdOutboxMapper.findLatestBySubmissionId(submissionId);
-            return record == null ? null : record.getContestId();
-        } catch (RuntimeException e) {
-            log.debug("Unable to resolve contest for submission {}: {}",
-                    submissionId, e.getMessage());
-            return null;
-        }
+        // Fail-closed: a transient read failure must abort the result-outbox
+        // write (rollback → dispatcher retry) instead of silently emitting a
+        // judged event without contestId, which would make the App contest
+        // consumer skip scoring without any retry. A row genuinely absent
+        // still yields null (ordinary submission).
+        SubmissionCreatedOutboxRecord record =
+                createdOutboxMapper.findLatestBySubmissionId(submissionId);
+        return record == null ? null : record.getContestId();
     }
 }

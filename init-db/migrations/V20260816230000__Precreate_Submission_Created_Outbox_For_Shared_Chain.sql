@@ -1,15 +1,25 @@
--- SPLIT-003-slice-7: durable contest association handoff.
--- The table is Submission-owned; App-Contest consumes the event and remains
--- the sole writer of contest_submissions.
+-- V20260816230000__Precreate_Submission_Created_Outbox_For_Shared_Chain.sql
+-- SPLIT-003-slice-7: shared-chain compatibility for the submission-chain
+-- migration V20260817000000.
 --
--- The table name is schema-qualified: the shared Flyway location
--- (filesystem:migrations) discovers this directory recursively and applies
--- owner migrations against the shared `ulticode` schema too. Unlike
--- submissions/judge_outbox/submission_result_outbox (which pre-exist in the
--- shared schema from the legacy chain, making IF NOT EXISTS a no-op), this
--- table has no shared-chain ancestor. V20260816230000 pre-creates the
--- `submission` schema and table so this statement is a no-op in the shared
--- chain instead of creating a phantom table in the App schema.
+-- The shared Flyway location (`filesystem:migrations`) discovers owner-chain
+-- directories recursively. Most owner-dir migrations are tolerated by the
+-- shared chain (CREATE TABLE IF NOT EXISTS against already-existing shared
+-- tables), but V20260817000000 creates `submission_created_outbox`, which
+-- has no legacy shared-chain ancestor — an unqualified CREATE would
+-- materialize a phantom table in the App `ulticode` schema on every default
+-- migrate.sh run.
+--
+-- This migration pre-creates the submission schema and outbox table
+-- (idempotent, schema-qualified) so the shared chain applies V20260817000000
+-- as a no-op. The submission chain itself (flyway-submission.conf,
+-- defaultSchema=submission) remains the owner of the table shape; its
+-- V20260817000000 now uses the qualified name and no-ops against the
+-- existing table. Never edit V20260817000000 (applied in real environments
+-- after this commit).
+
+CREATE SCHEMA IF NOT EXISTS `submission`;
+
 CREATE TABLE IF NOT EXISTS `submission`.`submission_created_outbox` (
   `id`                  varchar(40)  NOT NULL,
   `submission_id`       varchar(40)  NOT NULL,

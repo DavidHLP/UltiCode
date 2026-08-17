@@ -13,6 +13,8 @@ import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
+import com.ulticode.modules.submission.created.SubmissionCreatedOutboxMapper;
+import com.ulticode.modules.submission.created.SubmissionCreatedOutboxWriter;
 import com.ulticode.modules.submission.port.DefaultSubmissionFencePort;
 import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import com.ulticode.modules.submission.projection.DefaultSubmissionProjection;
@@ -75,6 +77,7 @@ class SubmissionOwnerCutoverIT {
     private SubmissionMapper submissionMapper;
     private JudgeOutboxMapper judgeOutboxMapper;
     private SubmissionResultOutboxMapper resultOutboxMapper;
+    private SubmissionCreatedOutboxMapper createdOutboxMapper;
 
     @BeforeAll
     static void createSchema() throws Exception {
@@ -146,6 +149,28 @@ class SubmissionOwnerCutoverIT {
                     next_retry_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """);
+            st.execute("""
+                CREATE TABLE submission_created_outbox (
+                    id VARCHAR(64) PRIMARY KEY,
+                    submission_id VARCHAR(64) NOT NULL,
+                    generation BIGINT NOT NULL,
+                    user_id VARCHAR(64) NOT NULL,
+                    problem_id VARCHAR(64) NOT NULL,
+                    contest_id VARCHAR(64) NOT NULL,
+                    virtual_session_id VARCHAR(64) NULL,
+                    language VARCHAR(32) NOT NULL,
+                    occurred_at DATETIME(3) NOT NULL,
+                    state VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+                    attempts INT NOT NULL DEFAULT 0,
+                    last_error VARCHAR(1000) NULL,
+                    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    claimed_at DATETIME NULL,
+                    claim_owner VARCHAR(128) NULL,
+                    delivered_at DATETIME NULL,
+                    next_retry_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    UNIQUE KEY uniq_created_sub_gen (submission_id, generation)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """);
         }
 
         MybatisConfiguration configuration = new MybatisConfiguration();
@@ -153,6 +178,7 @@ class SubmissionOwnerCutoverIT {
         configuration.addMapper(SubmissionMapper.class);
         configuration.addMapper(JudgeOutboxMapper.class);
         configuration.addMapper(SubmissionResultOutboxMapper.class);
+        configuration.addMapper(SubmissionCreatedOutboxMapper.class);
 
         MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
@@ -166,7 +192,10 @@ class SubmissionOwnerCutoverIT {
         submissionMapper = session.getMapper(SubmissionMapper.class);
         judgeOutboxMapper = session.getMapper(JudgeOutboxMapper.class);
         resultOutboxMapper = session.getMapper(SubmissionResultOutboxMapper.class);
+        createdOutboxMapper = session.getMapper(SubmissionCreatedOutboxMapper.class);
 
+        session.getConnection().createStatement().execute(
+                "DELETE FROM submission_created_outbox");
         session.getConnection().createStatement().execute(
                 "DELETE FROM submission_result_outbox");
         session.getConnection().createStatement().execute("DELETE FROM judge_outbox");
@@ -209,6 +238,7 @@ class SubmissionOwnerCutoverIT {
                 flags,
                 new SimpleMeterRegistry(),
                 new SubmissionResultOutboxWriter(resultOutboxMapper, uuid),
+                new SubmissionCreatedOutboxWriter(createdOutboxMapper, uuid),
                 mock(ApplicationEventPublisher.class),
                 Clock.systemUTC(),
                 uuid);

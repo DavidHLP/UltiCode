@@ -20,6 +20,7 @@ import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
+import com.ulticode.modules.submission.created.SubmissionCreatedOutboxWriter;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,18 +42,16 @@ import java.util.Map;
  * Local storage-writer adapter for {@link SubmissionWritePort}, owned by
  * {@code backend-submission}.
  *
- * <p>SPLIT-003 slice-2 copy of the App writer restricted to the ordinary
- * (non-contest) intake path and the two verdict writers. It writes the
- * {@code submission} schema tables ({@code submissions}, {@code judge_outbox},
- * {@code submission_result_outbox}) inside one local transaction.
+ * <p>SPLIT-003 local owner writer. It writes the {@code submission} schema
+ * tables ({@code submissions}, {@code judge_outbox},
+ * {@code submission_result_outbox}, and contest-intake
+ * {@code submission_created_outbox}) inside local transactions.
  *
  * <p>Contract notes:
  * <ul>
- *   <li><b>Contest submissions are rejected here.</b> The App
- *       {@code SubmissionWriteRoutingPort} keeps contest submissions on the
- *       local App writer (CR P1-2) until the whole contest command moves
- *       behind a single owner RPC. A contest payload arriving here is a
- *       routing bug and must fail loudly, not silently drop the association.</li>
+ *   <li><b>Contest submissions use the explicit command.</b> Generic
+ *       {@link #submit} rejects contest context; {@link #submitContest}
+ *       writes a durable association event for the App Contest owner.</li>
  *   <li><b>Judge dispatch.</b> In the outbox-active mode
  *       ({@code useJudgeOutbox && usePort}) the outbox row is the sole
  *       producer; legacy RQueue enqueue is skipped exactly like the App
@@ -80,6 +79,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private final FeatureFlagsProperties featureFlags;
     private final MeterRegistry meterRegistry;
     private final SubmissionResultOutboxWriter resultOutboxWriter;
+    private final SubmissionCreatedOutboxWriter createdOutboxWriter;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
@@ -91,16 +91,32 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     @Override
     @Transactional
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
+        if (createDTO != null && (StringUtils.hasText(createDTO.getContestId())
+                || StringUtils.hasText(createDTO.getVirtualSessionId()))) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Contest submission requires the contest command");
+        }
+        return submitInternal(userId, createDTO, false);
+    }
+
+    @Override
+    @Transactional
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        if (createDTO == null || !StringUtils.hasText(createDTO.getContestId())) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Contest context is required");
+        }
+        return submitInternal(userId, createDTO, true);
+    }
+
+    private SubmissionVO submitInternal(String userId, CreateSubmissionDTO createDTO,
+                                        boolean contestCommand) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
-        if (createDTO == null || !StringUtils.hasText(createDTO.getCode())) {
+        if (createDTO == null || !StringUtils.hasText(createDTO.getCode())
+                || !StringUtils.hasText(createDTO.getLanguage())) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
-        }
-        if (StringUtils.hasText(createDTO.getContestId())) {
-            // CR P1-2 guard: contest submissions must stay on the App writer.
-            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
-                    "Contest submission is not routable to backend-submission");
         }
         String language = createDTO.getLanguage().toLowerCase();
         if (!SUPPORTED_LANGUAGES.contains(language)) {
@@ -136,6 +152,14 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             judgeOutboxMapper.insert(JudgeOutboxRecord.of(
                     submission, String.valueOf(createDTO.getProblemId()),
                     generation, isShadow, uuidGenerator));
+        }
+
+        if (contestCommand) {
+            long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+            createdOutboxWriter.recordSubmissionCreated(
+                    submission.getId(), generation, userId,
+                    String.valueOf(createDTO.getProblemId()), createDTO.getContestId(),
+                    createDTO.getVirtualSessionId(), language, submission.getCreatedAt());
         }
 
         if (portActive) {

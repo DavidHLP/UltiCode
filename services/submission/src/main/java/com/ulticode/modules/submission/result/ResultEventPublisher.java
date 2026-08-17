@@ -13,8 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Publishes SubmissionJudged events to the shared {@code stream:integration}
- * Redis stream (SPLIT-003 slice-3, DEC-014).
+ * Publishes Submission lifecycle events to the shared
+ * {@code stream:integration} Redis stream (SPLIT-003, DEC-014).
  *
  * <p>backend-submission must not write the App-owned integration outbox table
  * (no cross-service SQL, DEC-011). The result outbox row itself is the durable
@@ -34,7 +34,7 @@ public class ResultEventPublisher {
     private final ObjectMapper objectMapper;
 
     /**
-     * Publish a SubmissionJudged event via Redis Streams XADD.
+     * Publish one lifecycle event via Redis Streams XADD.
      *
      * @param eventId     outbox row id (stable idempotency key for consumers)
      * @param owner       publishing owner tag (kept "App" for consumer compatibility)
@@ -58,7 +58,7 @@ public class ResultEventPublisher {
         try {
             fields.put("payload", objectMapper.writeValueAsString(payload));
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize result event payload", e);
+            throw new IllegalStateException("Failed to serialize integration event payload", e);
         }
 
         MapRecord<String, String, String> streamRecord =

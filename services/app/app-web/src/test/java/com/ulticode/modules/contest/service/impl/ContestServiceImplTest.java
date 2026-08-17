@@ -187,7 +187,7 @@ class ContestServiceImplTest {
                     .thenReturn(contestProblem);
             when(participantMapper.findRealForSubmissionAdmission("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
-            when(submissionWritePort.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+            when(submissionWritePort.submitContest(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);
@@ -232,7 +232,7 @@ class ContestServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_NOT_STARTED);
 
-            verify(submissionWritePort, never()).submit(any(), any());
+            verify(submissionWritePort, never()).submitContest(any(), any());
         }
 
         /** R6.2 / F-07: virtual sessions are rejected once the participant
@@ -283,7 +283,7 @@ class ContestServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ContestErrorCode.CONTEST_ENDED);
 
-            verify(submissionWritePort, never()).submit(any(), any());
+            verify(submissionWritePort, never()).submitContest(any(), any());
         }
 
         /** R6.2 / F-07: virtual session within duration is accepted.
@@ -328,7 +328,7 @@ class ContestServiceImplTest {
             dto.setVirtualSessionId("session-1");
             when(contestClock.effectiveEndTime(any(), any()))
                     .thenReturn(java.util.Optional.of(LocalDateTime.of(2026, 1, 1, 0, 0)));
-            when(submissionWritePort.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+            when(submissionWritePort.submitContest(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);

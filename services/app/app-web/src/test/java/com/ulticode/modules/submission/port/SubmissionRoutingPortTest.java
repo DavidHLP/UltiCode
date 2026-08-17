@@ -80,24 +80,21 @@ class SubmissionRoutingPortTest {
     }
 
     @Test
-    @DisplayName("remote mode keeps contest submissions on the local transaction")
-    void remoteModeRoutesContestSubmissionsLocally() {
+    @DisplayName("remote mode sends the explicit contest command to the owner")
+    void remoteModeRoutesContestCommandRemotely() {
         SubmissionRoutingProperties properties = properties("remote");
         CreateSubmissionDTO contestRequest = new CreateSubmissionDTO();
         contestRequest.setContestId("contest-1");
         SubmissionVO expected = new SubmissionVO();
-        when(localWrite.submit("user-1", contestRequest)).thenReturn(expected);
+        when(remoteWriteProvider.getIfAvailable()).thenReturn(remoteWrite);
+        when(remoteWrite.submitContest("user-1", contestRequest)).thenReturn(expected);
 
         SubmissionWriteRoutingPort routing = new SubmissionWriteRoutingPort(
                 localWrite, remoteWriteProvider, properties);
 
-        // Contest admission holds the contest row FOR UPDATE in the caller's
-        // transaction; RPC + re-lock in a second transaction deadlocks
-        // (CR P1-2), so the routing port must never send contest submissions
-        // over the remote route.
-        assertThat(routing.submit("user-1", contestRequest)).isSameAs(expected);
-        verify(localWrite).submit("user-1", contestRequest);
-        verifyNoInteractions(remoteWriteProvider, remoteWrite);
+        assertThat(routing.submitContest("user-1", contestRequest)).isSameAs(expected);
+        verify(remoteWrite).submitContest("user-1", contestRequest);
+        verifyNoInteractions(localWrite);
     }
 
     @Test

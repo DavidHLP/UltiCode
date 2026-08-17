@@ -3,8 +3,12 @@ package com.ulticode.modules.queue.outbox.dispatcher;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
+import com.ulticode.modules.submission.created.SubmissionCreatedDispatcher;
+import com.ulticode.modules.submission.created.SubmissionCreatedOutboxMapper;
+import com.ulticode.modules.submission.created.SubmissionCreatedOutboxRecord;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.submission.result.ResultEventPublisher;
@@ -78,6 +82,7 @@ class SubmissionOutboxDispatcherIT {
     private SqlSession session;
     private JudgeOutboxMapper judgeOutboxMapper;
     private SubmissionResultOutboxMapper resultOutboxMapper;
+    private SubmissionCreatedOutboxMapper createdOutboxMapper;
 
     @BeforeAll
     static void createSchema() throws Exception {
@@ -126,12 +131,34 @@ class SubmissionOutboxDispatcherIT {
                     next_retry_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """);
+            st.execute("""
+                CREATE TABLE submission_created_outbox (
+                    id VARCHAR(64) PRIMARY KEY,
+                    submission_id VARCHAR(64) NOT NULL,
+                    generation BIGINT NOT NULL,
+                    user_id VARCHAR(64) NOT NULL,
+                    problem_id VARCHAR(64) NOT NULL,
+                    contest_id VARCHAR(64) NOT NULL,
+                    virtual_session_id VARCHAR(64) NULL,
+                    language VARCHAR(50) NOT NULL,
+                    occurred_at DATETIME(3) NOT NULL,
+                    state VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+                    attempts INT NOT NULL DEFAULT 0,
+                    last_error VARCHAR(1000) NULL,
+                    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    claimed_at DATETIME NULL,
+                    claim_owner VARCHAR(128) NULL,
+                    delivered_at DATETIME NULL,
+                    next_retry_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """);
         }
 
         MybatisConfiguration configuration = new MybatisConfiguration();
         configuration.setCacheEnabled(false);
         configuration.addMapper(JudgeOutboxMapper.class);
         configuration.addMapper(SubmissionResultOutboxMapper.class);
+        configuration.addMapper(SubmissionCreatedOutboxMapper.class);
 
         MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
@@ -157,10 +184,12 @@ class SubmissionOutboxDispatcherIT {
         session = sqlSessionFactory.openSession(false);
         judgeOutboxMapper = session.getMapper(JudgeOutboxMapper.class);
         resultOutboxMapper = session.getMapper(SubmissionResultOutboxMapper.class);
+        createdOutboxMapper = session.getMapper(SubmissionCreatedOutboxMapper.class);
 
         session.getConnection().createStatement().execute(
                 "DELETE FROM submission_result_outbox");
         session.getConnection().createStatement().execute("DELETE FROM judge_outbox");
+        session.getConnection().createStatement().execute("DELETE FROM submission_created_outbox");
         session.commit();
 
         redissonClient.getKeys().flushall();
@@ -317,6 +346,52 @@ class SubmissionOutboxDispatcherIT {
         assertThat(event.getValue().get("owner")).isEqualTo("App");
         assertThat(event.getValue().get("aggregateId")).isEqualTo("sub-3");
         assertThat(event.getValue().get("payload").toString()).contains("ACCEPTED");
+    }
+
+    @Test
+    @DisplayName("created outbox dispatcher publishes SubmissionCreated and marks DELIVERED")
+    void createdDispatcherPublishesAndMarksDelivered() {
+        SubmissionCreatedOutboxRecord row = new SubmissionCreatedOutboxRecord();
+        row.setId(UUID.randomUUID().toString());
+        row.setSubmissionId("sub-created-1");
+        row.setGeneration(1L);
+        row.setUserId("u-1");
+        row.setProblemId("101");
+        row.setContestId("contest-1");
+        row.setVirtualSessionId("session-1");
+        row.setLanguage("java");
+        row.setOccurredAt(LocalDateTime.now(Clock.systemUTC()).minusSeconds(1));
+        row.setState("PENDING");
+        row.setAttempts(0);
+        row.setCreatedAt(LocalDateTime.now(Clock.systemUTC()).minusSeconds(1));
+        row.setNextRetryAt(LocalDateTime.now(Clock.systemUTC()).minusSeconds(1));
+        createdOutboxMapper.insert(row);
+        session.commit();
+
+        ResultEventPublisher publisher =
+                new ResultEventPublisher(stringRedisTemplate,
+                        new ObjectMapper().registerModule(new JavaTimeModule()));
+        SubmissionCreatedDispatcher dispatcher =
+                new SubmissionCreatedDispatcher(createdOutboxMapper, publisher);
+
+        assertThat(dispatcher.dispatch()).isEqualTo(1);
+        session.commit();
+
+        SubmissionCreatedOutboxRecord after = createdOutboxMapper.selectById(row.getId());
+        assertThat(after).isNotNull();
+        assertThat(after.getState()).isEqualTo("DELIVERED");
+
+        List<MapRecord<String, Object, Object>> entries = stringRedisTemplate
+                .opsForStream()
+                .read(StreamReadOptions.empty().count(10),
+                        StreamOffset.create("stream:integration", ReadOffset.from("0-0")));
+        assertThat(entries).isNotEmpty();
+        MapRecord<String, Object, Object> event = entries.get(0);
+        assertThat(event.getValue().get("eventType")).isEqualTo("SubmissionCreated");
+        assertThat(event.getValue().get("owner")).isEqualTo("Submission");
+        assertThat(event.getValue().get("payload").toString())
+                .contains("contest-1")
+                .doesNotContain("code");
     }
 
     @Test

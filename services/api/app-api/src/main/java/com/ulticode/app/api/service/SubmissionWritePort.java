@@ -14,9 +14,11 @@ import java.util.List;
  * mutation on submission records behind a narrow interface:
  * <ul>
  *   <li>the <em>intake</em> path — create a {@code Pending} submission, write
- *       the judge-outbox row in the same transaction (ADR-003), ask the contest
- *       module to record a {@code ContestSubmission} via
- *       {@link ContestSubmissionPort}, and enqueue the judge job;</li>
+ *       the judge-outbox row in the same transaction (ADR-003), and enqueue
+ *       the judge job;</li>
+ *   <li>the explicit contest intake command {@code submitContest}, whose
+ *       owner-specific implementation either records the local compatibility
+ *       association or emits a durable {@code SubmissionCreated} event;</li>
  *   <li>the <em>flag-off</em> verdict writer {@code updateSubmissionResult}
  *       (legacy, unfenced by design);</li>
  *   <li>the <em>ADR-003 M3b</em> fenced verdict writer
@@ -43,6 +45,17 @@ public interface SubmissionWritePort {
      * @return the created submission view
      */
     SubmissionVO submit(String userId, CreateSubmissionDTO createDTO);
+
+    /**
+     * Create a contest submission after the Contest owner has completed its
+     * admission checks. Contest context is accepted only through this
+     * explicit command; generic submission intake must not trust it.
+     *
+     * @param userId    the submitting user id
+     * @param createDTO contest-bound submission payload
+     * @return the created submission view
+     */
+    SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO);
 
     /**
      * Flag-off verdict writer. Writes status / runtime / memory /

@@ -144,6 +144,34 @@ class ContestSubmissionAdapterTest {
         verify(rankingMarkDirtyPort, never()).markDirty(any());
     }
 
+    @Test
+    @DisplayName("created event preserves admission time without rechecking current deadline")
+    void createdEvent_recordsLateDeliveryIdempotently() {
+        Contest contest = contest(ContestStatus.FINISHED.name());
+        ContestProblem problem = contestProblem();
+        ContestParticipant participant = participant(true, "session-1");
+        participant.setStatus(ContestParticipantStatus.REGISTERED.name());
+        when(contestSubmissionMapper.findBySubmissionId("submission-event"))
+                .thenReturn(Optional.empty());
+        when(contestMapper.selectByIdForUpdate(CONTEST_ID)).thenReturn(contest);
+        when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, PROBLEM_ID))
+                .thenReturn(problem);
+        when(contestParticipantMapper.findVirtualForSubmissionAdmission(
+                CONTEST_ID, USER_ID, "session-1")).thenReturn(Optional.of(participant));
+        when(contestClock.participantClock(participant, contest))
+                .thenReturn(Optional.of(NOW.minusMinutes(5)));
+        LocalDateTime occurredAt = NOW.minusMinutes(2);
+
+        adapter.recordSubmissionFromEvent("submission-event", USER_ID, PROBLEM_ID,
+                CONTEST_ID, "session-1", occurredAt);
+
+        ArgumentCaptor<ContestSubmission> captor = ArgumentCaptor.forClass(ContestSubmission.class);
+        verify(contestSubmissionMapper).insert(captor.capture());
+        assertThat(captor.getValue().getSubmittedAt()).isEqualTo(occurredAt);
+        assertThat(captor.getValue().getTimeFromStart()).isEqualTo(180);
+        verify(rankingMarkDirtyPort).markDirty(CONTEST_ID);
+    }
+
     private static Contest contest(String status) {
         Contest contest = new Contest();
         contest.setId(CONTEST_ID);

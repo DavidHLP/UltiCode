@@ -8,8 +8,9 @@ package com.ulticode.app.api.service;
  * <p>The submission module owns this port (it defines the collaboration it
  * needs); the contest module supplies the adapter.
  *
- * <p>Both methods are synchronous so they share the caller's
- * {@code @Transactional} boundary.
+ * <p>Local compatibility writes are synchronous so they share the caller's
+ * {@code @Transactional} boundary. Remote contest intake uses the separate
+ * durable event path on the Submission owner.
  */
 public interface ContestSubmissionPort {
 

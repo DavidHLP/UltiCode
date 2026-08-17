@@ -20,8 +20,9 @@ import java.util.Set;
  *       {@code SubmissionResultDispatcher} publishes schema-v1
  *       {@code SubmissionJudged} payloads exactly matching
  *       {@link #JUDGED_FIELDS} (contestId omitted when absent).</li>
- *   <li>{@link #CREATED_EVENT_TYPE} — contract frozen, intake-side
- *       publication not wired yet; consumers must tolerate its absence.</li>
+ *   <li>{@link #CREATED_EVENT_TYPE} — live for remote contest intake; the
+ *       optional {@code virtualSessionId} is present only for virtual
+ *       sessions.</li>
  * </ul>
  */
 public final class SubmissionLifecycleEventContract {
@@ -45,6 +46,7 @@ public final class SubmissionLifecycleEventContract {
     public static final String USER_ID = "userId";
     public static final String PROBLEM_ID = "problemId";
     public static final String CONTEST_ID = "contestId";
+    public static final String VIRTUAL_SESSION_ID = "virtualSessionId";
     public static final String GENERATION = "generation";
     public static final String ATTEMPT_ID = "attemptId";
     public static final String LANGUAGE = "language";
@@ -56,7 +58,7 @@ public final class SubmissionLifecycleEventContract {
 
     public static final Set<String> CREATED_FIELDS = Set.of(
             SUBMISSION_ID, USER_ID, PROBLEM_ID, CONTEST_ID,
-            GENERATION, LANGUAGE, OCCURRED_AT);
+            VIRTUAL_SESSION_ID, GENERATION, LANGUAGE, OCCURRED_AT);
     public static final Set<String> JUDGED_FIELDS = Set.of(
             SUBMISSION_ID, USER_ID, PROBLEM_ID, CONTEST_ID,
             GENERATION, VERDICT, RUNTIME_MS, MEMORY_MB);

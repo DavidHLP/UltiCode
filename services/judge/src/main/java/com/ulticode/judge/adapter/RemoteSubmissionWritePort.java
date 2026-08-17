@@ -23,6 +23,11 @@ public class RemoteSubmissionWritePort implements SubmissionWritePort {
     }
 
     @Override
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        throw new UnsupportedOperationException("backend-judge does not accept submissions");
+    }
+
+    @Override
     public void updateSubmissionResult(String submissionId, SubmissionStatus status,
                                        int runtime, Double memory, String testDetailsJson) {
         submissionWritePort.updateSubmissionResult(submissionId, status, runtime, memory, testDetailsJson);

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
+import com.ulticode.modules.contest.consumer.SubmissionCreatedContestConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,9 @@ import java.util.Set;
  * {@code (consumer, event_id)} key absorbs replay and duplicate XADD delivery.
  *
  * <p>App keeps only the App-Achievement, App-WebSocket, and App-Contest
- * bindings. Notification owns its own binding in backend-notification.
+ * bindings. App-Contest handles both SubmissionCreated association events and
+ * SubmissionJudged scoring events. Notification owns its own binding in
+ * backend-notification.
  */
 @Slf4j
 @Component
@@ -76,7 +79,20 @@ public class SubmissionJudgedInboxBridge {
             SubmissionJudgedWebSocketConsumer webSocketConsumer,
             SubmissionJudgedContestConsumer contestConsumer) {
         this(redisTemplate, inboxMapper, objectMapper, uuidGenerator, null,
-                achievementConsumer, webSocketConsumer, contestConsumer);
+                achievementConsumer, webSocketConsumer, contestConsumer, null);
+    }
+
+    public SubmissionJudgedInboxBridge(
+            StringRedisTemplate redisTemplate,
+            ConsumerInboxMapper inboxMapper,
+            ObjectMapper objectMapper,
+            UuidGenerator uuidGenerator,
+            SubmissionJudgedAchievementConsumer achievementConsumer,
+            SubmissionJudgedWebSocketConsumer webSocketConsumer,
+            SubmissionJudgedContestConsumer contestConsumer,
+            SubmissionCreatedContestConsumer createdContestConsumer) {
+        this(redisTemplate, inboxMapper, objectMapper, uuidGenerator, null,
+                achievementConsumer, webSocketConsumer, contestConsumer, createdContestConsumer);
     }
 
     @Autowired
@@ -88,7 +104,8 @@ public class SubmissionJudgedInboxBridge {
             ObjectProvider<PlatformTransactionManager> transactionManagerProvider,
             SubmissionJudgedAchievementConsumer achievementConsumer,
             SubmissionJudgedWebSocketConsumer webSocketConsumer,
-            SubmissionJudgedContestConsumer contestConsumer) {
+            SubmissionJudgedContestConsumer contestConsumer,
+            SubmissionCreatedContestConsumer createdContestConsumer) {
         PlatformTransactionManager transactionManager = transactionManagerProvider == null
                 ? null
                 : transactionManagerProvider.getIfAvailable();
@@ -111,11 +128,20 @@ public class SubmissionJudgedInboxBridge {
         InboxConsumer contestInbox = new InboxConsumer(
                 inboxMapper, "App-Contest", transactionTemplate);
         contestInbox.registerHandler(EVENT_TYPE, contestConsumer::consume);
+        if (createdContestConsumer != null) {
+            contestInbox.registerHandler(
+                    com.ulticode.app.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE,
+                    createdContestConsumer::consume);
+        }
         contestInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
+        Set<String> contestEventTypes = createdContestConsumer == null
+                ? Set.of(EVENT_TYPE)
+                : Set.of(EVENT_TYPE,
+                        com.ulticode.app.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE);
         this.bindings = List.of(
                 new Binding("App-Achievement", achievementInbox, Set.of(EVENT_TYPE)),
                 new Binding("App-WebSocket", webSocketInbox, Set.of(EVENT_TYPE)),
-                new Binding("App-Contest", contestInbox, Set.of(EVENT_TYPE)));
+                new Binding("App-Contest", contestInbox, contestEventTypes));
     }
 
     /**

@@ -29,7 +29,7 @@ class SubmissionLifecycleEventContractTest {
         assertThat(SubmissionLifecycleEventContract.CREATED_FIELDS)
                 .containsExactlyInAnyOrder(
                         "submissionId", "userId", "problemId", "contestId",
-                        "generation", "language", "occurredAt");
+                        "virtualSessionId", "generation", "language", "occurredAt");
         // v1 judged payload emitted by App's SubmissionResultDispatcher:
         // envelope fields (eventId/...) are NOT payload fields; attemptId,
         // status and occurredAt are not present in the v1 stream.

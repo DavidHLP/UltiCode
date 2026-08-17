@@ -57,8 +57,8 @@ import java.util.Map;
  * {@code app.submission.owner.mode=local}), the regular submission path writes
  * {@code judge_outbox} rows to the Submission owner schema and this dispatcher
  * no longer handles them. It remains the active dispatcher only for the
- * contest compatibility path (DEC-013 keeps contest intake on the App local
- * writer) and as the rollback path when the routing flags are reverted. It is
+ * App-local compatibility path (including local contest rollback) and as the
+ * rollback path when the routing flags are reverted. It is
  * kept as a clearly labeled compatibility component; do not extend it with new
  * regular-path behavior.
  */

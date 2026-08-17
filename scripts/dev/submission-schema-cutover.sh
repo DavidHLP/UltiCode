@@ -60,12 +60,17 @@ for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_U
   fi
 done
 
-# Submission owner tables after cutover. All three move exclusively to the
-# Submission owner; App grants are revoked on cutover and restored on rollback.
+# Submission owner tables copied from the App compatibility schema. These move
+# exclusively to Submission; the target-only created outbox is checked below
+# but is never copied back to App during rollback.
 TABLES=(
   submissions
   judge_outbox
   submission_result_outbox
+)
+
+TARGET_ONLY_TABLES=(
+  submission_created_outbox
 )
 
 mysql_query() {
@@ -129,6 +134,16 @@ assert_ready() {
     fi
     if [[ "$(row_count "$TARGET_SCHEMA" "$table")" != "0" ]]; then
       echo "Target table is not empty: $TARGET_SCHEMA.$table" >&2
+      return 1
+    fi
+  done
+  for table in "${TARGET_ONLY_TABLES[@]}"; do
+    if ! table_exists "$TARGET_SCHEMA" "$table"; then
+      echo "Target-only table missing: $TARGET_SCHEMA.$table; run submission migrations first" >&2
+      return 1
+    fi
+    if [[ "$(row_count "$TARGET_SCHEMA" "$table")" != "0" ]]; then
+      echo "Target-only table is not empty: $TARGET_SCHEMA.$table" >&2
       return 1
     fi
   done

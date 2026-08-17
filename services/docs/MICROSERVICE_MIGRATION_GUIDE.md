@@ -346,10 +346,10 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 |---|---|
 | Responsibility | Submission write/fence 的独立 HTTP/Dubbo 进程边界；SPLIT-003 slice-2 落地本地存储 writer、slice-3 落地本地 outbox 消费者、slice-4 落地 cutover runbook 与 provider 本地化机制（均未切流） |
 | Owned Domain | Submission intake、verdict、generation/lease fence、judge/result outbox；写路径类（entity/mapper/codec/stats/result outbox）已复制到本服务，outbox 消费者（`JudgeOutboxDispatcher`/`SubmissionResultDispatcher`）与 `ResultEventPublisher`（直接 XADD `stream:integration`）已迁移到本服务 |
-| Owned Tables | `submission` schema 的 `submissions`/`judge_outbox`/`submission_result_outbox` 目标态表已建（expand-slice-1）；App 仍是唯一生产 writer，路由未切 |
+| Owned Tables | `submission` schema 的 `submissions`/`judge_outbox`/`submission_result_outbox`/`submission_created_outbox` 目标态表已建；默认路由仍未切，remote+local 时 Submission 成为四张表的唯一 writer |
 | Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort`，group=`backend-submission`；`app.submission.owner.mode=compat`（默认）转发 App，`local` 委托进程内 writer/fence 直写 `submission` schema（slice-4 新增，未启用） |
 | Dubbo Consumer | ProblemFacts（backend-app）、UserExistence（backend-auth IdentityQueryService）；过渡期 write/fence 仍转发 App，目标态移除该回访 |
-| Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 三表（单事务强一致）；judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox`（本 owner 无本地事件消费者，outbox 是唯一 durable 通道） |
+| Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 四张 owner 表（submission/judge/created/result outbox）；contest `submitContest` 在同一 intake 事务内写 `submission_created_outbox`，judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox` |
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
 | Rollback | `APP_SUBMISSION_ROUTING_MODE=local` + `app.submission.owner.mode=compat`，停止该进程；数据回写用 `scripts/dev/submission-schema-cutover.sh rollback`；本地 writer 未切流前不影响 App 现有路径 |
 
@@ -357,7 +357,7 @@ slice-3 边界：outbox 消费者已迁移到 backend-submission（读 `submissi
 
 slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant），`app.submission.owner.mode=local` 使 provider 直写本地库。但**不得**在 SPLIT-004 之前启用 remote+local：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
 
-slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：数据 cutover 已在可丢弃 MySQL 8.0 环境全链路执行（preflight→cutover 三表 72/2/2 行 checksum 一致→App 表级 grant 撤销→App 用户读写被拒（本环境 1044；表级 grant 姿态下为 1142）、`submission_rw` 解锁后读写正常）。运行时切换 = App `APP_SUBMISSION_ROUTING_MODE=remote`（读经 `SubmissionUserQueryRoutingPort` 委托 backend-submission）+ Admin `app.submission.admin.read-group=backend-submission`。**AC4 退役证据**：以下 App 组件在切流状态仅剩 contest 兼容路径（DEC-013）与回滚路径职责，Dispatcher/Listener 已在类 javadoc 标注（Writer/Mapper 为支撑类，由所在包的 Dispatcher/Listener 标注覆盖），不得扩展新 regular-path 行为：
+slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：数据 cutover 已在可丢弃 MySQL 8.0 环境全链路执行（preflight→cutover 三表 72/2/2 行 checksum 一致→App 表级 grant 撤销→App 用户读写被拒（本环境 1044；表级 grant 姿态下为 1142）、`submission_rw` 解锁后读写正常）。运行时切换 = App `APP_SUBMISSION_ROUTING_MODE=remote`（读经 `SubmissionUserQueryRoutingPort` 委托 backend-submission）+ Admin `app.submission.admin.read-group=backend-submission`。**AC4 退役证据**：以下 App 组件在切流状态仅剩 local contest rollback 与回滚路径职责；DEC-018 已移除原先的 contest 本地 writer guard。Dispatcher/Listener 已在类 javadoc 标注（Writer/Mapper 为支撑类，由所在包的 Dispatcher/Listener 标注覆盖），不得扩展新 regular-path 行为：
 
 | App 组件 | 切流后状态 |
 |---|---|
@@ -367,9 +367,9 @@ slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：�
 | `SubmissionResultOutboxListener`/`Writer`/`Mapper`（App） | 仅 App local verdict（contest + 回滚）触发 |
 | `SubmissionMapper`/`DefaultSubmissionWritePort`/`SubmissionReadAdapter`/`DefaultSubmissionUserReadAdapter`（App） | local 默认模式与 contest 路径的 read/write adapter，保持兼容职责 |
 
-grant revocation 完整性 PARTIAL：contest intake/verdict 仍走 App local writer（DEC-013），App 对 `ulticode` schema 三表的 grant 须保留至 contest owner 迁移完成后才可全量撤销；此前的撤销仅对 regular 路径生效，观察窗必须记录该 PARTIAL 状态。
+grant revocation 完整性 PARTIAL：默认路由仍是 App local/compat；切换 remote+local 后，显式 contest intake 也只写 Submission owner 的四张表，App-Contest 仅消费 `SubmissionCreated` 写 `contest_submissions`。完整撤销仍须在该运行时组合完成观察窗后执行。
 
-slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION_OWNER_MODE=local` 下 backend-submission 全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + contest 守卫 CR P1-2 本地提交）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；**全量 grant revocation 保持 PARTIAL**（依赖 contest owner 迁移切片）。
+slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION_OWNER_MODE=local` 下 backend-submission 全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + explicit contest command）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；slice-7 已完成 contest association event/inbox 验证，默认配置下的完整撤销与兼容运行时退役仍由 SPLIT-005 最终 gate 决定。
 
 ### 4.6 身份模型裁决
 
@@ -405,7 +405,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION
 | `contest_problems` | contest R/W；admin 直接写 | App | Admin | App I；Admin C/Q |
 | `contest_rankings` | 仅 migration；当前排名由 participant/cache 计算 | App（R 候选） | App/Admin | R 或明确为 App projection |
 | `contest_scoring_rules` | contest ScoringRuleService | App | Admin | App I；Admin C/Q |
-| `contest_submissions` | contest/submission association | App | App | I；由 Submission event 幂等写 |
+| `contest_submissions` | contest/submission association | App | App | I；由 SubmissionCreated event/inbox 幂等写 |
 | `contests` | contest 与 admin 多方写/读 | App | Admin | App I；Admin C/Q/E |
 | `edge_operations` | vote/edgeoperations；多内容域使用 | App/Engagement | App 内容模块、Admin | I；统一 Engagement port |
 | `first_solve_records` | contest adjudication | App | App | I |
@@ -451,6 +451,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION
 | `submission_statuses` | 仅 migration；代码用 `SubmissionStatusCatalog` | App（R 候选） | App | 确认 enum 真源后 R |
 | `submissions` | submission；admin/problem/contest 直读 | Submission | Admin、Contest/Problem | Submission I；Admin Q；结果 E |
 | `submission_result_outbox` | submission result dispatcher/worker 写 | Submission | Submission/Judge worker | Submission I；不跨服务 SQL |
+| `submission_created_outbox` | contest intake association event | Submission | App-Contest inbox | Submission I；App 仅消费事件写 `contest_submissions` |
 | `subscriptions` | subscription；admin analytics | App | Admin | App I；Admin Q/C |
 | `system_announcement_reads` | 仅 migration | Admin（R/启用候选） | App 用户 | 启用则 Admin I + HTTP/Q/E |
 | `system_announcements` | 仅 migration | Admin（R/启用候选） | App 用户 | Admin I；App Q/E projection |
@@ -680,7 +681,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 | Problem 创建/更新/发布 | Problem 主表 + details/examples/languages/tags/version | App Problem Owner | 必须本地 L/S；Admin 单次 C |
 | Contest 创建/题集更新 | Admin 事务直接写 contest + contest_problems | App Contest Owner | 必须本地 L/S；Admin C |
 | Contest 报名/虚拟赛 | participant + registered_count + unique/CAS | App Contest Owner | 必须本地 L/S；成就 AFTER_COMMIT outbox |
-| 比赛提交 | Contest 外层事务包 Submission/Outbox/association | App 内仍分聚合 | 资格同步；Submission+judge outbox L/S；association E |
+| 比赛提交 | Contest 资格命令 → Submission `submitContest` + durable association event | App/Submission 分 owner | 资格同步；Submission+judge/created outbox L/S；association E |
 | 普通 submission intake | `submissions` + judge outbox + Submission owner queue contract + Contest event | Submission Owner | 强制 outbox/stream/fence；DB L，queue E；Contest association E |
 | 判题 verdict | generation/attempt fence；下游 durable event/push | Submission Owner | verdict CAS + result outbox L/S；Contest/Notification/Achievement inbox E |
 | Judge outbox dispatch | Submission DB claim tx + tx 外 Redis enqueue | Submission worker | 短 claim tx → tx 外 send → 短 confirm；at-least-once+幂等 |

@@ -40,8 +40,8 @@ import java.util.List;
  * cutover active ({@code app.submission.routing.mode=remote} +
  * {@code app.submission.owner.mode=local}), the regular path reaps leases in
  * the Submission owner schema (backend-submission owns it). This reaper
- * remains active only for the contest compatibility path (DEC-013) and for
- * rollback when the routing flags are reverted. Kept as a clearly labeled
+ * remains active only for App-local compatibility/rollback when the routing
+ * flags are reverted. Kept as a clearly labeled
  * compatibility component; do not extend it with new regular-path behavior.
  */
 @Slf4j

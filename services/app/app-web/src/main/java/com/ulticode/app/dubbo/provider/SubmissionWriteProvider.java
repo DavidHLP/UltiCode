@@ -23,6 +23,11 @@ public class SubmissionWriteProvider implements SubmissionWritePort {
     }
 
     @Override
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        return delegate.submitContest(userId, createDTO);
+    }
+
+    @Override
     public void updateSubmissionResult(String submissionId, SubmissionStatus status,
                                        int runtime, Double memory, String testDetailsJson) {
         delegate.updateSubmissionResult(submissionId, status, runtime, memory, testDetailsJson);

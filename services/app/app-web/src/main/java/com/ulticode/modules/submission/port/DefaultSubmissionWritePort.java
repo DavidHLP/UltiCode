@@ -79,10 +79,31 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     @Override
     @Transactional
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
+        if (createDTO != null && (StringUtils.hasText(createDTO.getContestId())
+                || StringUtils.hasText(createDTO.getVirtualSessionId()))) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Contest submission requires the contest command");
+        }
+        return submitInternal(userId, createDTO, false);
+    }
+
+    @Override
+    @Transactional
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        if (createDTO == null || !StringUtils.hasText(createDTO.getContestId())) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Contest context is required");
+        }
+        return submitInternal(userId, createDTO, true);
+    }
+
+    private SubmissionVO submitInternal(String userId, CreateSubmissionDTO createDTO,
+                                        boolean contestCommand) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
-        if (!StringUtils.hasText(createDTO.getCode())) {
+        if (createDTO == null || !StringUtils.hasText(createDTO.getCode())
+                || !StringUtils.hasText(createDTO.getLanguage())) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
         String language = createDTO.getLanguage().toLowerCase();
@@ -121,9 +142,11 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                     generation, isShadow, uuidGenerator));
         }
 
-        contestSubmissionPort.recordSubmissionIfNeeded(
-                submission.getId(), userId, createDTO.getProblemId(),
-                createDTO.getContestId(), createDTO.getVirtualSessionId());
+        if (contestCommand) {
+            contestSubmissionPort.recordSubmissionIfNeeded(
+                    submission.getId(), userId, createDTO.getProblemId(),
+                    createDTO.getContestId(), createDTO.getVirtualSessionId());
+        }
 
         if (portActive) {
             log.debug("Submit {} skipped legacy RQueue (port cutover active)", submission.getId());

@@ -52,8 +52,8 @@ import java.util.Optional;
  * {@link com.ulticode.modules.contest.service.ContestParticipationService}.
  *
  * <p>The internal {@link #getContestOrThrow} helper is the soft-delete-aware
- * guard every write path uses; it loads directly from the mapper so callers
- * never see soft-deleted contests.
+ * guard for transactional mutation paths. Contest submission admission uses
+ * a non-locking read because the next write may be a remote owner call.
  */
 @Slf4j
 @Service
@@ -76,15 +76,14 @@ public class ContestServiceImpl implements ContestService {
     // =========================================================================
 
     @Override
-    @Transactional
     public SubmissionVO submitContestProblem(String contestId, Long problemId, String userId,
                                              CreateSubmissionDTO createDTO) {
         if (createDTO == null) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Submission payload is required");
         }
 
-        Contest contest = getContestOrThrow(contestId);
-        getContestProblemOrThrow(contestId, problemId);
+        Contest contest = getContestForSubmissionAdmissionOrThrow(contestId);
+        getContestProblemForSubmissionAdmissionOrThrow(contestId, problemId);
 
         String virtualSessionId = createDTO.getVirtualSessionId();
         Optional<ContestParticipant> participantOpt = virtualSessionId == null || virtualSessionId.isBlank()
@@ -132,7 +131,7 @@ public class ContestServiceImpl implements ContestService {
         createDTO.setProblemId(problemId);
         createDTO.setContestId(contestId);
         createDTO.setVirtualSessionId(virtual ? participant.getVirtualSessionId() : null);
-        return submissionWritePort.submit(userId, createDTO);
+        return submissionWritePort.submitContest(userId, createDTO);
     }
 
     // =========================================================================
@@ -212,8 +211,16 @@ public class ContestServiceImpl implements ContestService {
         return contest;
     }
 
-    private ContestProblem getContestProblemOrThrow(String contestId, Long problemId) {
-        getContestOrThrow(contestId);
+    private Contest getContestForSubmissionAdmissionOrThrow(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
+        }
+        return contest;
+    }
+
+    private ContestProblem getContestProblemForSubmissionAdmissionOrThrow(
+            String contestId, Long problemId) {
         ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (contestProblem == null) {
             throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);

@@ -41,7 +41,8 @@ class PerOwnerSchemaGrantTest {
 
     /** DEC-011: the Submission owner manifest (SPLIT-003) claims the submission aggregate and outboxes. */
     private static final Set<String> SUBMISSION_TABLES = Set.of(
-        "submissions", "judge_outbox", "submission_result_outbox"
+        "submissions", "judge_outbox", "submission_result_outbox",
+        "submission_created_outbox"
     );
 
     private static final Set<String> NOTIFICATION_TABLES = Set.of(

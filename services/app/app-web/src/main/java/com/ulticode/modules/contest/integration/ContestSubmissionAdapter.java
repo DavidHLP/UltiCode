@@ -24,6 +24,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Objects;
 
 /**
  * Contest-side adapter of {@link ContestSubmissionPort}.
@@ -118,6 +119,67 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
         }
         cs.setIsAccepted(false); // Updated when the judge completes.
         cs.setSubmittedAt(now);
+        contestSubmissionMapper.insert(cs);
+        contestRankingMarkDirtyPort.markDirty(contestId);
+    }
+
+    /**
+     * Apply an already-admitted remote contest submission. The Submission
+     * owner performed admission before emitting the event, so this consumer
+     * preserves the original occurrence time and does not re-run the current
+     * contest deadline check.
+     */
+    public void recordSubmissionFromEvent(String submissionId, String userId, Long problemId,
+                                          String contestId, String virtualSessionId,
+                                          LocalDateTime occurredAt) {
+        Optional<ContestSubmission> existing = contestSubmissionMapper
+                .findBySubmissionId(submissionId);
+        if (existing.isPresent()) {
+            ContestSubmission current = existing.get();
+            if (!Objects.equals(current.getContestId(), contestId)
+                    || !Objects.equals(current.getVirtualSessionId(), virtualSessionId)) {
+                throw new IllegalStateException(
+                        "Conflicting contest association for submission " + submissionId);
+            }
+            return;
+        }
+
+        Contest contest = contestMapper.selectByIdForUpdate(contestId);
+        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_FOUND);
+        }
+        ContestProblem contestProblem = contestProblemMapper
+                .findByContestIdAndProblemId(contestId, problemId);
+        if (contestProblem == null) {
+            throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);
+        }
+
+        boolean virtual = StringUtils.hasText(virtualSessionId);
+        Optional<ContestParticipant> participant = virtual
+                ? contestParticipantMapper.findVirtualForSubmissionAdmission(
+                        contestId, userId, virtualSessionId)
+                : contestParticipantMapper.findRealForSubmissionAdmission(contestId, userId);
+        if (participant.isEmpty()) {
+            throw new BusinessException(ContestErrorCode.CONTEST_NOT_REGISTERED);
+        }
+        ContestParticipant p = participant.get();
+        if (!Objects.equals(userId, p.getUserId())) {
+            throw new IllegalStateException("Contest association user mismatch");
+        }
+
+        ContestSubmission cs = new ContestSubmission();
+        cs.setSubmissionId(submissionId);
+        cs.setContestId(contestId);
+        cs.setContestProblemId(contestProblem.getId());
+        cs.setParticipantId(p.getId());
+        cs.setVirtualSessionId(virtual ? p.getVirtualSessionId() : null);
+        LocalDateTime start = contestClock.participantClock(p, contest).orElse(null);
+        if (start != null) {
+            long seconds = Duration.between(start, occurredAt).getSeconds();
+            cs.setTimeFromStart((int) Math.min(Integer.MAX_VALUE, Math.max(0, seconds)));
+        }
+        cs.setIsAccepted(false);
+        cs.setSubmittedAt(occurredAt);
         contestSubmissionMapper.insert(cs);
         contestRankingMarkDirtyPort.markDirty(contestId);
     }

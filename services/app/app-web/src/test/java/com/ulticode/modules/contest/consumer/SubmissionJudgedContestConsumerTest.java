@@ -2,6 +2,8 @@ package com.ulticode.modules.contest.consumer;
 
 import com.ulticode.app.api.event.SubmissionJudgedEvent;
 import com.ulticode.modules.contest.service.ContestAdjudicationService;
+import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
+import com.ulticode.modules.contest.entity.ContestSubmission;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
@@ -20,16 +23,20 @@ class SubmissionJudgedContestConsumerTest {
 
     @Mock
     private ContestAdjudicationService adjudicationService;
+    @Mock
+    private ContestSubmissionMapper contestSubmissionMapper;
 
     private SubmissionJudgedContestConsumer consumer;
 
     @BeforeEach
     void setUp() {
-        consumer = new SubmissionJudgedContestConsumer(adjudicationService);
+        consumer = new SubmissionJudgedContestConsumer(adjudicationService, contestSubmissionMapper);
     }
 
     @Test
     void acceptedPayloadIsMappedToAdjudicationEvent() {
+        org.mockito.Mockito.when(contestSubmissionMapper.findBySubmissionId("submission-1"))
+                .thenReturn(Optional.of(new ContestSubmission()));
         consumer.consume(Map.of(
                 "submissionId", "submission-1",
                 "userId", "user-1",
@@ -49,6 +56,24 @@ class SubmissionJudgedContestConsumerTest {
         assertThat(event.getGeneration()).isEqualTo(7L);
         assertThat(event.isAccepted()).isTrue();
         assertThat(event.getContestId()).isEqualTo("contest-1");
+    }
+
+    @Test
+    void contestJudgedBeforeCreatedAssociationIsRetryable() {
+        org.mockito.Mockito.when(contestSubmissionMapper.findBySubmissionId("submission-1"))
+                .thenReturn(Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> consumer.consume(Map.of(
+                "submissionId", "submission-1",
+                "userId", "user-1",
+                "problemId", 100,
+                "generation", 7,
+                "verdict", "Accepted",
+                "contestId", "contest-1")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not staged");
+        verify(adjudicationService, never()).applyJudgeResult(
+                org.mockito.ArgumentMatchers.any(SubmissionJudgedEvent.class));
     }
 
     @Test

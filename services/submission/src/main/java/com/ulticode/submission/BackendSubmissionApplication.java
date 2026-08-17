@@ -14,8 +14,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * the same submission domain classes (entity/mapper/outbox/result/stats)
  * are scanned from {@code com.ulticode.modules.submission}, and the
  * {@code submission} schema tables are written in one local transaction.
- * SPLIT-003 slice-3 adds the local outbox consumers
- * ({@code JudgeOutboxDispatcher}, {@code SubmissionResultDispatcher}).
+ * SPLIT-003 slice-3/7 adds the local outbox consumers
+ * ({@code JudgeOutboxDispatcher}, {@code SubmissionResultDispatcher}, and
+ * {@code SubmissionCreatedDispatcher}).
  * App routing stays {@code local} until cutover.
  */
 @SpringBootApplication(scanBasePackages = "com.ulticode.submission")
@@ -27,7 +28,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 })
 @MapperScan({"com.ulticode.modules.submission.mapper",
         "com.ulticode.modules.submission.outbox.mapper",
-        "com.ulticode.modules.submission.result"})
+        "com.ulticode.modules.submission.result",
+        "com.ulticode.modules.submission.created"})
 public class BackendSubmissionApplication {
 
     public static void main(String[] args) {

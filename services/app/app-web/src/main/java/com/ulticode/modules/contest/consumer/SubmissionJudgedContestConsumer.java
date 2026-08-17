@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.consumer;
 import com.ulticode.app.api.event.SubmissionJudgedEvent;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.contest.service.ContestAdjudicationService;
+import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ import java.util.Map;
 public class SubmissionJudgedContestConsumer {
 
     private final ContestAdjudicationService contestAdjudicationService;
+    private final ContestSubmissionMapper contestSubmissionMapper;
 
     /**
      * Convert one persisted payload into the existing adjudication event seam.
@@ -36,6 +38,15 @@ public class SubmissionJudgedContestConsumer {
             return;
         }
 
+        String contestId = optionalString(payload.get("contestId"));
+        if (contestId != null && contestSubmissionMapper.findBySubmissionId(submissionId).isEmpty()) {
+            // SubmissionCreated and SubmissionJudged share an at-least-once
+            // stream but are dispatched independently. Keep the judged inbox
+            // retryable until the App-owned association is durable.
+            throw new IllegalStateException(
+                    "Contest association not staged for submission " + submissionId);
+        }
+
         contestAdjudicationService.applyJudgeResult(new SubmissionJudgedEvent(
                 this,
                 submissionId,
@@ -48,7 +59,7 @@ public class SubmissionJudgedContestConsumer {
                 generation > 0 ? generation : 1,
                 nonNegativeInt(payload.get("runtimeMs")),
                 nonNegativeDouble(payload.get("memoryMb")),
-                optionalString(payload.get("contestId"))));
+                contestId));
     }
 
     private static String requiredString(Map<String, Object> payload, String key) {

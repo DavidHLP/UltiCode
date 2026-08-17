@@ -40,12 +40,12 @@ app:
   submission:
     owner:
       # compat (default): provider forwards to the App writer/fence (single
-      # writer during expand/backfill; contest path per DEC-013). local:
+      # writer during expand/backfill). local:
       # provider delegates to the in-process Submission-schema writer/fence
       # (runtime cutover). Enabled after scripts/dev/submission-schema-cutover.sh
-      # data copy + SPLIT-004 read-path migration; grant revocation stays
-      # deferred until the contest owner migration completes (unique-writer
-      # requirement is PARTIAL while contest intake is on the App local writer).
+      # data copy + SPLIT-004 read-path migration. With App remote routing,
+      # explicit contest intake writes this owner's outbox and App-Contest
+      # consumes the association event.
       mode: ${APP_SUBMISSION_OWNER_MODE:compat}
 
 management:

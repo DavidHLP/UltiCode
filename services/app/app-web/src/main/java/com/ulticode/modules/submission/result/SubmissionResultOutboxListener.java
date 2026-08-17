@@ -22,8 +22,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * publishing once the runtime cutover is active ({@code
  * app.submission.routing.mode=remote} + {@code app.submission.owner.mode=local});
  * regular verdicts are written by backend-submission. It remains active only
- * for verdicts written by the App local writer (contest compatibility path,
- * DEC-013, and rollback). Kept as a clearly labeled compatibility component;
+ * for verdicts written by the App local compatibility/rollback path. Kept as
+ * a clearly labeled compatibility component;
  * do not extend it with new regular-path behavior.
  */
 @Slf4j

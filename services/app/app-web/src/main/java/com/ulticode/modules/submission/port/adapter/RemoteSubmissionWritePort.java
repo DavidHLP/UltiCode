@@ -23,6 +23,11 @@ public class RemoteSubmissionWritePort implements SubmissionWritePort {
     }
 
     @Override
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        return submissionOwner.submitContest(userId, createDTO);
+    }
+
+    @Override
     public void updateSubmissionResult(String submissionId, SubmissionStatus status,
                                        int runtime, Double memory, String testDetailsJson) {
         submissionOwner.updateSubmissionResult(submissionId, status, runtime, memory, testDetailsJson);

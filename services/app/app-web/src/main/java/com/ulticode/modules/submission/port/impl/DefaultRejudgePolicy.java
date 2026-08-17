@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.port.impl;
 
-import com.ulticode.app.api.dto.RejudgeResult;
+import com.ulticode.submission.api.dto.RejudgeResult;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
@@ -13,7 +13,7 @@ import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.submission.port.LegacyRejudgeStrategy;
-import com.ulticode.app.api.service.RejudgePolicy;
+import com.ulticode.submission.api.service.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;

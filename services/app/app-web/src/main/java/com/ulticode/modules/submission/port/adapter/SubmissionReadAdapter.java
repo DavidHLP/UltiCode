@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.port.adapter;
 
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.service.SubmissionReadPort;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionReadPort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.projection.SubmissionProjection;

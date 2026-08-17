@@ -1,6 +1,6 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateProblemCommand;
 import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;

@@ -4,7 +4,8 @@ import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.domain.submission.enums.CaseScope;
 import com.ulticode.modules.queue.pipeline.JudgeTestCaseDetail;
 import com.ulticode.modules.queue.pipeline.JudgeTestCaseDetailCodec;
-import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.submission.api.codec.TestCaseDetailCodec;
+import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -35,14 +36,14 @@ class SubmissionDetailWireCompatibilityTest {
         var details = TestCaseDetailCodec.fromJson(json);
 
         assertThat(details).hasSize(1);
-        Submission.TestCaseDetail persisted = details.get(0);
-        assertThat(persisted.getStatus()).isEqualTo("Accepted");
-        assertThat(persisted.getCaseId()).isEqualTo("tc-1");
-        assertThat(persisted.getCaseScope()).isEqualTo(CaseScope.SAMPLE);
-        assertThat(persisted.getOutput()).isEqualTo("2");
-        assertThat(persisted.getExpectedOutput()).isEqualTo("2");
-        assertThat(persisted.getInputs()).hasSize(1);
-        assertThat(persisted.getInputs().get(0).getId()).isEqualTo("input-1");
+        SubmissionTestCaseDetailDTO persisted = details.get(0);
+        assertThat(persisted.status()).isEqualTo("Accepted");
+        assertThat(persisted.caseId()).isEqualTo("tc-1");
+        assertThat(persisted.caseScope()).isEqualTo(CaseScope.SAMPLE);
+        assertThat(persisted.output()).isEqualTo("2");
+        assertThat(persisted.expectedOutput()).isEqualTo("2");
+        assertThat(persisted.inputs()).hasSize(1);
+        assertThat(persisted.inputs().get(0).id()).isEqualTo("input-1");
     }
 
     @Test
@@ -51,7 +52,7 @@ class SubmissionDetailWireCompatibilityTest {
         var details = TestCaseDetailCodec.fromJson("[{\"status\":\"Accepted\",\"time\":10}]");
 
         assertThat(details).hasSize(1);
-        assertThat(details.get(0).getCaseId()).isNull();
-        assertThat(details.get(0).getCaseScope()).isNull();
+        assertThat(details.get(0).caseId()).isNull();
+        assertThat(details.get(0).caseScope()).isNull();
     }
 }

@@ -1,6 +1,6 @@
 package com.ulticode.modules.notification.port;
 
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 
 /**
  * Push port the notification module uses to deliver a real-time

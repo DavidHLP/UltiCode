@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.handler;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ForumTagMutationCommand;
 import com.ulticode.app.api.dto.ForumTagDTO;
 import com.ulticode.app.api.service.ForumTagAdministrationService;

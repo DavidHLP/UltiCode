@@ -1,9 +1,9 @@
 package com.ulticode.modules.notification.adapter;
 
-import com.ulticode.app.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.command.DeleteNotificationCommand;
-import com.ulticode.app.api.command.UpdateNotificationCommand;
-import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.notification.api.command.CreateNotificationCommand;
+import com.ulticode.notification.api.command.DeleteNotificationCommand;
+import com.ulticode.notification.api.command.UpdateNotificationCommand;
+import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.notification.dispatcher.AnnouncementBroadcaster;

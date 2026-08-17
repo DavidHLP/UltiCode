@@ -1,7 +1,7 @@
 package com.ulticode.modules.achievement.consumer;
 
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;

@@ -1,12 +1,12 @@
 package com.ulticode.modules.websocket.auth;
-import com.ulticode.app.api.dto.AccountInfo;
-import com.ulticode.app.api.dto.JwtPayload;
+import com.ulticode.common.auth.AccountInfo;
+import com.ulticode.common.auth.JwtPayload;
 
 import com.ulticode.app.error.WebSocketErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.app.api.service.JwtValidationPort;
+import com.ulticode.common.security.JwtValidationPort;
 import com.ulticode.app.api.dto.ModerationUserInfo;
-import com.ulticode.app.api.service.AccountReadPort;
+import com.ulticode.common.security.AccountReadPort;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import com.ulticode.modules.websocket.port.TokenBlacklistPort;

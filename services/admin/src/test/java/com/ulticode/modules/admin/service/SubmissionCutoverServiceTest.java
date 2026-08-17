@@ -1,9 +1,9 @@
 package com.ulticode.modules.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
-import com.ulticode.app.api.dto.RejudgeResultDTO;
-import com.ulticode.app.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.dto.BatchRejudgeResultDTO;
+import com.ulticode.submission.api.dto.RejudgeResultDTO;
+import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;

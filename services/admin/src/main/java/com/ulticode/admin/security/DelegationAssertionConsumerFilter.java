@@ -1,6 +1,6 @@
 package com.ulticode.admin.security;
 
-import com.ulticode.app.api.security.DelegationAssertionContract;
+import com.ulticode.common.security.DelegationAssertionContract;
 import org.apache.dubbo.rpc.Filter;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;

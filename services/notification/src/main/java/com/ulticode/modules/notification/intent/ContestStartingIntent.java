@@ -1,7 +1,7 @@
 package com.ulticode.modules.notification.intent;
 
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 
 import java.time.LocalDateTime;
 import java.util.Map;

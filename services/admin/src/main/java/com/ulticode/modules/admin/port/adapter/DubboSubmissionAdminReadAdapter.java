@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
-import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -60,12 +60,12 @@ public class DubboSubmissionAdminReadAdapter implements SubmissionAdminReadPort 
     }
 
     @Override
-    public List<com.ulticode.app.api.dto.StatusCountDTO> countByStatus() {
+    public List<com.ulticode.submission.api.dto.StatusCountDTO> countByStatus() {
         return submissionAdminReadPort.countByStatus();
     }
 
     @Override
-    public List<com.ulticode.app.api.dto.LanguageCountDTO> countByLanguage() {
+    public List<com.ulticode.submission.api.dto.LanguageCountDTO> countByLanguage() {
         return submissionAdminReadPort.countByLanguage();
     }
 

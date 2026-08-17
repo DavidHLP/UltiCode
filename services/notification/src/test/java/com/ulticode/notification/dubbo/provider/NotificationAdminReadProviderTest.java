@@ -1,6 +1,6 @@
 package com.ulticode.notification.dubbo.provider;
 
-import com.ulticode.app.api.dto.NotificationAdminDTO;
+import com.ulticode.notification.api.dto.NotificationAdminDTO;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.notification.port.adapter.DefaultNotificationAdminReadAdapter;
 import org.junit.jupiter.api.Test;

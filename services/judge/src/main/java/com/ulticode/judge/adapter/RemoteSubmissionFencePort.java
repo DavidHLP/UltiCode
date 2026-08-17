@@ -1,6 +1,6 @@
 package com.ulticode.judge.adapter;
 
-import com.ulticode.app.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionFencePort;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;

@@ -1,8 +1,8 @@
 package com.ulticode.notification.dubbo.provider;
 
-import com.ulticode.app.api.dto.NotificationAdminDTO;
-import com.ulticode.app.api.service.NotificationAdminReadPort;
-import com.ulticode.app.api.service.NotificationServiceContract;
+import com.ulticode.notification.api.dto.NotificationAdminDTO;
+import com.ulticode.notification.api.service.NotificationAdminReadPort;
+import com.ulticode.notification.api.service.NotificationServiceContract;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.notification.port.adapter.DefaultNotificationAdminReadAdapter;
 import lombok.RequiredArgsConstructor;

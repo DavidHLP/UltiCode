@@ -2,9 +2,9 @@ package com.ulticode.modules.submission.port;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.PerformanceStats;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.UserExistencePort;

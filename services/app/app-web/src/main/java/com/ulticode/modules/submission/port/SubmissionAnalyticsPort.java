@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.LanguageCountDTO;
-import com.ulticode.app.api.dto.StatusCountDTO;
+import com.ulticode.submission.api.dto.LanguageCountDTO;
+import com.ulticode.submission.api.dto.StatusCountDTO;
 
 import java.util.List;
 

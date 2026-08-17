@@ -2,10 +2,10 @@ package com.ulticode.modules.admin.projection;
 
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
-import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
-import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
@@ -126,7 +126,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         // By status — typed projection from the read port
         List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
-        for (com.ulticode.app.api.dto.StatusCountDTO row : submissionReadPort.countByStatus()) {
+        for (com.ulticode.submission.api.dto.StatusCountDTO row : submissionReadPort.countByStatus()) {
             SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
             sc.setStatus(row.getStatus());
             sc.setCount(row.getCount());
@@ -136,7 +136,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         // By language — typed projection from the read port
         List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
-        for (com.ulticode.app.api.dto.LanguageCountDTO row : submissionReadPort.countByLanguage()) {
+        for (com.ulticode.submission.api.dto.LanguageCountDTO row : submissionReadPort.countByLanguage()) {
             SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
             lc.setLanguage(row.getLanguage());
             lc.setCount(row.getCount());

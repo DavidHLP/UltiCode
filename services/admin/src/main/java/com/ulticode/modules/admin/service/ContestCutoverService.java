@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service;
 
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.command.AddContestProblemCommand;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.command.DeleteContestCommand;
 import com.ulticode.app.api.command.EndContestCommand;

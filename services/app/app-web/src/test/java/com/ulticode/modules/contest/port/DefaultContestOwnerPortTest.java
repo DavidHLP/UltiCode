@@ -1,6 +1,6 @@
 package com.ulticode.modules.contest.port;
 import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.command.UpdateContestCommand;
 import com.ulticode.app.api.dto.ContestProblemInputDTO;

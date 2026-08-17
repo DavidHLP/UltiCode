@@ -1,12 +1,12 @@
 package com.ulticode.modules.submission.projection;
 
-import com.ulticode.app.api.dto.LearningProgressDTO;
-import com.ulticode.app.api.dto.PerformanceStats;
-import com.ulticode.app.api.dto.SubmissionDetailVO;
-import com.ulticode.app.api.dto.SubmissionHistoryDTO;
-import com.ulticode.app.api.dto.SubmissionListItemVO;
-import com.ulticode.app.api.dto.SubmissionStatusMeta;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.LearningProgressDTO;
+import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 
@@ -131,7 +131,7 @@ public interface SubmissionProjection {
      * com.ulticode.domain.submission.enums.SubmissionStatus} value. The enum
      * owns the durable contract (displayName, category, terminal, kind); the
      * user-facing strings (description, suggestion) and the display sort order
-     * live in {@link com.ulticode.modules.submission.enums.SubmissionStatusCatalog}.
+     * live in {@link com.ulticode.submission.api.catalog.SubmissionStatusCatalog}.
      * Returns all 12 statuses (including transient {@code PENDING}/{@code JUDGING}
      * and infrastructure {@code SANDBOX_ERROR}); callers that want only terminal
      * verdicts can filter on {@code meta.isTerminal}.

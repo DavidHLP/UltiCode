@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.admin.port.UserProfilePort;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;

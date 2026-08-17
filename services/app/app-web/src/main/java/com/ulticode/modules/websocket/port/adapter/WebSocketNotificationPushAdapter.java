@@ -2,7 +2,7 @@ package com.ulticode.modules.websocket.port.adapter;
 
 import com.ulticode.modules.notification.port.NotificationPushPort;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import com.ulticode.modules.websocket.broadcast.WebSocketBroadcastBridge;
 import org.springframework.stereotype.Component;
 

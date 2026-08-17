@@ -3,7 +3,7 @@ package com.ulticode.notification.inbox;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.event.NotificationIntentEventContract;
+import com.ulticode.notification.api.event.NotificationIntentEventContract;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
 import com.ulticode.modules.event.inbox.InboxConsumer;

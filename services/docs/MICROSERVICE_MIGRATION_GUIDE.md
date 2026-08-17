@@ -450,7 +450,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION
 | `solution_comments` | solution；admin/moderation 直接写 | App | Admin | App I；Admin C/Q |
 | `solution_topics` | solution reference | App | Admin/App | App I；Admin C/Q |
 | `solutions` | solution；admin/mod/search/problem/interaction 使用 | App | Admin/Search | App I；Admin C/Q；Search E |
-| `submission_statuses` | 仅 migration；代码用 `SubmissionStatusCatalog` | App（R 候选） | App | 确认 enum 真源后 R |
+| `submission_statuses` | 仅 migration；代码用 `SubmissionStatusCatalog` | Submission API（纯 contract/catalog） | App、Submission | `SubmissionStatus` enum 在 common；catalog 由 `backend-submission-api` 唯一实现 |
 | `submissions` | submission；admin/problem/contest 直读 | Submission | Admin、Contest/Problem | Submission I；Admin Q；结果 E |
 | `submission_result_outbox` | submission result dispatcher/worker 写 | Submission | Submission/Judge worker | Submission I；不跨服务 SQL |
 | `submission_created_outbox` | contest intake association event | Submission | App-Contest inbox | Submission I；App 仅消费事件写 `contest_submissions` |
@@ -507,10 +507,33 @@ Dubbo 当前为零实现，因此 Phase 1 先建立最小 Contract、注册发�
 ```text
 backend-api/
 ├── backend-auth-api
-└── backend-app-api
+├── backend-app-api
+├── backend-submission-api
+└── backend-notification-api
 ```
 
-`backend-admin-api` 只有出现真实 Consumer 时才创建。Contract 可依赖极小的 `backend-common`，但不得依赖任何服务实现模块。
+`backend-admin-api` 只有出现真实 Consumer 时才创建。`backend-submission-api` 和
+`backend-notification-api` 已作为 provider-owned artifacts 加入 `services` reactor；包根分别为
+`com.ulticode.submission.api` 与 `com.ulticode.notification.api`，Dubbo identity 沿用
+`backend-submission`/`backend-notification`、version `1.0.0`。Contract 可依赖极小的
+`backend-common`，但不得依赖任何服务实现模块。
+
+当前 `backend-common` 还提供 implementation-free 的跨 Owner 基础契约：`common.command` 下的
+`ActorDelegation`/`WriteCommand`、`common.dto.DifficultyCountDTO`、`common.auth` 下的 credential-free
+`AccountInfo`/`JwtPayload`，以及 `common.security` 下的 `AccountReadPort`、`JwtValidationPort` 和
+`DelegationAssertionContract`。这些类型不携带凭据、不访问持久化或 Spring Bean；Auth 仍是 account/JWT facts 的
+权威来源，原有 `backend-auth-api` 的 provider-owned command contract 保持独立。旧的 `backend-app-api` FQCN
+不保留 alias 或 re-export，provider/consumer 必须按 matched contract release 一起迁移。
+
+`backend-app-api` 只保留 App-owned contracts 与显式的 App fact/recipient exceptions；Submission 的
+write/fence/read/rejudge/admin contracts、DTO 与 lifecycle events 位于 `backend-submission-api`，Notification
+admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。这次包名迁移是
+matched-release 的源码/制品边界，不会自动启用 remote/local route，也不会删除 Submission compatibility
+provider；默认 route、grant 与 rollback 仍由 CONTRACT-007 的 authority/cutover gate 控制。
+
+Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
+`backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
+mapping。`JudgeTestCaseDetailCodec` 仍是独立的 execution-side serializer，不与持久化 codec 合并。
 
 允许内容：接口、request/response DTO、枚举、稳定错误码、trace/idempotency metadata。禁止内容：Entity、Mapper、ServiceImpl、Repository、MyBatis annotation、Spring Security context、数据库字段泄漏。
 
@@ -1020,8 +1043,12 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 ### 13.2 工程与 Contract
 
 - [ ] 父 POM 转 Maven reactor，Legacy 可独立构建。
-- [ ] 建立最小 `backend-common`，无 Entity/Mapper/业务 Bean。
-- [ ] 建立 provider-owned `backend-auth-api`、`backend-app-api`。
+- [x] 建立最小 `backend-common`，无 Entity/Mapper/业务 Bean；并集中实现-free command metadata、difficulty/count
+  value 与 credential-free local security projection/port（见 §6.2）。
+- [x] 建立 provider-owned `backend-auth-api`、`backend-app-api`、`backend-submission-api`、
+  `backend-notification-api`；后两者只依赖纯 contract/common 形状。
+- [x] 按 owner matrix 清理已迁移 Submission/Notification FQCN；不保留 app-api alias/re-export，App fact/recipient
+  exceptions 仍显式留在 `backend-app-api`。
 - [ ] Contract DTO 使用 String UUID、version、commandId、trace/deadline。
 - [ ] 写调用 auto retry=0；查询 retry/timeout 有明确默认。
 - [ ] 业务错误与网络错误可区分，不传播内部 Exception。

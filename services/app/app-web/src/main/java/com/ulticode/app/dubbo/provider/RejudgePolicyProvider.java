@@ -1,7 +1,7 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.dto.RejudgeResult;
-import com.ulticode.app.api.service.RejudgePolicy;
+import com.ulticode.submission.api.dto.RejudgeResult;
+import com.ulticode.submission.api.service.RejudgePolicy;
 import com.ulticode.modules.submission.port.impl.DefaultRejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;

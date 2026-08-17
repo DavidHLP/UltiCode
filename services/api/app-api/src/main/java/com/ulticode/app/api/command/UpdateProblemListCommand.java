@@ -1,5 +1,7 @@
 package com.ulticode.app.api.command;
 
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.common.command.WriteCommand;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 

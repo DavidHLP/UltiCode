@@ -29,7 +29,7 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.app.api.service.JudgingLanguageSupport;
-import com.ulticode.app.api.service.ProblemSubmissionStatsPort;
+import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

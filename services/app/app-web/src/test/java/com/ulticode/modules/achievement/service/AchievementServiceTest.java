@@ -15,7 +15,7 @@ import com.ulticode.modules.achievement.projection.AchievementProjection;
 import com.ulticode.modules.achievement.service.impl.AchievementServiceImpl;
 import com.ulticode.modules.achievement.service.impl.AchievementTriggerServiceImpl;
 import com.ulticode.modules.achievement.port.BadgePushPort;
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

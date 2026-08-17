@@ -12,7 +12,7 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.service.SubmissionReadPort;
+import com.ulticode.submission.api.service.SubmissionReadPort;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

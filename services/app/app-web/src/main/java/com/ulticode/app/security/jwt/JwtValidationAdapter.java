@@ -1,7 +1,7 @@
 package com.ulticode.app.security.jwt;
 
-import com.ulticode.app.api.dto.JwtPayload;
-import com.ulticode.app.api.service.JwtValidationPort;
+import com.ulticode.common.auth.JwtPayload;
+import com.ulticode.common.security.JwtValidationPort;
 import io.jsonwebtoken.Claims;
 
 import lombok.RequiredArgsConstructor;

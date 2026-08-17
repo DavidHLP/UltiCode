@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.app.api.dto.DifficultyCountDTO;
-import com.ulticode.app.api.dto.SubmissionDateCountDTO;
-import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.common.dto.DifficultyCountDTO;
+import com.ulticode.submission.api.dto.SubmissionDateCountDTO;
+import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;

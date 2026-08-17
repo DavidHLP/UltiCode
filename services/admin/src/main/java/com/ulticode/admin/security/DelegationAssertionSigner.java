@@ -1,6 +1,6 @@
 package com.ulticode.admin.security;
 
-import com.ulticode.app.api.security.DelegationAssertionContract;
+import com.ulticode.common.security.DelegationAssertionContract;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;

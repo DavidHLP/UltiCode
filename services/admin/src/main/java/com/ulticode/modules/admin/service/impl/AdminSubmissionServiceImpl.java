@@ -1,9 +1,9 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
-import com.ulticode.app.api.service.RejudgePolicy;
-import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.service.RejudgePolicy;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
@@ -60,10 +60,10 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             return result;
         }
 
-        com.ulticode.app.api.dto.RejudgeResult portInput = new com.ulticode.app.api.dto.RejudgeResult();
+        com.ulticode.submission.api.dto.RejudgeResult portInput = new com.ulticode.submission.api.dto.RejudgeResult();
         portInput.setSubmissionId(id);
         portInput.setOldStatus(submission.status());
-        com.ulticode.app.api.dto.RejudgeResult portResult = rejudgePolicy.rejudge(id, portInput);
+        com.ulticode.submission.api.dto.RejudgeResult portResult = rejudgePolicy.rejudge(id, portInput);
 
         return toDomain(portResult);
     }
@@ -91,7 +91,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         return response;
     }
 
-    private RejudgeResult toDomain(com.ulticode.app.api.dto.RejudgeResult portResult) {
+    private RejudgeResult toDomain(com.ulticode.submission.api.dto.RejudgeResult portResult) {
         if (portResult == null) {
             return null;
         }

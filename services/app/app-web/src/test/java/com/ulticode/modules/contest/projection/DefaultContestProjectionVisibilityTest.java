@@ -2,7 +2,7 @@ package com.ulticode.modules.contest.projection;
 
 import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.service.SubmissionReadPort;
+import com.ulticode.submission.api.service.SubmissionReadPort;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.entity.Contest;

@@ -1,11 +1,11 @@
 package com.ulticode.modules.submission.port.adapter;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.app.api.dto.ProblemDifficultyCompletion;
-import com.ulticode.app.api.dto.ProblemTrend;
+import com.ulticode.submission.api.dto.ProblemDifficultyCompletion;
+import com.ulticode.submission.api.dto.ProblemTrend;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.app.api.service.ProblemSubmissionStatsPort;
+import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

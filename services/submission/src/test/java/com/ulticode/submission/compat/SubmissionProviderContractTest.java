@@ -1,9 +1,9 @@
 package com.ulticode.submission.compat;
 
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.service.SubmissionFencePort;
-import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;

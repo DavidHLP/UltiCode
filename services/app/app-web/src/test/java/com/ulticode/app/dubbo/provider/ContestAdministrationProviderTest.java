@@ -1,6 +1,6 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.command.DeleteContestCommand;
 import com.ulticode.app.api.command.EndContestCommand;

@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
 import com.ulticode.modules.admin.service.AdminSubmissionService;

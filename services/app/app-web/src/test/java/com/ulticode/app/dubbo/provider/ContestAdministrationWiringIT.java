@@ -15,7 +15,7 @@ import java.util.UUID;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;

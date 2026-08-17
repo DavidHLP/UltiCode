@@ -1,9 +1,9 @@
 package com.ulticode.modules.notification.channel;
 
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.NotificationIntent;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import com.ulticode.notification.websocket.NotificationBroadcastPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

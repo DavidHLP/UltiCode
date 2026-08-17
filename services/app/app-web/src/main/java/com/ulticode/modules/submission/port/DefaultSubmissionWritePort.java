@@ -1,13 +1,15 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.PerformanceStats;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.event.SubmissionJudgedEvent;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.codec.TestCaseDetailCodec;
+import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
@@ -15,7 +17,6 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
-import com.ulticode.modules.submission.codec.TestCaseDetailCodec;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
@@ -183,7 +184,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         submission.setStatus(wire);
         submission.setRuntime(runtime);
         submission.setMemory(memory);
-        submission.setTestDetails(TestCaseDetailCodec.fromJson(testDetailsJson));
+        submission.setTestDetails(toEntityDetails(TestCaseDetailCodec.fromJson(testDetailsJson)));
         if (status == SubmissionStatus.ACCEPTED) {
             PerformanceStats stats = performanceStats.compute(submission, runtime, memory);
             applyPerformanceStatsToEntity(submission, stats);
@@ -308,6 +309,33 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         entity.setRuntimeDistBinsMs(stats.runtimeDistBinsMs());
         entity.setMemoryPercentile(stats.memoryPercentile());
         entity.setMemoryDistBinsMb(stats.memoryDistBinsMb());
+    }
+
+    private List<Submission.TestCaseDetail> toEntityDetails(List<SubmissionTestCaseDetailDTO> details) {
+        if (details == null) {
+            return null;
+        }
+        return details.stream().map(detail -> {
+            Submission.TestCaseDetail entity = new Submission.TestCaseDetail();
+            entity.setStatus(detail.status());
+            entity.setTime(detail.time());
+            entity.setMemory(detail.memory());
+            entity.setDetail(detail.detail());
+            entity.setOutput(detail.output());
+            entity.setExpectedOutput(detail.expectedOutput());
+            entity.setCaseId(detail.caseId());
+            entity.setCaseScope(detail.caseScope());
+            entity.setInputs(detail.inputs().stream().map(input -> {
+                Submission.TestCaseDetail.InputParam entityInput =
+                        new Submission.TestCaseDetail.InputParam();
+                entityInput.setId(input.id());
+                entityInput.setLabel(input.label());
+                entityInput.setName(input.name());
+                entityInput.setValue(input.value());
+                return entityInput;
+            }).toList());
+            return entity;
+        }).toList();
     }
 
 }

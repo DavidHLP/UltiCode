@@ -1,11 +1,11 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.command.BatchRejudgeCommand;
-import com.ulticode.app.api.command.RejudgeCommand;
-import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
-import com.ulticode.app.api.dto.RejudgeResultDTO;
+import com.ulticode.submission.api.command.BatchRejudgeCommand;
+import com.ulticode.submission.api.command.RejudgeCommand;
+import com.ulticode.submission.api.dto.BatchRejudgeResultDTO;
+import com.ulticode.submission.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;

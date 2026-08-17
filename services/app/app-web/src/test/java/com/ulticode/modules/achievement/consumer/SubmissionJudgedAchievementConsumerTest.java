@@ -1,7 +1,7 @@
 package com.ulticode.modules.achievement.consumer;
 
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import org.junit.jupiter.api.Test;

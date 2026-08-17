@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.SubmissionDateCountDTO;
-import com.ulticode.app.api.dto.DifficultyCountDTO;
+import com.ulticode.submission.api.dto.SubmissionDateCountDTO;
+import com.ulticode.common.dto.DifficultyCountDTO;
 
 import java.util.List;
 

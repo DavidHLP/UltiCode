@@ -1,11 +1,11 @@
 package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.response.PageResult;
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionDetailVO;
-import com.ulticode.app.api.dto.SubmissionListItemVO;
-import com.ulticode.app.api.dto.SubmissionQueryDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
+import com.ulticode.submission.api.dto.SubmissionQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
 
 /**
  * Submission domain facade — controller-facing seam for the submission state
@@ -13,7 +13,7 @@ import com.ulticode.app.api.dto.SubmissionVO;
  *
  * <p>The <em>state mutation</em> work — Submission intake and the two verdict
  * writers — lives behind
- * {@link com.ulticode.app.api.service.SubmissionWritePort}, the single
+ * {@link com.ulticode.submission.api.service.SubmissionWritePort}, the single
  * collaborator whose implementation owns every state mutation on submission
  * records (transaction, contest rules, outbox, fenced CAS).
  *
@@ -45,7 +45,7 @@ public interface SubmissionService {
      * Submit code for a problem — the Submission intake.
      *
      * <p>Thin facade delegate that forwards to
-     * {@link com.ulticode.app.api.service.SubmissionWritePort#submit}.
+     * {@link com.ulticode.submission.api.service.SubmissionWritePort#submit}.
      * Present so in-module controllers stay on the {@code Controller → Service}
      * path; cross-module write callers inject the port directly.
      *

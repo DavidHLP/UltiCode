@@ -1,8 +1,8 @@
 package com.ulticode.notification.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.command.WriteCommand;
-import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.common.command.WriteCommand;
+import com.ulticode.notification.error.NotificationErrorCode;
 import com.ulticode.notification.idempotency.entity.NotificationCommandReceiptEntity;
 import com.ulticode.notification.idempotency.mapper.NotificationCommandReceiptMapper;
 import com.ulticode.common.rpc.RpcResult;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Component
 public class CommandReceiptExecutor {
 
-    private static final String DEFAULT_SERVICE = "SubmissionAdministrationService";
+    private static final String DEFAULT_SERVICE = "NotificationAdministrationService";
     private static final String PROBLEM_LIST_SERVICE = "ProblemListAdministrationService";
     private static final String SUCCESS = "SUCCESS";
     private static final String PROCESSING = "PROCESSING";
@@ -65,7 +65,7 @@ public class CommandReceiptExecutor {
             Function<String, RpcResult<T>> mutation) {
         String traceId = traceId(command);
         if (!validCommand(command)) {
-            return withKey(RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId),
+            return withKey(RpcResult.failure(NotificationErrorCode.BAD_REQUEST, traceId),
                     command == null || command.idempotency() == null
                             ? null : command.idempotency().idempotencyKey());
         }
@@ -76,7 +76,7 @@ public class CommandReceiptExecutor {
         if (receiptMapper.insertClaim(claim) == 0) {
             NotificationCommandReceiptEntity existing = receiptMapper.findByReceiptKey(service, operation, key);
             if (existing == null) {
-                return withKey(RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId), key);
+                return withKey(RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId), key);
             }
             return replay(existing, fingerprint, resultType, traceId, key);
         }
@@ -133,10 +133,10 @@ public class CommandReceiptExecutor {
             String key) {
         if (existing.getRequestFingerprint() != null
                 && !fingerprint.equals(existing.getRequestFingerprint())) {
-            return withKey(RpcResult.failure(AppErrorCode.IDEMPOTENCY_KEY_CONFLICT, traceId), key);
+            return withKey(RpcResult.failure(NotificationErrorCode.IDEMPOTENCY_KEY_CONFLICT, traceId), key);
         }
         if (!SUCCESS.equals(existing.getStatus())) {
-            return withKey(RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId), key);
+            return withKey(RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId), key);
         }
         if (resultType == Void.class) {
             return new RpcResult<>(true, null, null, null, traceId, 0L, key);

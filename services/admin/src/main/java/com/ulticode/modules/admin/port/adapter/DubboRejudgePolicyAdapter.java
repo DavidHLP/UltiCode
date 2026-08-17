@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.app.api.dto.RejudgeResult;
-import com.ulticode.app.api.service.RejudgePolicy;
+import com.ulticode.submission.api.dto.RejudgeResult;
+import com.ulticode.submission.api.service.RejudgePolicy;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;

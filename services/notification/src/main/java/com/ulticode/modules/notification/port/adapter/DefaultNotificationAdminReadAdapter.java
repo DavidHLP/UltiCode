@@ -2,8 +2,8 @@ package com.ulticode.modules.notification.port.adapter;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.app.api.dto.NotificationAdminDTO;
-import com.ulticode.app.api.service.NotificationAdminReadPort;
+import com.ulticode.notification.api.dto.NotificationAdminDTO;
+import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.mapper.NotificationMapper;

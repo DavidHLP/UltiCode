@@ -1,12 +1,12 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.app.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.dto.NotificationAdminDTO;
-import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.notification.api.command.CreateNotificationCommand;
+import com.ulticode.notification.api.dto.NotificationAdminDTO;
+import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.service.NotificationAdminReadPort;
-import com.ulticode.app.api.service.NotificationAdministrationService;
+import com.ulticode.notification.api.service.NotificationAdminReadPort;
+import com.ulticode.notification.api.service.NotificationAdministrationService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;

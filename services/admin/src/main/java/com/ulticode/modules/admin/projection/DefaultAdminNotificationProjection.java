@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.app.api.dto.NotificationAdminDTO;
-import com.ulticode.app.api.service.NotificationAdminReadPort;
+import com.ulticode.notification.api.dto.NotificationAdminDTO;
+import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;

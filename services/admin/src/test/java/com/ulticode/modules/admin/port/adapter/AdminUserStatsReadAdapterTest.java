@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.app.api.service.SolutionReadPort;
-import com.ulticode.app.api.service.SubmissionStreakPort;
-import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.submission.api.service.SubmissionStreakPort;
+import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -1,12 +1,12 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.app.api.dto.LanguageCountDTO;
+import com.ulticode.submission.api.dto.LanguageCountDTO;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
-import com.ulticode.app.api.dto.StatusCountDTO;
-import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.StatusCountDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
-import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;

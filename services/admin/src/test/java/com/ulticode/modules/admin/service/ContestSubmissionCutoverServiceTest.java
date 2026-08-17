@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.app.api.dto.RejudgeResultDTO;
-import com.ulticode.app.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.dto.RejudgeResultDTO;
+import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;

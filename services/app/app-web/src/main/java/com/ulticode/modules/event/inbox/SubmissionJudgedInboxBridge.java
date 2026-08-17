@@ -130,14 +130,14 @@ public class SubmissionJudgedInboxBridge {
         contestInbox.registerHandler(EVENT_TYPE, contestConsumer::consume);
         if (createdContestConsumer != null) {
             contestInbox.registerHandler(
-                    com.ulticode.app.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE,
+                    com.ulticode.submission.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE,
                     createdContestConsumer::consume);
         }
         contestInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
         Set<String> contestEventTypes = createdContestConsumer == null
                 ? Set.of(EVENT_TYPE)
                 : Set.of(EVENT_TYPE,
-                        com.ulticode.app.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE);
+                        com.ulticode.submission.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE);
         this.bindings = List.of(
                 new Binding("App-Achievement", achievementInbox, Set.of(EVENT_TYPE)),
                 new Binding("App-WebSocket", webSocketInbox, Set.of(EVENT_TYPE)),

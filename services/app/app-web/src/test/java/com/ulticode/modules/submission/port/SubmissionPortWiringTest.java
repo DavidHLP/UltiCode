@@ -2,8 +2,8 @@ package com.ulticode.modules.submission.port;
 
 import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
-import com.ulticode.app.api.service.SubmissionFencePort;
-import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.app.api.service.VerdictResolvePort;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.service.CodeExecutionService;
@@ -33,14 +33,14 @@ class SubmissionPortWiringTest {
     @DisplayName("DefaultSubmissionFencePort implements app-api SubmissionFencePort")
     void fencePortWiring() {
         assertTrue(SubmissionFencePort.class.isAssignableFrom(DefaultSubmissionFencePort.class),
-                "DefaultSubmissionFencePort must implement com.ulticode.app.api.service.SubmissionFencePort");
+                "DefaultSubmissionFencePort must implement com.ulticode.submission.api.service.SubmissionFencePort");
     }
 
     @Test
     @DisplayName("DefaultSubmissionWritePort implements app-api SubmissionWritePort")
     void writePortWiring() {
         assertTrue(SubmissionWritePort.class.isAssignableFrom(DefaultSubmissionWritePort.class),
-                "DefaultSubmissionWritePort must implement com.ulticode.app.api.service.SubmissionWritePort");
+                "DefaultSubmissionWritePort must implement com.ulticode.submission.api.service.SubmissionWritePort");
     }
 
     @Test

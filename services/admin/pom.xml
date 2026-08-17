@@ -29,6 +29,14 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
+			<artifactId>backend-submission-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-notification-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
 			<artifactId>backend-web-security</artifactId>
 		</dependency>
 

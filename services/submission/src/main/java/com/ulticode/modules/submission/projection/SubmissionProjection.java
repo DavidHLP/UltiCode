@@ -1,11 +1,11 @@
 package com.ulticode.modules.submission.projection;
 
-import com.ulticode.app.api.dto.LearningProgressDTO;
-import com.ulticode.app.api.dto.PerformanceStats;
-import com.ulticode.app.api.dto.SubmissionDetailVO;
-import com.ulticode.app.api.dto.SubmissionHistoryDTO;
-import com.ulticode.app.api.dto.SubmissionStatusMeta;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.LearningProgressDTO;
+import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 
 import java.util.List;

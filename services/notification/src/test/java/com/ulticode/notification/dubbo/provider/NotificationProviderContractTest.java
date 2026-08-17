@@ -1,6 +1,6 @@
 package com.ulticode.notification.dubbo.provider;
 
-import com.ulticode.app.api.service.NotificationServiceContract;
+import com.ulticode.notification.api.service.NotificationServiceContract;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.junit.jupiter.api.Test;
 

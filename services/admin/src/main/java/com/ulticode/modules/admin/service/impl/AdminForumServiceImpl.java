@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.AdminForumPostRowDTO;

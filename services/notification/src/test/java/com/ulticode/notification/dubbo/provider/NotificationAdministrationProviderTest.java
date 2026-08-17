@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.notification.idempotency.CommandReceiptExecutor;
 import com.ulticode.notification.idempotency.entity.NotificationCommandReceiptEntity;
 import com.ulticode.notification.idempotency.mapper.NotificationCommandReceiptMapper;
-import com.ulticode.app.api.command.ActorDelegation;
-import com.ulticode.app.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.command.DeleteNotificationCommand;
-import com.ulticode.app.api.command.UpdateNotificationCommand;
-import com.ulticode.app.api.dto.NotificationAdminViewDTO;
-import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.notification.api.command.CreateNotificationCommand;
+import com.ulticode.notification.api.command.DeleteNotificationCommand;
+import com.ulticode.notification.api.command.UpdateNotificationCommand;
+import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
+import com.ulticode.notification.error.NotificationErrorCode;
 import com.ulticode.notification.security.AdminActorAuthorizer;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
@@ -83,7 +83,8 @@ class NotificationAdministrationProviderTest {
         RpcResult<NotificationAdminViewDTO> result = provider.createNotification(command);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        assertThat(result.error().namespace()).isEqualTo(NotificationErrorCode.NAMESPACE);
+        assertThat(result.error().code()).isEqualTo(NotificationErrorCode.FORBIDDEN.code());
         verify(domainService, never()).createNotification(any());
         verify(actorAuthorizer, never()).isAuthorized(any());
     }
@@ -99,7 +100,7 @@ class NotificationAdministrationProviderTest {
         RpcResult<NotificationAdminViewDTO> result = provider.createNotification(command);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        assertThat(result.error().code()).isEqualTo(NotificationErrorCode.FORBIDDEN.code());
         verify(domainService, never()).createNotification(any());
     }
 
@@ -113,7 +114,7 @@ class NotificationAdministrationProviderTest {
         RpcResult<NotificationAdminViewDTO> result = provider.createNotification(command);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+        assertThat(result.error().code()).isEqualTo(NotificationErrorCode.BAD_REQUEST.code());
         verify(domainService, never()).createNotification(any());
     }
 
@@ -150,7 +151,7 @@ class NotificationAdministrationProviderTest {
                     "admin-1", "T", "C", "SYSTEM", "SYSTEM", "ALL", null);
             RpcResult<NotificationAdminViewDTO> result = provider.createNotification(cmd);
             assertThat(result.success()).isFalse();
-            assertThat(result.error().code()).isEqualTo(AppErrorCode.CONTENT_NOT_FOUND.code());
+            assertThat(result.error().code()).isEqualTo(NotificationErrorCode.CONTENT_NOT_FOUND.code());
         }
 
         @Test
@@ -165,7 +166,7 @@ class NotificationAdministrationProviderTest {
             RpcResult<NotificationAdminViewDTO> result = provider.createNotification(cmd);
 
             assertThat(result.success()).isFalse();
-            assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+            assertThat(result.error().code()).isEqualTo(NotificationErrorCode.BAD_REQUEST.code());
         }
     }
 

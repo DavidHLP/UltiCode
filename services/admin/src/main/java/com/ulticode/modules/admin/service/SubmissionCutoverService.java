@@ -1,12 +1,12 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.app.api.command.ActorDelegation;
-import com.ulticode.app.api.command.BatchRejudgeCommand;
-import com.ulticode.app.api.command.RejudgeCommand;
-import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
-import com.ulticode.app.api.dto.RejudgeResultDTO;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.submission.api.command.BatchRejudgeCommand;
+import com.ulticode.submission.api.command.RejudgeCommand;
+import com.ulticode.submission.api.dto.BatchRejudgeResultDTO;
+import com.ulticode.submission.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;

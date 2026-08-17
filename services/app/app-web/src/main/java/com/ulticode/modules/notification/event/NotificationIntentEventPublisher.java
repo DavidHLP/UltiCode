@@ -1,6 +1,6 @@
 package com.ulticode.modules.notification.event;
 
-import com.ulticode.app.api.event.NotificationIntentEventContract;
+import com.ulticode.notification.api.event.NotificationIntentEventContract;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.CommentReplyIntent;

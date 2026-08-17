@@ -2,8 +2,8 @@ package com.ulticode.notification.websocket;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;

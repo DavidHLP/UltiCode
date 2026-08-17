@@ -7,11 +7,11 @@ import com.ulticode.app.api.command.UpdateBannerCommand;
 import com.ulticode.app.api.command.UpdateBasicInfoCommand;
 import com.ulticode.app.api.command.UpdateProblemListCommand;
 import com.ulticode.app.api.command.UpdateVisibilityCommand;
-import com.ulticode.app.api.command.WriteCommand;
+import com.ulticode.common.command.WriteCommand;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
 import com.ulticode.app.api.service.ProblemListSearchReadPort;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import org.junit.jupiter.api.Test;
@@ -80,7 +80,7 @@ class ProblemListApiContractShapeTest {
     void replacementCommandNormalizesNullProblemsToAnEmptyList() {
         ReplaceListProblemsCommand command = new ReplaceListProblemsCommand(
                 "cmd-1", IdMetadata.mint(),
-                new com.ulticode.app.api.command.ActorDelegation("ADMIN", "admin-1", "admin-1", "test"),
+                new com.ulticode.common.command.ActorDelegation("ADMIN", "admin-1", "admin-1", "test"),
                 TraceMetadata.EMPTY, "list-1", null);
 
         assertThat(command.problems()).isEmpty();

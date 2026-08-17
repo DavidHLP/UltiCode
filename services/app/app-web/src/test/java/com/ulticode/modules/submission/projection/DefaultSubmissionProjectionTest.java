@@ -2,8 +2,8 @@ package com.ulticode.modules.submission.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.dto.SubmissionListItemVO;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;

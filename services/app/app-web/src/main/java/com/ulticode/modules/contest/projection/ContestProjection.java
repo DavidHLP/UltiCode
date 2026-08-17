@@ -9,7 +9,7 @@ import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.GlobalContestStatsVO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionVO;
 
 import java.util.List;
 import java.util.Optional;

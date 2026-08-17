@@ -1,8 +1,8 @@
 package com.ulticode.modules.queue.processor;
 
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
-import com.ulticode.app.api.service.SubmissionFencePort;
-import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.domain.submission.enums.CaseScope;
 import com.ulticode.domain.submission.enums.SubmissionStatus;

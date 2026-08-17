@@ -1,6 +1,6 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateProblemListCommand;
 import com.ulticode.app.api.command.DeleteProblemListCommand;
 import com.ulticode.app.api.command.ReplaceListProblemsCommand;
@@ -10,7 +10,7 @@ import com.ulticode.app.api.command.UpdateProblemListCommand;
 import com.ulticode.app.api.command.UpdateVisibilityCommand;
 import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.command.WriteCommand;
+import com.ulticode.common.command.WriteCommand;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;

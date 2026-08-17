@@ -1,9 +1,9 @@
 package com.ulticode.modules.notification.service;
 
-import com.ulticode.app.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.command.DeleteNotificationCommand;
-import com.ulticode.app.api.command.UpdateNotificationCommand;
-import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.notification.api.command.CreateNotificationCommand;
+import com.ulticode.notification.api.command.DeleteNotificationCommand;
+import com.ulticode.notification.api.command.UpdateNotificationCommand;
+import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 
 public interface NotificationAdministrationDomainService {
 

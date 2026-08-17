@@ -1,6 +1,6 @@
 package com.ulticode.modules.notification;
 
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import com.ulticode.modules.notification.channel.NotificationChannel;
 import com.ulticode.modules.notification.channel.WebSocketNotificationChannel;
 import com.ulticode.modules.notification.intent.NotificationIntent;
@@ -24,6 +24,7 @@ class NotificationDeliveryContractTest {
         NotificationChannel channel = new WebSocketNotificationChannel(
                 mock(NotificationBroadcastPort.class));
         assertThat(channel.channelId()).isEqualTo("websocket");
-        assertThat(NotificationPayload.class.getPackageName()).isEqualTo("com.ulticode.app.api.dto");
+        assertThat(NotificationPayload.class.getPackageName())
+                .isEqualTo("com.ulticode.notification.api.dto");
     }
 }

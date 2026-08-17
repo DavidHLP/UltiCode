@@ -7,7 +7,7 @@ import com.ulticode.modules.admin.port.SubscriptionSummary;
 import com.ulticode.app.api.dto.ContestAdminDTO;
 import com.ulticode.app.api.service.ContestAdminReadPort;
 import com.ulticode.app.api.service.ContestParticipantReadPort;
-import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;

@@ -1,6 +1,6 @@
 package com.ulticode.modules.forum.port;
 
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ForumTagMutationCommand;
 import com.ulticode.app.api.dto.ForumTagDTO;
 import com.ulticode.app.api.error.AppErrorCode;

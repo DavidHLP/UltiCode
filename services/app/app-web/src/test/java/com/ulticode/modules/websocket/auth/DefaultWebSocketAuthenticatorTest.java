@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.ulticode.app.api.dto.AccountInfo;
-import com.ulticode.app.api.dto.JwtPayload;
-import com.ulticode.app.api.service.AccountReadPort;
-import com.ulticode.app.api.service.JwtValidationPort;
+import com.ulticode.common.auth.AccountInfo;
+import com.ulticode.common.auth.JwtPayload;
+import com.ulticode.common.security.AccountReadPort;
+import com.ulticode.common.security.JwtValidationPort;
 import com.ulticode.app.error.WebSocketErrorCode;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;

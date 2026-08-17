@@ -158,7 +158,15 @@ public class BackendCommonArchTest {
                 "com.ulticode.common.error.NamespacedErrorCode",
                 "com.ulticode.common.error.BaseErrorCode",
                 "com.ulticode.common.tracing.TraceMetadata",
-                "com.ulticode.common.tracing.IdMetadata");
+                "com.ulticode.common.tracing.IdMetadata",
+                "com.ulticode.common.command.ActorDelegation",
+                "com.ulticode.common.command.WriteCommand",
+                "com.ulticode.common.dto.DifficultyCountDTO",
+                "com.ulticode.common.auth.AccountInfo",
+                "com.ulticode.common.auth.JwtPayload",
+                "com.ulticode.common.security.AccountReadPort",
+                "com.ulticode.common.security.JwtValidationPort",
+                "com.ulticode.common.security.DelegationAssertionContract");
         Set<String> missing = new HashSet<>();
         ClassLoader cl = getClass().getClassLoader();
         for (String fqcn : required) {

@@ -1,6 +1,6 @@
 package com.ulticode.app.security;
 
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 
 /**
  * Verifies the admin identity carried across an App administration command.

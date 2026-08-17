@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.stats;
 
-import com.ulticode.app.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.modules.submission.entity.Submission;
 
 /**

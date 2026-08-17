@@ -1,20 +1,20 @@
 package com.ulticode.modules.submission.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.LanguageStatsDTO;
-import com.ulticode.app.api.dto.LearningProgressDTO;
-import com.ulticode.app.api.dto.MonthlySubmissionStatsDTO;
-import com.ulticode.app.api.dto.PerformanceStats;
-import com.ulticode.app.api.dto.SubmissionDetailVO;
-import com.ulticode.app.api.dto.SubmissionHistoryDTO;
-import com.ulticode.app.api.dto.SubmissionListItemVO;
-import com.ulticode.app.api.dto.SubmissionStatusMeta;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.dto.WeeklyProgressDTO;
+import com.ulticode.submission.api.dto.LanguageStatsDTO;
+import com.ulticode.submission.api.dto.LearningProgressDTO;
+import com.ulticode.submission.api.dto.MonthlySubmissionStatsDTO;
+import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.WeeklyProgressDTO;
+import com.ulticode.submission.api.catalog.SubmissionStatusCatalog;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.CaseScope;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
-import com.ulticode.modules.submission.enums.SubmissionStatusCatalog;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.app.api.service.ProblemFactsPort;
@@ -351,22 +351,8 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
     @Override
     public List<SubmissionStatusMeta> getStatusCatalog() {
         return Arrays.stream(SubmissionStatus.values())
-                .map(s -> toStatusMeta(s, SubmissionStatusCatalog.forStatus(s)))
+                .map(SubmissionStatusCatalog::toMeta)
                 .toList();
-    }
-
-    private SubmissionStatusMeta toStatusMeta(SubmissionStatus status, SubmissionStatusCatalog.Entry entry) {
-        SubmissionStatusMeta meta = new SubmissionStatusMeta();
-        meta.setKey(status.getDisplayName());
-        meta.setCode(status.name());
-        meta.setLabel(status.getDisplayName());
-        meta.setDescription(entry.description());
-        meta.setSuggestion(entry.suggestion());
-        meta.setCategory(status.getCategory());
-        meta.setSeverity(entry.severity());
-        meta.setIsTerminal(status.isTerminal());
-        meta.setSortOrder(entry.sortOrder());
-        return meta;
     }
 
     /**

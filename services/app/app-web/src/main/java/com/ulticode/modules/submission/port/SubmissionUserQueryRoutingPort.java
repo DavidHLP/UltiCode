@@ -1,12 +1,12 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.LearningProgressDTO;
-import com.ulticode.app.api.dto.SubmissionDetailVO;
-import com.ulticode.app.api.dto.SubmissionHistoryDTO;
-import com.ulticode.app.api.dto.SubmissionQueryDTO;
-import com.ulticode.app.api.dto.SubmissionStatusMeta;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.service.SubmissionUserQueryPort;
+import com.ulticode.submission.api.dto.LearningProgressDTO;
+import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.config.SubmissionRoutingProperties;
 import com.ulticode.modules.submission.port.adapter.LocalSubmissionUserQueryAdapter;

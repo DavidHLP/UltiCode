@@ -16,7 +16,7 @@ import com.ulticode.modules.admin.service.ProblemExportService;
 import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.admin.service.impl.ExportPayload;
 import com.ulticode.app.api.dto.ProblemAdminQueryDTO;
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

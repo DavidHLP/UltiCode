@@ -32,7 +32,7 @@ class LegacyRejudgeStrategyTest {
         when(submissionMapper.bumpGenerationAndReset("submission-1", 1L, 2L)).thenReturn(1);
 
         var result = new LegacyRejudgeStrategy(submissionMapper, judgeEnqueuePort)
-                .rejudge(submission, new com.ulticode.app.api.dto.RejudgeResult());
+                .rejudge(submission, new com.ulticode.submission.api.dto.RejudgeResult());
 
         assertThat(submission.getGeneration()).isEqualTo(2L);
         assertThat(submission.getRetryCount()).isEqualTo(3);
@@ -52,7 +52,7 @@ class LegacyRejudgeStrategyTest {
         TransactionSynchronizationManager.initSynchronization();
         try {
             var result = new LegacyRejudgeStrategy(submissionMapper, judgeEnqueuePort)
-                    .rejudge(submission, new com.ulticode.app.api.dto.RejudgeResult());
+                    .rejudge(submission, new com.ulticode.submission.api.dto.RejudgeResult());
 
             assertThat(result.getSuccess()).isTrue();
             verify(judgeEnqueuePort, org.mockito.Mockito.never())
@@ -80,7 +80,7 @@ class LegacyRejudgeStrategyTest {
         when(submissionMapper.bumpGenerationAndReset("submission-2", 8L, 9L)).thenReturn(1);
 
         var result = new LegacyRejudgeStrategy(submissionMapper, judgeEnqueuePort)
-                .rejudge(submission, new com.ulticode.app.api.dto.RejudgeResult());
+                .rejudge(submission, new com.ulticode.submission.api.dto.RejudgeResult());
 
         assertThat(refreshed.getGeneration()).isEqualTo(9L);
         assertThat(refreshed.getRetryCount()).isEqualTo(4);

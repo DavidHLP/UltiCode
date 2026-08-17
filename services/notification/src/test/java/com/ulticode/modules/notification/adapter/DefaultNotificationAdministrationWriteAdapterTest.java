@@ -1,10 +1,10 @@
 package com.ulticode.modules.notification.adapter;
 
-import com.ulticode.app.api.command.ActorDelegation;
-import com.ulticode.app.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.command.DeleteNotificationCommand;
-import com.ulticode.app.api.command.UpdateNotificationCommand;
-import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.notification.api.command.CreateNotificationCommand;
+import com.ulticode.notification.api.command.DeleteNotificationCommand;
+import com.ulticode.notification.api.command.UpdateNotificationCommand;
+import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;

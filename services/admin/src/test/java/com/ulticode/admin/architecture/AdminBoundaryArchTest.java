@@ -112,9 +112,11 @@ class AdminBoundaryArchTest {
 
     /**
      * ADMIN-008 (consumer-side guard): Admin classes must not import
-     * Notification-owned entities, mappers, or dispatchers. Reads go
-     * through {@code NotificationAdminReadPort} and writes through
-     * {@code NotificationAdministrationService} (both in backend-app-api).
+     * Notification-owned entities, mappers, dispatchers, and runtime
+     * infrastructure. Reads go through {@code NotificationAdminReadPort}
+     * and writes through {@code NotificationAdministrationService} in
+     * {@code backend-notification-api}; that published API is intentionally
+     * allowed here.
      */
     @ArchTest
     static final ArchRule ADMIN_MUST_NOT_IMPORT_NOTIFICATION_INTERNALS =
@@ -124,9 +126,18 @@ class AdminBoundaryArchTest {
             .should().dependOnClassesThat().resideInAnyPackage(
                 "com.ulticode.modules.notification..",
                 "com.ulticode.modules.email..",
-                "com.ulticode.notification..")
+                "com.ulticode.notification.config..",
+                "com.ulticode.notification.dubbo..",
+                "com.ulticode.notification.error..",
+                "com.ulticode.notification.event..",
+                "com.ulticode.notification.idempotency..",
+                "com.ulticode.notification.inbox..",
+                "com.ulticode.notification.recipient..",
+                "com.ulticode.notification.security..",
+                "com.ulticode.notification.websocket..",
+                "com.ulticode.notification.adapter..")
             .because("ADMIN-008: Notification and email are independently owned "
-                + "(backend-notification); Admin must use backend-app-api contracts "
+                + "(backend-notification); Admin must use backend-notification-api contracts "
                 + "and never import owner-private internals.");
 
 }

@@ -4,7 +4,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.app.api.dto.ProblemAdminQueryDTO;
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 
 import java.util.List;
 

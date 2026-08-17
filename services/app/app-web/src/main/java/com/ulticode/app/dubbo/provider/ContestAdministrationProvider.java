@@ -1,14 +1,14 @@
 package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.app.api.command.AddContestProblemCommand;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.command.DeleteContestCommand;
 import com.ulticode.app.api.command.EndContestCommand;
 import com.ulticode.app.api.command.RemoveContestProblemCommand;
 import com.ulticode.app.api.command.StartContestCommand;
 import com.ulticode.app.api.command.UpdateContestCommand;
-import com.ulticode.app.api.command.WriteCommand;
+import com.ulticode.common.command.WriteCommand;
 import com.ulticode.app.api.dto.ContestAdminDTO;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
 import com.ulticode.app.api.dto.ContestProblemAdminDTO;
@@ -367,7 +367,7 @@ public class ContestAdministrationProvider implements ContestAdministrationServi
         }
     }
 
-    private static String traceId(com.ulticode.app.api.command.WriteCommand command) {
+    private static String traceId(com.ulticode.common.command.WriteCommand command) {
         return command != null && command.trace() != null && command.trace().traceId() != null
                 ? command.trace().traceId() : null;
     }

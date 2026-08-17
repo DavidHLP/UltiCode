@@ -1,8 +1,8 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.dto.DifficultyCountDTO;
-import com.ulticode.app.api.dto.SubmissionDateCountDTO;
-import com.ulticode.app.api.service.SubmissionUserStatsPort;
+import com.ulticode.common.dto.DifficultyCountDTO;
+import com.ulticode.submission.api.dto.SubmissionDateCountDTO;
+import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.modules.submission.port.adapter.SubmissionUserStatsMapperAdapter;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;

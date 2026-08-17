@@ -98,7 +98,8 @@ public class BackendAppApiArchTest {
 
     /**
      * The contract module may only depend on its own package, the
-     * shared {@code backend-common} contract, and JDK / standard
+     * shared {@code backend-common} contract, the Submission-owned
+     * result payload used by the App push seam, and JDK / standard
      * library packages. Any transitively-pulled dependency on an
      * Entity / Mapper / ServiceImpl / Repository / controller
      * package under {@code com.ulticode.*} (including
@@ -120,6 +121,7 @@ public class BackendAppApiArchTest {
                     .should().onlyDependOnClassesThat().resideInAnyPackage(
                             "com.ulticode.app.api..",
                             "com.ulticode.common..",
+                            "com.ulticode.submission.api..",
                             "com.ulticode.domain..",
                             "java..",
                             "javax..",
@@ -129,7 +131,8 @@ public class BackendAppApiArchTest {
                             "org.springframework.context..",
                             "io.swagger.v3.oas.annotations..")
                     .because("contract module may only depend on its "
-                            + "own package, backend-common, and standard "
+                            + "own package, backend-common, the explicit "
+                            + "Submission result payload seam, and standard "
                             + "annotation libraries (Lombok compile-time "
                             + "codegen, Jackson serialization annotations, "
                             + "Spring ApplicationEvent for domain events, "

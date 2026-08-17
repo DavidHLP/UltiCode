@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.result;
 
-import com.ulticode.app.api.event.SubmissionJudgedEvent;
+import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import lombok.RequiredArgsConstructor;

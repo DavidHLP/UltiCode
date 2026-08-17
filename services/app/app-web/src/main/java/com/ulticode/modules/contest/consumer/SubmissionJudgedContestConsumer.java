@@ -1,6 +1,6 @@
 package com.ulticode.modules.contest.consumer;
 
-import com.ulticode.app.api.event.SubmissionJudgedEvent;
+import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.contest.service.ContestAdjudicationService;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;

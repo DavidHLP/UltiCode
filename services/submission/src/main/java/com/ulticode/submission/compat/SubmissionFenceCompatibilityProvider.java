@@ -1,6 +1,6 @@
 package com.ulticode.submission.compat;
 
-import com.ulticode.app.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.modules.submission.port.DefaultSubmissionFencePort;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;

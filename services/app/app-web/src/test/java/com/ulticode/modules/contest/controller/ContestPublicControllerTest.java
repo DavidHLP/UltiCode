@@ -1,8 +1,8 @@
 package com.ulticode.modules.contest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.app.security.AppTestSecurityConfig;
 import com.ulticode.modules.contest.entity.Contest;

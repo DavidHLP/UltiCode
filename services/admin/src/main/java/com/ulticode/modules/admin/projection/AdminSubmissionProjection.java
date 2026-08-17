@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;
 import com.ulticode.common.exception.BusinessException;

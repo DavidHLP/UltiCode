@@ -1,6 +1,6 @@
 package com.ulticode.modules.achievement.port;
 
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
 
 /**
  * Push port the achievement module uses to deliver a real-time

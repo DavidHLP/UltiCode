@@ -1,10 +1,10 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.app.api.dto.DailyActiveUserCount;
-import com.ulticode.app.api.dto.HourlyActiveUserCount;
-import com.ulticode.app.api.dto.TopActiveUserCount;
-import com.ulticode.app.api.dto.WeeklyActiveUserCount;
-import com.ulticode.app.api.service.SubmissionActivityAnalyticsPort;
+import com.ulticode.submission.api.dto.DailyActiveUserCount;
+import com.ulticode.submission.api.dto.HourlyActiveUserCount;
+import com.ulticode.submission.api.dto.TopActiveUserCount;
+import com.ulticode.submission.api.dto.WeeklyActiveUserCount;
+import com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;

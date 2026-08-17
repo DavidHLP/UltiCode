@@ -1,6 +1,6 @@
 package com.ulticode.app.api.service;
 
-import com.ulticode.app.api.dto.DifficultyCountDTO;
+import com.ulticode.common.dto.DifficultyCountDTO;
 
 import java.util.List;
 

@@ -2,7 +2,7 @@ package com.ulticode.modules.submission.port.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.app.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.modules.problem.adapter.DefaultProblemAdminReadAdapter;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;

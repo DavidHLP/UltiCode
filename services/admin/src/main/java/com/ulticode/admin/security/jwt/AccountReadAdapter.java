@@ -1,7 +1,7 @@
 package com.ulticode.admin.security.jwt;
 
-import com.ulticode.app.api.dto.AccountInfo;
-import com.ulticode.app.api.service.AccountReadPort;
+import com.ulticode.common.auth.AccountInfo;
+import com.ulticode.common.security.AccountReadPort;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.rpc.RpcPolicy;

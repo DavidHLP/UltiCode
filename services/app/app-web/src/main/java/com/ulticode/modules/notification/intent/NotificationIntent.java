@@ -1,7 +1,7 @@
 package com.ulticode.modules.notification.intent;
 
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 
 /**
  * Sealed top-level interface for typed notification intents (ADR-004 §2.1).

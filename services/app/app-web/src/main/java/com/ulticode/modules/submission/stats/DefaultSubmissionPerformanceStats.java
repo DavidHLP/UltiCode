@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.stats;
 
-import com.ulticode.app.api.dto.PerformanceStats;
-import com.ulticode.app.api.dto.UserBestStats;
+import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.UserBestStats;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.service.SubmissionGenerationReadPort;
+import com.ulticode.submission.api.service.SubmissionGenerationReadPort;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

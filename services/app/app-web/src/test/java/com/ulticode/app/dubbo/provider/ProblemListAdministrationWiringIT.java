@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.DeleteProblemListCommand;
 import com.ulticode.app.api.service.ProblemExistencePort;
 import com.ulticode.app.config.MybatisPlusConfig;

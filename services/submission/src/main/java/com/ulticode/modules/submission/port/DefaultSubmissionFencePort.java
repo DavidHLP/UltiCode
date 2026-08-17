@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;

@@ -206,21 +206,21 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
     @MockBean
-    private com.ulticode.app.api.service.RejudgePolicy rejudgePolicy;
+    private com.ulticode.submission.api.service.RejudgePolicy rejudgePolicy;
     @MockBean
-    private com.ulticode.app.api.service.SubmissionReadPort submissionReadPort;
+    private com.ulticode.submission.api.service.SubmissionReadPort submissionReadPort;
     @MockBean
-    private com.ulticode.app.api.service.SubmissionStreakPort submissionStreakPort;
+    private com.ulticode.submission.api.service.SubmissionStreakPort submissionStreakPort;
     @MockBean
     private com.ulticode.app.api.service.JudgeConfigPort judgeConfigPort;
     @MockBean
-    private com.ulticode.app.api.service.SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
+    private com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
     @MockBean
-    private com.ulticode.app.api.service.SubmissionAnalyticsPort submissionAnalyticsPort;
+    private com.ulticode.submission.api.service.SubmissionAnalyticsPort submissionAnalyticsPort;
     @MockBean
-    private com.ulticode.app.api.service.SubmissionUserStatsPort submissionUserStatsPort;
+    private com.ulticode.submission.api.service.SubmissionUserStatsPort submissionUserStatsPort;
     @MockBean
-    private com.ulticode.app.api.service.ProblemSubmissionStatsPort problemSubmissionStatsPort;
+    private com.ulticode.submission.api.service.ProblemSubmissionStatsPort problemSubmissionStatsPort;
     @MockBean
     private com.ulticode.modules.submission.config.DockerSandboxConfig dockerSandboxConfig;
     @MockBean
@@ -303,8 +303,8 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.notification.port.NotificationPushPort notificationPushPortBean;
     @MockBean private com.ulticode.modules.achievement.port.BadgePushPort badgePushPortBean;
     // P7-RELOCATE-WEBSOCKET-001
-    @MockBean private com.ulticode.app.api.service.JwtValidationPort jwtValidationPort;
-    @MockBean private com.ulticode.app.api.service.AccountReadPort accountReadPort;
+    @MockBean private com.ulticode.common.security.JwtValidationPort jwtValidationPort;
+    @MockBean private com.ulticode.common.security.AccountReadPort accountReadPort;
     @MockBean private com.ulticode.modules.websocket.port.TokenBlacklistPort tokenBlacklistPort;
 
     @MockBean private com.ulticode.modules.moderation.mapper.UserWarningMapper userwarningmapperMapper;

@@ -1,8 +1,8 @@
 package com.ulticode.notification.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

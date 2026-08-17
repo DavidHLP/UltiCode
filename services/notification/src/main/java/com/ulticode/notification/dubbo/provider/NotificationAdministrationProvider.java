@@ -1,15 +1,15 @@
 package com.ulticode.notification.dubbo.provider;
 
-import com.ulticode.app.api.command.ActorDelegation;
-import com.ulticode.app.api.command.CreateNotificationCommand;
-import com.ulticode.app.api.command.DeleteNotificationCommand;
-import com.ulticode.app.api.command.WriteCommand;
-import com.ulticode.app.api.command.UpdateNotificationCommand;
-import com.ulticode.app.api.dto.NotificationAdminViewDTO;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.notification.api.command.CreateNotificationCommand;
+import com.ulticode.notification.api.command.DeleteNotificationCommand;
+import com.ulticode.common.command.WriteCommand;
+import com.ulticode.notification.api.command.UpdateNotificationCommand;
+import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.notification.idempotency.CommandReceiptExecutor;
-import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.service.NotificationAdministrationService;
-import com.ulticode.app.api.service.NotificationServiceContract;
+import com.ulticode.notification.error.NotificationErrorCode;
+import com.ulticode.notification.api.service.NotificationAdministrationService;
+import com.ulticode.notification.api.service.NotificationServiceContract;
 import com.ulticode.notification.security.AdminActorAuthorizer;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
@@ -66,12 +66,12 @@ public class NotificationAdministrationProvider implements NotificationAdministr
                             return toFailure(exception, traceId);
                         } catch (Exception exception) {
                             log.error("NotificationAdministrationProvider.createNotification unexpected error", exception);
-                            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
+                            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId);
                         }
                     });
         } catch (Exception exception) {
             log.error("NotificationAdministrationProvider.createNotification receipt failure", exception);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId(command));
+            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId(command));
         }
     }
 
@@ -99,13 +99,13 @@ public class NotificationAdministrationProvider implements NotificationAdministr
                         } catch (Exception exception) {
                             log.error("NotificationAdministrationProvider.deleteNotification unexpected error id={}",
                                     command.notificationId(), exception);
-                            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
+                            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId);
                         }
                     });
         } catch (Exception exception) {
             log.error("NotificationAdministrationProvider.deleteNotification receipt failure id={}",
                     command.notificationId(), exception);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId(command));
+            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId(command));
         }
     }
 
@@ -132,19 +132,19 @@ public class NotificationAdministrationProvider implements NotificationAdministr
                         } catch (Exception exception) {
                             log.error("NotificationAdministrationProvider.updateNotification unexpected error id={}",
                                     command.notificationId(), exception);
-                            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
+                            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId);
                         }
                     });
         } catch (Exception exception) {
             log.error("NotificationAdministrationProvider.updateNotification receipt failure id={}",
                     command.notificationId(), exception);
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId(command));
+            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId(command));
         }
     }
 
     private <T> RpcResult<T> rejectIfNotAdmin(WriteCommand command) {
         if (command == null) {
-            return RpcResult.failure(AppErrorCode.BAD_REQUEST, null);
+            return RpcResult.failure(NotificationErrorCode.BAD_REQUEST, null);
         }
         ActorDelegation actor = command.actor();
         if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
@@ -152,15 +152,15 @@ public class NotificationAdministrationProvider implements NotificationAdministr
                 || !actor.actorId().equals(actor.delegatorId())
                 || (!"ADMIN".equalsIgnoreCase(actor.actorType())
                 && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
+            return RpcResult.failure(NotificationErrorCode.FORBIDDEN, traceId(command));
         }
         try {
             if (actorAuthorizer == null || !actorAuthorizer.isAuthorized(actor)) {
-                return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
+                return RpcResult.failure(NotificationErrorCode.FORBIDDEN, traceId(command));
             }
         } catch (RuntimeException exception) {
             log.warn("NotificationAdministrationProvider actor authorization failed", exception);
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
+            return RpcResult.failure(NotificationErrorCode.FORBIDDEN, traceId(command));
         }
         return null;
     }
@@ -168,7 +168,7 @@ public class NotificationAdministrationProvider implements NotificationAdministr
     private RpcResult<NotificationAdminViewDTO> rejectIfCreatorMismatch(CreateNotificationCommand command) {
         if (command.creatorAccountId() == null
                 || !command.creatorAccountId().equals(command.actor().actorId())) {
-            return RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId(command));
+            return RpcResult.failure(NotificationErrorCode.BAD_REQUEST, traceId(command));
         }
         return null;
     }
@@ -179,12 +179,12 @@ public class NotificationAdministrationProvider implements NotificationAdministr
 
     private static <T> RpcResult<T> toFailure(BusinessException e, String traceId) {
         if (e.getErrorCode() == null) {
-            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
+            return RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId);
         }
         return switch (e.getErrorCode().code()) {
-            case 40000 -> RpcResult.failure(AppErrorCode.BAD_REQUEST, traceId);
-            case 40400 -> RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, traceId);
-            default -> RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
+            case 40000 -> RpcResult.failure(NotificationErrorCode.BAD_REQUEST, traceId);
+            case 40400 -> RpcResult.failure(NotificationErrorCode.CONTENT_NOT_FOUND, traceId);
+            default -> RpcResult.failure(NotificationErrorCode.UNEXPECTED_NOTIFICATION_STATE, traceId);
         };
     }
 }

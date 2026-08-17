@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.RejudgeResult;
+import com.ulticode.submission.api.dto.RejudgeResult;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.modules.submission.entity.Submission;

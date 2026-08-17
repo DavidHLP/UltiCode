@@ -2,8 +2,8 @@ package com.ulticode.modules.contest.service;
 
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
 
 /**
  * User-facing write facade for the contest domain. After the admin-contest

@@ -1,6 +1,6 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.modules.submission.port.DefaultSubmissionFencePort;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;

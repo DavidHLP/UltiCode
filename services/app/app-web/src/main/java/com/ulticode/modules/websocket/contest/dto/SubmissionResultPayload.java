@@ -5,7 +5,7 @@ import java.time.Instant;
 /**
  * Submission result payload for contest events.
  *
- * @deprecated Use {@link com.ulticode.app.api.dto.SubmissionResultPayload} instead.
+ * @deprecated Use {@link com.ulticode.submission.api.dto.SubmissionResultPayload} instead.
  * This class remains only until the websocket family relocates
  * (P7-RELOCATE-WEBSOCKET-001).
  */

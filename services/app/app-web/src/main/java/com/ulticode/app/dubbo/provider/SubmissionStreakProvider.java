@@ -1,6 +1,6 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.app.api.service.SubmissionStreakPort;
+import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.modules.submission.port.adapter.SubmissionStreakAdapter;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;

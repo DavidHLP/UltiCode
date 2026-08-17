@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionDetailVO;
-import com.ulticode.app.api.dto.SubmissionListItemVO;
-import com.ulticode.app.api.dto.SubmissionQueryDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.dto.UserBestStats;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
+import com.ulticode.submission.api.dto.SubmissionQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.UserBestStats;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -88,7 +88,7 @@ class SubmissionServiceImplTest {
         lenient().when(submissionProjection.toVO(any(com.ulticode.modules.submission.entity.Submission.class)))
                 .thenAnswer(inv -> {
                     com.ulticode.modules.submission.entity.Submission s = inv.getArgument(0);
-                    com.ulticode.app.api.dto.SubmissionVO vo = new com.ulticode.app.api.dto.SubmissionVO();
+                    com.ulticode.submission.api.dto.SubmissionVO vo = new com.ulticode.submission.api.dto.SubmissionVO();
                     vo.setId(s.getId());
                     vo.setProblemId(s.getProblemId());
                     vo.setUserId(s.getUserId());
@@ -103,8 +103,8 @@ class SubmissionServiceImplTest {
         lenient().when(submissionProjection.toDetailVO(any(com.ulticode.modules.submission.entity.Submission.class), any()))
                 .thenAnswer(inv -> {
                     com.ulticode.modules.submission.entity.Submission s = inv.getArgument(0);
-                    com.ulticode.app.api.dto.PerformanceStats stats = inv.getArgument(1);
-                    com.ulticode.app.api.dto.SubmissionDetailVO vo = new com.ulticode.app.api.dto.SubmissionDetailVO();
+                    com.ulticode.submission.api.dto.PerformanceStats stats = inv.getArgument(1);
+                    com.ulticode.submission.api.dto.SubmissionDetailVO vo = new com.ulticode.submission.api.dto.SubmissionDetailVO();
                     vo.setId(s.getId());
                     vo.setProblemId(s.getProblemId());
                     vo.setUserId(s.getUserId());
@@ -127,7 +127,7 @@ class SubmissionServiceImplTest {
         lenient().when(submissionProjection.toListItemVO(any(SubmissionWithProblem.class)))
                 .thenAnswer(inv -> {
                     SubmissionWithProblem s = inv.getArgument(0);
-                    com.ulticode.app.api.dto.SubmissionListItemVO vo = new com.ulticode.app.api.dto.SubmissionListItemVO();
+                    com.ulticode.submission.api.dto.SubmissionListItemVO vo = new com.ulticode.submission.api.dto.SubmissionListItemVO();
                     vo.setId(s.id());
                     vo.setStatus(s.status());
                     vo.setLanguage(s.language());
@@ -136,8 +136,8 @@ class SubmissionServiceImplTest {
                     vo.setCreatedAt(s.createdAt());
                     vo.setNotes(s.notes());
                     if (s.problemTitle() != null) {
-                        com.ulticode.app.api.dto.SubmissionListItemVO.ProblemSummary problemSummary =
-                                new com.ulticode.app.api.dto.SubmissionListItemVO.ProblemSummary();
+                        com.ulticode.submission.api.dto.SubmissionListItemVO.ProblemSummary problemSummary =
+                                new com.ulticode.submission.api.dto.SubmissionListItemVO.ProblemSummary();
                         problemSummary.setId(s.problemId());
                         problemSummary.setTitle(s.problemTitle());
                         problemSummary.setSlug(s.problemSlug());

@@ -374,9 +374,9 @@ public class UserManagementServiceImpl implements UserManagementService {
         return new com.ulticode.auth.api.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
     }
 
-    private com.ulticode.app.api.command.ActorDelegation appActor(String rationale) {
+    private com.ulticode.common.command.ActorDelegation appActor(String rationale) {
         String actorId = currentActorId();
-        return new com.ulticode.app.api.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
+        return new com.ulticode.common.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
     }
 
     private String currentActorId() {

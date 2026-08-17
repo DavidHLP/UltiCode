@@ -3,7 +3,7 @@ package com.ulticode.modules.notification.intent;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 
 import java.util.Map;
 

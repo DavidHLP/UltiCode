@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.app.api.dto.SubmissionAdminRowDTO;
-import com.ulticode.app.api.service.RejudgePolicy;
-import com.ulticode.app.api.service.SubmissionAdminReadPort;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.service.RejudgePolicy;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
@@ -83,13 +83,13 @@ class AdminSubmissionServiceImplTest {
         void rejudge_existingSubmission_delegatesToPolicy() {
             SubmissionAdminRowDTO submission = createValidSubmission();
             when(submissionReadPort.findById("sub-123")).thenReturn(submission);
-            com.ulticode.app.api.dto.RejudgeResult policyResult = new com.ulticode.app.api.dto.RejudgeResult();
+            com.ulticode.submission.api.dto.RejudgeResult policyResult = new com.ulticode.submission.api.dto.RejudgeResult();
             policyResult.setSubmissionId("sub-123");
             policyResult.setSuccess(true);
             policyResult.setNewStatus("Pending");
-            when(rejudgePolicy.rejudge(eq("sub-123"), any(com.ulticode.app.api.dto.RejudgeResult.class)))
+            when(rejudgePolicy.rejudge(eq("sub-123"), any(com.ulticode.submission.api.dto.RejudgeResult.class)))
                 .thenAnswer(inv -> {
-                    com.ulticode.app.api.dto.RejudgeResult passed = inv.getArgument(1);
+                    com.ulticode.submission.api.dto.RejudgeResult passed = inv.getArgument(1);
                     assertThat(passed.getOldStatus()).isEqualTo("Accepted");
                     return policyResult;
                 });
@@ -99,7 +99,7 @@ class AdminSubmissionServiceImplTest {
             assertThat(result.getSubmissionId()).isEqualTo("sub-123");
             assertThat(result.getSuccess()).isTrue();
             assertThat(result.getNewStatus()).isEqualTo("Pending");
-            verify(rejudgePolicy).rejudge(eq("sub-123"), any(com.ulticode.app.api.dto.RejudgeResult.class));
+            verify(rejudgePolicy).rejudge(eq("sub-123"), any(com.ulticode.submission.api.dto.RejudgeResult.class));
         }
     }
 
@@ -129,9 +129,9 @@ class AdminSubmissionServiceImplTest {
                     List.of(), null, null);
             when(submissionReadPort.findById("sub-1")).thenReturn(sub1);
             when(submissionReadPort.findById("sub-2")).thenReturn(sub2);
-            when(rejudgePolicy.rejudge(any(String.class), any(com.ulticode.app.api.dto.RejudgeResult.class)))
+            when(rejudgePolicy.rejudge(any(String.class), any(com.ulticode.submission.api.dto.RejudgeResult.class)))
                 .thenAnswer(inv -> {
-                    com.ulticode.app.api.dto.RejudgeResult r = inv.getArgument(1);
+                    com.ulticode.submission.api.dto.RejudgeResult r = inv.getArgument(1);
                     r.setSuccess(true);
                     return r;
                 });
@@ -162,9 +162,9 @@ class AdminSubmissionServiceImplTest {
             SubmissionAdminRowDTO sub1 = createValidSubmission();
             when(submissionReadPort.findById("sub-1")).thenReturn(sub1);
             when(submissionReadPort.findById("sub-2")).thenReturn(null);
-            when(rejudgePolicy.rejudge(eq("sub-1"), any(com.ulticode.app.api.dto.RejudgeResult.class)))
+            when(rejudgePolicy.rejudge(eq("sub-1"), any(com.ulticode.submission.api.dto.RejudgeResult.class)))
                 .thenAnswer(inv -> {
-                    com.ulticode.app.api.dto.RejudgeResult r = inv.getArgument(1);
+                    com.ulticode.submission.api.dto.RejudgeResult r = inv.getArgument(1);
                     r.setSuccess(true);
                     return r;
                 });

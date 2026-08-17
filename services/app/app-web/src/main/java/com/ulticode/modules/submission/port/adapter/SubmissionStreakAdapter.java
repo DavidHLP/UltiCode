@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.port.adapter;
 
-import com.ulticode.app.api.service.SubmissionStreakPort;
+import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;

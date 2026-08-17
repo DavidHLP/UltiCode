@@ -1,8 +1,8 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.CreateSubmissionDTO;
-import com.ulticode.app.api.dto.SubmissionVO;
-import com.ulticode.app.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.config.SubmissionRoutingProperties;
 import com.ulticode.modules.submission.port.adapter.RemoteSubmissionWritePort;

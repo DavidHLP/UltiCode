@@ -1,8 +1,8 @@
 package com.ulticode.app.idempotency;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.command.ActorDelegation;
-import com.ulticode.app.api.command.RejudgeCommand;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.submission.api.command.RejudgeCommand;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;

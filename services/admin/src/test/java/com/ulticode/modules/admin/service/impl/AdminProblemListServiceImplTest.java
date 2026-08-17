@@ -9,7 +9,7 @@ import com.ulticode.app.api.command.UpdateBannerCommand;
 import com.ulticode.app.api.command.UpdateBasicInfoCommand;
 import com.ulticode.app.api.command.UpdateProblemListCommand;
 import com.ulticode.app.api.command.UpdateVisibilityCommand;
-import com.ulticode.app.api.command.WriteCommand;
+import com.ulticode.common.command.WriteCommand;
 import com.ulticode.app.api.dto.ProblemListDetailDTO;
 import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListAdministrationService;

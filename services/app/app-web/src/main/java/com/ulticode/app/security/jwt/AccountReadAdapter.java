@@ -1,7 +1,7 @@
 package com.ulticode.app.security.jwt;
 
-import com.ulticode.app.api.dto.AccountInfo;
-import com.ulticode.app.api.service.AccountReadPort;
+import com.ulticode.common.auth.AccountInfo;
+import com.ulticode.common.security.AccountReadPort;
 import com.ulticode.app.user.port.UserReadMapper;
 import com.ulticode.app.user.port.UserSummaryView;
 

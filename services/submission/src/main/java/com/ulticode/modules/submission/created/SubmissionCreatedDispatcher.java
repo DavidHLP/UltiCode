@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.created;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.app.api.event.SubmissionLifecycleEventContract;
+import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
 import com.ulticode.modules.submission.result.ResultEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

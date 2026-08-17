@@ -1,8 +1,8 @@
 package com.ulticode.submission.dubbo.provider;
 
-import com.ulticode.app.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.service.SubmissionReadPort;
+import com.ulticode.submission.api.service.SubmissionReadPort;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;

@@ -21,6 +21,8 @@
 		<module>platform/integration-inbox</module>
 		<module>api/auth-api</module>
 		<module>api/admin-api</module>
+		<module>api/submission-api</module>
+		<module>api/notification-api</module>
 		<module>api/app-api</module>
 		<module>judge-runtime</module>
 		<module>auth</module>
@@ -70,6 +72,16 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-admin-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-submission-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-notification-api</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

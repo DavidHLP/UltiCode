@@ -1,6 +1,6 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.app.api.service.SubmissionStreakPort;
+import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;

@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.app.api.service.NotificationAdminReadPort;
-import com.ulticode.app.api.service.NotificationAdministrationService;
-import com.ulticode.app.api.service.NotificationServiceContract;
+import com.ulticode.notification.api.service.NotificationAdminReadPort;
+import com.ulticode.notification.api.service.NotificationAdministrationService;
+import com.ulticode.notification.api.service.NotificationServiceContract;
 import com.ulticode.modules.admin.port.adapter.DubboNotificationAdminReadAdapter;
 import com.ulticode.modules.admin.service.impl.AdminNotificationServiceImpl;
 import org.apache.dubbo.config.annotation.DubboReference;

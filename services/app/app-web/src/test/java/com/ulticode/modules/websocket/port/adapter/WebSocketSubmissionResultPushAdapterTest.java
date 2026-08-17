@@ -1,7 +1,7 @@
 package com.ulticode.modules.websocket.port.adapter;
 
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
-import com.ulticode.app.api.dto.SubmissionResultPayload;
+import com.ulticode.submission.api.dto.SubmissionResultPayload;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

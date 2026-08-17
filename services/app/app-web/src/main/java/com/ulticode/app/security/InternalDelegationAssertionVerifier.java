@@ -1,7 +1,7 @@
 package com.ulticode.app.security;
 
-import com.ulticode.app.api.command.ActorDelegation;
-import com.ulticode.app.api.security.DelegationAssertionContract;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.common.security.DelegationAssertionContract;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

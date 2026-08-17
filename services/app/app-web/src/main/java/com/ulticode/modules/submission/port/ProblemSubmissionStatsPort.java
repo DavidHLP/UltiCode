@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.port;
 
-import com.ulticode.app.api.dto.ProblemDifficultyCompletion;
-import com.ulticode.app.api.dto.ProblemTrend;
+import com.ulticode.submission.api.dto.ProblemDifficultyCompletion;
+import com.ulticode.submission.api.dto.ProblemTrend;
 
 import java.time.LocalDateTime;
 import java.util.List;

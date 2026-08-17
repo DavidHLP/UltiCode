@@ -1,7 +1,7 @@
 package com.ulticode.modules.notification.channel;
 
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;

@@ -1,10 +1,10 @@
 package com.ulticode.modules.websocket.broadcast;
 
 import com.ulticode.app.api.dto.AnnouncementPayload;
-import com.ulticode.app.api.dto.BadgeEarnedPayload;
-import com.ulticode.app.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.BadgeEarnedPayload;
+import com.ulticode.notification.api.dto.NotificationPayload;
 import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload;
-import com.ulticode.app.api.dto.SubmissionResultPayload;
+import com.ulticode.submission.api.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 
 import java.util.HashMap;

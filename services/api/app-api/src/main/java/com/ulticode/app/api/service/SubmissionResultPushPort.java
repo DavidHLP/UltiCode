@@ -1,6 +1,6 @@
 package com.ulticode.app.api.service;
 
-import com.ulticode.app.api.dto.SubmissionResultPayload;
+import com.ulticode.submission.api.dto.SubmissionResultPayload;
 
 /**
  * Push port for delivering submission-result notifications.

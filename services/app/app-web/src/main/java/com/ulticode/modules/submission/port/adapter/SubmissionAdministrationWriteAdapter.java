@@ -1,7 +1,7 @@
 package com.ulticode.modules.submission.port.adapter;
 
 import com.ulticode.app.api.error.AppErrorCode;
-import com.ulticode.app.api.service.RejudgePolicy;
+import com.ulticode.submission.api.service.RejudgePolicy;
 import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;
@@ -51,10 +51,10 @@ public class SubmissionAdministrationWriteAdapter implements SubmissionAdministr
             return result;
         }
 
-        com.ulticode.app.api.dto.RejudgeResult portInput = new com.ulticode.app.api.dto.RejudgeResult();
+        com.ulticode.submission.api.dto.RejudgeResult portInput = new com.ulticode.submission.api.dto.RejudgeResult();
         portInput.setSubmissionId(submissionId);
         portInput.setOldStatus(submission.getStatus());
-        com.ulticode.app.api.dto.RejudgeResult portResult = rejudgePolicy.rejudge(submissionId, portInput);
+        com.ulticode.submission.api.dto.RejudgeResult portResult = rejudgePolicy.rejudge(submissionId, portInput);
 
         return toDomain(portResult);
     }
@@ -82,7 +82,7 @@ public class SubmissionAdministrationWriteAdapter implements SubmissionAdministr
         return response;
     }
 
-    private RejudgeResult toDomain(com.ulticode.app.api.dto.RejudgeResult portResult) {
+    private RejudgeResult toDomain(com.ulticode.submission.api.dto.RejudgeResult portResult) {
         if (portResult == null) {
             return null;
         }

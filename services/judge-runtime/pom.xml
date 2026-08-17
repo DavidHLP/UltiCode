@@ -24,6 +24,10 @@
             <groupId>com.ulticode</groupId>
             <artifactId>backend-app-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
+            <artifactId>backend-submission-api</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

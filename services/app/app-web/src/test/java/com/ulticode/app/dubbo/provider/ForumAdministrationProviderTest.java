@@ -1,7 +1,7 @@
 package com.ulticode.app.dubbo.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.app.api.command.ActorDelegation;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ForumCommentModerationCommand;
 import com.ulticode.app.api.command.ForumPostModerationCommand;
 import com.ulticode.app.api.command.ForumTagMutationCommand;

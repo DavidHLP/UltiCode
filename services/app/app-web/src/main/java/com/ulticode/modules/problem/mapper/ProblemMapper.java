@@ -2,7 +2,7 @@ package com.ulticode.modules.problem.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.app.api.dto.DifficultyCountDTO;
+import com.ulticode.common.dto.DifficultyCountDTO;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;

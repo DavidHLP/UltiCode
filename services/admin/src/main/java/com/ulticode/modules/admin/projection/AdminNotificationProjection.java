@@ -4,7 +4,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.app.api.dto.NotificationAdminDTO;
+import com.ulticode.notification.api.dto.NotificationAdminDTO;
 
 /**
  * Read-side deep module for the admin system-notification surface &mdash;
@@ -40,7 +40,7 @@ import com.ulticode.app.api.dto.NotificationAdminDTO;
  *       system announcements, broadcast preference gating). Write paths
  *       that return {@code AdminNotificationVO} ({@code createSystemNotification},
  *       {@code updateSystemNotification}) call
- *       {@link #toAdminVO(com.ulticode.app.api.dto.NotificationAdminDTO)}
+ *       {@link #toAdminVO(com.ulticode.notification.api.dto.NotificationAdminDTO)}
  *       so the controller contract is unchanged &mdash; the shape rule no
  *       longer lives in the service.</li>
  *   <li>Future admins or port-driven consumers depend on this projection for

@@ -358,3 +358,21 @@
   `graphify update .` completed at 26,513 nodes / 77,128 edges.
 - Closed CONTRACT-002, CONTRACT-003, CONTRACT-004, CONTRACT-005 and CONTRACT-006. Left CONTRACT-007 blocked by
   release authority and SPLIT-005 runtime evidence; no commit or external cutover performed.
+
+## 2026-08-17 (CONTRACT-007 reversible blocker push)
+
+- User explicitly authorized rollback-able local/disposable operations. Confirmed the local sandbox image and ran the
+  official integration wrapper with `-Dsurefire.failIfNoSpecifiedTests=false`: recent Surefire reports aggregated 2,690
+  tests, 0 failures, 0 errors and 24 explicit skips; `SandboxNamespaceIsolationIT` and `SandboxForkE2EIT` executed
+  6/6 each, and `JudgeStreamRedisIntegrationTest` passed 4/4 after making the zero-idle threshold deterministic.
+- Replaced Submission's compat forwarders with direct `backend-submission` `SubmissionWriteProvider` and
+  `SubmissionFenceProvider`; deleted App's duplicate `backend-app` write/fence providers, `appWriter`/`appFence`,
+  owner-mode config and stale cutover Javadocs. Submission owner focused tests 7/7 and App/Judge focused tests 14/14
+  passed. No Entity/Mapper sharing, HTTP route, cookie/JWT, applied migration or persistent volume changed.
+- Updated the cutover runbook and migration guide to make local provider behavior intrinsic after retirement while
+  retaining `APP_SUBMISSION_ROUTING_MODE=local` as the safe default. A fresh disposable MySQL run in owner-first then
+  main/shared migration order passed preflight, cutover and rollback with checksums unchanged; App grant observation
+  was allowed before cutover, denied after cutover, and allowed after rollback.
+- `graphify update .` passed at 27,532 nodes / 80,287 edges. CONTRACT-007 is now in progress with source retirement
+  complete; the only remaining blocker is an explicitly approved production release window for `remote` route and
+  real runtime observation. No commit, push, deployment or production route/grant change was performed.

@@ -20,8 +20,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> this listener fires
  * on in-process {@code SubmissionJudgedEvent}s, which the regular path stops
  * publishing once the runtime cutover is active ({@code
- * app.submission.routing.mode=remote} + {@code app.submission.owner.mode=local});
- * regular verdicts are written by backend-submission. It remains active only
+ * {@code app.submission.routing.mode=remote}); regular verdicts are written by
+ * backend-submission. It remains active only
  * for verdicts written by the App local compatibility/rollback path. Kept as
  * a clearly labeled compatibility component;
  * do not extend it with new regular-path behavior.

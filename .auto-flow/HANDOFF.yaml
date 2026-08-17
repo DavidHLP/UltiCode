@@ -5,35 +5,37 @@ outputs:
   - "CONTRACT-001-COMMON is closed: eight Java-only common/security/metadata/value contracts moved to backend-common with consumers and tests migrated"
   - "CONTRACT-002 and CONTRACT-003 are complete: provider-owned API artifacts and all discovered callers/providers/tests/POMs are migrated"
   - "CONTRACT-004 and CONTRACT-005 are complete at the source boundary; CONTRACT-006 is complete with the canonical DTO codec/catalog and storage-edge mapping"
-  - "AUTO_PILOT_STATUS.yaml, TASKS.yaml, RESUME.md, COVERAGE.md and this handoff are synchronized; CONTRACT-007 remains explicitly blocked"
+  - "CONTRACT-007 source retirement is in progress: direct owner providers replace the compat/App duplicate providers; runtime defaults remain rollback-safe"
+  - "TASKS.yaml, RESUME.md, COVERAGE.md and this handoff record the sandbox, disposable grant and focused/full validation evidence; AUTO_PILOT_STATUS.yaml remains the separate historical objective"
 evidence:
   - "codebase-memory project ulticode generation 2026-08-17T06:05:20Z: 36,448 nodes / 173,902 edges; relevant app-api/service scopes covered, with direct-source fallback for missing POM and excluded non-code paths"
-  - "graphify code-only query: 25,482 nodes / 76,151 edges; SubmissionWritePort, NotificationAdministrationService, SubmissionWriteCompatibilityProvider and provider/consumer seams located"
+  - "graphify update after the provider change: 27,532 nodes / 80,287 edges; direct Submission provider and consumer seams refreshed"
   - "owner matrix source accounting: service=93, command=31, dto=87, event=6, error=1, security=1; 219 top-level files and 66 nested declarations; all matrix simple names and full nested paths checked"
-  - "Common extraction changed only Java contract sources, consumers/tests and the migration guide; no runtime config, migration, route/grant, database or provider registration changed"
+  - "Provider retirement changed only the reversible source/config/doc seam; no applied migration, persistent database, production route/grant, deploy or remote state changed"
   - "cd services && ./mvnw -pl api/app-api -am test -B: BUILD SUCCESS; backend-common 96 tests and backend-app-api 39 tests, 0 failures"
   - "cd services && ./mvnw -pl app/app-web,admin,notification -am test -B: BUILD SUCCESS; affected owner reactor suites pass"
   - "BackendCommonMovedContractsTest and BackendCommonArchTest pass; old-FQCN, duplicate, forbidden-import and backend-common dependency scans pass"
-  - "graphify update . passed at 26,513 nodes/77,128 edges; direct source remains authoritative for newly added files not tracked by the codebase-memory index"
+  - "The earlier graphify update at 26,513 nodes/77,128 edges was followed by the current provider-change refresh at 27,532 nodes/80,287 edges; direct source remains authoritative for newly added files not tracked by the codebase-memory index"
   - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md §6.2/§13.2 documents common ownership and matched-release/no-alias constraints"
   - "SnakeYAML parse passed for TASKS.yaml, HANDOFF.yaml and AUTO_PILOT_STATUS.yaml; git diff --check and changed-file whitespace scans passed"
-  - "existing SPLIT-005 gaps retained: sandbox/Testcontainers evidence and compatibility/grant retirement authority are future gates, not CONTRACT-001 blockers"
-  - "Current validation: affected 20-module Maven reactor BUILD SUCCESS; submission owner *IT 28/0/0; canonical API duplicate/boundary scans and Notification namespace checks pass"
-  - "Current source review found and fixed one implementation-only UserBestStats Javadoc mapper reference; no confirmed finding remains after the API reactor rerun"
+  - "Sandbox image/Testcontainers evidence is closed; disposable cutover/rollback and App grant allow→deny→allow passed; production route/default remains local by safety boundary"
+  - "Current validation: Submission focused 7/0/0/0, App/Judge focused 14/0/0/0 and official integration aggregate 2,690/0/0/24; disposable cutover/rollback and grant allow→deny→allow pass"
+  - "Current source review found no confirmed finding in the direct-provider retirement, Redis timing fix, wrapper fix or control-plane evidence"
 review:
   status: pass
-  scope: "CONTRACT-002 through CONTRACT-006 source-boundary review: owner FQCN/POM convergence, provider/reference identities, API purity, DTO codec/catalog locality, compatibility and security regressions"
+  scope: "CONTRACT-002 through CONTRACT-007 source-boundary review: owner FQCN/POM convergence, direct backend-submission providers, provider/reference identities, routing/config retirement, compatibility and security regressions"
   confirmed_findings: []
-  execution_note: "Formal review workers timed out; parent performed bounded local standards/spec/security review against the final diff, direct source and graph/coverage evidence. One Javadoc implementation reference was fixed; no confirmed finding remains."
+  execution_note: "Formal review workers timed out; parent performed bounded local standards/spec/security review against the final diff, direct source and graph/coverage evidence. The direct-provider retirement, deterministic Redis test fix and wrapper selection fix have no confirmed finding; production route/runtime observation remains external."
 validation:
   tier: C
-  risk_reason: "The task changes cross-module Java FQCNs, POM edges and pure DTO utility ownership while preserving runtime defaults; provider cutover, grants and compatibility retirement remain separate gated tasks"
+  risk_reason: "The task changes cross-service provider registration, storage ownership/configuration, a Redis integration timing boundary and the migration runbook while preserving production defaults; production route and runtime observation remain gated"
   status: pass
   checks:
-    - "backend-common 96, submission-api 15, notification-api 7, app-api 28 and affected 20-module reactor tests pass"
-    - "Submission owner *IT 28/0/0, including DefaultSubmissionWritePortIT 6/0/0; App wire compatibility focused 13/13"
-    - "owner FQCN/POM/import/provider/reference scans, API purity scan, duplicate codec/catalog scan and dependency tree pass"
-    - "graphify update . at 26,513 nodes/77,128 edges; control-plane YAML and git diff --check pass"
+    - "Submission focused contract/owner/boot tests: 7/0/0/0; App/Judge routing and executor tests: 14/0/0/0"
+    - "Official integration Surefire aggregate: 806 reports, 2,690 tests, 0 failures, 0 errors, 24 skips; SandboxForkE2EIT 6/0/0/0, SandboxNamespaceIsolationIT 6/0/0/0, JudgeStreamRedisIntegrationTest 4/0/0/0 and SubmissionOwnerCutoverIT 3/0/0/0"
+    - "Disposable MySQL owner-first migration, checksum preflight/cutover/rollback and App grant allow→deny→allow pass"
+    - "Production/dev Compose config with ephemeral MEILI_MASTER_KEY, bash -n, old-provider/owner-mode static scans and control-plane YAML validation pass"
+    - "graphify update . at 27,532 nodes/80,287 edges; git diff --check passes"
 failures_failed: []
 failures_fixed:
   - "Added the omitted security/DelegationAssertionContract.java to the owner matrix"
@@ -41,16 +43,14 @@ failures_fixed:
   - "Made the dead SubmissionNotificationPort disposition deterministic: remove unless a separately planned caller is discovered"
   - "Removed the implementation-only SubmissionMapper Javadoc reference from submission-api UserBestStats after final boundary scan"
 external_gaps:
-  - "SPLIT-005-env-sandbox: real sandbox image and stable Testcontainers runtime remain unavailable"
-  - "SPLIT-005-retirement-authority: compatibility provider/route/grant retirement requires explicit release/cutover authority"
-next_goal: "Await explicit release/cutover authority and stable SPLIT-005 runtime evidence before CONTRACT-007 Submission single-hop/single-writer cutover; then run CONTRACT-008 final gate"
+  - "Production release window is still required to set APP_SUBMISSION_ROUTING_MODE=remote and observe the real single-hop/single-writer runtime"
+next_goal: "Use an explicitly approved production release window for APP_SUBMISSION_ROUTING_MODE=remote, then run the final CONTRACT-007 runtime observation and CONTRACT-008 Completion Audit"
 next_skill: run-development-loop
-reason: "CONTRACT-002 through CONTRACT-006 are review/validation complete; runtime provider retirement remains a separately authorized gate"
+reason: "CONTRACT-002 through CONTRACT-006 and the reversible provider-retirement slice are validated; only the production runtime release/observation remains"
 alternatives:
   - "Leave all types in app-api: rejected because the final App-only gate would remain false"
   - "Put business DTOs/entities/mappers in backend-common: rejected by DEC-011 and common ArchUnit boundaries"
   - "Keep old FQCN aliases or a mixed rollout: rejected by the matched-release/no-alias rule"
-  - "Execute compat retirement or production route/grant changes now: rejected because authority and runtime evidence are separate gates"
+  - "Change production route/grants now: deferred because this turn authorizes rollback-able local/disposable work, not a production release"
 blockers:
-  - "CONTRACT-007 requires explicit release/cutover authority and real single-hop/single-writer runtime evidence"
-  - "SPLIT-005-env-sandbox remains blocked on sandbox image and stable Docker/Testcontainers runtime"
+  - "CONTRACT-007 production runtime observation requires a release window with APP_SUBMISSION_ROUTING_MODE=remote"

@@ -9,15 +9,15 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Boot shell for the Submission owner runtime.
  *
- * <p>SPLIT-002 kept the existing App database writer behind a Dubbo
- * compatibility adapter. SPLIT-003 slice-2 adds the local storage writer:
+ * <p>SPLIT-003 adds the local storage writer and direct owner provider:
  * the same submission domain classes (entity/mapper/outbox/result/stats)
  * are scanned from {@code com.ulticode.modules.submission}, and the
  * {@code submission} schema tables are written in one local transaction.
  * SPLIT-003 slice-3/7 adds the local outbox consumers
  * ({@code JudgeOutboxDispatcher}, {@code SubmissionResultDispatcher}, and
  * {@code SubmissionCreatedDispatcher}).
- * App routing stays {@code local} until cutover.
+ * App routing stays {@code local} until the separately authorized runtime
+ * cutover.
  */
 @SpringBootApplication(scanBasePackages = "com.ulticode.submission")
 @EnableScheduling

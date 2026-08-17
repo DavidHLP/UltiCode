@@ -53,8 +53,8 @@ import java.util.Map;
  * stays in compatibility mode even if its own flag is on.
  *
  * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> once the runtime
- * cutover is active ({@code app.submission.routing.mode=remote} +
- * {@code app.submission.owner.mode=local}), the regular submission path writes
+ * cutover is active ({@code app.submission.routing.mode=remote}), the regular
+ * submission path writes
  * {@code judge_outbox} rows to the Submission owner schema and this dispatcher
  * no longer handles them. It remains the active dispatcher only for the
  * App-local compatibility path (including local contest rollback) and as the

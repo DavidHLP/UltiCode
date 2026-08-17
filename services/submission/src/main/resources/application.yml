@@ -37,16 +37,6 @@ app:
     use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
     judge-queue:
       use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
-  submission:
-    owner:
-      # compat (default): provider forwards to the App writer/fence (single
-      # writer during expand/backfill). local:
-      # provider delegates to the in-process Submission-schema writer/fence
-      # (runtime cutover). Enabled after scripts/dev/submission-schema-cutover.sh
-      # data copy + SPLIT-004 read-path migration. With App remote routing,
-      # explicit contest intake writes this owner's outbox and App-Contest
-      # consumes the association event.
-      mode: ${APP_SUBMISSION_OWNER_MODE:compat}
 
 management:
   endpoints:

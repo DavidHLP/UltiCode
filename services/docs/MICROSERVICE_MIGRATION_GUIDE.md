@@ -347,15 +347,15 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | Responsibility | Submission write/fence 的独立 HTTP/Dubbo 进程边界；SPLIT-003 slice-2 落地本地存储 writer、slice-3 落地本地 outbox 消费者、slice-4 落地 cutover runbook 与 provider 本地化机制（均未切流） |
 | Owned Domain | Submission intake、verdict、generation/lease fence、judge/result outbox；写路径类（entity/mapper/codec/stats/result outbox）已复制到本服务，outbox 消费者（`JudgeOutboxDispatcher`/`SubmissionResultDispatcher`）与 `ResultEventPublisher`（直接 XADD `stream:integration`）已迁移到本服务 |
 | Owned Tables | `submission` schema 的 `submissions`/`judge_outbox`/`submission_result_outbox`/`submission_created_outbox` 目标态表已建；默认路由仍未切，remote+local 时 Submission 成为四张表的唯一 writer |
-| Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort`，group=`backend-submission`；`app.submission.owner.mode=compat`（默认）转发 App，`local` 委托进程内 writer/fence 直写 `submission` schema（slice-4 新增，未启用） |
+| Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort`，group=`backend-submission`；直接委托进程内 writer/fence 写入 `submission` schema，已删除 compat forwarder 与 App 重复 provider |
 | Dubbo Consumer | ProblemFacts（backend-app）、UserExistence（backend-auth IdentityQueryService）；过渡期 write/fence 仍转发 App，目标态移除该回访 |
 | Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 四张 owner 表（submission/judge/created/result outbox）；contest `submitContest` 在同一 intake 事务内写 `submission_created_outbox`，judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox` |
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
-| Rollback | `APP_SUBMISSION_ROUTING_MODE=local` + `app.submission.owner.mode=compat`，停止该进程；数据回写用 `scripts/dev/submission-schema-cutover.sh rollback`；本地 writer 未切流前不影响 App 现有路径 |
+| Rollback | 保持 `APP_SUBMISSION_ROUTING_MODE=local`，停止该进程或回滚到上一已验证 artifact；数据回写用 `scripts/dev/submission-schema-cutover.sh rollback`；本地 writer 未切流前不影响 App 现有路径 |
 
 slice-3 边界：outbox 消费者已迁移到 backend-submission（读 `submission` schema 的 outbox 行；`JudgeOutboxDispatcher` 仅 real dispatch，无 legacy shadow/replay），App 侧 dispatcher 不再消费 submission schema 行，因此切换 `APP_SUBMISSION_ROUTING_MODE=remote` 的前置（dispatcher 迁移）已满足。
 
-slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对 + target-only `submission_created_outbox` 存在且为空核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant），`app.submission.owner.mode=local` 使 provider 直写本地库。但**不得**在 SPLIT-004 之前启用 remote+local：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
+slice-4 边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对 + target-only `submission_created_outbox` 存在且为空核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant）；provider 已固定为本地 writer/fence。**不得**在 SPLIT-004 之前启用 remote：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口。
 
 slice-7 边界（contest association 事件化）：切流后 contest 提交经 `submitContest` → `submission_created_outbox` → App-Contest 幂等消费写 `contest_submissions`。**历史 contest 提交无 created-outbox 行**：cutover 前已存在的 contest 提交，其 verdict 仍由 App 本地 dispatcher（contest 兼容路径）处理，contestId 从 App 自身 `contest_submissions` 解析，不受影响；若未来 contest 路径整体迁移到 backend-submission 处理历史 verdict，需先从 App `contest_submissions` 回填 `submission_created_outbox`（当前 runbook 未做回填，属已知边界）。
 
@@ -369,9 +369,9 @@ slice-9 边界（SPLIT-004 实际 read-routing 切换 + AC4 退役证据）：�
 | `SubmissionResultOutboxListener`/`Writer`/`Mapper`（App） | 仅 App local verdict（contest + 回滚）触发 |
 | `SubmissionMapper`/`DefaultSubmissionWritePort`/`SubmissionReadAdapter`/`DefaultSubmissionUserReadAdapter`（App） | local 默认模式与 contest 路径的 read/write adapter，保持兼容职责 |
 
-grant revocation 完整性 PARTIAL：默认路由仍是 App local/compat；切换 remote+local 后，显式 contest intake 也只写 Submission owner 的四张表，App-Contest 仅消费 `SubmissionCreated` 写 `contest_submissions`。完整撤销仍须在该运行时组合完成观察窗后执行。
+grant revocation 完整性 PARTIAL：默认路由仍是 App local；切换 remote 后，显式 contest intake 也只写 Submission owner 的四张表，App-Contest 仅消费 `SubmissionCreated` 写 `contest_submissions`。完整撤销仍须在该运行时组合完成观察窗后执行。
 
-slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：`APP_SUBMISSION_OWNER_MODE=local` 下 backend-submission 全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + explicit contest command）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；slice-7 已完成 contest association event/inbox 验证，默认配置下的完整撤销与兼容运行时退役仍由 SPLIT-005 最终 gate 决定。
+slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submission 直接 provider 下全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + explicit contest command）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；slice-7 已完成 contest association event/inbox 验证，默认路由仍保留 local 作为可回滚保护，运行时切换由 SPLIT-005 最终 gate 决定。
 
 ### 4.6 身份模型裁决
 
@@ -528,8 +528,7 @@ backend-api/
 `backend-app-api` 只保留 App-owned contracts 与显式的 App fact/recipient exceptions；Submission 的
 write/fence/read/rejudge/admin contracts、DTO 与 lifecycle events 位于 `backend-submission-api`，Notification
 admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。这次包名迁移是
-matched-release 的源码/制品边界，不会自动启用 remote/local route，也不会删除 Submission compatibility
-provider；默认 route、grant 与 rollback 仍由 CONTRACT-007 的 authority/cutover gate 控制。
+matched-release 的源码/制品边界，不会自动启用 remote route；Submission compatibility provider 已在授权的可回滚代码变更中删除，默认 route、grant 与 rollback 仍由 CONTRACT-007 的 runtime authority/cutover gate 控制。
 
 Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
@@ -962,7 +961,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
-- `backend-submission` 是独立 Maven module/image；SPLIT-002 只提供无业务表的兼容 provider seam，默认端口为内部 HTTP `9106`、Dubbo `20886`，并通过 `APP_SUBMISSION_ROUTING_MODE` 保证 App 在 local/remote 中只有一个 writer 路径。SPLIT-003 才迁移 Submission 与 outbox 存储 Owner。
+- `backend-submission` 是独立 Maven module/image；当前直接暴露 Submission owner 的 write/fence provider，默认端口为内部 HTTP `9106`、Dubbo `20886`，并通过 `APP_SUBMISSION_ROUTING_MODE` 保证 App 在 local/remote 中只有一个 writer 路径。
 - `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 版本账本与 tombstone 语义见 §11.5（SEARCH-003）。worker 单测 12/12 + boot 无 web/无业务表契约 + compose（meilisearch 服务 + backend-search 服务，内网 expose）校验通过；真实 Redis+Meili E2E 仍受网络阻塞（记录 gap），落线前消费方不得假定事件已生效。
 
 ### 11.1 `SearchDocumentChanged` 发布矩阵（SEARCH-001）

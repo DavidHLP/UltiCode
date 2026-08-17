@@ -12,8 +12,8 @@
     </parent>
 
     <artifactId>backend-submission</artifactId>
-    <name>UltiCode Backend (submission owner compatibility runtime)</name>
-    <description>Independent Submission provider runtime; storage ownership remains in App until SPLIT-003.</description>
+    <name>UltiCode Backend (submission owner runtime)</name>
+    <description>Independent Submission provider runtime and storage owner.</description>
 
     <dependencies>
         <dependency>

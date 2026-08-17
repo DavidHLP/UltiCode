@@ -23,6 +23,8 @@ import com.ulticode.modules.submission.result.SubmissionResultOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.ibatis.session.SqlSession;
@@ -32,14 +34,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
-import java.lang.reflect.Field;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,17 +53,15 @@ import static org.mockito.Mockito.when;
 /**
  * SPLIT-003 slice-4: cutover provider local mode against a real MySQL container.
  *
- * <p>Verifies that {@code app.submission.owner.mode=local} makes the
- * {@code backend-submission} Dubbo providers delegate to the in-process
- * Submission-schema writer/fence instead of forwarding to App: a submit lands
+ * <p>Verifies that the {@code backend-submission} Dubbo providers delegate
+ * directly to the in-process Submission-schema writer/fence: a submit lands
  * in the {@code submission} schema tables, and the local fence
  * ({@link DefaultSubmissionFencePort}) acquires/renews the generation lease
  * via the copied {@link SubmissionMapper} CAS statements. The default
- * {@code compat} mode keeps forwarding to App and is covered by the compat
- * contract test.
+ * App writer/fence providers are not part of this owner runtime.
  */
 @Testcontainers
-@DisplayName("SPLIT-003 slice-4: cutover provider local mode")
+@DisplayName("SPLIT-003 slice-4: Submission owner provider")
 class SubmissionOwnerCutoverIT {
 
     @Container
@@ -211,12 +209,6 @@ class SubmissionOwnerCutoverIT {
         }
     }
 
-    private static void setOwnerMode(Object provider, String mode) throws Exception {
-        Field f = provider.getClass().getDeclaredField("ownerMode");
-        f.setAccessible(true);
-        f.set(provider, mode);
-    }
-
     private DefaultSubmissionWritePort newLocalWriter() {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         FeatureFlagsProperties flags = new FeatureFlagsProperties();
@@ -263,37 +255,11 @@ class SubmissionOwnerCutoverIT {
         return p;
     }
 
-    private static <T> ObjectProvider<T> providerOf(T value) {
-        return new ObjectProvider<>() {
-            @Override
-            public T getObject() {
-                return value;
-            }
-
-            @Override
-            public T getObject(Object... args) {
-                return value;
-            }
-
-            @Override
-            public T getIfAvailable() {
-                return value;
-            }
-
-            @Override
-            public T getIfUnique() {
-                return value;
-            }
-        };
-    }
-
     @Test
-    @DisplayName("local mode: write provider delegates to the Submission-schema writer")
-    void writeProviderLocalModeWritesSubmissionSchema() throws Exception {
+    @DisplayName("write provider delegates to the Submission-schema writer")
+    void writeProviderWritesSubmissionSchema() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
-        SubmissionWriteCompatibilityProvider provider =
-                new SubmissionWriteCompatibilityProvider(providerOf(localWriter));
-        setOwnerMode(provider, "local");
+        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
 
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -310,8 +276,8 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("local mode: fence provider acquires and renews the generation lease")
-    void fenceProviderLocalModeAcquiresAndRenewsLease() throws Exception {
+    @DisplayName("fence provider acquires and renews the generation lease")
+    void fenceProviderAcquiresAndRenewsLease() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -321,9 +287,7 @@ class SubmissionOwnerCutoverIT {
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
-        SubmissionFenceCompatibilityProvider provider =
-                new SubmissionFenceCompatibilityProvider(providerOf(localFence));
-        setOwnerMode(provider, "local");
+        SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
 
         String attemptId = UUID.randomUUID().toString();
         boolean acquired = provider.acquireLease(submissionId, attemptId, 1L, 60);
@@ -338,8 +302,8 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("local mode: fence CAS rejects a stale generation")
-    void fenceProviderLocalModeRejectsStaleGeneration() throws Exception {
+    @DisplayName("fence CAS rejects a stale generation")
+    void fenceProviderRejectsStaleGeneration() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -349,9 +313,7 @@ class SubmissionOwnerCutoverIT {
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
-        SubmissionFenceCompatibilityProvider provider =
-                new SubmissionFenceCompatibilityProvider(providerOf(localFence));
-        setOwnerMode(provider, "local");
+        SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
 
         boolean acquired = provider.acquireLease(submissionId, "stale-attempt", 99L, 60);
         session.commit();

@@ -113,7 +113,7 @@ class JudgeStreamRedisIntegrationTest {
             stream.claim("it-workers", "claimer-1", 0, TimeUnit.MILLISECONDS, id);
             stream.claim("it-workers", "claimer-2", 0, TimeUnit.MILLISECONDS, id);
 
-            Optional<JudgeJobHandle> reclaimed = adapter.claimIdle(1L);
+            Optional<JudgeJobHandle> reclaimed = adapter.claimIdle(0L);
 
             assertThat(reclaimed).as("budget-exhausted entry must not be returned for processing").isEmpty();
             assertThat(adapter.pendingDepth()).isZero();

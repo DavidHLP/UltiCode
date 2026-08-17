@@ -37,8 +37,8 @@ import java.util.List;
  * every cycle.
  *
  * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> with the runtime
- * cutover active ({@code app.submission.routing.mode=remote} +
- * {@code app.submission.owner.mode=local}), the regular path reaps leases in
+ * cutover active ({@code app.submission.routing.mode=remote}), the regular
+ * path reaps leases in
  * the Submission owner schema (backend-submission owns it). This reaper
  * remains active only for App-local compatibility/rollback when the routing
  * flags are reverted. Kept as a clearly labeled

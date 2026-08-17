@@ -15,9 +15,8 @@ import java.util.Optional;
  * {@link SubmissionMapper} that lifts the three fence operations the judge
  * worker needs — read generation, CAS-acquire lease, renew lease — into the
  * typed {@code Optional<Long>} / {@code boolean} shape the port promises.
- * Used by {@code backend-submission} when {@code app.submission.owner.mode}
- * is {@code local} (cutover); the compatibility provider keeps forwarding to
- * App until then.
+ * Used directly by the {@code backend-submission} owner provider after the
+ * compatibility forwarder retirement.
  *
  * @author ulticode
  */

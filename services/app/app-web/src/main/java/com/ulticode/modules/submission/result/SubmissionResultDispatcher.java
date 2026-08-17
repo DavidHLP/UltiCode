@@ -24,8 +24,8 @@ import java.util.UUID;
  * integration outbox before the result row is acknowledged as delivered.
  *
  * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> with the runtime
- * cutover active ({@code app.submission.routing.mode=remote} +
- * {@code app.submission.owner.mode=local}), the regular verdict path writes
+ * cutover active ({@code app.submission.routing.mode=remote}), the regular
+ * verdict path writes
  * {@code submission_result_outbox} rows in the Submission owner schema and
  * backend-submission publishes the integration stream directly. This
  * dispatcher remains active only for result rows produced by the App-local

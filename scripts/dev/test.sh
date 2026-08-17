@@ -183,7 +183,7 @@ if [[ "$MODE" == "integration" ]]; then
     docker build -t "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" "$ROOT_DIR/docker/sandbox"
   fi
   echo "Running Testcontainers and sandbox integration tests..."
-  (cd "$ROOT_DIR/services" && ./mvnw -Dtest='*IT' test -B)
+  (cd "$ROOT_DIR/services" && ./mvnw -Dtest='*IT' -Dsurefire.failIfNoSpecifiedTests=false test -B)
 fi
 
 echo "All $MODE checks passed."

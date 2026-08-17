@@ -12,10 +12,10 @@ set -euo pipefail
 # MIGRATION_SCHEMA=submission ./scripts/dev/migrate.sh migrate).
 #
 # Gate: this script copies data and revokes App write grants, but the actual
-# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote + provider
-# app.submission.owner.mode=local) must only be enabled after the SPLIT-004
-# read-path migration, because App read adapters still read the App schema
-# until then. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
+# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote) must only be enabled
+# after the SPLIT-004 read-path migration, because App read adapters still read
+# the App schema until then. The Submission provider is local-only after the
+# compatibility forwarder retirement. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
@@ -270,7 +270,7 @@ case "$ACTION" in
       echo "Cutover requires SUBMISSION_APP_DB_USER=... so App grants on the submission tables can be revoked safely." >&2
       exit 1
     fi
-    echo "WARNING: enable the runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote + app.submission.owner.mode=local) only after SPLIT-004 moves App read paths off the App schema." >&2
+    echo "WARNING: enable APP_SUBMISSION_ROUTING_MODE=remote only after SPLIT-004 moves App read paths off the App schema." >&2
     assert_ready
     assert_revoke_ready || {
       echo "Refusing cutover: App grants are not revocable; run preflight first." >&2

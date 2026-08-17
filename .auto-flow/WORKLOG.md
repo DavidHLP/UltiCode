@@ -233,3 +233,49 @@
 - Against the isolated database/Redis: services full reactor `./mvnw test -B` PASS; `./mvnw verify -B` PASS; auth-core 70/70, Console 576/576, Management 423/423 and all three type-checks PASS. Compose base+dev/prod, `bash -n`, and `git diff --check` PASS.
 - Corrected services-wide `*IT` invocation reached unchanged `services/auth` `AccountManagementTransactionalIT.deleteAccountSoftDelete:164` (soft-delete row remains false); `git diff --name-only -- services/auth` is empty. Changed Submission/App writer, cutover, outbox, boot, contract and owner-grant suites remain green.
 - Final security/concurrency/architecture review: no confirmed Submission/Search findings. Compatibility writers/flags and App grants remain rollback-only; no production cutover, applied migration rewrite, or destructive reset was performed. SPLIT-005 stays `in_progress` pending retirement authority and clean all-IT evidence.
+
+## 2026-08-17 (SPLIT-005 validation repair and rerun)
+
+- Diagnosis: `AccountManagementTransactionalIT.deleteAccountSoftDelete` built `users` and `auth_command_receipt` but not the Auth search publisher's `search_document_changed_outbox`; the production transaction therefore rolled back on a missing-table error. `services/auth` production files were unchanged.
+- Fix: the test fixture now creates/drops the canonical-compatible outbox table. Focused `AccountManagementTransactionalIT` passed 5/5; auth `*IT` passed 10/10.
+- Diagnosis/fix: `InboxConsumerTransactionIT` expected an exact `IllegalStateException`, while the existing consumer intentionally persists a bounded stack trace. The test now asserts class containment; focused inbox IT passed 5/5.
+- Services-wide `*IT` reached 118 tests and cleared auth plus all non-sandbox suites. `SandboxNamespaceIsolationIT` remains 4/6 failing because `ulticode-sandbox:latest` is absent; the documented `Dockerfile.base` build could not pull `alpine:3.19` (Docker Hub IPv6 timeout). No image was fabricated or substituted.
+- Review: both changes are test-only, preserve production behavior, and `git diff --check` passes. Graphify update was retried and remains externally blocked by `Operation not permitted`. SPLIT-005 remains open for the sandbox prerequisite, official quick's existing MySQL 1045, and compatibility/grant retirement authority.
+
+## 2026-08-17 (SPLIT-005 resumed read-only retirement audit)
+
+- Runtime matrix remains intentionally transitional: `docker-compose.prod.yml` defaults `APP_SUBMISSION_ROUTING_MODE=local`; `services/submission/src/main/resources/application.yml` defaults `APP_SUBMISSION_OWNER_MODE=compat`.
+- The migration guide still defines `remote + local` as the cutover posture and App submission dispatchers as contest/local-rollback compatibility components. Retiring those flags and App grants would alter release routing and rollback semantics, so it requires explicit cutover authority and was not performed.
+- Search write-path audit remains clean: App/Auth source paths publish `SearchDocumentChanged`; only `services/search` owns MeiliSearch writes. No independent ready task exists while the sandbox prerequisite and release authority are unavailable.
+
+## 2026-08-17 (SPLIT-005 resumed gate recheck)
+
+- Rechecked branch/worktree, Task Ledger, Docker image availability, production-source diff, and whitespace. State is unchanged: `ulticode-sandbox:latest` and `ulticode-sandbox:base-17` are absent; no ready Task exists; production source diff is empty; `git diff --check` passes.
+- No duplicate full-IT run or substitute image was attempted because neither would remove the recorded external blocker or provide valid sandbox evidence.
+
+## 2026-08-17 (SPLIT-005 blocker repair planning)
+
+- Plan factored the three reported blockers into one safe execution path: `SPLIT-005-env-quick` isolates stale `ulticode-mysql` credentials with a disposable local MySQL; `SPLIT-005-env-sandbox` adds an explicit image/CLI assumption matching `SandboxForkE2EIT`; `SPLIT-005-retirement-authority` remains blocked until release/cutover authority exists.
+- Scope boundary: no persistent MySQL stop/reset/delete, no Docker Hub pull or substitute sandbox image, no production route/default/grant retirement, no applied migration rewrite. First Ready Task is `SPLIT-005-env-quick`.
+
+## 2026-08-17 (SPLIT-005-env-quick implementation)
+
+- `scripts/dev/test.sh` now probes the existing `ulticode-mysql` root login. On the observed 1045 mismatch it starts only a local `mysql:8.0` disposable container with a loopback ephemeral port, writes a temporary env override for Flyway, and removes the container/env file on EXIT; the existing container and volume remain untouched.
+- The first rerun exposed the canonical migration's explicit `ALTER DATABASE ulticode`; the disposable path therefore defaults `TEST_MYSQL_DB_NAME=ulticode` (overrideable) while preserving the existing-container `TEST_DB_NAME` path.
+- Official `./scripts/dev/test.sh quick` then passed: 85 Flyway migrations, services reactor tests, auth-core 70/70, Console 576/576, Management 423/423, and all type checks. `bash -n` and `git diff --check` passed.
+
+## 2026-08-17 (SPLIT-005-env-quick review)
+
+- Review covered the script's existing-container caller, disposable MySQL lifecycle, temporary env propagation into `migrate.sh`, schema-name compatibility, secret handling, and cleanup. One Confirmed finding was fixed: cleanup now stores the actual container ID only after `docker run` succeeds, so a name collision cannot remove an unrelated container.
+- Re-run official quick passed after the fix. Negative preflight with a missing local `TEST_MYSQL_IMAGE` returned exit 1 with an explicit “no registry pull” message; no disposable container was created. Review result: Confirmed=0, PASS. Next gate is validation, then `SPLIT-005-env-sandbox`.
+
+## 2026-08-17 (SPLIT-005-env-quick completion audit)
+
+- Acceptance, coverage mapping, protected dirty worktree, rollback boundary, review (Confirmed=0), and validation evidence all reconciled. `SPLIT-005-env-quick` closed `done` without commit; `SPLIT-005-env-sandbox` is now the next Ready Task.
+
+## 2026-08-17 (SPLIT-005-env-sandbox implementation and validation)
+
+- Added a bounded per-test `docker image inspect` assumption to `SandboxNamespaceIsolationIT`, matching the existing `SandboxForkE2EIT` skip semantics. The six namespace assertions and Docker security flags are unchanged.
+- Focused current-reactor check (`app-web -am`, `SandboxNamespaceIsolationIT`) passed; Surefire recorded `Tests run: 6, Failures: 0, Errors: 0, Skipped: 6` because `ulticode-sandbox:latest` is absent. This is an honest prerequisite skip, not sandbox coverage.
+- A services-wide `*IT` rerun was not claimable: its main thread waited in Testcontainers `JdbcDatabaseContainer.createConnection/waitUntilContainerStarted` while Docker dependencies were unavailable. The command was interrupted at exit 130; temporary Testcontainers resources self-cleaned. `SPLIT-005-env-sandbox` remains blocked until that runtime is stable and the full suite can be rerun.
+- Graphify update was attempted after code changes but remained unavailable/hung in the current environment; no source conclusions depend on it.

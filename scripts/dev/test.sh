@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
 MODE="${1:-quick}"
 TEST_DB_NAME="${TEST_DB_NAME:-ulticode_test}"
+TEST_MYSQL_IMAGE="${TEST_MYSQL_IMAGE:-mysql:8.0}"
+TEST_MYSQL_DB_NAME="${TEST_MYSQL_DB_NAME:-ulticode}"
+TEST_MYSQL_CONTAINER=""
+TEST_ENV_FILE=""
 
 case "$MODE" in
   quick|full|integration)
@@ -24,8 +28,8 @@ set -a
 source "$ENV_FILE"
 set +a
 
-if ! [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ && "$TEST_DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
-  echo "DB_USER and TEST_DB_NAME must contain only letters, digits, or underscore." >&2
+if ! [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ && "$TEST_DB_NAME" =~ ^[A-Za-z0-9_]+$ && "$TEST_MYSQL_DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
+  echo "DB_USER, TEST_DB_NAME, and TEST_MYSQL_DB_NAME must contain only letters, digits, or underscore." >&2
   exit 1
 fi
 
@@ -34,6 +38,17 @@ compose=(
   -f "$ROOT_DIR/docker-compose.yml"
   -f "$ROOT_DIR/docker-compose.dev.yml"
 )
+
+cleanup_test_resources() {
+  if [[ -n "$TEST_MYSQL_CONTAINER" ]]; then
+    docker rm -f "$TEST_MYSQL_CONTAINER" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$TEST_ENV_FILE" ]]; then
+    rm -f "$TEST_ENV_FILE"
+  fi
+}
+
+trap cleanup_test_resources EXIT
 
 echo "Starting test dependencies..."
 "${compose[@]}" up -d mysql redis
@@ -54,7 +69,66 @@ for container in ulticode-mysql ulticode-redis; do
   fi
 done
 
-docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" ulticode-mysql \
+MYSQL_ADMIN_CONTAINER="ulticode-mysql"
+if ! docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" ulticode-mysql \
+  mysql -u root --batch --skip-column-names -e "SELECT 1" >/dev/null 2>&1; then
+  echo "Existing ulticode-mysql rejected the configured root password; using a disposable local MySQL for this run." >&2
+  if ! docker image inspect "$TEST_MYSQL_IMAGE" >/dev/null 2>&1; then
+    echo "Cannot isolate the test database: local image '$TEST_MYSQL_IMAGE' is unavailable and no registry pull is attempted." >&2
+    echo "Set TEST_MYSQL_IMAGE to an existing local MySQL-compatible image, or restore the image/registry before retrying." >&2
+    exit 1
+  fi
+
+  # The first canonical migration targets the historical `ulticode` schema
+  # explicitly, so the isolated path uses that name by default. The existing
+  # container path keeps TEST_DB_NAME unchanged.
+  TEST_DB_NAME="$TEST_MYSQL_DB_NAME"
+  TEST_MYSQL_NAME="ulticode-test-mysql-$$"
+  if ! TEST_MYSQL_CONTAINER="$(docker run --rm -d \
+    --name "$TEST_MYSQL_NAME" \
+    -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+    -e MYSQL_DATABASE="$TEST_DB_NAME" \
+    -e MYSQL_USER="$DB_USER" \
+    -e MYSQL_PASSWORD="$DB_PASSWORD" \
+    -p "127.0.0.1::3306" \
+    "$TEST_MYSQL_IMAGE")"; then
+    echo "Could not start disposable MySQL image '$TEST_MYSQL_IMAGE'." >&2
+    exit 1
+  fi
+
+  disposable_ready=false
+  for _ in $(seq 1 60); do
+    if docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" "$TEST_MYSQL_CONTAINER" \
+      mysqladmin ping -h 127.0.0.1 -u root --silent >/dev/null 2>&1; then
+      disposable_ready=true
+      break
+    fi
+    sleep 2
+  done
+  if [[ "$disposable_ready" != true ]]; then
+    echo "Disposable MySQL did not become ready: $TEST_MYSQL_CONTAINER" >&2
+    exit 1
+  fi
+
+  TEST_DB_PORT="$(docker port "$TEST_MYSQL_CONTAINER" 3306/tcp | awk -F: 'NR == 1 {print $NF}')"
+  if ! [[ "$TEST_DB_PORT" =~ ^[0-9]+$ ]]; then
+    echo "Could not resolve the disposable MySQL host port." >&2
+    exit 1
+  fi
+  DB_HOST=127.0.0.1
+  DB_PORT="$TEST_DB_PORT"
+  MYSQL_ADMIN_CONTAINER="$TEST_MYSQL_CONTAINER"
+
+  TEST_ENV_FILE="$(mktemp)"
+  cp "$ENV_FILE" "$TEST_ENV_FILE"
+  {
+    printf '\nDB_HOST=%q\n' "$DB_HOST"
+    printf 'DB_PORT=%q\n' "$DB_PORT"
+  } >> "$TEST_ENV_FILE"
+  export ENV_FILE="$TEST_ENV_FILE"
+fi
+
+docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" "$MYSQL_ADMIN_CONTAINER" \
   mysql -u root -e "
     CREATE DATABASE IF NOT EXISTS \`$TEST_DB_NAME\`
       CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

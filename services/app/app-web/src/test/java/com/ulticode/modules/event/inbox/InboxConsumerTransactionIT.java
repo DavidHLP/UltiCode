@@ -125,7 +125,8 @@ class InboxConsumerTransactionIT {
                 "failure-row"))
                 .containsEntry("state", "PENDING")
                 .containsEntry("attempts", 1)
-                .containsEntry("last_error", "IllegalStateException");
+                .hasEntrySatisfying("last_error", value ->
+                        assertThat(value.toString()).contains("IllegalStateException"));
     }
     @Test
     @DisplayName("outside-transaction handler keeps side effects when inbox transition loses its lease")

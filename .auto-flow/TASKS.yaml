@@ -1063,8 +1063,89 @@ tasks:
       - "SPLIT-003/SPLIT-004 slice evidence reconciled; focused, real MySQL/Redis, migration/cutover, owner-grant and Compose evidence is complete."
       - "Services full reactor `./mvnw test -B` and `./mvnw verify -B` passed against a disposable migrated MySQL + Redis environment; frontend quick-equivalent auth-core 70/70, console 576/576, management 423/423 and all three type-checks passed."
       - "Official `./scripts/dev/test.sh quick` could not authenticate to the pre-existing `ulticode-mysql` container (MySQL 1045); an isolated phase-gate MySQL rerun completed Flyway migration and the backend reactor successfully without touching that persistent volume."
-      - "Services-wide `*IT` rerun (with `surefire.failIfNoSpecifiedTests=false`) reached unchanged `services/auth` `AccountManagementTransactionalIT.deleteAccountSoftDelete` line 164; `services/auth` has no worktree diff. Changed Submission/App integration suites remain green."
+      - "After SPLIT-005-env-quick, official `./scripts/dev/test.sh quick` passes by detecting the stale root credential and using local `mysql:8.0` on an ephemeral loopback port; the temporary container/env are cleaned up."
+      - "Auth IT fixture drift fixed without production changes: `AccountManagementTransactionalIT` now creates the canonical `search_document_changed_outbox`; focused class 5/5 and auth `*IT` 10/10 pass."
+      - "`InboxConsumerTransactionIT` stale exact-error assertion narrowed to class containment; focused 5/5 pass. Services-wide `*IT` cleared auth and all non-sandbox suites; `SandboxNamespaceIsolationIT` remains 4/6 failing because `ulticode-sandbox:latest` is absent and its documented base build hit Docker Hub timeout."
       - "Final review found no confirmed Submission/Search findings; compatibility writers/flags and App grants remain explicitly rollback-only, so retirement and the objective-level gate are not claimed complete."
     commits: []
     notes: "仅此 Gate 通过后才可对外宣称两个独立微服务完成；未完成前 handoff 必须保留 active task。"
-    updated_at: "2026-08-17T15:30:00+08:00"
+    updated_at: "2026-08-17T18:00:00+08:00"
+  - id: SPLIT-005-env-quick
+    title: "使官方 quick 对既有 MySQL 凭据漂移安全隔离"
+    source:
+      - "SPLIT-005"
+      - "scripts/dev/test.sh"
+      - "2026-08-17 MySQL ERROR 1045 evidence"
+    status: done
+    depends_on:
+      - "SPLIT-004"
+      - "SEARCH-003"
+    acceptance_criteria:
+      - "test.sh 先复用凭据有效的既有 MySQL；遇到 root ERROR 1045 时切换到本地可用的 disposable MySQL，不停止、重置或删除 ulticode-mysql/mysql_data"
+      - "disposable MySQL 使用 loopback ephemeral port、独立测试 schema 和 cleanup trap；Flyway migration 与 backend/frontend quick checks 全部指向该实例"
+      - "TEST_MYSQL_IMAGE 不在本地时 fail fast 给出离线解除条件，不尝试无界 Docker Hub pull"
+    validation:
+      - "bash -n scripts/dev/test.sh"
+      - "./scripts/dev/test.sh quick"
+      - "git diff --check"
+    rollback:
+      - "回退 test.sh 即可；不触碰既有 MySQL 容器、持久卷或已应用 migration"
+    evidence:
+      - "bash -n scripts/dev/test.sh and git diff --check passed"
+      - "Official ./scripts/dev/test.sh quick passed after detecting the existing ulticode-mysql root credential mismatch; it used local mysql:8.0 on loopback ephemeral port 40526, migrated 85 Flyway versions into disposable ulticode, passed services reactor tests plus auth-core 70/70, console 576/576, management 423/423 and all type checks"
+      - "Disposable test container and temporary env file were removed by EXIT cleanup; existing ulticode-mysql remained running and its persistent volume was not reset"
+      - "Negative offline preflight with TEST_MYSQL_IMAGE=ulticode-test-image:missing failed fast with an explicit no-registry-pull message and did not create a disposable container"
+    commits: []
+    notes: "只修复本地验证 harness 的环境隔离；不把既有 MySQL 凭据自动改写为生产配置。Implementation、Review、Validation 和 Completion Audit 全部通过；未 commit。"
+    updated_at: "2026-08-17T21:34:00+08:00"
+  - id: SPLIT-005-env-sandbox
+    title: "为 sandbox integration tests 增加镜像前置门禁"
+    source:
+      - "SPLIT-005"
+      - "services/app/app-web/src/test/java/com/ulticode/modules/submission/service/impl/SandboxNamespaceIsolationIT.java"
+      - "services/app/app-web/src/test/java/com/ulticode/modules/submission/sandbox/SandboxForkE2EIT.java"
+    status: blocked
+    depends_on:
+      - "SPLIT-005-env-quick"
+    acceptance_criteria:
+      - "sandbox 镜像存在时 namespace isolation tests 保持原断言并执行；镜像缺失或 Docker CLI 不可用时仅通过显式 JUnit assumption 跳过，不伪造或替换镜像"
+      - "跳过结果明确标识为环境缺口，不能作为真实 sandbox security evidence；Docker Hub 不可达时测试进程不再因缺镜像产生误导性业务失败"
+      - "services-wide *IT 的非-sandbox suites 仍照常执行"
+    validation:
+      - "cd services && ./mvnw -pl app/app-web -Dtest='SandboxNamespaceIsolationIT' test -B"
+      - "cd services && ./mvnw -Dtest='*IT' -Dsurefire.failIfNoSpecifiedTests=false test -B"
+      - "git diff --check"
+    rollback:
+      - "回退 test-only 前置门禁；不改变 sandbox Dockerfile、seccomp、运行时安全参数或镜像标签"
+    evidence:
+      - "Focused reactor command `./mvnw -pl app/app-web -am -Dtest=SandboxNamespaceIsolationIT -Dsurefire.failIfNoSpecifiedTests=false test -B -q` passed; report records Tests run: 6, Failures: 0, Errors: 0, Skipped: 6"
+      - "Original namespace assertions are unchanged; missing `ulticode-sandbox:latest` is handled by a bounded per-test image assumption"
+      - "Services-wide `*IT` was started with current reactor but its Surefire fork remained in Testcontainers `JdbcDatabaseContainer.createConnection/waitUntilContainerStarted`; read-only jstack confirmed an external MySQL container-start wait, so the run was safely interrupted with exit 130"
+    commits: []
+    notes: "与 SandboxForkE2EIT 既有的 docker/image assumption 语义一致；真实镜像可用前不宣称 namespace coverage。Review Confirmed=0。解除条件：Docker/Testcontainers 可稳定启动本地 integration dependencies 后重跑 services-wide *IT。"
+    updated_at: "2026-08-17T21:50:00+08:00"
+  - id: SPLIT-005-retirement-authority
+    title: "取得 compatibility routing 与 App grant retirement 的发布授权"
+    source:
+      - "SPLIT-005"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
+      - "scripts/dev/submission-schema-cutover.sh"
+      - "docker-compose.prod.yml"
+    status: blocked
+    depends_on:
+      - "SPLIT-005-env-quick"
+      - "SPLIT-005-env-sandbox"
+    acceptance_criteria:
+      - "release owner 明确授权 runtime route 从 local/compat 切到 remote/local，并授权撤销 App 对源 submission tables 的 grants"
+      - "授权前只执行 read-only preflight，核对 source/target checksum、outstanding events、contest compatibility read path 与 rollback watermark"
+      - "授权后才可按 runbook 执行 cutover/REVOKE；任何失败恢复 route/grant/watermark，不改 applied migration、不 destructive reset"
+    validation:
+      - "read-only submission-schema-cutover.sh preflight evidence"
+      - "release/cutover authority record"
+      - "post-cutover single-writer and rollback verification"
+    rollback:
+      - "未获授权保持 local/compat 和 grants；获授权后的失败只走 runbook rollback"
+    evidence: []
+    commits: []
+    notes: "当前没有明确授权；不得通过改默认值、删除 compatibility writer 或执行 REVOKE 来制造 Gate 通过。"
+    updated_at: "2026-08-17T18:20:00+08:00"

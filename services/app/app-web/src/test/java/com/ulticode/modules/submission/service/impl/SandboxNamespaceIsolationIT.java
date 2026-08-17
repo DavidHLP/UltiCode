@@ -1,9 +1,13 @@
 package com.ulticode.modules.submission.service.impl;
 
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,6 +26,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SandboxNamespaceIsolationIT {
 
     private static final String SANDBOX_IMAGE = "ulticode-sandbox:latest";
+
+    @BeforeEach
+    void requireSandboxImage() {
+        Assumptions.assumeTrue(sandboxImageAvailable(),
+                SANDBOX_IMAGE + " is not available locally; build it when the registry is reachable "
+                        + "before claiming sandbox namespace coverage");
+    }
+
+    private static boolean sandboxImageAvailable() {
+        try {
+            Process process = new ProcessBuilder("docker", "image", "inspect", SANDBOX_IMAGE)
+                    .redirectErrorStream(true)
+                    .start();
+            try {
+                return process.waitFor(5, TimeUnit.SECONDS) && process.exitValue() == 0;
+            } finally {
+                process.destroyForcibly();
+            }
+        } catch (IOException exception) {
+            return false;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
 
     @Test
     @DisplayName("Network isolation - sandbox cannot reach external IPs")

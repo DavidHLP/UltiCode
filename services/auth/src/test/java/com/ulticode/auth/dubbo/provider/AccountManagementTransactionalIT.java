@@ -59,6 +59,7 @@ class AccountManagementTransactionalIT {
 
     @BeforeEach
     void setUpDatabaseSchemaAndData() throws IOException {
+        jdbcTemplate.execute("DROP TABLE IF EXISTS search_document_changed_outbox");
         jdbcTemplate.execute("DROP TABLE IF EXISTS auth_command_receipt");
         jdbcTemplate.execute("DROP TABLE IF EXISTS users");
 
@@ -83,6 +84,29 @@ class AccountManagementTransactionalIT {
                 UNIQUE KEY uk_users_username (username),
                 UNIQUE KEY uk_users_email (email)
             )
+        """);
+
+        // Account mutations publish Auth-owned search changes in the same transaction.
+        jdbcTemplate.execute("""
+            CREATE TABLE search_document_changed_outbox (
+                id VARCHAR(40) NOT NULL,
+                owner VARCHAR(16) NOT NULL DEFAULT 'Auth',
+                aggregate_id VARCHAR(120) NOT NULL,
+                aggregate_version BIGINT NOT NULL DEFAULT 0,
+                event_type VARCHAR(64) NOT NULL DEFAULT 'SearchDocumentChanged',
+                schema_version INT NOT NULL DEFAULT 1,
+                payload JSON NOT NULL,
+                state VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+                attempts INT NOT NULL DEFAULT 0,
+                last_error TEXT,
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                claimed_at DATETIME(3),
+                claim_owner VARCHAR(80),
+                delivered_at DATETIME(3),
+                next_retry_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (id),
+                KEY idx_state_retry (state, next_retry_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """);
 
         Path migrationPath = Path.of("../../init-db/migrations/auth/V20260730120000__Create_Auth_Command_Receipt.sql");

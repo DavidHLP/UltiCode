@@ -70,7 +70,56 @@ Contracts 在 `services/api/app-api/.../event/` 与 `IntegrationEventPublisher/D
 3. Complete the final security/concurrency/architecture review and record any external verification gaps without claiming completion.
 4. Preserve rollback as route/watermark/reconciliation only; do not rewrite applied migrations or run production/destructive cutover actions.
 
-Gate evidence collected 2026-08-17: isolated Flyway + MySQL/Redis services `test` and `verify` passed; auth-core/Console/Management quick-equivalent tests and type checks passed; Compose and diff checks passed. The repository quick wrapper is blocked by the existing `ulticode-mysql` credential mismatch (1045), and the corrected services-wide IT run reaches the unchanged auth soft-delete assertion failure. Compatibility retirement remains pending and no production cutover was performed.
+Gate evidence collected 2026-08-17: isolated Flyway + MySQL/Redis services `test` and `verify` passed; auth-core/Console/Management quick-equivalent tests and type checks passed; Compose and diff checks passed. Auth fixture drift and the stale inbox assertion were repaired in tests (auth `*IT` 10/10; inbox focused 5/5). The repository quick wrapper is blocked by the existing `ulticode-mysql` credential mismatch (1045); services-wide `*IT` now clears auth but cannot complete four sandbox namespace cases because Docker Hub timed out and `ulticode-sandbox:latest` is absent. Compatibility retirement remains pending and no production cutover was performed.
+
+## Repair Execution Packet — SPLIT-005 environmental blockers (2026-08-17)
+
+### Objective
+
+解除两个可本地修复的验证阻塞：让官方 `test.sh quick` 不再依赖既有持久 MySQL 的历史 root 密码；让 sandbox namespace IT 在镜像缺失时以显式环境前置门禁跳过，而不是把 Docker Hub 不可达误报成业务回归。第三个 compatibility/grant retirement 阻塞只建立授权门，不执行 release cutover。
+
+### Root Cause / Capability Gap
+
+- `scripts/dev/test.sh` 总是把当前 `.env` 的 `MYSQL_ROOT_PASSWORD` 交给既有 `ulticode-mysql`；持久卷由更早凭据初始化后，脚本没有隔离回退。
+- `SandboxNamespaceIsolationIT` 直接 `docker run ulticode-sandbox:latest`，缺少 `SandboxForkE2EIT` 已有的 docker/image availability assumption。
+- `docker-compose.prod.yml` 的 `APP_SUBMISSION_ROUTING_MODE=local`、Submission 的 `owner.mode=compat` 与 App table grants 仍承担 rollback/contest compatibility；改变它们会改变 Owner、路由和数据权限，不能由本地验证请求推断授权。
+
+### In Scope / Out of Scope
+
+In scope：`scripts/dev/test.sh` 的 disposable local MySQL fallback；`SandboxNamespaceIsolationIT` 的 image/CLI 前置门禁；相应 focused checks、控制面和验证证据。
+
+Out of scope：停止/重置/删除 `ulticode-mysql` 或 `mysql_data`；Docker Hub pull、伪造/替换 sandbox image；修改 Docker sandbox security policy；切换 production/default routing、撤销 grants、删除 compatibility writers、编辑 applied migration、commit/push/deploy。
+
+### Behavioral Invariants
+
+- 凭据有效时 quick 继续复用既有 MySQL；凭据失配时只启动 loopback ephemeral disposable MySQL，cleanup 只清理由本次脚本创建的容器。
+- disposable test database 使用与现有 Flyway chain 相同的 migration user/runtime user 分离；测试失败不污染持久环境。
+- sandbox 镜像存在时原有 namespace assertions 不变；不存在时只标记 skip，不把 skip 计为真实 sandbox security evidence。
+- compatibility/grant retirement 在获得 release/cutover authority 前保持 local/compat、可回滚 grants 和现有 runbook。
+
+### Task DAG / Unique Path
+
+`SPLIT-004 + SEARCH-003 → SPLIT-005-env-quick → SPLIT-005-env-sandbox → SPLIT-005-retirement-authority`; `SPLIT-005` parent remains `in_progress` until the environmental evidence and the separately authorized retirement gate are complete. `SPLIT-005-env-quick` is done; `SPLIT-005-env-sandbox` is implemented but blocked on Testcontainers/Docker runtime stability; retirement remains blocked on authority。
+
+### Implementation Steps
+
+1. `SPLIT-005-env-quick`：probe existing root login；成功则保持现有流程；失败则验证本地 `TEST_MYSQL_IMAGE`（默认 `mysql:8.0`），以随机 loopback port 启动 disposable MySQL，重定向 `DB_HOST/DB_PORT`，并用 trap 清理该容器；镜像不存在时给出离线解除条件并停止。
+2. `SPLIT-005-env-sandbox`：复用 JUnit 5 `Assumptions` + bounded `docker image inspect` probe，在 namespace IT 的 test setup 层跳过缺少 Docker/image 的环境；不改 sandbox runtime command、seccomp 或 Dockerfile。
+3. `SPLIT-005-retirement-authority`：在无授权期间只保留 read-only audit/preflight；取得 release owner 的明确 route/grant 权限、checksum/outstanding-event/rollback-watermark evidence 后，才允许按既有 runbook 执行 cutover。当前 task 保持 blocked。
+
+当前 sandbox 验证：focused `SandboxNamespaceIsolationIT` 真实 reactor 编联通过，缺镜像时 6/6 明确 skipped；services-wide `*IT` 的 Surefire fork 卡在 Testcontainers MySQL `waitUntilContainerStarted`，已安全中止并保留为外部环境 gap。该 gap 不降低 namespace assertions，也不替代真实镜像 coverage。
+
+### Compatibility / Rollback
+
+Quick fallback 是测试 harness 的环境隔离，不是生产配置迁移；回滚只删除脚本逻辑并保留既有持久容器。Sandbox change 仅影响缺失前置时的测试结果。Runtime cutover 仍遵循 expand → backfill → verify → cutover → observe，失败只恢复 route/grant/watermark/reconciliation，绝不改写 applied migration 或删除数据。
+
+### Focused Checks / Final Validation Tier
+
+先执行 `bash -n scripts/dev/test.sh` 与 quick wrapper；再执行 SandboxNamespace focused IT、services-wide `*IT`、full reactor `verify`、Compose base/dev/prod、`git diff --check`。无本地 sandbox image 时，最终记录 skipped prerequisite，不能替代真实 image execution；父 Gate 仍等待有效 image 和 retirement authority。
+
+### Delivery Authority / Terminal Condition
+
+本轮只授权本地 script/test/control-plane 修改和验证，不授权共享数据库、生产配置、Docker registry、迁移、grant、release 或 Git 交付动作。环境子任务完成后，终止条件仍是：quick 可在本地凭据漂移下运行、缺镜像时 IT 诚实跳过、真实 sandbox evidence 可在 image/registry 可用后补齐，并且 compatibility/grant retirement 有明确 release/cutover authority。
 
 ## Compatibility / Rollback
 

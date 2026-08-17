@@ -5,6 +5,7 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -19,8 +20,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
  *
  * <p><b>SPLIT-004 AC4 retirement note (cutover state):</b> this listener fires
  * on in-process {@code SubmissionJudgedEvent}s, which the regular path stops
- * publishing once the runtime cutover is active ({@code
- * {@code app.submission.routing.mode=remote}); regular verdicts are written by
+ * publishing once the runtime cutover is active ({@code app.submission.routing.mode=remote});
+ * regular verdicts are written by
  * backend-submission. It remains active only
  * for verdicts written by the App local compatibility/rollback path. Kept as
  * a clearly labeled compatibility component;
@@ -29,6 +30,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        name = "app.submission.routing.mode",
+        havingValue = "local",
+        matchIfMissing = true)
 public class SubmissionResultOutboxListener {
     private final SubmissionResultOutboxWriter outboxWriter;
 

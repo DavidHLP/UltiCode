@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Boot shell for the Submission owner runtime.
  *
- * <p>SPLIT-003 adds the local storage writer and direct owner provider:
+ * <p>SPLIT-003 adds the local storage writer and compat/local owner provider:
  * the same submission domain classes (entity/mapper/outbox/result/stats)
  * are scanned from {@code com.ulticode.modules.submission}, and the
  * {@code submission} schema tables are written in one local transaction.

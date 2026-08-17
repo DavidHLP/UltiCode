@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/David/.local/bin/graphify hook-check"
+            "command": "~/.local/bin/graphify hook-check"
           }
         ]
       }

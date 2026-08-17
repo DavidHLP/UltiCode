@@ -45,15 +45,21 @@ import java.util.List;
  * gate must be read with that caveat.
  *
  * <p>Only active when {@code app.features.use-judge-outbox=true}. Flag-off
- * deployments do not write outbox rows and do not run this comparator.
+ * deployments do not write outbox rows and do not run this comparator. The
+ * comparator also stays in the App-local compatibility path; after the
+ * Submission route cutover its App-owned {@code judge_outbox} grant may be
+ * revoked.
  */
 @Slf4j
 @Component
 @org.springframework.context.annotation.Profile("!test")
 @RequiredArgsConstructor
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "${app.features.use-judge-outbox:false}")
 @ConditionalOnProperty(
-        name = "app.features.use-judge-outbox",
-        havingValue = "true")
+        name = "app.submission.routing.mode",
+        havingValue = "local",
+        matchIfMissing = true)
 public class OutboxShadowComparator {
 
     /**
@@ -94,4 +100,3 @@ public class OutboxShadowComparator {
                 diff, PENDING_GRACE_SECONDS);
     }
 }
-

@@ -1053,7 +1053,7 @@ tasks:
       - "本次明确跳过的 contest ranking、moderation 物理拆分、Notification 物理拆分保持未声称完成"
     validation:
       - "./scripts/dev/test.sh quick"
-      - "cd services && ./mvnw verify -B && ./mvnw -Dtest='*IT' test -B"
+      - "cd services && ./mvnw verify -B && ./mvnw -Dtest='*IT,*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false test -B"
       - "docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config"
       - "docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml config"
       - "git diff --check and formal review"
@@ -1065,11 +1065,11 @@ tasks:
       - "Official `./scripts/dev/test.sh quick` could not authenticate to the pre-existing `ulticode-mysql` container (MySQL 1045); an isolated phase-gate MySQL rerun completed Flyway migration and the backend reactor successfully without touching that persistent volume."
       - "After SPLIT-005-env-quick, official `./scripts/dev/test.sh quick` passes by detecting the stale root credential and using local `mysql:8.0` on an ephemeral loopback port; the temporary container/env are cleaned up."
       - "Auth IT fixture drift fixed without production changes: `AccountManagementTransactionalIT` now creates the canonical `search_document_changed_outbox`; focused class 5/5 and auth `*IT` 10/10 pass."
-      - "`InboxConsumerTransactionIT` stale exact-error assertion narrowed to class containment; focused 5/5 pass. Services-wide `*IT` cleared auth and all non-sandbox suites; `SandboxNamespaceIsolationIT` remains 4/6 failing because `ulticode-sandbox:latest` is absent and its documented base build hit Docker Hub timeout."
-      - "Final review found no confirmed Submission/Search findings; compatibility writers/flags and App grants remain explicitly rollback-only, so retirement and the objective-level gate are not claimed complete."
+      - "`InboxConsumerTransactionIT` stale exact-error assertion narrowed to class containment; focused 5/5 pass. Official `*IT,*IntegrationTest` integration completed with sandbox image present; `SandboxNamespaceIsolationIT` and `SandboxForkE2EIT` both executed 6/6 with 0 failures/errors/skips."
+      - "Final CR review found no confirmed Submission/Search findings; compatibility writers/flags and App grants remain explicitly rollback-only, so retirement and the objective-level gate are not claimed complete."
     commits: []
     notes: "仅此 Gate 通过后才可对外宣称两个独立微服务完成；未完成前 handoff 必须保留 active task。"
-    updated_at: "2026-08-17T18:00:00+08:00"
+    updated_at: "2026-08-17T23:31:00+08:00"
   - id: SPLIT-005-env-quick
     title: "使官方 quick 对既有 MySQL 凭据漂移安全隔离"
     source:
@@ -1113,14 +1113,14 @@ tasks:
       - "services-wide *IT 的非-sandbox suites 仍照常执行"
     validation:
       - "cd services && ./mvnw -pl app/app-web -Dtest='SandboxNamespaceIsolationIT' test -B"
-      - "cd services && ./mvnw -Dtest='*IT' -Dsurefire.failIfNoSpecifiedTests=false test -B"
+      - "cd services && ./mvnw -Dtest='*IT,*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false test -B"
       - "git diff --check"
     rollback:
       - "回退 test-only 前置门禁；不改变 sandbox Dockerfile、seccomp、运行时安全参数或镜像标签"
     evidence:
       - "Local `ulticode-sandbox:latest` is present; focused `SandboxNamespaceIsolationIT,SandboxForkE2EIT` reactor check passed with 12/12 assertions, 0 failures/errors/skips"
       - "Original namespace assertions and Docker security flags are unchanged; the image assumption remains an explicit prerequisite only when the image is absent"
-      - "Official integration wrapper completed after adding `-Dsurefire.failIfNoSpecifiedTests=false`; recent Surefire aggregate contained 806 reports, 2,690 tests, 0 failures, 0 errors and 24 explicit skips, with both sandbox classes 6/6 executed and 0 skipped"
+      - "Official `./scripts/dev/test.sh integration` completed with exit 0; post-run Surefire aggregate contained 823 reports, 2,720 tests, 0 failures, 0 errors and 24 explicit skips, with both sandbox classes 6/6 executed and 0 skipped"
       - "The wrapper RPC hit the host timeout after continuing in the background; process completion and the report aggregate were checked after exit, with no bad reports"
     commits: []
     notes: "真实本地 sandbox image 与 Docker/Testcontainers 已可用；services-wide *IT 的非-sandbox suites 继续执行。Review Confirmed=0。"
@@ -1132,7 +1132,7 @@ tasks:
       - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
       - "scripts/dev/submission-schema-cutover.sh"
       - "docker-compose.prod.yml"
-    status: done
+    status: blocked
     depends_on:
       - "SPLIT-005-env-quick"
       - "SPLIT-005-env-sandbox"
@@ -1147,12 +1147,12 @@ tasks:
     rollback:
       - "未获授权保持 local/compat 和 grants；获授权后的失败只走 runbook rollback"
     evidence:
-      - "用户于 2026-08-17 明确授权所有可回滚的本地/disposable 操作；本次只在 disposable MySQL 执行 cutover/rollback，不执行生产 route/grant/REVOKE"
+      - "用户于 2026-08-17 明确授权所有可回滚的本地/disposable 操作；本次只在 disposable MySQL 执行 cutover/rollback，不执行生产 route/grant/REVOKE；未提供 production release owner 的切流授权记录"
       - "fresh disposable MySQL 按 owner migration → main/shared migration 顺序完成；read-only preflight、cutover、rollback 均通过，source/target checksums 保持一致"
       - "grant observation: App user pre-cutover SELECT=allowed，cutover 后=denied，rollback 后=allowed；`DISPOSABLE_GRANT_CUTOVER=PASS` 与 `DISPOSABLE_GRANT_ROLLBACK=PASS`"
     commits: []
-    notes: "本地/disposable rollback authority 已闭合；生产发布、默认 route 和生产 grants 仍受显式运维发布边界保护。"
-    updated_at: "2026-08-17T19:53:00+08:00"
+    notes: "本地/disposable rollback authority 已闭合；production release、默认 route 和 production grants 仍受显式运维发布边界保护，保持 blocked。"
+    updated_at: "2026-08-17T23:31:00+08:00"
   - id: CONTRACT-001
     title: "冻结服务契约 Owner 与发布边界"
     source:
@@ -1407,14 +1407,16 @@ tasks:
     notes: "唯一 Owner 选择 submission-api 的纯 contract seam，避免把 Entity/Mapper 重新做成共享业务模块。"
     updated_at: "2026-08-17T17:00:00+08:00"
   - id: CONTRACT-007
-    title: "切流并删除 Submission compat 双 provider"
+    title: "授权后切流并退役 Submission compat 双 provider"
     source:
       - "CONTRACT-004"
       - "CONTRACT-006"
       - "SPLIT-004"
       - "SPLIT-005-retirement-authority"
-      - "services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java"
-      - "services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionFenceProvider.java"
+      - "services/submission/src/main/java/com/ulticode/submission/compat/SubmissionWriteCompatibilityProvider.java"
+      - "services/submission/src/main/java/com/ulticode/submission/compat/SubmissionFenceCompatibilityProvider.java"
+      - "services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionWriteProvider.java"
+      - "services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionFenceProvider.java"
       - "scripts/dev/submission-schema-cutover.sh"
     status: in_progress
     depends_on:
@@ -1423,25 +1425,26 @@ tasks:
       - "SPLIT-005-retirement-authority"
     acceptance_criteria:
       - "只在 release/cutover authority、schema checksum/outstanding event/contest read/rollback watermark preflight 全部有证据后启用 APP_SUBMISSION_ROUTING_MODE=remote；provider local 行为在 compat retirement 后是固有行为"
-      - "backend-submission 的 local DefaultSubmissionWritePort/DefaultSubmissionFencePort 直接注册 backend-submission provider；SubmissionWriteCompatibilityProvider、SubmissionFenceCompatibilityProvider、App backend-app write/fence provider 与 appWriter/appFence 两跳引用删除"
-      - "Judge/App/Admin/Contest regular path 的唯一 Submission writer/provider 是 backend-submission；App local 仅作为旧 artifact rollback/contest compatibility，不再注册第二个 Dubbo group"
+      - "默认 APP_SUBMISSION_ROUTING_MODE=local + app.submission.owner.mode=compat 保持 Submission compat provider → App backend-app provider 的单一 writer/fence 路径，不能在授权前删除"
+      - "获得 release/cutover authority 后，才将 App route 切到 remote、Submission owner 切到 local，并退役 compat/App provider；切流后的 regular path 才由 backend-submission 成为唯一 Submission writer/provider"
       - "真实 MySQL/Redis 观察窗验证四张 Submission owner 表、judge/result/created outbox、fence/reaper、Contest association 与 Notification event 链；App 源表 grant 撤销后无跨 owner 写入"
     validation:
       - "只读 preflight；获授权后 disposable MySQL cutover/REVOKE/rollback 全链与 checksum/grant evidence"
-      - "backend-submission + judge + app/admin focused boot/provider/IT；services-wide *IT、security/concurrency/single-hop review"
-      - "静态扫描零 SubmissionWriteCompatibilityProvider/appWriter/双 registration；Compose prod route/default 与 runbook 一致"
+      - "backend-submission + judge + app/admin focused boot/provider/IT；services-wide *IT,*IntegrationTest、security/concurrency/single-hop review"
+      - "静态扫描确认 backend-submission compat/local provider 与 backend-app compatibility provider 各一组、无重复 group registration；owner-mode/route 条件、Compose prod route/default 与 runbook 一致"
       - "git diff --check"
     rollback:
       - "cutover 失败按既有 runbook 恢复 route/grant/watermark/reconciliation；compat 删除后的代码故障先回滚到上一已验证 artifact，再执行 runbook，不编辑 applied migration 或 destructive reset"
     evidence:
-      - "已新增 backend-submission 的 direct `SubmissionWriteProvider`/`SubmissionFenceProvider`，删除 Submission compat forwarder、App backend-app write/fence provider、`appWriter`/`appFence` 与 owner-mode 配置；代码扫描无旧类名或两跳引用"
-      - "Submission owner focused reactor 7/7（provider contract 3、direct MySQL owner IT 3、boot 1）通过；App/Judge focused 14/14 通过；services-wide `*IT` recent aggregate 2,690/0/0/24"
+      - "已恢复 backend-submission 的 compat/local provider、App backend-app provider 与 owner.mode 默认 compat，避免默认 local 路由下 Judge 从 submission schema 查不到 App 写入的 Pending；Submission owner 新增受 owner.local 门控的 JudgingLeaseReaper 与 generation CAS/outbox 回收路径，App reaper/dispatchers/listener 受 routing.local 门控"
+      - "Submission Provider/Reaper focused tests 5/0/0/0；真实 MySQL SubmissionOwnerCutoverIT 4/0/0/0；真实 Redis JudgeStreamRedisIntegrationTest 4/0/0/0；app-web reactor compile BUILD SUCCESS"
+      - "官方 `./scripts/dev/test.sh integration` 使用 `*IT,*IntegrationTest` 并以 exit 0 完成，post-run Surefire 聚合 823 reports、2,720 tests，0 failures，0 errors，24 skips；包含 JudgeStreamRedisIntegrationTest 4/4 与 SubmissionOwnerCutoverIT 4/4"
       - "disposable MySQL owner-first migration → main/shared migration → preflight → cutover → grant deny observation → rollback 全链通过；checksums 一致，App grant allow→deny→allow"
       - "`APP_SUBMISSION_ROUTING_MODE=remote` route seam 保持单 writer；生产 Compose 默认仍为 `local`，未执行生产 route/grant/REVOKE"
-      - "graphify update completed at 27,532 nodes / 80,287 edges; `git diff --check` and direct provider/reference scans pass"
+      - "graphify update completed at 27,577 nodes / 80,540 edges; `git diff --check` and direct provider/reference scans pass"
     commits: []
-    notes: "代码侧 provider retirement、disposable cutover 与 rollback 已完成；仍需运维发布窗口把 App route 从 prod 默认 local 切到 remote 并完成真实运行时观察，故不宣称 CONTRACT-007/008 已闭合。"
-    updated_at: "2026-08-17T20:18:00+08:00"
+    notes: "代码侧兼容修复、owner reaper、dispatcher route 门控、真实 MySQL/Redis 验证已完成；compat retirement 仍需运维发布窗口把 App route 从 prod 默认 local 切到 remote 并完成真实运行时观察，故不宣称 CONTRACT-007/008 已闭合。"
+    updated_at: "2026-08-18T00:22:00+08:00"
   - id: CONTRACT-008
     title: "完成契约收敛最终架构门禁"
     source:

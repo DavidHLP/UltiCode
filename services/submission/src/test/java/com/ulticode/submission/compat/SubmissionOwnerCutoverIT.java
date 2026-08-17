@@ -1,5 +1,6 @@
 package com.ulticode.submission.compat;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
@@ -12,6 +13,8 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.reaper.JudgingLeaseReaper;
+import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxMapper;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxWriter;
@@ -23,8 +26,6 @@ import com.ulticode.modules.submission.result.SubmissionResultOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
-import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.ibatis.session.SqlSession;
@@ -34,13 +35,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 import java.time.Clock;
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,15 +58,17 @@ import static org.mockito.Mockito.when;
 /**
  * SPLIT-003 slice-4: cutover provider local mode against a real MySQL container.
  *
- * <p>Verifies that the {@code backend-submission} Dubbo providers delegate
- * directly to the in-process Submission-schema writer/fence: a submit lands
+ * <p>Verifies that {@code app.submission.owner.mode=local} makes the
+ * {@code backend-submission} Dubbo providers delegate to the in-process
+ * Submission-schema writer/fence instead of forwarding to App: a submit lands
  * in the {@code submission} schema tables, and the local fence
  * ({@link DefaultSubmissionFencePort}) acquires/renews the generation lease
  * via the copied {@link SubmissionMapper} CAS statements. The default
- * App writer/fence providers are not part of this owner runtime.
+ * {@code compat} mode keeps forwarding to App and is covered by the compat
+ * contract test.
  */
 @Testcontainers
-@DisplayName("SPLIT-003 slice-4: Submission owner provider")
+@DisplayName("SPLIT-003 slice-4: cutover provider local mode")
 class SubmissionOwnerCutoverIT {
 
     @Container
@@ -209,6 +216,12 @@ class SubmissionOwnerCutoverIT {
         }
     }
 
+    private static void setOwnerMode(Object provider, String mode) throws Exception {
+        Field field = provider.getClass().getDeclaredField("ownerMode");
+        field.setAccessible(true);
+        field.set(provider, mode);
+    }
+
     private DefaultSubmissionWritePort newLocalWriter() {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         FeatureFlagsProperties flags = new FeatureFlagsProperties();
@@ -243,6 +256,30 @@ class SubmissionOwnerCutoverIT {
         return p;
     }
 
+    private static <T> ObjectProvider<T> providerOf(T value) {
+        return new ObjectProvider<>() {
+            @Override
+            public T getObject() {
+                return value;
+            }
+
+            @Override
+            public T getObject(Object... args) {
+                return value;
+            }
+
+            @Override
+            public T getIfAvailable() {
+                return value;
+            }
+
+            @Override
+            public T getIfUnique() {
+                return value;
+            }
+        };
+    }
+
     private static UserExistencePort mockUserExistence() {
         UserExistencePort p = mock(UserExistencePort.class);
         when(p.existsById(any())).thenReturn(true);
@@ -256,10 +293,12 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("write provider delegates to the Submission-schema writer")
-    void writeProviderWritesSubmissionSchema() throws Exception {
+    @DisplayName("local mode: write provider delegates to the Submission-schema writer")
+    void writeProviderLocalModeWritesSubmissionSchema() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
-        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        SubmissionWriteCompatibilityProvider provider =
+                new SubmissionWriteCompatibilityProvider(providerOf(localWriter));
+        setOwnerMode(provider, "local");
 
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -276,8 +315,8 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("fence provider acquires and renews the generation lease")
-    void fenceProviderAcquiresAndRenewsLease() throws Exception {
+    @DisplayName("local mode: fence provider acquires and renews the generation lease")
+    void fenceProviderLocalModeAcquiresAndRenewsLease() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -287,7 +326,9 @@ class SubmissionOwnerCutoverIT {
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
-        SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
+        SubmissionFenceCompatibilityProvider provider =
+                new SubmissionFenceCompatibilityProvider(providerOf(localFence));
+        setOwnerMode(provider, "local");
 
         String attemptId = UUID.randomUUID().toString();
         boolean acquired = provider.acquireLease(submissionId, attemptId, 1L, 60);
@@ -302,8 +343,8 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("fence CAS rejects a stale generation")
-    void fenceProviderRejectsStaleGeneration() throws Exception {
+    @DisplayName("local mode: fence CAS rejects a stale generation")
+    void fenceProviderLocalModeRejectsStaleGeneration() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -313,7 +354,9 @@ class SubmissionOwnerCutoverIT {
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
-        SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
+        SubmissionFenceCompatibilityProvider provider =
+                new SubmissionFenceCompatibilityProvider(providerOf(localFence));
+        setOwnerMode(provider, "local");
 
         boolean acquired = provider.acquireLease(submissionId, "stale-attempt", 99L, 60);
         session.commit();
@@ -321,5 +364,57 @@ class SubmissionOwnerCutoverIT {
         assertThat(acquired).isFalse();
         Submission row = submissionMapper.selectById(submissionId);
         assertThat(row.getStatus()).isEqualTo("Pending");
+    }
+
+    @Test
+    @DisplayName("local mode: owner reaper resets an expired lease and records a real outbox row")
+    void ownerReaperRecoversExpiredLeaseInSubmissionSchema() throws Exception {
+        DefaultSubmissionWritePort localWriter = newLocalWriter();
+        CreateSubmissionDTO dto = new CreateSubmissionDTO();
+        dto.setProblemId(101L);
+        dto.setLanguage("cpp");
+        dto.setCode("#include <cstdio>");
+        String submissionId = localWriter.submit("user-1", dto).getId();
+        session.commit();
+
+        try (var statement = session.getConnection().createStatement()) {
+            statement.execute("UPDATE submissions SET status = 'Judging', "
+                    + "current_attempt_id = 'attempt-1', "
+                    + "judging_lease_expires_at = DATE_ADD(NOW(), INTERVAL -5 MINUTE) "
+                    + "WHERE id = '" + submissionId + "'");
+        }
+        session.commit();
+
+        FeatureFlagsProperties flags = new FeatureFlagsProperties();
+        flags.setUseGenerationFence(true);
+        flags.setUseJudgeOutbox(true);
+        flags.getJudgeQueue().setUsePort(true);
+        ObjectProvider<PlatformTransactionManager> noTransactionManager = providerOf(null);
+        JudgingLeaseReaper reaper = new JudgingLeaseReaper(
+                submissionMapper,
+                judgeOutboxMapper,
+                flags,
+                () -> "reaper-outbox-" + UUID.randomUUID(),
+                new SimpleMeterRegistry(),
+                noTransactionManager);
+
+        assertThat(reaper.recoverExpiredLeases()).isEqualTo(1);
+        session.commit();
+
+        Submission recovered = submissionMapper.selectById(submissionId);
+        assertThat(recovered.getStatus()).isEqualTo("Pending");
+        assertThat(recovered.getGeneration()).isEqualTo(2L);
+        assertThat(recovered.getCurrentAttemptId()).isNull();
+        assertThat(recovered.getJudgingLeaseExpiresAt()).isNull();
+
+        List<JudgeOutboxRecord> outboxes = judgeOutboxMapper.selectList(
+                new LambdaQueryWrapper<JudgeOutboxRecord>()
+                        .eq(JudgeOutboxRecord::getSubmissionId, submissionId));
+        assertThat(outboxes).hasSize(2);
+        JudgeOutboxRecord recovery = outboxes.stream()
+                .filter(row -> row.getGeneration().equals(2L))
+                .findFirst()
+                .orElseThrow();
+        assertThat(recovery.getIsShadow()).isFalse();
     }
 }

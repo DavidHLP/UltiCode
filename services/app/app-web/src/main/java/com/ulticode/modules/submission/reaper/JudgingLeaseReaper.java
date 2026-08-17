@@ -48,8 +48,11 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(
-        name = "app.features.use-generation-fence",
-        havingValue = "true")
+        name = "app.submission.routing.mode",
+        havingValue = "local",
+        matchIfMissing = true)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "${app.features.use-generation-fence:false}")
 public class JudgingLeaseReaper {
 
     private final SubmissionMapper submissionMapper;

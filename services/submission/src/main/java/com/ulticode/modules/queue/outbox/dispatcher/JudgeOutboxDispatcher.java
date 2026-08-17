@@ -43,8 +43,10 @@ import java.util.Map;
 @org.springframework.context.annotation.Profile("!test")
 @RequiredArgsConstructor
 @ConditionalOnProperty(
-        name = "app.features.use-judge-outbox",
-        havingValue = "true")
+        name = "app.submission.owner.mode",
+        havingValue = "local")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "${app.features.use-judge-outbox:false}")
 public class JudgeOutboxDispatcher {
 
     /** Max rows claimed per sweep. Bounded to keep each transaction short. */

@@ -244,6 +244,7 @@ services:
       - SUBMISSION_SERVER_PORT=9106
       - SUBMISSION_DUBBO_PORT=20886
       - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
+      - APP_SUBMISSION_OWNER_MODE=${APP_SUBMISSION_OWNER_MODE:-compat}
     depends_on:
       backend-app:
         condition: service_healthy

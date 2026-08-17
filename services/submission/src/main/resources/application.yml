@@ -33,7 +33,13 @@ mybatis-plus:
       id-type: input
 
 app:
+  submission:
+    owner:
+      # compat keeps the App as the single writer while the App route is local.
+      # Set local only with the authorized schema cutover and grant transition.
+      mode: ${APP_SUBMISSION_OWNER_MODE:compat}
   features:
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:true}
     use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
     judge-queue:
       use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}

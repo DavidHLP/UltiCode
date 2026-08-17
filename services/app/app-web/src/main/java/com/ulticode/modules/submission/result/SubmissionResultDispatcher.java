@@ -3,6 +3,7 @@ package com.ulticode.modules.submission.result;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,10 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(
+        name = "app.submission.routing.mode",
+        havingValue = "local",
+        matchIfMissing = true)
 public class SubmissionResultDispatcher {
 
     private static final int BATCH_SIZE = 50;

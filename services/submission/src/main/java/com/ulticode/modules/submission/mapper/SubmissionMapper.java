@@ -32,6 +32,24 @@ import java.util.Optional;
 @Mapper
 public interface SubmissionMapper extends BaseMapper<Submission> {
 
+    /** Select expired JUDGING rows for owner-side lease recovery. */
+    @Select("SELECT * FROM submissions "
+            + "WHERE status = 'Judging' AND judging_lease_expires_at IS NOT NULL "
+            + "  AND judging_lease_expires_at < NOW() "
+            + "ORDER BY judging_lease_expires_at "
+            + "LIMIT #{batchSize} "
+            + "FOR UPDATE SKIP LOCKED")
+    List<Submission> selectExpiredJudgingForUpdate(@Param("batchSize") int batchSize);
+
+    /** Bump the generation and return an expired lease to Pending atomically. */
+    @Update("UPDATE submissions "
+            + "SET status = 'Pending', generation = #{newGen}, "
+            + "    current_attempt_id = NULL, judging_lease_expires_at = NULL "
+            + "WHERE id = #{id} AND generation = #{expectedGen}")
+    int bumpGenerationAndReset(@Param("id") String id,
+                               @Param("expectedGen") long expectedGen,
+                               @Param("newGen") long newGen);
+
     /**
      * CAS verdict write under generation/attempt fence. Returns 1 only when the
      * row still matches the caller's generation and attempt; otherwise the

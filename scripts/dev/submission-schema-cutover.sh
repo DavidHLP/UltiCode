@@ -12,10 +12,10 @@ set -euo pipefail
 # MIGRATION_SCHEMA=submission ./scripts/dev/migrate.sh migrate).
 #
 # Gate: this script copies data and revokes App write grants, but the actual
-# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote) must only be enabled
-# after the SPLIT-004 read-path migration, because App read adapters still read
-# the App schema until then. The Submission provider is local-only after the
-# compatibility forwarder retirement. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
+# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote + provider
+# app.submission.owner.mode=local) must only be enabled after the SPLIT-004
+# read-path migration, because App read adapters still read the App schema
+# until then. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"

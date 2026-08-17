@@ -376,3 +376,39 @@
 - `graphify update .` passed at 27,532 nodes / 80,287 edges. CONTRACT-007 is now in progress with source retirement
   complete; the only remaining blocker is an explicitly approved production release window for `remote` route and
   real runtime observation. No commit, push, deployment or production route/grant change was performed.
+
+## 2026-08-17 (CR remediation for 34417d912)
+
+- Restored the default compatibility seam: `backend-submission` providers now default to
+  `app.submission.owner.mode=compat` and forward write/fence calls to App `backend-app` providers; `local` remains an
+  explicit owner-side cutover mode. This prevents the default `APP_SUBMISSION_ROUTING_MODE=local` path from dropping
+  App-owned Pending jobs when the Judge reads through `backend-submission`.
+- Added the Submission-owner `JudgingLeaseReaper`, mapper generation CAS, Pending reset and non-shadow judge outbox
+  insertion. App reaper, judge outbox dispatcher, result dispatcher and result listener are now route-local only;
+  Submission outbox consumers are owner-local only. No production route, grant, migration or deployment changed.
+- Fixed `scripts/dev/test.sh` to select both `*IT` and `*IntegrationTest`, and reconciled migration-guide and
+  `.auto-flow` metadata. `SPLIT-005-retirement-authority` is blocked, `CONTRACT-007` remains in progress, and the
+  production release authority gap is explicit.
+- Validation: Provider/Reaper focused 5/0/0/0; real MySQL `SubmissionOwnerCutoverIT` 3/0/0/0; real Redis
+  `JudgeStreamRedisIntegrationTest` 4/0/0/0; app-web compile BUILD SUCCESS; official integration 2,690 tests,
+  0 failures, 0 errors, 24 skips, including both named integration classes. No production cutover was performed.
+
+## 2026-08-18 (CR remediation validation refresh)
+
+- Fixed the real owner-reaper IT fixture to use the MySQL `NOW()` clock; `SubmissionOwnerCutoverIT` passed 4/4 with
+  generation 2 recovery and a non-shadow judge outbox row.
+- Re-ran `MEILI_MASTER_KEY=local-test-only-placeholder ./scripts/dev/test.sh integration`; exit 0,
+  `BUILD SUCCESS`, and `All integration checks passed`. Post-run Surefire reports: 823 reports, 2,720 tests,
+  0 failures, 0 errors and 24 skips; Redis 4/4, sandbox suites 6/6 each, Submission owner 4/4.
+- Refreshed graphify to 27,575 nodes / 80,538 edges. Production route/grant/REVOKE, deployment and persistent
+  database reset remain intentionally unperformed; compatibility retirement still awaits release authority.
+
+## 2026-08-18 (final route-gate revalidation)
+
+- Added the App `OutboxShadowComparator` local-route gate so revoked App `judge_outbox` grants are not polled after
+  the authorized Submission cutover; the App reactor compile passed.
+- Re-ran the final `./scripts/dev/test.sh integration`: exit 0, `BUILD SUCCESS`, and `All integration checks passed`.
+  Final Surefire aggregate is 823 reports, 2,720 tests, 0 failures, 0 errors and 24 skips; Owner 4/4, Redis 4/4,
+  and both sandbox suites 6/6.
+- Final graphify refresh: 27,577 nodes / 80,540 edges. Production route/grant/REVOKE and deployment remain
+  intentionally unperformed; `SPLIT-005-retirement-authority` remains externally gated.

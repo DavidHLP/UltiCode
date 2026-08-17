@@ -1,39 +1,39 @@
 outcome: pass
 outputs:
-  - "SPLIT-004 slice-8（read-routing 能力建设，不切流）实现+Review+Validation 闭环"
-  - "ProblemFactsPort 批量 seam：findDisplayFactsBatch（app-api）+ App ProblemFactsAdapter（selectBatchIds）/ProblemFactsProvider + backend-submission ProblemFactsDubboAdapter 三方同步，消除 list N+1"
-  - "SubmissionUserQueryPort 扩展 findById/findByUserId/findBest；backend-submission SubmissionUserQueryProvider 实现（list 批量 facts + detail 权限/performanceStats + best；projection toVO 摘要提取 + toDetailVO 复制与 App 语义一致）"
-  - "App SubmissionController 7 读端点经 SubmissionUserQueryPort（Local/Remote 双 adapter，写路径仍 writePort，findById null→NOT_FOUND 语义保持）"
-  - "Admin Dubbo read-group 参数化（app.submission.admin.read-group 默认 backend-app，可切 backend-submission）"
-  - "IT 8/8（findById 权限/list 分页/批量 enrichment/findBest + 既有 4 聚合）；控制面更新"
+  - "SEARCH-003 done（四切片 commits a4be5ac58/f5c5e058e/bd2c42291/d09411d19）：版本语义 + worker 版本账本/tombstone（DEC-016 修订）；版本列 migration（V20260816220000）+ 共享链前置修复（V20260816165000，修复 slice-b 引入的全新库共享链必挂回归）；SearchBackfillReadPort 四源枚举 + SearchDocumentBuilders 文档形状统一 + SearchBackfillRunner（watermark/diff/预检/重跑幂等，DEC-017）；/search 兼容回归（含 _aggregateVersion 容忍）+ Meili 写路径静态扫描；worker E2E IT（真实 Redis + Meili REST stub）；compose prod 启用（worker/auth dispatcher/App 读路径）；指南 §11.4/§11.5"
+  - "SEARCH-003 四 AC 证据齐；Coverage 行 PASS；SPLIT-005 依赖 SEARCH-003 侧已满足"
+  - "SPLIT-003-slice-7 已实现：显式 submitContest、SubmissionCreated durable outbox/App-Contest inbox、judged missing-association retry、remote verdict contest context 回读；Submission owner 事务与 real MySQL/Redis IT 通过"
+  - "SPLIT-005 validation：隔离数据库上的 services `test` 与 `verify`、frontend quick-equivalent、Compose base+dev/prod、diff check 均通过；临时 phase-gate MySQL/volume 已清理，既有 ulticode-mysql 未触碰"
 evidence:
-  - "Focused: ./mvnw test -pl submission -Dtest='*IT,BackendSubmissionApplicationTest,SubmissionProviderContractTest' → 30/30 PASS（user query IT 8/8 新增）"
-  - "App boot 5/5 PASS; 模块 5/5 PASS; PerOwnerSchemaGrantTest 6/6 PASS; reactor compile exit 0; compose dev/prod config PASS; bash -n PASS; git diff --check PASS; App test-compile PASS"
-  - "toVO 摘要关键值（user 4 字段 + problem 3 字段 + BeanUtils.copyProperties）与 App 8/8 一致；无跨库 JOIN（DEC-011）；批量 seam 生效（findDisplayFactsBatch 在 provider 使用）；不切流（routing.mode 默认 local、admin read-group 默认 backend-app）"
-  - "用户 3 commit（57e95363f/34c3a8c9d/e0ab90489）完好"
+  - "search 模块 15（12 单测 + 3 E2E IT）+ boot 1/1；auth search 7/7；app-web search+wiring+scan 92/92；SearchBackfillReadPortIT 6/6（真实 MySQL 8.0 全链 Flyway：migration 生效、谓词/形状/版本/ON UPDATE/分页）；reactor compile；compose prod/dev config；git diff --check 全过"
+  - "Review 各切片 Confirmed=0（slice-2 的 tombstone 复活缺口、IT NPE、mock 页循环均已修复复审）"
+  - "真实 MeiliSearch 镜像 E2E 受 Docker Hub 不可达阻塞（外部 gap，E2E IT 以 stub 提供可执行传输证据）"
 review:
   status: pass
-  scope: "toVO 摘要语义与 App 一致、DEC-011 合规（无跨库 JOIN，problem facts 经批量 seam）、不切流（默认 local/compat 行为保持）、批量 seam 消除 list N+1、Admin group 参数化不改变默认路由、controller 无残留本地依赖、无 TODO/FIXME"
+  scope: "SEARCH-003 四切片：版本/账本/tombstone、migration+共享链回归、枚举/backfill 协议、/search 兼容+扫描、compose 启用+E2E"
   confirmed_findings:
-    - "F1 (Confirmed→Fixed，advisory blocker 采纳)：Local/Remote 双 adapter 无条件+条件实现同一接口 → remote 模式下 NoUniqueBeanDefinitionException，App 无法在切流目标模式 boot。修复：新建 SubmissionUserQueryRoutingPort（@Primary wrapper，注入 Local 具体类型 + ObjectProvider<Remote> + SubmissionRoutingProperties，按 routing.mode 委托），镜像写路径 SubmissionWriteRoutingPort 先例。复检：BackendAppApplicationTest 在 -Dapp.submission.routing.mode=remote 下 5/5 PASS。"
-  observations:
-    - "App findByUserId 实际忽略 problemId（SQL 仅 user_id），backend-submission 实现一致，不扩大行为差异"
+    - "slice-b 回归：V20260816170000 表级 GRANT 使全新库共享链失败（test.sh quick 自 slice-b 起未跑）；修复 V20260816165000 前置 migration，真实 MySQL 全链 IT 验证"
+    - "DELETE/backfill 乱序可复活已删文档 → worker tombstone 账本（DEC-016 修订）"
 validation:
   tier: C
-  risk_reason: "app-api contract 扩展 + 双服务读路径 + controller 改造（默认 local 行为保持）+ admin 参数化；不切流故不改变现有路由"
+  risk_reason: "跨服务事件版本语义、共享链 migration、启用开关（生产 compose 默认开但代码默认关）"
   status: pass
   checks:
-    - "Focused 30/30 PASS（user query IT 8/8 + read 2/2 + admin read 4/4 + cutover 3/3 + write 4/4 + dispatcher 4/4 + boot 1 + contract 4）"
-    - "App boot 5/5 默认 local + 5/5 remote（-Dapp.submission.routing.mode=remote）；模块 5/5; PerOwnerSchemaGrantTest 6/6; reactor compile; compose dev/prod; bash -n; git diff --check"
+    - "search 15 + auth search 7 + app-web search 92 + IT 6/6 + reactor compile + compose prod/dev + git diff --check"
+  failures_failed: []
   failures_fixed:
-    - "app-api port 变更需重新 install 后下游编译"
-    - "3 个既有 IT 的 DefaultSubmissionProjection 构造 4 参适配；PageResult getRecords→getItems"
-    - "toVO 无条件调用 seam 在 null 注入 IT 下 NPE → 加 null 守卫（生产非 null 不受影响）"
-    - "list 批量 seam 设计修正：provider 一次 findDisplayFactsBatch + projection toVO(Submission, Map) 重载，避免逐行单条 Dubbo N+1"
-  external_gaps:
-    - "实际 read-routing 切换（routing.mode=remote + admin read-group=backend-submission 翻转）必须在 cutover 数据复制后执行；AC4 退役证据仍未做"
-next_goal: "执行 SPLIT-004 下一切片：实际 read-routing 切换与 AC4（cutover 后翻转 routing flag + Admin group + 旧 App read adapter 退役证据），随后 SPLIT-003 实际切流 gate（remote write + local read + grant revocation 观察窗）"
+    - "Flyway 10.10.0 依赖 jackson-dataformat-toml 2.15.4 不在离线 m2 → pom 排除（程序化 API 不需要）"
+    - "IT 容器库名需为 ulticode（基础 migration 硬引用）；FK 清理用 SET FOREIGN_KEY_CHECKS"
+external_gaps:
+    - "真实 MeiliSearch 镜像 E2E（Docker Hub 不可达）；已用 JDK HttpServer stub IT 覆盖传输链"
+    - "SPLIT-003-slice-7 已完成：显式 contest command、SubmissionCreated durable outbox/App-Contest inbox、judged missing-association retry、remote verdict contest context 回读"
+    - "官方 `scripts/dev/test.sh quick` 受既有 ulticode-mysql root credential mismatch（MySQL 1045）阻塞；隔离环境全后端 reactor test/verify 已通过"
+    - "services-wide `*IT` 在 unchanged `services/auth` AccountManagementTransactionalIT.deleteAccountSoftDelete:164 失败；services/auth 无本次工作区差异"
+    - "SPLIT-005 compatibility writer/flag/grant retirement 尚未执行；无 production cutover、applied migration rewrite 或 destructive reset 授权"
+next_goal: "SPLIT-005 final Phase Gate：执行 services-wide verification、compatibility/grant retirement audit 与最终 security/concurrency/architecture review"
 next_skill: run-development-loop
-reason: "slice-8 Review PASS（F1 advisory blocker 已修复复检）+ Validation Tier C PASS；SPLIT-004 其余 AC（实际路由翻转、AC4 退役证据）与 SPLIT-003 实际切流 gate 仍未满足，按 close 契约续跑"
-alternatives: []
-blockers: []
+reason: "SPLIT-003-slice-7 已完成并通过 focused、真实 MySQL/Redis、迁移与路由验证；当前只剩 SPLIT-005 objective-level Phase Gate"
+alternatives:
+  - "不执行生产 cutover、删除已应用 migration 或 destructive reset；回滚范围保持 route/watermark/reconciliation"
+blockers:
+  - "SPLIT-005 remains open pending compatibility retirement authority and clean services-wide IT evidence"

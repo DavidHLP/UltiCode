@@ -127,3 +127,28 @@
 - **Alternatives**: 现在直接切流（拒绝：App 读路径未迁，生产用户提交不可见）；backfill 双向持续同步（拒绝：双写，违反唯一 writer）。
 - **Consequences**: AC1/AC3 对普通提交路径能力齐备、仍 PARTIAL（唯一 writer 未生效）；SPLIT-003 保持 in_progress；`submission-schema-cutover.sh` 与 `app.submission.owner.mode=local` 已具备、未启用；指南 4.5.1 同步。
 - **Affected Tasks**: SPLIT-003（本切片）、SPLIT-004（读路径迁移后解锁切流 gate）。
+
+## DEC-016: Search 索引文档版本语义与 worker 版本账本（SEARCH-003-slice-1）
+
+- **Context**: SEARCH-002 worker 已就绪但 envelope aggregateVersion 恒为 0L（`SearchDocumentChangedPublisher.publish` 传 0L），Meili 文档不含版本；backfill 与 live 事件并发时无法判断谁更新（AC：不覆盖新版本）。problems/solutions 有 `updated_at`（problems 带 ON UPDATE，solutions 无），forum_posts/users 无任何更新时间列；user 文档还依赖 App-owned `user_profiles.updated_at`（ON UPDATE 自动）。发布方在写事务内持有实体，DB 自动更新的列不会回填到内存实体。
+- **Decision**: 版本 = 事件发布时刻（live）或行最后变更时刻（backfill）的 epoch 毫秒，同一墙钟域可比较：① live publisher（App/Auth 两处）把 envelope aggregateVersion 从 0L 改为与 OCCURRED_AT 同源的 `LocalDateTime.now(clock)` epoch 毫秒；② backfill（slice-2）版本 = 行 `updated_at`（users 取 GREATEST(users.updated_at, user_profiles.updated_at, deleted_at, joined_at)）epoch 毫秒；③ worker 为每索引维护 Redis 版本账本 hash（`search:doc-version:{index}`，field=docId），UPSERT 前 HGET 比较：existing > incoming 则跳过写（计数 `search.worker.stale_skipped`）并照常 ACK；否则写 Meili（文档附加 `_aggregateVersion` 字段，供 diff watermark/可观测）成功后 HSET；DELETE 时 deleteDocument + HDEL。skip 规则只跳过 strictly-older（等版本允许重写：同版本内容一致或同秒竞态自然收敛）。
+- **Alternatives**: 用 Meili getDocument 读回比较（拒绝：addDocuments 是异步任务，任务队列滞后使读回看到旧状态，stale 事件可覆盖新版本）；给四表加 version 计数器列并由全部 writer 维护（拒绝：8+ 写路径，迁移与维护成本高）；仅靠事件顺序无保护（拒绝：违反 AC1）。
+- **Consequences**: 账本是 worker 进程内写入（HSET 仅在 Meili 接受写后），单副本 worker 下顺序一致；多副本并发 HGET/HSET 非原子，文档标注 worker 按单副本运行，账本为 best-effort 排序辅助而非分布式锁；外部重建 Meili 索引后需按 runbook 清对应账本 key 再 backfill。事件契约字段不变（envelope 已有 aggregateVersion）。
+- **修订（SEARCH-003-slice-2）**: DELETE 不再清空账本，改记 tombstone（存负版本 `-V`）：后续 UPSERT 仅当版本严格大于 tombstone 版本才写，否则跳过——backfill 快照与 unpublish 事件乱序时不会复活已删文档（equal-or-older 一律 skip；re-create 新版本正常写）。
+- **Affected Tasks**: SEARCH-003-slice-1、SEARCH-003-slice-2、SEARCH-003-slice-4。
+
+## DEC-017: backfill 协议——App 枚举 + diff 收敛，worker 保持唯一写者（SEARCH-003-slice-2）
+
+- **Context**: 四索引当前为空（worker 未启用、App 无 Meili 写路径、`meilisearch.enabled` 默认 false）；SEARCH-003 需要把 owner 库现状灌入索引且后续可重放/重建。DEC-011 禁止 worker 读业务库、禁止 App 写 Meili（worker 唯一写者）。索引没有 RESET 操作可用（SUPPORTED_OPERATIONS 冻结为 UPSERT/DELETE，不扩契约）。
+- **Decision**: backfill 由 App 侧 `SearchBackfillRunner`（属性门控 `app.search.backfill.enabled` + index 选择，默认关）执行，所有变更经 IntegrationEventPublisher → stream → worker，保持唯一写者：① watermark W=now()（epoch 毫秒）；② 按源枚举全量快照（谓词与 Q-read 适配器一致：problem is_published=1 AND is_deleted=0、post is_deleted=0、solution is_published=1 AND is_deleted=0、user users LEFT JOIN user_profiles is_deleted=0），文档 shape 与 live publisher 完全一致（复用文档构建）；③ 读 Meili 现有文档 id+`_aggregateVersion`；④ 对快照发布 UPSERT（aggregateVersion=行版本）；⑤ 对 `_aggregateVersion < W` 且不在快照的 id 发布 DELETE（≥W 的跳过：backfill 期间新建/更新的文档由 live 事件或快照自身负责）；⑥ 每索引输出计数日志。快照 vs 并发 live 的竞态由 DEC-016 账本守卫（snapshot 版本 ≤ 已索引版本时被跳过）。重跑幂等收敛；Meili 不可达时 preflight 失败不半跑。
+- **Alternatives**: 扩契约加 RESET_INDEX 操作（拒绝：动冻结契约，且 reset+全量重灌期间读路径空洞更大）；backfill 直写 Meili（拒绝：违反 DEC-011 唯一写者）；双写兼容层（拒绝：第二套并行写路径）。
+- **Consequences**: 首次 backfill 与索引重建/丢失重放共用同一命令；diff 删除依赖文档 `_aggregateVersion`（slice-1 写入）；枚举需要 forum_posts/users 新增 `updated_at` 列（共享链 additive migration）与四源枚举 seam（SearchSource 扩展，additive）。真实 Meili 不可用，验证用 mock/stub。
+- **Affected Tasks**: SEARCH-003-slice-1、SEARCH-003-slice-2、SEARCH-003-slice-4。
+
+## DEC-018: Contest 提交使用显式命令，关联由 SubmissionCreated inbox 幂等写回 App
+
+- **Context**: `ContestServiceImpl` 已完成资格检查后调用通用 `SubmissionWritePort.submit`；remote 模式因此只能用 CR P1-2 守卫把 contest 写留在 App。若直接放开通用 DTO，客户端可伪造 `contestId` 进入 Submission owner，且 `contest_submissions` 关联仍会被第二个服务同步写入。Contest association 必须继续由 App 拥有。
+- **Decision**: 在 `SubmissionWritePort` 增加显式 `submitContest` 命令。普通 `submit` 在 App 与 Submission owner 边界拒绝带 `contestId` 的上下文；ContestServiceImpl 资格检查后调用显式命令。backend-submission 在同一本地事务写入 submission、judge outbox 和 `SubmissionCreated` durable outbox；App-Contest inbox 按 submission/generation 幂等创建 `contest_submissions`。延迟 `SubmissionJudged` 若尚无关联必须重试，不能静默 no-op；关联消费不重新以当前时间重判已完成的 admission deadline。
+- **Alternatives**: 保留 App local contest writer（拒绝：grant revocation 永远 PARTIAL）；把 contest_submissions 搬入 Submission schema（拒绝：违反 Contest owner 边界）；用同步 RPC/跨服务 SQL 写关联（拒绝：长事务/2PC 与 DEC-011 冲突）；让 judged consumer 丢弃 missing mapping（拒绝：Created/Judged 乱序会丢分）。
+- **Consequences**: remote+local 观察窗可以让 backend-submission 成为 submissions/judge/result/created 四张 Submission 表的唯一 writer；contest association、ranking 与 scoring 仍由 App inbox/consumer 拥有。事件使用既有 Redis Stream 与 Inbox 设施，不新增 broker；local rollback 继续同步调用 ContestSubmissionPort。
+- **Affected Tasks**: SPLIT-003-slice-6、SPLIT-003-slice-7、SPLIT-004、SPLIT-005。

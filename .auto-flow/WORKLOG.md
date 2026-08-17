@@ -1,5 +1,12 @@
 # Worklog
 
+- 2026-08-16 (SEARCH-003-slice-1 实施：版本语义与 worker 版本账本) — App/Auth publisher aggregateVersion 0L → clock.instant().toEpochMilli()（与 OCCURRED_AT 同源，DEC-016）；worker 增加 Redis 版本账本（search:doc-version:{index}）：existing > incoming → stale_skipped 计数+ACK 跳过、等版本重写、损坏条目忽略；文档附加 _aggregateVersion；HSET 仅在 Meili 接受写后；DELETE 清账本；新增 SearchWorkerProperties.versionKeyPrefix（yml SEARCH_WORKER_VERSION_KEY_PREFIX）。验证：search 10/10、auth 7/7、app-web search+wiring 75/75、reactor compile、git diff --check PASS；SearchDocumentChangedPublisherTest（新）4/4。
+- 2026-08-16 (SEARCH-003-slice-4 + SEARCH-003 收口) — SearchWorkerEndToEndIT 3/3（真实 Redis + 真实 meili-java client + JDK HttpServer stub，零新依赖）：UPSERT/DELETE/stale 全链 + ACK + 账本 + tombstone；compose prod 启用（SEARCH_WORKER_ENABLED/AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED/MEILISEARCH_ENABLED 默认 true，代码默认不变，dev 不变）；指南 §11.5 runbook。SEARCH-003 四 AC 全过、Coverage 行 PASS；验证：search 15（12 单测+3 IT）+ auth search 7 + app-web search 92 + reactor compile + compose 双 config + diff check；commit d09411d19。真实 Meili 镜像 E2E 仍为外部 gap。SPLIT-005 依赖链待 SPLIT-003-slice-6 contest 迁移排期。
+- 2026-08-16 (SEARCH-003-slice-3 实施：兼容回归与扫描) — DefaultSearchReadProjectionTest 增 `_aggregateVersion`/未知字段容忍用例（15/15）；MeiliWritePathScanTest 静态扫描（app modules + app-web + auth main，根缺失即失败、>100 文件防空洞，1/1）；指南 §11.4 状态更新 + §11.5 backfill/版本/tombstone/启用/回滚 runbook；commit bd2c42291。
+- 2026-08-16 (SEARCH-003-slice-2 实施：App backfill 能力) — 共享链 migration V20260816220000（forum_posts.users 加 updated_at、solutions 加 ON UPDATE）+ V20260816165000 前置修复 slice-b 回归（auth 链 V20260816170000 表级 GRANT 使全新库共享链必挂——IT 全链验证修复）。SearchBackfillReadPort seam + 四实现（域模块持 SQL，谓词与 Q-read 一致；用户版本=max 行时间戳）；SearchDocumentBuilders 统一文档形状，publisher 重构 + publishBackfill（显式版本、每事件事务）；SearchBackfillRunner（门控、watermark、diff、预检、计数日志）；worker tombstone 修订（DEC-016：DELETE 记负版本账本防复活）。Review 发现并修复：DELETE/backfill 乱序复活缺口（tombstone）、List.of NPE、测试嵌套 stubbing、mock 无限页循环。验证：runner 6/6 + publisher 7/7 + 真实 MySQL IT 6/6 + wiring 90/90 + reactor compile + compose + diff check 全过。
+- 2026-08-16 (SEARCH-003-slice-1 收口) — Review F1（meiliFailure 未断言 HSET 不执行）修复复审 9/9，Confirmed=0；Validation Tier C：auth 全量 211/211、compose dev/prod config PASS；Completion Audit 全过；commit a4be5ac58（业务文件仅，.auto-flow/ 不暂存）。SEARCH-003-slice-2 ready。
+- 2026-08-16 (recover-development-context 恢复对账) — 对账控制面：分支 main @ 16cecd994（origin/main 前 5 提交：43fbbf365/9a052221b/21ad12a4d/c81bfab1c/16cecd994），工作区仅 .auto-flow/ 台账修改（不 commit，无 untracked）；SEARCH-002 done 且证据齐，E2E 缺口已披露；SPLIT-003-slice-6 in_progress（观察窗已执行，grant revocation PARTIAL 待 contest owner 迁移）；SPLIT-004 pending（slice-5..9 done）；SEARCH-003/SPLIT-005 pending。修复 TASKS.yaml 重复 updated_at 键；更新 PLAN.md Active Task 行；核验 SEARCH-003 前置（/search 读路径、事件链、worker allowlist、默认关）。知识图谱不可用（graphify-out 缺失、codebase-memory 仅 hindsight），结论基于源码直读。
+
 - 2026-08-11T21:55:00+08:00 — Recovered dirty worktree; protected existing contest and landing changes.
 - 2026-08-11T21:55:00+08:00 — Verified official Solarized palette and dual-mode mapping.
 - 2026-08-11T21:55:00+08:00 — Captured localhost:9002 landing and problemset light/dark baselines.
@@ -158,3 +165,71 @@
 - F1 (Confirmed→Fixed，advisory blocker 采纳)：Local/Remote 双 adapter 无条件+条件实现同一接口 → remote 模式下 NoUniqueBeanDefinitionException，App 无法在切流目标模式 boot。修复：新建 SubmissionUserQueryRoutingPort（@Primary wrapper，注入 Local 具体类型 + ObjectProvider<Remote> + SubmissionRoutingProperties，按 routing.mode 委托），镜像写路径 SubmissionWriteRoutingPort 先例；Local/Remote adapter 保留实现但由 wrapper 持有。
 - 复检：App boot 5/5（默认 local）+ 5/5（-Dapp.submission.routing.mode=remote）双模式 PASS；Focused 30/30；git diff --check OK。
 - 结论：Confirmed=1（已修复复检），Review PASS。
+
+## 2026-08-16 (SPLIT-004 slice-9 实施：实际 read-routing 切换与 AC4 退役证据)
+
+- 环境：可丢弃 MySQL 8.0.46 容器（ulticode-cutover-mysql:23307）+ ENV_FILE=/tmp/ulticode-cutover.env；既有 mysql_data 卷（08-14 旧密码不匹配）未触碰，保护不破坏。
+- cutover 数据复制（submission-schema-cutover.sh，MYSQL_CONTAINER 模式）：preflight 首次拦截 R3 场景（App 用户仅库级 grant）→ 补表级 grant 后 preflight PASS；cutover --execute + token 成功：三表 72/2/2 行 source/target checksum 全一致（1365417332/2365044956/731060111）。
+- grant 撤销证据：撤销 App 库级 grant + 脚本表级 REVOKE 后，ulticode 用户对 ulticode schema 读写均 ERROR 1044；submission_rw 按设计 ACCOUNT LOCK → 模拟部署方解锁（IDENTIFIED BY + UNLOCK）后读写正常（72 行可读、judge_outbox 可写）。
+- F1（slice-8 遗漏调用方，本 slice 修复）：judge RemoteProblemFactsAdapter 未实现 ProblemFactsPort.findDisplayFactsBatch（批量 seam 三方同步漏掉第四方，judge 模块编译失败暴露）→ 补 Dubbo 委托实现；4/4 port 实现者复核齐备（app adapter/provider、submission adapter/provider、judge adapter）。
+- AC4 退役证据：App JudgeOutboxDispatcher/JudgingLeaseReaper/SubmissionResultDispatcher/SubmissionResultOutboxListener 四类 javadoc 标注（切流后仅 contest 兼容 + 回滚路径，不扩展 regular 行为）；指南 §4.5.1 追加 slice-9 边界 + 退役矩阵；app/submission application.yml 注释更新。
+- grant revocation PARTIAL 确认：contest intake/verdict 仍走 App local writer（DEC-013 CR P1-2），App 对 ulticode 三表 grant 须保留至 contest owner 迁移；与台账"grant revocation 执行（唯一 writer 未满足）"一致；观察窗必须记录该 PARTIAL。
+- 验证：App boot 5/5 remote（-Dapp.submission.routing.mode=remote）+ 5/5 local；backend-submission IT 30/30（user query 8/8 + read 2/2 + admin read 4/4 + cutover 3/3 + write 4/4 + dispatcher 4/4 + boot 1 + contract 4）；judge 单测 BUILD SUCCESS；BackendAdminApplicationTest 既有 @Disabled（2 skipped 预期）；compose dev/prod config PASS；git diff --check PASS；bash -n PASS。
+
+## 2026-08-16 (SPLIT-003-slice-6 观察窗：owner.mode=local + grant revocation 证据)
+
+- 观察窗验证（切流状态）：backend-submission 全量 IT+boot 在 -Dapp.submission.owner.mode=local 下 30/30 PASS（本地直写 submission schema、dispatcher/result 事件链、crash-window/duplicate/stale 拒绝）；App 路由单测 9/9 PASS（SubmissionRoutingPortTest 6/6 含 contest 守卫 CR P1-2 + SubmissionRoutingPropertiesTest 3/3）；App boot local 5/5 + remote 5/5。
+- grant revocation 观察窗（可丢弃 MySQL 8.0）：cutover 后 App 用户读写被拒（1044；表级 grant 姿态 1142）→ rollback --execute：source/target checksum 全同（72/2/2）回写无差异、App 表级 grant 恢复（SELECT 72 行可读）→ 清目标表后重跑 cutover 恢复切流状态（checksum 再一致）。cutover 重试被非空目标表拒绝（保守安全，slice-4 已知设计）。
+- grant revocation 完成证据 PARTIAL（如实记录）：contest intake/verdict 仍走 App local writer（DEC-013 CR P1-2），App 对 ulticode 三表 grant 保留至 contest owner 迁移（事件化 ContestSubmissionPort + ContestServiceImpl 命令迁移，属后续切片）；全量撤销待该切片。SPLIT-003-slice-6 保持 in_progress。
+- 环境备注：Docker Hub 网络不可达（IPv6 dial timeout），Testcontainers redis:7.2-alpine 拉取失败 → 本地 tag redis:7-alpine 为 7.2-alpine 后 admin IT 通过；既有 mysql_data 卷（08-14 旧密码）未触碰。
+
+## 2026-08-16 (SEARCH-001 slice-a 实施：App 三源发布 seam 补齐)
+
+- 现状对账：SearchDocumentChangedPublisher（App 三源）+ EventContract 冻结 + Problem/Forum/Solution service 路径 wiring（c9662564c 已交付）但未闭环：admin provider 绕过 hooks、moderation/import 写路径无事件、Forum 无 wiring 测试。
+- 新增 hooks（全部在 owner 本地写事务内，经 IntegrationEventPublisher）：
+  - ProblemServiceImpl.publishProblem→UPSERT、unpublishProblem→DELETE（DefaultProblemSearchReadPort 过滤 is_published=true，visibility 同步）
+  - ProblemAdministrationProvider 四方法 + @Transactional（原 admin 写路径无事务边界，per-statement 提交；加 @Transactional 与 App service 路径一致，域内无 REQUIRES_NEW 风险）
+  - DefaultProblemOwnerPort.insertImportedProblem/applyImportedUpdate（单条+批量导入共用叶子方法，按 is_published UPSERT/DELETE）
+  - DefaultForumOwnerPort.deletePost（moderation 软删→DELETE tombstone）
+  - DefaultSolutionOwnerPort.deleteSolution（物理删→DELETE）、setPublished（按 published UPSERT/DELETE）
+- 无事件写路径（如实记录，Q-read 语义一致）：ProblemOwnerPort.updateModerationFlag、Forum flag/unflag/pin/lock、recordShare、Solution flag/unflag、updateVoteCounts、views 计数（recordView/getSolutionById）——文档字段未变或 Q-read 不过滤。
+- 测试：新增 ForumPostServiceImplTest（3 例 wiring）；扩展 ProblemServiceImplTest（publish/unpublish）、SolutionServiceTest（create）、DefaultForumOwnerPortTest（deletePost）、DefaultSolutionOwnerPortTest（deleteSolution + setPublished×2）、ProblemAdministrationProviderTest（delete 断言）；全部 59/59 PASS；contract test 5/5。
+- 指南：§11.1 SearchDocumentChanged 发布矩阵（14 行 writer→事件→依据）+ backend-search 状态行更新。
+
+## 2026-08-16 (SEARCH-001 slice-b 实施 + SEARCH-001 收口)
+
+- Auth 用户源：auth 链新增 search_document_changed_outbox（V20260816170000，auth_rw 表级 grant，真实 MySQL 8.0 验证 3 migrations + auth_rw 插入）；组件 entity/mapper（CAS claim→XADD→markDelivered、stale lease 回收、bounded retry、payload @Results JacksonTypeHandler）/publisher（事务内写 outbox）/dispatcher（@EnableScheduling + 属性门控默认关，XADD 格式与 ResultEventPublisher 一致：eventId/owner/aggregateId/aggregateVersion/eventType/schemaVersion/payload）。
+- hooks：AuthAccountPort.create、AccountManagementPort.updateCredentials/softDelete 补 @Transactional（与 users 写原子，参照 admin provider 先例）；App DefaultAppUserWritePort updateProfile/uploadAvatar 经 findIndexRowById 发布完整用户文档。
+- 架构裁决：AuthSingleHopArchTest（§6.5 auth 是叶子 Provider 禁依赖 app-api）被新依赖触发 → 将 IntegrationEventEnvelopeContract + SearchDocumentChangedEventContract 移至 backend-common（com.ulticode.common.event），全部调用方/测试更新（SubmissionLifecycleEventContract+Test、app-web publisher、auth publisher+Test），契约测试随迁 common；auth pom 撤回 app-api 依赖。
+- 修复回环：dispatcher/publisher 未用字段清理（clock/objectMapper）；测试 matcher 三处 raw+any 混用；dispatcher 属性门控替代 @Profile("!test")（boot 测试上下文无 Redis）。
+- 验证：auth 211/211（含架构规则）、app-web 1330/0（+profile wiring 测试）、app-api 39/39、common 93/93、reactor compile、git diff --check；commit c81bfab1c。
+- SEARCH-001 收口（slice-a 21ad12a4d + slice-b c81bfab1c）：四类来源全部 owner writer 事务内发布，发布矩阵 16 行（指南 §11.1）；AC1-4 全满足。SEARCH-002（backend-search worker）为下一 ready Task。
+
+## 2026-08-16 (SEARCH-002 实施：backend-search indexing worker)
+
+- 新模块 services/search/：无 web starter（web-application-type none）、无 DB autoconfig、meilisearch-java 0.20.1（与 App 同版本）；SearchDocumentIndexWorker（XREADGROUP new + PEL reclaim 30s 空闲、XACK 仅 Meili 接受写后、deliveryCount 超限 DLQ+XACK、index allowlist、非本类型事件 XACK 跳过、Micrometer processed/deadlettered）；search.worker.enabled 门控默认关；MeiliSearchWorkerConfig 同门控。
+- 修复回环：MapRecord.create 无 RecordId 重载（改 StreamRecords.withId）；StreamOperations 泛型 Object,Object；ack→acknowledge；createGroup 3 参 + groupExists 重查（镜像 bridge）；range 用 String id Range.closed；pending count 参数是 long（anyLong）；PEL pending 构造 3 参；@{argLine} surefire 崩溃（common 先例 argLine 覆盖）；测试 MapRecord id/long/Duration/lenient 等 8 处。
+- 基建：docker-compose.yml 加 meilisearch:v1.8 服务（internal expose 7700、MEILI_MASTER_KEY 必填、meili_data 卷、healthcheck）+ docker-compose.prod.yml 加 backend-search（internal expose 9107、SEARCH_WORKER_ENABLED 默认 false、depends_on redis+meilisearch）；init-env.sh 生成 MEILI_MASTER_KEY；services/pom.xml 注册模块。
+- 验证：worker 6/6 + boot 1/1；reactor compile；compose dev/prod config PASS；git diff --check；commit 16cecd994。
+- gap：真实 Redis+Meili E2E 受 Docker Hub 网络阻塞未执行；SEARCH-003（backfill/delete/replay/watermark + /search 兼容）为下一 ready Task。
+
+## 2026-08-17 (SPLIT-003-slice-7 规划与上下文恢复)
+
+- 触发：继续既有 `run-development-loop` 目标；SEARCH-003 已完成，SPLIT-003-slice-6 仍因 contest intake/verdict 在 App local 而 grant revocation PARTIAL。
+- 事实链：ContestSubmissionBridge → ContestServiceImpl（资格检查、contest 行锁）→ SubmissionWritePort；App `DefaultSubmissionWritePort` 同步写 `contest_submissions`，backend-submission 当前拒绝 contest DTO；`SubmissionLifecycleEventContract` 已冻结 `SubmissionCreated` 但尚未发布。
+- 规划裁决（DEC-018）：增加显式 `submitContest` contract；generic `submit` 在两端拒绝 contest context；backend-submission 在同一本地事务写 `submissions`、`judge_outbox`、`submission_created_outbox`；App-Contest Inbox 幂等消费 `SubmissionCreated`，`SubmissionJudged` 缺关联时抛出可重试错误；Contest association 仍是 App owner，不搬表、不新增 broker。
+- 控制面：新增 `SPLIT-003-slice-7`（in_progress），更新 PLAN/RESUME/HANDOFF；保护既有 `.auto-flow` dirty changes，不 commit，不编辑已应用 migration。
+
+## 2026-08-17 (SPLIT-003-slice-7 完成，进入 SPLIT-005 final gate)
+
+- 实现：`submitContest` 成为唯一 contest command；普通 `submit` 在 App/backend-submission 拒绝 contest context；backend-submission 事务写 `submissions`、`judge_outbox`、`submission_created_outbox`；App-Contest 幂等消费 `SubmissionCreated`，关联缺失时 `SubmissionJudged` 可重试；remote verdict 从 durable created context 恢复 `contestId`。
+- 修复 review finding：移除 App ContestServiceImpl 跨远端 RPC 的长事务/行锁；admission 使用非锁读，owner writer 与本地 contest adapter 各自短事务并复核；新增 Noop contest-context 回读测试。
+- 验证：focused reactor 37/37、真实 MySQL writer/cutover 8/8、真实 MySQL+Redis outbox 5/5、schema grant 6/6、migration/cutover/rollback/validate disposable runbook PASS、Compose 双 config、bash -n、git diff --check；graphify update 因环境 Operation not permitted 未完成，记录为外部工具 gap。
+- 控制面：SPLIT-003/SPLIT-004 与 slice-6/7 reconciled done；SPLIT-005 in_progress，待 quick/verify/all-IT 与最终 gate 审计。
+
+## 2026-08-17 (SPLIT-005 final gate evidence)
+
+- `./scripts/dev/test.sh quick` first hit the pre-existing `ulticode-mysql` credential mismatch (`ERROR 1045`); the persistent container/volume was left untouched. A disposable MySQL phase-gate container was migrated with the canonical Flyway chain, then removed with its disposable volume after validation.
+- Against the isolated database/Redis: services full reactor `./mvnw test -B` PASS; `./mvnw verify -B` PASS; auth-core 70/70, Console 576/576, Management 423/423 and all three type-checks PASS. Compose base+dev/prod, `bash -n`, and `git diff --check` PASS.
+- Corrected services-wide `*IT` invocation reached unchanged `services/auth` `AccountManagementTransactionalIT.deleteAccountSoftDelete:164` (soft-delete row remains false); `git diff --name-only -- services/auth` is empty. Changed Submission/App writer, cutover, outbox, boot, contract and owner-grant suites remain green.
+- Final security/concurrency/architecture review: no confirmed Submission/Search findings. Compatibility writers/flags and App grants remain rollback-only; no production cutover, applied migration rewrite, or destructive reset was performed. SPLIT-005 stays `in_progress` pending retirement authority and clean all-IT evidence.

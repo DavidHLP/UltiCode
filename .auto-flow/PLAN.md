@@ -48,7 +48,7 @@ Out of scope：Contest 排名/滚榜独立化、Moderation 物理服务、Notifi
 
 ## Active Task / Dependencies
 
-`SPLIT-001` 与 `SPLIT-002` 已完成契约及 Submission/Judge runtime seam；storage owner、Search worker、consumer cutover 与最终 gate 仍未完成，不宣称两个服务已全部交付。下一条 ready task 为 `SEARCH-001`。
+`SPLIT-001`、`SPLIT-002`、`SEARCH-001`、`SEARCH-002`、`SEARCH-003`、`SPLIT-003`、`SPLIT-004` 已完成；当前 active task 为 `SPLIT-005` 最终 Phase Gate。Contest association 已迁为 SubmissionCreated durable inbox，最终 gate 仍未完成，不宣称两个服务已全部交付。
 
 `SPLIT-001 → SPLIT-002 → SPLIT-003 → SPLIT-004 → SPLIT-005`；`SPLIT-001 → SEARCH-001 → SEARCH-002 → SEARCH-003 → SPLIT-005`。仅依赖全部满足的 Task 可进入 `ready`。
 
@@ -62,6 +62,15 @@ Contracts 在 `services/api/app-api/.../event/` 与 `IntegrationEventPublisher/D
 2. `SPLIT-002`–`SPLIT-004`：建立 Submission runtime/remote seam，迁移存储唯一 writer，再切 Judge/Contest/Admin/Notification/App consumers。
 3. `SEARCH-001`–`SEARCH-003`：四类 source 接入 outbox，建立 Search worker，执行 backfill/replay 与读/写 owner cutover。
 4. `SPLIT-005`：执行最终 gate，才退役 compatibility writers/flags 并关闭目标。
+
+## Current execution packet — SPLIT-005 final Phase Gate
+
+1. Reconcile the owner/runtime matrix, route contract, compatibility adapters, grants, and explicit out-of-scope boundaries.
+2. Run `./scripts/dev/test.sh quick`, services `verify`, all `*IT` tests, Compose base+dev/prod config, and `git diff --check`.
+3. Complete the final security/concurrency/architecture review and record any external verification gaps without claiming completion.
+4. Preserve rollback as route/watermark/reconciliation only; do not rewrite applied migrations or run production/destructive cutover actions.
+
+Gate evidence collected 2026-08-17: isolated Flyway + MySQL/Redis services `test` and `verify` passed; auth-core/Console/Management quick-equivalent tests and type checks passed; Compose and diff checks passed. The repository quick wrapper is blocked by the existing `ulticode-mysql` credential mismatch (1045), and the corrected services-wide IT run reaches the unchanged auth soft-delete assertion failure. Compatibility retirement remains pending and no production cutover was performed.
 
 ## Compatibility / Rollback
 

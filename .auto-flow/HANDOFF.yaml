@@ -1,14 +1,18 @@
-outcome: blocked
+outcome: complete
 outputs:
+  - "Review Packet: this HANDOFF.yaml review block records Confirmed=0, Already Addressed startup findings and the focused rechecks"
   - "Execution Packet remains in .auto-flow/PLAN.md with the Service Contract Boundary Convergence scope, matched-release boundary, rollback rules and terminal gates"
   - "Owner matrix written to .auto-flow/CONTRACT-001-OWNER-MATRIX.md: 219 app-api top-level types and 66 nested declarations assigned to App, Submission, Notification, common/security, App facts or Judge-runtime"
   - "CONTRACT-001-COMMON is closed: eight Java-only common/security/metadata/value contracts moved to backend-common with consumers and tests migrated"
   - "CONTRACT-002 and CONTRACT-003 are complete: provider-owned API artifacts and all discovered callers/providers/tests/POMs are migrated"
   - "CONTRACT-004 and CONTRACT-005 are complete at the source boundary; CONTRACT-006 is complete with the canonical DTO codec/catalog and storage-edge mapping"
-  - "CONTRACT-007 source work is in progress: the default compat/App seam is restored, owner-local reaper and routing gates are implemented, and runtime defaults remain rollback-safe"
-  - "TASKS.yaml, RESUME.md, COVERAGE.md and this handoff record the sandbox, disposable grant and focused/full validation evidence; AUTO_PILOT_STATUS.yaml remains the separate historical objective"
+  - "SPLIT-005-retirement-authority remains the historical authority record; this open project has no production environment, so the local Docker/PM2 runtime is the authoritative target"
+  - "SPLIT-005-runtime-access and SPLIT-005-runtime-cutover-observation are complete locally: separate App/Submission credentials, preflight, remote/local routing, confirmation-gated copy/REVOKE, parity and stable runtime evidence are recorded"
+  - "CONTRACT-007 is closed: direct backend-submission write/fence providers remain, App duplicate providers and compat forwarders are deleted, and owner-mode gates are removed"
+  - "CONTRACT-008 is closed: final contract-boundary Review, Validation, Completion and Coverage Audit pass; all 49 ledger tasks are done"
+  - "TASKS.yaml, RESUME.md, COVERAGE.md and this handoff record the sandbox, disposable grant, owner-schema expand and focused/full validation evidence"
 evidence:
-  - "Recovery recheck 2026-08-18: codebase-memory project home-davidhlp-project-UltiCode is ready at head 34417d912, generation 2026-08-17T15:44:34Z, 40,044 nodes / 190,236 edges; all relied code paths have no recorded issue except SubmissionRoutingPort coverage unavailable, which was read directly from source"
+  - "Recovery recheck 2026-08-18: codebase-memory project home-davidhlp-project-UltiCode is ready at head 2f19a7f8e, generation 2026-08-17T17:10:15Z, 40,044 nodes / 190,250 edges; relied code paths have no recorded issue; flagged application-test paths were corrected and read directly, while the migration parse-partial ranges were read directly"
   - "Recovery recheck 2026-08-18: SubmissionProviderContractTest + JudgingLeaseReaperTest passed 5/0/0/0; app/app-web reactor compile passed; git diff --check, bash -n, and Compose dev/prod config with an ephemeral validation key passed"
   - "codebase-memory project ulticode generation 2026-08-17T06:05:20Z: 36,448 nodes / 173,902 edges; relevant app-api/service scopes covered, with direct-source fallback for missing POM and excluded non-code paths"
   - "graphify update after the CR repair: 27,577 nodes / 80,540 edges; Submission compat/local provider, owner reaper and consumer seams refreshed"
@@ -21,22 +25,33 @@ evidence:
   - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md §6.2/§13.2 documents common ownership and matched-release/no-alias constraints"
   - "SnakeYAML parse passed for TASKS.yaml, HANDOFF.yaml and AUTO_PILOT_STATUS.yaml; git diff --check and changed-file whitespace scans passed"
   - "Sandbox image/Testcontainers evidence is closed; disposable cutover/rollback and App grant allow→deny→allow passed; production route/default remains local by safety boundary"
-  - "Current validation: Submission Provider/Reaper focused 5/0/0/0, real MySQL SubmissionOwnerCutoverIT 4/0/0/0, real Redis JudgeStreamRedisIntegrationTest 4/0/0/0, app-web compile BUILD SUCCESS, and official integration post-run aggregate 823 reports / 2,720/0/0/24; disposable cutover/rollback and grant allow→deny→allow pass"
+  - "Current validation: Submission provider contract 4/4, real MySQL SubmissionOwnerCutoverIT 4/4, real Redis JudgeStreamRedisIntegrationTest 4/4, app-web compile BUILD SUCCESS, and official integration post-run aggregate 823 reports / 2,720/0/0/24; disposable cutover/rollback and grant allow→deny→allow pass"
+  - "Final validation: official quick and integration exited 0; `cd services && ./mvnw verify -B` exited 0 with BUILD SUCCESS; YAML/Compose/bash/diff checks passed"
+  - "Final safety gate: production/dev Compose config passes with explicit owner variables, bash -n passes, and preflight fails closed for the current ulticode schema-wide DML account before copy or REVOKE"
+  - "Historical runtime blocker audit was superseded by local execution: after Nacos start and clean PM2 restart, all six services are online with restarts=0 and MySQL/Redis/Nacos are healthy"
+  - "Loop revalidation: Task Ledger YAML/dependency/status/secret scan passed (49 tasks, 60 dependencies); bash -n, git diff --check, Compose base+dev/prod and runtime diagnostic passed; current preflight rejected schema-wide DML before copy/REVOKE as designed"
+  - "Local permission proof is now connected to the real runtime: App source-table DML is zero, Submission owner schema DML is four, source/target rows and checksums match, and public health endpoints are HTTP 200"
+  - "Submission startup blockers fixed at their common seam: Auth datasource YAML is under `spring`, App local SubmissionUserReadAdapter is `@Primary`, and the three Submission Dubbo adapter wrappers are `@Primary` over their same-type reference proxies"
+  - "Final focused Maven check: `./mvnw -pl submission -am test -B` exited 0 after all three adapter fixes"
   - "Current source review found no confirmed finding in the restored compatibility seam, owner reaper/CAS path, route gates, integration selector or control-plane evidence"
+  - "Final local change review found no Confirmed Finding: direct providers, scheduler lifetime, route/grant rollback, docs and control-plane state are consistent; direct source and graph/coverage checks found no alternate Submission consumer requiring another selection"
 review:
   status: pass
   scope: "CR scope for CONTRACT-007: backend-submission compat/local providers, App backend-app seam, owner reaper/CAS/outbox path, routing gates, provider/reference identities, integration selector, docs and metadata"
   confirmed_findings: []
-  execution_note: "Parent performed bounded local standards/spec/security review against the final diff, direct source and graph/coverage evidence. Compatibility/default-local data-loss path, owner reaper, revoked-grant scheduler gates, Redis integration selector and metadata corrections have no confirmed finding; production route/runtime observation remains external."
+  execution_note: "Parent performed bounded local standards/spec/security review against the final diff, direct source and graph/coverage evidence. Direct provider registration, App duplicate removal, owner scheduler lifetime, rollback boundaries and local runtime health have no confirmed finding."
 validation:
   tier: C
-  risk_reason: "The task changes cross-service provider registration, storage ownership/configuration, a Redis integration timing boundary and the migration runbook while preserving production defaults; production route and runtime observation remain gated"
+  risk_reason: "The task changes cross-service provider registration, storage ownership/configuration and runtime startup wiring; the local target was exercised with real MySQL/Redis/Nacos and clean PM2 restart evidence"
   status: pass
   checks:
+    - "Official `MEILI_MASTER_KEY=local-test-only-placeholder ./scripts/dev/test.sh quick` exited 0 after the startup fixes"
     - "Submission Provider/Reaper focused tests: 5/0/0/0; real MySQL SubmissionOwnerCutoverIT: 4/0/0/0; real Redis JudgeStreamRedisIntegrationTest: 4/0/0/0; app-web reactor compile BUILD SUCCESS"
     - "Official integration wrapper exited 0; post-run Surefire aggregate: 823 reports, 2,720 tests, 0 failures, 0 errors, 24 skips; SandboxForkE2EIT 6/0/0/0, SandboxNamespaceIsolationIT 6/0/0/0, JudgeStreamRedisIntegrationTest 4/0/0/0 and SubmissionOwnerCutoverIT 4/0/0/0"
+    - "Services `./mvnw verify -B` exited 0 with BUILD SUCCESS; direct provider contract tests 4/4 and renamed owner IT 4/4 pass"
     - "Disposable MySQL owner-first migration, checksum preflight/cutover/rollback and App grant allow→deny→allow pass"
-    - "Production/dev Compose config with ephemeral MEILI_MASTER_KEY, bash -n, compat/local provider and owner-mode/route static scans, and control-plane YAML validation pass"
+    - "Production/dev Compose config with ephemeral MEILI_MASTER_KEY, bash -n, compat/local provider and owner-mode/route static scans, control-plane YAML validation, and official quick/integration wrappers pass"
+    - "Blocker plan review and control-plane validation pass; local runtime diagnostic confirms six PM2 services online with zero restarts, healthy infrastructure and post-cutover grants"
     - "graphify update . at 27,577 nodes/80,540 edges; git diff --check passes"
 failures_failed: []
 failures_fixed:
@@ -44,15 +59,18 @@ failures_fixed:
   - "Replanned the seven-to-eight implementation-free common/security/metadata types into CONTRACT-001-COMMON"
   - "Made the dead SubmissionNotificationPort disposition deterministic: remove unless a separately planned caller is discovered"
   - "Removed the implementation-only SubmissionMapper Javadoc reference from submission-api UserBestStats after final boundary scan"
-external_gaps:
-  - "Production release owner authority is still required to set APP_SUBMISSION_ROUTING_MODE=remote + APP_SUBMISSION_OWNER_MODE=local, revoke App grants, and observe the real single-hop/single-writer runtime"
-next_goal: "Use an explicitly approved production release window for APP_SUBMISSION_ROUTING_MODE=remote + APP_SUBMISSION_OWNER_MODE=local, then run the final CONTRACT-007 runtime observation and CONTRACT-008 Completion Audit"
-next_skill: run-development-loop
-reason: "The CR repair and local/real-container validation are complete; production route/grant release authority and runtime observation remain unavailable"
+  - "User clarified this is an open local project with no production environment; local Submission owner Flyway expand, preflight, cutover and runtime observation were therefore authorized"
+  - "Production Compose now requires explicit Submission DB/Redis owner variables; cutover preflight rejects schema-wide App DML grants, and current ulticode account fails that gate as expected"
+  - "Moved Auth datasource, Redis, Jackson, Flyway and mail configuration under spring so backend-auth can bind its DataSource"
+  - "Resolved App and Submission same-type Spring candidates at their adapter seams with @Primary; no caller-side qualifiers or parallel provider architecture were added"
+external_gaps: []
+next_goal: []
+next_skill: none
+reason: "Objective-level Acceptance、Coverage、Review、Validation、Git/Task/Evidence 一致性与本地交付边界全部通过；项目没有 production environment，也未执行生产动作。"
 alternatives:
   - "Leave all types in app-api: rejected because the final App-only gate would remain false"
   - "Put business DTOs/entities/mappers in backend-common: rejected by DEC-011 and common ArchUnit boundaries"
   - "Keep old FQCN aliases or a mixed rollout: rejected by the matched-release/no-alias rule"
-  - "Change production route/grants now: deferred because this turn authorizes rollback-able local/disposable work, not a production release"
-blockers:
-  - "CONTRACT-007 production runtime observation requires a release window with APP_SUBMISSION_ROUTING_MODE=remote + APP_SUBMISSION_OWNER_MODE=local and explicit grant-revocation authority"
+  - "Use the pre-repair schema-wide account: rejected before local grant repair because table-only REVOKE would be ineffective; the local account was repaired and revalidated"
+  - "Claim a production cutover: rejected because this open project has no production environment; the evidence is explicitly local"
+blockers: []

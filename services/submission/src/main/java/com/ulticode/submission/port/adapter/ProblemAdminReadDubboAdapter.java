@@ -10,6 +10,7 @@ import com.ulticode.app.api.dto.ProblemAdminTestCaseDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -28,6 +29,7 @@ import java.util.List;
  * silently returning null.
  */
 @Component
+@Primary
 public class ProblemAdminReadDubboAdapter implements ProblemAdminReadPort {
 
     @DubboReference(group = "backend-app", version = "1.0.0",

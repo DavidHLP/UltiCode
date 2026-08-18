@@ -211,3 +211,44 @@
 - **Consequences**: The API boundary can be consumed at the next matched release, while the current runtime remains
   reversible. Coverage row 76 stays PARTIAL; CONTRACT-008 cannot close until CONTRACT-007 is authorized and verified.
 - **Affected Tasks**: CONTRACT-004, CONTRACT-005, CONTRACT-006, CONTRACT-007, CONTRACT-008.
+
+## DEC-023: Production cutover requires explicit owner credentials and table-scoped App grants
+
+- **Context**: The release owner explicitly authorized the production cutover on 2026-08-18. The available
+  persistent MySQL target has an empty, successfully migrated `submission` schema, but its active `ulticode` user
+  owns schema-wide `ALL` privileges and has no table-scoped grant posture. No App or Submission runtime is active on
+  this host, so revoking only named table grants cannot prove single-writer behavior.
+- **Decision**: Keep the cutover runbook fail-closed until the real App runtime account is identified and has only
+  table-scoped grants for the source Submission tables. Production Compose must require explicit
+  `SUBMISSION_DB_*` and Redis owner credentials rather than falling back to App `DB_*` or container `localhost`.
+  Do not revoke schema-wide privileges or cut over an inactive/non-production account.
+- **Alternatives**: revoke named tables from `ulticode` (rejected: schema-wide `ALL` still permits writes); use
+  `app_rw` without changing the active App runtime (rejected: it would revoke grants from the wrong account); proceed
+  with route-only remote/local (rejected: data ownership and grant gate would remain unproven).
+- **Consequences**: owner schema expansion is complete and source data is unchanged; actual copy/REVOKE/route switch
+  waits for the deployment host's App account and running App/Submission observation window.
+- **Affected Tasks**: SPLIT-005-retirement-authority, CONTRACT-007, CONTRACT-008.
+
+## DEC-024: Split authority approval from runtime access and cutover observation
+
+- **Context**: The release owner explicitly approved production route/grant retirement, and the authority/preflight contract is now recorded. The remaining failure is operational: the available host has no App/Submission runtime, Nacos is stopped, and its active `ulticode` account has schema-wide DML, so it cannot safely prove or execute a single-writer cutover.
+- **Decision**: Close only `SPLIT-005-retirement-authority`. Add `SPLIT-005-runtime-access` for deployment-host, account, owner-credential and runtime prerequisite evidence; keep it `blocked` until those external inputs exist. Add `SPLIT-005-runtime-cutover-observation` as the sole route/copy/REVOKE/single-writer execution task, then let CONTRACT-007 and CONTRACT-008 consume its evidence.
+- **Alternatives**: use the current `ulticode` account (rejected because schema-wide DML defeats table-only REVOKE); provision a local substitute account/runtime (rejected because it is not the authorized deployment target); execute route-only (rejected because data ownership and single-writer evidence would remain false).
+- **Consequences**: No additional business code, migration, grant, route or deployment change is required locally. The next action is an external deployment-host inventory; secrets remain outside `.auto-flow`.
+- **Affected Tasks**: SPLIT-005, SPLIT-005-runtime-access, SPLIT-005-runtime-cutover-observation, CONTRACT-007, CONTRACT-008.
+
+## DEC-025: This open project uses the local runtime as the cutover target
+
+- **Context**: The user clarified on 2026-08-18 that UltiCode is an open local project with no production environment. The prior external deployment-host blocker therefore does not apply to the requested work.
+- **Decision**: Treat the local Docker/PM2 stack, local MySQL accounts and local Nacos/Redis as the authoritative runtime target. Keep credentials ephemeral and out of `.auto-flow`; do not infer or claim any production deployment.
+- **Evidence**: Local preflight, confirmation-gated Submission schema cutover, App source-table grant revocation, source/target row/checksum parity, six PM2 services with zero restarts, and public Auth/Admin/App/Notification health checks all pass.
+- **Consequences**: `SPLIT-005-runtime-access` and `SPLIT-005-runtime-cutover-observation` are done locally. `CONTRACT-007` remains open only for physical compatibility-provider retirement, and `CONTRACT-008` remains the final source/review audit.
+- **Affected Tasks**: SPLIT-005-runtime-access, SPLIT-005-runtime-cutover-observation, CONTRACT-007, CONTRACT-008.
+
+## DEC-026: Local Submission cutover retires the compatibility registration
+
+- **Context**: The local target has completed the confirmation-gated schema cutover, App grant revocation and remote-route observation. `backend-submission` still exposed a provider that selected either an App Dubbo reference or a local writer through `app.submission.owner.mode`, while App still exposed the duplicate `backend-app` write/fence provider.
+- **Decision**: Make `backend-submission`'s write/fence providers direct delegates to its local writer/fence, delete the App duplicate providers and remove the owner-mode configuration/conditional gates. Keep App's local adapters only as the explicit route rollback path; do not add an alias or a second compatibility registration.
+- **Alternatives**: Keep the compat provider disabled by property (rejected: the retired two-hop registration and owner-mode branch would remain in the source); delete the local writer (rejected: it is the Submission owner and required by the direct provider); modify schema/migrations (rejected: no schema change is needed).
+- **Consequences**: The regular remote path has one `backend-submission` provider and one Submission writer; rollback requires the prior verified artifact plus the existing route/grant/watermark/reconciliation runbook. No applied migration or remote state changes.
+- **Affected Tasks**: CONTRACT-007, CONTRACT-008.

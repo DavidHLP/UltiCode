@@ -1,4 +1,4 @@
-package com.ulticode.submission.compat;
+package com.ulticode.submission.provider;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
@@ -25,6 +25,8 @@ import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
+import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -44,7 +46,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 import java.time.Clock;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,19 +57,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * SPLIT-003 slice-4: cutover provider local mode against a real MySQL container.
+ * CONTRACT-007: direct Submission-owner providers against a real MySQL container.
  *
- * <p>Verifies that {@code app.submission.owner.mode=local} makes the
- * {@code backend-submission} Dubbo providers delegate to the in-process
- * Submission-schema writer/fence instead of forwarding to App: a submit lands
- * in the {@code submission} schema tables, and the local fence
+ * <p>Verifies that the {@code backend-submission} Dubbo providers delegate
+ * directly to the in-process Submission-schema writer/fence: a submit lands
+ * in the {@code submission} schema tables, and the owner fence
  * ({@link DefaultSubmissionFencePort}) acquires/renews the generation lease
- * via the copied {@link SubmissionMapper} CAS statements. The default
- * {@code compat} mode keeps forwarding to App and is covered by the compat
- * contract test.
+ * via the copied {@link SubmissionMapper} CAS statements.
  */
 @Testcontainers
-@DisplayName("SPLIT-003 slice-4: cutover provider local mode")
+@DisplayName("CONTRACT-007: direct Submission owner providers")
 class SubmissionOwnerCutoverIT {
 
     @Container
@@ -216,12 +214,6 @@ class SubmissionOwnerCutoverIT {
         }
     }
 
-    private static void setOwnerMode(Object provider, String mode) throws Exception {
-        Field field = provider.getClass().getDeclaredField("ownerMode");
-        field.setAccessible(true);
-        field.set(provider, mode);
-    }
-
     private DefaultSubmissionWritePort newLocalWriter() {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         FeatureFlagsProperties flags = new FeatureFlagsProperties();
@@ -293,12 +285,10 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("local mode: write provider delegates to the Submission-schema writer")
-    void writeProviderLocalModeWritesSubmissionSchema() throws Exception {
+    @DisplayName("write provider delegates to the Submission-schema writer")
+    void writeProviderWritesSubmissionSchema() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
-        SubmissionWriteCompatibilityProvider provider =
-                new SubmissionWriteCompatibilityProvider(providerOf(localWriter));
-        setOwnerMode(provider, "local");
+        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
 
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -315,8 +305,8 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("local mode: fence provider acquires and renews the generation lease")
-    void fenceProviderLocalModeAcquiresAndRenewsLease() throws Exception {
+    @DisplayName("fence provider acquires and renews the generation lease")
+    void fenceProviderAcquiresAndRenewsLease() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -326,9 +316,7 @@ class SubmissionOwnerCutoverIT {
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
-        SubmissionFenceCompatibilityProvider provider =
-                new SubmissionFenceCompatibilityProvider(providerOf(localFence));
-        setOwnerMode(provider, "local");
+        SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
 
         String attemptId = UUID.randomUUID().toString();
         boolean acquired = provider.acquireLease(submissionId, attemptId, 1L, 60);
@@ -343,8 +331,8 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("local mode: fence CAS rejects a stale generation")
-    void fenceProviderLocalModeRejectsStaleGeneration() throws Exception {
+    @DisplayName("fence CAS rejects a stale generation")
+    void fenceProviderRejectsStaleGeneration() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
@@ -354,9 +342,7 @@ class SubmissionOwnerCutoverIT {
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
-        SubmissionFenceCompatibilityProvider provider =
-                new SubmissionFenceCompatibilityProvider(providerOf(localFence));
-        setOwnerMode(provider, "local");
+        SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
 
         boolean acquired = provider.acquireLease(submissionId, "stale-attempt", 99L, 60);
         session.commit();
@@ -367,7 +353,7 @@ class SubmissionOwnerCutoverIT {
     }
 
     @Test
-    @DisplayName("local mode: owner reaper resets an expired lease and records a real outbox row")
+    @DisplayName("owner reaper resets an expired lease and records a real outbox row")
     void ownerReaperRecoversExpiredLeaseInSubmissionSchema() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
         CreateSubmissionDTO dto = new CreateSubmissionDTO();

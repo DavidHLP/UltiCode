@@ -5,7 +5,6 @@ import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
 import com.ulticode.modules.submission.result.ResultEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -18,9 +17,6 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(
-        name = "app.submission.owner.mode",
-        havingValue = "local")
 public class SubmissionCreatedDispatcher {
 
     private static final int BATCH_SIZE = 50;

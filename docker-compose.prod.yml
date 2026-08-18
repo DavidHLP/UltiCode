@@ -233,6 +233,17 @@ services:
           memory: 768M
           cpus: "1.0"
     environment:
+      # Submission owner must use its own provisioned credential. Do not fall
+      # back to DB_USER: the runtime owner account is part of the cutover gate.
+      - SUBMISSION_DB_HOST=${SUBMISSION_DB_HOST:-mysql}
+      - SUBMISSION_DB_PORT=${SUBMISSION_DB_PORT:-3306}
+      - SUBMISSION_DB_NAME=${SUBMISSION_DB_NAME:-submission}
+      - SUBMISSION_DB_USER=${SUBMISSION_DB_USER:?SUBMISSION_DB_USER is required}
+      - SUBMISSION_DB_PASSWORD=${SUBMISSION_DB_PASSWORD:?SUBMISSION_DB_PASSWORD is required}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_DB=${REDIS_DB:-0}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
@@ -244,7 +255,6 @@ services:
       - SUBMISSION_SERVER_PORT=9106
       - SUBMISSION_DUBBO_PORT=20886
       - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
-      - APP_SUBMISSION_OWNER_MODE=${APP_SUBMISSION_OWNER_MODE:-compat}
     depends_on:
       backend-app:
         condition: service_healthy

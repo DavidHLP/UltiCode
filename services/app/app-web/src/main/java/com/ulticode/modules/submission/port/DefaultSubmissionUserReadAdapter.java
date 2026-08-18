@@ -9,6 +9,7 @@ import com.ulticode.common.rpc.RpcResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.stream.StreamSupport;
  */
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class DefaultSubmissionUserReadAdapter implements SubmissionUserReadPort {
 

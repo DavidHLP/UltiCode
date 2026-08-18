@@ -5,6 +5,7 @@ import org.apache.dubbo.config.annotation.DubboReference;
 
 import java.util.Collection;
 import java.util.Map;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  * problem tables.
  */
 @Component
+@Primary
 public class ProblemFactsDubboAdapter implements ProblemFactsPort {
 
     @DubboReference(group = "backend-app", version = "1.0.0",

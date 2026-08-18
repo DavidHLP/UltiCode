@@ -412,3 +412,95 @@
   and both sandbox suites 6/6.
 - Final graphify refresh: 27,577 nodes / 80,540 edges. Production route/grant/REVOKE and deployment remain
   intentionally unperformed; `SPLIT-005-retirement-authority` remains externally gated.
+
+## 2026-08-18 (production cutover authority and owner-schema expand)
+
+- The user explicitly approved the production release/cutover authority. The first read-only preflight reached the
+  persistent `ulticode-mysql` database and found `ulticode.submissions=126`, `judge_outbox=0`,
+  `submission_result_outbox=37`, with no target `submission` schema.
+- Owner-schema migration first failed with runtime user `ulticode` (MySQL 1044). After using the container's root
+  migration credential without printing it, Flyway applied the three Submission owner migrations successfully.
+  The failed attempt left one empty target-only table; it was verified empty, removed, and the migration was rerun from
+  an empty schema. Source rows were not copied or changed.
+- Root preflight verified all four target tables exist and are empty, but correctly refused cutover because the active
+  `ulticode` account has schema-wide `ALL` and no table-scoped App grants; no copy, REVOKE, route change or runtime
+  deployment was performed.
+- Production Compose now requires explicit Submission owner DB/Redis variables, `.env.example` documents the owner
+  and App grant inputs, and the migration guide records the fail-closed account rule. DEC-023 records the decision.
+
+## 2026-08-18 (Completion/Coverage Audit and external handoff)
+
+- Official quick and integration wrappers exited 0 with `BUILD SUCCESS`; final Surefire aggregate is 823 reports,
+  2,720 tests, 0 failures, 0 errors and 24 skips. Compose base+dev/prod, YAML parsing, `bash -n`, `git diff --check`,
+  focused owner checks and the fail-closed schema-wide-grant preflight all pass.
+- Review Confirmed Findings remain 0. Completion/Coverage Audit closes all repository-side work but leaves
+  CONTRACT-007/SPLIT-005-retirement-authority in progress because the authorized deployment host, actual table-scoped
+  App account, owner credentials and running App/Submission observation window are unavailable here.
+- No source rows were copied, no App grants were revoked, and no production route or deployment was changed. Handoff
+  is blocked with `next_skill: none` until the external runtime gate is supplied.
+
+## 2026-08-18 (blocker-resolution plan)
+
+- Replanned the final gate after the user approved release/cutover authority: `SPLIT-005-retirement-authority` now
+  closes only the authority/preflight contract; it does not imply runtime cutover.
+- Added `SPLIT-005-runtime-access` (blocked) for the authorized deployment host, actual table-scoped App account,
+  separate Submission owner credentials and App/Submission/Nacos/Redis prerequisites. Added
+  `SPLIT-005-runtime-cutover-observation` (pending) as the sole production route/copy/REVOKE/single-writer Task.
+- Read-only evidence confirms the current host cannot satisfy runtime access: no App/Submission PM2 stack, Nacos
+  exited, and active `ulticode` has schema-wide DML. No local Ready Task exists; no production state was changed.
+
+## 2026-08-18 (run-development-loop blocker revalidation)
+
+- Recovery rechecked the indexed project and persistent control plane. Review of the blocker DAG found 49 tasks and
+  60 dependencies with no duplicate/unknown dependency, status mismatch or secret-like control-plane value.
+- Validation passed: control YAML, `bash -n`, `git diff --check`, Compose base+dev/prod config and runtime diagnostic.
+  The real preflight again rejected the active `ulticode` schema-wide DML account before copy/REVOKE.
+- No Ready Task exists: `SPLIT-005-runtime-access` remains blocked; observation, CONTRACT-007 and CONTRACT-008 remain
+  downstream. No business implementation, production route, grant, deployment or commit was performed.
+
+## 2026-08-18 (local permission blocker proof)
+
+- Provisioned two uniquely named temporary MySQL accounts only in the disposable local container: an App account with
+  12 table-level DML privileges across `ulticode.submissions`, `judge_outbox` and `submission_result_outbox`, and a
+  separate Submission owner account with 4 schema-level DML privileges on `submission.*`. No credentials were saved.
+- With root used only as the local migration operator, read-only preflight passed; confirmation-gated local cutover and
+  rollback passed; source row counts/checksums remained unchanged; App grants were restored and all four target tables
+  were cleaned back to zero rows. Temporary accounts and passwords were then removed.
+- This closes the local permission proof only. `SPLIT-005-runtime-access` remains blocked because the authorized
+  deployment host, real runtime accounts and App/Submission/Nacos/Redis observation window are still unavailable.
+
+## 2026-08-18 (local runtime blocker closure)
+
+- User clarified that UltiCode is an open local project with no production environment; local Docker/PM2 is the target.
+- Started Nacos, provisioned a separate ephemeral `submission_rw` owner account, repaired App source-table grants,
+  passed read-only preflight, and completed the confirmation-gated Submission cutover with source/target parity.
+- Fixed the actual startup blockers at the adapter/config seams: Auth datasource/data/flyway/mail are under `spring`,
+  App `DefaultSubmissionUserReadAdapter` is `@Primary`, and Submission ProblemFacts/UserRead/ProblemAdmin Dubbo
+  adapters are `@Primary` over their same-type Dubbo reference proxies.
+- Maven Submission tests/install passed; after a clean PM2 restart all six services are online with restarts=0,
+  Auth/Admin/App/Notification public health endpoints return HTTP 200, and MySQL/Redis/Nacos are healthy.
+- Final local grant/parity evidence: App schema DML=0, App DML on the three source tables=0, owner schema DML=4,
+  owner account unlocked, rows/checksums 126/0/37 match between `ulticode` and `submission`.
+- Reconciled AUTO_PILOT_STATUS, TASKS, COVERAGE, PLAN, DECISIONS, RESUME and HANDOFF; remaining work is
+  CONTRACT-007 compatibility-provider retirement and CONTRACT-008 final audit, not a runtime blocker.
+
+## 2026-08-18 (CONTRACT-007 direct provider retirement)
+
+- Replaced the Submission compat write/fence forwarders with direct `backend-submission` owner providers,
+  deleted the App `backend-app` duplicate write/fence providers, and removed `app.submission.owner.mode` from
+  Submission configuration and owner scheduler gates.
+- Updated the provider contract and real-MySQL owner IT to assert direct local delegation, with no App Dubbo
+  reference; the focused `./mvnw -pl submission -am test -B` passed after one missing-test-import correction.
+- Updated the migration guide, runbook comments, DEC-026 and active control-plane resume/evidence. Full Review,
+  official quick/integration, runtime and Completion/Coverage Audit remain before closing CONTRACT-007/008.
+
+## 2026-08-18 (CONTRACT-007/008 final close)
+
+- Renamed the Submission owner cutover IT into the provider package and removed the remaining local-mode test naming;
+  graphify was refreshed to 27,583 nodes / 80,422 edges and the moved test passed 4/4 alongside the provider contract 4/4.
+- Final Review found Confirmed Findings=0. Official quick and integration exited 0; integration aggregated 823 reports,
+  2,720 tests, 0 failures, 0 errors and 24 skips; services `verify` exited 0 with BUILD SUCCESS; Compose, YAML, bash and
+  diff checks passed.
+- CONTRACT-007 (direct Submission provider retirement) and CONTRACT-008 (final contract-boundary audit) are done;
+  SPLIT-005 is also closed. All 49 ledger tasks are done, no Ready/blocked task remains, and no commit/push/deploy or
+  production action was performed. The known real-Meili mirror E2E gap remains explicitly recorded in Search coverage.

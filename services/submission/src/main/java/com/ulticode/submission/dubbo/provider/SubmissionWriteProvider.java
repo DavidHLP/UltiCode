@@ -1,4 +1,4 @@
-package com.ulticode.app.dubbo.provider;
+package com.ulticode.submission.dubbo.provider;
 
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.context.annotation.Profile;
 
-/** Exposes App-owned submission writes to backend-submission compat mode. */
-@DubboService(group = "backend-app", version = "1.0.0")
+/** Direct Submission-owner provider for the write and verdict contract. */
+@DubboService(group = "backend-submission", version = "1.0.0")
 @Profile("!test")
 @RequiredArgsConstructor
 public class SubmissionWriteProvider implements SubmissionWritePort {

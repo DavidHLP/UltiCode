@@ -6,14 +6,14 @@ scope:
   - "建立 backend-submission-api 与 backend-notification-api，并迁移 callers/providers/tests"
   - "在明确 authority 与运行时证据后完成 Submission single-writer/codec/catalog closure"
 out_of_scope:
-  - "未授权的 production/shared-DB route、grant、REVOKE、部署、commit、push、merge 或 destructive reset"
+  - "超出本地开放项目范围的远端/共享环境变更、commit、push、merge 或 destructive reset"
   - "新增 broker、HTTP API、业务表、跨 owner SQL/2PC、共享 Entity/Mapper 或永久 alias"
   - "物理拆分 Contest、Moderation、Notification delivery worker 或重做 Search worker"
 terminal_condition:
   - "app-api 只保留 App-owned contracts 与显式 App fact/recipient exceptions"
   - "Submission/Notification API artifacts、所有 callers/providers/tests/POM 与 contract evidence 完成"
   - "Submission codec/status catalog 唯一化，single-hop/single-writer 与授权 cutover rollback evidence 完成"
-  - "CONTRACT-008 review/validation/Completion Audit 通过；不绕过既有 SPLIT-005 blockers"
+  - "CONTRACT-008 review/validation/Completion Audit 通过；本地 direct Submission provider、single-writer 与回滚边界已收敛"
 nodes:
   - id: CONTRACT-001
     goal: "冻结 app-api owner matrix、例外集合、模块包名、Dubbo identity 与 matched release"
@@ -50,25 +50,37 @@ nodes:
       - CONTRACT-004
   - id: CONTRACT-007
     goal: "在授权后完成 Submission single-hop/single-writer cutover 与 compat retirement"
-    status: blocked
+    status: done
     depends_on:
       - CONTRACT-004
       - CONTRACT-006
       - SPLIT-005-retirement-authority
+      - SPLIT-005-runtime-cutover-observation
   - id: CONTRACT-008
     goal: "完成最终 contract-boundary review、validation、docs 与 Completion Audit"
-    status: pending
+    status: done
     depends_on:
       - CONTRACT-005
       - CONTRACT-006
       - CONTRACT-007
   - id: SPLIT-005-env-sandbox
     goal: "取得真实 sandbox image 与稳定 Docker/Testcontainers evidence"
-    status: blocked
+    status: done
   - id: SPLIT-005-retirement-authority
     goal: "取得 compatibility route/grant retirement 的明确 release/cutover authority"
-    status: blocked
-resume_point: "CONTRACT-002 through CONTRACT-006 are closed at the source-boundary/codec stage; CONTRACT-007 remains blocked pending explicit release authority and runtime evidence"
+    status: done
+  - id: SPLIT-005-runtime-access
+    goal: "建立授权部署主机与 Submission/App 账号权限姿态"
+    status: done
+    depends_on:
+      - SPLIT-005-retirement-authority
+  - id: SPLIT-005-runtime-cutover-observation
+    goal: "在授权部署主机执行 Submission remote/local 切流与 single-writer 观察"
+    status: done
+    depends_on:
+      - SPLIT-005-runtime-access
+      - SPLIT-005-retirement-authority
+resume_point: "CONTRACT-001 through CONTRACT-008 and the local SPLIT-005 runtime access/cutover observation are closed; no dependent task remains in this objective"
 historical_objective:
   objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
   status: complete

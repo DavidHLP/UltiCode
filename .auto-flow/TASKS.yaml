@@ -1041,7 +1041,7 @@ tasks:
       - "SEARCH-003"
       - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
       - "AGENTS.md"
-    status: in_progress
+    status: done
     depends_on:
       - "SPLIT-004"
       - "SEARCH-003"
@@ -1066,10 +1066,12 @@ tasks:
       - "After SPLIT-005-env-quick, official `./scripts/dev/test.sh quick` passes by detecting the stale root credential and using local `mysql:8.0` on an ephemeral loopback port; the temporary container/env are cleaned up."
       - "Auth IT fixture drift fixed without production changes: `AccountManagementTransactionalIT` now creates the canonical `search_document_changed_outbox`; focused class 5/5 and auth `*IT` 10/10 pass."
       - "`InboxConsumerTransactionIT` stale exact-error assertion narrowed to class containment; focused 5/5 pass. Official `*IT,*IntegrationTest` integration completed with sandbox image present; `SandboxNamespaceIsolationIT` and `SandboxForkE2EIT` both executed 6/6 with 0 failures/errors/skips."
-      - "Final CR review found no confirmed Submission/Search findings; compatibility writers/flags and App grants remain explicitly rollback-only, so retirement and the objective-level gate are not claimed complete."
+      - "Final CR review found no confirmed Submission/Search findings; direct Submission provider retirement, App grant revocation and local runtime observation are complete"
+      - "Local Docker/PM2 is the only target for this open project; MySQL/Redis/Nacos plus six services are healthy, and no production environment or production action is claimed"
+      - "Known real-Meili mirror E2E remains explicitly recorded as an external SEARCH coverage gap; no Contest ranking, Moderation physical split or Notification physical split is claimed"
     commits: []
-    notes: "仅此 Gate 通过后才可对外宣称两个独立微服务完成；未完成前 handoff 必须保留 active task。"
-    updated_at: "2026-08-17T23:31:00+08:00"
+    notes: "最终 Phase Gate 已通过；Submission/Search owner/runtime matrix、验证层级、回滚边界和明确 out-of-scope 项均记录完毕，未执行 commit/push/deploy 或生产动作。"
+    updated_at: "2026-08-18T13:45:02+08:00"
   - id: SPLIT-005-env-quick
     title: "使官方 quick 对既有 MySQL 凭据漂移安全隔离"
     source:
@@ -1132,27 +1134,88 @@ tasks:
       - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
       - "scripts/dev/submission-schema-cutover.sh"
       - "docker-compose.prod.yml"
-    status: blocked
+    status: done
     depends_on:
       - "SPLIT-005-env-quick"
       - "SPLIT-005-env-sandbox"
     acceptance_criteria:
       - "release owner 明确授权 runtime route 从 local/compat 切到 remote/local，并授权撤销 App 对源 submission tables 的 grants"
       - "授权前只执行 read-only preflight，核对 source/target checksum、outstanding events、contest compatibility read path 与 rollback watermark"
-      - "授权后才可按 runbook 执行 cutover/REVOKE；任何失败恢复 route/grant/watermark，不改 applied migration、不 destructive reset"
+      - "authority record 明确 cutover/REVOKE 的执行门槛与失败 rollback 边界；实际 runtime cutover 独立由 SPLIT-005-runtime-cutover-observation 承担"
     validation:
       - "read-only submission-schema-cutover.sh preflight evidence"
       - "release/cutover authority record"
-      - "post-cutover single-writer and rollback verification"
+      - "authority-to-execution handoff and rollback contract review"
     rollback:
       - "未获授权保持 local/compat 和 grants；获授权后的失败只走 runbook rollback"
     evidence:
-      - "用户于 2026-08-17 明确授权所有可回滚的本地/disposable 操作；本次只在 disposable MySQL 执行 cutover/rollback，不执行生产 route/grant/REVOKE；未提供 production release owner 的切流授权记录"
+      - "用户于 2026-08-18 明确授权 production release/cutover；持久库 owner-schema expand 已完成，但真实 App 账号仍以 schema-wide ALL 运行，故安全 preflight 拒绝 copy/REVOKE"
       - "fresh disposable MySQL 按 owner migration → main/shared migration 顺序完成；read-only preflight、cutover、rollback 均通过，source/target checksums 保持一致"
       - "grant observation: App user pre-cutover SELECT=allowed，cutover 后=denied，rollback 后=allowed；`DISPOSABLE_GRANT_CUTOVER=PASS` 与 `DISPOSABLE_GRANT_ROLLBACK=PASS`"
     commits: []
-    notes: "本地/disposable rollback authority 已闭合；production release、默认 route 和 production grants 仍受显式运维发布边界保护，保持 blocked。"
-    updated_at: "2026-08-17T23:31:00+08:00"
+    notes: "authority slice 已完成；实际部署目标、表级 App account、owner credentials 与运行观察窗由后续 runtime tasks 负责。"
+    updated_at: "2026-08-18T03:35:00+08:00"
+  - id: SPLIT-005-runtime-access
+    title: "建立授权部署主机与 Submission/App 账号权限姿态"
+    source:
+      - "SPLIT-005"
+      - "SPLIT-005-retirement-authority"
+      - "scripts/dev/submission-schema-cutover.sh"
+      - "docker-compose.prod.yml"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
+    status: done
+    depends_on:
+      - "SPLIT-005-env-quick"
+      - "SPLIT-005-env-sandbox"
+      - "SPLIT-005-retirement-authority"
+    acceptance_criteria:
+      - "授权部署主机、匹配 release artifact、rollback window 与 App/Submission/Nacos/Redis runtime target 已确认；不把 secret 写入 .auto-flow"
+      - "实际 App DB account 已确认且对 ulticode.submissions、judge_outbox、submission_result_outbox 只有表级 DML；不存在 source schema-wide DML"
+      - "Submission owner account 已单独 provision/unlock，使用 SUBMISSION_DB_* 连接 submission schema；App account 与 owner account 不复用"
+      - "真实 host 的 read-only preflight 能在不 copy、不 REVOKE 的情况下通过 source/target shape、checksum、outstanding event、grant capability 与 rollback watermark 检查"
+    validation:
+      - "deployment host docker compose/PM2/Nacos/App/Submission status and health evidence"
+      - "SHOW GRANTS plus information_schema schema/table privilege evidence with redacted account identifiers"
+      - "MIGRATION_SCHEMA=submission validate and submission-schema-cutover.sh preflight using the actual runtime accounts"
+    rollback:
+      - "此 Task 只收集/核对访问与权限证据，不执行数据复制、REVOKE、route switch 或 deployment；失败保持 local/compat"
+    evidence:
+      - "This open project has no production target; the local Docker/PM2 target was provisioned with healthy MySQL, Redis and Nacos plus App/Submission/Judge/Notification/Auth/Admin runtimes"
+      - "Local preflight passed before the confirmation-gated cutover; the App source-table DML grants were revoked after copy and the schema-wide App DML count is zero"
+      - "The separate local Submission owner account is unlocked with four submission-schema DML privileges; owner and App credentials are distinct and are not persisted in control-plane files"
+    commits: []
+    notes: "本地开放项目以当前 Docker/PM2 栈为目标；权限与运行时前置条件已满足并由后续 cutover observation 验证。"
+    updated_at: "2026-08-18T11:47:00+08:00"
+  - id: SPLIT-005-runtime-cutover-observation
+    title: "在授权部署主机执行 Submission remote/local 切流与 single-writer 观察"
+    source:
+      - "SPLIT-005-runtime-access"
+      - "SPLIT-005-retirement-authority"
+      - "CONTRACT-007"
+      - "scripts/dev/submission-schema-cutover.sh"
+      - "docker-compose.prod.yml"
+    status: done
+    depends_on:
+      - "SPLIT-005-runtime-access"
+      - "SPLIT-005-retirement-authority"
+    acceptance_criteria:
+      - "在本地目标启用 App APP_SUBMISSION_ROUTING_MODE=remote；Submission direct-owner provider 固有直写，不执行 route-only 或 mixed release"
+      - "preflight 通过后按 confirmation-gated runbook 完成三张 source table copy、checksum/row-count/outbox/fence/contest association 核对和 App table-grant REVOKE"
+      - "本地观察窗证明 Auth/Admin/App/Notification/Submission/Judge 均稳定，Submission owner 账号持有 submission schema DML，App 对三张 source table 无 DML"
+      - "失败时只恢复 route/grant/watermark/reconciliation，或先恢复上一 verified artifact；不编辑 applied migration、不 destructive reset"
+    validation:
+      - "authorized host preflight → cutover → runtime health/Dubbo registration → single-writer smoke → grant/outbox/reconciliation observation"
+      - "Submission/Judge/Contest/Admin/Notification read/write and result flow smoke during the observation window"
+      - "rollback drill or documented rollback decision with source/target checksums and grant posture"
+    rollback:
+      - "先切回 local，再按 runbook restore App grants/watermark/reconciliation；目标数据仅按已验证 rollback 处理，不回写 applied migration"
+    evidence:
+      - "Local cutover passed: source and target rows/checksums match (126/0/37; 2896447748/0/610558977) and target-only created outbox is empty"
+      - "After clean restart, all six PM2 services are online with restarts=0; public Auth/Admin/App/Notification health endpoints return HTTP 200; MySQL/Redis/Nacos are healthy"
+      - "Post-cutover grants: App schema DML=0, App DML on the three source tables=0, Submission owner schema DML=4 and account_locked=N"
+    commits: []
+    notes: "本地 remote route、direct Submission owner、single-writer 权限/运行时观察已完成；物理 compat/App provider retirement 与最终 CONTRACT gate 也已闭合。"
+    updated_at: "2026-08-18T13:45:02+08:00"
   - id: CONTRACT-001
     title: "冻结服务契约 Owner 与发布边界"
     source:
@@ -1413,38 +1476,39 @@ tasks:
       - "CONTRACT-006"
       - "SPLIT-004"
       - "SPLIT-005-retirement-authority"
-      - "services/submission/src/main/java/com/ulticode/submission/compat/SubmissionWriteCompatibilityProvider.java"
-      - "services/submission/src/main/java/com/ulticode/submission/compat/SubmissionFenceCompatibilityProvider.java"
-      - "services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionWriteProvider.java"
-      - "services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionFenceProvider.java"
+      - "services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java"
+      - "services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionFenceProvider.java"
+      - "services/submission/src/test/java/com/ulticode/submission/provider/SubmissionProviderContractTest.java"
+      - "services/submission/src/test/java/com/ulticode/submission/provider/SubmissionOwnerCutoverIT.java"
       - "scripts/dev/submission-schema-cutover.sh"
-    status: in_progress
+    status: done
     depends_on:
       - "CONTRACT-004"
       - "CONTRACT-006"
       - "SPLIT-005-retirement-authority"
+      - "SPLIT-005-runtime-cutover-observation"
     acceptance_criteria:
-      - "只在 release/cutover authority、schema checksum/outstanding event/contest read/rollback watermark preflight 全部有证据后启用 APP_SUBMISSION_ROUTING_MODE=remote；provider local 行为在 compat retirement 后是固有行为"
-      - "默认 APP_SUBMISSION_ROUTING_MODE=local + app.submission.owner.mode=compat 保持 Submission compat provider → App backend-app provider 的单一 writer/fence 路径，不能在授权前删除"
-      - "获得 release/cutover authority 后，才将 App route 切到 remote、Submission owner 切到 local，并退役 compat/App provider；切流后的 regular path 才由 backend-submission 成为唯一 Submission writer/provider"
+      - "本地目标的 release/cutover authority、schema checksum/outstanding event/contest read/rollback watermark preflight 均有证据；remote route 与 Submission direct-owner 行为已在该证据之后验证"
+      - "backend-submission 只保留 direct write/fence provider，App duplicate provider、compat forwarder 与 owner-mode 分支均已退役；regular path 只有一个 Submission writer/provider"
       - "真实 MySQL/Redis 观察窗验证四张 Submission owner 表、judge/result/created outbox、fence/reaper、Contest association 与 Notification event 链；App 源表 grant 撤销后无跨 owner 写入"
     validation:
       - "只读 preflight；获授权后 disposable MySQL cutover/REVOKE/rollback 全链与 checksum/grant evidence"
-      - "backend-submission + judge + app/admin focused boot/provider/IT；services-wide *IT,*IntegrationTest、security/concurrency/single-hop review"
-      - "静态扫描确认 backend-submission compat/local provider 与 backend-app compatibility provider 各一组、无重复 group registration；owner-mode/route 条件、Compose prod route/default 与 runbook 一致"
-      - "git diff --check"
+      - "backend-submission + judge + app/admin focused boot/provider/IT；官方 quick/integration、services verify、security/concurrency/single-hop review"
+      - "静态扫描确认 backend-submission 仅保留 direct owner provider、backend-app 不再注册 Submission write/fence provider、无 backend-app Dubbo reference 或 owner-mode 配置；route 条件、Compose 与 runbook 一致"
+      - "Compose base+dev/prod、YAML、bash -n、graphify update 与 git diff --check"
     rollback:
       - "cutover 失败按既有 runbook 恢复 route/grant/watermark/reconciliation；compat 删除后的代码故障先回滚到上一已验证 artifact，再执行 runbook，不编辑 applied migration 或 destructive reset"
     evidence:
-      - "已恢复 backend-submission 的 compat/local provider、App backend-app provider 与 owner.mode 默认 compat，避免默认 local 路由下 Judge 从 submission schema 查不到 App 写入的 Pending；Submission owner 新增受 owner.local 门控的 JudgingLeaseReaper 与 generation CAS/outbox 回收路径，App reaper/dispatchers/listener 受 routing.local 门控"
-      - "Submission Provider/Reaper focused tests 5/0/0/0；真实 MySQL SubmissionOwnerCutoverIT 4/0/0/0；真实 Redis JudgeStreamRedisIntegrationTest 4/0/0/0；app-web reactor compile BUILD SUCCESS"
-      - "官方 `./scripts/dev/test.sh integration` 使用 `*IT,*IntegrationTest` 并以 exit 0 完成，post-run Surefire 聚合 823 reports、2,720 tests，0 failures，0 errors，24 skips；包含 JudgeStreamRedisIntegrationTest 4/4 与 SubmissionOwnerCutoverIT 4/4"
+      - "本地 remote route 与 Submission owner 观察证据闭合；compat forwarder、App duplicate provider 与 `app.submission.owner.mode` 门控已删除，direct provider contract 4/4 + real-MySQL owner IT 4/4 通过"
+      - "官方 `./scripts/dev/test.sh quick` exit 0；官方 `./scripts/dev/test.sh integration` exit 0，post-run Surefire 聚合 823 reports、2,720 tests，0 failures，0 errors，24 skips；包含 JudgeStreamRedisIntegrationTest 4/4 与 SubmissionOwnerCutoverIT 4/4"
+      - "`cd services && ./mvnw verify -B` exit 0（BUILD SUCCESS，01:37）；Submission provider/reaper、boot、App route、Judge/Redis focused suites均通过"
       - "disposable MySQL owner-first migration → main/shared migration → preflight → cutover → grant deny observation → rollback 全链通过；checksums 一致，App grant allow→deny→allow"
-      - "`APP_SUBMISSION_ROUTING_MODE=remote` route seam 保持单 writer；生产 Compose 默认仍为 `local`，未执行生产 route/grant/REVOKE"
-      - "graphify update completed at 27,577 nodes / 80,540 edges; `git diff --check` and direct provider/reference scans pass"
+      - "`APP_SUBMISSION_ROUTING_MODE=remote` route seam 保持单 writer；本地 Compose 与实际运行配置不再依赖 owner-mode 兼容开关，未执行任何生产动作"
+      - "graphify update completed at 27,583 nodes / 80,422 edges; source scan、provider/reference scan、YAML、Compose、bash -n 与 `git diff --check` pass"
+      - "Review Confirmed Findings=0；本地运行时、回滚边界、代码/文档/控制面和明确 out-of-scope 项一致"
     commits: []
-    notes: "代码侧兼容修复、owner reaper、dispatcher route 门控、真实 MySQL/Redis 验证已完成；compat retirement 仍需运维发布窗口把 App route 从 prod 默认 local 切到 remote 并完成真实运行时观察，故不宣称 CONTRACT-007/008 已闭合。"
-    updated_at: "2026-08-18T00:22:00+08:00"
+    notes: "本地 runtime access/observation 与物理 compat/App provider retirement 均已完成；CONTRACT-007 Acceptance、Review、Validation 和 Coverage Audit 通过。"
+    updated_at: "2026-08-18T13:45:02+08:00"
   - id: CONTRACT-008
     title: "完成契约收敛最终架构门禁"
     source:
@@ -1456,7 +1520,7 @@ tasks:
       - "CONTRACT-007"
       - "SPLIT-005"
       - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
-    status: pending
+    status: done
     depends_on:
       - "CONTRACT-005"
       - "CONTRACT-006"
@@ -1475,7 +1539,14 @@ tasks:
       - "formal code/spec/security/concurrency/compatibility review and Completion Audit"
     rollback:
       - "交付前回滚到上一已验证 contract/runtime artifact；数据切流后只使用 route/grant/watermark/reconciliation runbook，不回写 migration"
-    evidence: []
+    evidence:
+      - "CONTRACT-001 through CONTRACT-007 source-boundary, owner matrix, API artifacts, caller/provider/POM migration, canonical codec/catalog and local Submission runtime evidence are reconciled"
+      - "Direct Submission provider contract 4/4, real-MySQL SubmissionOwnerCutoverIT 4/4, real-Redis JudgeStreamRedisIntegrationTest 4/4 and affected App/Judge/Submission focused suites pass"
+      - "Official `./scripts/dev/test.sh quick` and `./scripts/dev/test.sh integration` exited 0; integration post-run aggregate is 823 reports, 2,720 tests, 0 failures, 0 errors and 24 skips"
+      - "`cd services && ./mvnw verify -B` exited 0 with BUILD SUCCESS; Compose base+dev/prod, YAML parse, bash -n and git diff --check pass"
+      - "graphify update . completed at 27,583 nodes / 80,422 edges; relied code paths have no recorded coverage issue, and unavailable negative scopes were checked with direct source scans"
+      - "Formal final review found Confirmed Findings=0; migration guide, owner/runtime matrix, rollback runbook, DEC-019/DEC-026 and active `.auto-flow` coverage are consistent"
+      - "The project is local-only with no production environment; the known real-Meili mirror E2E gap remains explicitly recorded in SEARCH coverage and is not claimed complete"
     commits: []
-    notes: "本 Task 是最终 Gate；若 package release、sandbox 或 cutover authority 任何一项未闭合，保持 pending/blocked，不降级验收。"
-    updated_at: "2026-08-17T22:30:00+08:00"
+    notes: "最终 contract-boundary Gate 已通过；本地 direct-provider/single-writer、回滚边界、文档与控制面一致，未执行生产或远端动作。"
+    updated_at: "2026-08-18T13:45:02+08:00"

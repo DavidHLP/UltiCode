@@ -48,7 +48,7 @@ Out of scope：Contest 排名/滚榜独立化、Moderation 物理服务、Notifi
 
 ## Active Task / Dependencies
 
-`SPLIT-001`、`SPLIT-002`、`SEARCH-001`、`SEARCH-002`、`SEARCH-003`、`SPLIT-003`、`SPLIT-004` 已完成；当前 active task 为 `SPLIT-005` 最终 Phase Gate。Contest association 已迁为 SubmissionCreated durable inbox，最终 gate 仍未完成，不宣称两个服务已全部交付。
+`SPLIT-001`、`SPLIT-002`、`SEARCH-001`、`SEARCH-002`、`SEARCH-003`、`SPLIT-003`、`SPLIT-004`、`SPLIT-005`、`CONTRACT-001`–`CONTRACT-007` 已完成；当前 active task 为 `CONTRACT-008` 最终架构与 Completion/Coverage Audit。Contest association 已迁为 SubmissionCreated durable inbox；未宣称 Contest ranking、Moderation 或 Notification physical split。
 
 `SPLIT-001 → SPLIT-002 → SPLIT-003 → SPLIT-004 → SPLIT-005`；`SPLIT-001 → SEARCH-001 → SEARCH-002 → SEARCH-003 → SPLIT-005`。仅依赖全部满足的 Task 可进入 `ready`。
 
@@ -63,14 +63,14 @@ Contracts 在 `services/api/app-api/.../event/` 与 `IntegrationEventPublisher/D
 3. `SEARCH-001`–`SEARCH-003`：四类 source 接入 outbox，建立 Search worker，执行 backfill/replay 与读/写 owner cutover。
 4. `SPLIT-005`：执行最终 gate，才退役 compatibility writers/flags 并关闭目标。
 
-## Current execution packet — SPLIT-005 final Phase Gate
+## Current execution packet — CONTRACT-007 close and CONTRACT-008 final gate
 
-1. Reconcile the owner/runtime matrix, route contract, compatibility adapters, grants, and explicit out-of-scope boundaries.
-2. Run `./scripts/dev/test.sh quick`, services `verify`, all `*IT,*IntegrationTest` tests, Compose base+dev/prod config, and `git diff --check`.
-3. Complete the final security/concurrency/architecture review and record any external verification gaps without claiming completion.
-4. Preserve rollback as route/watermark/reconciliation only; do not rewrite applied migrations or run production/destructive cutover actions.
+1. Reconcile the owner/runtime matrix, direct Submission provider boundary, grants, route contract, rollback runbook and explicit out-of-scope boundaries.
+2. Run `./scripts/dev/test.sh quick`, official integration, services `verify`, focused provider/owner IT, Compose base+dev/prod config, YAML/bash checks and `git diff --check`.
+3. Complete the final security/concurrency/architecture review and Completion/Coverage Audit; preserve explicit local-only scope without claiming production.
+4. Preserve rollback as route/grant/watermark/reconciliation only; do not rewrite applied migrations or perform production/destructive actions.
 
-Gate evidence collected 2026-08-18: focused Submission Provider/Reaper tests passed 5/0/0/0; real MySQL `SubmissionOwnerCutoverIT` passed 4/0/0/0; real Redis `JudgeStreamRedisIntegrationTest` passed 4/0/0/0; and the official `./scripts/dev/test.sh integration` completed with exit 0 and a post-run aggregate of 823 reports, 2,720 tests, 0 failures, 0 errors and 24 explicit skips. The integration selector now includes both `*IT` and `*IntegrationTest`, and the official run executed both the Redis and Submission owner suites. Compatibility retirement remains pending because no production release/cutover authority was supplied; no production route, grant or deployment was performed.
+Gate evidence collected 2026-08-18: direct Submission provider contract tests passed 4/4; real MySQL `SubmissionOwnerCutoverIT` passed 4/4; real Redis `JudgeStreamRedisIntegrationTest` passed 4/4; official quick and official integration completed with exit 0, with a post-run aggregate of 823 reports, 2,720 tests, 0 failures, 0 errors and 24 explicit skips; services `verify` completed with exit 0 and BUILD SUCCESS. The local runtime authority, App grant revocation, direct provider retirement, Compose/YAML/bash checks, graph refresh and final Review/Coverage Audit are closed. No production environment or production action is claimed.
 
 ## Repair Execution Packet — SPLIT-005 environmental blockers (2026-08-17)
 
@@ -99,7 +99,7 @@ Out of scope：停止/重置/删除 `ulticode-mysql` 或 `mysql_data`；Docker H
 
 ### Task DAG / Unique Path
 
-`SPLIT-004 + SEARCH-003 → SPLIT-005-env-quick → SPLIT-005-env-sandbox → SPLIT-005-retirement-authority`; `SPLIT-005` parent remains `in_progress` until the environmental evidence and the separately authorized retirement gate are complete. `SPLIT-005-env-quick` and `SPLIT-005-env-sandbox` are done; retirement remains blocked on production authority。
+`SPLIT-004 + SEARCH-003 → SPLIT-005-env-quick → SPLIT-005-env-sandbox → SPLIT-005-retirement-authority → SPLIT-005-runtime-access → SPLIT-005-runtime-cutover-observation`; `SPLIT-005` parent remains `in_progress` until runtime access and observation evidence are complete. Authority is done; runtime access is blocked by the missing deployment target/account/runtime.
 
 ### Implementation Steps
 
@@ -1232,11 +1232,11 @@ Notification Delivery phase 仅在 `NOTIFY-001`–`NOTIFY-005` 全部 `done`、�
 
 ### Active Task
 
-`CONTRACT-007` — source-boundary convergence through `CONTRACT-006` is complete and reviewed; the authorized Submission single-hop/single-writer cutover remains blocked by explicit release authority plus the existing SPLIT-005 sandbox/Testcontainers gate. `CONTRACT-008` remains pending behind that gate.
+`CONTRACT-007` — source-boundary convergence through `CONTRACT-006` and the local Submission single-hop/single-writer cutover are complete; direct Submission owner providers now replace the compat/App duplicate registration, with focused validation and final review still required. `CONTRACT-008` remains pending for the final audit.
 
 ### Dependencies / Task DAG
 
-`CONTRACT-001 → CONTRACT-001-COMMON → {CONTRACT-002, CONTRACT-003}`；`CONTRACT-002 → CONTRACT-004`；`CONTRACT-003 → CONTRACT-005`；`{CONTRACT-002, CONTRACT-004} → CONTRACT-006`；`{CONTRACT-004, CONTRACT-006, SPLIT-005-retirement-authority} → CONTRACT-007`；`{CONTRACT-005, CONTRACT-006, CONTRACT-007, SPLIT-005} → CONTRACT-008`。`SPLIT-005-env-sandbox` 与 `SPLIT-005-retirement-authority` 的既有 blocked 状态不能被本计划绕过。
+`CONTRACT-001 → CONTRACT-001-COMMON → {CONTRACT-002, CONTRACT-003}`；`CONTRACT-002 → CONTRACT-004`；`CONTRACT-003 → CONTRACT-005`；`{CONTRACT-002, CONTRACT-004} → CONTRACT-006`；`SPLIT-005-retirement-authority → SPLIT-005-runtime-access → SPLIT-005-runtime-cutover-observation`；`{CONTRACT-004, CONTRACT-006, SPLIT-005-retirement-authority, SPLIT-005-runtime-cutover-observation} → CONTRACT-007`；`{CONTRACT-005, CONTRACT-006, CONTRACT-007, SPLIT-005} → CONTRACT-008`。Local runtime access and observation are done; CONTRACT-007 compatibility retirement is the remaining implementation gate。
 
 ### Files / Symbols / Call Chains
 
@@ -1254,7 +1254,7 @@ Notification Delivery phase 仅在 `NOTIFY-001`–`NOTIFY-005` 全部 `done`、�
 3. Create and test Submission/Notification API artifacts in parallel dependency branches; move only matrix-approved pure contracts.
 4. Migrate Submission and Notification callers/providers/tests/POMs; add negative import/dependency/registration gates; keep runtime route defaults unchanged.
 5. Make DTO-based Submission codec/catalog the single implementation and preserve every existing persistence/wire vector.
-6. After SPLIT-005 read/cutover evidence and explicit release authority, execute remote/local cutover, direct provider registration, compat provider deletion and single-hop verification.
+6. The local target has completed remote cutover, direct provider registration and single-writer verification; the separate CONTRACT-007 source task deletes the compat forwarders/App duplicate providers and makes local owner behavior inherent.
 7. Update guide/ADR/matrix, run final validation/review/Completion Audit, and stop only when every coverage row has evidence.
 
 ### Compatibility / Rollback
@@ -1282,8 +1282,83 @@ FQCN/serialization and matched-release safety; owner matrix completeness; app-ap
 
 ### Delivery Authority
 
-本轮只授权本地 planning 与后续本地 implementation/review/validation。未授权 commit、push、PR、merge、deploy、共享数据库 migration/REVOKE、外部 registry 或 destructive Git。CONTRACT-007 还需要 release/cutover owner 的明确授权。
+用户已明确这是无生产环境的本地开放项目；本轮授权在本地 Docker/PM2/MySQL/Nacos/Redis 目标上完成 runtime access、preflight、cutover 与 observation。仍不授权 commit、push、PR、merge、远端/共享环境变更或 destructive reset；本地 runtime gate 已解除。
 
 ### Terminal Condition
 
-CONTRACT-001–CONTRACT-008 全部 `done`，SPLIT-005 旧 gate 与 sandbox/authority blocker 已有真实证据，Coverage 每行闭合，app-api 无非 App owner contract，Submission/Notification API 与所有 callers/providers/tests/docs 一致，codec/catalog/Submission writer 单一，最终 review 无 Confirmed Finding；否则保持 active/blocked，不制造完成状态。
+CONTRACT-001–CONTRACT-006 已 `done`，SPLIT-005 本地 runtime access/cutover observation 已 `done`；CONTRACT-007 的 compat/App provider source retirement 已实现，等待其 focused/module/runtime Review 与 Coverage Audit 收口，CONTRACT-008 仍 `pending`。其余 source boundary、codec/catalog、local writer、Review 和本地验证均有证据；不得把局部 blocker closure 误写成整个 objective 完成。
+
+## Blocker Resolution Execution Packet — SPLIT-005 runtime gate (2026-08-18)
+
+### Objective
+
+解除本地 Submission cutover 的剩余 operational blocker：确认本地 App/Submission runtime 与账号权限姿态，完成 read-only preflight 后执行 `remote/local` 切流、数据 ownership cutover、App grant retirement 和 single-writer observation。项目没有 production environment，证据只宣称本地目标已切流。
+
+### In Scope / Out of Scope
+
+**In Scope**
+
+- 取得并核对 local runtime、matched local artifacts、rollback window、App/Submission/Nacos/Redis 状态；secret 只进入环境/运行时，不写 `.auto-flow`。
+- 确认 App 实际账号对 `ulticode.submissions`、`ulticode.judge_outbox`、`ulticode.submission_result_outbox` 只有表级 DML，确认没有 schema-wide DML；确认 Submission owner 使用独立 `SUBMISSION_DB_*` credential。
+- 在本地目标执行 read-only preflight；通过后执行既有 `submission-schema-cutover.sh` confirmation-gated cutover 与 runtime observation。
+
+**Out of Scope**
+
+- 不把本地证据扩展为 production claim；不使用 schema-wide App DML 逃避 source grant gate，不用 route-only 或 inactive runtime 伪造 evidence。
+- 不新增业务代码、broker、migration、shared table、Entity/Mapper、永久 alias；不修改 applied migration，不 destructive reset，不 commit/push/deploy 本地非目标环境。
+
+### Root Cause or Capability Gap
+
+原 blocker 来自把“生产部署主机”误当作必要前置；用户已澄清没有 production environment。经本地权限修复、Nacos 启动、owner account provision、preflight 和 runtime startup 后，本地目标已具备独立 App/Submission credentials、owner schema 与 single-writer observation。
+
+### Behavioral Invariants
+
+1. App code/config 保留 `local` 作为回滚入口；当前本地运行时已在 preflight、copy/revoke 和 matched local artifact 后切至 `remote`，Submission direct-owner 行为不再依赖 owner-mode。
+2. `remote` route 必须与 direct backend-submission owner provider 成对启用；不允许 route-only、mixed release 或 App/Submission 双 writer。
+3. Submission owner 独占三张 source-migrated tables、target-only created outbox、judge/result/fence/reaper/outbox path；App 不跨 Owner 写入。
+4. 所有 route/grant rollback 使用既有 runbook、watermark/reconciliation；不回写 applied migration。
+5. 外部账号名、密码、连接密钥和完整生产拓扑不进入控制面或日志。
+
+### Acceptance Criteria
+
+- `SPLIT-005-runtime-access`：本地 release、rollback window、App source-table grant posture、独立 Submission owner credential、Nacos/Redis/App/Submission runtime 均有 redacted evidence；read-only preflight 通过。
+- `SPLIT-005-runtime-cutover-observation`：本地目标启用 App `APP_SUBMISSION_ROUTING_MODE=remote`；cutover 后 checksum/row-count/grant/outbox/fence observation 证明 single writer；公共 HTTP health 与 Dubbo startup 保持。
+- `CONTRACT-007`：compat 双 provider 已退役、direct single-hop/single-writer 和 rollback evidence 完整；`CONTRACT-008` 最终 Gate 已通过。
+
+### Required Evidence
+
+- Deployment host inventory、runtime health/Dubbo registration 和 matched image/artifact digest；不包含 secret value。
+- `SHOW GRANTS`、`information_schema.schema_privileges/table_privileges` 和 actual `SUBMISSION_APP_DB_USER` preflight evidence，证明 schema-wide DML 为零且三张 source table grants 可撤销。
+- Source/target shape、row-count/checksum、outstanding events、rollback watermark；cutover/rollback 日志与 reconciliation 结果。
+- App submit/rejudge/list、Judge verdict/result、Contest association、Notification event smoke；Submission owner logs/metrics 证明唯一 writer。
+
+### Active Task / Dependencies
+
+`SPLIT-005-retirement-authority(done) → SPLIT-005-runtime-access(done) → SPLIT-005-runtime-cutover-observation(done) → CONTRACT-007(done) → CONTRACT-008(done)`. 当前 objective 已完成，无 Ready/blocked Task。
+
+### Files / Symbols / Call Chains
+
+- Runtime config: `docker-compose.prod.yml` (`backend-app`, `backend-submission`), `services/app/app-web/src/main/resources/application.yml`, `services/submission/src/main/resources/application.yml`。
+- Cutover: `scripts/dev/submission-schema-cutover.sh` (`assert_ready`, `assert_revoke_ready`, `copy_forward`, `revoke_app_grants`, `rollback`)。
+- Runtime chain: App `SubmissionWriteRoutingPort`/`SubmissionUserQueryRoutingPort` → `backend-submission` provider → owner-local writer/fence/reaper/outboxes；Judge/Contest/Admin/Notification smoke consumers。
+- Control plane: `.auto-flow/TASKS.yaml`, `COVERAGE.md`, `DECISIONS.md`, `RESUME.md`, `HANDOFF.yaml`, `WORKLOG.md`。
+
+### Implementation Steps
+
+1. Reconcile local runtime/account inventory, owner matrix, direct provider, grants, route and rollback evidence.
+2. Run focused provider/owner IT, official quick/integration, services verify, Compose/YAML/bash checks and graph refresh.
+3. Complete security/concurrency/architecture Review and Completion/Coverage Audit; record known external Search gaps and explicit out-of-scope boundaries.
+
+### Compatibility / Rollback
+
+The verified code/config keeps local route as rollback entry. Cutover failure first restores route, then grants/watermark/reconciliation through the existing runbook; direct-provider retirement failure first rolls back the last verified artifact. No migration edit or destructive reset.
+
+### Focused Checks / Final Validation Tier
+
+- Before access: `bash scripts/dev/doctor.sh --pm2`, Docker/Compose status, root-free `SHOW GRANTS`, `bash -n`, Compose config and read-only preflight.
+- During observation: route startup, Dubbo registration, App/Judge/Contest/Admin/Notification smoke, source/target checksum and grants, outbox/fence/reaper metrics, rollback rehearsal/decision.
+- Final local Tier D: runtime observation → focused smoke → services integration/verify → Compose → security/concurrency/compatibility review → Completion/Coverage Audit. Production evidence is out of scope.
+
+### Delivery Authority / Terminal Condition
+
+用户已确认本地开放项目没有 production environment。Local shared-schema copy、REVOKE、route switch、direct-provider retirement 和 runtime observation 已在 preflight 后完成；不得把它描述为 production deployment。Terminal condition is CONTRACT-007/CONTRACT-008 evidence closure with no Confirmed Finding，已满足。

@@ -12,10 +12,9 @@ set -euo pipefail
 # MIGRATION_SCHEMA=submission ./scripts/dev/migrate.sh migrate).
 #
 # Gate: this script copies data and revokes App write grants, but the actual
-# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote + provider
-# app.submission.owner.mode=local) must only be enabled after the SPLIT-004
-# read-path migration, because App read adapters still read the App schema
-# until then. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
+# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote) must only be enabled
+# after the SPLIT-004 read-path migration, because App read adapters still read
+# the App schema until then. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
@@ -211,6 +210,14 @@ app_user_table_grant_exists() {
         AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE');")" -ge 1 ]]
 }
 
+app_user_schema_dml_grant_exists() {
+  local schema="$1"
+  [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.schema_privileges
+      WHERE GRANTEE = '\\'$APP_DB_USER\\'@\\'%\\''
+        AND TABLE_SCHEMA = '$schema'
+        AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE');")" -ge 1 ]]
+}
+
 assert_revoke_ready() {
   if [[ -z "$APP_DB_USER" ]]; then
     echo "SUBMISSION_APP_DB_USER is required to verify App table grants." >&2
@@ -218,6 +225,10 @@ assert_revoke_ready() {
   fi
   if [[ "$(mysql_query "SELECT COUNT(*) FROM mysql.user WHERE User = '$APP_DB_USER' AND Host = '%';")" != "1" ]]; then
     echo "App user '$APP_DB_USER'@'%' does not exist; cannot revoke grants at cutover." >&2
+    return 1
+  fi
+  if app_user_schema_dml_grant_exists "$SOURCE_SCHEMA"; then
+    echo "App user '$APP_DB_USER' has schema-wide DML on $SOURCE_SCHEMA; refusing table-only REVOKE. Use a table-scoped App account before cutover." >&2
     return 1
   fi
   local missing=0

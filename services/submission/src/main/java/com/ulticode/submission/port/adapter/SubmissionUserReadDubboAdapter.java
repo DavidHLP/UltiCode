@@ -2,6 +2,7 @@ package com.ulticode.submission.port.adapter;
 
 import com.ulticode.app.api.service.SubmissionUserReadPort;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
  * seam. Mirrors the write path's {@code ProblemFactsDubboAdapter} pattern.
  */
 @Component
+@Primary
 public class SubmissionUserReadDubboAdapter implements SubmissionUserReadPort {
 
     @DubboReference(group = "backend-app", version = "1.0.0",

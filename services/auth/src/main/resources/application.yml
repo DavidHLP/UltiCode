@@ -16,35 +16,11 @@ spring:
     name: backend-auth
   main:
     allow-bean-definition-overriding: true
-
-auth:
-  search:
-    outbox:
-      dispatcher:
-        # SEARCH-001 slice-b: dispatch user-document events from the Auth
-        # outbox to stream:integration. Default off: unit-test contexts boot
-        # without Redis, and events must not pile up on the stream before the
-        # backend-search worker consumer exists (SEARCH-002). Enable in the
-        # deployed runtime once the worker is live.
-        enabled: ${AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED:false}
-
-  # Redisson Configuration (distributed locks, OAuth state, CSRF nonce)
-  redis:
-    redisson:
-      config: |
-        singleServerConfig:
-          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}"
-          password: ${REDIS_PASSWORD:}
-          database: ${REDIS_DB:0}
-          connectionPoolSize: 64
-          connectionMinimumIdleSize: 10
-
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useDBAuthPlugin=mysql_native_password
     username: ${DB_USER:auth_rw}
     password: ${DB_PASSWORD:}
-
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -62,8 +38,6 @@ auth:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
-
-  # Flyway Configuration - shared migrations live in init-db/migrations/
   flyway:
     enabled: true
     locations: filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations},filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations/auth}
@@ -76,8 +50,6 @@ auth:
     encoding: UTF-8
     validate-on-migrate: true
     clean-disabled: true
-
-  # Email Configuration (password reset + security notifications)
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:587}
@@ -89,6 +61,27 @@ auth:
           auth: true
           starttls:
             enable: true
+
+auth:
+  search:
+    outbox:
+      dispatcher:
+        # SEARCH-001 slice-b: dispatch user-document events from the Auth
+        # outbox to stream:integration. Default off: unit-test contexts boot
+        # without Redis, and events must not pile up on the stream before the
+        # backend-search worker consumer exists (SEARCH-002). Enable in the
+        # deployed runtime once the worker is live.
+        enabled: ${AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED:false}
+  # Redisson Configuration (distributed locks, OAuth state, CSRF nonce)
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}"
+          password: ${REDIS_PASSWORD:}
+          database: ${REDIS_DB:0}
+          connectionPoolSize: 64
+          connectionMinimumIdleSize: 10
 
 # JWT Configuration
 jwt:

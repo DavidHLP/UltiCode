@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,9 +41,6 @@ import java.util.Map;
 @Component
 @org.springframework.context.annotation.Profile("!test")
 @RequiredArgsConstructor
-@ConditionalOnProperty(
-        name = "app.submission.owner.mode",
-        havingValue = "local")
 @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
         "${app.features.use-judge-outbox:false}")
 public class JudgeOutboxDispatcher {

@@ -504,3 +504,19 @@
 - CONTRACT-007 (direct Submission provider retirement) and CONTRACT-008 (final contract-boundary audit) are done;
   SPLIT-005 is also closed. All 49 ledger tasks are done, no Ready/blocked task remains, and no commit/push/deploy or
   production action was performed. The known real-Meili mirror E2E gap remains explicitly recorded in Search coverage.
+
+## 2026-08-18 (CR repair and final validation)
+
+- Fixed the direct-owner route mismatch: production Compose pins `APP_SUBMISSION_ROUTING_MODE=remote`; local `init-env.sh` generates isolated Submission credentials with `SUBMISSION_CUTOVER_COMPLETE=false`; `up.sh --prepare-submission-owner` performs owner-first migrations and unlocks `submission_rw` without PM2, while normal `up.sh`/App boot stops until the marker is true.
+- Reordered local Flyway preparation owner-first so the Submission schema history exists before the shared migration's precreated owner tables; disposable preparation flow passed with four owner tables and an unlocked account, and invalid `--quick`/`--frontend-only` preparation combinations fail before infrastructure work.
+- Hardened `submission-schema-cutover.sh`: exact `SUBMISSION_APP_DB_USER` + `SUBMISSION_APP_DB_HOST`, ambiguous host rejection, recursive `mysql.role_edges` closure, global `mysql.user`/`USER_PRIVILEGES`, schema/table `ALL` and `GRANT OPTION` (`IS_GRANTABLE`), column-level privilege rejection, exact four table DML grants, and explicit query-failure refusal.
+- Disposable MySQL security matrix passed: exact non-`%` host positive; host mismatch, global DML, schema DML, table ALL, schema/table WITH GRANT OPTION, column grants, transitive roles, and denied `role_edges` inspection all failed before copy.
+- Provider contract test now asserts no App `@DubboReference`, owner-mode `@Value`, `ownerMode` field, or `@ConditionalOnProperty`; focused provider test passed 4/4.
+- Reconciled local-only control metadata: no stale active task, no production authority claim, Resume points to `791f35114`, HANDOFF retains the real Redis+Meili E2E external gap, and Coverage maps the CR repair.
+- Verification: graphify 27,595 nodes / 80,442 edges; Submission reactor tests 11/11; App routing focused tests and compile BUILD SUCCESS; services `./mvnw verify -B` BUILD SUCCESS; official quick and integration exit 0; Compose base/dev/prod, YAML, Bash and diff checks pass. Exact-revision disposable matrices cover grants/roles/query failure, owner-first preparation, copy failure cleanup and partial revoke/restore/cleanup escalation. No production/deploy/remote action performed.
+
+## 2026-08-18 (CR follow-up: cutover writer quiesce and atomic rollback)
+
+- Fixed `scripts/dev/submission-schema-cutover.sh`: `cutover` and `rollback` now require `SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS`; the gate and migration guide enumerate every App, Submission-owner, Judge, dispatcher, reaper, scheduler, and direct database writer that must be stopped and drained.
+- Reworked rollback `copy_back` to issue all table replacements in one MySQL transaction; a failed transaction emits an explicit CRITICAL reconciliation warning before grant restoration. Cutover rechecks source rows/checksums before REVOKE.
+- Verification: fake-MySQL transaction/failure-injection and quiesce fail-closed checks passed; `bash -n`, `git diff --check`, `graphify update .`, official `./scripts/dev/test.sh quick`, and independent review passed with Confirmed Findings=0. No production/deploy/remote action performed.

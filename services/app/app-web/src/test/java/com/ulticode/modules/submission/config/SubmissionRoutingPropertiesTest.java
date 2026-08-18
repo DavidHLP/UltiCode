@@ -20,11 +20,16 @@ class SubmissionRoutingPropertiesTest {
     }
 
     @Test
-    @DisplayName("accepts the documented remote mode")
+    @DisplayName("accepts remote mode only after the cutover marker")
     void acceptsRemoteMode() {
         SubmissionRoutingProperties properties = new SubmissionRoutingProperties();
         properties.setMode("remote");
 
+        assertThatThrownBy(properties::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cutover-complete");
+
+        properties.setCutoverComplete(true);
         properties.validate();
 
         assertThat(properties.isRemote()).isTrue();

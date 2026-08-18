@@ -12,7 +12,8 @@ set -euo pipefail
 unset NODE_OPTIONS
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENV_FILE="$ROOT_DIR/.env"
+ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
+export ENV_FILE
 
 # ===== 参数解析 =====
 SKIP_INSTALL=false
@@ -22,6 +23,7 @@ SKIP_BOOTSTRAP=false
 QUICK=false
 NO_FRONTEND=false
 FRONTEND_ONLY=false
+PREPARE_SUBMISSION_OWNER=false
 ONLY=""
 
 usage() {
@@ -30,6 +32,8 @@ Usage: ./scripts/dev/up.sh [options]
 
 启动 UltiCode 开发栈: Docker 基础设施 → Nacos 配置 → Flyway 迁移 → 启动 auth →
 dev-admin bootstrap (经 Dubbo RPC) → pnpm install → PM2 服务 → 就绪检查。
+# init-env.sh 默认未完成 Submission cutover；up.sh 会在启动前安全停止，
+# 不自动 copy/revoke 数据。完成 runbook 观察并设置 SUBMISSION_CUTOVER_COMPLETE=true 后再启动。
 
 Options:
   --quick              热重启: 跳过 infra/Nacos/迁移/admin/依赖, 只重启 PM2 服务
@@ -42,6 +46,7 @@ Options:
                        (如 auth,admin,app,submission,notification,judge 或 9101,9102; 前端仍可用 9002/9003)
   --no-frontend        不起前端 (等同 --only auth,admin,app,submission,notification,judge)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
+  --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   -h, --help           显示此帮助
 
 Examples:
@@ -49,6 +54,7 @@ Examples:
   ./scripts/dev/up.sh --quick                  # 改代码后热重启 (最快)
   ./scripts/dev/up.sh --only auth              # 只起 Auth
   ./scripts/dev/up.sh --frontend-only          # 只起前端
+  ./scripts/dev/up.sh --prepare-submission-owner # 准备 owner，随后执行 cutover runbook
   ./scripts/dev/up.sh --no-frontend --skip-bootstrap
   ./scripts/dev/up.sh --skip-infra --skip-migrate
 EOF
@@ -63,11 +69,13 @@ while [[ $# -gt 0 ]]; do
     --quick)          QUICK=true; shift ;;
     --no-frontend)    NO_FRONTEND=true; shift ;;
     --frontend-only)  FRONTEND_ONLY=true; shift ;;
+    --prepare-submission-owner) PREPARE_SUBMISSION_OWNER=true; shift ;;
     --only)           ONLY="${2:-}"; shift 2 ;;
     -h|--help)        usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; echo >&2; usage >&2; exit 2 ;;
   esac
 done
+
 
 # ===== 预设与语义推导 =====
 # --quick: 假设 infra/迁移/admin/依赖都已就绪, 只重启 PM2 服务
@@ -85,6 +93,10 @@ if [[ "$FRONTEND_ONLY" == true ]]; then
   SKIP_BOOTSTRAP=true
 fi
 
+if [[ "$PREPARE_SUBMISSION_OWNER" == true && ("$SKIP_MIGRATE" == true || "$FRONTEND_ONLY" == true) ]]; then
+  echo "--prepare-submission-owner requires a backend migration run; remove --quick/--skip-migrate/--frontend-only." >&2
+  exit 2
+fi
 # 把 owner 名、service 名或端口统一规范化为 PM2 app 名
 normalize_apps() {
   local IFS=','
@@ -166,12 +178,40 @@ required_vars=(
   NACOS_USERNAME NACOS_PASSWORD NACOS_AUTH_TOKEN
   NACOS_AUTH_IDENTITY_KEY NACOS_AUTH_IDENTITY_VALUE
 )
+if [[ "$FRONTEND_ONLY" != true ]]; then
+  required_vars+=(
+    SUBMISSION_DB_HOST SUBMISSION_DB_PORT SUBMISSION_DB_NAME
+    SUBMISSION_DB_USER SUBMISSION_DB_PASSWORD APP_SUBMISSION_ROUTING_MODE
+    SUBMISSION_CUTOVER_COMPLETE
+  )
+fi
 for var in "${required_vars[@]}"; do
   [[ -n "${!var:-}" ]] || {
     echo "Missing required variable in .env: $var" >&2
     exit 1
   }
 done
+if [[ "$FRONTEND_ONLY" != true ]]; then
+  [[ "$SUBMISSION_DB_NAME" == "submission" ]] || {
+    echo "SUBMISSION_DB_NAME must be submission for the local owner runtime." >&2
+    exit 1
+  }
+  [[ "$SUBMISSION_DB_USER" == "submission_rw" ]] || {
+    echo "Local PM2 requires SUBMISSION_DB_USER=submission_rw; provision custom production accounts outside up.sh." >&2
+    exit 1
+  }
+  if [[ "$PREPARE_SUBMISSION_OWNER" != true ]]; then
+    [[ "$APP_SUBMISSION_ROUTING_MODE" == "remote" ]] || {
+      echo "The direct Submission provider requires APP_SUBMISSION_ROUTING_MODE=remote; use the previous verified artifact for local rollback." >&2
+      exit 1
+    }
+
+    [[ "$SUBMISSION_CUTOVER_COMPLETE" == "true" ]] || {
+      echo "Submission cutover is not marked complete; startup intentionally stops. Run the confirmation-gated schema cutover and grant observation, then set SUBMISSION_CUTOVER_COMPLETE=true." >&2
+      exit 1
+    }
+  fi
+fi
 
 # Per-owner shadow-user 迁移 (CREATE USER / 跨库 GRANT / 建库) 需要 DBA 权限,
 # 运行账号 ulticode 只持有 ulticode.* 权限 (官方 mysql 镜像授予), 不能执行。
@@ -186,6 +226,28 @@ compose=(
   -f "$ROOT_DIR/docker-compose.yml"
   -f "$ROOT_DIR/docker-compose.dev.yml"
 )
+
+provision_submission_owner() {
+  local container="${MYSQL_CONTAINER:-ulticode-mysql}"
+  local escaped_password="$SUBMISSION_DB_PASSWORD"
+  escaped_password="${escaped_password//\\/\\\\}"
+  escaped_password="${escaped_password//\'/\'\'}"
+
+  docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$container" \
+    mysql --default-character-set=utf8mb4 -u "$MIGRATION_DB_USER" \
+    --batch --skip-column-names \
+    -e "ALTER USER '$SUBMISSION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$SUBMISSION_DB_USER'@'%' ACCOUNT UNLOCK;"
+
+  local account_locked
+  account_locked="$(docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$container" \
+    mysql --default-character-set=utf8mb4 -u "$MIGRATION_DB_USER" \
+    --batch --skip-column-names \
+    -e "SELECT account_locked FROM mysql.user WHERE User = '$SUBMISSION_DB_USER' AND Host = '%';")"
+  [[ "$account_locked" == "N" ]] || {
+    echo "Submission owner account '$SUBMISSION_DB_USER'@'%' is not unlocked." >&2
+    return 1
+  }
+}
 
 wait_for_health() {
   local container="$1"
@@ -221,8 +283,17 @@ fi
 
 # ===== 步骤 3: Flyway 迁移 =====
 if [[ "$SKIP_MIGRATE" != true ]]; then
+  echo "Applying Submission owner migrations..."
+  MIGRATION_SCHEMA=submission "$ROOT_DIR/scripts/dev/migrate.sh" migrate
   echo "Applying database migrations..."
   "$ROOT_DIR/scripts/dev/migrate.sh" migrate
+  echo "Provisioning the local Submission owner account..."
+  provision_submission_owner
+
+if [[ "$PREPARE_SUBMISSION_OWNER" == true ]]; then
+  echo "Submission owner prepared; no PM2 service was started. Run the cutover preflight/cutover runbook, set SUBMISSION_CUTOVER_COMPLETE=true, then run ./scripts/dev/up.sh." >&2
+  exit 0
+fi
 else
   echo "Skipping database migrations (--skip-migrate / --quick / --frontend-only)."
 fi

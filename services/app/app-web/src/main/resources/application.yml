@@ -56,6 +56,8 @@ app:
       # explicit submitContest command; the App-Contest association remains an
       # event/inbox projection rather than a Submission-schema write.
       mode: ${APP_SUBMISSION_ROUTING_MODE:local}
+      # Remote startup is refused until the explicit data/grant cutover gate is set.
+      cutover-complete: ${SUBMISSION_CUTOVER_COMPLETE:false}
   search:
     backfill:
       # SEARCH-003 backfill runner (DEC-017). Off by default; the runner bean

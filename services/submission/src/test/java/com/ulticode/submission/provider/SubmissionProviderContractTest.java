@@ -13,8 +13,9 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
-
 import java.lang.reflect.Field;
 import java.util.Optional;
 
@@ -84,6 +85,8 @@ class SubmissionProviderContractTest {
     void providerHasNoCompatibilityReference() {
         assertNoDubboReference(SubmissionWriteProvider.class);
         assertNoDubboReference(SubmissionFenceProvider.class);
+        assertNoOwnerModeSelector(SubmissionWriteProvider.class);
+        assertNoOwnerModeSelector(SubmissionFenceProvider.class);
     }
 
     private void assertNoDubboReference(Class<?> provider) {
@@ -91,6 +94,20 @@ class SubmissionProviderContractTest {
             assertThat(field.isAnnotationPresent(DubboReference.class))
                     .as("field %s must not be a compatibility RPC reference", field.getName())
                     .isFalse();
+        }
+    }
+
+    private void assertNoOwnerModeSelector(Class<?> provider) {
+        assertThat(provider.getAnnotation(ConditionalOnProperty.class))
+                .as("provider must not be conditional on an owner-mode property")
+                .isNull();
+        for (Field field : provider.getDeclaredFields()) {
+            assertThat(field.isAnnotationPresent(Value.class))
+                    .as("field %s must not bind an owner-mode property", field.getName())
+                    .isFalse();
+            assertThat(field.getName())
+                    .as("field %s must not retain an owner-mode selector", field.getName())
+                    .doesNotContain("ownerMode");
         }
     }
 

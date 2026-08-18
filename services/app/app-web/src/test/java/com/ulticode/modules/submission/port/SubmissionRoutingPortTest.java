@@ -165,6 +165,7 @@ class SubmissionRoutingPortTest {
     private SubmissionRoutingProperties properties(String mode) {
         SubmissionRoutingProperties properties = new SubmissionRoutingProperties();
         properties.setMode(mode);
+        properties.setCutoverComplete(SubmissionRoutingProperties.REMOTE.equals(mode));
         return properties;
     }
 }

@@ -6,7 +6,7 @@ scope:
   - "建立 backend-submission-api 与 backend-notification-api，并迁移 callers/providers/tests"
   - "在明确 authority 与运行时证据后完成 Submission single-writer/codec/catalog closure"
 out_of_scope:
-  - "超出本地开放项目范围的远端/共享环境变更、commit、push、merge 或 destructive reset"
+  - "超出本地开放项目范围的远端/共享环境变更、push、merge 或 destructive reset"
   - "新增 broker、HTTP API、业务表、跨 owner SQL/2PC、共享 Entity/Mapper 或永久 alias"
   - "物理拆分 Contest、Moderation、Notification delivery worker 或重做 Search worker"
 terminal_condition:

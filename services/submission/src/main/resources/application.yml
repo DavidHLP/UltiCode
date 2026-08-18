@@ -5,9 +5,9 @@ spring:
   application:
     name: backend-submission
   datasource:
-    url: jdbc:mysql://${SUBMISSION_DB_HOST:${DB_HOST:localhost}}:${SUBMISSION_DB_PORT:${DB_PORT:23306}}/${SUBMISSION_DB_NAME:submission}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
-    username: ${SUBMISSION_DB_USER:${DB_USER:ulticode}}
-    password: ${SUBMISSION_DB_PASSWORD:${DB_PASSWORD:}}
+    url: jdbc:mysql://${SUBMISSION_DB_HOST:localhost}:${SUBMISSION_DB_PORT:23306}/${SUBMISSION_DB_NAME:submission}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    username: ${SUBMISSION_DB_USER:}
+    password: ${SUBMISSION_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: ${SUBMISSION_DB_POOL_SIZE:8}

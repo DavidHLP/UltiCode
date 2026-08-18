@@ -1128,7 +1128,7 @@ tasks:
     notes: "真实本地 sandbox image 与 Docker/Testcontainers 已可用；services-wide *IT 的非-sandbox suites 继续执行。Review Confirmed=0。"
     updated_at: "2026-08-17T19:52:00+08:00"
   - id: SPLIT-005-retirement-authority
-    title: "取得 compatibility routing 与 App grant retirement 的发布授权"
+    title: "取得 compatibility routing 与 App grant retirement 的本地执行授权"
     source:
       - "SPLIT-005"
       - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
@@ -1139,7 +1139,7 @@ tasks:
       - "SPLIT-005-env-quick"
       - "SPLIT-005-env-sandbox"
     acceptance_criteria:
-      - "release owner 明确授权 runtime route 从 local/compat 切到 remote/local，并授权撤销 App 对源 submission tables 的 grants"
+      - "本地 Docker/PM2 runtime 明确授权 route 从 local/compat 切到 remote/local，并授权撤销 App 对源 submission tables 的 grants；不推导 production authority"
       - "授权前只执行 read-only preflight，核对 source/target checksum、outstanding events、contest compatibility read path 与 rollback watermark"
       - "authority record 明确 cutover/REVOKE 的执行门槛与失败 rollback 边界；实际 runtime cutover 独立由 SPLIT-005-runtime-cutover-observation 承担"
     validation:
@@ -1149,11 +1149,11 @@ tasks:
     rollback:
       - "未获授权保持 local/compat 和 grants；获授权后的失败只走 runbook rollback"
     evidence:
-      - "用户于 2026-08-18 明确授权 production release/cutover；持久库 owner-schema expand 已完成，但真实 App 账号仍以 schema-wide ALL 运行，故安全 preflight 拒绝 copy/REVOKE"
+      - "用户于 2026-08-18 明确授权本地 Docker/PM2 release/cutover；项目无 production environment，未授权或执行 production release/cutover；持久库 owner-schema expand 已完成，但真实 App 账号仍以 schema-wide ALL 运行，故安全 preflight 拒绝 copy/REVOKE"
       - "fresh disposable MySQL 按 owner migration → main/shared migration 顺序完成；read-only preflight、cutover、rollback 均通过，source/target checksums 保持一致"
       - "grant observation: App user pre-cutover SELECT=allowed，cutover 后=denied，rollback 后=allowed；`DISPOSABLE_GRANT_CUTOVER=PASS` 与 `DISPOSABLE_GRANT_ROLLBACK=PASS`"
     commits: []
-    notes: "authority slice 已完成；实际部署目标、表级 App account、owner credentials 与运行观察窗由后续 runtime tasks 负责。"
+    notes: "local authority slice 已完成；本地目标的 owner credentials 与运行观察窗由后续 runtime tasks 负责，不产生 production claim。"
     updated_at: "2026-08-18T03:35:00+08:00"
   - id: SPLIT-005-runtime-access
     title: "建立授权部署主机与 Submission/App 账号权限姿态"
@@ -1504,11 +1504,15 @@ tasks:
       - "`cd services && ./mvnw verify -B` exit 0（BUILD SUCCESS，01:37）；Submission provider/reaper、boot、App route、Judge/Redis focused suites均通过"
       - "disposable MySQL owner-first migration → main/shared migration → preflight → cutover → grant deny observation → rollback 全链通过；checksums 一致，App grant allow→deny→allow"
       - "`APP_SUBMISSION_ROUTING_MODE=remote` route seam 保持单 writer；本地 Compose 与实际运行配置不再依赖 owner-mode 兼容开关，未执行任何生产动作"
-      - "graphify update completed at 27,583 nodes / 80,422 edges; source scan、provider/reference scan、YAML、Compose、bash -n 与 `git diff --check` pass"
-      - "Review Confirmed Findings=0；本地运行时、回滚边界、代码/文档/控制面和明确 out-of-scope 项一致"
-    commits: []
+      - "graphify update completed at 27,597 nodes / 80,445 edges; source scan、provider/reference scan、YAML、Compose、bash -n 与 `git diff --check` pass"
+      - "CR repair evidence: production Compose pins `APP_SUBMISSION_ROUTING_MODE=remote`; local `init-env.sh` emits isolated Submission credentials with marker=false; `up.sh --prepare-submission-owner` runs owner-first `MIGRATION_SCHEMA=submission` plus shared migrations and unlocks the owner without PM2; normal `up.sh`/App boot remains marker-gated and backend-submission has no App `DB_*` fallback; cutover/rollback require a one-time all-writer quiesce token covering App, Submission-owner, Judge, dispatchers, reapers, schedulers and direct database clients."
+      - "CR repair security matrix: disposable MySQL preflight passed exact non-`%` host and rejected host mismatch, global/schema/table DML, `ALL`, `IS_GRANTABLE=YES`, column grants, transitive role grants and privilege-inspection query failure; exact-revision cutover failure injection preserved source/grants, transactional rollback copy-back emits CRITICAL on failure, and partial revoke/restore/cleanup failures remain explicit."
+      - "CR repair provider contract test passed 4/4 with explicit no-`@Value`, no `@ConditionalOnProperty`, no `ownerMode` field, and no App `@DubboReference` assertions."
+      - "Review Confirmed Findings=0；本地运行时、回滚边界、all-writer quiesce scope、transactional copy-back、代码/文档/控制面和明确 out-of-scope 项一致"
+    commits:
+      - "791f35114"
     notes: "本地 runtime access/observation 与物理 compat/App provider retirement 均已完成；CONTRACT-007 Acceptance、Review、Validation 和 Coverage Audit 通过。"
-    updated_at: "2026-08-18T13:45:02+08:00"
+    updated_at: "2026-08-18T16:09:30+08:00"
   - id: CONTRACT-008
     title: "完成契约收敛最终架构门禁"
     source:
@@ -1544,8 +1548,9 @@ tasks:
       - "Direct Submission provider contract 4/4, real-MySQL SubmissionOwnerCutoverIT 4/4, real-Redis JudgeStreamRedisIntegrationTest 4/4 and affected App/Judge/Submission focused suites pass"
       - "Official `./scripts/dev/test.sh quick` and `./scripts/dev/test.sh integration` exited 0; integration post-run aggregate is 823 reports, 2,720 tests, 0 failures, 0 errors and 24 skips"
       - "`cd services && ./mvnw verify -B` exited 0 with BUILD SUCCESS; Compose base+dev/prod, YAML parse, bash -n and git diff --check pass"
-      - "graphify update . completed at 27,583 nodes / 80,422 edges; relied code paths have no recorded coverage issue, and unavailable negative scopes were checked with direct source scans"
+      - "graphify update . completed at 27,595 nodes / 80,442 edges; relied code paths have no recorded coverage issue, and unavailable negative scopes were checked with direct source scans"
       - "Formal final review found Confirmed Findings=0; migration guide, owner/runtime matrix, rollback runbook, DEC-019/DEC-026 and active `.auto-flow` coverage are consistent"
+      - "CR re-review evidence: direct-owner routing, owner-first preparation-only bootstrap, explicit cutover marker, exact account-host/grant/role fail-closed gate, per-table failure compensation, provider selector regression, Search external gap, and local-only control-plane metadata are all reconciled; no production action was performed."
       - "The project is local-only with no production environment; the known real-Meili mirror E2E gap remains explicitly recorded in SEARCH coverage and is not claimed complete"
     commits: []
     notes: "最终 contract-boundary Gate 已通过；本地 direct-provider/single-writer、回滚边界、文档与控制面一致，未执行生产或远端动作。"

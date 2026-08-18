@@ -14,6 +14,8 @@ public class SubmissionRoutingProperties {
 
     private String mode = LOCAL;
 
+    private boolean cutoverComplete;
+
     public String getMode() {
         return mode;
     }
@@ -26,12 +28,25 @@ public class SubmissionRoutingProperties {
         return REMOTE.equals(mode);
     }
 
+    public boolean isCutoverComplete() {
+        return cutoverComplete;
+    }
+
+    public void setCutoverComplete(boolean cutoverComplete) {
+        this.cutoverComplete = cutoverComplete;
+    }
+
     @PostConstruct
     void validate() {
         if (!LOCAL.equals(mode) && !REMOTE.equals(mode)) {
             throw new IllegalStateException(
                     "Invalid app.submission.routing.mode='" + mode
                             + "'; expected 'local' or 'remote'.");
+        }
+        if (REMOTE.equals(mode) && !cutoverComplete) {
+            throw new IllegalStateException(
+                    "Remote Submission routing requires app.submission.routing.cutover-complete=true "
+                            + "after the schema cutover and grant observation.");
         }
     }
 }

@@ -11,10 +11,17 @@ set -euo pipefail
 # dedicated Submission owner schema (`submission` by default, created by
 # MIGRATION_SCHEMA=submission ./scripts/dev/migrate.sh migrate).
 #
-# Gate: this script copies data and revokes App write grants, but the actual
-# runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote) must only be enabled
-# after the SPLIT-004 read-path migration, because App read adapters still read
-# the App schema until then. See services/docs/MICROSERVICE_MIGRATION_GUIDE.md §8.
+# Gate: this script copies data and revokes App write grants. Before cutover
+# or rollback, stop and drain every process that can write either schema:
+# backend-app/App PM2 (submission intake, contest/rejudge paths, local
+# outbox dispatchers and lease reapers), backend-submission (owner writer,
+# dispatcher and reaper), backend-judge (legacy or remote verdict/lease
+# writes), and any direct admin/maintenance client. Pass the one-time
+# confirmation only after all in-flight work is drained; source rows/checksums
+# are rechecked before REVOKE.
+#
+# The actual runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote) must only be
+# enabled after the SPLIT-004 read-path migration. See the migration guide §8.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
@@ -50,6 +57,7 @@ TARGET_SCHEMA="${SUBMISSION_DB_NAME:-submission}"
 MIGRATION_USER="${MIGRATION_DB_USER:-$DB_USER}"
 MIGRATION_PASSWORD="${MIGRATION_DB_PASSWORD:-$DB_PASSWORD}"
 APP_DB_USER="${SUBMISSION_APP_DB_USER:-}"
+APP_DB_HOST="${SUBMISSION_APP_DB_HOST:-}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-}"
 
 for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_USER"; do
@@ -58,6 +66,10 @@ for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_U
     exit 1
   fi
 done
+if [[ -n "$APP_DB_HOST" && ! "$APP_DB_HOST" =~ ^[A-Za-z0-9%._:-]+$ ]]; then
+  echo "Invalid App account host: $APP_DB_HOST" >&2
+  exit 1
+fi
 
 # Submission owner tables copied from the App compatibility schema. These move
 # exclusively to Submission; the target-only created outbox is checked below
@@ -103,6 +115,19 @@ row_count() {
 checksum() {
   local schema="$1" table="$2"
   mysql_query "CHECKSUM TABLE \`$schema\`.\`$table\`;" | awk '{print $2}'
+}
+
+source_snapshot() {
+  local schema="$1" table rows table_checksum
+  for table in "${TABLES[@]}"; do
+    if ! rows="$(row_count "$schema" "$table")"; then
+      return 1
+    fi
+    if ! table_checksum="$(checksum "$schema" "$table")"; then
+      return 1
+    fi
+    printf '%s\t%s\t%s\n' "$table" "$rows" "$table_checksum"
+  done
 }
 
 print_snapshot() {
@@ -163,79 +188,265 @@ require_execute() {
   fi
 }
 
+require_quiesce() {
+  local expected="$1"
+  if [[ "${SUBMISSION_CUTOVER_QUIESCE_CONFIRM:-}" != "$expected" ]]; then
+    echo "Refusing write action. Stop and drain backend-app/App PM2, backend-submission, backend-judge, and every direct writer or maintenance client for both schemas; then pass SUBMISSION_CUTOVER_QUIESCE_CONFIRM=$expected." >&2
+    exit 1
+  fi
+}
+
 copy_forward() {
   for table in "${TABLES[@]}"; do
-    mysql_query "INSERT INTO \`$TARGET_SCHEMA\`.\`$table\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`$table\`;"
+    if ! mysql_query "INSERT INTO \`$TARGET_SCHEMA\`.\`$table\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`$table\`;"; then
+      echo "Copy failed for $SOURCE_SCHEMA.$table -> $TARGET_SCHEMA.$table." >&2
+      return 1
+    fi
   done
 }
 
 copy_back() {
+  local query="START TRANSACTION;"
+  local table
   for table in "${TABLES[@]}"; do
-    mysql_query "REPLACE INTO \`$SOURCE_SCHEMA\`.\`$table\` SELECT * FROM \`$TARGET_SCHEMA\`.\`$table\`;"
+    query+=" REPLACE INTO \`$SOURCE_SCHEMA\`.\`$table\` SELECT * FROM \`$TARGET_SCHEMA\`.\`$table\`;"
   done
+  query+=" COMMIT;"
+  if ! mysql_query "$query"; then
+    echo "Atomic rollback copy failed; the MySQL connection should roll back the transaction." >&2
+    return 1
+  fi
 }
 
 revoke_app_grants() {
-  if [[ -z "$APP_DB_USER" ]]; then
-    echo "SUBMISSION_APP_DB_USER is required to revoke App grants on the submission tables." >&2
+  if [[ -z "$APP_DB_USER" || -z "$APP_DB_HOST" ]]; then
+    echo "SUBMISSION_APP_DB_USER and SUBMISSION_APP_DB_HOST are required to revoke App grants." >&2
     return 1
   fi
   for table in "${TABLES[@]}"; do
-    mysql_query "REVOKE SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` FROM '$APP_DB_USER'@'%';"
+    if ! mysql_query "REVOKE SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` FROM '$APP_DB_USER'@'$APP_DB_HOST';"; then
+      echo "Grant revocation failed for $SOURCE_SCHEMA.$table from '$APP_DB_USER'@'$APP_DB_HOST'." >&2
+      return 1
+    fi
   done
-  mysql_query "FLUSH PRIVILEGES;"
+  if ! mysql_query "FLUSH PRIVILEGES;"; then
+    echo "FLUSH PRIVILEGES failed after App grant revocation." >&2
+    return 1
+  fi
 }
 
 restore_app_grants() {
-  if [[ -z "$APP_DB_USER" ]]; then
-    echo "SUBMISSION_APP_DB_USER is required to restore App table grants." >&2
+  if [[ -z "$APP_DB_USER" || -z "$APP_DB_HOST" ]]; then
+    echo "SUBMISSION_APP_DB_USER and SUBMISSION_APP_DB_HOST are required to restore App grants." >&2
     return 1
   fi
   for table in "${TABLES[@]}"; do
-    mysql_query "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` TO '$APP_DB_USER'@'%';"
+    if ! mysql_query "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` TO '$APP_DB_USER'@'$APP_DB_HOST';"; then
+      echo "Grant restore failed for $SOURCE_SCHEMA.$table to '$APP_DB_USER'@'$APP_DB_HOST'." >&2
+      return 1
+    fi
   done
-  mysql_query "FLUSH PRIVILEGES;"
+  if ! mysql_query "FLUSH PRIVILEGES;"; then
+    echo "FLUSH PRIVILEGES failed after App grant restore." >&2
+    return 1
+  fi
 }
 
-# The cutover REVOKEs are table-scoped. If the App user only holds schema-wide
-# grants (e.g. GRANT ... ON ulticode.*), the table-scoped REVOKE fails with
-# ERROR 1147 after copy_forward has already persisted rows, leaving the target
-# non-empty and blocking retries. Verify revoke capability BEFORE any copy so
-# a misconfiguration aborts the runbook without side effects.
-app_user_table_grant_exists() {
-  local schema="$1" table="$2"
-  [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.table_privileges
-      WHERE GRANTEE = '\\'$APP_DB_USER\\'@\\'%\\''
-        AND TABLE_SCHEMA = '$schema' AND TABLE_NAME = '$table'
-        AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE');")" -ge 1 ]]
+# Resolve the actual account and every role it inherits. The cutover only
+# revokes grants from the exact runtime account, so ambiguity or any role edge
+# must fail closed before copy; otherwise a role could remain a second writer.
+role_principals_cte() {
+  cat <<SQL
+WITH RECURSIVE principals (principal_user, principal_host) AS (
+  SELECT CAST('$APP_DB_USER' AS CHAR(255)), CAST('$APP_DB_HOST' AS CHAR(255))
+  UNION DISTINCT
+  SELECT CAST(edge.FROM_USER AS CHAR(255)), CAST(edge.FROM_HOST AS CHAR(255))
+  FROM mysql.role_edges AS edge
+  JOIN principals AS parent
+    ON edge.TO_USER = parent.principal_user
+   AND edge.TO_HOST = parent.principal_host
+)
+SQL
+}
+
+app_user_role_grant_exists() {
+  local count
+  if ! count="$(mysql_query "$(role_principals_cte)
+      SELECT COUNT(*) - 1 FROM principals;")"; then
+    return 2
+  fi
+  [[ "$count" =~ ^[0-9]+$ ]] || return 2
+  [[ "$count" -gt 0 ]]
+}
+
+app_user_global_dml_grant_exists() {
+  local mysql_count user_privilege_count
+  if ! mysql_count="$(mysql_query "$(role_principals_cte)
+      SELECT COUNT(*)
+      FROM mysql.user AS account
+      JOIN principals AS principal
+        ON account.User = principal.principal_user
+       AND account.Host = principal.principal_host
+      WHERE account.Select_priv = 'Y'
+         OR account.Insert_priv = 'Y'
+         OR account.Update_priv = 'Y'
+         OR account.Delete_priv = 'Y'
+         OR account.Grant_priv = 'Y';")"; then
+    return 2
+  fi
+  [[ "$mysql_count" =~ ^[0-9]+$ ]] || return 2
+  if [[ "$mysql_count" -gt 0 ]]; then
+    return 0
+  fi
+  if ! user_privilege_count="$(mysql_query "$(role_principals_cte)
+      SELECT COUNT(*)
+      FROM information_schema.USER_PRIVILEGES AS privilege
+      JOIN principals AS principal
+        ON privilege.GRANTEE = CONCAT(CHAR(39), principal.principal_user,
+                                      CHAR(39), '@', CHAR(39), principal.principal_host, CHAR(39))
+      WHERE privilege.PRIVILEGE_TYPE IN
+        ('SELECT','INSERT','UPDATE','DELETE','ALL PRIVILEGES','GRANT OPTION')
+         OR privilege.IS_GRANTABLE <> 'NO';")"; then
+    return 2
+  fi
+  [[ "$user_privilege_count" =~ ^[0-9]+$ ]] || return 2
+  [[ "$user_privilege_count" -gt 0 ]]
 }
 
 app_user_schema_dml_grant_exists() {
-  local schema="$1"
-  [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.schema_privileges
-      WHERE GRANTEE = '\\'$APP_DB_USER\\'@\\'%\\''
-        AND TABLE_SCHEMA = '$schema'
-        AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE');")" -ge 1 ]]
+  local schema="$1" count
+  if ! count="$(mysql_query "$(role_principals_cte)
+      SELECT COUNT(*)
+      FROM information_schema.SCHEMA_PRIVILEGES AS privilege
+      JOIN principals AS principal
+        ON privilege.GRANTEE = CONCAT(CHAR(39), principal.principal_user,
+                                      CHAR(39), '@', CHAR(39), principal.principal_host, CHAR(39))
+      WHERE privilege.TABLE_SCHEMA = '$schema'
+        AND (privilege.PRIVILEGE_TYPE IN
+          ('SELECT','INSERT','UPDATE','DELETE','ALL PRIVILEGES','GRANT OPTION')
+          OR privilege.IS_GRANTABLE <> 'NO');")"; then
+    return 2
+  fi
+  [[ "$count" =~ ^[0-9]+$ ]] || return 2
+  [[ "$count" -gt 0 ]]
+}
+
+app_user_table_grant_exists() {
+  local schema="$1" table="$2" count
+  if ! count="$(mysql_query "SELECT COUNT(DISTINCT PRIVILEGE_TYPE)
+      FROM information_schema.table_privileges
+      WHERE GRANTEE = CONCAT(CHAR(39), '$APP_DB_USER', CHAR(39), '@', CHAR(39), '$APP_DB_HOST', CHAR(39))
+        AND TABLE_SCHEMA = '$schema' AND TABLE_NAME = '$table'
+        AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE');")"; then
+    return 2
+  fi
+  [[ "$count" =~ ^[0-9]+$ ]] || return 2
+  [[ "$count" == "4" ]]
+}
+
+app_user_table_unsafe_grant_exists() {
+  local schema="$1" table="$2" count
+  if ! count="$(mysql_query "SELECT COUNT(*)
+      FROM information_schema.table_privileges
+      WHERE GRANTEE = CONCAT(CHAR(39), '$APP_DB_USER', CHAR(39), '@', CHAR(39), '$APP_DB_HOST', CHAR(39))
+        AND TABLE_SCHEMA = '$schema' AND TABLE_NAME = '$table'
+        AND (PRIVILEGE_TYPE NOT IN ('SELECT','INSERT','UPDATE','DELETE')
+             OR IS_GRANTABLE <> 'NO');")"; then
+    return 2
+  fi
+  [[ "$count" =~ ^[0-9]+$ ]] || return 2
+  [[ "$count" -gt 0 ]]
+}
+
+app_user_column_grant_exists() {
+  local schema="$1" table="$2" count
+  if ! count="$(mysql_query "SELECT COUNT(*)
+      FROM information_schema.COLUMN_PRIVILEGES
+      WHERE GRANTEE = CONCAT(CHAR(39), '$APP_DB_USER', CHAR(39), '@', CHAR(39), '$APP_DB_HOST', CHAR(39))
+        AND TABLE_SCHEMA = '$schema' AND TABLE_NAME = '$table';")"; then
+    return 2
+  fi
+  [[ "$count" =~ ^[0-9]+$ ]] || return 2
+  [[ "$count" -gt 0 ]]
 }
 
 assert_revoke_ready() {
-  if [[ -z "$APP_DB_USER" ]]; then
-    echo "SUBMISSION_APP_DB_USER is required to verify App table grants." >&2
+  if [[ -z "$APP_DB_USER" || -z "$APP_DB_HOST" ]]; then
+    echo "SUBMISSION_APP_DB_USER and SUBMISSION_APP_DB_HOST are required to verify App grants." >&2
     return 1
   fi
-  if [[ "$(mysql_query "SELECT COUNT(*) FROM mysql.user WHERE User = '$APP_DB_USER' AND Host = '%';")" != "1" ]]; then
-    echo "App user '$APP_DB_USER'@'%' does not exist; cannot revoke grants at cutover." >&2
+  local account_count exact_account_count check_status
+  account_count="$(mysql_query "SELECT COUNT(*) FROM mysql.user WHERE User = '$APP_DB_USER';")"
+  if [[ "$account_count" != "1" ]]; then
+    echo "App user '$APP_DB_USER' has $account_count MySQL account hosts; provide one exact runtime account host and remove ambiguity before cutover." >&2
     return 1
+  fi
+  exact_account_count="$(mysql_query "SELECT COUNT(*) FROM mysql.user WHERE User = '$APP_DB_USER' AND Host = '$APP_DB_HOST';")"
+  if [[ "$exact_account_count" != "1" ]]; then
+    echo "App runtime account '$APP_DB_USER'@'$APP_DB_HOST' does not exist as the sole account host; refusing cutover." >&2
+    return 1
+  fi
+  if app_user_role_grant_exists; then
+    echo "App user '$APP_DB_USER'@'$APP_DB_HOST' inherits a role; refusing cutover until all role edges are removed." >&2
+    return 1
+  else
+    check_status=$?
+    if [[ "$check_status" -eq 2 ]]; then
+      echo "Unable to inspect role inheritance for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+      return 1
+    fi
+  fi
+  if app_user_global_dml_grant_exists; then
+    echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has global DML or GRANT OPTION; refusing table-only REVOKE." >&2
+    return 1
+  else
+    check_status=$?
+    if [[ "$check_status" -eq 2 ]]; then
+      echo "Unable to inspect global privileges for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+      return 1
+    fi
   fi
   if app_user_schema_dml_grant_exists "$SOURCE_SCHEMA"; then
-    echo "App user '$APP_DB_USER' has schema-wide DML on $SOURCE_SCHEMA; refusing table-only REVOKE. Use a table-scoped App account before cutover." >&2
+    echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has schema-wide DML or GRANT OPTION on $SOURCE_SCHEMA; refusing table-only REVOKE." >&2
     return 1
+  else
+    check_status=$?
+    if [[ "$check_status" -eq 2 ]]; then
+      echo "Unable to inspect schema privileges for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+      return 1
+    fi
   fi
   local missing=0
   for table in "${TABLES[@]}"; do
-    if ! app_user_table_grant_exists "$SOURCE_SCHEMA" "$table"; then
-      echo "App user '$APP_DB_USER' has no table-scoped grant on $SOURCE_SCHEMA.$table; the cutover REVOKE would fail. Grant per-table first (GRANT SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` TO '$APP_DB_USER'@'%')." >&2
+    if app_user_table_grant_exists "$SOURCE_SCHEMA" "$table"; then
+      if app_user_table_unsafe_grant_exists "$SOURCE_SCHEMA" "$table"; then
+        echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has an unsafe extra/ALL table privilege on $SOURCE_SCHEMA.$table; refusing cutover." >&2
+        missing=1
+      else
+        check_status=$?
+        if [[ "$check_status" -eq 2 ]]; then
+          echo "Unable to inspect table privileges on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+          missing=1
+        fi
+      fi
+    else
+      check_status=$?
+      if [[ "$check_status" -eq 2 ]]; then
+        echo "Unable to inspect table grants on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+      else
+        echo "App user '$APP_DB_USER'@'$APP_DB_HOST' must have exactly table-scoped SELECT/INSERT/UPDATE/DELETE grants on $SOURCE_SCHEMA.$table before cutover." >&2
+      fi
       missing=1
+    fi
+    if app_user_column_grant_exists "$SOURCE_SCHEMA" "$table"; then
+      echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has column-level privileges on $SOURCE_SCHEMA.$table; refusing table-only REVOKE." >&2
+      missing=1
+    else
+      check_status=$?
+      if [[ "$check_status" -eq 2 ]]; then
+        echo "Unable to inspect column privileges on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+        missing=1
+      fi
     fi
   done
   if [[ "$missing" != "0" ]]; then
@@ -249,7 +460,10 @@ assert_revoke_ready() {
 cleanup_failed_cutover() {
   echo "Cutover failed; cleaning copied rows from target (target was empty before copy)." >&2
   for table in "${TABLES[@]}"; do
-    mysql_query "DELETE FROM \`$TARGET_SCHEMA\`.\`$table\`;"
+    if ! mysql_query "DELETE FROM \`$TARGET_SCHEMA\`.\`$table\`;"; then
+      echo "Cleanup failed for target table $TARGET_SCHEMA.$table." >&2
+      return 1
+    fi
   done
   echo "Target restored to empty; fix the cause above and re-run preflight/cutover." >&2
 }
@@ -273,28 +487,54 @@ case "$ACTION" in
     ;;
   cutover)
     require_execute I_UNDERSTAND_SUBMISSION_CUTOVER
+    require_quiesce I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS
     if [[ "$SOURCE_SCHEMA" == "$TARGET_SCHEMA" ]]; then
       echo "Source and target are identical; refusing a no-op cutover." >&2
       exit 1
     fi
-    if [[ -z "$APP_DB_USER" ]]; then
-      echo "Cutover requires SUBMISSION_APP_DB_USER=... so App grants on the submission tables can be revoked safely." >&2
+    if [[ -z "$APP_DB_USER" || -z "$APP_DB_HOST" ]]; then
+      echo "Cutover requires SUBMISSION_APP_DB_USER and SUBMISSION_APP_DB_HOST so App grants can be revoked safely." >&2
       exit 1
     fi
-    echo "WARNING: enable APP_SUBMISSION_ROUTING_MODE=remote only after SPLIT-004 moves App read paths off the App schema." >&2
+    echo "WARNING: all App, Submission-owner, Judge, dispatcher, reaper, scheduler, and direct database writers must remain stopped and drained until the cutover completes." >&2
     assert_ready
     assert_revoke_ready || {
       echo "Refusing cutover: App grants are not revocable; run preflight first." >&2
       exit 1
     }
+    if ! source_before="$(source_snapshot "$SOURCE_SCHEMA")"; then
+      echo "Unable to capture source rows/checksums before copy; refusing cutover." >&2
+      exit 1
+    fi
     if ! copy_forward; then
       echo "Copy failed; aborting without revoking grants." >&2
-      cleanup_failed_cutover || true
+      if ! cleanup_failed_cutover; then
+        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
+      fi
+      exit 1
+    fi
+    if ! source_after="$(source_snapshot "$SOURCE_SCHEMA")"; then
+      echo "Unable to recheck source rows/checksums after copy; refusing to revoke grants." >&2
+      if ! cleanup_failed_cutover; then
+        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
+      fi
+      exit 1
+    fi
+    if [[ "$source_before" != "$source_after" ]]; then
+      echo "Source rows/checksums changed during copy; refusing to revoke grants and cleaning the target." >&2
+      if ! cleanup_failed_cutover; then
+        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
+      fi
       exit 1
     fi
     if ! revoke_app_grants; then
-      echo "Grant revocation failed after copy; rolling back copied rows." >&2
-      cleanup_failed_cutover || true
+      echo "Grant revocation failed after copy; restoring App grants and rolling back copied rows." >&2
+      if ! restore_app_grants; then
+        echo "CRITICAL: App grant restoration failed; stop all writers and repair grants before restart." >&2
+      fi
+      if ! cleanup_failed_cutover; then
+        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
+      fi
       exit 1
     fi
     print_snapshot "$SOURCE_SCHEMA" source-after-cutover
@@ -302,16 +542,27 @@ case "$ACTION" in
     ;;
   rollback)
     require_execute I_UNDERSTAND_SUBMISSION_ROLLBACK
+    require_quiesce I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS
     if [[ "$SOURCE_SCHEMA" == "$TARGET_SCHEMA" ]]; then
       echo "Source and target are identical; no rollback required." >&2
       exit 1
     fi
-    if [[ -z "$APP_DB_USER" ]]; then
-      echo "Rollback requires SUBMISSION_APP_DB_USER=... (the same app-schema user used for cutover)." >&2
+    if [[ -z "$APP_DB_USER" || -z "$APP_DB_HOST" ]]; then
+      echo "Rollback requires SUBMISSION_APP_DB_USER and SUBMISSION_APP_DB_HOST (the same account used for cutover)." >&2
       exit 1
     fi
-    copy_back
-    restore_app_grants
+    if ! copy_back; then
+      echo "CRITICAL: atomic rollback copy failed before COMMIT; verify source rows and keep all writers stopped before any restart." >&2
+      echo "Rollback data copy failed; restoring App grants before stopping." >&2
+      if ! restore_app_grants; then
+        echo "CRITICAL: App grant restoration failed during rollback; stop all writers and repair grants manually." >&2
+      fi
+      exit 1
+    fi
+    if ! restore_app_grants; then
+      echo "CRITICAL: rollback data copy completed but App grant restoration failed; stop all writers and repair grants manually." >&2
+      exit 1
+    fi
     print_snapshot "$SOURCE_SCHEMA" source-after-rollback
     print_snapshot "$TARGET_SCHEMA" target-after-rollback
     ;;

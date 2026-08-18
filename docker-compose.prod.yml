@@ -187,7 +187,10 @@ services:
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9103
-      - APP_SUBMISSION_ROUTING_MODE=${APP_SUBMISSION_ROUTING_MODE:-local}
+      # This artifact exports only the direct Submission owner; rollback to local
+      # requires the previous verified compatibility artifact.
+      - APP_SUBMISSION_ROUTING_MODE=remote
+      - SUBMISSION_CUTOVER_COMPLETE=${SUBMISSION_CUTOVER_COMPLETE:?SUBMISSION_CUTOVER_COMPLETE is required after the Submission schema cutover}
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true

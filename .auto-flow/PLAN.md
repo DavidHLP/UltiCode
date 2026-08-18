@@ -48,7 +48,7 @@ Out of scope：Contest 排名/滚榜独立化、Moderation 物理服务、Notifi
 
 ## Active Task / Dependencies
 
-`SPLIT-001`、`SPLIT-002`、`SEARCH-001`、`SEARCH-002`、`SEARCH-003`、`SPLIT-003`、`SPLIT-004`、`SPLIT-005`、`CONTRACT-001`–`CONTRACT-007` 已完成；当前 active task 为 `CONTRACT-008` 最终架构与 Completion/Coverage Audit。Contest association 已迁为 SubmissionCreated durable inbox；未宣称 Contest ranking、Moderation 或 Notification physical split。
+All tasks from `SPLIT-001` through `CONTRACT-008` are complete; no active task remains in this objective. The dependency graph is retained below as historical execution context.
 
 `SPLIT-001 → SPLIT-002 → SPLIT-003 → SPLIT-004 → SPLIT-005`；`SPLIT-001 → SEARCH-001 → SEARCH-002 → SEARCH-003 → SPLIT-005`。仅依赖全部满足的 Task 可进入 `ready`。
 
@@ -1278,15 +1278,15 @@ FQCN/serialization and matched-release safety; owner matrix completeness; app-ap
 
 ### State Files to Update
 
-`.auto-flow/TASKS.yaml`, `.auto-flow/COVERAGE.md`, `.auto-flow/DECISIONS.md`, `.auto-flow/PLAN.md`, `.auto-flow/RESUME.md`, `.auto-flow/HANDOFF.yaml`, `.auto-flow/WORKLOG.md`; bookkeeping only, never staged as delivery.
+`.auto-flow/TASKS.yaml`, `.auto-flow/COVERAGE.md`, `.auto-flow/DECISIONS.md`, `.auto-flow/PLAN.md`, `.auto-flow/RESUME.md`, `.auto-flow/HANDOFF.yaml`, `.auto-flow/WORKLOG.md`; bookkeeping follows the execution packet and may be included in the user-authorized local commit.
 
 ### Delivery Authority
 
-用户已明确这是无生产环境的本地开放项目；本轮授权在本地 Docker/PM2/MySQL/Nacos/Redis 目标上完成 runtime access、preflight、cutover 与 observation。仍不授权 commit、push、PR、merge、远端/共享环境变更或 destructive reset；本地 runtime gate 已解除。
+用户已明确这是无生产环境的本地开放项目；本轮授权在本地 Docker/PM2/MySQL/Nacos/Redis 目标上完成 runtime access、preflight、cutover、observation 与本地 commit。仍不授权 push、PR、merge、远端/共享环境变更或 destructive reset；本地 runtime gate 已解除。
 
 ### Terminal Condition
 
-CONTRACT-001–CONTRACT-006 已 `done`，SPLIT-005 本地 runtime access/cutover observation 已 `done`；CONTRACT-007 的 compat/App provider source retirement 已实现，等待其 focused/module/runtime Review 与 Coverage Audit 收口，CONTRACT-008 仍 `pending`。其余 source boundary、codec/catalog、local writer、Review 和本地验证均有证据；不得把局部 blocker closure 误写成整个 objective 完成。
+CONTRACT-001–CONTRACT-006 已 `done`，SPLIT-005 本地 runtime access/cutover observation 已 `done`；CONTRACT-007 的 compat/App provider source retirement 与 cutover safety repair 已实现并通过 focused/module/runtime Review 与 Coverage Audit，CONTRACT-008 已收口。其余 source boundary、codec/catalog、local writer、Review 和本地验证均有证据；本地 commit 已完成，不得把它描述为 production deployment。
 
 ## Blocker Resolution Execution Packet — SPLIT-005 runtime gate (2026-08-18)
 
@@ -1328,7 +1328,7 @@ CONTRACT-001–CONTRACT-006 已 `done`，SPLIT-005 本地 runtime access/cutover
 ### Required Evidence
 
 - Deployment host inventory、runtime health/Dubbo registration 和 matched image/artifact digest；不包含 secret value。
-- `SHOW GRANTS`、`information_schema.schema_privileges/table_privileges` 和 actual `SUBMISSION_APP_DB_USER` preflight evidence，证明 schema-wide DML 为零且三张 source table grants 可撤销。
+- `SHOW GRANTS`、`mysql.user`/`information_schema.USER_PRIVILEGES`、`information_schema.schema_privileges/table_privileges` 和 actual `SUBMISSION_APP_DB_USER` + `SUBMISSION_APP_DB_HOST` preflight evidence，证明唯一 runtime account 无 global/schema/table `ALL`、`GRANT OPTION` 或角色传递闭包，且三张 source table grants 可撤销。
 - Source/target shape、row-count/checksum、outstanding events、rollback watermark；cutover/rollback 日志与 reconciliation 结果。
 - App submit/rejudge/list、Judge verdict/result、Contest association、Notification event smoke；Submission owner logs/metrics 证明唯一 writer。
 

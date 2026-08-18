@@ -214,6 +214,8 @@
 
 ## DEC-023: Production cutover requires explicit owner credentials and table-scoped App grants
 
+- **Status**: Historical external-host scenario; superseded for this open local project by DEC-025.
+
 - **Context**: The release owner explicitly authorized the production cutover on 2026-08-18. The available
   persistent MySQL target has an empty, successfully migrated `submission` schema, but its active `ulticode` user
   owns schema-wide `ALL` privileges and has no table-scoped grant posture. No App or Submission runtime is active on
@@ -230,6 +232,8 @@
 - **Affected Tasks**: SPLIT-005-retirement-authority, CONTRACT-007, CONTRACT-008.
 
 ## DEC-024: Split authority approval from runtime access and cutover observation
+
+- **Status**: Historical external-host scenario; superseded for this open local project by DEC-025.
 
 - **Context**: The release owner explicitly approved production route/grant retirement, and the authority/preflight contract is now recorded. The remaining failure is operational: the available host has no App/Submission runtime, Nacos is stopped, and its active `ulticode` account has schema-wide DML, so it cannot safely prove or execute a single-writer cutover.
 - **Decision**: Close only `SPLIT-005-retirement-authority`. Add `SPLIT-005-runtime-access` for deployment-host, account, owner-credential and runtime prerequisite evidence; keep it `blocked` until those external inputs exist. Add `SPLIT-005-runtime-cutover-observation` as the sole route/copy/REVOKE/single-writer execution task, then let CONTRACT-007 and CONTRACT-008 consume its evidence.
@@ -251,4 +255,19 @@
 - **Decision**: Make `backend-submission`'s write/fence providers direct delegates to its local writer/fence, delete the App duplicate providers and remove the owner-mode configuration/conditional gates. Keep App's local adapters only as the explicit route rollback path; do not add an alias or a second compatibility registration.
 - **Alternatives**: Keep the compat provider disabled by property (rejected: the retired two-hop registration and owner-mode branch would remain in the source); delete the local writer (rejected: it is the Submission owner and required by the direct provider); modify schema/migrations (rejected: no schema change is needed).
 - **Consequences**: The regular remote path has one `backend-submission` provider and one Submission writer; rollback requires the prior verified artifact plus the existing route/grant/watermark/reconciliation runbook. No applied migration or remote state changes.
+- **Affected Tasks**: CONTRACT-007, CONTRACT-008.
+
+## DEC-027: Direct Submission startup requires explicit cutover evidence
+
+- **Context**: `init-env.sh` can provision an isolated owner credential, but it cannot safely infer that existing App submission rows, grants, outboxes and rollback watermark have been copied and observed. Automatically setting remote on an existing local volume would silently hide App-owned history.
+- **Decision**: Generate `APP_SUBMISSION_ROUTING_MODE=remote` with `SUBMISSION_CUTOVER_COMPLETE=false`; `up.sh --prepare-submission-owner` runs owner-first Flyway migration and unlocks `submission_rw` without starting PM2. The normal `up.sh` path and App `SubmissionRoutingProperties` fail closed until the operator completes the confirmation-gated cutover/grant observation and sets the marker true.
+- **Evidence**: Disposable owner-first preparation passed schema-history/table/account checks; preparation flag rejects `--quick`/`--frontend-only`; exact cutover failure-injection tests preserve source/grants and report partial cleanup/escalation.
+- **Consequences**: Local startup is intentionally two-phase; no automatic copy/REVOKE or silent data loss. Rollback of the direct artifact still requires the previous verified compatibility artifact.
+- **Affected Tasks**: CONTRACT-007, CONTRACT-008.
+
+## DEC-028: Submission schema cutover requires all-writer quiescence
+
+- **Context**: Copying or rolling back `submissions`, `judge_outbox` and `submission_result_outbox` while App, Submission-owner, Judge, dispatcher, reaper, scheduler or direct database writers are active can produce a mixed source/target state; a later table copy failure must not leave source tables partially restored.
+- **Decision**: `cutover` and `rollback` require the one-time `SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS` assertion after every source/target writer is stopped and drained. Cutover compares source rows/checksums before and after copy before REVOKE; rollback `copy_back` replaces all tables in one MySQL transaction and emits CRITICAL reconciliation guidance on failure.
+- **Consequences**: The runbook remains confirmation-gated and operator-dependent; no new production service protocol is introduced. A failed transaction must keep all writers stopped until source/grant reconciliation is complete.
 - **Affected Tasks**: CONTRACT-007, CONTRACT-008.

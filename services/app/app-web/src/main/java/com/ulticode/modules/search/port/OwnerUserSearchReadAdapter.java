@@ -55,14 +55,13 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
             return List.of();
         }
 
+        RpcResult<AuthAccountDTO> usernameResponse = queryAccounts(new AccountQueryDTO(
+                query, null, null, null, 1, Math.min(limit, ACCOUNT_PAGE_SIZE),
+                "username", "asc", true));
         Map<String, AuthAccountDTO> usernameAccounts = new LinkedHashMap<>();
-        for (AuthAccountDTO account : queryAllAccounts(new AccountQueryDTO(
-                query, null, null, null, 1, ACCOUNT_PAGE_SIZE, "username", "asc", true))) {
+        for (AuthAccountDTO account : pageItems(usernameResponse)) {
             if (containsIgnoreCase(account.username(), query)) {
                 usernameAccounts.put(account.accountId(), account);
-            }
-            if (usernameAccounts.size() >= limit) {
-                break;
             }
         }
 
@@ -107,13 +106,16 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
         if (offset < 0 || limit <= 0) {
             return List.of();
         }
-        List<AuthAccountDTO> accounts = queryAllAccounts(new AccountQueryDTO(
-                null, null, null, null, 1, ACCOUNT_PAGE_SIZE, "id", "asc", false));
-        if (offset >= accounts.size()) {
+        int page = offset / ACCOUNT_PAGE_SIZE + 1;
+        int skip = offset % ACCOUNT_PAGE_SIZE;
+        RpcResult<AuthAccountDTO> response = queryAccounts(new AccountQueryDTO(
+                null, null, null, null, page, ACCOUNT_PAGE_SIZE, "id", "asc", false));
+        List<AuthAccountDTO> pageItems = pageItems(response);
+        if (skip >= pageItems.size()) {
             return List.of();
         }
         List<AuthAccountDTO> pageAccounts =
-                accounts.subList(offset, Math.min(offset + limit, accounts.size()));
+                pageItems.subList(skip, Math.min(skip + limit, pageItems.size()));
         Set<String> accountIds = pageAccounts.stream().map(AuthAccountDTO::accountId)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
         Map<String, UserProfileReadRow> profiles = profileMap(profileRows(accountIds));
@@ -129,27 +131,6 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
     /** Test seam; production injection is supplied by Dubbo. */
     void setIdentityQueryService(IdentityQueryService identityQueryService) {
         this.identityQueryService = identityQueryService;
-    }
-    private List<AuthAccountDTO> queryAllAccounts(AccountQueryDTO firstQuery) {
-        Map<String, AuthAccountDTO> accounts = new LinkedHashMap<>();
-        for (int pageNumber = 1; ; pageNumber++) {
-            AccountQueryDTO query = new AccountQueryDTO(
-                    firstQuery.search(), firstQuery.role(), firstQuery.active(), firstQuery.banned(),
-                    pageNumber, firstQuery.limit(), firstQuery.sortBy(), firstQuery.sortOrder(),
-                    firstQuery.usernameOnly());
-            RpcResult<AuthAccountDTO> response = queryAccounts(query);
-            List<AuthAccountDTO> page = pageItems(response);
-            for (AuthAccountDTO account : page) {
-                if (account != null && account.accountId() != null && !account.accountId().isBlank()) {
-                    accounts.putIfAbsent(account.accountId(), account);
-                }
-            }
-            if (page.isEmpty() || response.page().totalPages() == null
-                    || pageNumber >= response.page().totalPages()) {
-                break;
-            }
-        }
-        return new ArrayList<>(accounts.values());
     }
 
     private RpcResult<AuthAccountDTO> queryAccounts(AccountQueryDTO query) {

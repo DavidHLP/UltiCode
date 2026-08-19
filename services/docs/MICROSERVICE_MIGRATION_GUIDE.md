@@ -491,6 +491,10 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 
 生产迁移不可让四个服务同时执行同一份全局 Flyway history。过渡期由单独 migration job 串行执行；分 schema 后把 migration 仍保留在 canonical `init-db/migrations/` 下按 Owner 分目录，并使用各自 schema history。
 
+Owner migration 脚本修改后先运行 `scripts/dev/migrate-owner-preflight-test.sh`，再运行
+`scripts/dev/owner-migration-safety-integration-test.sh`；后者只使用自动清理的一次性 MySQL/Redis
+容器验证权限预检、物理账户/profile 回填、目标绑定和有效 grant 隔离，不作为生产 cutover 证据。
+
 Notification 的物理搬迁使用独立的 `notification` schema history；根 history 只负责创建
 schema 和锁定的 shadow user。`notification_rw` 不带可用默认密码，部署必须在密管中配置
 凭据并在窗口内解锁。`notification-schema-cutover.sh` 默认只做 preflight，任何写入都需要

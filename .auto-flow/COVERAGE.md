@@ -32,6 +32,17 @@
 
 Status: `ARCH-002-001 done` — implementation, independent Review `Confirmed=0`, fake/disposable MySQL preflight and Tier C focused validation pass. `ARCH-002-002..005` and `ARCH-003-001..005` remain externally gated; `ARCH-007` is pending until both chains close.
 
+## Owner migration tooling CR remediation (2026-08-19)
+
+| Review finding | Task | Required evidence |
+| --- | --- | --- |
+| P1 Flyway privilege completeness | CR-20260819-001 | missing-DML rejection before Maven, full-grant disposable migrate |
+| P1 preserve soft-deleted accounts | CR-20260819-001 | physical-row predicates, disposable soft-delete account/profile parity |
+| P1 bind container checks to configured target | CR-20260819-001 | fake conflict rejection for migrate/backfill/cutover/rehearsal and real published-port path |
+| P2 fail rehearsal on effective runtime grants | CR-20260819-001 | global/schema/table/column plus role inspection, zero assertion, disposable prohibited-grant negative test |
+
+Status: `CR-20260819-001 done` — all four CR findings mapped and closed; durable disposable/current-machine Tier C evidence passed, formal Review Confirmed=0 after one rework round, and no applied migration or production state changed.
+
 ## DEV-LOCAL Blocker Remediation Rehearsals (2026-08-19)
 
 | DEV-LOCAL Task | Title | Local Evidence | External Gate Boundary |

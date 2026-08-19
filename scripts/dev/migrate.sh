@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 COMMAND="${1:-migrate}"
 MIGRATION_SCHEMA_WAS_SET="${MIGRATION_SCHEMA+x}"
@@ -154,6 +156,9 @@ owner_preflight() {
       || fail_preflight "invalid migration MySQL container port: $MIGRATION_MYSQL_CONTAINER_PORT"
     [[ "$(docker inspect -f '{{.State.Running}}' "$MIGRATION_MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
       || fail_preflight "migration MySQL container is not running: $MIGRATION_MYSQL_CONTAINER"
+    mysql_container_targets_configured_host "$MIGRATION_MYSQL_CONTAINER" "$MIGRATION_MYSQL_CONTAINER_PORT" \
+      "$MIGRATION_DB_HOST" "$MIGRATION_DB_PORT" \
+      || fail_preflight "configured migration target $MIGRATION_DB_HOST:$MIGRATION_DB_PORT is not a published endpoint of $MIGRATION_MYSQL_CONTAINER:$MIGRATION_MYSQL_CONTAINER_PORT"
   else
     command -v mysql >/dev/null 2>&1 || fail_preflight "mysql CLI is required for owner migrations"
   fi
@@ -221,12 +226,11 @@ owner_preflight() {
   fi
   [[ -n "$effective_grants" ]] \
     || fail_preflight "migration account has no grants on owner schema '$MIGRATION_SCHEMA'"
-  has_grant_privilege "$effective_grants" "CREATE" \
-    || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': CREATE"
-  has_grant_privilege "$effective_grants" "ALTER" \
-    || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': ALTER"
-  has_grant_privilege "$effective_grants" "SELECT" \
-    || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': SELECT"
+  local required_privilege
+  for required_privilege in CREATE ALTER SELECT INSERT UPDATE DELETE INDEX REFERENCES; do
+    has_grant_privilege "$effective_grants" "$required_privilege" \
+      || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': $required_privilege"
+  done
   if ! has_grant_option "$schema_grants"; then
     if ! has_grant_privilege "$global_grants" "ALL PRIVILEGES" \
         || ! has_grant_option "$global_grants"; then

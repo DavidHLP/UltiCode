@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-baseline}"
 
@@ -32,6 +34,16 @@ MONITORING_DB_PASSWORD="${MONITORING_DB_PASSWORD:-${MIGRATION_DB_PASSWORD:-}}"
 : "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
 MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+
+if [[ -n "$MYSQL_CONTAINER" ]]; then
+  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+    || { echo "MySQL container is not running: $MYSQL_CONTAINER" >&2; exit 1; }
+  mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
+    "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" || {
+    echo "Configured monitoring target $MONITORING_DB_HOST:$MONITORING_DB_PORT is not a published endpoint of $MYSQL_CONTAINER:$MYSQL_CONTAINER_PORT" >&2
+    exit 1
+  }
+fi
 
 safe_http_code() {
   local url="$1" code

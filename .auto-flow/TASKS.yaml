@@ -2296,3 +2296,35 @@ tasks:
     commits: []
     notes: "DEV-LOCAL remediation sequence (DEV-LOCAL-001..008) is complete. Safe stop at the external blocker boundary."
     updated_at: "2026-08-19"
+
+  - id: CR-20260819-001
+    objective_ref: "Owner migration tooling CR remediation"
+    title: "关闭 owner migration 权限、目标、软删除与 grant isolation findings"
+    source:
+      - "CR P1 scripts/dev/migrate.sh: Flyway privilege completeness"
+      - "CR P1 scripts/dev/owner-user-profile-backfill.sh: physical account preservation"
+      - "CR P1 scripts/dev/migrate.sh and submission-schema-cutover.sh: target binding"
+      - "CR P2 scripts/dev/dev-local-observation-rehearsal.sh: effective grant isolation"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "Owner preflight rejects any principal missing Flyway history DML or current owner-chain DDL privileges before Maven/Flyway runs."
+      - "Every container-assisted migration/cutover/backfill/rehearsal connection is bound to the configured host/port target."
+      - "Users/profile backfill, parity, manifest and rollback operate on every physical legacy account, including soft-deleted tombstones."
+      - "Observation rehearsal inspects direct and role-derived global/schema/table/column/routine privileges and cannot report REHEARSAL_VERIFIED when any effective submission privilege remains."
+    validation:
+      - "bash syntax and migrate-owner-preflight-test.sh regressions."
+      - "Disposable MySQL owner migrate/backfill/grant-negative rehearsal plus current local read-only rehearsal."
+      - "Compose config, focused integration tests, diff check, graph update and formal review."
+    rollback:
+      - "Revert the ten deliverable script/test/documentation files; no applied migration or persistent source data is changed."
+    evidence:
+      - "migrate-owner-preflight-test.sh PASS: missing Flyway DML, wrong host, wrong bind address, and all container-assisted sibling conflicts fail before migration/query execution."
+      - "owner-migration-safety-integration-test.sh PASS on disposable MySQL 9.1 and Redis 7: Auth/App real owner migrations, soft-deleted account/profile preservation, table/global/role/routine grant rejection, and zero-grant pass."
+      - "Current-machine owner-user-profile-backfill.sh preflight PASS: physical users 12/12, profiles 12/12, checksums matched, missing/orphan profiles 0."
+      - "Current-machine full dev-local-observation-rehearsal.sh PASS: 65 targeted tests, 0 failures/errors/skips; source/target checksums matched; effective submission grants 0; REHEARSAL_VERIFIED."
+      - "Compose dev/prod config, nine script bash syntax checks, git diff --check, secret scan, no init-db/migrations diff and graphify update PASS."
+      - "Two-axis formal review after rework: Spec Confirmed=0; Standards code findings=0 and control-plane drift corrected before completion."
+    commits: []
+    notes: "Completed locally with disposable and current-machine evidence. No production target, route, grant or deployment authorization is implied; ARCH-002/003 external gates remain blocked."
+    updated_at: "2026-08-19"

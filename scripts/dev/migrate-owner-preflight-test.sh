@@ -42,6 +42,15 @@ DB_PASSWORD=runtime-password
 AUTH_DB_USER=auth_rw
 EOF
 
+cat >"$TMP_DIR/external.env" <<'EOF'
+DB_HOST=external-host
+DB_PORT=23306
+DB_USER=migration_user
+DB_PASSWORD=secret
+DB_NAME=ulticode
+AUTH_DB_USER=auth_rw
+EOF
+
 cat >"$FAKE_BIN/mysql" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -92,11 +101,11 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "table-grant" && "$query" == *"SHOW GRANT
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "global-option-only" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
-  printf 'GRANT USAGE ON *.* TO `migration_user`@`localhost` WITH GRANT OPTION\nGRANT SELECT, CREATE, ALTER ON `auth`.* TO `migration_user`@`localhost`\n'
+  printf 'GRANT USAGE ON *.* TO `migration_user`@`localhost` WITH GRANT OPTION\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost`\n'
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "missing-reload" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
-  printf 'GRANT SELECT, CREATE, ALTER ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
+  printf 'GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "role" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
@@ -111,7 +120,11 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "empty-grants" && "$query" == *"SHOW GRAN
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "insufficient" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
-  printf 'GRANT SELECT, CREATE ON `auth`.* TO `migration_user`@`localhost`\n'
+  printf 'GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
+  exit 0
+fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "missing-dml" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
+  printf 'GRANT RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, CREATE, ALTER, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "missing-schema" && "$query" == *"information_schema.schemata"* ]]; then
@@ -123,7 +136,7 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" && "$query" ==
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
-  printf 'GRANT CREATE USER, RELOAD ON *.* TO `migration_user`@`localhost` WITH GRANT OPTION\nGRANT SELECT, CREATE, ALTER ON `notification`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
+  printf 'GRANT CREATE USER, RELOAD ON *.* TO `migration_user`@`localhost` WITH GRANT OPTION\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `notification`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" && "$query" == *"table_name = 'flyway_schema_history'"* ]]; then
@@ -147,7 +160,7 @@ case "$query" in
   *"SELECT CURRENT_USER"*) printf 'migration_user@localhost\n' ;;
   *"SELECT DATABASE"*) printf 'auth\n' ;;
   *"information_schema.schemata"*) printf '1\n' ;;
-  *"SHOW GRANTS FOR CURRENT_USER"*) printf 'GRANT RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, CREATE, ALTER ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n' ;;
+  *"SHOW GRANTS FOR CURRENT_USER"*) printf 'GRANT RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `auth`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n' ;;
   *) : ;;
 esac
 EOF
@@ -157,6 +170,11 @@ cat >"$FAKE_BIN/docker" <<EOF
 set -euo pipefail
 if [[ "\${1:-}" == "inspect" ]]; then
   printf 'true\n'
+  exit 0
+fi
+if [[ "\${1:-}" == "port" ]]; then
+  [[ "\${2:-}" == "ulticode-mysql" && "\${3:-}" == "3306/tcp" ]] || exit 5
+  printf '%s:23306\n' "\${FAKE_DOCKER_BIND_ADDRESS:-127.0.0.1}"
   exit 0
 fi
 [[ "\${1:-}" == "exec" ]] || exit 2
@@ -310,6 +328,23 @@ insufficient_output="$(run_expect_failure env \
 assert_contains "$insufficient_output" "required migration privilege missing on 'auth': ALTER"
 [[ ! -f "$MAVEN_MARKER" ]] || {
   echo 'Maven must not run when required migration privileges are missing.' >&2
+  exit 1
+}
+
+missing_dml_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  FAKE_MYSQL_MODE=missing-dml \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate)"
+assert_contains "$missing_dml_output" "required migration privilege missing on 'auth': INSERT"
+[[ ! -f "$MAVEN_MARKER" ]] || {
+  echo 'Maven must not run without Flyway history DML privileges.' >&2
   exit 1
 }
 
@@ -521,7 +556,7 @@ owner_output="$(env \
   "$ROOT_DIR/scripts/dev/migrate.sh" validate 2>&1)"
 assert_contains "$owner_output" "Migration preflight passed: run_id=test-run schema=auth database=auth account=migration_user"
 assert_contains "$owner_output" "Migration privilege snapshot (no password):"
-assert_contains "$owner_output" "GRANT SELECT, CREATE, ALTER ON \`auth\`.* TO \`migration_user\`@\`localhost\` WITH GRANT OPTION"
+assert_contains "$owner_output" "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON \`auth\`.* TO \`migration_user\`@\`localhost\` WITH GRANT OPTION"
 [[ "$owner_output" != *"secret"* ]] || {
   echo 'Migration password must not appear in preflight output.' >&2
   exit 1
@@ -559,6 +594,85 @@ assert_contains "$container_marker" "args=flyway:validate"
 assert_contains "$container_marker" "DB_HOST=localhost DB_PORT=23306 DB_NAME=auth DB_USER=migration_user"
 
 rm -f "$MAVEN_MARKER"
+
+container_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=external-host \
+  MIGRATION_DB_PORT=23306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate)"
+assert_contains "$container_conflict_output" "configured migration target external-host:23306 is not a published endpoint"
+
+container_bind_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  FAKE_DOCKER_BIND_ADDRESS=192.168.1.5 \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=127.0.0.1 \
+  MIGRATION_DB_PORT=23306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate)"
+assert_contains "$container_bind_conflict_output" "configured migration target 127.0.0.1:23306 is not a published endpoint"
+
+backfill_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  MIGRATION_DB_HOST=external-host \
+  MIGRATION_DB_PORT=23306 \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  "$ROOT_DIR/scripts/dev/owner-user-profile-backfill.sh" preflight)"
+assert_contains "$backfill_conflict_output" "Configured migration target external-host:23306 is not a published endpoint"
+
+cutover_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/external.env" \
+  MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" preflight)"
+assert_contains "$cutover_conflict_output" "Configured database target external-host:23306 is not a published endpoint"
+
+rehearsal_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/external.env" \
+  DEV_LOCAL_OBSERVATION_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OBSERVATION_REHEARSAL \
+  MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  "$ROOT_DIR/scripts/dev/dev-local-observation-rehearsal.sh" --skip-tests)"
+assert_contains "$rehearsal_conflict_output" "Configured monitoring target external-host:23306 is not a published endpoint"
+
+monitoring_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/external.env" \
+  MONITORING_DB_HOST=external-host \
+  MONITORING_DB_PORT=23306 \
+  MONITORING_DB_USER=migration_user \
+  MONITORING_DB_PASSWORD=secret \
+  MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  REDIS_PASSWORD=secret \
+  "$ROOT_DIR/scripts/dev/dev-local-monitoring-baseline.sh" baseline)"
+assert_contains "$monitoring_conflict_output" "Configured monitoring target external-host:23306 is not a published endpoint"
+
+notification_conflict_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/external.env" \
+  MYSQL_CONTAINER=ulticode-mysql \
+  MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  "$ROOT_DIR/scripts/dev/notification-schema-cutover.sh" preflight)"
+assert_contains "$notification_conflict_output" "Configured database target external-host:23306 is not a published endpoint"
 
 rm -f "$MAVEN_MARKER"
 env \

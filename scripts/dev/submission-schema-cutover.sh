@@ -24,6 +24,8 @@ set -euo pipefail
 # enabled after the SPLIT-004 read-path migration. See the migration guide §8.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-preflight}"
 EXECUTE="${2:-}"
@@ -69,6 +71,13 @@ done
 if [[ -n "$APP_DB_HOST" && ! "$APP_DB_HOST" =~ ^[A-Za-z0-9%._:-]+$ ]]; then
   echo "Invalid App account host: $APP_DB_HOST" >&2
   exit 1
+fi
+if [[ -n "$MYSQL_CONTAINER" ]]; then
+  command -v docker >/dev/null 2>&1 || { echo "docker CLI is required when MYSQL_CONTAINER is set." >&2; exit 1; }
+  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+    || { echo "MySQL container is not running: $MYSQL_CONTAINER" >&2; exit 1; }
+  mysql_container_targets_configured_host "$MYSQL_CONTAINER" "${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" "$DB_HOST" "$DB_PORT" \
+    || { echo "Configured database target $DB_HOST:$DB_PORT is not a published endpoint of $MYSQL_CONTAINER:${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" >&2; exit 1; }
 fi
 
 # Submission owner tables copied from the App compatibility schema. These move

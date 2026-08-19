@@ -5,6 +5,8 @@ set -euo pipefail
 # A cutover/rollback requires both --execute and an explicit confirmation token.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-preflight}"
 EXECUTE="${2:-}"
@@ -39,6 +41,7 @@ MIGRATION_USER="${MIGRATION_DB_USER:-$DB_USER}"
 MIGRATION_PASSWORD="${MIGRATION_DB_PASSWORD:-$DB_PASSWORD}"
 APP_DB_USER="${NOTIFICATION_APP_DB_USER:-}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-}"
+MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
 
 for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_USER"; do
   if [[ -n "$identifier" && ! "$identifier" =~ ^[A-Za-z0-9_]+$ ]]; then
@@ -46,6 +49,12 @@ for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_U
     exit 1
   fi
 done
+if [[ -n "$MYSQL_CONTAINER" ]]; then
+  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+    || { echo "MySQL container is not running: $MYSQL_CONTAINER" >&2; exit 1; }
+  mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" "$DB_HOST" "$DB_PORT" \
+    || { echo "Configured database target $DB_HOST:$DB_PORT is not a published endpoint of $MYSQL_CONTAINER:$MYSQL_CONTAINER_PORT" >&2; exit 1; }
+fi
 
 TABLES=(
   notifications

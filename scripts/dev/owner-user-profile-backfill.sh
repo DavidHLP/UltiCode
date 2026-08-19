@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-preflight}"
 MANIFEST_FILE="${OWNER_BACKFILL_MANIFEST:-$ROOT_DIR/.local/owner-user-profile-backfill.manifest}"
@@ -73,6 +75,11 @@ if [[ -n "$MYSQL_CONTAINER" ]]; then
     echo "Migration MySQL container is not running: $MYSQL_CONTAINER" >&2
     exit 1
   }
+  mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
+    "$MIGRATION_DB_HOST" "$MIGRATION_DB_PORT" || {
+    echo "Configured migration target $MIGRATION_DB_HOST:$MIGRATION_DB_PORT is not a published endpoint of $MYSQL_CONTAINER:$MYSQL_CONTAINER_PORT" >&2
+    exit 1
+  }
 else
   command -v mysql >/dev/null 2>&1 || {
     echo "mysql CLI is required when MIGRATION_MYSQL_CONTAINER is empty." >&2
@@ -112,7 +119,7 @@ require_tables() {
 }
 
 users_count() {
-  mysql_query "SELECT COUNT(*) FROM $1.users WHERE is_deleted=0;"
+  mysql_query "SELECT COUNT(*) FROM $1.users;"
 }
 
 profiles_count() {
@@ -122,9 +129,9 @@ profiles_count() {
 users_checksum() {
   local schema="$1"
   if [[ "$schema" == "$SOURCE_SCHEMA" ]]; then
-    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', u.id, u.username, p.name, u.email, p.avatar, SHA2(COALESCE(u.password, ''), 256), p.bio, p.company, p.github, u.joined_at, p.location, p.twitter, p.website, p.preferred_language, u.role, u.is_active, u.is_banned, u.banned_until, u.banned_reason, u.last_login_at, u.created_by, u.updated_by, u.is_deleted, u.deleted_at, u.deleted_by, u.password_reset_token_hash, u.password_reset_expires_at, u.authz_version) ORDER BY u.id SEPARATOR '\\n')), MD5('')) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id WHERE u.is_deleted=0;"
+    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', u.id, u.username, p.name, u.email, p.avatar, SHA2(COALESCE(u.password, ''), 256), p.bio, p.company, p.github, u.joined_at, p.location, p.twitter, p.website, p.preferred_language, u.role, u.is_active, u.is_banned, u.banned_until, u.banned_reason, u.last_login_at, u.created_by, u.updated_by, u.is_deleted, u.deleted_at, u.deleted_by, u.password_reset_token_hash, u.password_reset_expires_at, u.authz_version) ORDER BY u.id SEPARATOR '\\n')), MD5('')) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id;"
   else
-    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', id, username, name, email, avatar, SHA2(COALESCE(password, ''), 256), bio, company, github, joined_at, location, twitter, website, preferred_language, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version) ORDER BY id SEPARATOR '\\n')), MD5('')) FROM $schema.users WHERE is_deleted=0;"
+    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', id, username, name, email, avatar, SHA2(COALESCE(password, ''), 256), bio, company, github, joined_at, location, twitter, website, preferred_language, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version) ORDER BY id SEPARATOR '\\n')), MD5('')) FROM $schema.users;"
   fi
 }
 
@@ -133,11 +140,11 @@ profiles_checksum() {
 }
 
 source_missing_profiles() {
-  mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id WHERE u.is_deleted=0 AND p.account_id IS NULL;"
+  mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id WHERE p.account_id IS NULL;"
 }
 
 source_orphan_profiles() {
-  mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.user_profiles p LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id AND u.is_deleted=0 WHERE u.id IS NULL;"
+  mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.user_profiles p LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id WHERE u.id IS NULL;"
 }
 
 print_snapshot() {
@@ -163,8 +170,8 @@ assert_no_duplicates() {
 }
 
 assert_no_extra_targets() {
-  [[ "$(mysql_query "SELECT COUNT(*) FROM $AUTH_SCHEMA.users a LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=a.id AND u.is_deleted=0 WHERE u.id IS NULL;")" == "0" ]] || {
-    echo "Auth target contains rows outside the active legacy source." >&2
+  [[ "$(mysql_query "SELECT COUNT(*) FROM $AUTH_SCHEMA.users a LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=a.id WHERE u.id IS NULL;")" == "0" ]] || {
+    echo "Auth target contains rows outside the physical legacy source." >&2
     return 1
   }
   [[ "$(mysql_query "SELECT COUNT(*) FROM $APP_SCHEMA.user_profiles p LEFT JOIN $SOURCE_SCHEMA.user_profiles s ON s.account_id=p.account_id WHERE s.account_id IS NULL;")" == "0" ]] || {
@@ -180,10 +187,10 @@ verify_parity() {
   assert_no_extra_targets
   source_missing="$(source_missing_profiles)"
   source_orphan="$(source_orphan_profiles)"
-  mismatch_users="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles s ON s.account_id=u.id LEFT JOIN $AUTH_SCHEMA.users a ON a.id=u.id WHERE u.is_deleted=0 AND (a.id IS NULL OR NOT (a.username <=> u.username) OR NOT (a.name <=> s.name) OR NOT (a.email <=> u.email) OR NOT (a.avatar <=> s.avatar) OR NOT (a.password <=> u.password) OR NOT (a.bio <=> s.bio) OR NOT (a.company <=> s.company) OR NOT (a.github <=> s.github) OR NOT (a.joined_at <=> u.joined_at) OR NOT (a.location <=> s.location) OR NOT (a.twitter <=> s.twitter) OR NOT (a.website <=> s.website) OR NOT (a.preferred_language <=> s.preferred_language) OR NOT (a.role <=> u.role) OR NOT (a.is_active <=> u.is_active) OR NOT (a.is_banned <=> u.is_banned) OR NOT (a.banned_until <=> u.banned_until) OR NOT (a.banned_reason <=> u.banned_reason) OR NOT (a.last_login_at <=> u.last_login_at) OR NOT (a.created_by <=> u.created_by) OR NOT (a.updated_by <=> u.updated_by) OR NOT (a.is_deleted <=> u.is_deleted) OR NOT (a.deleted_at <=> u.deleted_at) OR NOT (a.deleted_by <=> u.deleted_by) OR NOT (a.password_reset_token_hash <=> u.password_reset_token_hash) OR NOT (a.password_reset_expires_at <=> u.password_reset_expires_at) OR NOT (a.authz_version <=> u.authz_version));")"
+  mismatch_users="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles s ON s.account_id=u.id LEFT JOIN $AUTH_SCHEMA.users a ON a.id=u.id WHERE a.id IS NULL OR NOT (a.username <=> u.username) OR NOT (a.name <=> s.name) OR NOT (a.email <=> u.email) OR NOT (a.avatar <=> s.avatar) OR NOT (a.password <=> u.password) OR NOT (a.bio <=> s.bio) OR NOT (a.company <=> s.company) OR NOT (a.github <=> s.github) OR NOT (a.joined_at <=> u.joined_at) OR NOT (a.location <=> s.location) OR NOT (a.twitter <=> s.twitter) OR NOT (a.website <=> s.website) OR NOT (a.preferred_language <=> s.preferred_language) OR NOT (a.role <=> u.role) OR NOT (a.is_active <=> u.is_active) OR NOT (a.is_banned <=> u.is_banned) OR NOT (a.banned_until <=> u.banned_until) OR NOT (a.banned_reason <=> u.banned_reason) OR NOT (a.last_login_at <=> u.last_login_at) OR NOT (a.created_by <=> u.created_by) OR NOT (a.updated_by <=> u.updated_by) OR NOT (a.is_deleted <=> u.is_deleted) OR NOT (a.deleted_at <=> u.deleted_at) OR NOT (a.deleted_by <=> u.deleted_by) OR NOT (a.password_reset_token_hash <=> u.password_reset_token_hash) OR NOT (a.password_reset_expires_at <=> u.password_reset_expires_at) OR NOT (a.authz_version <=> u.authz_version);")"
   mismatch_profiles="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.user_profiles s LEFT JOIN $APP_SCHEMA.user_profiles p ON p.account_id=s.account_id WHERE NOT (p.name <=> s.name) OR NOT (p.avatar <=> s.avatar) OR NOT (p.bio <=> s.bio) OR NOT (p.company <=> s.company) OR NOT (p.github <=> s.github) OR NOT (p.location <=> s.location) OR NOT (p.twitter <=> s.twitter) OR NOT (p.website <=> s.website) OR NOT (p.preferred_language <=> s.preferred_language);")"
-  target_missing_profiles="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $APP_SCHEMA.user_profiles p ON p.account_id=u.id WHERE u.is_deleted=0 AND p.account_id IS NULL;")"
-  target_orphan_profiles="$(mysql_query "SELECT COUNT(*) FROM $APP_SCHEMA.user_profiles p LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id AND u.is_deleted=0 WHERE u.id IS NULL;")"
+  target_missing_profiles="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $APP_SCHEMA.user_profiles p ON p.account_id=u.id WHERE p.account_id IS NULL;")"
+  target_orphan_profiles="$(mysql_query "SELECT COUNT(*) FROM $APP_SCHEMA.user_profiles p LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id WHERE u.id IS NULL;")"
   [[ "$mismatch_users" == "0" && "$mismatch_profiles" == "0" && "$target_missing_profiles" == "0" && "$target_orphan_profiles" == "0" && "$source_missing" == "0" && "$source_orphan" == "0" ]] || {
     printf 'Parity failed: user_mismatch=%s profile_mismatch=%s target_missing_profiles=%s target_orphan_profiles=%s source_missing_profiles=%s source_orphan_profiles=%s\n' \
       "$mismatch_users" "$mismatch_profiles" "$target_missing_profiles" "$target_orphan_profiles" "$source_missing" "$source_orphan" >&2
@@ -213,7 +220,7 @@ write_manifest() {
       [[ -z "$id" ]] && continue
       valid_id "$id" || { echo "Unsafe user id in manifest source: $id" >&2; return 1; }
       printf 'auth_user\t%s\n' "$id"
-    done <<< "$(mysql_query "SELECT id FROM $SOURCE_SCHEMA.users WHERE is_deleted=0 ORDER BY id;")"
+    done <<< "$(mysql_query "SELECT id FROM $SOURCE_SCHEMA.users ORDER BY id;")"
     while IFS= read -r id; do
       [[ -z "$id" ]] && continue
       valid_id "$id" || { echo "Unsafe profile id in manifest source: $id" >&2; return 1; }
@@ -262,11 +269,10 @@ case "$ACTION" in
     query="START TRANSACTION;
 INSERT INTO $AUTH_SCHEMA.users (id, username, name, email, avatar, password, bio, company, github, joined_at, location, twitter, website, preferred_language, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version)
 SELECT u.id, u.username, p.name, u.email, p.avatar, u.password, p.bio, p.company, p.github, u.joined_at, p.location, p.twitter, p.website, p.preferred_language, u.role, u.is_active, u.is_banned, u.banned_until, u.banned_reason, u.last_login_at, u.created_by, u.updated_by, u.is_deleted, u.deleted_at, u.deleted_by, u.password_reset_token_hash, u.password_reset_expires_at, u.authz_version
-FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id
-WHERE u.is_deleted=0;
+FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id;
 INSERT INTO $APP_SCHEMA.user_profiles (account_id, name, avatar, bio, company, github, location, twitter, website, preferred_language)
 SELECT p.account_id, p.name, p.avatar, p.bio, p.company, p.github, p.location, p.twitter, p.website, p.preferred_language
-FROM $SOURCE_SCHEMA.user_profiles p JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id AND u.is_deleted=0;
+FROM $SOURCE_SCHEMA.user_profiles p JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id;
 COMMIT;"
     if ! mysql_query "$query"; then
       mysql_query 'ROLLBACK;' >/dev/null 2>&1 || true

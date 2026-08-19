@@ -653,3 +653,11 @@
 - Recorded retirement decision candidate in `DEC-038`.
 - Ran focused routing tests (`SubmissionRoutingPortTest`: 7/7, `SubmissionPortWiringTest`: 6/6, `SubmissionServiceImplTest`: 17/17) all passing (30/30, 0 failures/errors/skips).
 - Closed `DEV-LOCAL-007` locally; transitioned `DEV-LOCAL-008` to `ready`; `ARCH-003-005` remains externally blocked.
+
+## 2026-08-19 (Owner migration tooling CR remediation)
+
+- Closed four review findings across owner privilege preflight, physical users/profile backfill, configured database target binding and effective runtime grant isolation.
+- Centralized Docker published-endpoint validation and applied it to migrate, backfill, Submission/Notification cutover, monitoring and observation entry points.
+- Added durable disposable MySQL 9.1/Redis 7 behavior coverage; verified missing DML rejection, real Auth/App owner migrations, soft-deleted account/profile preservation, and table/global/role/routine grant failure plus zero-grant success.
+- Current-machine evidence: physical users/profile preflight 12/12 with matching checksums and zero missing/orphans; full observation rehearsal 65 tests with zero failures/errors/skips, matching Submission checksums and effective grants 0.
+- Compose dev/prod, shell syntax, diff, secret scan, no-applied-migration check, graphify update and two-axis formal review passed. No commit, push, production mutation or persistent data write was performed.

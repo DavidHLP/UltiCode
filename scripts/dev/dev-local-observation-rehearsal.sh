@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 SKIP_TESTS=false
 
@@ -45,6 +47,15 @@ MONITORING_DB_USER="${MONITORING_DB_USER:-${MIGRATION_DB_USER:-root}}"
 MONITORING_DB_PASSWORD="${MONITORING_DB_PASSWORD:-${MIGRATION_DB_PASSWORD:-${MYSQL_ROOT_PASSWORD:-}}}"
 MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+REDIS_CONTAINER="${REDIS_CONTAINER:-ulticode-redis}"
+
+if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2>&1; then
+  mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
+    "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" || {
+    echo "Configured monitoring target $MONITORING_DB_HOST:$MONITORING_DB_PORT is not a published endpoint of $MYSQL_CONTAINER:$MYSQL_CONTAINER_PORT" >&2
+    exit 1
+  }
+fi
 
 mysql_query() {
   local schema="$1" query="$2"
@@ -69,15 +80,15 @@ else
   printf 'MySQL Host: %s:%s\n' "$MONITORING_DB_HOST" "$MONITORING_DB_PORT"
 fi
 
-if docker inspect ulticode-redis >/dev/null 2>&1; then
-  REDIS_PING="$(docker exec -e REDISCLI_AUTH="${REDIS_PASSWORD:-}" ulticode-redis redis-cli ping 2>/dev/null || echo "FAIL")"
+if docker inspect "$REDIS_CONTAINER" >/dev/null 2>&1; then
+  REDIS_PING="$(docker exec -e REDISCLI_AUTH="${REDIS_PASSWORD:-}" "$REDIS_CONTAINER" redis-cli ping 2>/dev/null || echo "FAIL")"
   if [[ "$REDIS_PING" != "PONG" ]]; then
     echo "ERROR: Redis ping failed (got $REDIS_PING)" >&2
     exit 1
   fi
-  printf 'Redis Container: ulticode-redis (ping=%s)\n' "$REDIS_PING"
+  printf 'Redis Container: %s (ping=%s)\n' "$REDIS_CONTAINER" "$REDIS_PING"
 else
-  echo "ERROR: ulticode-redis container not found" >&2
+  echo "ERROR: Redis container not found: $REDIS_CONTAINER" >&2
   exit 1
 fi
 
@@ -166,9 +177,44 @@ fi
 printf 'Writer Process Status: %s\n' "$PM2_STATUS"
 printf 'Writer Quiesce State: %s\n' "$WRITER_QUIESCE_STATUS"
 
-# Verify ulticode runtime user grant isolation on submission schema
-GRANT_COUNT="$(mysql_query information_schema "SELECT COUNT(*) FROM SCHEMA_PRIVILEGES WHERE GRANTEE LIKE \"'${DB_USER:-ulticode}'%\" AND TABLE_SCHEMA='submission'")"
-printf 'Runtime User (%s) Grants on `submission` schema: %s privilege(s)\n' "${DB_USER:-ulticode}" "$GRANT_COUNT"
+# Verify every direct or role-derived privilege scope that can reach submission.
+RUNTIME_DB_USER="${DB_USER:-ulticode}"
+[[ "$RUNTIME_DB_USER" =~ ^[A-Za-z0-9_]+$ ]] || { echo 'ERROR: invalid runtime database user.' >&2; exit 1; }
+GRANT_COUNT="$(mysql_query information_schema "WITH RECURSIVE principals (principal_user, principal_host) AS (
+  SELECT CAST(User AS CHAR(255)), CAST(Host AS CHAR(255)) FROM mysql.user WHERE User = '$RUNTIME_DB_USER'
+  UNION DISTINCT
+  SELECT CAST(edge.FROM_USER AS CHAR(255)), CAST(edge.FROM_HOST AS CHAR(255))
+  FROM mysql.role_edges edge JOIN principals parent
+    ON edge.TO_USER = parent.principal_user AND edge.TO_HOST = parent.principal_host
+), prohibited AS (
+  SELECT privilege.GRANTEE FROM USER_PRIVILEGES privilege JOIN principals principal
+    ON privilege.GRANTEE = CONCAT(CHAR(39), principal.principal_user, CHAR(39), '@', CHAR(39), principal.principal_host, CHAR(39))
+   WHERE privilege.PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE','CREATE','DROP','REFERENCES','INDEX','ALTER','CREATE TEMPORARY TABLES','LOCK TABLES','EXECUTE','CREATE VIEW','SHOW VIEW','CREATE ROUTINE','ALTER ROUTINE','EVENT','TRIGGER','ALL PRIVILEGES') OR privilege.IS_GRANTABLE <> 'NO'
+  UNION ALL
+  SELECT privilege.GRANTEE FROM SCHEMA_PRIVILEGES privilege JOIN principals principal
+    ON privilege.GRANTEE = CONCAT(CHAR(39), principal.principal_user, CHAR(39), '@', CHAR(39), principal.principal_host, CHAR(39))
+   WHERE privilege.TABLE_SCHEMA = 'submission'
+  UNION ALL
+  SELECT privilege.GRANTEE FROM TABLE_PRIVILEGES privilege JOIN principals principal
+    ON privilege.GRANTEE = CONCAT(CHAR(39), principal.principal_user, CHAR(39), '@', CHAR(39), principal.principal_host, CHAR(39))
+   WHERE privilege.TABLE_SCHEMA = 'submission'
+  UNION ALL
+  SELECT privilege.GRANTEE FROM COLUMN_PRIVILEGES privilege JOIN principals principal
+    ON privilege.GRANTEE = CONCAT(CHAR(39), principal.principal_user, CHAR(39), '@', CHAR(39), principal.principal_host, CHAR(39))
+   WHERE privilege.TABLE_SCHEMA = 'submission'
+  UNION ALL
+  SELECT CONCAT(CHAR(39), privilege.User, CHAR(39), '@', CHAR(39), privilege.Host, CHAR(39))
+  FROM mysql.procs_priv privilege JOIN principals principal
+    ON privilege.User = principal.principal_user AND privilege.Host = principal.principal_host
+   WHERE privilege.Db = 'submission' AND privilege.Proc_priv <> ''
+)
+SELECT COUNT(*) FROM prohibited;")"
+[[ "$GRANT_COUNT" =~ ^[0-9]+$ ]] || { echo 'ERROR: effective runtime grant inspection returned an invalid count.' >&2; exit 1; }
+if [[ "$GRANT_COUNT" != "0" ]]; then
+  echo "ERROR: Runtime user $RUNTIME_DB_USER retains $GRANT_COUNT direct or role-derived privilege(s) reaching submission." >&2
+  exit 1
+fi
+printf 'Runtime User (%s) effective grants reaching `submission`: %s privilege(s) (ASSERTION PASS: 0)\n' "$RUNTIME_DB_USER" "$GRANT_COUNT"
 
 printf 'Persistent Data Mutation: NOT EXECUTED (persistent DB rows protected; rollback/fault fixtures executed in disposable Testcontainers)\n'
 

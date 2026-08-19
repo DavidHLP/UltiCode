@@ -4,6 +4,7 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -25,6 +26,18 @@ public class SubmissionWriteProvider implements SubmissionWritePort {
     @Override
     public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
         return delegate.submitContest(userId, createDTO);
+    }
+
+    @Override
+    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
+                               SubmissionFactsSnapshot facts) {
+        return delegate.submit(userId, createDTO, facts);
+    }
+
+    @Override
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO,
+                                      SubmissionFactsSnapshot facts) {
+        return delegate.submitContest(userId, createDTO, facts);
     }
 
     @Override

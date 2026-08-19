@@ -2,6 +2,162 @@
 
 ---
 
+## Current active plan: Services Owner architecture hardening (2026-08-18)
+
+Objective: move the Services Strangler migration from an established multi-process Owner topology toward stronger boundaries, while preserving local rollback paths and avoiding production claims.
+
+Task DAG: `ARCH-001` (done) → `{ARCH-002 blocked, ARCH-004 done, ARCH-005 done}`; `ARCH-003` is blocked by the absent production stability gate; `ARCH-006` is done after the final Review/Validation/Coverage audit.
+
+Implementation slices completed in this run:
+
+- `ARCH-001`: add API-only immutable `SubmissionFactsSnapshot`; App local/remote request boundaries capture or forward it; Submission owner write methods fail closed without it and no longer inject App/Auth facts ports.
+- `ARCH-004`: aggregate the Admin analytics overview behind `AnalyticsOverviewData`, batch contest participants, bound component/mapper scanning and record explicit context/call-count evidence. Broader Admin seams remain out of scope.
+- `ARCH-005`: synchronize the migration guide/status docs, remove the invalid root `backend-api` dependency entry, add Search to PM2/local startup handling, and validate the seven-runtime production Compose topology.
+- `ARCH-002`: add owner-specific datasource variables, Auth runtime Flyway fail-closed gating and a reversible database-isolation plan. Disposable four-owner grant evidence passes; physical accounts, cutover and users-owner runtime migration remain pending.
+
+Validation order: focused API/owner tests → App/Admin regressions → full `services` Maven tests → Maven reactor/Compose/PM2/Bash/static checks → graph refresh and Coverage Audit. Rollback is source/config artifact rollback; no applied migration, production grant, deployment, or remote route change is authorized by this task.
+
+## Current execution packet — ARCH-002/ARCH-003 blocker remediation (2026-08-19)
+
+### Objective
+
+完成 `ARCH-002` 的真实 Owner 数据库隔离证据和 `ARCH-003` 的远程路由稳定/兼容退役证据，使 Services Owner architecture hardening 从“本地完成、外部门禁 blocked”进入可重新收口状态。唯一执行方向是：先完成本地特权 migration job preparation，再取得外部权限与运行时证据，最后才允许物理 cutover、观察和兼容路径退役。
+
+### In Scope
+
+- 复用并收紧 `scripts/dev/migrate.sh`，形成显式 `MIGRATION_DB_*`、owner schema allowlist、privilege preflight、审计输出和 secret contract；不创建第二套 Flyway 入口。
+- 取得授权目标的 migration principal、Owner runtime principals、DB privilege matrix、cutover window、备份/watermark/rollback owner 和 `users/profile` responsibility evidence。
+- 按 `expand → backfill → verify → cutover → observe → contract` 完成 Auth/Admin/App/Notification/Submission 的物理 schema/account/permission 验证。
+- 建立 remote route、Dubbo/provider、DB/Redis/outbox/PEL、restart、error/latency、double-writer 和 rollback 观察证据。
+- 在所有 writer quiesce、观察窗口、回滚演练和生产 deployment authority 齐全后，执行 App local/legacy/shadow/Judge/Search compatibility path 的功能、性能、安全和并发退役验证。
+- 最终重新执行 Submission/Admin focused tests、Maven reactor、脚本/YAML/diff、Tier C validation、Review 和 Coverage Gate。
+
+### Out of Scope
+
+- 当前本地会话不执行生产部署、远程 DB/grant/cutover、监控发布、secret rotation、route switch、commit、push、merge 或 destructive reset。
+- 不给 runtime account 增加 DBA 权限；不把 MySQL `1044` 通过关闭 fail-closed 或修改权限边界伪装为成功。
+- 不编辑 applied migration，不删除旧 `users`/profile 列，不提前删除 local/legacy/shadow provider、dispatcher、adapter 或 rollback path。
+- 不新增 broker、共享业务表、跨 Owner SQL、2PC 或第二套兼容架构。
+
+### Root Cause / Capability Gap
+
+1. Auth `validate` 使用了不能执行 owner DDL/GRANT 的 runtime account，因此 MySQL `1044` 是正确的 fail-closed 结果；缺口是显式 privileged migration job 和授权执行身份，而不是业务代码。
+2. Auth/Admin/App/Notification 仍以 `DB_*` fallback 为主，`users/profile` owner responsibility、backfill、权限和真实目标观察未闭合。
+3. 本地已有 Submission route/grant/quiesce/rollback helper，但当前项目没有 production environment，无法证明 remote stability window、全写入者静默、观察期或生产兼容退役。
+4. `.auto-flow/RESUME.md` 保留旧 `CONTRACT-007/008` active wording；本计划将以最新 `HANDOFF.yaml`、`AUTO_PILOT_STATUS.yaml` 和本 Execution Packet 明确覆盖其历史指针，并更新 Resume 为最小当前恢复信息。
+
+### Behavioral Invariants
+
+- migration principal 与 runtime Owner principal 永远分离；runtime 不拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式 role 或其他 Owner DML。
+- 所有输入、schema、account host、privilege inspection、writer inventory 和 cutover marker 缺失或歧义时 fail closed。
+- 每个业务表只有一个 Owner writer；route、provider、dispatcher、reaper、scheduler 和 direct client 的写入方向必须可审计。
+- `users/profile` 迁移保持 expand/backfill/verify 兼容顺序；不编辑 applied migration，不进行跨 Owner SQL 或分布式事务。
+- Submission cutover/rollback 必须 all-writer quiesce；失败时保持 writers 停止，先完成数据、grant、watermark 和 reconciliation。
+- HTTP/Result/URL/cookie/JWT/RBAC/audit/timeout/retry 等公共行为保持兼容；兼容路径只能在完整证据后成组退役。
+- 凭据只存在于部署 secret store/CI secret/environment；控制面、日志和测试输出不得包含密码或完整敏感连接串。
+
+### Acceptance Criteria
+
+- 用户提供的 1.1–1.5、2.1–2.5 十个要求逐项映射到 `ARCH-002-001..005` 和 `ARCH-003-001..005`，每项具备独立 Acceptance、Validation、Rollback、Evidence。
+- `ARCH-002-001` 的本地 migration job preparation 完成后，`ARCH-002-002..005` 仍必须取得真实外部证据，不能由 disposable MySQL 代替。
+- `ARCH-003-001..005` 只有在授权远程稳定窗口、quiesce、observation、rollback 和 production deployment evidence 齐全后才能推进；不能凭本地单测关闭 blocker。
+- `ARCH-007` 最终 Gate 通过后，才允许将 `ARCH-002`、`ARCH-003` 标记为 `done`；否则保持 `blocked` 并记录精确解除动作。
+
+### Required Evidence
+
+- migration job source/test、explicit credential contract、schema allowlist、preflight/privilege snapshot、Flyway history/validate 输出。
+- DB target/account/host/role/grant approval、备份校验、rows/checksum/watermark、`users/profile` backfill 和 reader/writer matrix。
+- 真实目标的跨 schema permission-denial、all-writer quiesce、route/provider/DB/Redis/outbox/PEL stability、latency/error/restart 和 double-writer 报告。
+- observation window、故障注入、rollback/reconciliation、production monitoring/cutover approval、secret references 和 release sign-off。
+- 最终 focused tests、Maven `BUILD SUCCESS`、integration/performance/security/concurrency/compatibility review、Compose/POM/YAML/bash/diff/graph Coverage。
+
+### Delivery Authority
+
+用户已授权当前开发环境的本地 remediation；本地可执行 DEV-LOCAL 的账号/grant/Flyway/cutover/monitoring/quiesce/rollback rehearsal。真实 DB 权限、cutover window、production monitoring/deployment、route/grant switch、compatibility deletion 和远端证据仍需要外部 owner/release/DBA 明确授权；不得把本地结果当作 production action 或 external Acceptance。
+
+### Development Environment Authorization Boundary (2026-08-19)
+
+用户已授权当前开发环境的本地 remediation。该授权允许在 disposable/local DB、Docker Compose、PM2 和本地测试目标上执行账号、grant、Flyway、cutover、故障注入、monitoring 和 rollback rehearsal，但不得提交凭据、编辑 applied migration 或执行未授权的远程资源变更。
+
+- 所有本地结果必须标记为 `DEV-LOCAL`，只能证明开发环境行为、脚本契约和可重复 rehearsal。
+- `ARCH-002-002..005` 的真实目标权限、users/profile responsibility、物理隔离和 Auth privileged target evidence 仍不能由本地 Docker/PM2/disposable DB 推导。
+- `ARCH-003-001..005` 的 production stability、deployment authority、真实全写入者 quiesce、观察窗口和兼容退役证据仍不能由开发环境推导。
+- 本地 remediation 可修复根因、生成可审计开发证据并为外部 Gate 准备 artifact，但在上述外部证据缺失时不得把对应 Task 或 parent 标记为 `done`。
+
+### DEV-LOCAL Execution Packet
+
+本地授权后的唯一执行 DAG 为：
+
+`DEV-LOCAL-001 → DEV-LOCAL-002 → DEV-LOCAL-003 → DEV-LOCAL-005 → DEV-LOCAL-004 → DEV-LOCAL-006 → DEV-LOCAL-007 → DEV-LOCAL-008`
+
+- `DEV-LOCAL-001` 先修复 owner preflight 在宿主无 `mysql` CLI 时无法运行的问题，优先复用 `ulticode-mysql` container，不改变 migration identity 或 Flyway 配置语义。
+- `DEV-LOCAL-002..004` 只在本地开发数据库执行 owner schema Flyway、runtime account/grant、users/profile backfill、Submission cutover 和 rollback rehearsal。
+- `DEV-LOCAL-005..007` 只生成开发环境 monitoring、writer inventory、quiesce、observation、fault-injection、rollback 和 compatibility readiness evidence。
+- `DEV-LOCAL-008` 收集本地 validation packet；不得把 `DEV-LOCAL` evidence 直接转换为 `ARCH-002-002..005` 或 `ARCH-003-001..005` 的 external Acceptance。
+
+### DEV-LOCAL Evidence Coverage
+
+| DEV-LOCAL Task | Local artifact | External gate not closed |
+| --- | --- | --- |
+| `DEV-LOCAL-001` | container-aware owner preflight and regression test | `ARCH-002-002/004` real target authority |
+| `DEV-LOCAL-002` | owner Flyway history, account/grant snapshots and runtime negative checks | `ARCH-002-002/004` external target/sign-off |
+| `DEV-LOCAL-003` | users/profile rows/checksum/orphan/duplicate and idempotency report | `ARCH-002-003` responsibility/cutover authority |
+| `DEV-LOCAL-005..006` | DEV-LOCAL route/monitoring/quiesce/observation/rollback packet | `ARCH-003-001..004` production evidence |
+| `DEV-LOCAL-004` | Submission cutover preflight/copy/rollback/failure injection | `ARCH-002-005` physical target gate |
+| `DEV-LOCAL-007` | compatibility scan and rollback-only decision | `ARCH-003-005` production retirement evidence |
+| `DEV-LOCAL-008` | local validation and updated Handoff | `ARCH-007` remains pending until both external chains close |
+
+### Terminal Condition
+
+当 `ARCH-002-001..005`、`ARCH-003-001..005` 和 `ARCH-007` 全部 `done`，每个用户要求都有 Evidence/Review/Validation/Rollback，实际 owner account/grant/users responsibility/remote stability/quiesce/observation/rollback/deployment 证据齐全，且最终 Review `Confirmed Findings=0` 时，才关闭两个 blocker。当前 `ARCH-002-001` 已 `done`；`ARCH-002-002..005` 与 `ARCH-003-001..005` 保持 `blocked`，`ARCH-007` 保持 `pending`，不存在 Ready Task。
+
+### Task DAG
+
+`ARCH-001 → ARCH-002-001 → ARCH-002-002 → {ARCH-002-003, ARCH-003-001} → ARCH-002-004 → {ARCH-003-004, ARCH-003-002} → ARCH-002-005 → ARCH-003-003 → ARCH-003-005 → ARCH-007`
+
+`ARCH-003-001` is monitoring/baseline setup and `ARCH-003-004` is pre-cutover monitoring/control deployment; both must precede `ARCH-002-005`. `ARCH-003-003` owns the post-cutover observation and rollback rehearsal. All later Tasks remain `blocked` or `pending` until their external evidence exists.
+
+### Implementation Steps
+
+1. 执行 `ARCH-002-001`：扩展现有 `migrate.sh` 的显式 migration connection contract、owner schema allowlist、privilege preflight、审计输出和 disposable MySQL 测试。
+2. 由 DBA/release owner 提供并核验 `ARCH-002-002` 的真实目标、账号、权限、窗口、备份和回滚责任。
+3. 在授权窗口完成 `ARCH-002-003` users/profile expand/backfill/verify 和责任切换。
+4. 使用 privileged job 完成 `ARCH-002-004` Auth validate/migrate，保持 runtime Flyway fail closed。
+5. 在授权目标部署 `ARCH-003-004` 的 production monitoring/cutover controls，但不执行最终 route switch。
+6. 完成 `ARCH-003-002` 的 writer inventory、drain/quiesce manifest 和 cutover rehearsal。
+7. 执行 `ARCH-002-005` 物理隔离 cutover、grant denial、parity、smoke 和 atomic data rollback；post-cutover observation 不在此 Task 提前声称完成。
+8. 按 `ARCH-003-003` 执行完整观察期、故障注入和 route/grant/watermark/reconciliation rollback rehearsal。
+9. 仅在观察与 rollback 证据通过后执行 `ARCH-003-005` compatibility static scan、功能/性能/安全/并发验证和成组删除。
+10. 执行 `ARCH-007` 最终 Review、Validation、Coverage、Completion Audit，更新 parent task 状态和 Handoff。
+
+### Compatibility / Rollback
+
+本计划不新增兼容层。migration 失败回到上一 verified migration/config artifact；数据切换失败只使用 route/grant/watermark/reconciliation runbook；route/monitoring 发布失败回滚上一 release artifact；compatibility deletion 失败回滚完整 artifact，不保留半删除 provider 或双 writer。
+
+### Focused Checks
+
+- `bash -n scripts/dev/migrate.sh scripts/dev/up.sh scripts/dev/test.sh`
+- privileged job unit/preflight + disposable MySQL privilege/role/schema denial tests
+- Auth migration `info/validate` with explicit migration identity and runtime-account negative test
+- users/profile backfill idempotency, rows/checksum/orphan/duplicate and reader/writer matrix checks
+- existing Submission cutover helper preflight/quiesce/copy/parity/rollback failure injection
+- remote route/provider/outbox/PEL/restart/error/latency/double-writer observation queries
+- 用户要求的 Submission API/Facts/Provider、Admin adapter/service tests and Maven reactor `BUILD SUCCESS`
+
+### Final Validation Tier
+
+Tier C/D cross-service owner/config/startup validation：focused → module → integration → reactor `verify` → real target cutover/observation/performance/security/concurrency review → Compose/POM/YAML/bash/diff/graph Coverage → `ARCH-007` Completion Gate。没有外部目标时只能完成 `ARCH-002-001`，其余任务保持 blocked。
+
+### Expected Review Areas
+
+Least privilege、secret leakage、migration ordering、users/profile ownership、backfill idempotency、transaction boundaries、all-writer quiesce、DB/Redis/outbox/PEL consistency、route/provider single-writer、monitoring blind spots、rollback atomicity、public contract compatibility、performance soak、legacy path deletion、protected dirty worktree 和 stale Resume pointer。
+
+### State Files to Update
+
+`.auto-flow/TASKS.yaml`、`.auto-flow/COVERAGE.md`、`.auto-flow/DECISIONS.md`、`.auto-flow/PLAN.md`、`.auto-flow/RESUME.md`、`.auto-flow/HANDOFF.yaml`、`.auto-flow/WORKLOG.md`。这些文件只记录计划和证据，不作为业务交付物，也不得加入 Commit。
+
+---
+
 # Submission / Search Extraction Execution Packet
 
 ## Objective

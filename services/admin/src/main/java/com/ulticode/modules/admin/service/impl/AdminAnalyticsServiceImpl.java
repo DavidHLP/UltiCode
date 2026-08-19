@@ -108,36 +108,24 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     @Override
     public AnalyticsOverviewVO getAnalyticsOverview(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
-        LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
-
-        // User metrics
-        long totalUsers = adminAnalyticsPort.countAllUsers();
-        long activeUsers = adminAnalyticsPort.countDistinctSubmittersInRange(
-                startDate, LocalDateTime.now(clock).plusDays(1));
-
-        // Submission metrics
-        long totalSubmissions = adminAnalyticsPort.countSubmissionsInRange(startDate);
-        long acceptedSubmissions = adminAnalyticsPort.countAcceptedSubmissionsInRange(startDate);
-        double acceptanceRate = totalSubmissions > 0
-                ? Math.round(acceptedSubmissions * 100.0 / totalSubmissions * 100.0) / 100.0 : 0.0;
-
-        // Contest metrics
-        long totalContests = adminAnalyticsPort.countContestsInRange(startDate);
-
-        // Subscription metrics
-        long activeSubscriptions = adminAnalyticsPort.countActiveSubscriptions();
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime startDate = now.minusDays(daysToAnalyze);
+        AdminAnalyticsPort.AnalyticsOverviewData data =
+                adminAnalyticsPort.loadOverviewData(startDate, now.plusDays(1));
+        double acceptanceRate = data.totalSubmissions() > 0
+                ? Math.round(data.acceptedSubmissions() * 100.0 / data.totalSubmissions() * 100.0) / 100.0 : 0.0;
 
         // System metrics (JVM/OS sampling lives in SystemResourceReporter)
         SystemResourceReporter.SystemMetrics systemMetrics = systemResourceReporter.sampleSystemMetrics();
 
         return new AnalyticsOverviewVO(
-                totalUsers,
-                activeUsers,
-                totalSubmissions,
-                acceptedSubmissions,
+                data.totalUsers(),
+                data.activeUsers(),
+                data.totalSubmissions(),
+                data.acceptedSubmissions(),
                 acceptanceRate,
-                totalContests,
-                activeSubscriptions,
+                data.totalContests(),
+                data.activeSubscriptions(),
                 systemMetrics.systemUptimeSeconds(),
                 systemMetrics.memoryUsagePercent(),
                 daysToAnalyze);

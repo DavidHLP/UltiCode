@@ -1,5 +1,7 @@
 # Worklog
 
+- 2026-08-18 (Services Owner architecture hardening): implemented immutable `SubmissionFactsSnapshot` across API/App/Submission/Judge adapters; removed App/Auth fact-port dependencies from the Submission write Owner and added fail-closed contract/owner tests. Added a bounded Admin analytics overview seam and bounded Admin component scan. Added owner-specific DB configuration preparation, updated migration/status docs, removed invalid `backend-api` POM entry, and added Search to PM2/local startup handling. Focused and full tests: Submission owner integration and App regression pass; full Services Maven test/verify aggregate 826 suites / 2732 tests / 0 failures / 0 errors / 28 skips. Production/dev Compose config, Maven validate, PM2 Node syntax, Bash syntax and diff check pass. Physical Auth/Admin/App/Notification isolation and App compatibility deletion remain explicitly incomplete/blocked.
+
 - 2026-08-16 (SEARCH-003-slice-1 实施：版本语义与 worker 版本账本) — App/Auth publisher aggregateVersion 0L → clock.instant().toEpochMilli()（与 OCCURRED_AT 同源，DEC-016）；worker 增加 Redis 版本账本（search:doc-version:{index}）：existing > incoming → stale_skipped 计数+ACK 跳过、等版本重写、损坏条目忽略；文档附加 _aggregateVersion；HSET 仅在 Meili 接受写后；DELETE 清账本；新增 SearchWorkerProperties.versionKeyPrefix（yml SEARCH_WORKER_VERSION_KEY_PREFIX）。验证：search 10/10、auth 7/7、app-web search+wiring 75/75、reactor compile、git diff --check PASS；SearchDocumentChangedPublisherTest（新）4/4。
 - 2026-08-16 (SEARCH-003-slice-4 + SEARCH-003 收口) — SearchWorkerEndToEndIT 3/3（真实 Redis + 真实 meili-java client + JDK HttpServer stub，零新依赖）：UPSERT/DELETE/stale 全链 + ACK + 账本 + tombstone；compose prod 启用（SEARCH_WORKER_ENABLED/AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED/MEILISEARCH_ENABLED 默认 true，代码默认不变，dev 不变）；指南 §11.5 runbook。SEARCH-003 四 AC 全过、Coverage 行 PASS；验证：search 15（12 单测+3 IT）+ auth search 7 + app-web search 92 + reactor compile + compose 双 config + diff check；commit d09411d19。真实 Meili 镜像 E2E 仍为外部 gap。SPLIT-005 依赖链待 SPLIT-003-slice-6 contest 迁移排期。
 - 2026-08-16 (SEARCH-003-slice-3 实施：兼容回归与扫描) — DefaultSearchReadProjectionTest 增 `_aggregateVersion`/未知字段容忍用例（15/15）；MeiliWritePathScanTest 静态扫描（app modules + app-web + auth main，根缺失即失败、>100 文件防空洞，1/1）；指南 §11.4 状态更新 + §11.5 backfill/版本/tombstone/启用/回滚 runbook；commit bd2c42291。
@@ -512,7 +514,7 @@
 - Hardened `submission-schema-cutover.sh`: exact `SUBMISSION_APP_DB_USER` + `SUBMISSION_APP_DB_HOST`, ambiguous host rejection, recursive `mysql.role_edges` closure, global `mysql.user`/`USER_PRIVILEGES`, schema/table `ALL` and `GRANT OPTION` (`IS_GRANTABLE`), column-level privilege rejection, exact four table DML grants, and explicit query-failure refusal.
 - Disposable MySQL security matrix passed: exact non-`%` host positive; host mismatch, global DML, schema DML, table ALL, schema/table WITH GRANT OPTION, column grants, transitive roles, and denied `role_edges` inspection all failed before copy.
 - Provider contract test now asserts no App `@DubboReference`, owner-mode `@Value`, `ownerMode` field, or `@ConditionalOnProperty`; focused provider test passed 4/4.
-- Reconciled local-only control metadata: no stale active task, no production authority claim, Resume points to `791f35114`, HANDOFF retains the real Redis+Meili E2E external gap, and Coverage maps the CR repair.
+- Reconciled local-only control metadata: no stale active task, no production authority claim, Resume points to `62058f358`, HANDOFF retains the real Redis+Meili E2E external gap, and Coverage maps the CR repair.
 - Verification: graphify 27,595 nodes / 80,442 edges; Submission reactor tests 11/11; App routing focused tests and compile BUILD SUCCESS; services `./mvnw verify -B` BUILD SUCCESS; official quick and integration exit 0; Compose base/dev/prod, YAML, Bash and diff checks pass. Exact-revision disposable matrices cover grants/roles/query failure, owner-first preparation, copy failure cleanup and partial revoke/restore/cleanup escalation. No production/deploy/remote action performed.
 
 ## 2026-08-18 (CR follow-up: cutover writer quiesce and atomic rollback)
@@ -520,3 +522,134 @@
 - Fixed `scripts/dev/submission-schema-cutover.sh`: `cutover` and `rollback` now require `SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS`; the gate and migration guide enumerate every App, Submission-owner, Judge, dispatcher, reaper, scheduler, and direct database writer that must be stopped and drained.
 - Reworked rollback `copy_back` to issue all table replacements in one MySQL transaction; a failed transaction emits an explicit CRITICAL reconciliation warning before grant restoration. Cutover rechecks source rows/checksums before REVOKE.
 - Verification: fake-MySQL transaction/failure-injection and quiesce fail-closed checks passed; `bash -n`, `git diff --check`, `graphify update .`, official `./scripts/dev/test.sh quick`, and independent review passed with Confirmed Findings=0. No production/deploy/remote action performed.
+
+## 2026-08-18 (run-development-loop close audit)
+
+- Recovered and revalidated the active control plane at `62058f358`: all 49 ledger tasks are `done`, with no `ready`, `pending` or `blocked` task; the objective remains terminal with no next goal.
+- Completion/Coverage Audit passed against the recorded Acceptance, Review, Validation, owner/single-writer and rollback evidence. The current worktree delta is limited to `.auto-flow/HANDOFF.yaml`, `.auto-flow/RESUME.md` and `.auto-flow/WORKLOG.md`; no business implementation changed.
+- Recheck passed: `git diff --check` and `bash -n scripts/dev/submission-schema-cutover.sh scripts/dev/up.sh scripts/dev/init-env.sh`. No commit, push, deploy or production action performed.
+
+## 2026-08-18 (architecture-hardening recovery and local slices)
+
+- Recovery found the active Services Owner objective in `ARCH-002`/`ARCH-004` with a stale prior handoff: `HEAD=62058f358`, while the worktree contains the mapped architecture source/config/docs/tests slices. No files were discarded; all existing deltas remain protected and attributed before further edits.
+- `ARCH-004` Admin analytics now has a typed `AnalyticsOverviewData` coarse seam, one participant batch for contest analytics, bounded `BackendAdminApplication` scanning, an explicit `BackendAdminApplication` Testcontainers context, and adapter call-count/result regression tests.
+- Focused evidence: Admin analytics tests `5/5`, explicit Admin datasource/context IT `1/1`, Admin module `./mvnw -pl admin -am test -B` exited 0, and disposable four-owner schema/grant IT `21/21` exited 0 after adding the Notification owner fixture. `graphify update .` and `git diff --check` passed.
+- `ARCH-002` remains incomplete: these tests prove only disposable schema/grant behavior; actual runtime account cutover, users responsibility migration, and deployment authority are not claimed. `ARCH-003` remains externally blocked by the absent production stability window.
+
+## 2026-08-18 (architecture-hardening Review pass)
+
+- Independent full-context Review classified the Auth Flyway/runtime issue as fixed by `AUTH_FLYWAY_ENABLED=false` default plus auth-only owner migration locations and a privileged migration-job note. The four-owner grant evidence gap was fixed by extending `information_schema` counts to `notification` and asserting zero cross-owner grants.
+- The users/profile documentation mismatch was reconciled: shared canonical profile contract/drop is recorded separately from the fresh Auth owner bootstrap's compatibility columns; no applied migration was edited.
+- Final Review verdict: `Confirmed Findings=0`; no production/remote action, commit, push or deploy was performed. Validation must still re-run affected checks and the final Services/Compose/static gates.
+
+## 2026-08-18 (architecture-hardening Tier C validation)
+
+- Admin module `./mvnw -pl admin -am test -B` passed with 561 tests and 3 skips; `./mvnw -pl admin -am verify -B` passed with BUILD SUCCESS.
+- Full `services ./mvnw verify -B` passed with BUILD SUCCESS; official `./scripts/dev/test.sh quick` passed when supplied the one-shot local `MEILI_MASTER_KEY` validation value; official `./scripts/dev/test.sh integration` passed with all integration checks.
+- Bash syntax, control-plane YAML parsing, Compose base+dev/prod expansion (with one-shot local Submission/Meili validation values) and `git diff --check` passed. Existing Maven duplicate Jackson and Flyway/MySQL-version warnings remain non-blocking baseline warnings.
+- `MIGRATION_SCHEMA=auth MIGRATION_DB_NAME=auth ./scripts/dev/migrate.sh validate` was intentionally run read-only and failed closed with MySQL 1044 for the active `ulticode` account before any migration action. This is expected evidence that Auth owner migration requires the separate privileged migration job; no grant or production action was attempted.
+
+## 2026-08-18 (architecture-hardening Completion/Coverage Audit)
+
+- `ARCH-004` and `ARCH-006` are `done`; `ARCH-002` and `ARCH-003` are `blocked` with explicit evidence, rollback boundaries and external unblock conditions. Ledger audit found no other pending/ready/in-progress task.
+- Acceptance/Coverage/Review/Validation/Git/Task/Evidence consistency is reconciled. The local objective stops at a truthful blocked terminal state; no commit, push, merge, release, deploy or production data action was performed.
+
+## 2026-08-19 (blocker remediation planning)
+
+- Converted the user’s ten ARCH-002/ARCH-003 remediation bullets into one phase-gated Execution Packet.
+- Added `ARCH-002-001` as the sole local `ready` Task: reuse `scripts/dev/migrate.sh` with explicit `MIGRATION_DB_*`, owner-schema allowlist, privilege preflight, secret boundary and disposable MySQL evidence.
+- Added externally gated `ARCH-002-002..005`, `ARCH-003-001..005` and final `ARCH-007`; parent blockers remain blocked until real authority, target, users/profile responsibility, remote stability, quiesce, observation, rollback and production evidence exist.
+- Recorded DEC-034: do not grant runtime DBA privileges, edit applied migrations, simulate production, or create a second migration/cutover framework.
+- Replaced the stale Resume active pointer with the current Services Owner objective and explicitly marked the former CONTRACT-007/008 pointer historical.
+- No business implementation, migration, runtime deployment, remote resource, commit or push was performed.
+
+## 2026-08-19 (DAG safety correction)
+
+- Corrected the blocker-remediation order after review: monitoring/baseline setup (`ARCH-003-001`) and production monitoring/cutover controls (`ARCH-003-004`) now precede writer quiescence and physical isolation cutover (`ARCH-002-005`).
+- `ARCH-003-003` now owns post-cutover observation and rollback rehearsal; `ARCH-003-005` owns compatibility retirement verification. `DEC-035` records the dependency safety rule.
+- Repaired `.auto-flow/TASKS.yaml` after an intermediate edit-marker corruption; the affected tail was replaced atomically and YAML parsing confirmed valid with exactly one clean block per new Task.
+
+## 2026-08-19 (ARCH-002-001 local implementation)
+
+- Extended `scripts/dev/migrate.sh` with explicit owner `MIGRATION_DB_HOST/PORT/NAME/USER/PASSWORD` handling, owner schema allowlist, runtime-account separation, read-only connection/schema/privilege preflight and password-free audit output.
+- Updated `scripts/dev/up.sh` to pass explicit Submission migration connection variables; documented the contract in `.env.example` and `init-db/README.md`.
+- Added `scripts/dev/migrate-owner-preflight-test.sh` with fake `mysql`/`mvn` probes for missing variables, runtime-account reuse, invalid schema, successful owner preflight, password redaction and shared-chain compatibility.
+- Focused validation passed: `bash -n` and `migrate-owner-preflight-test: PASS`; `graphify update .` completed. Real Flyway execution remains gated by ARCH-002-002/004 external credentials and target authority.
+
+## 2026-08-19 (ARCH-002-001 Review)
+
+- Independent review returned `Confirmed Findings=0`; the first review findings (shared DB_NAME override ordering, fake CLI vacuity, explicit up.sh variables, empty env precedence, frontend-only guard and shared migration privilege preservation) were fixed and rechecked.
+- Review evidence now covers fake mysql connection arguments/password, effective-account mismatch, empty grants, privilege snapshot output, Flyway goal/config, exactly one owner invocation and shared DB_NAME override compatibility.
+- ARCH-002-001 remains `in_progress` pending the validation gate; real Flyway execution and least-privilege proof remain externally blocked under ARCH-002-002/004.
+
+## 2026-08-19 (ARCH-002-001 validation)
+
+- Tier C focused validation passed: `bash -n` for affected scripts, `migrate-owner-preflight-test: PASS`, `git diff --check`, `.auto-flow` YAML parse and no diff under `init-db/migrations`.
+- Real Flyway `info/validate` against a privileged owner target was not run because the required external migration identity/target is unavailable; this remains an explicit ARCH-002-002/004 gate.
+- ARCH-002-001 remains `in_progress` until Completion/Coverage Audit; no commit, push, remote grant or deployment was performed.
+
+## 2026-08-19 (ARCH-002-001 privilege-policy rework)
+
+- Review identified that a nonempty `SHOW GRANTS` snapshot did not prove minimum migration capabilities.
+- Added fail-closed checks for `CREATE`, `ALTER`, `SELECT`, `GRANT OPTION`, and schema-specific `CREATE USER`; insufficient grants are rejected before Maven/Flyway.
+- Extended the fake MySQL regression with insufficient-grant mode and verified privilege snapshot output; `migrate-owner-preflight-test: PASS`.
+- The prior Review/Validation packet is intentionally reopened for re-review after this code change; Task remains `in_progress`.
+
+## 2026-08-19 (ARCH-002-001 direct grant policy)
+
+- Reworked the privilege policy after review: schema-scoped `CREATE`/`ALTER`/`SELECT`/`GRANT OPTION` are parsed by grant target, global `ALL PRIVILEGES` is merged as a capability superset, and wrong-schema grants fail closed.
+- Owner preflight now rejects role grants rather than depending on default-role activation or a separate Flyway-session role closure; `DEC-036` records the direct-grant contract.
+- Added fake coverage for wrong-schema, global-ALL-plus-schema, role rejection, insufficient grants, and direct success. `migrate-owner-preflight-test: PASS`.
+
+## 2026-08-19 (ARCH-002-001 final Review)
+
+- Final independent Review returned `Confirmed=0`.
+- Classified prior findings as `Already Addressed`: shared migration NAME contamination, caller precedence, frontend-only guard, fake CLI/goal/config/count coverage, schema-scoped grants, global ALL union, and direct-role rejection.
+- Only real Flyway execution and target-specific least-privilege evidence remain `Externally Blocked` under ARCH-002-002/004.
+
+## 2026-08-19 (ARCH-002-001 disposable MySQL validation)
+
+- Ran the owner preflight against a temporary `mysql:8.0` container with direct `migration_user` grants and a weak account.
+- Valid direct grants reached the fake Flyway command; the weak account missing `ALTER` failed before Flyway; the temporary container was removed.
+- No persistent DB, applied migration, remote grant or runtime deployment was changed.
+
+## 2026-08-19 (ARCH-002-001 Completion/Coverage Audit)
+
+- Acceptance, requirement mapping, caller/config/docs/tests, Review `Confirmed=0`, Tier C validation, rollback boundaries, protected worktree and no-applied-migration checks all pass.
+- Closed `ARCH-002-001` as `done`; no commit or push was authorized.
+- `ARCH-002-002..005` and `ARCH-003-001..005` remain blocked by external DB, users/profile, remote stability, quiesce, observation, production monitoring and rollback authority.
+
+## 2026-08-19 (blocker continuation read-only inventory)
+
+- User requested continuation and stated the repository has only a development environment; this does not supply the target/account matrix, migration authority, cutover window, users/profile responsibility or remote runtime evidence required by the existing Acceptance criteria.
+- Read-only inspection of `ulticode-mysql` found `auth`, `admin`, `app`, `notification`, `submission` and `ulticode` schemas, owner Flyway histories/tables, and shadow users; no privileged `migration_user` authority bundle was recorded.
+- No account, grant, Flyway, `.env`, route, migration, deployment or persistent data mutation was performed; the existing external gates remain blocked.
+
+- Final control-plane gate first returned nonzero because `git diff --check` found an extra EOF blank line in `.auto-flow/PLAN.md`; the blank line was removed and the complete gate was rerun successfully.
+
+- A follow-up consistency probe initially failed because shell command substitution interpreted backticks inside the Python assertion; the assertion was simplified and the complete consistency gate reran with exit 0.
+
+## 2026-08-19 (DEV-LOCAL-004 Submission cutover rollback rehearsal)
+
+- Executed container-aware MySQL preflight for `scripts/dev/submission-schema-cutover.sh` against the development volume.
+- Preflight safely refused with `Target table is not empty: submission.submissions` (126 rows in source and target, checksum 2896447748); no copy, revoke, route switch, or write action occurred on existing data.
+- Executed Testcontainers integration test `SubmissionOwnerCutoverIT` (4/4 passed), verifying copy-forward, grant revocation, failure-injection cleanup, and rollback without mutating current development data.
+- Review Confirmed=0; Tier C validation passed; closed `DEV-LOCAL-004` locally while preserving `ARCH-002-005` external gate.
+
+## 2026-08-19 (DEV-LOCAL-006 observation rollback fault rehearsal)
+
+- Created and hardened `scripts/dev/dev-local-observation-rehearsal.sh` with mandatory `DEV_LOCAL_OBSERVATION_CONFIRM` guard and fail-closed query/test handling.
+- Verified fail-closed behavior: harness aborts when confirmation is missing, and reports `PARTIAL` when `--quick` is specified.
+- Executed 62 targeted fault injection and resilience tests with 0 failures, 0 errors, and 0 skipped (including real-broker `JudgeStreamRedisIntegrationTest`: 4/4 with exported `REDIS_HOST`, `DefaultSubmissionWritePortIT`: 6/6, `SubmissionOwnerCutoverIT`: 4/4, `SubmissionOutboxDispatcherIT`: 5/5, `SubmissionCreatedDispatcherTest`: 2/2, `NotificationDeliveryLedgerMapperIT`: 7/7, `NotificationDispatcherTest`: 14/14, `NotificationLedgerReaperTest`: 3/3, `DefaultAdminAnalyticsPortAdapterTest`: 2/2, `AdminAnalyticsServiceImplTest`: 3/3, `SubmissionFactsSnapshotTest`: 4/4, `SubmissionProviderContractTest`: 4/4, `SubmissionApiContractShapeTest`: 4/4).
+- Data reconciliation confirmed exact checksum matches between `ulticode` and `submission` schemas for `submissions` (126 rows, checksum 2896447748), `judge_outbox` (0 rows, checksum 0), `submission_result_outbox` (37 rows, checksum 610558977); `submission_created_outbox` target-only rows: 0.
+- Verified static rollback/route/grant state: `APP_SUBMISSION_ROUTING_MODE=local`, `SUBMISSION_CUTOVER_COMPLETE=false`, `ulticode` grants on `submission` schema = 0; accurately labeled PM2 writers `UNAVAILABLE` and live writer quiesce / live rollback `NOT EXECUTED`.
+- Closed `DEV-LOCAL-006` locally; transitioned `DEV-LOCAL-007` to `ready`; external `ARCH-003-001..005` gates remain blocked.
+
+## 2026-08-19 (DEV-LOCAL-007 compatibility path scan and retirement readiness)
+
+- Performed static scan of compatibility references across `services/app/app-web`, `services/submission` and architecture docs.
+- Verified `app.submission.routing.mode` conditional wiring: `local` routes to App local writer, `remote` routes to Submission owner; single-writer invariants hold with zero dual-writing.
+- Established rollback-only whitelist protecting App-local compatibility classes (`DefaultSubmissionWritePort`, `JudgeOutboxDispatcher`, `JudgingLeaseReaper`, `SubmissionResultDispatcher`, `SubmissionResultOutboxListener`, `LocalSubmissionUserQueryAdapter`); preserved all in source tree without local deletion.
+- Recorded retirement decision candidate in `DEC-038`.
+- Ran focused routing tests (`SubmissionRoutingPortTest`: 7/7, `SubmissionPortWiringTest`: 6/6, `SubmissionServiceImplTest`: 17/17) all passing (30/30, 0 failures/errors/skips).
+- Closed `DEV-LOCAL-007` locally; transitioned `DEV-LOCAL-008` to `ready`; `ARCH-003-005` remains externally blocked.

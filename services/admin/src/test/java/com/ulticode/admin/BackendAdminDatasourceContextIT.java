@@ -1,4 +1,5 @@
 package com.ulticode.admin;
+import com.ulticode.BackendAdminApplication;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,7 +21,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest(properties = "spring.autoconfigure.exclude="
+@SpringBootTest(classes = BackendAdminApplication.class, properties = "spring.autoconfigure.exclude="
         + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
         + "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,"

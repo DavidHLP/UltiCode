@@ -5,14 +5,14 @@ import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
+import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxMapper;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxWriter;
 import com.ulticode.modules.submission.projection.DefaultSubmissionProjection;
@@ -45,7 +45,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -228,8 +227,6 @@ class DefaultSubmissionWritePortIT {
 
         return new DefaultSubmissionWritePort(
                 sm,
-                mockProblemFacts(),
-                mockUserExistence(),
                 objectMapper,
                 projection,
                 stats,
@@ -244,17 +241,12 @@ class DefaultSubmissionWritePortIT {
                 uuid);
     }
 
-    private static ProblemFactsPort mockProblemFacts() {
-        ProblemFactsPort p = mock(ProblemFactsPort.class);
-        when(p.findDisplayFacts(eq(101L))).thenReturn(
-                new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum"));
-        return p;
-    }
-
-    private static UserExistencePort mockUserExistence() {
-        UserExistencePort p = mock(UserExistencePort.class);
-        when(p.existsById("user-1")).thenReturn(true);
-        return p;
+    private static SubmissionFactsSnapshot facts() {
+        return new SubmissionFactsSnapshot(
+                "user-1", true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        101L, "Two Sum", "two-sum", 2, 256, null),
+                1L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
     }
 
     private static ContestSubmissionPort mockContest() {
@@ -294,7 +286,7 @@ class DefaultSubmissionWritePortIT {
         dto.setLanguage("python");
         dto.setCode("print(1)");
 
-        SubmissionVO vo = writer.submit("user-1", dto);
+        SubmissionVO vo = writer.submit("user-1", dto, facts());
         session.commit();
 
         assertThat(vo.getId()).isNotBlank();
@@ -314,7 +306,7 @@ class DefaultSubmissionWritePortIT {
         dto.setProblemId(101L);
         dto.setLanguage("java");
         dto.setCode("class A{}");
-        SubmissionVO vo = writer.submit("user-1", dto);
+        SubmissionVO vo = writer.submit("user-1", dto, facts());
 
         String attemptId = UUID.randomUUID().toString();
         acquireLease(vo.getId(), attemptId);
@@ -337,7 +329,7 @@ class DefaultSubmissionWritePortIT {
         dto.setProblemId(101L);
         dto.setLanguage("cpp");
         dto.setCode("#include <cstdio>");
-        SubmissionVO vo = writer.submit("user-1", dto);
+        SubmissionVO vo = writer.submit("user-1", dto, facts());
 
         acquireLease(vo.getId(), "real-attempt");
         boolean written = writer.updateSubmissionResultFenced(
@@ -361,7 +353,7 @@ class DefaultSubmissionWritePortIT {
         dto.setCode("print(1)");
         dto.setContestId("contest-1");
 
-        assertThatThrownBy(() -> writer.submit("user-1", dto))
+        assertThatThrownBy(() -> writer.submit("user-1", dto, facts()))
                 .hasMessageContaining("contest command");
     }
 
@@ -374,7 +366,7 @@ class DefaultSubmissionWritePortIT {
         dto.setCode("print(1)");
         dto.setVirtualSessionId("session-1");
 
-        assertThatThrownBy(() -> writer.submit("user-1", dto))
+        assertThatThrownBy(() -> writer.submit("user-1", dto, facts()))
                 .hasMessageContaining("contest command");
     }
 
@@ -388,7 +380,7 @@ class DefaultSubmissionWritePortIT {
         dto.setContestId("contest-1");
         dto.setVirtualSessionId("session-1");
 
-        SubmissionVO vo = writer.submitContest("user-1", dto);
+        SubmissionVO vo = writer.submitContest("user-1", dto, facts());
         session.commit();
 
         assertThat(createdOutboxMapper.selectByMap(java.util.Map.of(

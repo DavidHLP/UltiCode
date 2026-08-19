@@ -1,87 +1,51 @@
-objective: "将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界"
-domain: "backend contract boundary convergence"
+objective: "Services Owner architecture hardening"
+domain: "owner boundaries, Admin seam and database isolation preparation"
+status: blocked
 scope:
-  - "冻结 app-api 全量 owner/exception matrix 与 matched provider-consumer release boundary"
-  - "将 implementation-free common/security/metadata/value types clean move 到 backend-common"
-  - "建立 backend-submission-api 与 backend-notification-api，并迁移 callers/providers/tests"
-  - "在明确 authority 与运行时证据后完成 Submission single-writer/codec/catalog closure"
+  - "ARCH-001 immutable Submission facts snapshot and synchronous callback removal"
+  - "ARCH-002 owner datasource/Flyway/isolation preparation with disposable grant evidence"
+  - "ARCH-003 App compatibility cleanup only after production stability evidence"
+  - "ARCH-004 Admin analytics coarse seam and bounded component/mapper scan"
+  - "ARCH-005 runtime topology/documentation synchronization"
+  - "ARCH-006 final Review/Validation/Completion/Coverage audit"
 out_of_scope:
-  - "超出本地开放项目范围的远端/共享环境变更、push、merge 或 destructive reset"
-  - "新增 broker、HTTP API、业务表、跨 owner SQL/2PC、共享 Entity/Mapper 或永久 alias"
-  - "物理拆分 Contest、Moderation、Notification delivery worker 或重做 Search worker"
+  - "Production or remote database/grant/cutover, deployment, release, push, merge or destructive reset"
+  - "Editing applied migrations, claiming users split completion without owner/runtime evidence"
+  - "Speculative broader Admin seam rewrite or new broker/parallel architecture"
 terminal_condition:
-  - "app-api 只保留 App-owned contracts 与显式 App fact/recipient exceptions"
-  - "Submission/Notification API artifacts、所有 callers/providers/tests/POM 与 contract evidence 完成"
-  - "Submission codec/status catalog 唯一化，single-hop/single-writer 与授权 cutover rollback evidence 完成"
-  - "CONTRACT-008 review/validation/Completion Audit 通过；本地 direct Submission provider、single-writer 与回滚边界已收敛"
+  - "ARCH-001, ARCH-004, ARCH-005 and final ARCH-006 evidence are closed"
+  - "ARCH-002 and ARCH-003 are either completed with external evidence or accurately blocked"
+  - "Review, Tier C validation, rollback boundaries and local-only scope are persisted"
 nodes:
-  - id: CONTRACT-001
-    goal: "冻结 app-api owner matrix、例外集合、模块包名、Dubbo identity 与 matched release"
+  - id: ARCH-001
+    goal: "Immutable Submission facts snapshot at the request boundary"
     status: done
-    artifact: ".auto-flow/CONTRACT-001-OWNER-MATRIX.md"
-  - id: CONTRACT-001-COMMON
-    goal: "将八个 implementation-free common/security/metadata/value 类型迁移到 backend-common"
+  - id: ARCH-002
+    goal: "Owner datasource/Flyway/isolation preparation and users migration plan"
+    status: blocked
+    blocker: "Privileged owner migration job, physical cutover/users authority unavailable; runtime validate rejected non-privileged account with MySQL 1044"
+  - id: ARCH-003
+    goal: "Remove App dual-track compatibility after production stability evidence"
+    status: blocked
+    blocker: "No production remote-route stability/quiesce/observation environment"
+  - id: ARCH-004
+    goal: "Admin analytics coarse seam and bounded scan"
     status: done
-  - id: CONTRACT-002
-    goal: "建立 backend-submission-api 并迁移 Submission contracts"
+  - id: ARCH-005
+    goal: "Services topology, POM, PM2, Compose and docs synchronization"
     status: done
-    depends_on:
-      - CONTRACT-001-COMMON
-  - id: CONTRACT-003
-    goal: "建立 backend-notification-api 并迁移 Notification contracts"
+  - id: ARCH-006
+    goal: "Final architecture Review, Validation, Completion and Coverage Audit"
     status: done
-    depends_on:
-      - CONTRACT-001-COMMON
-  - id: CONTRACT-004
-    goal: "重接 Submission/Judge/App/Admin callers and providers"
-    status: done
-    depends_on:
-      - CONTRACT-002
-  - id: CONTRACT-005
-    goal: "重接 Notification/App/Admin callers and providers"
-    status: done
-    depends_on:
-      - CONTRACT-003
-  - id: CONTRACT-006
-    goal: "收敛 Submission codec/status catalog 到单一 owner"
-    status: done
-    depends_on:
-      - CONTRACT-002
-      - CONTRACT-004
-  - id: CONTRACT-007
-    goal: "在授权后完成 Submission single-hop/single-writer cutover 与 compat retirement"
-    status: done
-    depends_on:
-      - CONTRACT-004
-      - CONTRACT-006
-      - SPLIT-005-retirement-authority
-      - SPLIT-005-runtime-cutover-observation
-  - id: CONTRACT-008
-    goal: "完成最终 contract-boundary review、validation、docs 与 Completion Audit"
-    status: done
-    depends_on:
-      - CONTRACT-005
-      - CONTRACT-006
-      - CONTRACT-007
-  - id: SPLIT-005-env-sandbox
-    goal: "取得真实 sandbox image 与稳定 Docker/Testcontainers evidence"
-    status: done
-  - id: SPLIT-005-retirement-authority
-    goal: "取得 compatibility route/grant retirement 的明确 release/cutover authority"
-    status: done
-  - id: SPLIT-005-runtime-access
-    goal: "建立授权部署主机与 Submission/App 账号权限姿态"
-    status: done
-    depends_on:
-      - SPLIT-005-retirement-authority
-  - id: SPLIT-005-runtime-cutover-observation
-    goal: "在授权部署主机执行 Submission remote/local 切流与 single-writer 观察"
-    status: done
-    depends_on:
-      - SPLIT-005-runtime-access
-      - SPLIT-005-retirement-authority
-resume_point: "CONTRACT-001 through CONTRACT-008 and the local SPLIT-005 runtime access/cutover observation are closed; no dependent task remains in this objective"
-historical_objective:
-  objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
-  status: complete
-  artifact: "/home/davidhlp/.codex/skills/arthas-mcp-diagnostics"
+resume_point: "DEV-LOCAL-001..008 are complete locally with full multi-module test battery, preflight regression self-test, observation rehearsal and compatibility whitelist verification. External tasks ARCH-002-002..005 and ARCH-003-001..005 remain blocked awaiting real production authority, target DB, cutover window and observation sign-off."
+planned_remediation:
+  - "Reuse scripts/dev/migrate.sh for explicit privileged MIGRATION_DB_* connection, owner schema allowlist, privilege preflight and disposable MySQL evidence."
+  - "Keep ARCH-002 and ARCH-003 blocked until real authority, target, users responsibility, remote stability and rollback evidence exist."
+  - "Current RESUME CONTRACT-007/008 wording is historical; current PLAN/TASKS/HANDOFF are authoritative."
+historical_objectives:
+  - objective: "将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界"
+    status: complete
+    artifact: ".auto-flow/TASKS.yaml CONTRACT-001..CONTRACT-008"
+  - objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
+    status: complete
+    artifact: "/home/davidhlp/.codex/skills/arthas-mcp-diagnostics"

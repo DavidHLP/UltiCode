@@ -1,5 +1,50 @@
 # Coverage
 
+## Services Owner architecture hardening (2026-08-18)
+
+| Requirement | Task | Evidence |
+| --- | --- | --- |
+| Submission write path has no App/Auth synchronous callback | ARCH-001 | PASS — immutable `SubmissionFactsSnapshot`, owner fail-closed validation, owner MySQL/Testcontainers suites, App compatibility regression, and full Services Maven tests |
+| Submission Contract remains implementation-free | ARCH-001 | PASS — API shape test includes the snapshot; DTO contains no Entity/Mapper/Repository type |
+| Auth/Admin/App/Notification isolation preparation | ARCH-002 | BLOCKED — owner-specific datasource/Compose variables, Auth Flyway gate, expand/backfill/verify/rollback plan and disposable four-owner grant IT `22/22` pass; owner migration validate correctly rejects the non-privileged runtime account, while privileged physical cutover/users authority is unavailable |
+| App dual-track cleanup | ARCH-003 | BLOCKED — production remote-routing stability, quiesce, observation, and rollback evidence are unavailable in this local-only project |
+| Admin coarse analytics seam | ARCH-004 | PASS (local slice) — `AnalyticsOverviewData`, one participant batch, one Auth RPC and one call per overview aggregate, typed result regression, Admin module tests, bounded scan and explicit MySQL/Redis context IT; no production latency claim |
+| Seven backend runtime operational topology | ARCH-005 | PASS — root POM validate, PM2 seven backend entries, startup help/static checks, and production/dev Compose config validation |
+| Documentation authority and current topology | ARCH-005 | PASS — migration guide, architecture status, database isolation plan, README and startup/config sources synchronized; source/POM/config/Compose/scripts remain authoritative |
+
+## Blocker remediation execution plan (2026-08-19)
+
+| Requirement / user bullet | Task | Required evidence |
+| --- | --- | --- |
+| 1.1 设计并实现特权 owner migration job | ARCH-002-001 | PASS — explicit `MIGRATION_DB_*`, schema-scoped minimum privilege preflight, direct-grant-only policy, fake regression and real disposable MySQL direct/insufficient grant evidence |
+| 1.2 获取真实数据库权限与 cutover window | ARCH-002-002 | DBA/release authority, target/account/host matrix, least-privilege direct `SHOW GRANTS`, backup, watermark, window and rollback owner |
+| 1.3 完成 users/profile Owner 职责 | ARCH-002-003 | expand/backfill/verify report, idempotency, rows/checksum/orphan/duplicate report, reader/writer matrix and responsibility sign-off |
+| 1.4 解除 Auth MySQL 1044 验证门禁 | ARCH-002-004 | explicit privileged identity validate/migrate success, runtime-account negative proof, Auth Flyway/config evidence and no applied migration edit |
+| 1.5 执行物理隔离切换测试 | ARCH-002-005 | real target parity, all-writer quiesce, cross-schema denial, grant/role inspection, smoke, performance, cutover and atomic rollback evidence |
+| 2.1 建立 remote-route 稳定性监控 | ARCH-003-001 | route/provider availability, error/timeout/retry, DB/Redis/outbox/PEL, restart, latency, double-writer metrics, thresholds and observation export |
+| 2.2 获取全部写入者静默确认 | ARCH-003-002 | complete writer inventory, owner/stop/drain/restart commands, stream/DB watermark, signed quiesce manifest and rehearsal |
+| 2.3 制定并执行观察期与 rollback 演练 | ARCH-003-003 | observation timeline, fault injection, reconciliation, route/grant/watermark rollback and all-writers-stopped failure proof |
+| 2.4 部署 production 监控与切换机制 | ARCH-003-004 | deployment/change authority, secret references, runtime health, monitoring/alert export, route/grant snapshot and rollback proof |
+| 2.5 完成兼容退役功能与性能测试 | ARCH-003-005 | static provider/config/import scan, functional/performance/security/concurrency/soak tests, single-writer proof and review=0 |
+| 实施限制：保护 36 tracked + 5 untracked，不执行业务/迁移/远端动作 | ARCH-002-001..ARCH-003-005 | protected worktree map, no reset/discard/production action, no applied migration edit, control-plane-only planning record |
+| 验证标准：focused tests、Maven、diff、bash、YAML | ARCH-007 | Submission/API/Facts/Provider tests, Admin adapter/service tests, reactor `BUILD SUCCESS`, `git diff --check`, `bash -n`, YAML parse |
+| 关闭条件：所有 blocker 有 Acceptance/Validation/Review/Rollback/Evidence | ARCH-007 | final Tier C/D validation, Coverage closure, external authority bundle and updated Handoff |
+
+Status: `ARCH-002-001 done` — implementation, independent Review `Confirmed=0`, fake/disposable MySQL preflight and Tier C focused validation pass. `ARCH-002-002..005` and `ARCH-003-001..005` remain externally gated; `ARCH-007` is pending until both chains close.
+
+## DEV-LOCAL Blocker Remediation Rehearsals (2026-08-19)
+
+| DEV-LOCAL Task | Title | Local Evidence | External Gate Boundary |
+| --- | --- | --- | --- |
+| `DEV-LOCAL-001` | 特权 owner migration contract | PASS — container-aware preflight, direct schema grants, fail-closed global capabilities, guarded baseline adoption, regression test `migrate-owner-preflight-test.sh` PASS | `ARCH-002-002/004` external authority remains blocked |
+| `DEV-LOCAL-002` | owner Flyway/account/grant 验证 | PASS — direct-grant migration principals and isolated runtime accounts for Auth/Admin/App/Notification/Submission; Auth baseline `20260729140000`, Admin baseline `20260729140100`, all Flyway validated/migrated | `ARCH-002-002/004` external target/sign-off remains blocked |
+| `DEV-LOCAL-003` | users/profile 开发环境迁移 | PASS — `owner-user-profile-backfill.sh` preflight/backfill/rollback; full account/profile projection SHA256 checksum match, source 12 active users/profiles, 0 orphans/missing, manifest-scoped rollback verified | `ARCH-002-003` responsibility/sign-off remains blocked |
+| `DEV-LOCAL-005` | route monitoring quiesce baseline | PASS — `dev-local-monitoring-baseline.sh`; route mode/cutover marker=false, 7 backend + frontend writer inventory from ecosystem, MySQL/Redis health, DB table snapshots, quiesce preflight safely blocked on existing target | `ARCH-003-001/002` production monitoring remains blocked |
+| `DEV-LOCAL-004` | Submission cutover rollback rehearsal | PASS — current non-empty target safety refusal verified (no copy/revoke performed); disposable Testcontainers `SubmissionOwnerCutoverIT` 4/4 verifies copy, grant revoke, failure injection and rollback | `ARCH-002-005` physical cutover gate remains blocked |
+| `DEV-LOCAL-006` | observation rollback fault rehearsal | PASS — `dev-local-observation-rehearsal.sh` with fail-closed guard `DEV_LOCAL_OBSERVATION_CONFIRM`; 65 targeted fault/timeout/outage/replay/fencing tests (0 skips/failures/errors); table checksum reconciliation MATCH; PM2 writers labeled UNAVAILABLE, live writer drain/persistent mutation unperformed; rollback route=local/marker=false | `ARCH-003-003/004` production observation remains blocked |
+| `DEV-LOCAL-007` | 兼容路径验证与退役裁决 | PASS — static compatibility scan, single-writer invariants verified on `app.submission.routing.mode` (local=App only, remote=Submission owner only), rollback-only whitelist established, retirement candidate documented in DEC-038, routing tests `30/30` pass | `ARCH-003-005` production retirement gate remains blocked |
+| `DEV-LOCAL-008` | remediation validation packet | PASS — complete script syntax `8/8` PASS, preflight self-test `5/5` PASS, fail-closed observation rehearsal `5/5` PASS, 65 targeted fault/resilience tests `65/65` PASS, routing tests `30/30` PASS, diff and migrations check clean | `ARCH-007` final gate remains pending external closure |
+
 | Requirement | Task | Evidence |
 | --- | --- | --- |
 | Solarized light semantic allocation | TASK-001 | PASS — CSS mapping + browser computed-token audit |

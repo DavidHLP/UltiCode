@@ -6,9 +6,8 @@ import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
@@ -225,8 +224,6 @@ class SubmissionOwnerCutoverIT {
         when(stats.compute(any(), anyInt(), any())).thenReturn(PerformanceStats.EMPTY);
         return new DefaultSubmissionWritePort(
                 submissionMapper,
-                mockProblemFacts(),
-                mockUserExistence(),
                 objectMapper,
                 projection,
                 stats,
@@ -241,11 +238,12 @@ class SubmissionOwnerCutoverIT {
                 uuid);
     }
 
-    private static ProblemFactsPort mockProblemFacts() {
-        ProblemFactsPort p = mock(ProblemFactsPort.class);
-        when(p.findDisplayFacts(any())).thenReturn(
-                new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum"));
-        return p;
+    private static SubmissionFactsSnapshot facts() {
+        return new SubmissionFactsSnapshot(
+                "user-1", true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        101L, "Two Sum", "two-sum", 2, 256, null),
+                1L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
     }
 
     private static <T> ObjectProvider<T> providerOf(T value) {
@@ -272,12 +270,6 @@ class SubmissionOwnerCutoverIT {
         };
     }
 
-    private static UserExistencePort mockUserExistence() {
-        UserExistencePort p = mock(UserExistencePort.class);
-        when(p.existsById(any())).thenReturn(true);
-        return p;
-    }
-
     private static ContestSubmissionPort mockContest() {
         ContestSubmissionPort p = mock(ContestSubmissionPort.class);
         when(p.findContestId(any())).thenReturn(null);
@@ -294,7 +286,7 @@ class SubmissionOwnerCutoverIT {
         dto.setProblemId(101L);
         dto.setLanguage("python");
         dto.setCode("print(1)");
-        SubmissionVO vo = provider.submit("user-1", dto);
+        SubmissionVO vo = provider.submit("user-1", dto, facts());
         session.commit();
 
         assertThat(vo.getId()).isNotBlank();
@@ -312,7 +304,7 @@ class SubmissionOwnerCutoverIT {
         dto.setProblemId(101L);
         dto.setLanguage("java");
         dto.setCode("class A{}");
-        String submissionId = localWriter.submit("user-1", dto).getId();
+        String submissionId = localWriter.submit("user-1", dto, facts()).getId();
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
@@ -338,7 +330,7 @@ class SubmissionOwnerCutoverIT {
         dto.setProblemId(101L);
         dto.setLanguage("cpp");
         dto.setCode("#include <cstdio>");
-        String submissionId = localWriter.submit("user-1", dto).getId();
+        String submissionId = localWriter.submit("user-1", dto, facts()).getId();
         session.commit();
 
         DefaultSubmissionFencePort localFence = new DefaultSubmissionFencePort(submissionMapper);
@@ -360,7 +352,7 @@ class SubmissionOwnerCutoverIT {
         dto.setProblemId(101L);
         dto.setLanguage("cpp");
         dto.setCode("#include <cstdio>");
-        String submissionId = localWriter.submit("user-1", dto).getId();
+        String submissionId = localWriter.submit("user-1", dto, facts()).getId();
         session.commit();
 
         try (var statement = session.getConnection().createStatement()) {
@@ -402,5 +394,30 @@ class SubmissionOwnerCutoverIT {
                 .findFirst()
                 .orElseThrow();
         assertThat(recovery.getIsShadow()).isFalse();
+    }
+
+    @Test
+    @DisplayName("disposable cutover failure rollback cleans up target rows and restores pre-cutover state")
+    void cutoverFailureRollbackCleansUpTargetState() throws Exception {
+        DefaultSubmissionWritePort localWriter = newLocalWriter();
+        CreateSubmissionDTO dto = new CreateSubmissionDTO();
+        dto.setProblemId(101L);
+        dto.setLanguage("java");
+        dto.setCode("class Solution {}");
+
+        SubmissionVO vo = localWriter.submit("user-1", dto, facts());
+        session.commit();
+
+        assertThat(submissionMapper.selectById(vo.getId())).isNotNull();
+
+        // Simulate cutover failure cleanup / rollback on disposable schema:
+        try (var statement = session.getConnection().createStatement()) {
+            statement.execute("DELETE FROM judge_outbox WHERE submission_id = '" + vo.getId() + "'");
+            statement.execute("DELETE FROM submissions WHERE id = '" + vo.getId() + "'");
+        }
+        session.commit();
+
+        assertThat(submissionMapper.selectList(null)).isEmpty();
+        assertThat(judgeOutboxMapper.selectList(null)).isEmpty();
     }
 }

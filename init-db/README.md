@@ -32,6 +32,66 @@ DB_NAME
 from this directory. CI/CD supplies the same values through its secret environment
 or Flyway container arguments.
 
+## Owner Migration Job
+
+Owner-schema migrations must use an explicit privileged migration connection:
+
+```bash
+MIGRATION_SCHEMA=auth \
+MIGRATION_DB_HOST=... \
+MIGRATION_DB_PORT=3306 \
+MIGRATION_DB_NAME=auth \
+MIGRATION_DB_USER=... \
+MIGRATION_DB_PASSWORD=... \
+./scripts/dev/migrate.sh validate
+```
+
+`MIGRATION_SCHEMA` is limited to `auth`, `admin`, `app`, `notification`, or
+`submission`. The script performs a read-only connection/schema/account/privilege
+preflight before invoking Flyway, and refuses to use `DB_*` as an owner migration
+fallback. The migration account must differ from the runtime Owner account.
+The minimum capability policy is `CREATE`, `ALTER`, `SELECT`, and
+`GRANT OPTION` on the owner schema; `notification` and `submission` also
+require global `CREATE USER`. A global `ALL PRIVILEGES` grant is accepted as
+covering these capabilities and must still be reviewed against the external
+Role grants are rejected fail-closed; the migration principal must receive
+direct grants so the preflight and Flyway use the same effective privileges.
+This avoids depending on session default-role activation or `mysql.role_edges`
+visibility; role-based migration identities need a separately scoped task.
+
+When the development host does not have the `mysql` CLI, set
+`MIGRATION_MYSQL_CONTAINER` to the explicit local MySQL container name and
+optionally `MIGRATION_MYSQL_CONTAINER_PORT` (default `3306`). The read-only
+preflight then runs `mysql` inside that container while Flyway still receives
+the explicit `MIGRATION_DB_*` connection contract.
+
+The shared migration chain is the explicit schema bootstrap for a fresh local
+database. Run it before owner-specific migration; owner Flyway configs set
+`flyway.createSchemas=false`, and the owner preflight intentionally fails closed
+when the target schema is absent.
+
+`scripts/dev/up.sh` keeps the shared `MIGRATION_DB_*` identity for the schema
+bootstrap chain and passes `SUBMISSION_MIGRATION_DB_USER/PASSWORD` to the
+Submission owner migration and local account provisioning. These identities
+must not be merged or silently defaulted to the runtime account.
+
+The Auth, Notification and Submission owner chains contain canonical
+`FLUSH PRIVILEGES` statements. Their migration principal therefore needs the
+direct global `RELOAD` capability (or the explicitly supported literal global
+`ALL PRIVILEGES` compatibility superset); arbitrary global capability lists do
+not satisfy the preflight.
+
+For a pre-created bootstrap-only table with no owner history, the only
+supported adoption path is an explicit DEV-LOCAL command with
+`DEV_LOCAL_OWNER_BASELINE=true` and
+`DEV_LOCAL_OWNER_BASELINE_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE`.
+The command checks the expected table set, ordered column signature, absent
+history and zero rows before running `baseline`; ordinary `migrate` never
+silently baselines an unknown schema.
+Credentials belong in the local `.env`/CI secret store, never in this directory
+or `.auto-flow`. The shared migration chain without `MIGRATION_SCHEMA` retains
+the historical `DB_*` contract.
+
 ## Creating a Migration
 
 Use an increasing timestamp:

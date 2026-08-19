@@ -1,5 +1,37 @@
 # Decisions
 
+## DEC-029 — Submission intake receives immutable facts at the request boundary
+
+- Context: Submission writes previously validated Problem and user facts through synchronous App/Auth callbacks inside the Owner path.
+- Decision: App local/remote boundaries create or forward `SubmissionFactsSnapshot`; the Submission Owner validates identity/problem matching and never injects `ProblemFactsPort` or `UserExistencePort` into its write transaction. The legacy no-snapshot owner overload fails closed until all callers migrate.
+- Consequences: the write chain has one business Provider hop; read-side enrichment and eventual projection are still separate work. Rollback keeps the App local route and does not restore Owner callbacks.
+
+## DEC-030 — Database isolation starts with reversible configuration, not a false cutover claim
+
+- Context: Submission already has an independent runtime connection, while Auth/Admin/App/Notification still default to the shared database account/name.
+- Decision: add owner-specific `*_DB_*` variables with explicit shared fallback and document expand/backfill/verify/cutover/rollback. Do not create/revoke production credentials or remove mixed `users` columns without a real deployment authority and migration evidence.
+- Consequences: ARCH-002 remains in progress; configuration readiness is not physical isolation.
+
+## DEC-031 — App compatibility removal is gated by production evidence
+
+- Context: App source defaults to local Submission routing and retains local/remote/legacy compatibility paths; production-only remote routing cannot be validated here.
+- Decision: retain the switchable compatibility architecture and mark cleanup blocked until a real remote stability window, all-writer quiesce, observation, and rollback artifact exist.
+- Consequences: no default-route or legacy-path deletion is performed in this local run.
+
+## DEC-032 — Owner runtime never executes the shared Flyway history
+
+- Context: `AUTH_DB_*` can point `backend-auth` at an isolated `auth` schema, but the previous runtime Flyway locations included canonical root migrations that create/revoke cross-owner schemas and require a privileged migration account.
+- Decision: default Auth runtime Flyway off with `AUTH_FLYWAY_ENABLED=false` and restrict any explicit owner migration location to `init-db/migrations/auth`; run owner migrations separately through `MIGRATION_SCHEMA=auth` and a privileged migration job before enabling an isolated runtime.
+- Consequences: owner-specific datasource variables remain preparation-only; no runtime account can silently apply root DDL/GRANT history, and physical account/cutover authority remains a separate ARCH-002 gate.
+- Affected tasks: ARCH-002, ARCH-006.
+
+## DEC-033 — Admin analytics uses one bounded coarse query seam
+
+- Context: `AdminAnalyticsServiceImpl` composed six aggregate reads directly and the contest participation adapter previously risked per-contest participant queries; the Admin boot class also relied on a growing regex exclusion list.
+- Decision: keep one analytics-overview vertical slice behind `AdminAnalyticsPort.AnalyticsOverviewData`, batch participant lookup by contest IDs, and bound `BackendAdminApplication`/`MapperScan` to Admin-owned packages. Do not rewrite other Admin reports or claim production latency evidence.
+- Consequences: the caller has one typed seam with explicit query/RPC call-count regression and a real context IT; broader seam aggregation remains a future scoped task.
+- Affected tasks: ARCH-004, ARCH-006.
+
 ## DEC-001 — Reuse the shared design-system token seam
 
 - Context: both Vue apps import `packages/design-system/style.css`; localhost:9002 is console.
@@ -271,3 +303,43 @@
 - **Decision**: `cutover` and `rollback` require the one-time `SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS` assertion after every source/target writer is stopped and drained. Cutover compares source rows/checksums before and after copy before REVOKE; rollback `copy_back` replaces all tables in one MySQL transaction and emits CRITICAL reconciliation guidance on failure.
 - **Consequences**: The runbook remains confirmation-gated and operator-dependent; no new production service protocol is introduced. A failed transaction must keep all writers stopped until source/grant reconciliation is complete.
 - **Affected Tasks**: CONTRACT-007, CONTRACT-008.
+
+## DEC-034: Blocker remediation is phase-gated with local preparation first
+
+- **Context**: The recovery packet identified two real blockers. Auth `1044` is caused by a runtime account correctly lacking owner DDL/GRANT privileges, while ARCH-003 needs remote stability/quiesce/observation evidence that cannot exist in this local-only project. The user requests all ten blocker sub-items but also protects the worktree and forbids unapproved business, migration, runtime or remote changes.
+- **Decision**: Use one sequential DAG: first make the existing `scripts/dev/migrate.sh` an explicit, fail-closed privileged migration job with `MIGRATION_DB_*`, owner-schema allowlist and privilege preflight; then require external DB/cutover/users evidence; then require remote monitoring/quiesce/observation/rollback/deployment evidence; only then test and retire compatibility paths. Keep `ARCH-002`/`ARCH-003` blocked until their external Acceptance and Validation evidence exists, and use `ARCH-007` as the new final gate.
+- **Alternatives**: Grant DBA privileges to the runtime `ulticode` account (rejected: violates least privilege and hides the 1044 boundary); treat disposable MySQL as physical isolation (rejected: synthetic evidence cannot prove target ownership); edit applied migrations (rejected: irreversible history drift); simulate production monitoring or deployment locally (rejected: would create a false production claim); add a second migration/cutover framework (rejected: existing `migrate.sh` and cutover helper are the authoritative seams).
+- **Consequences**: `ARCH-002-001` is the only local `ready` Task. Every subsequent task has explicit external prerequisites, owner, evidence and rollback. No parent blocker can be marked `done` from local tests alone. `.auto-flow/RESUME.md` must be reduced to the current Services Owner objective and explicitly mark the old CONTRACT pointer historical.
+- **Affected Tasks**: `ARCH-002`, `ARCH-003`, `ARCH-002-001` through `ARCH-002-005`, `ARCH-003-001` through `ARCH-003-005`, `ARCH-007`.
+
+## DEC-035: Monitoring and cutover controls precede physical isolation
+
+- **Context**: The first blocker plan made `ARCH-003-001` depend on `ARCH-002-005`, while `ARCH-002-005` required route/health/latency observation. That order would require the physical cutover to execute before its monitoring evidence existed.
+- **Decision**: Split the evidence by timing. `ARCH-003-001` establishes monitoring/baseline before cutover; `ARCH-003-004` deploys production monitoring and cutover controls before the switch; `ARCH-003-002` confirms quiescence; `ARCH-002-005` performs the physical cutover; `ARCH-003-003` owns post-cutover observation and rollback rehearsal; `ARCH-003-005` owns compatibility retirement verification.
+- **Alternatives**: Let cutover create monitoring after the fact (rejected: blind window); make monitoring a post-cutover task (rejected: circular dependency); combine all tasks in one opaque runbook (rejected: cannot review or prove preconditions independently).
+- **Consequences**: The DAG is safe to execute: no physical cutover can start without monitoring readiness, deployed controls and writer quiescence, and no compatibility deletion can start without post-cutover observation/rollback evidence.
+- **Affected Tasks**: `ARCH-002-005`, `ARCH-003-001`, `ARCH-003-002`, `ARCH-003-003`, `ARCH-003-004`, `ARCH-003-005`, `ARCH-007`.
+
+## DEC-036: Privileged migration principals use direct grants only
+
+- **Context**: A role-based migration principal can show role assignments without proving that the same role is active/default on the separate Flyway JDBC session. Expanding `mysql.role_edges` would add another privilege and session-activation contract to the migration job.
+- **Decision**: `scripts/dev/migrate.sh` rejects role grants during owner preflight. The privileged migration principal must use direct, schema-scoped DDL/SELECT/GRANT privileges; global `ALL PRIVILEGES` remains accepted as a capability superset but is still subject to the external least-privilege gate.
+- **Alternatives**: Recursively expand `mysql.role_edges` and activate roles in the Flyway session (rejected for this slice: separate-session/default-role ambiguity and extra system-table privilege); silently accept roles (rejected: preflight/Flyway effective privileges could differ).
+- **Consequences**: Direct accounts have a smaller, deterministic contract and do not need `mysql.role_edges` access. Role-based migration requires a separate scoped task/ADR and cannot pass this job’s preflight.
+- **Affected Tasks**: `ARCH-002-001`, `ARCH-002-002`, `ARCH-002-004`.
+
+## DEC-037: Fail-closed observation and fault rehearsal in development environment
+
+- **Context**: `DEV-LOCAL-006` required observation timeline, fault-injection test battery, data reconciliation, and rollback runbook verification in the authorized development environment without claiming production stability or mutating external resources.
+- **Decision**: Implement `scripts/dev/dev-local-observation-rehearsal.sh` with a mandatory `DEV_LOCAL_OBSERVATION_CONFIRM` guard, fail closed on broken DB/Redis queries (no fallback hiding errors), export Redis environment variables to execute real-broker `JudgeStreamRedisIntegrationTest` with 0 skips, assert exact table row/checksum parity between `ulticode` and `submission` schemas, label local writer states accurately as `UNAVAILABLE (processes not running locally)`, and report `PARTIAL` status when `--quick` skips tests.
+- **Alternatives**: Silently treat skipped tests as PASS (rejected: hides unexercised integration coverage); render query failures as `N/A` (rejected: masks connection/privilege issues); simulate production observation (rejected: would fabricate external stability claims).
+- **Consequences**: Local fault resilience and reconciliation are strictly verified and reproducible with zero test skips, while external `ARCH-003-001..005` production acceptance remains explicitly blocked.
+- **Affected Tasks**: `DEV-LOCAL-006`, `DEV-LOCAL-007`, `DEV-LOCAL-008`, `ARCH-003-003`.
+
+## DEC-038: Compatibility path retention and retirement readiness evaluation
+
+- **Context**: `DEV-LOCAL-007` requires static compatibility scan, single-writer invariant verification, and retirement decision candidate creation without prematurely deleting rollback-needed compatibility paths in the development environment.
+- **Decision**: Retain App-local compatibility implementations (`DefaultSubmissionWritePort`, `JudgeOutboxDispatcher`, `JudgingLeaseReaper`, `SubmissionResultDispatcher`, `SubmissionResultOutboxListener`, `LocalSubmissionUserQueryAdapter` in `services/app/app-web`) as a dedicated rollback-only whitelist. Do not physically delete these classes during local development remediation; deletion requires actual production cutover and observation sign-off under `ARCH-003-005`. Single-writer invariants are enforced via `app.submission.routing.mode`: `local` routes writes strictly to App `ulticode` schema; `remote` routes writes strictly to `backend-submission` owner schema with `SubmissionFactsSnapshot`.
+- **Alternatives**: Delete App-local submission writer immediately (rejected: eliminates rollback capability if production cutover fails); leave routing uncontrolled (rejected: risks dual-writing).
+- **Consequences**: Rollback safety is preserved across all environments; compatibility retirement is documented and verified as ready, while external `ARCH-003-005` production retirement gate remains explicitly blocked.
+- **Affected Tasks**: `DEV-LOCAL-007`, `DEV-LOCAL-008`, `ARCH-003-005`.

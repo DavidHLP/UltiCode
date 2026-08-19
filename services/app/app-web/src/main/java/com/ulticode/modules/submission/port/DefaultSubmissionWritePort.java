@@ -4,6 +4,7 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.codec.TestCaseDetailCodec;
 import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.app.api.service.ContestSubmissionPort;
@@ -85,7 +86,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST,
                     "Contest submission requires the contest command");
         }
-        return submitInternal(userId, createDTO, false);
+        return submit(userId, createDTO, captureFacts(userId, createDTO));
     }
 
     @Override
@@ -95,10 +96,34 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST,
                     "Contest context is required");
         }
-        return submitInternal(userId, createDTO, true);
+        return submitContest(userId, createDTO, captureFacts(userId, createDTO));
+    }
+
+    @Override
+    @Transactional
+    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
+                               SubmissionFactsSnapshot facts) {
+        if (createDTO != null && (StringUtils.hasText(createDTO.getContestId())
+                || StringUtils.hasText(createDTO.getVirtualSessionId()))) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Contest submission requires the contest command");
+        }
+        return submitInternal(userId, createDTO, facts, false);
+    }
+
+    @Override
+    @Transactional
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO,
+                                      SubmissionFactsSnapshot facts) {
+        if (createDTO == null || !StringUtils.hasText(createDTO.getContestId())) {
+            throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                    "Contest context is required");
+        }
+        return submitInternal(userId, createDTO, facts, true);
     }
 
     private SubmissionVO submitInternal(String userId, CreateSubmissionDTO createDTO,
+                                        SubmissionFactsSnapshot facts,
                                         boolean contestCommand) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
@@ -111,10 +136,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         if (!SUPPORTED_LANGUAGES.contains(language)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
-        if (problemFacts.findDisplayFacts(createDTO.getProblemId()) == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND);
-        }
-        if (!userExistencePort.existsById(userId)) {
+        if (facts == null || !facts.admits(userId, createDTO.getProblemId())) {
             throw new BusinessException(BaseErrorCode.NOT_FOUND);
         }
 
@@ -169,6 +191,30 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         }
 
         return submissionProjection.toVO(submission);
+    }
+
+    private SubmissionFactsSnapshot captureFacts(String userId, CreateSubmissionDTO createDTO) {
+        if (!StringUtils.hasText(userId) || createDTO == null
+                || !StringUtils.hasText(createDTO.getCode())
+                || !StringUtils.hasText(createDTO.getLanguage())
+                || createDTO.getProblemId() == null
+                || !SUPPORTED_LANGUAGES.contains(createDTO.getLanguage().toLowerCase())) {
+            return null;
+        }
+        Long problemId = createDTO == null ? null : createDTO.getProblemId();
+        String language = createDTO == null ? null : createDTO.getLanguage();
+        ProblemFactsPort.ProblemDisplayFacts display = problemFacts.findDisplayFacts(problemId);
+        ProblemFactsPort.ProblemLimits limits = problemFacts.findLimits(problemId);
+        return new SubmissionFactsSnapshot(
+                userId,
+                userExistencePort.existsById(userId),
+                display == null ? null : new SubmissionFactsSnapshot.ProblemFacts(
+                        display.id(), display.title(), display.slug(),
+                        limits == null ? null : limits.timeLimitSeconds(),
+                        limits == null ? null : limits.memoryLimitMb(),
+                        problemFacts.findStarterCode(problemId, language)),
+                clock.millis(),
+                SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
     }
 
     @Override

@@ -18,9 +18,9 @@ spring:
     allow-bean-definition-overriding: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useDBAuthPlugin=mysql_native_password
-    username: ${DB_USER:auth_rw}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mysql://${AUTH_DB_HOST:${DB_HOST:localhost}}:${AUTH_DB_PORT:${DB_PORT:23306}}/${AUTH_DB_NAME:${DB_NAME:ulticode}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useDBAuthPlugin=mysql_native_password
+    username: ${AUTH_DB_USER:${DB_USER:auth_rw}}
+    password: ${AUTH_DB_PASSWORD:${DB_PASSWORD:}}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -39,8 +39,10 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
   flyway:
-    enabled: true
-    locations: filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations},filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations/auth}
+    # Runtime services must not run the shared/root migration set as auth_rw.
+    # Run owner migrations separately with a privileged migration account.
+    enabled: ${AUTH_FLYWAY_ENABLED:false}
+    locations: filesystem:${AUTH_FLYWAY_MIGRATIONS_DIR:../init-db/migrations/auth}
     baseline-on-migrate: true
     baseline-version: 20260322
     baseline-description: Initial baseline

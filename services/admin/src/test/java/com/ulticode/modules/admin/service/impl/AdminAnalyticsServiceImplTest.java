@@ -23,6 +23,7 @@ import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -70,12 +71,8 @@ class AdminAnalyticsServiceImplTest {
     @Test
     @DisplayName("overview maps every port aggregate into the typed VO")
     void overviewMapsAggregatesToTypedVo() {
-        when(adminAnalyticsPort.countAllUsers()).thenReturn(100L);
-        when(adminAnalyticsPort.countDistinctSubmittersInRange(any(), any())).thenReturn(30L);
-        when(adminAnalyticsPort.countSubmissionsInRange(any())).thenReturn(200L);
-        when(adminAnalyticsPort.countAcceptedSubmissionsInRange(any())).thenReturn(50L);
-        when(adminAnalyticsPort.countContestsInRange(any())).thenReturn(5L);
-        when(adminAnalyticsPort.countActiveSubscriptions()).thenReturn(7L);
+        when(adminAnalyticsPort.loadOverviewData(any(), any())).thenReturn(
+                new AdminAnalyticsPort.AnalyticsOverviewData(100L, 30L, 200L, 50L, 5L, 7L));
 
         AnalyticsOverviewVO overview = service.getAnalyticsOverview(30);
 
@@ -89,13 +86,14 @@ class AdminAnalyticsServiceImplTest {
         assertThat(overview.getSystemUptimeSeconds()).isEqualTo(3600L);
         assertThat(overview.getMemoryUsagePercent()).isEqualTo(42.5);
         assertThat(overview.getPeriodDays()).isEqualTo(30);
+        verify(adminAnalyticsPort).loadOverviewData(any(), any());
     }
 
     @Test
     @DisplayName("acceptance rate is zero when there are no submissions")
     void acceptanceRateZeroWhenNoSubmissions() {
-        when(adminAnalyticsPort.countSubmissionsInRange(any())).thenReturn(0L);
-        when(adminAnalyticsPort.countAcceptedSubmissionsInRange(any())).thenReturn(0L);
+        when(adminAnalyticsPort.loadOverviewData(any(), any())).thenReturn(
+                new AdminAnalyticsPort.AnalyticsOverviewData(100L, 0L, 0L, 0L, 0L, 0L));
 
         AnalyticsOverviewVO overview = service.getAnalyticsOverview(7);
 
@@ -106,6 +104,9 @@ class AdminAnalyticsServiceImplTest {
     @Test
     @DisplayName("null or non-positive days falls back to the 30-day window")
     void nullDaysFallsBackToDefault() {
+        when(adminAnalyticsPort.loadOverviewData(any(), any())).thenReturn(
+                new AdminAnalyticsPort.AnalyticsOverviewData(0L, 0L, 0L, 0L, 0L, 0L));
+
         AnalyticsOverviewVO fromNull = service.getAnalyticsOverview(null);
         AnalyticsOverviewVO fromZero = service.getAnalyticsOverview(0);
 

@@ -1,4 +1,14 @@
 objective: "将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界"
+dev_local_authorization:
+  granted: true
+  scope: "当前开发环境的 disposable/local DB、Docker Compose、PM2 和测试目标"
+  allowed:
+    - "DEV-LOCAL 账号、grant、Flyway、cutover、故障注入、monitoring、quiesce 和 rollback rehearsal"
+    - "修复本地脚本、配置、测试和可审计 remediation artifact"
+  evidence_policy:
+    - "本地结果必须标记 DEV-LOCAL，不能替代真实 DB target、production stability、deployment authority 或外部 sign-off。"
+    - "不得提交凭据、编辑 applied migration、修改远程资源或把本地观察直接标记为 external Acceptance。"
+  updated_at: "2026-08-19"
 tasks:
   - id: TASK-001
     title: "重构共享 Solarized 语义色并验证 console 双主题"
@@ -1555,3 +1565,734 @@ tasks:
     commits: []
     notes: "最终 contract-boundary Gate 已通过；本地 direct-provider/single-writer、回滚边界、文档与控制面一致，未执行生产或远端动作。"
     updated_at: "2026-08-18T13:45:02+08:00"
+  - id: ARCH-001
+    objective_ref: "Services Owner architecture hardening"
+    title: "以不可变 Facts Snapshot 消除 Submission 写入事务内的 App/Auth 同步回访"
+    source:
+      - "user-request-2026-08-18-services-architecture-hardening"
+      - "ARCH-REVIEW Submission synchronous callback chain"
+    status: done
+    depends_on: []
+    acceptance_criteria:
+      - "backend-submission-api 发布只含 DTO 的不可变 SubmissionFactsSnapshot"
+      - "App 本地/远程请求边界组装快照；Submission Owner 写入只消费快照，不注入 ProblemFactsPort/UserExistencePort"
+      - "用户与问题不匹配、缺失快照、非法元数据均 fail closed；既有 contest 命令、outbox、generation/attempt fence 行为保持不变"
+      - "API contract、快照单元、Submission owner MySQL IT 和 App routing regression 覆盖新调用形态"
+    validation:
+      - "services Maven compile"
+      - "submission-api contract + SubmissionFactsSnapshotTest"
+      - "Submission owner focused unit/IT and App routing tests"
+      - "git diff --check and graphify update ."
+    rollback:
+      - "回滚 facts DTO、overload 和 caller/provider 迁移；不修改 submission schema 或 applied migration"
+      - "保留原有 local route 作为恢复路径；不通过旧 RPC 让 Submission Owner 回访 App/Auth"
+    evidence:
+      - "SubmissionFactsSnapshot API contract shape and unit tests pass; metadata mismatch and missing facts fail closed"
+      - "Submission owner MySQL Testcontainers suites pass, including DefaultSubmissionWritePortIT and SubmissionOwnerCutoverIT; App SubmissionServiceImplTest passes after invalid-input compatibility guard"
+      - "Full services Maven test/verify pass: 826 Surefire suites, 2732 tests, 0 failures, 0 errors, 28 skips"
+      - "Submission owner writer has no ProblemFactsPort/UserExistencePort fields; App local/remote boundaries assemble or forward the snapshot"
+    commits: []
+    notes: "当前实现先覆盖 Submission 写入链；Submission read enrichment 仍需独立 projection/event 任务，不在本 Task 中伪称已消除。"
+    updated_at: "2026-08-18T00:00:00+08:00"
+  - id: ARCH-002
+    objective_ref: "Services Owner architecture hardening"
+    title: "完成 Auth/Admin/App/Notification 数据库隔离的可回滚 expand/verify 方案"
+    source:
+      - "user-request-2026-08-18-services-architecture-hardening"
+      - "DEC-011"
+    status: blocked
+    depends_on:
+      - "ARCH-001"
+    acceptance_criteria:
+      - "四个 Owner 的连接配置、数据库命名、专用账号、最小权限和本地 Compose/启动变量有明确矩阵"
+      - "users 账户、权限、封禁、profile 的职责拆分采用 expand/backfill/verify 迁移，不编辑已应用 migration，不提前 revoke/删除旧列"
+      - "本地 disposable MySQL 能执行迁移、回填校验、权限负向测试和回滚演练；生产切换作为独立 authority gate"
+    validation:
+      - "migration syntax/checksum and disposable MySQL expand/backfill/verify"
+      - "Compose base/dev/prod config and owner account grant audit"
+      - "security and performance checks with explicit external gaps"
+    rollback:
+      - "仅回滚新建账号/配置和未发布 expand migration；数据切换使用 copy/reconcile/runbook，不编辑 applied migration"
+    evidence:
+      - "Auth/Admin/App/Notification datasource and production Compose variables now have owner-specific *_DB_* preparation paths with explicit shared fallback"
+      - "OWNER_DATABASE_ISOLATION_PLAN.md records expand/backfill/verify/cutover/rollback; users split and physical account cutover remain incomplete"
+      - "Disposable PerOwnerSchemaIsolationIT now provisions auth/admin/app/notification schemas and owner accounts; 22 tests pass with four-schema information_schema grant counts, owned-schema DML and cross-schema denial. This is synthetic local evidence only, not a runtime cutover."
+      - "Auth runtime Flyway defaults to disabled and is narrowed to owner-only locations; OWNER_DATABASE_ISOLATION_PLAN.md requires a separate privileged migration job before AUTH_DB_* runtime use."
+      - "Read-only `MIGRATION_SCHEMA=auth MIGRATION_DB_NAME=auth ./scripts/dev/migrate.sh validate` failed closed with MySQL 1044 for the active runtime account before any write; privileged owner migration credentials and physical cutover authority are unavailable."
+    notes: "本地可执行的配置、文档、四-owner disposable grant 与 fail-closed migration gate 已完成；Task blocked until a separately authorized privileged owner migration job, runtime account/permission window and users responsibility cutover evidence exist. 不得将本地权限证明写成生产数据库隔离完成。"
+    updated_at: "2026-08-18T22:16:00+08:00"
+  - id: ARCH-003
+    objective_ref: "Services Owner architecture hardening"
+    title: "在生产稳定性证据后清理 App 双轨兼容路径"
+    source:
+      - "user-request-2026-08-18-services-architecture-hardening"
+      - "DEC-025"
+    status: blocked
+    depends_on:
+      - "ARCH-001"
+    acceptance_criteria:
+      - "获得真实生产远程路由稳定窗口、回滚点、全写入者 quiesce 和功能回归证据后，才删除 Local/Legacy/Shadow/App 内 Judge/Search 旧路径"
+      - "删除后默认远程路由、旧配置键/Provider/dispatcher/adapter 静态扫描清零，完整回归通过"
+    validation:
+      - "生产观察窗口、端到端回归、双写/漏写/旧消息监控和可回滚 artifact"
+      - "本地 source/config compile 与 focused regression"
+    rollback:
+      - "先回滚上一已验证 artifact，再按 route/grant/watermark/reconciliation runbook 恢复；不删除/编辑 applied migration"
+    evidence: []
+    commits: []
+    notes: "阻塞原因是 DEC-025 记录的本地开放项目没有生产环境，不能伪造用户要求的生产稳定性前置条件。"
+    updated_at: "2026-08-18T00:00:00+08:00"
+  - id: ARCH-004
+    objective_ref: "Services Owner architecture hardening"
+    title: "聚合 Admin 细粒度查询 Seam 并收敛组件扫描"
+    source:
+      - "user-request-2026-08-18-services-architecture-hardening"
+    status: done
+    depends_on:
+      - "ARCH-001"
+    acceptance_criteria:
+      - "选定一个完整查询垂直切片形成粗粒度 Query Seam，消除已识别的 fan-out/N+1，不一次性重写所有 Admin 接口"
+      - "调用方认知负担、RPC 次数和结果兼容性有基线/回归证据"
+      - "ComponentScan 排除规则只在有显式替代注册且启动测试覆盖后移除"
+    validation:
+      - "Admin API contract/provider tests"
+      - "query integration/performance baseline and application-context test"
+    rollback:
+      - "保留旧 Seam 直到新 Seam 经过匹配版本验证；回滚调用方绑定和显式注册，不改数据"
+    evidence:
+      - "Admin overview now consumes one AnalyticsOverviewData coarse seam; AdminAnalyticsServiceImplTest passes 3/3"
+      - "BackendAdminApplication uses bounded package scanning without regex exclusion filters"
+      - "DefaultAdminAnalyticsPortAdapterTest locks one participant batch, one Auth RPC and one call per overview aggregate; AdminAnalyticsServiceImplTest passes 3/3 with typed VO compatibility and time-window regressions."
+      - "BackendAdminDatasourceContextIT explicitly boots BackendAdminApplication with MySQL/Redis Testcontainers and passes 1/1; Admin module `./mvnw -pl admin -am test -B` exits 0."
+      - "Independent Review classified all findings as addressed; Confirmed Findings=0."
+      - "Tier C evidence: Admin module test/verify, full services verify, official quick/integration, Compose/POM/YAML/bash/diff and graph refresh all passed; no production latency claim is made."
+    commits: []
+    notes: "Completion Audit passes for this local analytics slice; broader Admin seam aggregation remains out of scope."
+    updated_at: "2026-08-18T22:13:53+08:00"
+  - id: ARCH-005
+    objective_ref: "Services Owner architecture hardening"
+    title: "同步服务文档、根 POM、PM2 与七运行时 Compose 入口"
+    source:
+      - "user-request-2026-08-18-services-architecture-hardening"
+    status: done
+    depends_on:
+      - "ARCH-001"
+    acceptance_criteria:
+      - "迁移指南、Owner/runtime matrix、启动脚本和当前源代码一致，明确 5 Owner + 2 Worker、judge-runtime 非独立进程"
+      - "移除确认无 reactor/consumer 的无效 backend-api 根 POM 条目，并验证 Maven reactor"
+      - "PM2/local scripts 与 production Compose 对齐七个后端运行时；保留本地 Search 默认排除的明确环境差异"
+    validation:
+      - "Maven reactor validate/compile"
+      - "PM2 config/static startup scan and bash -n"
+      - "Compose base/dev/prod config and documentation link/manifest checks"
+    rollback:
+      - "回滚入口/文档/POM 变更；不删除运行数据或修改 applied migration"
+    evidence:
+      - "Root services POM no longer contains invalid backend-api dependencyManagement entry; Maven validate passes"
+      - "PM2 has seven backend entries including opt-in backend-search; up.sh help/readiness supports --only search while local default excludes it"
+      - "Production Compose renders seven backend runtimes and Dev Compose renders successfully with ephemeral validation-only Meili/submission variables"
+      - "Migration guide, architecture status, database isolation plan and README identify source/POM/config/Compose/startup scripts as authoritative"
+    commits: []
+    notes: "所有架构结论以 source、POM、configuration、Compose 和实际 startup scripts 为准。"
+    updated_at: "2026-08-18T00:00:00+08:00"
+  - id: ARCH-006
+    objective_ref: "Services Owner architecture hardening"
+    title: "Services 架构优化最终 Review、验证与 Coverage Audit"
+    source:
+      - "ARCH-001"
+      - "ARCH-002"
+      - "ARCH-003"
+      - "ARCH-004"
+      - "ARCH-005"
+    status: done
+    depends_on:
+      - "ARCH-002"
+      - "ARCH-003"
+      - "ARCH-004"
+      - "ARCH-005"
+    acceptance_criteria:
+      - "所有可执行 Task 有 Acceptance、Review、Validation、rollback 和证据；外部门禁准确标为 blocked"
+      - "Submission 同步写回访、DB isolation、App compatibility、Admin seam、documentation/ops drift 的残余项均有明确状态"
+      - "完整检查不声称不存在的生产环境或未完成的 users 数据拆分"
+    validation:
+      - "focused → module → integration → services verify，按风险收集失败和 skips"
+      - "Compose/POM/YAML/bash/diff/graph coverage audit"
+      - "formal architecture/security/concurrency/compatibility review"
+    rollback:
+      - "交付前回滚到上一已验证 source/config artifact；数据操作只按可回滚 runbook"
+    evidence:
+      - "ARCH-001, ARCH-004 and ARCH-005 have Acceptance, Review, Validation, rollback and source/test/config evidence; ARCH-002 and ARCH-003 are accurately blocked with explicit external evidence."
+      - "Final Review has Confirmed Findings=0; full services verify, official quick/integration, Compose/POM/YAML/bash/diff and graph coverage checks passed."
+      - "No production environment or users split completion is claimed; Auth owner validate rejected the non-privileged runtime account with MySQL 1044 before any write."
+    commits: []
+    notes: "Final Completion/Coverage Audit closed the objective locally with ARCH-002/ARCH-003 retained as evidence-backed external blockers; no commit/push/deploy/production action."
+    updated_at: "2026-08-18T22:16:00+08:00"
+  - id: ARCH-002-001
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "实现显式特权 owner migration job"
+    source:
+      - "ARCH-002"
+      - "恢复结论执行计划 1.1"
+      - "scripts/dev/migrate.sh"
+      - "scripts/dev/up.sh"
+      - "scripts/dev/migrate-owner-preflight-test.sh"
+      - ".env.example"
+      - "init-db/README.md"
+      - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
+      - "DEC-032"
+      - "DEC-036"
+    status: done
+    depends_on:
+      - "ARCH-001"
+    acceptance_criteria:
+      - "复用 scripts/dev/migrate.sh 的 Flyway 入口，增加显式 MIGRATION_DB_HOST/PORT/NAME/USER/PASSWORD 契约；缺少任一特权连接变量时 fail closed，不回落到 runtime DB_*。"
+      - "只允许已登记的 owner schema/config（auth、admin、app、notification、submission）；迁移 job 先执行连接、schema、账号和 privilege preflight，再执行 migrate/validate。"
+      - "migration principal 与 runtime owner principal 分离；secret 只来自环境/CI secret store，仓库和 .auto-flow 不保存凭据；不修改 applied migration。"
+      - "job 输出 schema、migration version、privilege snapshot 和可审计 run id，但不输出密码或完整敏感连接串。"
+      - "privilege preflight requires CREATE, ALTER, SELECT and GRANT OPTION; notification/submission also require CREATE USER; role grants fail closed and migration principals must use direct grants; missing capabilities fail before invoking Flyway."
+    validation:
+      - "bash -n scripts/dev/migrate.sh scripts/dev/up.sh scripts/dev/migrate-owner-preflight-test.sh 通过。"
+      - "bash scripts/dev/migrate-owner-preflight-test.sh 通过，覆盖缺变量、runtime account 复用、非法 schema、effective account mismatch、empty/insufficient grants、wrong-schema rejection、global ALL with schema grant union、role-grant rejection、成功 snapshot、密码不输出、Flyway goal/config、shared DB_* 兼容路径和 DB_NAME override。"
+      - "容器内 real disposable MySQL preflight 通过：direct grant 可进入 fake Flyway，insufficient ALTER 在 Flyway 前 fail closed；真正授权目标 Flyway info/validate 仍保留为 ARCH-002-002/004 外部 Gate。"
+    rollback:
+      - "删除/回滚 job wrapper、调用方显式变量和文档配置变更；不回滚或修改任何 applied migration、账号数据或共享 schema。"
+    evidence:
+      - "scripts/dev/migrate.sh、scripts/dev/up.sh、.env.example、init-db/README.md 和 preflight self-test diff。"
+      - "Focused output: migrate-owner-preflight-test: PASS；git diff --check 和 bash -n 通过。"
+      - "No password appeared in preflight output; fake Maven was not invoked on incomplete owner preflight."
+      - "Independent Review classified Confirmed Findings=0; env precedence, shared migration preservation, up.sh caller contract, fake mysql/mvn argument checks, password redaction and preflight negative paths are addressed."
+      - "Validation Packet PASS: bash -n scripts/dev/migrate.sh scripts/dev/up.sh scripts/dev/test.sh scripts/dev/migrate-owner-preflight-test.sh; self-test PASS; git diff --check; control-plane YAML parse; no diff under init-db/migrations."
+      - "Real disposable MySQL evidence: valid direct grant preflight PASS, fake Flyway reached; weak account missing ALTER failed before Flyway; temporary container cleaned up."
+      - "Completion/Coverage Audit: all ARCH-002-001 Acceptance criteria, source/config/docs/tests, Review Confirmed=0, Tier C local validation, rollback boundaries and protected worktree checks are closed; external Flyway/least-privilege target evidence is explicitly assigned to ARCH-002-002/004."
+    commits: []
+    notes: "ARCH-002-001 local migration job preparation is done. Real privileged identity, target-specific least-privilege grant proof and Flyway execution remain downstream ARCH-002-002/004 gates."
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-002-002
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "取得 owner 数据库权限与 cutover window"
+    source:
+      - "ARCH-002"
+      - "恢复结论执行计划 1.2"
+      - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
+    status: blocked
+    depends_on:
+      - "ARCH-002-001"
+    acceptance_criteria:
+      - "部署方提供目标 host/schema、migration principal、各 runtime owner principal、精确 account host、权限矩阵、cutover window、回滚 owner 和审计联系人。"
+      - "migration principal 只拥有执行已登记 owner migration 所需的 DDL/GRANT 权限；runtime principal 无 global/schema-wide ALL、GRANT OPTION、隐式 role 继承或其他 Owner DML。"
+      - "在授权目标上保存账号/privilege snapshot、migration history、备份/回滚 artifact 和数据 watermark；任何一项缺失均保持 blocked。"
+    validation:
+      - "DBA 执行 job preflight、SHOW GRANTS/direct-grant policy、schema existence 和 connection identity 检查；role grant 必须被拒绝或另立 scoped task。"
+      - "权限负向测试证明每个 runtime principal 不能访问其他 Owner schema。"
+    rollback:
+      - "在切换前撤销 job；在切换后只按 route/grant/watermark/reconciliation runbook 回滚，不 DROP/TRUNCATE 或编辑 migration。"
+    evidence:
+      - "授权记录、目标连接身份、privilege snapshot、窗口批准、备份校验和 rollback owner sign-off。"
+    commits: []
+    notes: "当前阻塞：本地没有真实物理隔离授权和 cutover window。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-002-003
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "完成 users/profile Owner 职责迁移"
+    source:
+      - "ARCH-002"
+      - "恢复结论执行计划 1.3"
+      - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
+      - "init-db/migrations"
+    status: blocked
+    depends_on:
+      - "ARCH-002-002"
+    acceptance_criteria:
+      - "Auth 独占 account/credential/authorization/status，App 独占 user_profiles；旧读写路径在 expand/backfill/verify 阶段保持兼容但不新增双 writer。"
+      - "幂等 backfill 以 users.id 为稳定 account id，记录 rows、primary-key checksum、空值、孤儿引用和重复冲突。"
+      - "完成 Auth、Admin、App、Search、Notification 的 reader/writer 矩阵核对，并在 all-writer quiesce 后执行单 writer cutover。"
+      - "不得编辑已应用 migration；新结构只能通过后续 forward migration 或已授权 owner history 完成。"
+    validation:
+      - "空库和已有数据的 expand/backfill/verify 测试。"
+      - "双读/shadow compare、重复执行、失败重试、权限负向和切换后业务 smoke。"
+    rollback:
+      - "切换失败先恢复 route/consumer artifact，再按 watermark/reconciliation 回滚；保留旧列/旧读路径直到 contract gate。"
+    evidence:
+      - "migration history、backfill manifest、row/checksum report、reader/writer matrix、孤儿/重复报告和切换观察日志。"
+    commits: []
+    notes: "当前 users/profile owner responsibility 与真实 owner schema/runtime 证据未提供。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-002-004
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "解除 Auth MySQL 1044 验证门禁"
+    source:
+      - "ARCH-002"
+      - "恢复结论执行计划 1.4"
+      - "services/auth/src/main/resources/application.yml"
+      - "scripts/dev/migrate.sh"
+    status: blocked
+    depends_on:
+      - "ARCH-002-002"
+      - "ARCH-002-003"
+    acceptance_criteria:
+      - "Auth `MIGRATION_SCHEMA=auth` validate/migrate 通过 ARCH-002-001 的显式 privileged job，不再由 runtime `ulticode` 账号执行。"
+      - "MySQL 1044 只通过正确的 migration identity/permission contract 解决；不得给 runtime 账号补 DBA 权限，也不得关闭 fail-closed gate 伪造通过。"
+      - "Auth runtime 使用 owner-specific AUTH_DB_*，AUTH_FLYWAY_ENABLED 默认保持 false，只有 migration history/权限/回滚证据齐全后才可显式启用。"
+    validation:
+      - "记录 migration identity、schema history、Flyway validate 输出和 runtime boot config；验证普通 runtime principal 仍被拒绝 DDL/GRANT。"
+      - "Auth context/boot、migration validate、权限负向和回滚 smoke 全部通过。"
+    rollback:
+      - "保留 AUTH_FLYWAY_ENABLED=false 和上一 verified runtime artifact；失败只回滚配置/job，不回写 applied migration。"
+    evidence:
+      - "MySQL 1044 前后日志、显式 migration job 输出、Flyway schema history、AUTH_DB_* 运行配置和 privilege snapshot。"
+    commits: []
+    notes: "当前阻塞不是业务代码错误，而是非特权 runtime account 被正确拒绝。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-002-005
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "执行物理隔离 cutover 与安全验证"
+    source:
+      - "ARCH-002"
+      - "恢复结论执行计划 1.5"
+      - "scripts/dev/submission-schema-cutover.sh"
+      - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
+    status: blocked
+    depends_on:
+      - "ARCH-002-002"
+      - "ARCH-002-003"
+      - "ARCH-002-004"
+      - "ARCH-003-001"
+      - "ARCH-003-002"
+      - "ARCH-003-004"
+    acceptance_criteria:
+      - "四个 Owner 的 target schema/account 已完成 expand/backfill/verify；source/target rows、checksums、watermarks 和 schema history 一致。"
+      - "所有 App、Owner、Judge、dispatcher、reaper、scheduler 和 direct DB writers 已停止并 drain，quiesce confirmation 与窗口审计齐全。"
+      - "切换后每个 runtime 只能写自己的 Owner schema；跨 schema SELECT/DML、global ALL、GRANT OPTION、role inheritance 和 inspection failure 均 fail closed。"
+      - "切换后完成登录、profile、ban/permission、search user document、notification recipient、Admin query 和 Submission/Judge smoke。"
+    validation:
+      - "真实目标 MySQL privilege matrix、row/checksum parity、monitoring readiness、quiesce record 和 cutover failure injection。"
+      - "按现有 cutover helper 执行 preflight → copy → verify → route/grant switch；post-cutover observation 和 rollback rehearsal 由 ARCH-003-003 完成。"
+    rollback:
+      - "失败只恢复上一 route/grant/watermark/reconciliation artifact；保持 writers 停止直到数据和权限对账完成。"
+    evidence:
+      - "target audit bundle、grant snapshots、quiesce record、cutover logs、monitoring readiness、smoke report 和 sign-off。"
+    commits: []
+    notes: "本地 disposable grant IT 不能替代该真实物理 cutover gate。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-003-001
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "建立 remote-route 稳定性监控与 baseline"
+    source:
+      - "ARCH-003"
+      - "恢复结论执行计划 2.1"
+      - "DEC-031"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/submission/config/SubmissionRoutingProperties.java"
+    status: blocked
+    depends_on:
+      - "ARCH-002-002"
+    acceptance_criteria:
+      - "在物理 cutover 前部署并验证 remote route、Dubbo provider availability、request error/timeout/retry、submission write count、outbox lag、stale fence、restart 和 public API smoke 指标。"
+      - "定义 observation window、阈值、告警 owner、采样保留、baseline、double-writer 检测和 dashboard/export 格式；不得通过切换默认值绕过 gate。"
+      - "本 Task 只关闭 monitoring/baseline setup；完整稳定窗口、latency/error budget 和 post-cutover evidence 由 ARCH-003-003/005 负责。"
+    validation:
+      - "监控配置静态检查、dashboard/query dry run、告警触发测试、route/provider failure injection 和 baseline export。"
+    rollback:
+      - "监控配置可独立回滚；route 回滚只使用上一 verified artifact，不删除本地/legacy 路径直到 ARCH-003-005。"
+    evidence:
+      - "monitoring source/config、dashboard/export、alert delivery、baseline report 和 pre-cutover readiness sign-off。"
+    commits: []
+    notes: "当前项目没有 production environment，不能在本地完成真实稳定窗口；本 Task 先建立切换前监控准备。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-003-002
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "取得全部写入者 quiesce 确认"
+    source:
+      - "ARCH-003"
+      - "恢复结论执行计划 2.2"
+      - "DEC-028"
+      - "scripts/dev/submission-schema-cutover.sh"
+    status: blocked
+    depends_on:
+      - "ARCH-003-001"
+      - "ARCH-003-004"
+      - "ARCH-002-004"
+    acceptance_criteria:
+      - "列出并逐一确认 App intake/rejudge/outbox/reaper、Submission owner writer、Judge、dispatcher、scheduler、direct DB clients 和所有 shadow/legacy writers。"
+      - "每个写入者有 owner、停止命令、drain 条件、确认时间、恢复顺序和签名/审计记录。"
+      - "未完成 quiesce 时 cutover、rollback 和 compatibility deletion 全部 fail closed。"
+    validation:
+      - "dry-run 清单校验、运行时 writer inventory、stream PEL/queue drain、DB DML watermark 和一次 quiesce rehearsal。"
+    rollback:
+      - "任何遗漏立即退出 cutover window，恢复上一 artifact，不执行 provider/path deletion。"
+    evidence:
+      - "signed quiesce manifest、writer inventory、drain logs、DB/Redis watermark 和 owner acknowledgement。"
+    commits: []
+    notes: "quiesce 是 ARCH-002-005 的 cutover 前置条件；当前无远程运行时和写入者确认文档。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-003-003
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "执行 observation 与 rollback 演练"
+    source:
+      - "ARCH-003"
+      - "恢复结论执行计划 2.3"
+      - "DEC-028"
+    status: blocked
+    depends_on:
+      - "ARCH-002-005"
+      - "ARCH-003-002"
+      - "ARCH-003-004"
+    acceptance_criteria:
+      - "按 expand/backfill/verify/cutover/observe 顺序完成授权目标 observation window，覆盖正常流量、Dubbo timeout、Redis/DB outage、重复事件和 stale generation。"
+      - "rollback rehearsal 能恢复 route、grants、watermark、reconciliation 和数据一致性；失败时保持所有 writers 停止。"
+      - "观察期内无双 writer、数据漂移、不可重放 outbox、未审计权限变更或 public contract regression。"
+    validation:
+      - "故障注入、端到端 functional smoke、latency/error/restart dashboards、rows/checksum/lag reconciliation 和 rollback report。"
+    rollback:
+      - "观测失败立即走上一 verified artifact 的 route/grant/watermark rollback；不删除数据、不编辑 applied migration。"
+    evidence:
+      - "observation timeline、fault-injection logs、reconciliation report、rollback result 和 release owner sign-off。"
+    commits: []
+    notes: "监控/baseline 与切换控制必须在本 Task 前准备完成；无授权远程目标时保持 blocked。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-003-004
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "部署 production 监控与切换机制（切换前）"
+    source:
+      - "ARCH-003"
+      - "恢复结论执行计划 2.4"
+      - "docker-compose.prod.yml"
+      - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
+    status: blocked
+    depends_on:
+      - "ARCH-002-004"
+      - "ARCH-003-001"
+    acceptance_criteria:
+      - "production deployment authority 提供 monitoring/cutover target、secret references、release artifact、health endpoints、alert routing 和 rollback permissions，并在物理 cutover 前部署监控与切换控制。"
+      - "生产默认 route、cutover marker、provider registration、grant policy 和 monitoring order 一致；本 Task 不执行最终 route switch，必须等待 ARCH-002-005 与 ARCH-003-003。"
+      - "部署过程不发布后端宿主端口、不暴露 secrets、不使用 actuator 作为外部 readiness 证明，并保留 owner boundaries。"
+    validation:
+      - "部署前 Compose/POM/YAML/bash/config 检查；部署后 monitoring/alert smoke、provider discovery、DB grants、Redis streams 和 cutover-control dry run。"
+    rollback:
+      - "发布失败恢复上一 image/config/route/grant/watermark artifact；不在现场编辑 migration 或执行 destructive reset。"
+    evidence:
+      - "deployment/change ticket、secret reference、runtime health、monitoring export、route/grant snapshot、rollback proof 和 approval。"
+    commits: []
+    notes: "用户要求的 production 部署是外部动作；本地仓库不能代为执行。该 Task 是 cutover 前部署控制，不执行最终 route switch。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-003-005
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "完成兼容路径功能与性能退役验证"
+    source:
+      - "ARCH-003"
+      - "恢复结论执行计划 2.5"
+      - "services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md"
+    status: blocked
+    depends_on:
+      - "ARCH-003-003"
+      - "ARCH-003-004"
+    acceptance_criteria:
+      - "Submission/App/Judge/Search 旧 local/legacy/shadow/provider/dispatcher/adapter/config 路径由静态扫描清零或有明确保留的 rollback-only 白名单。"
+      - "功能、并发、性能、失败恢复、权限、outbox/PEL replay、public Result/URL/cookie/auth 行为全部与 acceptance 基线一致。"
+      - "确认 single writer、single route、single provider、无 hidden fallback 后，才删除兼容实现并更新 owner/runtime/docs。"
+    validation:
+      - "focused → module → integration → reactor verify；真实远程 runtime functional/performance soak；security/concurrency/compatibility review。"
+      - "静态 import/config/provider scan、Compose/PM2 startup、git diff --check 和 graph update。"
+    rollback:
+      - "删除兼容路径只随完整 artifact 成组交付；验证失败回到上一 verified artifact，不保留半删除状态。"
+    evidence:
+      - "scan report、test/soak/performance report、failure/replay evidence、single-writer proof、review findings=0 和 release sign-off。"
+    commits: []
+    notes: "ARCH-003 在该 Task 完成前保持 blocked，不得仅凭本地测试标记 done。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: ARCH-007
+    objective_ref: "Services Owner architecture hardening blocker remediation"
+    title: "完成 blocker remediation 最终 Gate"
+    source:
+      - "ARCH-002"
+      - "ARCH-003"
+      - "恢复结论执行计划 验证标准"
+    status: pending
+    depends_on:
+      - "ARCH-002-005"
+      - "ARCH-003-005"
+    acceptance_criteria:
+      - "ARCH-002/ARCH-003 的每个子项均有 Acceptance、Validation、Review、rollback 和外部证据；任何缺失保持 blocked。"
+      - "数据库、路由、写入者、监控、回滚、公共契约和文档状态一致；不声称不存在的环境或未完成的数据责任迁移。"
+      - "最终 Handoff 将 blocker、证据、protected worktree、下一 Ready Task 和剩余风险完整持久化。"
+    validation:
+      - "用户要求的 Submission/Admin focused tests、Maven reactor BUILD SUCCESS、git diff --check、bash -n、.auto-flow YAML parse。"
+      - "Tier C cross-service owner/config/startup validation plus full architecture/security/concurrency/compatibility review。"
+    rollback:
+      - "最终 Gate 失败时不关闭 ARCH-002/003，恢复最近 verified artifact 并保留所有外部 blocker 证据。"
+    evidence:
+      - "完整 verification bundle、review report、coverage closure、authority approvals、cutover/rollback reports 和 updated control plane。"
+    commits: []
+    notes: "ARCH-006 保留为历史本地审计；本 Gate 只负责外部 blocker 解除后的重新收口。"
+    updated_at: "2026-08-19T00:00:00+00:00"
+  - id: DEV-LOCAL-001
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "修复容器化本地 owner migration authority contract"
+    source:
+      - ".auto-flow/PLAN.md Development Environment Authorization Boundary"
+      - "ARCH-002-001"
+      - "scripts/dev/migrate.sh"
+      - "scripts/dev/migrate-owner-preflight-test.sh"
+      - "scripts/dev/up.sh"
+      - "init-db/flyway-auth.conf"
+      - "init-db/flyway-admin.conf"
+      - "init-db/flyway-app.conf"
+      - "init-db/flyway-notification.conf"
+      - "init-db/flyway-submission.conf"
+      - "scripts/dev/init-env.sh"
+      - ".env.example"
+      - "init-db/README.md"
+    status: done
+    depends_on:
+      - "ARCH-002-001"
+    acceptance_criteria:
+      - "owner preflight 在宿主没有 mysql CLI 时可通过显式 DEV-LOCAL MySQL container 执行；宿主 mysql CLI 路径保持兼容。"
+      - "container 执行路径继续使用显式 MIGRATION_DB_*，不回落 runtime DB_*，不打印密码，不改变 Flyway authority contract。"
+      - "fake self-test 覆盖 container path、缺变量、账号复用、错误 schema、权限不足和 Flyway 未调用路径。"
+      - "fresh target schema bootstrap runs through the shared migration chain before owner Flyway; owner configs set createSchemas=false and missing schema fails closed."
+      - "shared MIGRATION_DB_* remains bootstrap-only; Submission owner Flyway/provisioning uses explicit SUBMISSION_MIGRATION_DB_USER/PASSWORD and never silently defaults to root."
+    validation:
+      - "bash -n scripts/dev/migrate.sh scripts/dev/migrate-owner-preflight-test.sh。"
+      - "bash scripts/dev/migrate-owner-preflight-test.sh 通过。"
+      - "本地 ulticode-mysql owner preflight/info 通过，输出不含密码。"
+      - "static check confirms shared bootstrap precedes Submission owner migration and all five owner configs set createSchemas=false."
+      - "DEV-LOCAL ./scripts/dev/up.sh --prepare-submission-owner --skip-infra --skip-bootstrap --skip-install passes without starting PM2."
+    rollback:
+      - "仅回滚 migration runner/container adapter 和 self-test；不修改 applied migration 或数据库数据。"
+    evidence:
+      - "scripts/dev/migrate.sh now supports explicit MIGRATION_MYSQL_CONTAINER and MIGRATION_MYSQL_CONTAINER_PORT for preflight only; Flyway continues using MIGRATION_DB_*."
+      - "scripts/dev/migrate-owner-preflight-test.sh covers container routing, host compatibility, MySQL 9 direct global-capability rejection, missing/insufficient/wrong-schema/role grants, password redaction and Flyway non-invocation."
+      - "bash -n scripts/dev/migrate.sh scripts/dev/migrate-owner-preflight-test.sh — PASS."
+      - "bash scripts/dev/migrate-owner-preflight-test.sh — PASS."
+      - "DEV-LOCAL ulticode-mysql Auth owner info with migration_auth@% — BUILD SUCCESS; root global-grant account negative preflight — PASS."
+      - "init-db/README.md and .env.example document the DEV-LOCAL container contract without credentials."
+      - "Review findings fixed: direct MySQL 9 grant-list parsing remains fail-closed; schema/table grant matching is exact; schema GRANT OPTION must be schema-scoped unless literal global ALL; fresh-schema bootstrap order/config is explicit."
+      - "Review recheck: review fixes static assertions, bash -n, migrate-owner-preflight-test and git diff --check — PASS."
+      - "Review recheck also fixed shared-vs-owner migration identity split, root bootstrap of migration_submission, owner account connection verification without mysql.user access, and up.sh order regression."
+      - "DEV-LOCAL up prepare evidence: shared bootstrap and notification chain BUILD SUCCESS; Submission owner Flyway BUILD SUCCESS; migration principal bootstrap and runtime owner connection verification passed; PM2 was not started."
+      - "Completion/Coverage Audit: all DEV-LOCAL-001 Acceptance criteria, Review Confirmed=0, Tier C validation, fresh disposable bootstrap, rollback boundaries, protected worktree and no-applied-migration checks passed."
+    commits: []
+    notes: "DEV-LOCAL-001 is closed locally; external ARCH-002/ARCH-003 acceptance remains explicitly separate and blocked."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-002
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "执行开发环境 owner schema Flyway 与 grant 验证"
+    source:
+      - "ARCH-002-002"
+      - "ARCH-002-004"
+      - "init-db/migrations"
+      - "scripts/dev/migrate.sh"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-001"
+    acceptance_criteria:
+      - "auth/admin/app/notification/submission owner migrations 以独立 privileged migration identity 在 DEV-LOCAL 执行。"
+      - "runtime owner accounts 与 migration identity 分离，账号可连接且 direct grants 满足各自 schema；notification/submission 账号状态明确。"
+      - "Flyway history、schema/table/account/grant snapshot 可重复读取；结果只标记 DEV-LOCAL。"
+      - "非空 bootstrap-only owner schema 只能通过显式 DEV_LOCAL_OWNER_BASELINE_CONFIRM、expected table/column signature、history absence 和 zero-row guard 后 baseline；默认 migrate 不自动 baseline。"
+      - "auth/notification/submission 的 canonical FLUSH PRIVILEGES 仅由 direct RELOAD 或 literal global ALL compatibility capability 覆盖；任意 global capability list 不得替代 schema grant boundary。"
+    validation:
+      - "各 owner Flyway info/validate/migrate、SHOW GRANTS、runtime connection negative cross-schema checks。"
+      - "不得编辑 applied migration；git diff --name-only -- init-db/migrations 保持 empty。"
+      - "baseline guard、RELOAD/CREATE USER multi-word parser、schema/table signature 和 failure-before-Flyway self-tests。"
+    rollback:
+      - "保留 schema/table 数据；仅按 owner grant/account rollback artifact 回滚，不 DROP/TRUNCATE。"
+    evidence:
+      - "Initial Auth migrate failure at canonical FLUSH PRIVILEGES was preserved; missing direct RELOAD was added to the explicit principal contract, failed history was repaired, and Auth migrate retried successfully."
+      - "DEV-LOCAL explicit baselines: auth bootstrap signature/15 columns at 20260729140000 and admin audit_outbox/10 columns at 20260729140100 passed with zero rows and no existing history."
+      - "Owner Flyway PASS: auth 20260816170000, admin 20260729140200, app 20260811180000, notification 20260815100200 and submission 20260817000000."
+      - "Direct runtime account checks PASS: each owner account connected to its own schema and was denied access to a foreign schema; all runtime and migration accounts were unlocked/active."
+      - "No applied migration changed; Flyway history failure was repaired only after root-cause permission fix, with no data backfill/cutover performed."
+      - "DEV-LOCAL all-owner Flyway validate with migration_auth/admin/app/notification/submission — PASS; no password output and no applied migration diff."
+      - "Fresh disposable MySQL evidence: shared bootstrap created owner schemas/tables; explicit auth/admin baseline guards matched exact table/column signatures and zero rows; owner Flyway forward migrations passed; container cleaned."
+      - "Completion/Coverage Audit: all DEV-LOCAL-002 Acceptance criteria, Review Confirmed=0, Tier C validation, fresh bootstrap, explicit baseline/rollback boundaries, protected worktree and no-applied-migration checks passed."
+    commits: []
+    notes: "DEV-LOCAL-002 is closed locally; external ARCH-002-002/004 authority and production acceptance remain explicitly separate."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-003
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "完成开发环境 users/profile backfill verify"
+    source:
+      - "ARCH-002-003"
+      - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
+      - "init-db/migrations/V20260729150000__Create_User_Profiles_Table.sql"
+      - "scripts/dev/owner-user-profile-backfill.sh"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-002"
+    acceptance_criteria:
+      - "以稳定 users.id/account_id 在 DEV-LOCAL 将 legacy users/profile 数据幂等回填到 auth.users 与 app.user_profiles。"
+      - "记录 rows、主键 checksum、空值、孤儿和重复冲突；重复执行结果一致。"
+      - "失败时保留 source 数据并提供可验证 copy-back/reconciliation 路径。"
+      - "backfill refuses unknown/existing target conflicts without a manifest; rollback only deletes IDs recorded by this run and refuses checksum drift."
+      - "backfill/rollback require explicit DEV_LOCAL_OWNER_BACKFILL_QUIESCE_CONFIRM so no owner writer is active during the data rehearsal."
+    validation:
+      - "空值/孤儿/重复检查、重复执行、source/target checksum 和 rollback rehearsal。"
+      - "不改变已应用 migration；结果标记 DEV-LOCAL。"
+      - "manifest before/after checksums, inserted id list, idempotent no-op, source orphan/missing profile, target mismatch and duplicate reports, and rollback rehearsal."
+      - "full account projection checksum includes all copied columns with password hashed inside SQL; manifest stores only non-secret IDs and post checksums."
+    rollback:
+      - "先恢复 route/consumer artifact，再按 reconciliation/copy-back 回滚；不删除 legacy source。"
+    evidence:
+      - "owner-user-profile-backfill.sh preflight: source active users=12, source profiles=12, source missing/orphan profiles=0, target initially empty."
+      - "DEV-LOCAL backfill PASS: auth.users=12 and app.user_profiles=12; full account/profile parity and checksums matched."
+      - "Repeat backfill PASS: existing manifest plus parity produced idempotent no-op without overwrite."
+      - "Rollback PASS: manifest checksum guard deleted only recorded auth/profile IDs and restored empty targets; re-backfill restored parity."
+      - "No legacy source rows were deleted and no applied migration was changed."
+      - "Source orphan/missing profile and duplicate checks remained zero; quiesce confirmation was required for every backfill/rollback write rehearsal."
+      - "Full projection checksum now covers all copied account/profile fields with SHA2(password) inside SQL; source orphan/missing profile/duplicate counters and manifest schema scope are checked."
+      - "Backfill/rollback write actions required explicit owner-profile quiesce confirmation; rollback refused checksum drift before any DELETE."
+      - "Completion/Coverage Audit: all DEV-LOCAL-003 Acceptance criteria, Review Confirmed=0, Tier C validation, manifest/checksum/quiesce rollback boundaries, protected worktree and no-applied-migration checks passed."
+    commits: []
+    notes: "DEV-LOCAL-003 is closed locally; users/profile external responsibility and production cutover acceptance remain explicitly separate."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-004
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "完成开发环境 Submission cutover rollback rehearsal"
+    source:
+      - "ARCH-002-005"
+      - "scripts/dev/submission-schema-cutover.sh"
+      - "DEC-028"
+      - "DEV-LOCAL-005"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-002"
+      - "DEV-LOCAL-003"
+      - "DEV-LOCAL-005"
+    acceptance_criteria:
+      - "DEV-LOCAL source/target table shape、rows/checksum、grant 和 cutover marker 通过 preflight。"
+      - "cutover 只在显式 execute/quiesce confirmation 下执行；copy、grant revoke、route marker 和 rollback 可重复验证。"
+      - "失败注入不遗留半切换 grant、target partial data 或未审计 writer 状态。"
+      - "existing non-empty target is never re-copied; DEV-LOCAL current data stays protected and disposable/empty-target rehearsal owns copy/revoke/rollback execution."
+    validation:
+      - "submission-schema-cutover.sh preflight、cutover failure injection、copy-back rollback 和 grant snapshots。"
+      - "本地结果不关闭 ARCH-002-005 external acceptance。"
+      - "SubmissionOwnerCutoverIT Testcontainers 4/4, current cutover preflight blocked safely on non-empty target, and container-aware helper path checked."
+    rollback:
+      - "使用现有 route/grant/watermark/reconciliation runbook；失败保持 writers 停止。"
+    evidence:
+      - "Current DEV-LOCAL cutover preflight used container-aware MySQL and safely refused because submission target already contains rows; no copy/revoke/write action occurred."
+      - "Disposable Testcontainers SubmissionOwnerCutoverIT: 4/4, 0 failures/errors/skips, BUILD SUCCESS; covers cutover/rollback/failure paths without touching current dev DB."
+      - "Existing source/target rows/checksum snapshots remain matched for submissions, judge_outbox and submission_result_outbox; target-only created outbox is present."
+      - "scripts/dev/submission-schema-cutover.sh now falls back to MIGRATION_MYSQL_CONTAINER when host mysql CLI is unavailable."
+      - "Completion/Coverage Audit: DEV-LOCAL-004 safety refusal, disposable cutover/rollback/failure IT, quiesce/grant/marker boundaries, Review Confirmed=0 and protected worktree checks passed; no production route switch occurred."
+    commits: []
+    notes: "DEV-LOCAL-004 is closed locally; DEV-LOCAL-006 may now execute post-cutover observation/rollback rehearsal. Production cutover authority remains external."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-005
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "建立开发环境 route monitoring quiesce baseline"
+    source:
+      - "ARCH-003-001"
+      - "ARCH-003-002"
+      - "ARCH-003-004"
+      - "services/app/app-web/src/main/java/com/ulticode/modules/submission/config/SubmissionRoutingProperties.java"
+      - "scripts/dev/submission-schema-cutover.sh"
+      - "scripts/dev/dev-local-monitoring-baseline.sh"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-002"
+      - "DEV-LOCAL-003"
+    acceptance_criteria:
+      - "DEV-LOCAL 记录 App/Submission/Judge/dispatcher/reaper/scheduler/direct writer inventory、停止/恢复命令和 drain 状态。"
+      - "记录 route/provider availability、timeout/retry、DB/Redis/outbox/PEL、restart、latency 和 double-writer baseline。"
+      - "验证 monitoring/cutover marker 配置顺序，不使用默认值绕过 gate。"
+      - "baseline must distinguish DEV-LOCAL health/PEL unavailability and cutover preflight blockers from production claims; no default/marker bypass is allowed."
+    validation:
+      - "启动/停止 rehearsal、public API health、Dubbo/provider discovery、Redis/DB queue snapshot 和 monitoring dry run。"
+      - "scripts/dev/dev-local-monitoring-baseline.sh baseline/quiesce-preflight, container DB/Redis probes, ecosystem writer inventory and read-only cutover preflight."
+    rollback:
+      - "monitoring/config artifact 可独立回滚；不删除 compatibility path。"
+    evidence:
+      - "DEV-LOCAL monitoring baseline PASS: route mode/local marker=false, seven backend plus frontend writer inventory, healthy MySQL/Redis containers, DB table snapshots, Redis PONG and unavailable PEL groups recorded."
+      - "Public health probes recorded HTTP 000 because no PM2 services are running; this is explicitly DEV-LOCAL unavailable evidence, not a production success claim."
+      - "Container-aware Submission cutover preflight ran and blocked safely because target submission tables are already non-empty; no copy/revoke/write action occurred."
+      - "Writer inventory and cutover script identify App/Submission/Judge/dispatcher/reaper/scheduler/direct writers; monitoring/cutover marker order remains explicit."
+      - "Completion/Coverage Audit: DEV-LOCAL monitoring baseline, writer inventory, container DB/Redis probes, quiesce/cutover readiness evidence, Review Confirmed=0, Tier C checks and protected worktree boundaries passed; production stability remains external."
+    commits: []
+    notes: "DEV-LOCAL-005 is closed locally; DEV-LOCAL-004 may now run the cutover rehearsal. Production monitoring/deployment authority remains external."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-006
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "执行开发环境 observation rollback fault rehearsal"
+    source:
+      - "ARCH-003-003"
+      - "DEC-035"
+      - "scripts/dev/submission-schema-cutover.sh"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-005"
+      - "DEV-LOCAL-004"
+    acceptance_criteria:
+      - "DEV-LOCAL 覆盖正常流量、provider timeout、Redis/DB outage、重复事件和 stale generation。"
+      - "rollback 恢复 route/grant/watermark/reconciliation，失败时 writers 保持停止。"
+      - "输出 observation timeline、故障注入日志和 reconciliation 结果，明确 DEV-LOCAL 限制。"
+    validation:
+      - "开发环境故障注入、focused smoke、lag/checksum reconciliation 和 rollback report。"
+    rollback:
+      - "只恢复上一 verified local artifact；不删除数据、不编辑 applied migration。"
+    evidence:
+      - "DEV-LOCAL observation rehearsal script (scripts/dev/dev-local-observation-rehearsal.sh) executed with 5/5 sections passed under DEV_LOCAL_OBSERVATION_CONFIRM guard."
+      - "Confirmed fail-closed behavior: without DEV_LOCAL_OBSERVATION_CONFIRM the harness aborts with code 1; with --quick it labels test execution SKIPPED_UNAVAILABLE and reports PARTIAL."
+      - "Fault injection & resilience battery: 65 targeted tests executed with 0 failures, 0 errors, and 0 skipped (including REDIS_HOST-enabled JudgeStreamRedisIntegrationTest: 4/4, DefaultSubmissionWritePortIT: 6/6, SubmissionOwnerCutoverIT: 5/5 with cutover failure rollback cleanup, SubmissionOutboxDispatcherIT: 5/5, SubmissionCreatedDispatcherTest: 2/2, NotificationDeliveryLedgerMapperIT: 7/7, NotificationDispatcherTest: 14/14, NotificationLedgerReaperTest: 3/3, DefaultAdminAnalyticsPortAdapterTest: 2/2, AdminAnalyticsServiceImplTest: 3/3, SubmissionFactsSnapshotTest: 4/4, SubmissionProviderContractTest: 6/6 with Dubbo timeout & network partition exception propagation, SubmissionApiContractShapeTest: 4/4)."
+      - "Data reconciliation & parity: source ulticode and target submission schemas matched for submissions (126 rows, checksum 2896447748), judge_outbox (0 rows, checksum 0), submission_result_outbox (37 rows, checksum 610558977); submission_created_outbox target-only rows 0."
+      - "Rollback, route, and writer state: APP_SUBMISSION_ROUTING_MODE=local, SUBMISSION_CUTOVER_COMPLETE=false, runtime user ulticode grants on submission schema: 0 privileges. MySQL processlist confirmed 0 active non-system writer connections; PM2 writer status labeled UNAVAILABLE; live multi-node writer drain and live persistent data mutation were NOT executed locally (persistent development DB data remains protected; rollback/failure fixtures executed in disposable Testcontainers)."
+      - "Completion/Coverage Audit: DEV-LOCAL-006 static rehearsal/reconciliation/test checks passed; Review Confirmed=0; live multi-node cluster partition, live production writer drain and external change authorization remain externally blocked under ARCH-003-001..005."
+    commits: []
+    notes: "DEV-LOCAL-006 is closed locally; DEV-LOCAL-007 may now execute compatibility path and retirement readiness evaluation. Production observation/retirement authority remains external."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-007
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "完成开发环境兼容路径验证与退役裁决"
+    source:
+      - "ARCH-003-005"
+      - "services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md"
+      - "services/app/app-web"
+      - "services/submission"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-006"
+    acceptance_criteria:
+      - "静态扫描、功能/失败恢复/权限/outbox replay 验证完成，single-writer 和 rollback-only 白名单明确。"
+      - "开发环境验证不得删除仍需 external rollback 的 compatibility path；任何退役只形成候选 artifact 和决策记录。"
+      - "ARCH-003-005 保持 blocked，除非真实 production evidence 另行提供。"
+    validation:
+      - "focused/module tests、静态 import/config/provider scan、Compose/PM2 startup 和 diff/graph checks。"
+    rollback:
+      - "保留完整 compatibility artifact；验证失败回到上一 local verified artifact。"
+    evidence:
+      - "Static compatibility scan across services/app/app-web, services/submission and services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md verified exact routing conditions on app.submission.routing.mode."
+      - "Single-writer invariants verified: in mode=local, App DefaultSubmissionWritePort is the sole writer to ulticode schema; in mode=remote, backend-submission is the sole writer to submission schema with SubmissionFactsSnapshot; dual-writing is strictly prevented by @ConditionalOnProperty guards."
+      - "Rollback-only whitelist established: App-local compatibility implementations (DefaultSubmissionWritePort, JudgeOutboxDispatcher, JudgingLeaseReaper, SubmissionResultDispatcher, SubmissionResultOutboxListener, LocalSubmissionUserQueryAdapter) are preserved in source tree and must NOT be deleted locally until external production cutover/observation gates (ARCH-003-005) close."
+      - "Retirement decision candidate recorded in DEC-038; focused routing tests (SubmissionRoutingPortTest: 7/7, SubmissionPortWiringTest: 6/6, SubmissionServiceImplTest: 17/17) all passed (30/30, 0 failures/errors/skips)."
+      - "Completion/Coverage Audit: DEV-LOCAL-007 compatibility scan, single-writer invariants, rollback whitelist and retirement decision candidate verified; Review Confirmed=0; ARCH-003-005 remains externally blocked."
+    commits: []
+    notes: "DEV-LOCAL-007 is closed locally; DEV-LOCAL-008 may now compile the final remediation validation packet. External ARCH-003-005 retirement authority remains blocked."
+    updated_at: "2026-08-19"
+  - id: DEV-LOCAL-008
+    objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+    title: "完成开发环境 remediation validation packet"
+    source:
+      - "ARCH-007"
+      - ".auto-flow/PLAN.md Development Environment Authorization Boundary"
+    status: done
+    depends_on:
+      - "DEV-LOCAL-007"
+    acceptance_criteria:
+      - "DEV-LOCAL 所有可执行 remediation 有 Acceptance、Validation、Review、Rollback 和 Evidence。"
+      - "控制面、代码、配置、测试、迁移和文档边界一致；external ARCH-002/003 gates 仍准确 blocked。"
+      - "最终 Handoff 持久化 protected worktree、验证结果、remaining risks 和下一外部条件。"
+    validation:
+      - "focused/module/integration/verify 以及 migration/cutover/rollback checks 按风险选择并记录。"
+    rollback:
+      - "失败恢复最近 local verified artifact，保留 external blockers 和全部证据。"
+    evidence:
+      - "DEV-LOCAL remediation validation packet compiled and executed: syntax check on all 8 scripts passed (bash -n: PASS)."
+      - "migrate-owner-preflight-test.sh passed (5/5 direct/role/schema/global cases verified)."
+      - "dev-local-observation-rehearsal.sh executed 5/5 sections cleanly under DEV_LOCAL_OBSERVATION_CONFIRM guard."
+      - "Focused multi-module test battery: 65 targeted tests executed with 0 failures, 0 errors, 0 skipped (including Dubbo timeout RpcException and network partition propagation, cutover failure rollback cleanup in Testcontainers, real-broker Redis Streams dead-lettering & migration, generation fencing CAS rejection, outbox retry, and notification ledger lease fencing)."
+      - "App-web routing and wiring tests: SubmissionRoutingPortTest (7/7), SubmissionPortWiringTest (6/6), SubmissionServiceImplTest (17/17) all passed (30/30, 0 failures/errors/skips)."
+      - "git diff --check passed with 0 errors; init-db/migrations verified unmodified; control-plane YAML files parsed cleanly."
+      - "Completion/Coverage Audit: all DEV-LOCAL-001..008 remediation tasks are completed locally; external ARCH-002-002..005 and ARCH-003-001..005 gates remain blocked awaiting real production/remote authority."
+    commits: []
+    notes: "DEV-LOCAL remediation sequence (DEV-LOCAL-001..008) is complete. Safe stop at the external blocker boundary."
+    updated_at: "2026-08-19"

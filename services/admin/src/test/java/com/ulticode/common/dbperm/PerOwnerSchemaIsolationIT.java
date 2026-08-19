@@ -45,6 +45,7 @@ class PerOwnerSchemaIsolationIT {
     private static final String AUTH_RW_PW = "it_auth_rw_pw";
     private static final String ADMIN_RW_PW = "it_admin_rw_pw";
     private static final String APP_RW_PW = "it_app_rw_pw";
+    private static final String NOTIFICATION_RW_PW = "it_notification_rw_pw";
 
     private static String noDbJdbcUrl() {
         String url = mysql.getJdbcUrl();
@@ -62,21 +63,21 @@ class PerOwnerSchemaIsolationIT {
 
     /**
      * Queries information_schema for both SCHEMA_PRIVILEGES and TABLE_PRIVILEGES,
-     * sums per-schema grant count, and returns a 3-element array:
-     * {@code [authCount, adminCount, appCount]}.
+     * sums per-schema grant count, and returns a 4-element array:
+     * {@code [authCount, adminCount, appCount, notificationCount]}.
      */
     private static int[] countGrants(Connection c, String user) throws SQLException {
-        int[] counts = new int[3]; // auth=0, admin=1, app=2
+        int[] counts = new int[4]; // auth=0, admin=1, app=2, notification=3
         try (Statement s = c.createStatement()) {
             var rs = s.executeQuery(
                 "SELECT TABLE_SCHEMA FROM information_schema.SCHEMA_PRIVILEGES " +
-                "WHERE GRANTEE LIKE '%" + user + "%' AND TABLE_SCHEMA IN ('auth','admin','app')");
+                "WHERE GRANTEE LIKE '%" + user + "%' AND TABLE_SCHEMA IN ('auth','admin','app','notification')");
             while (rs.next()) {
                 counts[schemaIndex(rs.getString("TABLE_SCHEMA"))]++;
             }
             rs = s.executeQuery(
                 "SELECT TABLE_SCHEMA FROM information_schema.TABLE_PRIVILEGES " +
-                "WHERE GRANTEE LIKE '%" + user + "%' AND TABLE_SCHEMA IN ('auth','admin','app')");
+                "WHERE GRANTEE LIKE '%" + user + "%' AND TABLE_SCHEMA IN ('auth','admin','app','notification')");
             while (rs.next()) {
                 counts[schemaIndex(rs.getString("TABLE_SCHEMA"))]++;
             }
@@ -89,6 +90,7 @@ class PerOwnerSchemaIsolationIT {
             case "auth" -> 0;
             case "admin" -> 1;
             case "app" -> 2;
+            case "notification" -> 3;
             default -> -1;
         };
     }
@@ -101,6 +103,7 @@ class PerOwnerSchemaIsolationIT {
             stmt.execute("CREATE SCHEMA IF NOT EXISTS `auth`");
             stmt.execute("CREATE SCHEMA IF NOT EXISTS `admin`");
             stmt.execute("CREATE SCHEMA IF NOT EXISTS `app`");
+            stmt.execute("CREATE SCHEMA IF NOT EXISTS `notification`");
 
             stmt.execute("CREATE TABLE `auth`.`users` (id VARCHAR(40) PRIMARY KEY, username VARCHAR(120))");
             stmt.execute("CREATE TABLE `auth`.`refresh_tokens` (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40))");
@@ -111,28 +114,34 @@ class PerOwnerSchemaIsolationIT {
 
             stmt.execute("CREATE TABLE `app`.`problems` (id BIGINT PRIMARY KEY, title VARCHAR(255))");
             stmt.execute("CREATE TABLE `app`.`submissions` (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40))");
+            stmt.execute("CREATE TABLE `notification`.`delivery_ledger` (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40))");
 
             stmt.execute("CREATE USER IF NOT EXISTS 'auth_rw'@'%'");
             stmt.execute("CREATE USER IF NOT EXISTS 'admin_rw'@'%'");
             stmt.execute("CREATE USER IF NOT EXISTS 'app_rw'@'%'");
+            stmt.execute("CREATE USER IF NOT EXISTS 'notification_rw'@'%'");
             stmt.execute("ALTER USER 'auth_rw'@'%' IDENTIFIED BY '" + AUTH_RW_PW + "'");
             stmt.execute("ALTER USER 'admin_rw'@'%' IDENTIFIED BY '" + ADMIN_RW_PW + "'");
             stmt.execute("ALTER USER 'app_rw'@'%' IDENTIFIED BY '" + APP_RW_PW + "'");
+            stmt.execute("ALTER USER 'notification_rw'@'%' IDENTIFIED BY '" + NOTIFICATION_RW_PW + "'");
 
             // Clean slate
             stmt.execute("REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'auth_rw'@'%'");
             stmt.execute("REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'admin_rw'@'%'");
             stmt.execute("REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'app_rw'@'%'");
+            stmt.execute("REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'notification_rw'@'%'");
 
             // USAGE allows connection to the server (zero table access)
             stmt.execute("GRANT USAGE ON *.* TO 'auth_rw'@'%'");
             stmt.execute("GRANT USAGE ON *.* TO 'admin_rw'@'%'");
             stmt.execute("GRANT USAGE ON *.* TO 'app_rw'@'%'");
+            stmt.execute("GRANT USAGE ON *.* TO 'notification_rw'@'%'");
 
             // Strict per-schema grants
             stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `auth`.* TO 'auth_rw'@'%'");
             stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `admin`.* TO 'admin_rw'@'%'");
             stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `app`.* TO 'app_rw'@'%'");
+            stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `notification`.* TO 'notification_rw'@'%'");
 
             // Cross-domain outbox seam: append-only INSERT on audit_outbox ONLY
             stmt.execute("GRANT INSERT ON `admin`.`audit_outbox` TO 'auth_rw'@'%'");
@@ -247,6 +256,7 @@ class PerOwnerSchemaIsolationIT {
                 assertThat(grants[0]).as("auth_rw should have SELECT/INSERT/UPDATE/DELETE on auth schema (4 rows)").isEqualTo(4);
                 assertThat(grants[1]).as("auth_rw should have only INSERT on admin.audit_outbox (1 row)").isEqualTo(1);
                 assertThat(grants[2]).as("auth_rw should have ZERO privileges on app schema").isEqualTo(0);
+                assertThat(grants[3]).as("auth_rw should have ZERO privileges on notification schema").isEqualTo(0);
             }
         }
     }
@@ -304,6 +314,7 @@ class PerOwnerSchemaIsolationIT {
                 assertThat(grants[0]).as("admin_rw should have ZERO privileges on auth schema").isEqualTo(0);
                 assertThat(grants[1]).as("admin_rw should have SELECT/INSERT/UPDATE/DELETE on admin schema (4 rows)").isEqualTo(4);
                 assertThat(grants[2]).as("admin_rw should have ZERO privileges on app schema").isEqualTo(0);
+                assertThat(grants[3]).as("admin_rw should have ZERO privileges on notification schema").isEqualTo(0);
             }
         }
     }
@@ -395,6 +406,49 @@ class PerOwnerSchemaIsolationIT {
                 assertThat(grants[0]).as("app_rw should have ZERO privileges on auth schema").isEqualTo(0);
                 assertThat(grants[1]).as("app_rw should have only INSERT on admin.audit_outbox (1 row)").isEqualTo(1);
                 assertThat(grants[2]).as("app_rw should have SELECT/INSERT/UPDATE/DELETE on app schema (4 rows)").isEqualTo(4);
+                assertThat(grants[3]).as("app_rw should have ZERO privileges on notification schema").isEqualTo(0);
+            }
+        }
+    }
+    // ==================== notification_rw ====================
+
+    @Nested
+    @DisplayName("notification_rw: owns notification schema")
+    class NotificationRw {
+
+        @Test
+        @DisplayName("PERMITTED: INSERT/SELECT notification.delivery_ledger")
+        void canInsertSelectOwnSchema() throws Exception {
+            try (Connection c = connectAs("notification_rw", NOTIFICATION_RW_PW);
+                 Statement s = c.createStatement()) {
+                s.execute("INSERT INTO `notification`.`delivery_ledger` (id, user_id) VALUES ('n-1', 'u-1')");
+                var rs = s.executeQuery("SELECT COUNT(*) FROM `notification`.`delivery_ledger`");
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getInt(1)).isGreaterThanOrEqualTo(1);
+            }
+        }
+
+        @Test
+        @DisplayName("DENIED: SELECT auth.users cross-schema")
+        void deniedSelectOnAuthSchema() {
+            assertThatThrownBy(() -> {
+                try (Connection c = connectAs("notification_rw", NOTIFICATION_RW_PW);
+                     Statement s = c.createStatement()) {
+                    s.executeQuery("SELECT * FROM `auth`.`users`");
+                }
+            }).isInstanceOf(SQLException.class)
+              .satisfies(e -> assertThat(((SQLException) e).getErrorCode()).isIn(1142, 1044));
+        }
+
+        @Test
+        @DisplayName("information_schema: notification_rw has only notification grants")
+        void notificationRwSchemaPrivilegeVerification() throws Exception {
+            try (Connection c = connectAs("notification_rw", NOTIFICATION_RW_PW)) {
+                int[] grants = countGrants(c, "notification_rw");
+                assertThat(grants[0]).as("notification_rw should have ZERO privileges on auth schema").isEqualTo(0);
+                assertThat(grants[1]).as("notification_rw should have ZERO privileges on admin schema").isEqualTo(0);
+                assertThat(grants[2]).as("notification_rw should have ZERO privileges on app schema").isEqualTo(0);
+                assertThat(grants[3]).as("notification_rw should have SELECT/INSERT/UPDATE/DELETE on notification schema (4 rows)").isEqualTo(4);
             }
         }
     }

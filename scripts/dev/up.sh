@@ -15,6 +15,22 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 export ENV_FILE
 
+# Preserve explicit caller-provided migration values while loading .env.
+MIGRATION_DB_HOST_WAS_SET="${MIGRATION_DB_HOST+x}"
+MIGRATION_DB_PORT_WAS_SET="${MIGRATION_DB_PORT+x}"
+MIGRATION_DB_NAME_WAS_SET="${MIGRATION_DB_NAME+x}"
+MIGRATION_DB_USER_WAS_SET="${MIGRATION_DB_USER+x}"
+MIGRATION_DB_PASSWORD_WAS_SET="${MIGRATION_DB_PASSWORD+x}"
+SUBMISSION_MIGRATION_DB_USER_WAS_SET="${SUBMISSION_MIGRATION_DB_USER+x}"
+SUBMISSION_MIGRATION_DB_PASSWORD_WAS_SET="${SUBMISSION_MIGRATION_DB_PASSWORD+x}"
+MIGRATION_DB_HOST_OVERRIDE="${MIGRATION_DB_HOST-}"
+MIGRATION_DB_PORT_OVERRIDE="${MIGRATION_DB_PORT-}"
+MIGRATION_DB_NAME_OVERRIDE="${MIGRATION_DB_NAME-}"
+MIGRATION_DB_USER_OVERRIDE="${MIGRATION_DB_USER-}"
+MIGRATION_DB_PASSWORD_OVERRIDE="${MIGRATION_DB_PASSWORD-}"
+SUBMISSION_MIGRATION_DB_USER_OVERRIDE="${SUBMISSION_MIGRATION_DB_USER-}"
+SUBMISSION_MIGRATION_DB_PASSWORD_OVERRIDE="${SUBMISSION_MIGRATION_DB_PASSWORD-}"
+
 # ===== 参数解析 =====
 SKIP_INSTALL=false
 SKIP_INFRA=false
@@ -43,8 +59,8 @@ Options:
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
   --only <apps>        只起指定 PM2 app, 逗号分隔
-                       (如 auth,admin,app,submission,notification,judge 或 9101,9102; 前端仍可用 9002/9003)
-  --no-frontend        不起前端 (等同 --only auth,admin,app,submission,notification,judge)
+                       (如 auth,admin,app,submission,notification,judge,search 或 9101,9102; 前端仍可用 9002/9003)
+  --no-frontend        不起前端 (等同 --only auth,admin,app,submission,notification,judge；Search 需显式 --only search)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   -h, --help           显示此帮助
@@ -123,6 +139,9 @@ normalize_apps() {
       submission|backend-submission|ulticode-submission|9106)
         a="ulticode-submission"
         ;;
+      search|backend-search|ulticode-search|9107)
+        a="ulticode-search"
+        ;;
       console|ulticode-9002|9002)
         a="ulticode-9002"
         ;;
@@ -167,6 +186,16 @@ set -a
 source "$ENV_FILE"
 set +a
 
+[[ -n "$MIGRATION_DB_HOST_WAS_SET" ]] && MIGRATION_DB_HOST="$MIGRATION_DB_HOST_OVERRIDE"
+[[ -n "$MIGRATION_DB_PORT_WAS_SET" ]] && MIGRATION_DB_PORT="$MIGRATION_DB_PORT_OVERRIDE"
+[[ -n "$MIGRATION_DB_NAME_WAS_SET" ]] && MIGRATION_DB_NAME="$MIGRATION_DB_NAME_OVERRIDE"
+[[ -n "$MIGRATION_DB_USER_WAS_SET" ]] && MIGRATION_DB_USER="$MIGRATION_DB_USER_OVERRIDE"
+[[ -n "$MIGRATION_DB_PASSWORD_WAS_SET" ]] && MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD_OVERRIDE"
+[[ -n "$SUBMISSION_MIGRATION_DB_USER_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER_OVERRIDE"
+[[ -n "$SUBMISSION_MIGRATION_DB_PASSWORD_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD_OVERRIDE"
+
+: "${SUBMISSION_MIGRATION_DB_USER:=${DEV_MIGRATION_SUBMISSION_USER:-}}"
+: "${SUBMISSION_MIGRATION_DB_PASSWORD:=${DEV_MIGRATION_SUBMISSION_PASSWORD:-}}"
 : "${DEV_SEED_USERS_ENABLED:=true}"
 : "${DEV_SEED_ADMIN_USERNAME:=admin}"
 : "${DEV_SEED_ADMIN_EMAIL:=admin@localhost.test}"
@@ -182,6 +211,7 @@ if [[ "$FRONTEND_ONLY" != true ]]; then
   required_vars+=(
     SUBMISSION_DB_HOST SUBMISSION_DB_PORT SUBMISSION_DB_NAME
     SUBMISSION_DB_USER SUBMISSION_DB_PASSWORD APP_SUBMISSION_ROUTING_MODE
+    SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
     SUBMISSION_CUTOVER_COMPLETE
   )
 fi
@@ -191,6 +221,10 @@ for var in "${required_vars[@]}"; do
     exit 1
   }
 done
+if [[ "$FRONTEND_ONLY" != true && ! "$SUBMISSION_MIGRATION_DB_USER" =~ ^[A-Za-z0-9_]+$ ]]; then
+  echo "SUBMISSION_MIGRATION_DB_USER must contain only letters, digits, or underscore." >&2
+  exit 1
+fi
 if [[ "$FRONTEND_ONLY" != true ]]; then
   [[ "$SUBMISSION_DB_NAME" == "submission" ]] || {
     echo "SUBMISSION_DB_NAME must be submission for the local owner runtime." >&2
@@ -213,13 +247,17 @@ if [[ "$FRONTEND_ONLY" != true ]]; then
   fi
 fi
 
-# Per-owner shadow-user 迁移 (CREATE USER / 跨库 GRANT / 建库) 需要 DBA 权限,
-# 运行账号 ulticode 只持有 ulticode.* 权限 (官方 mysql 镜像授予), 不能执行。
-# .env 的 DB_ROOT_PASSWORD 由 init-env.sh 生成; 显式调用者可 export 覆盖为
-# 专用迁移账户。migrate.sh 会继承这些环境变量 (其 MIGRATION_DB_USER:= 不再覆盖)。
-: "${MIGRATION_DB_USER:=root}"
-: "${MIGRATION_DB_PASSWORD:=${DB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}}"
-export MIGRATION_DB_USER MIGRATION_DB_PASSWORD
+if [[ "$FRONTEND_ONLY" != true ]]; then
+  # Per-owner shadow-user 迁移 (CREATE USER / 跨库 GRANT / 建库) 需要 DBA 权限,
+  # 运行账号 ulticode 只持有 ulticode.* 权限 (官方 mysql 镜像授予), 不能执行。
+  # .env 的 DB_ROOT_PASSWORD 由 init-env.sh 生成; 显式 MIGRATION_DB_* 可由
+  # 调用者覆盖。migrate.sh 只接收这些显式 migration connection values。
+  : "${MIGRATION_DB_HOST:=${DB_HOST}}"
+  : "${MIGRATION_DB_PORT:=${DB_PORT}}"
+  : "${MIGRATION_DB_NAME:=${SUBMISSION_DB_NAME}}"
+  : "${MIGRATION_DB_USER:=root}"
+  : "${MIGRATION_DB_PASSWORD:=${DB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}}"
+fi
 
 compose=(
   docker compose --env-file "$ENV_FILE"
@@ -227,26 +265,36 @@ compose=(
   -f "$ROOT_DIR/docker-compose.dev.yml"
 )
 
-provision_submission_owner() {
+provision_submission_migration_principal() {
   local container="${MYSQL_CONTAINER:-ulticode-mysql}"
-  local escaped_password="$SUBMISSION_DB_PASSWORD"
+  local escaped_password="$SUBMISSION_MIGRATION_DB_PASSWORD"
   escaped_password="${escaped_password//\\/\\\\}"
   escaped_password="${escaped_password//\'/\'\'}"
 
   docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$container" \
     mysql --default-character-set=utf8mb4 -u "$MIGRATION_DB_USER" \
     --batch --skip-column-names \
+    -e "CREATE USER IF NOT EXISTS '$SUBMISSION_MIGRATION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$SUBMISSION_MIGRATION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT RELOAD ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, GRANT OPTION ON submission.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT CREATE USER ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; FLUSH PRIVILEGES;"
+}
+
+provision_submission_owner() {
+  local container="${MYSQL_CONTAINER:-ulticode-mysql}"
+  local escaped_password="$SUBMISSION_DB_PASSWORD"
+  escaped_password="${escaped_password//\\/\\\\}"
+  escaped_password="${escaped_password//\'/\'\'}"
+
+  docker exec -e MYSQL_PWD="$SUBMISSION_MIGRATION_DB_PASSWORD" "$container" \
+    mysql --default-character-set=utf8mb4 -u "$SUBMISSION_MIGRATION_DB_USER" \
+    --batch --skip-column-names \
     -e "ALTER USER '$SUBMISSION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$SUBMISSION_DB_USER'@'%' ACCOUNT UNLOCK;"
 
-  local account_locked
-  account_locked="$(docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$container" \
-    mysql --default-character-set=utf8mb4 -u "$MIGRATION_DB_USER" \
-    --batch --skip-column-names \
-    -e "SELECT account_locked FROM mysql.user WHERE User = '$SUBMISSION_DB_USER' AND Host = '%';")"
-  [[ "$account_locked" == "N" ]] || {
-    echo "Submission owner account '$SUBMISSION_DB_USER'@'%' is not unlocked." >&2
+  if ! docker exec -e MYSQL_PWD="$SUBMISSION_DB_PASSWORD" "$container" \
+      mysql --default-character-set=utf8mb4 -u "$SUBMISSION_DB_USER" \
+      --batch --skip-column-names -h 127.0.0.1 -P 3306 "$SUBMISSION_DB_NAME" \
+      -e "SELECT 1" >/dev/null 2>&1; then
+    echo "Submission owner account '$SUBMISSION_DB_USER'@'%' is not unlocked or cannot connect to $SUBMISSION_DB_NAME." >&2
     return 1
-  }
+  fi
 }
 
 wait_for_health() {
@@ -283,10 +331,27 @@ fi
 
 # ===== 步骤 3: Flyway 迁移 =====
 if [[ "$SKIP_MIGRATE" != true ]]; then
-  echo "Applying Submission owner migrations..."
-  MIGRATION_SCHEMA=submission "$ROOT_DIR/scripts/dev/migrate.sh" migrate
   echo "Applying database migrations..."
-  "$ROOT_DIR/scripts/dev/migrate.sh" migrate
+  # The shared chain is the explicit schema bootstrap. Owner preflight requires
+  # an existing schema, while owner Flyway configs keep createSchemas=false.
+  # Retain the privileged migration account because shared grants need it.
+  MIGRATION_SCHEMA= \
+    MIGRATION_DB_HOST= \
+    MIGRATION_DB_PORT= \
+    MIGRATION_DB_NAME= \
+    MIGRATION_DB_USER="$MIGRATION_DB_USER" \
+    MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
+    "$ROOT_DIR/scripts/dev/migrate.sh" migrate
+  echo "Provisioning the DEV-LOCAL/owner Submission migration principal..."
+  provision_submission_migration_principal
+  echo "Applying Submission owner migrations..."
+  MIGRATION_SCHEMA=submission \
+    MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
+    MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
+    MIGRATION_DB_NAME="$MIGRATION_DB_NAME" \
+    MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER" \
+    MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD" \
+    "$ROOT_DIR/scripts/dev/migrate.sh" migrate
   echo "Provisioning the local Submission owner account..."
   provision_submission_owner
 
@@ -535,6 +600,9 @@ for _ in $(seq 1 90); do
   if [[ "$apps_csv" == *",ulticode-judge,"* ]]; then
     check_pm2_online ulticode-judge || all_ok=false
   fi
+  if [[ "$apps_csv" == *",ulticode-search,"* ]]; then
+    check_pm2_online ulticode-search || all_ok=false
+  fi
   if [[ "$apps_csv" == *",ulticode-9002,"* ]]; then
     check_port 9002 '/' || all_ok=false
   fi
@@ -553,6 +621,7 @@ Development stack is ready (services: $PM2_APPS).
   Notification API: http://localhost:9105
   Submission owner: PM2 ulticode-submission (Dubbo 20886)
   Judge Worker: PM2 ulticode-judge (Dubbo 20884)
+  Search Worker: PM2 ulticode-search (opt-in locally; production Compose always defines it)
   Nacos:      http://localhost:28848/nacos
 EOF
     # admin 凭据只在起了后端时显示 (admin 由 dev-admin bootstrap 维护)

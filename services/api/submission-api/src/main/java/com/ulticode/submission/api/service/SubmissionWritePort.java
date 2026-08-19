@@ -1,6 +1,7 @@
 package com.ulticode.submission.api.service;
 
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 
@@ -48,6 +49,14 @@ public interface SubmissionWritePort {
     SubmissionVO submit(String userId, CreateSubmissionDTO createDTO);
 
     /**
+     * Create a submission using facts captured by the request owner.
+     * Submission must not synchronously call App or Auth while holding its
+     * intake transaction.
+     */
+    SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
+                        SubmissionFactsSnapshot facts);
+
+    /**
      * Create a contest submission after the Contest owner has completed its
      * admission checks. Contest context is accepted only through this
      * explicit command; generic submission intake must not trust it.
@@ -57,6 +66,12 @@ public interface SubmissionWritePort {
      * @return the created submission view
      */
     SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO);
+
+    /**
+     * Contest intake variant using the request owner's immutable facts.
+     */
+    SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO,
+                               SubmissionFactsSnapshot facts);
 
     /**
      * Flag-off verdict writer. Writes status / runtime / memory /

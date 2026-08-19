@@ -56,11 +56,6 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
-				<artifactId>backend-api</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.ulticode</groupId>
 				<artifactId>backend-auth-api</artifactId>
 				<version>${project.version}</version>
 			</dependency>

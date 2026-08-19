@@ -5,79 +5,39 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * P1-INFRA-005: Admin service placeholder boot entry.
+ * Admin service boot entry.
  *
- * <p>Excludes App-owned config, security, and audit-sink adapters from
- * the admin shell (the admin shell binds its own {@code AuditSinkPort}). The
- * Legacy monolith security/configuration classes were deleted by
- * P7-LEGACY-DEAD-INFRA-DELETE-001; the former regex exclusion for
- * {@code com.ulticode.common.config.SecurityConfig} is no longer needed.</p>
+ * <p>The scan is explicitly bounded to Admin, backup, reconciliation, common
+ * and the service's own security packages. App/legacy/judge components are
+ * outside the scan boundary, so the boot class no longer needs a growing list
+ * of regex exclusions.</p>
  *
- * <p>P7-RELOCATE: {@code QueueConfig} is intentionally NOT excluded any
- * more — the admin shell scans the App-owned contest/submission domain
- * services whose write path enqueues through {@code QueueServiceImpl}, and
- * excluding the queue config left the {@code RQueue} beans missing (which
- * Spring then mis-reports as a circular reference because {@code RQueue}
- * is a {@code Collection} sub-interface and falls into the
- * multi-bean-collection injection fallback). The admin shell shares the
- * same Redis instance as backend-app, so the queue wiring is safe to
- * instantiate here.</p>
+ * <p>Admin reaches App/Submission through Contract adapters. It must not
+ * instantiate App-owned queue, sandbox, or judge processors in the Admin
+ * process, because those scheduled workers would compete for the same Redis
+ * streams.</p>
  *
- * <p>The explicit {@link MapperScan} is required: with the App boot class and
- * {@code com.ulticode.app.config.MapperScanConfig} both excluded from this
- * context, the MyBatis-Plus auto-configured scan would otherwise scan all of
- * {@code com.ulticode} and collide on the legacy vs App-owned
- * {@code UserProfileMapper}. The legacy {@code com.ulticode.modules.user}
- * family is excluded, so its mapper package is intentionally absent here.</p>
+ * <p>The explicit {@link MapperScan} is required so only Admin, backup and
+ * reconciliation persistence is registered. App-owned and legacy mapper
+ * packages are intentionally outside the bounded component scan.</p>
  *
- * <p>P7-RELOCATE: the legacy {@code com.ulticode.modules.auth} family
- * ({@code AuthCutoverService}, {@code DefaultAuthAccountAdapter}) is excluded
- * as well — those beans require the legacy {@code UserMapper} and have no
- * consumer in the admin shell. Admin-owned classes formerly misplaced under
- * {@code com.ulticode.modules.user} ({@code UserProvisioningAdapter},
- * {@code UserActivityAnalyticsProjection}) were relocated under
- * {@code com.ulticode.modules.admin} so the exclusion stops hitting them.</p>
+ * <p>Admin-owned adapters formerly misplaced under legacy packages are now
+ * under {@code com.ulticode.modules.admin}; no legacy auth/user package is
+ * scanned.</p>
  */
 @SpringBootConfiguration
 @EnableAutoConfiguration
 @ComponentScan(
-        basePackages = "com.ulticode",
-        excludeFilters = {
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.BackendAppApplication"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.audit\\.AppAuditSinkAdapter"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.config\\..*"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.app\\.security\\..*"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.user\\..*"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.auth\\..*"),
-                // Admin must NOT load JudgeWorkerProcessor — its @Scheduled pollAndProcess
-                // steals judge jobs from the app's queue (both connect to the same Redis).
-                // Also exclude the sandbox executor and pipeline to avoid partial judge runs.
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.queue\\.processor\\..*"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.queue\\.pipeline\\..*"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.sandbox\\..*"),
-                // submission.service + submission.controller form the judge/problem-run
-                // execution chain. sandbox is excluded above, so CodeExecutionService
-                // cannot wire its SandboxExecutor dependency and would abort context
-                // startup. Admin reaches submission via Dubbo RPC; keep the partial
-                // judge path out of the admin context.
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.service\\..*"),
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX, pattern = "com\\.ulticode\\.modules\\.submission\\.controller\\..*")
+        basePackages = {
+                "com.ulticode.admin",
+                "com.ulticode.modules.admin",
+                "com.ulticode.modules.backup",
+                "com.ulticode.modules.reconciliation",
+                "com.ulticode.common"
         }
 )
 @MapperScan({

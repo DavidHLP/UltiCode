@@ -1,79 +1,233 @@
-outcome: complete
+outcome: pass
+active_objective: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
+active_tasks:
+  - "ARCH-002: blocked — parent remains blocked until ARCH-002-001..005 external evidence closes"
+  - "ARCH-003: blocked — parent remains blocked until ARCH-003-001..005 remote evidence closes"
+  - "ARCH-002-001: done — local privileged migration job preparation, Review and Tier C validation closed"
+  - "ARCH-002-002..005: blocked — DB authority, users/profile, Auth validation and physical isolation gates"
+  - "ARCH-003-001..005: blocked — remote stability, quiesce, observation, production cutover and compatibility retirement gates"
+  - "ARCH-007: pending — final blocker remediation Completion/Coverage Gate"
+  - "DEV-LOCAL-001: done — container-aware owner migration authority contract, Review Confirmed=0 and Tier C validation closed"
+  - "DEV-LOCAL-002: done — all owner Flyway/account/grant verification, Review Confirmed=0 and Tier C validation closed"
+  - "DEV-LOCAL-003: done — users/profile DEV-LOCAL backfill, full parity/checksum, manifest/quiesce rollback and Tier C validation closed"
+  - "DEV-LOCAL-005: done — monitoring/writer inventory/quiesce baseline and cutover readiness evidence closed locally"
+  - "DEV-LOCAL-004: done — disposable cutover/rollback/failure rehearsal and target safety closed locally"
+  - "DEV-LOCAL-006: done — observation timeline, fail-closed fault injection battery, reconciliation and rollback rehearsal closed locally"
+  - "DEV-LOCAL-007: done — compatibility scan, single-writer invariants, rollback whitelist and DEC-038 retirement candidate verified locally"
+  - "DEV-LOCAL-008: done — final development remediation validation packet compiled, verified and recorded"
+current_blockers:
+  - "ARCH-002 requires a separately authorized privileged owner migration job execution, physical DB permission/cutover window and users responsibility evidence."
+  - "ARCH-003 requires remote-route stability, all-writer quiesce, observation, production monitoring/cutover and rollback evidence; this local-only project has no production environment."
+current_scope_note: "All authorized DEV-LOCAL remediation tasks (DEV-LOCAL-001..008) are complete. External gates ARCH-002-002..005 and ARCH-003-001..005 remain accurately blocked awaiting real production target, DBA authority, physical cutover window, and production monitoring/retirement sign-off."
+context_packet:
+  objective_source:
+    - "User now authorizes remediation in the current development environment; local DB/container/account/grant/Flyway/cutover/rehearsal actions are permitted, while production and remote acceptance remain out of scope."
+    - "The current objective remains authoritative from .auto-flow/AUTO_PILOT_STATUS.yaml, .auto-flow/PLAN.md:20-125 and .auto-flow/TASKS.yaml:2027-2238 for the DEV-LOCAL DAG; external ARCH-002/003 Acceptance still requires real target evidence."
+    - ".auto-flow/RESUME.md:3-13 records the blocker-remediation objective and preserves the external gates."
+  repository_instructions:
+    - "Root AGENTS.md and services/AGENTS.md apply: preserve Controller → Service/Port → Mapper → Entity seams, owner boundaries, Result contracts, no applied-migration edits, no destructive Git or remote actions."
+    - "No business implementation or applied migration edit has occurred; DEV-LOCAL account provisioning, migration runner/self-test/docs changes and Auth info verification were authorized local actions, with no remote, production, route, deployment, commit or push action."
+  branch_commit_worktree:
+    - "Branch main is ahead of origin/main by 4 commits; origin/main is 3f14ac8947ef0124739bf02259deb9f567eb092e."
+    - "HEAD is 62058f358bff4fb03e087decff83064f2bd471a5 (fix(submission): harden cutover safety gates)."
+    - "Protected worktree ownership is represented by the explicit protected_user_changes file list below; git status --short was rechecked, and no file was discarded or reset."
+    - "git diff --check, bash -n scripts/dev/up.sh scripts/dev/test.sh scripts/dev/migrate.sh and control-plane YAML parsing pass."
+  active_task_recorded_state:
+    - "The prior auto-pilot blocked-stop state is superseded for this newly authorized DEV-LOCAL remediation; external ARCH-002/ARCH-003 parent Tasks remain accurately blocked."
+    - "TASKS.yaml has DEV-LOCAL-001/002/003/004/005/006/007/008 done, ARCH-007 pending, and ARCH-002-002..005/ARCH-003-001..005 remain externally blocked."
+    - "All local remediation tasks are complete; no local Ready Task remains; external parents remain blocked."
+  protected_user_changes:
+    - "Protected control plane: .auto-flow/AUTO_PILOT_STATUS.yaml, COVERAGE.md, DECISIONS.md, HANDOFF.yaml, PLAN.md, RESUME.md, TASKS.yaml and WORKLOG.md."
+    - "Protected operations/docs: README.md, docker-compose.prod.yml, ecosystem.config.cjs, scripts/dev/up.sh and services/docs/MICROSERVICE_MIGRATION_GUIDE.md."
+    - "Protected Admin slice: BackendAdminApplication, AdminAnalyticsPort, DefaultAdminAnalyticsPortAdapter, AdminAnalyticsServiceImpl, application.yml and three Admin tests."
+    - "Protected Submission/App/API/Judge slice: SubmissionWritePort and contract test; App local/remote/routing ports and config; Submission owner writer/provider and three tests; Judge adapter."
+    - "Protected owner config/POM: services/auth/application.yml, services/notification/application.yml and services/pom.xml."
+    - "Protected local-only secret file: .env; owner runtime values are generated for DEV-LOCAL use and must never be printed, committed or reused outside this checkout."
+    - "Protected untracked files: scripts/dev/migrate-owner-preflight-test.sh, DefaultAdminAnalyticsPortAdapterTest.java, SubmissionFactsSnapshot.java, OWNER_DATABASE_ISOLATION_PLAN.md, SERVICES_ARCHITECTURE_STATUS_2026-08-18.md and SubmissionFactsSnapshotTest.java."
+    - "Because the worktree was already dirty on entry and no fresh ownership instruction was supplied, every listed delta is treated as protected rather than user-editable."
+  relevant_files_symbols:
+    - "ProblemSubmissionController.submitForProblem — services/app/app-web/.../ProblemSubmissionController.java:107-130."
+    - "SubmissionWriteRoutingPort.delegate/submit — services/app/app-web/.../SubmissionWriteRoutingPort.java:19-55."
+    - "App DefaultSubmissionWritePort.submit/captureFacts/submitInternal — services/app/app-web/.../DefaultSubmissionWritePort.java:81-217."
+    - "RemoteSubmissionWritePort.captureFacts and backend-submission forwarding — services/app/app-web/.../RemoteSubmissionWritePort.java:16-86."
+    - "SubmissionFactsSnapshot and SubmissionWritePort contract — services/api/submission-api/.../SubmissionFactsSnapshot.java:13-53 and SubmissionWritePort.java:40-117."
+    - "Submission owner DefaultSubmissionWritePort and SubmissionWriteProvider — services/submission/.../DefaultSubmissionWritePort.java:69-183 and .../SubmissionWriteProvider.java:13-55."
+    - "AdminAnalyticsController, AdminAnalyticsServiceImpl, AdminAnalyticsPort and DefaultAdminAnalyticsPortAdapter — services/admin/.../AdminAnalyticsController.java:19-36, AdminAnalyticsServiceImpl.java:48-132, AdminAnalyticsPort.java:37-113, DefaultAdminAnalyticsPortAdapter.java:48-138."
+    - "BackendAdminApplication bounded ComponentScan/MapperScan — services/admin/src/main/java/com/ulticode/BackendAdminApplication.java:32-50."
+  call_data_flow:
+    - "HTTP: ProblemSubmissionController → SubmissionWritePort.submit(userId, createDTO)."
+    - "App route: SubmissionWriteRoutingPort chooses exactly one local or remote delegate; remote mode captures immutable facts before Dubbo, then calls backend-submission group=backend-submission/version=1.0.0."
+    - "Owner route: SubmissionWriteProvider directly delegates to the local Submission writer; owner no-snapshot overloads fail closed, snapshot overloads validate user/problem admission and then write locally."
+    - "Submission side effects: owner transaction inserts submissions, optional judge_outbox and explicit contest submission_created_outbox; verdict updates remain local and generation/attempt-fenced."
+    - "Judge route: backend-judge rejects intake methods and uses the Submission contract only for verdict/fence writes."
+    - "Admin HTTP: /admin/analytics with ADMIN/SUPER_ADMIN guard → AdminAnalyticsServiceImpl → one AdminAnalyticsPort overview seam → adapter-owned contract reads and one participant batch."
+  current_behavior_reproduction:
+    - "No new runtime failure was reported; this recovery reproduced the relevant source behavior and reran focused contract/provider/analytics tests."
+    - "Current focused Maven selector passed: SubmissionApiContractShapeTest 4/4, SubmissionFactsSnapshotTest 4/4, SubmissionProviderContractTest 4/4, DefaultAdminAnalyticsPortAdapterTest 2/2 and AdminAnalyticsServiceImplTest 3/3; reactor BUILD SUCCESS."
+    - "Recorded read-only MIGRATION_SCHEMA=auth ... validate evidence fails closed with MySQL 1044 before any write for the non-privileged runtime account; privileged migration authority remains absent."
+    - "The local compatibility path is intentionally still present: App local mode captures facts through App/Auth ports, while the Submission owner itself has no such dependencies. ARCH-003 is not a claim that all compatibility paths are removed."
+  transactions_side_effects_ownership:
+    - "Submission owns submissions, judge_outbox, submission_result_outbox and submission_created_outbox; cross-owner facts are a request-boundary snapshot, not a synchronous owner callback."
+    - "Admin analytics is read-side aggregation behind typed ports; it does not create a cross-owner transaction or import foreign entities/mappers in the service."
+    - "Owner database isolation is preparation-only with DB_* fallback, owner-specific variables and Auth runtime Flyway disabled by default; users/profile split remains expand/backfill/verify/cutover/observe work."
+    - "Rollback is source/config artifact rollback or route/grant/watermark/reconciliation runbook; no applied migration, revoke, production route switch or destructive reset is allowed here."
+  tests_build_runtime:
+    - "Focused command rerun: cd services && ./mvnw -pl api/submission-api,submission,admin -am -Dtest='SubmissionApiContractShapeTest,SubmissionFactsSnapshotTest,SubmissionProviderContractTest,DefaultAdminAnalyticsPortAdapterTest,AdminAnalyticsServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false test -B."
+    - "Supported wrappers: ./scripts/dev/test.sh quick|full|integration; services ./mvnw compile/test/-Dtest='*IT'/verify; scripts/dev/migrate.sh migrate|validate|info|repair."
+    - "CI .github/workflows/ci.yml runs backend compile/test, feature matrix, migration validate and secret scan; current recorded full validation includes services verify BUILD SUCCESS, official quick/integration, Compose/POM/YAML/bash/diff checks."
+    - "Production Compose exposes seven backend runtimes without host-published backend ports; PM2 has seven backend entries, while up.sh defaults to six and starts Search explicitly."
+    - "up.sh --prepare-submission-owner performs owner-first migration/account preparation and exits before PM2; normal remote App startup requires SUBMISSION_CUTOVER_COMPLETE=true."
+  index_coverage_source_fallback:
+    - "codebase-memory project UltiCode is ready at 32,314 nodes/117,680 edges, HEAD 62058f358, with no parse_partial/skipped/not_indexed files."
+    - "Coverage metadata is stale/unavailable: indexed_at=2026-08-09, generation_matches=false, and all checked dirty key paths report coverage_unavailable/not_tracked or metadata_changed with read_source_and_reindex."
+    - "Graphify query located current SubmissionFactsSnapshot, SubmissionWriteRoutingPort, AdminAnalyticsPort, adapter and boot symbols; exact current source was read directly for every material claim, so no negative/exhaustive claim relies on graph absence."
+  confirmed_gaps:
+    - "ARCH-002: disposable four-owner schema/grant matrix and fail-closed config are local synthetic evidence only; actual physical owner accounts, privileged migration job, cutover window and users responsibility migration are not proven."
+    - "Read-only `ulticode-mysql` inventory found owner schemas and shadow users plus owner Flyway histories/tables, but no recorded privileged migration authority bundle; this is inventory only, not cutover evidence."
+    - "ARCH-003: local route/grant evidence does not supply the required remote stability, all-writer quiesce, observation and rollback evidence for removing App dual-track compatibility."
+    - "Submission read-side title/user enrichment still uses facts seams; the current snapshot change only closes the Submission write path."
+  open_questions_requiring_product_authority:
+    - "Provide or authorize the privileged owner migration/cutover job, physical DB permission window and explicit users/profile owner responsibility evidence for ARCH-002."
+    - "ARCH-003 acceptance remains externally gated; the plan does not redefine local evidence as production stability and therefore keeps the blocker explicit."
+execution_packet:
+  plan: ".auto-flow/PLAN.md:20-125"
+  coverage: ".auto-flow/COVERAGE.md:15-33"
+  decision: ".auto-flow/DECISIONS.md:307-329 (DEC-034/DEC-035/DEC-036)"
+  task_dag: "ARCH-001 → ARCH-002-001 → ARCH-002-002 → {ARCH-002-003, ARCH-003-001} → ARCH-002-004 → {ARCH-003-004, ARCH-003-002} → ARCH-002-005 → ARCH-003-003 → ARCH-003-005 → ARCH-007"
+  active_task: "ARCH-002-001 — Completion/Coverage Audit passed; Task closed"
+  blocked_tasks:
+    - "ARCH-002-002..005 — require real DB authority, users/profile responsibility, privileged Auth migration and physical isolation evidence"
+    - "ARCH-003-001..005 — require remote stability, quiesce, observation, production monitoring/cutover and compatibility retirement evidence"
 outputs:
-  - "Review Packet: this HANDOFF.yaml review block records Confirmed=0, Already Addressed startup findings and the focused rechecks"
-  - "Execution Packet remains in .auto-flow/PLAN.md with the Service Contract Boundary Convergence scope, matched-release boundary, rollback rules and terminal gates"
-  - "Owner matrix written to .auto-flow/CONTRACT-001-OWNER-MATRIX.md: 219 app-api top-level types and 66 nested declarations assigned to App, Submission, Notification, common/security, App facts or Judge-runtime"
-  - "CONTRACT-001-COMMON is closed: eight Java-only common/security/metadata/value contracts moved to backend-common with consumers and tests migrated"
-  - "CONTRACT-002 and CONTRACT-003 are complete: provider-owned API artifacts and all discovered callers/providers/tests/POMs are migrated"
-  - "CONTRACT-004 and CONTRACT-005 are complete at the source boundary; CONTRACT-006 is complete with the canonical DTO codec/catalog and storage-edge mapping"
-  - "SPLIT-005-retirement-authority remains the historical authority record; this open project has no production environment, so the local Docker/PM2 runtime is the authoritative target"
-  - "SPLIT-005-runtime-access and SPLIT-005-runtime-cutover-observation are complete locally: separate App/Submission credentials, preflight, remote/local routing, confirmation-gated copy/REVOKE, parity and stable runtime evidence are recorded"
-  - "CONTRACT-007 is closed: direct backend-submission write/fence providers remain, App duplicate providers and compat forwarders are deleted, and owner-mode gates are removed"
-  - "CONTRACT-008 is closed: final contract-boundary Review, Validation, Completion and Coverage Audit pass; all 49 ledger tasks are done"
-  - "TASKS.yaml, RESUME.md, COVERAGE.md and this handoff record the sandbox, disposable grant, owner-schema expand and focused/full validation evidence"
+  - "Execution Packet in .auto-flow/PLAN.md with Objective, scope, root cause, invariants, acceptance, evidence, authority, terminal condition, DAG and validation strategy."
+  - "Coverage mapping in .auto-flow/COVERAGE.md for all ten user sub-items, implementation constraints and final verification criteria."
+  - "Task Ledger records ARCH-002-001 as done with implementation, Review, disposable MySQL and local validation evidence; downstream external tasks remain blocked/pending."
+  - "DEC-034/DEC-035/DEC-036 record the single phase-gated direction: direct-grant migration job first, monitoring/control readiness before cutover, external evidence next, compatibility retirement last."
+  - "RESUME.md and AUTO_PILOT_STATUS.yaml point to the current blocker-remediation plan; former CONTRACT-007/008 wording is explicitly historical."
+validation_packet:
+  tier: "Tier C focused validation for migration/config/security boundary"
+  checks:
+    - "bash -n scripts/dev/migrate.sh scripts/dev/up.sh scripts/dev/test.sh scripts/dev/migrate-owner-preflight-test.sh — PASS"
+    - "bash scripts/dev/migrate-owner-preflight-test.sh — PASS"
+    - "git diff --check — PASS"
+    - ".auto-flow YAML parse — PASS"
+    - "git diff --name-only -- init-db/migrations — empty"
+    - "container内 real disposable MySQL direct-grant/insufficient-ALTER preflight — PASS; temporary container cleaned"
+    - "Final control-plane/status assertion, bash -n, migrate-owner-preflight-test, git diff --check and no-applied-migration diff rerun — PASS"
+    - "Recovery rerun focused Maven selector — BUILD SUCCESS; SubmissionApiContractShapeTest 4/4, SubmissionFactsSnapshotTest 4/4, SubmissionProviderContractTest 4/4, DefaultAdminAnalyticsPortAdapterTest 2/2 and AdminAnalyticsServiceImplTest 3/3."
+  active_task: "ARCH-007 (pending external unblock)"
+  changed_files:
+    - "scripts/dev/migrate.sh"
+    - "scripts/dev/up.sh"
+    - "scripts/dev/migrate-owner-preflight-test.sh"
+    - ".env.example"
+    - "init-db/README.md"
+  changed_behavior:
+    - "Owner migrations still require explicit MIGRATION_DB_* values and fail closed on missing/invalid schema, missing connection, missing schema, or runtime-account reuse."
+    - "DEV-LOCAL owner preflight can execute mysql inside an explicit MIGRATION_MYSQL_CONTAINER while Flyway remains host-configured by MIGRATION_DB_*; schema-scoped direct grants are required, only literal global ALL is an explicit compatibility superset, and MySQL 9 direct global capability lists fail closed."
+  focused_checks:
+    - "bash -n scripts/dev/migrate.sh scripts/dev/up.sh scripts/dev/migrate-owner-preflight-test.sh"
+    - "bash scripts/dev/migrate-owner-preflight-test.sh — PASS (container route, host route, direct global capability rejection, empty/insufficient grants, wrong-schema/role rejection, effective-account mismatch, password redaction, Flyway goal/config and DB_NAME override)"
+    - "git diff --check and graphify update . — PASS"
+  limitations:
+    - "Real Flyway info/validate and target-specific least-privilege grant proof remain ARCH-002-002/004 external gates; local preflight now rejects missing minimum capabilities and role-based accounts before Flyway."
 evidence:
-  - "Recovery recheck 2026-08-18: codebase-memory project home-davidhlp-project-UltiCode is ready at head 791f35114; relied code paths have no recorded issue; flagged application-test paths were corrected and read directly, while migration parse-partial ranges were read directly"
-  - "Recovery recheck 2026-08-18: SubmissionProviderContractTest + JudgingLeaseReaperTest passed 5/0/0/0; app/app-web reactor compile passed; git diff --check, bash -n, and Compose dev/prod config with an ephemeral validation key passed"
-  - "codebase-memory project ulticode generation 2026-08-17T06:05:20Z: 36,448 nodes / 173,902 edges; relevant app-api/service scopes covered, with direct-source fallback for missing POM and excluded non-code paths"
-  - "graphify update after the CR repair: 27,595 nodes / 80,442 edges; Submission direct provider, owner-first preparation, marker gate and cutover privilege seams refreshed"
-  - "owner matrix source accounting: service=93, command=31, dto=87, event=6, error=1, security=1; 219 top-level files and 66 nested declarations; all matrix simple names and full nested paths checked"
-  - "CR repair changed only the reversible source/config/doc/test seam; no applied migration, persistent database, production route/grant, deploy or remote state changed"
-  - "cd services && ./mvnw -pl api/app-api -am test -B: BUILD SUCCESS; backend-common 96 tests and backend-app-api 39 tests, 0 failures"
-  - "cd services && ./mvnw -pl app/app-web,admin,notification -am test -B: BUILD SUCCESS; affected owner reactor suites pass"
-  - "BackendCommonMovedContractsTest and BackendCommonArchTest pass; old-FQCN, duplicate, forbidden-import and backend-common dependency scans pass"
-  - "The current graphify refresh is 27,595 nodes / 80,442 edges; direct source remains authoritative for shell/docs/control-plane paths outside AST coverage"
-  - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md §6.2/§13.2 documents common ownership and matched-release/no-alias constraints"
-  - "SnakeYAML parse passed for TASKS.yaml, HANDOFF.yaml and AUTO_PILOT_STATUS.yaml; git diff --check and changed-file whitespace scans passed"
-  - "Sandbox image/Testcontainers evidence is closed; disposable cutover/rollback and App grant allow→deny→allow passed; no production route/grant/deploy action was performed, and the direct production artifact is remote-only with previous-artifact rollback"
-  - "Current validation: Submission provider contract 4/4, real MySQL SubmissionOwnerCutoverIT 4/4, real Redis JudgeStreamRedisIntegrationTest 4/4, app-web compile BUILD SUCCESS, and official integration post-run aggregate 823 reports / 2,720/0/0/24; disposable cutover/rollback and grant allow→deny→allow pass"
-  - "Final validation: official quick and integration exited 0; `cd services && ./mvnw verify -B` exited 0 with BUILD SUCCESS; YAML/Compose/bash/diff checks passed"
-  - "Final safety gate: production/dev Compose config passes with explicit owner variables and marker wiring, bash -n passes, and preflight rejects ambiguous hosts, global/schema/table unsafe grants, role inheritance and privilege-inspection query failures before copy/REVOKE"
-  - "Loop revalidation: control YAML, `git diff --check`, Compose, shell syntax, owner-first preparation-only migration/unlock, exact-revision privilege matrix and partial revoke/restore/cleanup failure injection pass; the known external Search E2E gap remains explicit"
-  - "Local permission proof is connected to the runtime: App source-table DML is zero, Submission owner schema DML is four, source/target rows and checksums match, and public health endpoints are HTTP 200"
-  - "Local permission proof is now connected to the real runtime: App source-table DML is zero, Submission owner schema DML is four, source/target rows and checksums match, and public health endpoints are HTTP 200"
-  - "Submission startup blockers fixed at their common seam: Auth datasource YAML is under `spring`, App local SubmissionUserReadAdapter is `@Primary`, and the three Submission Dubbo adapter wrappers are `@Primary` over their same-type reference proxies"
-  - "Final focused Maven check: `./mvnw -pl submission -am test -B` exited 0 after all three adapter fixes"
-  - "Current source review found no confirmed finding in the restored compatibility seam, owner reaper/CAS path, route gates, integration selector or control-plane evidence"
-  - "Final local change review found no Confirmed Finding: direct providers, scheduler lifetime, route/grant rollback, cutover quiesce scope, transactional copy-back, docs and control-plane state are consistent; direct source and graph/coverage checks found no alternate Submission consumer requiring another selection"
+  - "Context Packet from recovery: current branch/dirty worktree, Submission/Admin call chains, owner boundaries, graph coverage limitation and external blockers."
+  - "Current implementation and validation checks: bash -n, fake preflight regression, real disposable MySQL direct/insufficient privilege preflight, graphify update . and git diff --check passed."
+  - "Historical read-only development DB inventory before DEV-LOCAL authorization: owner schemas, Flyway history/table state and shadow accounts were inspected without mutation; it did not prove privileged authority."
+  - "The first final-gate attempt failed only on an extra EOF blank line in PLAN.md; after removing it, the complete validation command returned exit 0."
+  - "Changed files are limited to migration job/preflight, explicit up.sh caller variables, .env.example, init-db README and the new shell self-test; no applied migration was changed."
+  - "No remote DB, production deployment, route switch, commit or push was performed; DEV-LOCAL local owner account password/unlock provisioning and schema-scoped migration-principal grants were authorized and completed."
+  - "Recovery rerun confirmed control-plane YAML/status, bash syntax, owner preflight self-test, diff integrity and no applied-migration diff; focused Maven reactor tests also returned BUILD SUCCESS."
+  - "DEV-LOCAL-001 current evidence: container-aware preflight self-test PASS; real Auth info with migration_auth@% and Submission up.sh prepare with migration_submission@% both returned BUILD SUCCESS; root global-capability account was rejected fail-closed; no password appeared in output."
+  - "DEV-LOCAL disposable fresh MySQL run: shared bootstrap, root bootstrap of migration_submission, dedicated owner Flyway, runtime account unlock/connectivity and no-PM2 prepare gate all passed; container was cleaned."
+  - "DEV-LOCAL-002 Review evidence: baseline command is DEV-LOCAL confirmation-gated with exact table/column/row/history checks; direct RELOAD/CREATE USER capability parsing is fail-closed; all owner principal paths were re-read and no production path was widened."
+  - "Tier C rerun: fresh init-env contract, DAG/order/config checks, bash -n, owner self-test, Compose config with documented local Meili placeholder, Maven focused tests and graphify update all passed; applied migration diff remained empty."
+  - "DEV-LOCAL-002 validation evidence: final all-owner Flyway validate, account/grant snapshots, runtime own-schema/foreign-schema negative checks, explicit baseline guards, fresh Auth/Admin bootstrap and self-test all passed."
+  - "Graphify updated after code changes: code graph refresh completed; current DEV-LOCAL source was re-read directly for the Review."
+  - "DEV-LOCAL-003 Review evidence: backfill writes only into empty/manifest-owned targets, compares complete account/profile projection checksums with SHA2(password), reports source orphan/missing/duplicate state, requires quiesce confirmation and rollback deletes only manifest IDs after checksum/scope guard."
+  - "DEV-LOCAL-003 validation evidence: preflight, full projection checksums, source orphan/missing/duplicate checks, idempotent no-op, explicit quiesce, manifest-scoped rollback and post-rollback rebuild all passed; manifest has real separate checksum lines."
+  - "DEV-LOCAL-005 Review evidence: monitoring script uses explicit monitoring/migration DB identity and container client, never reads PM2 environment JSON; health/PEL/cutover unavailable states are labeled rather than treated as PASS."
+  - "DEV-LOCAL-004 Review evidence: current target non-empty safety refusal was preserved, container fallback is read-only for preflight, and disposable Testcontainers cutover/rollback/failure tests provide the write rehearsal without touching current dev data."
+  - "DEV-LOCAL-006 Review evidence: observation rehearsal script uses fail-closed confirmation guard, reports PARTIAL when tests are skipped, runs 65 targeted tests with 0 skips/failures/errors when fully executed (including Dubbo timeout & network partition exception propagation, cutover failure rollback cleanup, and Redis Streams dead-lettering), verifies table count/checksum match, queries MySQL processlist for 0 active writer connections, and labels PM2 writers as UNAVAILABLE rather than assuming verified."
+  - "DEV-LOCAL-007 Review evidence: static compatibility scan verified app.submission.routing.mode conditional wiring; single-writer invariants hold with no dual-writing; rollback whitelist protects App-local classes; DEC-038 documents retirement candidate; routing tests 30/30 passed."
+  - "DEV-LOCAL-008 Review evidence: complete script syntax (8/8), preflight regression self-test (5/5), fail-closed observation rehearsal (5/5), multi-module fault/resilience battery (65/65), and App routing tests (30/30) all passed with zero errors or skips."
 review:
   status: pass
-  scope: "CR scope for CONTRACT-007: backend-submission compat/local providers, App backend-app seam, owner reaper/CAS/outbox path, routing gates, provider/reference identities, integration selector, docs and metadata"
   confirmed_findings: []
-  execution_note: "Parent performed bounded local standards/spec/security review against the final diff, direct source and graph/coverage evidence. Direct provider registration, App duplicate removal, owner scheduler lifetime, rollback boundaries and local runtime health have no confirmed finding."
+  scope: "DEV-LOCAL-008 final development remediation validation packet"
+  classification:
+    - "Historical DEV-LOCAL-007 Review/Validation/Coverage PASS is preserved in Task evidence; it does not validate DEV-LOCAL-008."
+    - "DEV-LOCAL-008 Review: Confirmed=0 after full multi-module test battery, preflight self-test, script syntax check, diff and migrations check."
 validation:
-  tier: C
-  risk_reason: "The task changes cross-service provider registration, storage ownership/configuration and runtime startup wiring; the local target was exercised with real MySQL/Redis/Nacos and clean PM2 restart evidence"
   status: pass
-  checks:
-    - "Official `MEILI_MASTER_KEY=local-test-only-placeholder ./scripts/dev/test.sh quick` exited 0 after the startup fixes"
-    - "Submission Provider/Reaper focused tests: 5/0/0/0; real MySQL SubmissionOwnerCutoverIT: 4/0/0/0; real Redis JudgeStreamRedisIntegrationTest: 4/0/0/0; app-web reactor compile BUILD SUCCESS"
-    - "Official integration wrapper exited 0; post-run Surefire aggregate: 823 reports, 2,720 tests, 0 failures, 0 errors, 24 skips; SandboxForkE2EIT 6/0/0/0, SandboxNamespaceIsolationIT 6/0/0/0, JudgeStreamRedisIntegrationTest 4/0/0/0 and SubmissionOwnerCutoverIT 4/0/0/0"
-    - "Services `./mvnw verify -B` exited 0 with BUILD SUCCESS; direct provider contract tests 4/4 and renamed owner IT 4/4 pass"
-    - "Disposable MySQL owner-first migration, checksum preflight/cutover/rollback and App grant allow→deny→allow pass"
-    - "Production/dev Compose config with ephemeral MEILI_MASTER_KEY, bash -n, compat/local provider and owner-mode/route static scans, control-plane YAML validation, and official quick/integration wrappers pass"
-    - "Blocker plan review and control-plane validation pass; local runtime diagnostic confirms six PM2 services online with zero restarts, healthy infrastructure and post-cutover grants"
-    - "graphify update . at 27,597 nodes/80,445 edges; git diff --check passes"
-    - "CR final validation: `./mvnw -pl submission -am test -B` 11/11, App routing focused tests, `./mvnw verify -B` BUILD SUCCESS, official quick and integration wrappers exit 0; exact-revision disposable matrices cover grants, roles, query failure, owner preparation and compensation paths"
-    - "CR follow-up: fake-MySQL transaction/failure-injection and missing-quiesce fail-closed checks pass; cutover/rollback require the all-writer token and the migration guide names App, Submission-owner, Judge, dispatcher, reaper, scheduler and direct database writers; official quick rerun exited 0; independent review Confirmed Findings=0"
-failures_failed: []
-failures_fixed:
-  - "Added the omitted security/DelegationAssertionContract.java to the owner matrix"
-  - "Replanned the seven-to-eight implementation-free common/security/metadata types into CONTRACT-001-COMMON"
-  - "Made the dead SubmissionNotificationPort disposition deterministic: remove unless a separately planned caller is discovered"
-  - "Removed the implementation-only SubmissionMapper Javadoc reference from submission-api UserBestStats after final boundary scan"
-  - "User clarified this is an open local project with no production environment; local Submission owner Flyway expand, preflight, cutover and runtime observation were therefore authorized"
-  - "Production Compose now requires explicit Submission DB/Redis owner variables; cutover preflight rejects schema-wide App DML grants, and current ulticode account fails that gate as expected"
-  - "Moved Auth datasource, Redis, Jackson, Flyway and mail configuration under spring so backend-auth can bind its DataSource"
-  - "Resolved App and Submission same-type Spring candidates at their adapter seams with @Primary; no caller-side qualifiers or parallel provider architecture were added"
-external_gaps:
-  - "Real Redis+MeiliSearch mirror E2E remains unavailable because Docker Hub/network access is blocked; worker unit/boot and DB-fallback evidence are available, but this external runtime path is not claimed complete."
-next_goal: []
-next_skill: none
-reason: "Objective-level Acceptance、Coverage、Review、Validation、Git/Task/Evidence 一致性与本地交付边界全部通过；项目没有 production environment，也未执行生产动作。"
-alternatives:
-  - "Leave all types in app-api: rejected because the final App-only gate would remain false"
-  - "Put business DTOs/entities/mappers in backend-common: rejected by DEC-011 and common ArchUnit boundaries"
-  - "Keep old FQCN aliases or a mixed rollout: rejected by the matched-release/no-alias rule"
-  - "Use the pre-repair schema-wide account: rejected before local grant repair because table-only REVOKE would be ineffective; the local account was repaired and revalidated"
-  - "Claim a production cutover: rejected because this open project has no production environment; the evidence is explicitly local"
-blockers: []
+  selected_tier: "Tier C/D focused validation for migration/config/security boundary"
+  required: "DEV-LOCAL-008 validation packet, test suites, script syntax, git diff and migration checks must pass; external production gates remain blocked."
+  external_gaps:
+    - "Privileged owner migration/cutover/users authority"
+    - "Remote stability/quiesce/observation/production monitoring authority"
+  failures_failed: []
+next_goal:
+  - "Await external ARCH-002/ARCH-003 authority bundle (real target DB, migration identity, cutover window, production monitoring and sign-off). Safely stop in development environment."
+next_skill: verify-and-stop
+reason: "All local remediation tasks (DEV-LOCAL-001..008) are complete; remaining parent tasks are externally blocked."
+blockers:
+  - "ARCH-002-002..005: DB authority、users/profile、Auth Flyway、physical isolation/cutover evidence unavailable."
+  - "ARCH-003-001..005: remote stability、quiesce、observation、deployment/cutover、compatibility retirement evidence unavailable."
+auto_pilot:
+  outcome: pass
+  route: "run-development-loop"
+  ready_nodes: []
+  in_progress_nodes: []
+  completed_nodes:
+    - "ARCH-001"
+    - "ARCH-002-001"
+    - "DEV-LOCAL-001"
+    - "DEV-LOCAL-002"
+    - "DEV-LOCAL-004"
+    - "DEV-LOCAL-006"
+    - "DEV-LOCAL-003"
+    - "DEV-LOCAL-007"
+    - "DEV-LOCAL-008"
+    - "ARCH-004"
+    - "DEV-LOCAL-005"
+    - "ARCH-005"
+    - "ARCH-006"
+  frozen_nodes:
+    - id: "ARCH-002"
+      status: blocked
+      route_score: "No local execution route; parent depends on external owner authority and physical isolation evidence."
+    - id: "ARCH-002-002"
+      status: blocked
+      route_score: "migration/owner-cutover is not runnable without real DB target, direct-grant identity, permission matrix and cutover window."
+    - id: "ARCH-002-003"
+      status: blocked
+      route_score: "migration/data-transition is not runnable because users/profile responsibility and ARCH-002-002 evidence are absent."
+    - id: "ARCH-002-004"
+      status: blocked
+      route_score: "migration/Flyway is not runnable because privileged Auth identity, schema history and ARCH-002-002/003 evidence are absent."
+    - id: "ARCH-002-005"
+      status: blocked
+      route_score: "migration/cutover is not runnable because target parity, monitoring readiness, quiesce and deployment authority are absent."
+    - id: "ARCH-003"
+      status: blocked
+      route_score: "No local execution route; parent requires a production remote environment and all-writer evidence."
+    - id: "ARCH-003-001"
+      status: blocked
+      route_score: "operations/monitoring is not runnable because no production remote-route environment or monitoring authority exists."
+    - id: "ARCH-003-002"
+      status: blocked
+      route_score: "operations/quiesce is not runnable because the complete remote writer inventory, drain and signed manifest are absent."
+    - id: "ARCH-003-003"
+      status: blocked
+      route_score: "operations/observation is not runnable because cutover, observation window, fault injection and rollback authority are absent."
+    - id: "ARCH-003-004"
+      status: blocked
+      route_score: "operations/deployment is not runnable because production deployment/change authority and secret references are absent."
+    - id: "ARCH-003-005"
+      status: blocked
+      route_score: "safe-refactor/compatibility-retirement is not runnable before remote observation, rollback and single-writer evidence."
+    - id: "ARCH-007"
+      status: pending
+      route_score: "close-development-task is frozen behind ARCH-002-005 and ARCH-003-005; no completion gate can run yet."
+  terminal_reason: "All authorized DEV-LOCAL remediation tasks (DEV-LOCAL-001..008) are complete. Auto-pilot safely stops at the external blocker boundary (ARCH-002-002..005 and ARCH-003-001..005 blocked; ARCH-007 pending)."

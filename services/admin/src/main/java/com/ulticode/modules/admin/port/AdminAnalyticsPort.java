@@ -85,6 +85,13 @@ public interface AdminAnalyticsPort {
     long countAllUsers();
 
     /**
+     * Load the dashboard overview in one coarse-grained query seam. The
+     * adapter owns the cross-Owner call fan-out and returns only the fields
+     * needed by the HTTP response.
+     */
+    AnalyticsOverviewData loadOverviewData(LocalDateTime from, LocalDateTime to);
+
+    /**
      * Loaded data wrapper for {@link #loadContestData}. Mirrors the
      * internal record that the service previously inlined. Holds
      * admin-owned {@link ContestSummary} projections rather than
@@ -94,5 +101,14 @@ public interface AdminAnalyticsPort {
             List<ContestSummary> contests,
             Map<String, Long> participantsByContest,
             Set<String> uniqueParticipants
+    ) {}
+
+    record AnalyticsOverviewData(
+            long totalUsers,
+            long activeUsers,
+            long totalSubmissions,
+            long acceptedSubmissions,
+            long totalContests,
+            long activeSubscriptions
     ) {}
 }

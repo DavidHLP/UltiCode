@@ -68,6 +68,7 @@ nacos_identity_key="dev_$(random_hex 12)"
 nacos_identity_value="$(random_hex 24)"
 meili_master_key="meili_$(random_base64 32)"
 submission_db_password="submission_$(random_hex 18)"
+submission_migration_password="migration_submission_$(random_hex 24)"
 
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 umask 077
@@ -89,13 +90,18 @@ DB_PASSWORD="$db_password"
 DB_NAME=ulticode
 
 # The local PM2 stack uses the direct Submission owner only after the explicit
-# schema cutover; `up.sh` stops safely while SUBMISSION_CUTOVER_COMPLETE=false.
+# schema cutover; \`up.sh\` stops safely while SUBMISSION_CUTOVER_COMPLETE=false.
 SUBMISSION_DB_HOST=localhost
 SUBMISSION_DB_PORT=23306
 SUBMISSION_DB_NAME=submission
 SUBMISSION_DB_USER=submission_rw
 SUBMISSION_DB_PASSWORD="$submission_db_password"
+SUBMISSION_MIGRATION_DB_USER=migration_submission
+SUBMISSION_MIGRATION_DB_PASSWORD="$submission_migration_password"
 APP_SUBMISSION_ROUTING_MODE=remote
+MIGRATION_MYSQL_CONTAINER=ulticode-mysql
+MIGRATION_MYSQL_CONTAINER_PORT=3306
+DEV_LOCAL_OWNER_BASELINE=true
 SUBMISSION_CUTOVER_COMPLETE=false
 MYSQL_ROOT_PASSWORD="$mysql_root_password"
 DB_ROOT_PASSWORD="$mysql_root_password"

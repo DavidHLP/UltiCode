@@ -10,7 +10,7 @@ spring:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${NOTIFICATION_DB_NAME:${DB_NAME:ulticode}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    url: jdbc:mysql://${NOTIFICATION_DB_HOST:${DB_HOST:localhost}}:${NOTIFICATION_DB_PORT:${DB_PORT:23306}}/${NOTIFICATION_DB_NAME:${DB_NAME:ulticode}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
     username: ${NOTIFICATION_DB_USER:${DB_USER:ulticode}}
     password: ${NOTIFICATION_DB_PASSWORD:${DB_PASSWORD:}}
   mail:

@@ -1,6 +1,6 @@
 # UltiCode 后端微服务化迁移指导
 
-> 本文保留迁移调查与决策依据；代码、`init-db/migrations/`、运行配置和 Compose 是现状真源。`backend-judge` 的独立运行时已按本文边界落地，其他“目标态”仍需以后续变更推进。文内行号用于调查快照定位，后续维护应以文件路径和符号名为准。
+> 本文保留迁移调查与决策依据；代码、`init-db/migrations/`、运行配置、Compose 和实际启动脚本是现状真源。当前已落地五个 data Owner 与两个 Worker，但数据库权限、读模型和兼容路径仍在收敛。文内行号用于调查快照定位，后续维护应以文件路径和符号名为准。
 > 历史快照说明：第 1 节和第 2.1–2.3 节保留迁移启动时的单体架构快照；
 > 其中的 `backend-spring` 相对源码路径不代表当前 owner 服务入口。第 10 节、
 > Appendix A 及其他明确标注的 source link 按当前 repository-root owner
@@ -26,9 +26,9 @@
 
 - **`backend-auth`**：账号、凭证、OAuth identity、JWT、refresh session、账号状态和 RBAC；不拥有用户画像、题目、竞赛或运营数据。
 - **`backend-admin`**：管理端 BFF、审核治理、审计、系统配置、监控和备份；“能管理某数据”不等于“拥有该数据”。题目、竞赛、投稿等管理命令仍由其业务 Owner 执行。
-- **`backend-app`**：在线判题核心和普通用户业务，包括用户画像、题目、提交/判题、竞赛、题解、论坛、互动、搜索、WebSocket 等。通知意图仍由 App 发布，但通知状态和投递不再由 App 持有。
+- **`backend-app`**：普通用户业务与题目/竞赛/题解/论坛/互动/WebSocket，包括用户画像；提交写入经 Submission Contract，搜索由 Search Worker 消费事件，通知状态和投递由 Notification Owner 持有。过渡期仍保留部分本地兼容实现。
 - **`backend-notification`**：通知、偏好、投递台账、邮件和通知相关管理查询/命令；消费 App 的通知意图事件，通过 App 的用户读契约取得收件人信息，并经 Redis Pub/Sub 请求 App 的本地 WebSocket 中继。
-- **`backend-judge`**：独立判题 Worker；消费 App 写入的 Redis Streams，沙箱执行后通过 `backend-app-api` 的 Dubbo port 回写 verdict。它不拥有 Submission/Problem/TestCase 表，App 仍是唯一数据 Owner。
+- **`backend-judge`**：独立判题 Worker；消费 Redis Streams，沙箱执行后通过 Submission Contract 回写 verdict。它不拥有 Submission/Problem/TestCase 表，数据写入由相应 Owner 负责。
 
 核心内部同步 RPC 使用 **Apache Dubbo 3**；注册发现使用 **Nacos**。外部 HTTP/WS 先由 **Nginx 逻辑 Gateway** 路由，暂不引入 Spring Cloud Gateway/Higress。数据先保持同一 MySQL 实例，按 Owner 收敛写入口和账号权限，再逐步分 schema/database；不一次性物理拆库。
 
@@ -76,6 +76,8 @@
 
 ### 2.2 当前运行拓扑
 
+> **2026-08-18 当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程骨架和主要 Owner/Worker topology，但仍处于收敛阶段，不是最终形态。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界，HTTP/Dubbo 暴露 Auth、Admin、App、Submission、Notification；Judge/Search 以后台 Worker 运行。Submission 写入已通过 `SubmissionFactsSnapshot` 消除 Owner 写事务内对 App/Auth 的同步回访，但 Submission 读侧的 facts enrichment、数据库物理隔离、App 双轨兼容、Admin Seam 聚合和运维文档仍需后续任务完成。生产 Compose 定义七个后端运行时；本地 PM2 默认仍排除 Search，使用 `--only search` 显式启动。当前项目没有生产环境，因此本地证据不等于生产切流证据。
+
 ```mermaid
 flowchart LR
     U1[Console 用户] --> CN[console Nginx]
@@ -105,11 +107,11 @@ flowchart LR
 
 证据：
 
-- 单应用名、端口、单数据源和 Redis：`src/main/resources/application.yml:1-55`；
+- 旧单体拓扑仅保留为迁移历史；当前实现以 `services/pom.xml`、各 Owner/Worker `application.yml`、`docker-compose.prod.yml` 和 `ecosystem.config.cjs` 为准；
 - Spring Boot/MyBatis-Plus/Redis/WebSocket/Actuator 依赖：`pom.xml:40-185`；
 - 两个前端 Nginx 都把 `/api/` 转发到 `backend:9001`：`console/nginx.conf:44-54`、`management/nginx.conf:44-54`；
-- Compose 启动 MySQL、Redis、Nacos，但后端没有 Nacos/Dubbo dependency/config/import：`docker-compose.yml:1-82`、`pom.xml:23,40-233`；
-- `pom.xml` 只有 `dubbo.version=3.3.6` 属性，当前并未使用 Dubbo。
+- Compose 启动 MySQL、Redis、Nacos、MeiliSearch 和七个后端 runtime；Dubbo/Nacos 依赖与 provider/consumer 已进入各服务模块；
+- 根 POM 不再保留不存在的 `backend-api` reactor dependency-management 条目。
 
 ### 2.3 真实请求/调用链样本
 
@@ -118,9 +120,9 @@ flowchart LR
 | 登录 | `AuthController` → `AuthenticationWorkflow` → `AuthAccountPort` → `AuthSessionPort` → JWT/refresh/CSRF | Auth 目前仍以 `users` 作为账号表 |
 | 注册 | `AuthController` → `AuthenticationWorkflow.register` → `AuthAccountPort` + `refresh_tokens` | 账号和刷新会话应在 Auth 本地事务内，profile 后续事件化 |
 | 管理员创建题目 | `AdminProblemController` → `ProblemService.createProblem` → Problem/Detail/Version mappers | Admin Controller 可保留，写事务必须由 App 的 Problem Owner 执行 |
-| 普通提交 | `ProblemSubmissionController` → `SubmissionWritePort.submit` → Problem facts + `UserMapper` + `SubmissionMapper` + judge outbox/Redis + Contest port | 不能把这一链机械拆成 Problem RPC → Auth RPC → Queue RPC → Contest RPC |
+| 普通提交 | App request boundary → immutable `SubmissionFactsSnapshot` → Submission `SubmissionWritePort` → local submission tables + judge outbox | Submission Owner 不再在写事务内同步回访 Problem/Auth；read enrichment 仍是后续 projection 任务 |
 | 比赛提交 | Contest Controller → Contest Service → SubmissionWritePort → Submission/Outbox → ContestSubmissionPort | 当前存在 Contest↔Submission 回访；目标需资格同步、记录事件化 |
-| 审核动作 | Moderation Controller → Moderation Service → moderation tables + App 内容表 + `users` ban fields | 当前单事务跨越未来 Admin/App/Auth 三个 Owner |
+| 审核动作 | Moderation Controller → Moderation Service → moderation tables + App 内容表 + `users` ban fields | 当前仍是兼容混合写路径；目标拆为 Admin/App/Auth Owner 事件化协作 |
 | 搜索 | Search Projection → MeiliSearch 或四个 SearchSource → Problem/Forum/Solution/User mappers | 目标应由 App 拥有搜索索引，不做四路远程串行查询 |
 | WebSocket | access cookie → Handshake → STOMP interceptor → Redis blacklist → JWT → User DB → session principal | 目标在 App 本地验 JWT，以事件/cache 处理状态失效，避免每消息 Auth RPC |
 
@@ -498,21 +500,22 @@ schema 和锁定的 shadow user。`notification_rw` 不带可用默认密码，�
 
 ### 6.1 当前基线与使用原则
 
-Dubbo 当前为零实现，因此 Phase 1 先建立最小 Contract、注册发现、trace 和失败测试，不能假设已有治理能力。Dubbo 只用于三服务内部、粗粒度、需要即时结果的调用；外部客户端仍使用 HTTP/WS。
+Dubbo 已用于 Auth、Admin、App、Submission、Notification 的内部 Contract seam；当前重点不是继续拆分，而是收敛同步回访、数据权限、兼容路径和过细 Seam。外部客户端仍使用 HTTP/WS，Judge/Search 不作为业务 Dubbo 服务暴露。
 
 ### 6.2 Contract module
 
 推荐 provider-owned API modules：
 
 ```text
-backend-api/
-├── backend-auth-api
-├── backend-app-api
-├── backend-submission-api
-└── backend-notification-api
+services/api/
+├── auth-api
+├── admin-api
+├── app-api
+├── submission-api
+└── notification-api
 ```
 
-`backend-admin-api` 只有出现真实 Consumer 时才创建。`backend-submission-api` 和
+`backend-admin-api` 已加入 reactor。`backend-submission-api` 和
 `backend-notification-api` 已作为 provider-owned artifacts 加入 `services` reactor；包根分别为
 `com.ulticode.submission.api` 与 `com.ulticode.notification.api`，Dubbo identity 沿用
 `backend-submission`/`backend-notification`、version `1.0.0`。Contract 可依赖极小的
@@ -753,8 +756,8 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### Phase 1 — Maven 多模块骨架、Gateway、Nacos 与可观测
 
-- **Goal**：建立三个 Owner 服务与可独立启动的执行运行时/共享契约，不迁业务表。
-- **Code Changes**：父 POM、`backend-common`、`backend-api/*`、三个 service module、临时 `backend-legacy`；接入 Dubbo starter/Triple/Nacos registry；Nginx Gateway 保留 `:9001`；统一 trace/filter。
+- **Goal**：建立五个 Owner 服务、两个 Worker、共享依赖与 provider-owned contracts，不迁业务表。
+- **Code Changes**：`services` parent、`platform/*`、`api/*`、五个 Owner module、`backend-judge`、`backend-search` 与 `judge-runtime`；接入 Dubbo starter/Triple/Nacos registry；Nginx Gateway 保留外部 HTTP/WS 入口；统一 trace/filter。
 - **Database Changes**：仍使用旧 DB；只创建各服务 Flyway history/未来 outbox 基础表（若需要），不搬业务表。
 - **Compatibility Strategy**：所有业务路由默认 Legacy；新服务只暴露内部 smoke contract；前端 API origin 不变。
 - **Validation**：三个 JVM 启动/注册发现；Nacos 故障、Provider unavailable、timeout、trace 跨 HTTP→Dubbo；Compose config；旧接口全回归。
@@ -813,7 +816,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### Phase 7 — 删除 Legacy 与收尾
 
-- **Goal**：删除旧实现、兼容路由、共享权限和无用表/配置，形成稳定的三 Owner 服务 + Judge runtime 仓库。
+- **Goal**：在生产稳定窗口和权限/回滚证据后删除旧实现、兼容路由、共享权限和无用表/配置，形成稳定的五 Owner + 两 Worker 仓库。
 - **Code Changes**：删除 `backend-legacy`、旧 local adapters、legacy judge queue 路径、重复 JWT util、无 Consumer Contract；更新启动/部署/开发脚本。
 - **Database Changes**：观察期和审批后执行 contract migration；归档/删除已确认无用 migration-only 表；旧 schema 只读后下线。
 - **Compatibility Strategy**：在删除前完成 N-1 客户端/Provider 支持期；发布说明明确不再支持的旧 API/version。
@@ -830,50 +833,22 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 > sunk into `services/app/modules/`; frontend moved to `apps/` + `packages/`.
 > See `.auto-flow/DECISIONS.md` ADR-008 for the terminal structure.
 
-推荐 Maven reactor：
+当前 Maven reactor（历史布局仅保留在上方 Superseded 说明中）：
 
 ```text
 repository root/
-├── backend-spring/                 # shared Maven parent/reactor
-│   ├── pom.xml
-│   ├── backend-common/
-│   ├── backend-web-security/
-│   ├── backend-api/
-│   │   ├── backend-auth-api/
-│   │   ├── backend-admin-api/
-│   │   └── backend-app-api/
-│   ├── backend-contest-domain/
-│   ├── backend-moderation-domain/
-│   ├── backend-notification/
-│   ├── backend-problem-domain/
-│   └── backend-submission-domain/
-├── backend-auth/                   # Auth owner service
-│   └── src/main/java/com/ulticode/auth/
-│       ├── adapter/in/web/
-│       ├── service/
-│       ├── account/
-│       ├── refreshtoken/
-│       ├── session/
-│       └── security/
-├── backend-admin/                  # Admin owner service
-│   └── src/main/java/com/ulticode/
-│       ├── admin/
-│       └── modules/admin/
-├── backend-notification/           # Notification/email owner service
-│   └── src/main/java/com/ulticode/
-│       ├── notification/
-│       └── modules/{notification,email}/
-└── backend-app/                    # App owner service
-    └── src/main/java/com/ulticode/
-        ├── app/
-        └── modules/
-            ├── problem/
-            ├── submission/
-            ├── contest/
-            ├── forum/
-            ├── solution/
-            ├── user/
-            └── websocket/
+└── services/
+    ├── pom.xml                    # Maven parent/reactor
+    ├── platform/{common,web-security,integration-inbox}/
+    ├── api/{auth-api,admin-api,app-api,submission-api,notification-api}/
+    ├── judge-runtime/             # shared dependency, not an independent process
+    ├── auth/                       # backend-auth Owner
+    ├── admin/                      # backend-admin Owner
+    ├── app/                        # backend-app Owner
+    ├── submission/                 # backend-submission Owner
+    ├── notification/               # backend-notification Owner
+    ├── judge/                      # backend-judge Worker
+    └── search/                     # backend-search Worker
 ```
 
 > Historical note: migration phases may refer to `backend-legacy`; it was a
@@ -884,11 +859,13 @@ repository root/
 依赖规则：
 
 ```text
-backend-common <- backend-*-api <- provider implementation
-backend-admin  -> backend-auth-api + backend-app-api
-backend-app    -> backend-auth-api（仅真实 Consumer）
-backend-notification -> backend-auth-api + backend-app-api（仅 Contract/Consumer）
-backend-auth   -> 不依赖 app/admin API
+platform/common <- api/* <- Owner/Worker provider or adapter
+backend-app     -> auth-api + submission-api + notification-api（Contract/Consumer）
+backend-admin   -> auth-api + app-api + submission-api + notification-api（Contract/Consumer）
+backend-notification -> auth-api + app-api + notification-api（Contract/Consumer）
+backend-judge   -> judge-runtime + submission-api（Worker adapter）
+backend-search  -> platform/common + search event contracts（Worker only）
+backend-auth    -> 不依赖 app/admin API；judge-runtime 仅由运行时复用
 ```
 
 ### 10.1 共享代码政策
@@ -949,7 +926,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 ### 11.3 Registry、配置与网络
 
-- Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；`backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`、`backend-judge` 使用不同 service name；业务配置继续 env/application，避免同时改变 discovery 和 config source；
+- Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；`backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`、`backend-judge`、`backend-search` 使用不同 service name；业务配置继续 env/application，避免同时改变 discovery 和 config source；
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
 - Gateway 是唯一外部 API/WS 入口，Dubbo 端口只在 internal network；
 - Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential；

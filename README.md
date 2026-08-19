@@ -166,15 +166,17 @@
 
 ```
 UltiCode/
-├── services/         # 后端 Maven reactor（platform · api · auth · admin · app · submission · notification · judge）
+├── services/         # 后端 Maven reactor（platform · api · 5 Owners · 2 Workers · judge-runtime）
 │   ├── platform/     # 共享平台层（common · web-security）
-│   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api）
+│   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api · submission-api · notification-api）
 │   ├── auth/         # Auth owner — 9101
 │   ├── admin/        # Admin owner — 9102
 │   ├── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
-│   ├── submission/   # Submission compatibility owner seam — 9106 / Dubbo 20886
+│   ├── submission/   # Submission data Owner — 9106 / Dubbo 20886
 │   ├── notification/ # Notification/email owner — 9105
-│   └── judge/        # Judge worker — 独立进程，消费 Redis Streams
+│   ├── judge/        # Judge worker — 独立进程，消费 Redis Streams
+│   ├── search/       # Search worker — 独立进程，消费事件并写 MeiliSearch
+│   ├── judge-runtime/ # Judge 共享依赖，不是独立进程
 ├── apps/
 │   ├── console/      # Vue 3 用户前端 — 端口 9002
 │   └── management/   # Vue 3 管理后台 — 端口 9003
@@ -222,7 +224,7 @@ UltiCode/
 | 领域 | 技术 |
 |------|------|
 | 容器 | Docker Compose v2 · 非 root 用户 (`appuser:appgroup`) · 多阶段构建 |
-| 进程管理 | PM2（8 个长生命周期 app：auth · admin · app · submission · notification · judge · console · management） |
+| 进程管理 | PM2 配置 9 个长生命周期 app（7 后端 + 2 前端）；本地默认启动 8 个，Search 需显式 opt-in |
 | 运行时诊断 | Arthas 4.2.2 · STATELESS MCP（端口 8563） |
 | 服务发现 / 配置 | Nacos 2.3.2 |
 | CI/CD | GitHub Actions（路径触发） · CD 滚动发布与回滚 |
@@ -233,7 +235,7 @@ UltiCode/
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务；`services/submission/` 是过渡期兼容 seam（不拥有业务表，Dubbo 转发到 App）；`services/judge/` 是不拥有业务表的独立判题运行时。`services/` 是 Maven parent/reactor，包含 `platform/`（common、web-security）、`api/`（RPC 契约）和这些运行模块。
+`services/auth/`、`services/admin/`、`services/app/`、`services/submission/`、`services/notification/` 是数据 Owner；`services/judge/`、`services/search/` 是不拥有业务表的 Worker；`judge-runtime/` 是共享依赖，不是进程。`services/` 是 Maven parent/reactor，包含 `platform/`、`api/`、`integration-inbox` 和这些运行模块。
 
 | Owner / 模块 | 主代码路径 | 职责 |
 |------|------|------|
@@ -328,9 +330,10 @@ dev 数据库会自动创建固定管理员账号：
 | Auth API | <http://localhost:9101> | 认证 / 凭据 Owner |
 | Admin API | <http://localhost:9102> | 治理 / 管理 Owner |
 | App API | <http://localhost:9103> | OJ / 用户业务 Owner |
-| Submission owner | 内部 HTTP `9106` / Dubbo `20886` | 过渡期兼容 provider；不拥有业务表 |
+| Submission owner | 内部 HTTP `9106` / Dubbo `20886` | Submission 数据 Owner；写入使用 App 提供的 Facts Snapshot |
 | Notification API | <http://localhost:9105> | 通知 / 邮件 Owner |
 | Judge Worker | Dubbo `20884` / PM2 `ulticode-judge` | 独立判题执行进程，无 HTTP API |
+| Search Worker | PM2 `ulticode-search`（生产 Compose runtime） | Redis Streams → MeiliSearch；本地默认不启动 |
 | Nacos 控制台 | <http://localhost:28848/nacos> | 配置中心 / 服务发现 |
 | Arthas MCP | <http://localhost:8563/mcp> | STATELESS · Claude Code / IDE 直连 |
 
@@ -343,11 +346,12 @@ dev 数据库会自动创建固定管理员账号：
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/`、`services/notification/` 是数据 owner 服务，`services/submission/` 是过渡期兼容 seam，`services/judge/` 是独立判题运行时；`services/` 是 Maven parent/reactor（含 platform/api 共享层）。以下命令均从 repository root 执行。
+`services/auth/`、`services/admin/`、`services/app/`、`services/submission/`、`services/notification/` 是数据 Owner，`services/judge/`、`services/search/` 是 Worker；`judge-runtime/` 只是共享依赖。以下命令均从 repository root 执行。
 
 ```bash
-# 通过 PM2（完整后端 + 独立 Judge）
+# 通过 PM2（本地默认后端，Search 显式 opt-in）
 pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-notification ulticode-judge
+pm2 restart ulticode-search       # 需要本地 Search 时显式启动
 pm2 logs ulticode-auth
 
 # 直接启动单个 owner
@@ -508,7 +512,8 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | 9101 | `ulticode-auth` | Auth Spring Boot | Auth Owner |
 | 9102 | `ulticode-admin` | Admin Spring Boot | Admin Owner |
 | 9103 | `ulticode-app` | App Spring Boot | App Owner |
-| 9106 | `ulticode-submission` | Submission Spring Boot | 过渡期兼容 provider；Dubbo internal only |
+| 9106 | `ulticode-submission` | Submission Spring Boot | Submission data Owner；Dubbo internal only |
+| 9107 | `ulticode-search` | Search Spring Boot worker | 本地 `--only search` opt-in；生产 Compose always-on |
 | 9105 | `ulticode-notification` | Notification Spring Boot | Notification/email Owner |
 | 20884 | `ulticode-judge` | Judge Spring Boot | Redis Streams consumer；Dubbo internal only |
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |
@@ -519,7 +524,8 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 ### 常用命令
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动 owner 服务 + Judge + 两个前端
+pm2 start ecosystem.config.cjs   # 首次启动本地默认 owner + Judge + 两个前端（Search opt-in）
+./scripts/dev/up.sh --only search # 显式启动 Search worker
 pm2 start all                    # 后续启动
 pm2 restart all                  # 重启
 pm2 stop all
@@ -543,7 +549,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 
 1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
 2. `pm2 restart ulticode-init-db`（跑 Flyway）
-3. `pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-judge`
+3. `pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-notification ulticode-judge`
 4. 启动两个前端
 
 > 一键修复： `./scripts/dev/up.sh --skip-install`
@@ -572,7 +578,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 
 > **pm2 env 缓存陷阱**：`pm2 restart --update-env` 不会重读 `.env`。
 > 改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
-> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-notification ulticode-judge && pm2 start ecosystem.config.cjs --only ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-judge`
+> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-notification ulticode-submission ulticode-judge ulticode-search && pm2 start ecosystem.config.cjs --only ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-submission,ulticode-judge`
 
 ---
 

@@ -2,6 +2,7 @@ package com.ulticode.judge.adapter;
 
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -24,6 +25,18 @@ public class RemoteSubmissionWritePort implements SubmissionWritePort {
 
     @Override
     public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        throw new UnsupportedOperationException("backend-judge does not accept submissions");
+    }
+
+    @Override
+    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
+                               SubmissionFactsSnapshot facts) {
+        throw new UnsupportedOperationException("backend-judge does not accept submissions");
+    }
+
+    @Override
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO,
+                                      SubmissionFactsSnapshot facts) {
         throw new UnsupportedOperationException("backend-judge does not accept submissions");
     }
 

@@ -4,12 +4,11 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.codec.TestCaseDetailCodec;
 import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
-import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -70,8 +69,6 @@ import java.util.Map;
 public class DefaultSubmissionWritePort implements SubmissionWritePort {
 
     private final SubmissionMapper submissionMapper;
-    private final ProblemFactsPort problemFacts;
-    private final UserExistencePort userExistencePort;
     private final ObjectMapper objectMapper;
     private final SubmissionProjection submissionProjection;
     private final SubmissionPerformanceStats performanceStats;
@@ -90,27 +87,42 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     );
 
     @Override
-    @Transactional
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
+        throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                "Submission facts snapshot is required");
+    }
+
+    @Override
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+        throw new BusinessException(BaseErrorCode.BAD_REQUEST,
+                "Submission facts snapshot is required");
+    }
+
+    @Override
+    @Transactional
+    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
+                               SubmissionFactsSnapshot facts) {
         if (createDTO != null && (StringUtils.hasText(createDTO.getContestId())
                 || StringUtils.hasText(createDTO.getVirtualSessionId()))) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST,
                     "Contest submission requires the contest command");
         }
-        return submitInternal(userId, createDTO, false);
+        return submitInternal(userId, createDTO, facts, false);
     }
 
     @Override
     @Transactional
-    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO) {
+    public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO,
+                                      SubmissionFactsSnapshot facts) {
         if (createDTO == null || !StringUtils.hasText(createDTO.getContestId())) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST,
                     "Contest context is required");
         }
-        return submitInternal(userId, createDTO, true);
+        return submitInternal(userId, createDTO, facts, true);
     }
 
     private SubmissionVO submitInternal(String userId, CreateSubmissionDTO createDTO,
+                                        SubmissionFactsSnapshot facts,
                                         boolean contestCommand) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
@@ -123,10 +135,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         if (!SUPPORTED_LANGUAGES.contains(language)) {
             throw new BusinessException(BaseErrorCode.BAD_REQUEST);
         }
-        if (problemFacts.findDisplayFacts(createDTO.getProblemId()) == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND);
-        }
-        if (!userExistencePort.existsById(userId)) {
+        if (facts == null || !facts.admits(userId, createDTO.getProblemId())) {
             throw new BusinessException(BaseErrorCode.NOT_FOUND);
         }
 

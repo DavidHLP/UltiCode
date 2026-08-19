@@ -74,6 +74,13 @@ services:
       - DB_USER=${DB_USER:-ulticode}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-ulticode}
+      # ARCH-002 preparation: set AUTH_DB_* to an isolated host/database/account
+      # before the Auth cutover; fallback preserves the current local/shared mode.
+      - AUTH_DB_HOST=${AUTH_DB_HOST:-${DB_HOST:-mysql}}
+      - AUTH_DB_PORT=${AUTH_DB_PORT:-${DB_PORT:-3306}}
+      - AUTH_DB_USER=${AUTH_DB_USER:-${DB_USER:-ulticode}}
+      - AUTH_DB_PASSWORD=${AUTH_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      - AUTH_DB_NAME=${AUTH_DB_NAME:-${DB_NAME:-ulticode}}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
@@ -127,6 +134,12 @@ services:
       - DB_USER=${DB_USER:-ulticode}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-ulticode}
+      # ARCH-002 preparation: set ADMIN_DB_* for the Admin schema/account.
+      - ADMIN_DB_HOST=${ADMIN_DB_HOST:-${DB_HOST:-mysql}}
+      - ADMIN_DB_PORT=${ADMIN_DB_PORT:-${DB_PORT:-3306}}
+      - ADMIN_DB_USER=${ADMIN_DB_USER:-${DB_USER:-ulticode}}
+      - ADMIN_DB_PASSWORD=${ADMIN_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      - ADMIN_DB_NAME=${ADMIN_DB_NAME:-${DB_NAME:-ulticode}}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
@@ -177,6 +190,12 @@ services:
       - DB_USER=${DB_USER:-ulticode}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-ulticode}
+      # ARCH-002 preparation: set APP_DB_* for App-owned aggregates.
+      - APP_DB_HOST=${APP_DB_HOST:-${DB_HOST:-mysql}}
+      - APP_DB_PORT=${APP_DB_PORT:-${DB_PORT:-3306}}
+      - APP_DB_USER=${APP_DB_USER:-${DB_USER:-ulticode}}
+      - APP_DB_PASSWORD=${APP_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
+      - APP_DB_NAME=${APP_DB_NAME:-${DB_NAME:-ulticode}}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
@@ -344,6 +363,8 @@ services:
       - DB_USER=${DB_USER:-ulticode}
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-ulticode}
+      - NOTIFICATION_DB_HOST=${NOTIFICATION_DB_HOST:-${DB_HOST:-mysql}}
+      - NOTIFICATION_DB_PORT=${NOTIFICATION_DB_PORT:-${DB_PORT:-3306}}
       - NOTIFICATION_DB_USER=${NOTIFICATION_DB_USER:-${DB_USER:-ulticode}}
       - NOTIFICATION_DB_PASSWORD=${NOTIFICATION_DB_PASSWORD:-${DB_PASSWORD:?DB_PASSWORD is required}}
       - NOTIFICATION_DB_NAME=${NOTIFICATION_DB_NAME:-${DB_NAME:-ulticode}}

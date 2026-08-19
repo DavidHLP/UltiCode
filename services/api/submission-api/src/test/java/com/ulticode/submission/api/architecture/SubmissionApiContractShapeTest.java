@@ -10,6 +10,7 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
@@ -67,6 +68,7 @@ class SubmissionApiContractShapeTest {
                 BatchRejudgeResultDTO.class, CreateSubmissionDTO.class,
                 SubmissionAdminQueryDTO.class, SubmissionAdminRowDTO.class,
                 SubmissionDetailVO.class, SubmissionHistoryDTO.class,
+                SubmissionFactsSnapshot.class,
                 SubmissionListItemVO.class, SubmissionQueryDTO.class,
                 SubmissionResultPayload.class, SubmissionStatusMeta.class,
                 SubmissionTestCaseDetailDTO.class, SubmissionVO.class,

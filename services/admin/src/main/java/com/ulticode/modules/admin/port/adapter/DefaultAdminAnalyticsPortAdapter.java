@@ -125,4 +125,15 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
         }
         return result.page().total();
     }
+
+    @Override
+    public AnalyticsOverviewData loadOverviewData(LocalDateTime from, LocalDateTime to) {
+        return new AnalyticsOverviewData(
+                countAllUsers(),
+                countDistinctSubmittersInRange(from, to),
+                countSubmissionsInRange(from),
+                countAcceptedSubmissionsInRange(from),
+                countContestsInRange(from),
+                countActiveSubscriptions());
+    }
 }

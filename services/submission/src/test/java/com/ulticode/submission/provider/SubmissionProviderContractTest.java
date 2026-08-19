@@ -5,6 +5,7 @@ import com.ulticode.modules.submission.port.DefaultSubmissionFencePort;
 import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
@@ -20,6 +21,8 @@ import java.lang.reflect.Field;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,22 +43,27 @@ class SubmissionProviderContractTest {
         DefaultSubmissionWritePort localWriter = mock(DefaultSubmissionWritePort.class);
         SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
         CreateSubmissionDTO request = new CreateSubmissionDTO();
+        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot(
+                "user-1", true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        101L, "Two Sum", "two-sum", 2, 256, null),
+                1L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
         SubmissionVO expected = new SubmissionVO();
-        when(localWriter.submit("user-1", request)).thenReturn(expected);
-        when(localWriter.submitContest("user-1", request)).thenReturn(expected);
+        when(localWriter.submit("user-1", request, facts)).thenReturn(expected);
+        when(localWriter.submitContest("user-1", request, facts)).thenReturn(expected);
         when(localWriter.updateSubmissionResultFenced(
                 "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
                 .thenReturn(true);
 
-        assertThat(provider.submit("user-1", request)).isSameAs(expected);
-        assertThat(provider.submitContest("user-1", request)).isSameAs(expected);
+        assertThat(provider.submit("user-1", request, facts)).isSameAs(expected);
+        assertThat(provider.submitContest("user-1", request, facts)).isSameAs(expected);
         provider.updateSubmissionResult("sub-1", SubmissionStatus.WRONG_ANSWER, 8, 2.0, "[]");
         assertThat(provider.updateSubmissionResultFenced(
                 "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
                 .isTrue();
 
-        verify(localWriter).submit("user-1", request);
-        verify(localWriter).submitContest("user-1", request);
+        verify(localWriter).submit("user-1", request, facts);
+        verify(localWriter).submitContest("user-1", request, facts);
         verify(localWriter).updateSubmissionResult(
                 "sub-1", SubmissionStatus.WRONG_ANSWER, 8, 2.0, "[]");
         verify(localWriter).updateSubmissionResultFenced(
@@ -87,6 +95,42 @@ class SubmissionProviderContractTest {
         assertNoDubboReference(SubmissionFenceProvider.class);
         assertNoOwnerModeSelector(SubmissionWriteProvider.class);
         assertNoOwnerModeSelector(SubmissionFenceProvider.class);
+    }
+
+    @Test
+    @DisplayName("propagates provider timeout RpcException without masking")
+    void propagatesProviderTimeout() {
+        DefaultSubmissionWritePort localWriter = mock(DefaultSubmissionWritePort.class);
+        when(localWriter.submit(any(), any(), any()))
+                .thenThrow(new org.apache.dubbo.rpc.RpcException(
+                        org.apache.dubbo.rpc.RpcException.TIMEOUT_EXCEPTION, "Dubbo RPC timeout"));
+
+        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        CreateSubmissionDTO dto = new CreateSubmissionDTO();
+        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot("u-1", true, null, 1L, 1);
+
+        assertThatThrownBy(() -> provider.submit("u-1", dto, facts))
+                .isInstanceOf(org.apache.dubbo.rpc.RpcException.class)
+                .matches(e -> ((org.apache.dubbo.rpc.RpcException) e).isTimeout())
+                .hasMessageContaining("Dubbo RPC timeout");
+    }
+
+    @Test
+    @DisplayName("propagates network partition RpcException without masking")
+    void propagatesNetworkPartitionException() {
+        DefaultSubmissionWritePort localWriter = mock(DefaultSubmissionWritePort.class);
+        when(localWriter.submit(any(), any(), any()))
+                .thenThrow(new org.apache.dubbo.rpc.RpcException(
+                        org.apache.dubbo.rpc.RpcException.NETWORK_EXCEPTION, "Network partition / connection refused"));
+
+        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        CreateSubmissionDTO dto = new CreateSubmissionDTO();
+        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot("u-1", true, null, 1L, 1);
+
+        assertThatThrownBy(() -> provider.submit("u-1", dto, facts))
+                .isInstanceOf(org.apache.dubbo.rpc.RpcException.class)
+                .matches(e -> ((org.apache.dubbo.rpc.RpcException) e).isNetwork())
+                .hasMessageContaining("Network partition / connection refused");
     }
 
     private void assertNoDubboReference(Class<?> provider) {

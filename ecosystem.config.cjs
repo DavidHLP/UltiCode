@@ -141,6 +141,26 @@ module.exports = {
       max_memory_restart: '2G',
     },
     {
+      // Search is a production worker and an explicit local opt-in. The
+      // supported local launcher intentionally omits it from its default app
+      // list because MeiliSearch is not required for ordinary App development.
+      name: 'ulticode-search',
+      cwd: BACKEND_CWD,
+      script: 'mvn',
+      args: '-f search/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      interpreter: 'none',
+      env_file: BACKEND_ENV_FILE,
+      env: {
+        SEARCH_SERVER_PORT: '9107',
+        SEARCH_WORKER_ENABLED: 'true',
+      },
+      out_file: path.join(ROOT, 'logs', 'backend-search.out.log'),
+      error_file: path.join(ROOT, 'logs', 'backend-search.err.log'),
+      merge_logs: true,
+      time: true,
+      max_memory_restart: '1G',
+    },
+    {
       name: 'ulticode-9002',
       cwd: path.join(ROOT, 'apps', 'console'),
       script: 'pnpm',

@@ -54,4 +54,26 @@ class SubmissionFactsSnapshotTest {
                 SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void rejectsUnsupportedSchemaVersionsAtTheContractBoundary() {
+        SubmissionFactsSnapshot snapshot = new SubmissionFactsSnapshot(
+                "user-1", true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        101L, "Two Sum", "two-sum", 2, 256, ""),
+                100L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION + 1);
+
+        assertThat(snapshot.admits("user-1", 101L)).isFalse();
+    }
+
+    @Test
+    void problemFactsMustMatchTheRequestedProblem() {
+        SubmissionFactsSnapshot snapshot = new SubmissionFactsSnapshot(
+                "user-1", true,
+                new SubmissionFactsSnapshot.ProblemFacts(
+                        101L, "Two Sum", "two-sum", 2, 256, ""),
+                100L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
+
+        assertThat(snapshot.admits("user-1", 102L)).isFalse();
+    }
 }

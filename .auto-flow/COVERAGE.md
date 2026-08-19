@@ -137,3 +137,20 @@ The user confirmed that the historical `DEV-LOCAL` environment is the project's 
 | Existing HTTP/RpcResult/security/event behavior remains compatible | CONTRACT-001-COMMON, CONTRACT-002, CONTRACT-003, CONTRACT-004, CONTRACT-005, CONTRACT-007 | PASS for the migrated source boundary — contract-shape, redaction, idempotency, Result/RpcResult, timeout/retry and auth/audit regressions pass; no public route/cookie/JWT change was made |
 | Final contract-boundary gate and docs are closed | CONTRACT-008 | PASS — direct-provider retirement, focused/module/integration/verify validation, Compose/YAML/runbook checks, formal review and Completion/Coverage Audit pass; local-only scope and explicit out-of-scope boundaries are recorded |
 | CR repair: direct-owner routing, owner-first preparation-only bootstrap, explicit cutover marker, exact host/grant/role fail-closed preflight, all-writer quiesce and transactional failure compensation | CONTRACT-007, CONTRACT-008 | PASS — production Compose is remote-only; local `init-env.sh` emits marker=false, `up.sh --prepare-submission-owner` migrates/unlocks without PM2, normal startup is marker-gated; disposable MySQL rejects host mismatch, global/schema/table `ALL`, `IS_GRANTABLE=YES`, column grants, transitive roles and inspection failures; cutover/rollback require a one-time all-writer quiesce confirmation covering App, Submission owner, Judge, dispatchers, reapers, schedulers and direct clients; rollback `copy_back` runs all table replacements in one transaction and failure emits CRITICAL; provider 4/4, services verify, quick/integration pass; real Redis+Meili mirror remains an explicit external gap |
+
+## Services autonomy convergence packet (2026-08-19)
+
+Canonical detailed mapping: `.auto-flow/SERVICES_AUTONOMY_COVERAGE.md`.
+
+| Requirement | Task | Evidence | Status |
+| --- | --- | --- | --- |
+| Immutable Submission facts, version fail-closed, no App/Auth write hop | TASK-001 | `.local/evidence/20260819T2000Z/TASK-001/SubmissionFactsSnapshotTest.log` | PASS |
+| Submission local transaction/outbox/fence/reaper | TASK-002 | `.local/evidence/20260819T2000Z/TASK-002/submission-focused.log` | PASS locally |
+| Owner grant isolation rehearsal | TASK-003 | `.local/evidence/20260819T2000Z/TASK-003/owner-isolation.log` | Local only; ARCH-002 blocked |
+| Admin coarse query seam | TASK-004 | `.local/evidence/20260819T2000Z/TASK-004/admin-analytics.log` | PASS locally |
+| Event reliability contract | TASK-005 | `.local/evidence/20260819T2000Z/TASK-005/workers-events.log` | PASS locally |
+| Worker rebuild/delete convergence | TASK-006 | `.local/evidence/20260819T2000Z/TASK-006/` | BLOCKED: Judge Redis 4/4 passed; Search/Notification local proofs passed; real MeiliSearch unavailable, HTTP stub only |
+| Compatibility retirement gate | TASK-007 | `.local/evidence/20260819T2000Z/TASK-007/compatibility-gate.yaml` | PARTIAL/BLOCKED: all inventory paths have owner/switch/rollback/observability/retirement fields; production evidence absent |
+| Final blocker review and delivery | TASK-008 | `.local/evidence/20260819T2000Z/final-blocker-review.yaml` | BLOCKED: local proof complete; MeiliSearch and ARCH-002/003 external gates remain |
+
+Evidence root: `.local/evidence/20260819T2000Z/`.

@@ -359,3 +359,9 @@
 - **Alternatives**: Revoke the grants now (rejected: breaks transaction-bound audit writes and contradicts the applied migration); create a new remote audit path (rejected: changes transaction semantics and adds a second architecture); ignore the grant (rejected: would falsify least-privilege evidence).
 - **Consequences**: ARCH-002-002/005 privilege checks use an explicit allowlist rather than a blanket no-cross-schema rule. Existing negative tests and fresh target probes must prove the seam remains append-only.
 - **Affected Tasks**: `ARCH-002-002`, `ARCH-002-005`, `ARCH-007`.
+
+## DEC-041 — Services autonomy convergence remains local-only
+
+- Decision: record TASK-001 through TASK-005 as locally validated; retain TASK-006 as blocked because four Judge integration tests were skipped and no disposable Redis/MeiliSearch convergence ledger exists.
+- Decision: retain TASK-007/TASK-008 blocked until external ARCH-002/ARCH-003 authority, quiesce, observation, rollback and retirement evidence arrives.
+- Consequence: no production grant revoke, cutover, deployment or legacy-path deletion is authorized by this packet.

@@ -2321,3 +2321,10 @@ tasks:
     commits: []
     notes: "Completed locally with disposable and current-machine evidence. No production target, route, grant or deployment authorization is implied; ARCH-002/003 external gates remain blocked."
     updated_at: "2026-08-19"
+services_autonomy_convergence:
+  # 2026-08-19 services autonomy convergence packet (canonical pointer; historical tasks preserved)
+  ledger: ".auto-flow/SERVICES_AUTONOMY_TASKS.yaml"
+  coverage: ".auto-flow/SERVICES_AUTONOMY_COVERAGE.md"
+  decisions: ".auto-flow/SERVICES_AUTONOMY_DECISIONS.md"
+  worklog: ".auto-flow/SERVICES_AUTONOMY_WORKLOG.md"
+  task_status: "TASK-001..005 done; TASK-006..008 blocked"

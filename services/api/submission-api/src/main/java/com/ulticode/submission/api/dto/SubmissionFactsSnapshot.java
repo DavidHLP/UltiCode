@@ -37,7 +37,8 @@ public record SubmissionFactsSnapshot(
      * problem. The owner must still enforce command-shape and language rules.
      */
     public boolean admits(String requestedUserId, Long requestedProblemId) {
-        return userExists
+        return schemaVersion == CURRENT_SCHEMA_VERSION
+                && userExists
                 && Objects.equals(userId, requestedUserId)
                 && problem != null
                 && Objects.equals(problem.id(), requestedProblemId);

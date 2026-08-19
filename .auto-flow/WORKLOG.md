@@ -678,3 +678,9 @@
 - Review found three evidence gaps (window/contact/sign-off, audit mutation negatives, independent backup restore); all were fixed and re-review returned Confirmed findings=0.
 - Fixed two pre-existing preflight self-test defects exposed by current TEST-TARGET environment: required/static checks now precede container endpoint probing, and the fake self-test unsets caller container variables. Regression self-test, disposable safety integration, five owner Flyway validates and `PerOwnerSchemaIsolationIT` 24/24 pass.
 - Local authority and privilege rehearsal evidence is retained, but `ARCH-002-002` remains `blocked` pending external target authority/sign-off; downstream Tasks remain blocked.
+
+- 2026-08-19: TASK-007 TEST-TARGET compatibility inventory and route/flag suite completed: 27 tests passed. Reversible rollback and observation gate recorded; production quiesce, reconciliation, observation window, rollback artifact and retirement authority remain unavailable.
+
+- 2026-08-19: Final blocker review completed. Local TEST-TARGET evidence is complete for the available surfaces; remaining gaps are real MeiliSearch acceptance, ARCH-002 external target/account authority, and ARCH-003 production stability/deployment/quiesce/observation/rollback/retirement evidence. No production action or legacy deletion performed.
+
+- 2026-08-19: TASK-006 continuation: TEST-TARGET Redis credentials were supplied without printing secrets; Judge Redis integration passed 4/4 with zero skips. Search E2E passed 3/3 with an HTTP MeiliSearch stub, Notification ledger suite passed 92/92, and replay/delete ledger was recorded. Real MeiliSearch acceptance remains blocked because the image/service is unavailable locally.

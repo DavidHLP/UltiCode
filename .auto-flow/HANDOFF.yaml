@@ -40,3 +40,14 @@ context_packet:
   all_tasks_closed: false
   confirmed_findings: 0
   secret_leaks: 0
+services_autonomy_packet:
+  ledger: ".auto-flow/SERVICES_AUTONOMY_TASKS.yaml"
+  coverage: ".auto-flow/SERVICES_AUTONOMY_COVERAGE.md"
+  decisions: ".auto-flow/SERVICES_AUTONOMY_DECISIONS.md"
+  worklog: ".auto-flow/SERVICES_AUTONOMY_WORKLOG.md"
+  evidence_root: ".local/evidence/20260819T2000Z/"
+  local_tasks_completed: ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"]
+  task_006_partial_evidence: "Judge Redis 4/4; Search HTTP stub 3/3; Notification 92/92; replay/delete ledger recorded; real MeiliSearch unavailable"
+  task_007_evidence: "TEST-TARGET inventory now covers all listed paths with owner/switch/rollback/observability/retirement fields; acceptance partial_blocked"
+  blocked_tasks: ["TASK-006", "TASK-007", "TASK-008"]
+  final_blocker_review: ".local/evidence/20260819T2000Z/final-blocker-review.yaml"

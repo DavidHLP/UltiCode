@@ -4,6 +4,9 @@ import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.common.rpc.RpcResult;
 
+import java.util.List;
+import java.util.Set;
+
 /**
  * Provider-owned RPC query service for Auth-owned account data.
  *
@@ -20,4 +23,7 @@ public interface AccountQueryService {
     RpcResult<AuthAccountDTO> getAccountByEmail(String email);
 
     RpcResult<AuthAccountDTO> queryAccounts(AccountQueryDTO query);
+
+    /** Return existing, non-deleted accounts for the supplied IDs only. */
+    RpcResult<List<AuthAccountDTO>> getAccountsByIds(Set<String> accountIds);
 }

@@ -35,15 +35,16 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
 
     private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
-    private final com.ulticode.modules.search.port.UserSearchReadMapper userSearchReadMapper;
+    private final com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     /** Publish a complete user-document UPSERT after a profile write. */
     private void publishUserDocument(String userId) {
-        var row = userSearchReadMapper.findIndexRowById(userId);
-        if (row == null) {
+        var directoryRow = userDirectoryQueryPort.findById(userId);
+        if (directoryRow == null) {
             return;
         }
+        var row = directoryRow.row();
         searchPublisher.publishUser(row.getId(), row.getUsername(), row.getName(), row.getAvatar(), true);
     }
 

@@ -11,9 +11,9 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${ADMIN_DB_HOST:${DB_HOST:localhost}}:${ADMIN_DB_PORT:${DB_PORT:23306}}/${ADMIN_DB_NAME:${DB_NAME:ulticode}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${ADMIN_DB_USER:${DB_USER:ulticode}}
-    password: ${ADMIN_DB_PASSWORD:${DB_PASSWORD:}}
+    url: jdbc:mysql://${ADMIN_DB_HOST:${DB_HOST:localhost}}:${ADMIN_DB_PORT:${DB_PORT:23306}}/${ADMIN_DB_NAME:${DB_NAME:admin}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${ADMIN_DB_USER:admin_rw}
+    password: ${ADMIN_DB_PASSWORD:}
   # The Admin shell keeps shared Redis wiring for its own integrations; App-owned
   # queue/sandbox components are outside BackendAdminApplication's bounded scan.
   data:

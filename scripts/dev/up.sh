@@ -41,6 +41,7 @@ NO_FRONTEND=false
 FRONTEND_ONLY=false
 PREPARE_SUBMISSION_OWNER=false
 ONLY=""
+DEV_MODE=""
 
 usage() {
   cat <<'EOF'
@@ -63,6 +64,8 @@ Options:
   --no-frontend        不起前端 (等同 --only auth,admin,app,submission,notification,judge；Search 需显式 --only search)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
+  --mode <dev-lite|dev-full>
+                       选择默认启动 profile；默认 dev-lite
   -h, --help           显示此帮助
 
 Examples:
@@ -73,11 +76,14 @@ Examples:
   ./scripts/dev/up.sh --prepare-submission-owner # 准备 owner，随后执行 cutover runbook
   ./scripts/dev/up.sh --no-frontend --skip-bootstrap
   ./scripts/dev/up.sh --skip-infra --skip-migrate
+  ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环
+  ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/full 栈
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --mode)           DEV_MODE="${2:-}"; shift 2 ;;
     --skip-install)   SKIP_INSTALL=true; shift ;;
     --skip-infra)     SKIP_INFRA=true; shift ;;
     --skip-migrate)   SKIP_MIGRATE=true; shift ;;
@@ -92,6 +98,28 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -z "$DEV_MODE" ]]; then
+  DEV_MODE="dev-lite"
+fi
+case "$DEV_MODE" in
+  dev-lite)
+    export APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-local}"
+    export SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
+    ;;
+  dev-full)
+    export APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-remote}"
+    export SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
+    ;;
+  *)
+    echo "--mode must be dev-lite or dev-full." >&2
+    exit 2
+    ;;
+esac
+
+
+if [[ "$DEV_MODE" == "dev-lite" && -z "$ONLY" && "$FRONTEND_ONLY" != true ]]; then
+  NO_FRONTEND=true
+fi
 
 # ===== 预设与语义推导 =====
 # --quick: 假设 infra/迁移/admin/依赖都已就绪, 只重启 PM2 服务
@@ -180,7 +208,6 @@ done
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
 fi
-
 set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"
@@ -193,6 +220,15 @@ set +a
 [[ -n "$MIGRATION_DB_PASSWORD_WAS_SET" ]] && MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD_OVERRIDE"
 [[ -n "$SUBMISSION_MIGRATION_DB_USER_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER_OVERRIDE"
 [[ -n "$SUBMISSION_MIGRATION_DB_PASSWORD_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD_OVERRIDE"
+
+if [[ "$DEV_MODE" == "dev-lite" ]]; then
+  APP_SUBMISSION_ROUTING_MODE="local"
+  SUBMISSION_CUTOVER_COMPLETE="false"
+else
+  APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-remote}"
+  SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
+fi
+export APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE
 
 : "${SUBMISSION_MIGRATION_DB_USER:=${DEV_MIGRATION_SUBMISSION_USER:-}}"
 : "${SUBMISSION_MIGRATION_DB_PASSWORD:=${DEV_MIGRATION_SUBMISSION_PASSWORD:-}}"
@@ -210,10 +246,12 @@ required_vars=(
 if [[ "$FRONTEND_ONLY" != true ]]; then
   required_vars+=(
     SUBMISSION_DB_HOST SUBMISSION_DB_PORT SUBMISSION_DB_NAME
-    SUBMISSION_DB_USER SUBMISSION_DB_PASSWORD APP_SUBMISSION_ROUTING_MODE
+    SUBMISSION_DB_USER SUBMISSION_DB_PASSWORD
     SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
-    SUBMISSION_CUTOVER_COMPLETE
   )
+  if [[ "$DEV_MODE" == "dev-full" ]]; then
+    required_vars+=(APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE)
+  fi
 fi
 for var in "${required_vars[@]}"; do
   [[ -n "${!var:-}" ]] || {
@@ -234,14 +272,13 @@ if [[ "$FRONTEND_ONLY" != true ]]; then
     echo "Local PM2 requires SUBMISSION_DB_USER=submission_rw; provision custom production accounts outside up.sh." >&2
     exit 1
   }
-  if [[ "$PREPARE_SUBMISSION_OWNER" != true ]]; then
+  if [[ "$PREPARE_SUBMISSION_OWNER" != true && "$DEV_MODE" == "dev-full" ]]; then
     [[ "$APP_SUBMISSION_ROUTING_MODE" == "remote" ]] || {
-      echo "The direct Submission provider requires APP_SUBMISSION_ROUTING_MODE=remote; use the previous verified artifact for local rollback." >&2
+      echo "dev-full requires APP_SUBMISSION_ROUTING_MODE=remote." >&2
       exit 1
     }
-
     [[ "$SUBMISSION_CUTOVER_COMPLETE" == "true" ]] || {
-      echo "Submission cutover is not marked complete; startup intentionally stops. Run the confirmation-gated schema cutover and grant observation, then set SUBMISSION_CUTOVER_COMPLETE=true." >&2
+      echo "dev-full requires SUBMISSION_CUTOVER_COMPLETE=true; run the cutover gate first." >&2
       exit 1
     }
   fi

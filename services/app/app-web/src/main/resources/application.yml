@@ -12,9 +12,9 @@ spring:
   # P7-MIGRATE-PROBLEM-001: enable datasource for problem domain
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${APP_DB_HOST:${DB_HOST:localhost}}:${APP_DB_PORT:${DB_PORT:23306}}/${APP_DB_NAME:${DB_NAME:ulticode}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
-    username: ${APP_DB_USER:${DB_USER:ulticode}}
-    password: ${APP_DB_PASSWORD:${DB_PASSWORD:}}
+    url: jdbc:mysql://${APP_DB_HOST:${DB_HOST:localhost}}:${APP_DB_PORT:${DB_PORT:23306}}/${APP_DB_NAME:${DB_NAME:app}}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    username: ${APP_DB_USER:app_rw}
+    password: ${APP_DB_PASSWORD:}
   data:
     redis:
       host: ${REDIS_HOST:localhost}

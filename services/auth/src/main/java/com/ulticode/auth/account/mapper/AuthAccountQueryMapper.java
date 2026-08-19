@@ -27,6 +27,13 @@ public interface AuthAccountQueryMapper {
     AuthAccountEntity findByEmail(@Param("email") String email);
 
     @Select("<script>"
+            + "SELECT " + COLUMNS + " FROM users WHERE is_deleted = 0 AND id IN "
+            + "<foreach collection='accountIds' item='accountId' open='(' separator=',' close=')'>"
+            + "#{accountId}</foreach> ORDER BY id ASC"
+            + "</script>")
+    List<AuthAccountEntity> findByIds(@Param("accountIds") List<String> accountIds);
+
+    @Select("<script>"
             + "SELECT " + COLUMNS + " FROM users WHERE is_deleted = 0"
             + "<if test='search != null and search != \"\" and usernameOnly'>"
             + "  AND username LIKE CONCAT('%', #{search}, '%')"

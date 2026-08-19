@@ -59,6 +59,14 @@ public class AccountQueryProvider implements AccountQueryService {
                 .orElseGet(() -> RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, DEFAULT_TRACE_ID));
     }
 
+
+    @Override
+    public RpcResult<List<AuthAccountDTO>> getAccountsByIds(java.util.Set<String> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return RpcResult.success(List.of(), DEFAULT_TRACE_ID);
+        }
+        return RpcResult.success(queryPort.findByIds(accountIds), DEFAULT_TRACE_ID);
+    }
     @Override
     public RpcResult<AuthAccountDTO> queryAccounts(AccountQueryDTO query) {
         if (query == null) {

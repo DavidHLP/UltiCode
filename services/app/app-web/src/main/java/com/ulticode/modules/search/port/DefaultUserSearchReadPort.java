@@ -9,22 +9,23 @@ import org.springframework.stereotype.Component;
 /**
  * App-side adapter for {@link UserSearchReadPort}.
  *
- * <p>Delegates to the owner-composed {@link UserSearchReadMapper} port. Auth
- * account data is obtained through the adapter's owner query seam rather than
- * through the App datasource.
+ * <p>Delegates to the owner-composed {@link UserDirectoryQueryPort} seam.
+ * Auth account data is obtained through the adapter's owner query seam rather
+ * than through the App datasource.
  */
 @Component
 @RequiredArgsConstructor
 public class DefaultUserSearchReadPort implements UserSearchReadPort {
 
-    private final UserSearchReadMapper userSearchReadMapper;
+    private final UserDirectoryQueryPort userDirectoryQueryPort;
 
     @Override
     public List<UserIndexDTO> searchForIndex(String query, int limit) {
         if (query == null || query.isBlank() || limit <= 0) {
             return List.of();
         }
-        return userSearchReadMapper.searchIndex(query, limit).stream()
+        return userDirectoryQueryPort.search(query, limit).stream()
+                .map(UserDirectoryRow::row)
                 .map(row -> new UserIndexDTO(
                         row.getId(),
                         row.getUsername(),

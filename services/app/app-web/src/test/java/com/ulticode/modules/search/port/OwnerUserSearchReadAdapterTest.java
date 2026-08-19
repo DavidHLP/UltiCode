@@ -58,9 +58,10 @@ class OwnerUserSearchReadAdapterTest {
         when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1")))
                 .thenReturn(List.of(profile("u-1", "Alice", "/alice.png", null)));
 
-        List<UserSearchRow> rows = adapter.searchIndex("ali", 10);
+        List<UserDirectoryRow> rows = adapter.search("ali", 10);
 
-        assertThat(rows).singleElement().satisfies(row -> {
+        assertThat(rows).singleElement().satisfies(directoryRow -> {
+            UserSearchRow row = directoryRow.row();
             assertThat(row.getId()).isEqualTo("u-1");
             assertThat(row.getUsername()).isEqualTo("alice");
             assertThat(row.getName()).isEqualTo("Alice");
@@ -83,11 +84,12 @@ class OwnerUserSearchReadAdapterTest {
         when(profileReadMapper.findSearchRowsByAccountIds(any()))
                 .thenReturn(List.of(profile("u-1", "Alice", "/a.png", null),
                         profile("u-2", "Alice Cooper", "/b.png", null)));
+        List<UserDirectoryRow> rows = adapter.search("ali", 10);
 
-        List<UserSearchRow> rows = adapter.searchIndex("ali", 10);
-
-        assertThat(rows).extracting(UserSearchRow::getId).containsExactly("u-1", "u-2");
-        assertThat(rows).extracting(UserSearchRow::getUsername).containsExactly("alice", "bob");
+        assertThat(rows).extracting(directoryRow -> directoryRow.row().getId())
+                .containsExactly("u-1", "u-2");
+        assertThat(rows).extracting(directoryRow -> directoryRow.row().getUsername())
+                .containsExactly("alice", "bob");
     }
 
     @Test
@@ -101,9 +103,10 @@ class OwnerUserSearchReadAdapterTest {
                 .thenReturn(RpcResult.success(List.of(), "t-search"));
         when(profileReadMapper.findSearchRowsByAccountIds(any())).thenReturn(List.of());
 
-        List<UserSearchRow> rows = adapter.searchIndex("ali", 10);
+        List<UserDirectoryRow> rows = adapter.search("ali", 10);
 
-        assertThat(rows).singleElement().satisfies(row -> {
+        assertThat(rows).singleElement().satisfies(directoryRow -> {
+            UserSearchRow row = directoryRow.row();
             assertThat(row.getId()).isEqualTo("u-1");
             assertThat(row.getName()).isNull();
             assertThat(row.getAvatar()).isNull();
@@ -111,20 +114,37 @@ class OwnerUserSearchReadAdapterTest {
     }
 
     @Test
-    void findIndexRowByIdComposesAccountAndProfile() {
-        AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
+    void findByIdPreservesAuthAndProfileFreshnessSeparately() {
+        AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", "2026-08-16T08:00:00");
         when(accountQueryService.getAccountById("u-1")).thenReturn(RpcResult.success(account, "t-row"));
-        when(profileReadMapper.findByAccountId("u-1")).thenReturn(new UserProfileDTO(
-                "u-1", "Alice", "/alice.png", null, null, null, null, null, null, null));
+        when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1")))
+                .thenReturn(List.of(profile("u-1", "Alice", "/alice.png", "2026-08-16T12:00:00")));
 
-        UserSearchRow row = adapter.findIndexRowById("u-1");
+        UserDirectoryRow directoryRow = adapter.findById("u-1");
 
-        assertThat(row.getId()).isEqualTo("u-1");
-        assertThat(row.getUsername()).isEqualTo("alice");
-        assertThat(row.getName()).isEqualTo("Alice");
-        assertThat(row.getAvatar()).isEqualTo("/alice.png");
+        assertThat(directoryRow.authUpdatedAt())
+                .isEqualTo(LocalDateTime.parse("2026-08-16T08:00:00"));
+        assertThat(directoryRow.profileUpdatedAt())
+                .isEqualTo(LocalDateTime.parse("2026-08-16T12:00:00"));
+        assertThat(directoryRow.freshAt())
+                .isEqualTo(LocalDateTime.parse("2026-08-16T12:00:00"));
     }
 
+    @Test
+    void findByIdTreatsMissingProfileAsNullableAndKeepsAuthFreshness() {
+        AuthAccountDTO account = account("u-3", "carol", "2026-08-01T00:00:00", "2026-08-16T08:00:00");
+        when(accountQueryService.getAccountById("u-3")).thenReturn(RpcResult.success(account, "t-row"));
+        when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-3"))).thenReturn(null);
+
+        UserDirectoryRow directoryRow = adapter.findById("u-3");
+
+        assertThat(directoryRow.row().getName()).isNull();
+        assertThat(directoryRow.profileUpdatedAt()).isNull();
+        assertThat(directoryRow.authUpdatedAt())
+                .isEqualTo(LocalDateTime.parse("2026-08-16T08:00:00"));
+        assertThat(directoryRow.freshAt())
+                .isEqualTo(directoryRow.authUpdatedAt());
+    }
     @Test
     void enumerationPaginatesByStableAccountIdAndCarriesProfileWatermark() {
         AuthAccountDTO first = account("u-1", "alice", "2026-08-01T00:00:00", "2026-08-16T08:00:00");
@@ -147,20 +167,71 @@ class OwnerUserSearchReadAdapterTest {
     }
 
     @Test
+    void findByIdsUsesAuthBatchAndKeepsMissingIdsAbsent() {
+        Set<String> ids = new java.util.LinkedHashSet<>();
+        for (int i = 0; i < 101; i++) {
+            ids.add("u-" + i);
+        }
+        when(accountQueryService.getAccountsByIds(ids)).thenReturn(RpcResult.success(
+                List.of(account("u-100", "last", "2026-08-01T00:00:00", null)), "t-batch"));
+        when(profileReadMapper.findSearchRowsByAccountIds(ids))
+                .thenReturn(List.of(profile("u-100", "Last", null, null)));
+
+        List<UserDirectoryRow> rows = adapter.findByIds(ids);
+
+        assertThat(rows).singleElement().satisfies(directoryRow -> {
+            assertThat(directoryRow.row().getId()).isEqualTo("u-100");
+            assertThat(directoryRow.row().getUsername()).isEqualTo("last");
+        });
+        verify(accountQueryService, never()).queryAccounts(any());
+    }
+
+    @Test
+    void findByIdsDeduplicatesReturnedAccountsAndDropsOutOfRequestIds() {
+        Set<String> ids = new java.util.LinkedHashSet<>(List.of("u-1", "u-2"));
+        AuthAccountDTO first = account("u-1", "alice", "2026-08-01T00:00:00", null);
+        AuthAccountDTO duplicate = account("u-1", "alice", "2026-08-02T00:00:00", null);
+        AuthAccountDTO outside = account("u-3", "eve", "2026-08-01T00:00:00", null);
+        when(accountQueryService.getAccountsByIds(ids))
+                .thenReturn(RpcResult.success(List.of(first, duplicate, outside), "t-batch"));
+        when(profileReadMapper.findSearchRowsByAccountIds(ids)).thenReturn(List.of());
+
+        List<UserDirectoryRow> rows = adapter.findByIds(ids);
+
+        assertThat(rows).extracting(directoryRow -> directoryRow.row().getId())
+                .containsExactly("u-1");
+    }
+
+
+    @Test
+    void directoryRowFreshnessUsesNewestOwnerTimestamp() {
+        UserSearchRow row = new UserSearchRow();
+        row.setUpdatedAt(LocalDateTime.parse("2026-08-16T08:00:00"));
+        row.setProfileUpdatedAt(LocalDateTime.parse("2026-08-16T12:00:00"));
+
+        UserDirectoryRow directoryRow = UserDirectoryRow.from(row);
+
+        assertThat(directoryRow.contractVersion()).isEqualTo(UserDirectoryQueryPort.CONTRACT_VERSION);
+        assertThat(directoryRow.freshAt())
+                .isEqualTo(LocalDateTime.parse("2026-08-16T12:00:00"));
+        assertThat(directoryRow.profileUpdatedAt())
+                .isAfter(directoryRow.authUpdatedAt());
+    }
+    @Test
     void unavailableAuthFailsClosed() {
         adapter.setAccountQueryService(null);
-
-        assertThatThrownBy(() -> adapter.searchIndex("alice", 10))
+        assertThatThrownBy(() -> adapter.search("alice", 10))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Auth account query unavailable");
     }
+
     @Test
     void unavailableIdentityFailsClosedForProfileSearch() {
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(), 0, 1, 100, "t-search"));
         when(profileReadMapper.findSearchCandidatesBounded("alice", 10))
                 .thenReturn(List.of(profile("u-1", "Alice", null, null)));
-        assertThatThrownBy(() -> adapter.searchIndex("alice", 10))
+        assertThatThrownBy(() -> adapter.search("alice", 10))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Auth account query unavailable");
     }

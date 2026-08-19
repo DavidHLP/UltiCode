@@ -67,6 +67,10 @@ nacos_auth_token="$(random_base64 48)"
 nacos_identity_key="dev_$(random_hex 12)"
 nacos_identity_value="$(random_hex 24)"
 meili_master_key="meili_$(random_base64 32)"
+auth_db_password="auth_$(random_hex 18)"
+admin_db_password="admin_$(random_hex 18)"
+app_db_password="app_$(random_hex 18)"
+notification_db_password="notification_$(random_hex 18)"
 submission_db_password="submission_$(random_hex 18)"
 submission_migration_password="migration_submission_$(random_hex 24)"
 
@@ -89,8 +93,31 @@ DB_USER=ulticode
 DB_PASSWORD="$db_password"
 DB_NAME=ulticode
 
+# Owner runtime schemas/accounts. All owners share one MySQL instance but
+# runtime accounts are limited to their own schema.
+AUTH_DB_HOST=localhost
+AUTH_DB_PORT=23306
+AUTH_DB_NAME=auth
+AUTH_DB_USER=auth_rw
+AUTH_DB_PASSWORD="$auth_db_password"
+ADMIN_DB_HOST=localhost
+ADMIN_DB_PORT=23306
+ADMIN_DB_NAME=admin
+ADMIN_DB_USER=admin_rw
+ADMIN_DB_PASSWORD="$admin_db_password"
+APP_DB_HOST=localhost
+APP_DB_PORT=23306
+APP_DB_NAME=app
+APP_DB_USER=app_rw
+APP_DB_PASSWORD="$app_db_password"
+NOTIFICATION_DB_HOST=localhost
+NOTIFICATION_DB_PORT=23306
+NOTIFICATION_DB_NAME=notification
+NOTIFICATION_DB_USER=notification_rw
+NOTIFICATION_DB_PASSWORD="$notification_db_password"
+
 # The local PM2 stack uses the direct Submission owner only after the explicit
-# schema cutover; \`up.sh\` stops safely while SUBMISSION_CUTOVER_COMPLETE=false.
+# schema cutover; up.sh stops safely while SUBMISSION_CUTOVER_COMPLETE=false.
 SUBMISSION_DB_HOST=localhost
 SUBMISSION_DB_PORT=23306
 SUBMISSION_DB_NAME=submission

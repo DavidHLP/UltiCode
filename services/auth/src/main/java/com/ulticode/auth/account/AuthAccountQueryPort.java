@@ -17,5 +17,7 @@ public interface AuthAccountQueryPort {
 
     List<AuthAccountDTO> queryAccounts(AccountQueryDTO query, int offset, int limit);
 
+    List<AuthAccountDTO> findByIds(java.util.Set<String> accountIds);
+
     long countAccounts(AccountQueryDTO query);
 }

@@ -70,8 +70,10 @@ env ENV_FILE="$TEST_ENV" MIGRATION_SCHEMA=auth MIGRATION_DB_HOST=127.0.0.1 \
   bash "$ROOT_DIR/scripts/dev/migrate.sh" validate > "$TEST_DIR/missing-dml.log" 2>&1
 MISSING_DML_STATUS=$?
 set -e
-[[ "$MISSING_DML_STATUS" -ne 0 ]]
-grep -q "required migration privilege missing on 'auth': INSERT" "$TEST_DIR/missing-dml.log"
+if [[ "$MISSING_DML_STATUS" -eq 0 ]] || ! grep -q "required migration privilege missing on 'auth': INSERT" "$TEST_DIR/missing-dml.log"; then
+  echo "missing Flyway DML rejection: FAIL" >&2
+  exit 1
+fi
 printf 'missing Flyway DML rejection: PASS\n'
 
 for OWNER_SCHEMA in auth app; do

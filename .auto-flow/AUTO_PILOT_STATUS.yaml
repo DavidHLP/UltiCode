@@ -1,52 +1,83 @@
-objective: "Services Owner architecture hardening"
-domain: "owner boundaries, Admin seam and database isolation preparation"
-status: blocked
+objective: Services architecture hardening — ARCHFIX
+domain: dev entrypoints, owner boundaries, coarse query seams, Search behavior and
+  compatibility retirement
+status: in_progress
+active_task: ARCHFIX-003
+resume_point: Implement bounded UserDirectoryQueryPort seam for Search; preserve independent AdminAnalyticsPort and SubmissionAdminReadPort.
+control_plane:
+  task_authority: .auto-flow/TASKS.yaml
+  historical_tasks: .auto-flow/TASKS.history.yaml
+  plan: .auto-flow/PLAN.md
+  coverage: .auto-flow/COVERAGE.md
+  decisions: .auto-flow/DECISIONS.md
+  resume: .auto-flow/RESUME.md
+  handoff: .auto-flow/HANDOFF.yaml
 scope:
-  - "ARCH-001 immutable Submission facts snapshot and synchronous callback removal"
-  - "ARCH-002 owner datasource/Flyway/isolation preparation with disposable grant evidence"
-  - "ARCH-003 App compatibility cleanup only after production stability evidence"
-  - "ARCH-004 Admin analytics coarse seam and bounded component/mapper scan"
-  - "ARCH-005 runtime topology/documentation synchronization"
-  - "ARCH-006 final Review/Validation/Completion/Coverage audit"
+- ARCHFIX-001 dev-lite/dev-full startup split
+- ARCHFIX-002 per-Owner schema/runtime-account/migration-identity boundary
+- ARCHFIX-003 coarse batched versioned Admin/Search/Submission Query contracts
+- ARCHFIX-004 one default Search implementation with explicit fallback semantics
+- ARCHFIX-005 evidence-gated compatibility and shadow path retirement
+- ARCHFIX-006 final architecture and startup acceptance
 out_of_scope:
-  - "Production or remote database/grant/cutover, deployment, release, push, merge or destructive reset"
-  - "Editing applied migrations, claiming users split completion without owner/runtime evidence"
-  - "Speculative broader Admin seam rewrite or new broker/parallel architecture"
+- New Kafka, RocketMQ, Kubernetes, Service Mesh or independent MySQL clusters
+- Editing applied migrations
+- Deleting rollback-only compatibility paths without retirement evidence
+- Claiming local/TEST-TARGET rehearsal as production acceptance
 terminal_condition:
-  - "ARCH-001, ARCH-004 and ARCH-005 local evidence are closed; final ARCH-006/ARCH-007 gate remains in progress/blocked until external ARCH-002/003 evidence exists"
-  - "ARCH-002 and ARCH-003 are either completed with external evidence or accurately blocked"
-  - "Review, Tier C validation, rollback boundaries and local-only scope are persisted"
+- ARCHFIX-001..006 have fresh Acceptance, Validation, Review, Rollback and Evidence
+- dev-lite first run and explicit dev-full gate behavior pass
+- owner grant isolation, coarse Query contracts, one Search default and compatibility
+  retirement pass
+- Missing evidence keeps the relevant Task blocked; no completion is fabricated
 nodes:
-  - id: ARCH-001
-    goal: "Immutable Submission facts snapshot at the request boundary"
-    status: done
-  - id: ARCH-002
-    goal: "Owner datasource/Flyway/isolation preparation and users migration plan"
-    status: blocked
-    blocker: "External target authority, users/profile responsibility sign-off, and production/remote cutover evidence are missing; local TEST-TARGET evidence is retained below."
-  - id: ARCH-003
-    goal: "Remove App dual-track compatibility after production stability evidence"
-    status: blocked
-    blocker: "External production stability, deployment authority, observation window, rollback and compatibility-retirement evidence are missing; local rehearsal evidence is not external acceptance."
-  - id: ARCH-004
-    goal: "Admin analytics coarse seam and bounded scan"
-    status: done
-  - id: ARCH-005
-    goal: "Services topology, POM, PM2, Compose and docs synchronization"
-    status: done
-  - id: ARCH-006
-    goal: "Final architecture Review, Validation, Completion and Coverage Audit"
-    status: in_progress
-    blocker: "Final gate cannot close while ARCH-002 and ARCH-003 remain blocked."
-resume_point: "Local DEV-LOCAL remediation and evidence are complete; resume at the external authority boundary for ARCH-002-002..005 and ARCH-003-001..005. Do not treat TEST-TARGET rehearsal as external acceptance."
+- id: ARCHFIX-001
+  goal: Establish dev-lite and dev-full startup profiles
+  status: done
+  depends_on: []
+- id: ARCHFIX-002
+  goal: Complete per-Owner schema and unique writer configuration
+  status: done
+  depends_on:
+  - ARCHFIX-001
+- id: ARCHFIX-003
+  goal: Aggregate Admin/Search/Submission deep Query interfaces
+  status: blocked
+  depends_on:
+  - ARCHFIX-002
+  blocker: Existing contracts are fragmented; a single coarse, batched, versioned
+    boundary needs an explicit bounded contract decision before implementation.
+- id: ARCHFIX-004
+  goal: Unify Search behavior under one default implementation
+  status: pending
+  depends_on:
+  - ARCHFIX-003
+- id: ARCHFIX-005
+  goal: Retire verified compatibility and shadow paths
+  status: pending
+  depends_on:
+  - ARCHFIX-004
+- id: ARCHFIX-006
+  goal: Run final architecture and startup acceptance
+  status: pending
+  depends_on:
+  - ARCHFIX-005
+resume_point: Plan ARCHFIX-003 contract boundary using existing AdminAnalyticsPort,
+  OwnerUserSearchReadAdapter and SubmissionAdminReadPort; do not implement until contract
+  scope is explicit.
 planned_remediation:
-  - "Reuse scripts/dev/migrate.sh for explicit privileged MIGRATION_DB_* connection, owner schema allowlist, privilege preflight and disposable MySQL evidence."
-  - "Keep ARCH-002 and ARCH-003 blocked until real authority, target, users responsibility, remote stability and rollback evidence exist."
-  - "Current RESUME CONTRACT-007/008 wording is historical; current PLAN/TASKS/HANDOFF are authoritative."
+- Implement ARCHFIX-001 before changing Owner schemas or public Query contracts.
+- Advance only through the dependency DAG and record fresh evidence per Task.
+- Preserve historical ARCH-002/ARCH-003 and Submission/Search packets for audit; do
+  not use their old resume point for the active ARCHFIX work.
 historical_objectives:
-  - objective: "将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界"
-    status: complete
-    artifact: ".auto-flow/TASKS.yaml CONTRACT-001..CONTRACT-008"
-  - objective: "学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent"
-    status: complete
-    artifact: "/home/davidhlp/.codex/skills/arthas-mcp-diagnostics"
+- objective: ARCH-001..ARCH-006 Services Owner architecture hardening packet
+  status: historical
+  artifact: .auto-flow/PLAN.md historical sections and .auto-flow/WORKLOG.md
+- objective: 将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification
+    owner API 边界
+  status: historical
+  artifact: .auto-flow/TASKS.history.yaml
+- objective: 学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent
+  status: complete
+  artifact: /home/davidhlp/.codex/skills/arthas-mcp-diagnostics

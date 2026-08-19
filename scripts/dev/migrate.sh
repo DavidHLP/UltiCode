@@ -68,11 +68,11 @@ owner_schema() {
 
 runtime_user_for_schema() {
   case "$1" in
-    auth) printf '%s' "${AUTH_DB_USER:-${DB_USER:-}}" ;;
-    admin) printf '%s' "${ADMIN_DB_USER:-${DB_USER:-}}" ;;
-    app) printf '%s' "${APP_DB_USER:-${DB_USER:-}}" ;;
-    notification) printf '%s' "${NOTIFICATION_DB_USER:-${DB_USER:-}}" ;;
-    submission) printf '%s' "${SUBMISSION_DB_USER:-${DB_USER:-}}" ;;
+    auth) printf '%s' "${AUTH_DB_USER:-}" ;;
+    admin) printf '%s' "${ADMIN_DB_USER:-}" ;;
+    app) printf '%s' "${APP_DB_USER:-}" ;;
+    notification) printf '%s' "${NOTIFICATION_DB_USER:-}" ;;
+    submission) printf '%s' "${SUBMISSION_DB_USER:-}" ;;
     *) printf '' ;;
   esac
 }

@@ -1,53 +1,38 @@
-outcome: blocked
+outcome: pass
 outputs:
-  - ".auto-flow/TASKS.yaml — DEV-LOCAL remediation complete; external ARCH-002/003 gates remain blocked"
-  - ".auto-flow/COVERAGE.md — local evidence retained and external gaps explicit"
-  - ".auto-flow/DECISIONS.md — TEST-TARGET authority and local-only boundaries"
-  - ".auto-flow/AUTO_PILOT_STATUS.yaml — blocked parent status with ARCH-002/003 blockers"
-  - ".local/evidence/arch-002-002-20260819T074701Z — local disposable grant evidence only"
-  - ".local/evidence/arch-002-003-20260819T091419Z — local users/profile parity evidence only"
-  - ".local/evidence/arch-002-004-20260819T091846Z — local privileged Auth validation only"
-  - ".local/evidence/arch-002-005-20260819T092812Z — local cutover/reconciliation evidence only"
-  - ".local/evidence/arch-002-005-smoke-20260819T094548Z — local smoke evidence only"
-  - ".local/evidence/arch-002-005-rollback-perf-20260819T094655Z — local rollback evidence only"
-  - ".local/evidence/arch-003-001..005 — local monitoring/quiesce/observation/compatibility rehearsals only"
-  - ".local/evidence/arch-007-final-20260819T095025Z — local final validation only; external gate remains open"
-evidence:
-  - "Backup restored 6 schemas and 139 tables in disposable MySQL with SHA-256 and gzip verification."
-  - "5 owner runtime accounts and 5 direct migration accounts verified with strict least-privilege grant isolation."
-  - "Auth and App users/profile separation complete with zero cross-owner SQL in App/Admin and durable transactional outbox for moderation."
-  - "Privileged Auth migration validated/migrated; runtime account verified non-privileged."
-  - "Submission physical cutover copy forward, grant revocation and checksum matching verified on TEST-TARGET."
-  - "Post-cutover smoke test suite passed 78 tests across auth-api (4), app-web (53), and submission (21) modules with BUILD SUCCESS."
-  - "Observation and fault injection rehearsal passed all 5 sections with 65 targeted resilience tests (0 failures, 0 errors, 0 skips)."
-  - "Monitoring and provider suite passed 33 tests across admin-api (5) and app-web (28) with authenticated Redis PING PONG."
-  - "High concurrency, PEL replay, outbox dispatching and compatibility whitelist audit passed 56 tests with BUILD SUCCESS."
-  - "Full reactor multi-module verification passed with BUILD SUCCESS across 111 tests (0 failures, 0 errors, 0 skips)."
-  - "All scripts/dev/*.sh passed bash -n; preflight self-test passed; all .auto-flow/*.yaml parsed valid; git diff --check clean."
-  - "Zero applied migrations edited; zero secret leaks across all evidence bundles."
-next_goal:
-  - "Obtain external target authority, users/profile responsibility sign-off and remote cutover evidence for ARCH-002."
-  - "Obtain production stability, deployment authority, observation/rollback and compatibility-retirement evidence for ARCH-003."
-next_skill: none
-reason: "Local evidence is complete and preserved, but external evidence required by ARCH-002/003 acceptance criteria is absent."
-alternatives: []
-blockers:
-  - "ARCH-002: external target/account authority, users/profile responsibility and physical cutover evidence missing."
-  - "ARCH-003: production stability window, deployment authority, all-writer quiesce, observation/rollback and retirement evidence missing."
-context_packet:
-  environment: TEST-TARGET
-  status: BLOCKED
-  all_tasks_closed: false
-  confirmed_findings: 0
-  secret_leaks: 0
-services_autonomy_packet:
-  ledger: ".auto-flow/SERVICES_AUTONOMY_TASKS.yaml"
-  coverage: ".auto-flow/SERVICES_AUTONOMY_COVERAGE.md"
-  decisions: ".auto-flow/SERVICES_AUTONOMY_DECISIONS.md"
-  worklog: ".auto-flow/SERVICES_AUTONOMY_WORKLOG.md"
-  evidence_root: ".local/evidence/20260819T2000Z/"
-  local_tasks_completed: ["TASK-001", "TASK-002", "TASK-003", "TASK-004", "TASK-005"]
-  task_006_partial_evidence: "Judge Redis 4/4; Search HTTP stub 3/3; Notification 92/92; replay/delete ledger recorded; real MeiliSearch unavailable"
-  task_007_evidence: "TEST-TARGET inventory now covers all listed paths with owner/switch/rollback/observability/retirement fields; acceptance partial_blocked"
-  blocked_tasks: ["TASK-006", "TASK-007", "TASK-008"]
-  final_blocker_review: ".local/evidence/20260819T2000Z/final-blocker-review.yaml"
+  - Context Packet: ARCHFIX-003 已在实际工作区完成 freshness、missing-profile、findByIds duplicate/out-of-request rework；ARCHFIX-004 是下一 Ready Task
+  - Protected Worktree Inventory: 所有现有 tracked/未跟踪修改均保留，未覆盖业务或用户文件
+  - Call/Data Flow: Search callers -> UserDirectoryQueryPort -> OwnerUserSearchReadAdapter -> Auth AccountQueryService/IdentityQueryService + App UserProfileReadMapper；backfill 使用 freshAt；profile write 使用 findById 后发布 SearchDocumentChanged
+  - Verification Record: 安装最新 auth-api/app-api 后 app-web focused suite 39/0/0/0 PASS，auth AccountQueryProviderTest 6/0/0/0 PASS，git diff --check PASS
+  - Known Stale-Class Failure: 未安装共享契约时首次 focused test 因旧本地 Maven artifacts 报 AccountQueryDTO/AccountQueryService NoSuchMethodError；已通过 reactor install 修复验证，不是业务回归
+  - Search Boundary Finding: SearchReadProjection 仍是单一默认实现，但 MeiliSearch 与 database fallback 的 total、all-index page/offset 和失败语义需要 ARCHFIX-004 的 fresh contract/E2E 证据
+ evidence:
+  - graphify query/path on ARCHFIX-003, UserDirectoryQueryPort, OwnerUserSearchReadAdapter; graphify graph.json/GRAPH_REPORT timestamps 2026-08-19 23:47 +0800
+  - HEAD ab9d869091f4b92f0d11df9775028de3595e230a; branch main
+  - git status shows pre-existing control-plane, env/compose/script/config, Search/Auth/App source/test modifications plus untracked TASKS.history.yaml, OwnerUserSearchReadAdapter.java.tmp, UserDirectoryQueryPort.java, UserDirectoryRow.java; all protected
+  - OwnerUserSearchReadAdapterTest: 11 tests; DefaultSearchReadProjectionTest included in app-web focused run; total app-web focused run 39 tests pass after dependency installation
+  - AccountQueryProviderTest: 6 tests pass
+  - git diff --check passes
+  - .auto-flow/TASKS.yaml records ARCHFIX-003 done with freshness and duplicate contract evidence, ARCHFIX-004 pending, ARCHFIX-005/006 pending
+  - .auto-flow/COVERAGE.md explicitly requires ARCHFIX-004 single default/pagination/total/fallback/real MeiliSearch E2E evidence and ARCHFIX-005 retirement evidence
+  - scripts/dev/test.sh supports quick/full/integration; services/AGENTS.md requires Maven compile/test/IT/verify proportional to risk
+ next_goal: 为 ARCHFIX-004 制定唯一 Search 实现、分页/total/fallback contract 与真实 MeiliSearch E2E 的执行计划；先确认产品对 all-index total/page 语义的唯一裁决，再实现和验证
+ next_skill: plan-development-work
+ reason: Context Packet 已完整，ARCHFIX-003 的实际行为、调用链、验证顺序、工作区保护和 ARCHFIX-004/005/006 缺口均有证据；原始 Services 架构目标仍需规划和实施，不能将当前 local focused PASS 误报为全部目标完成
+ alternatives:
+  - auto-pilot：若后续目标同时要求 Search、兼容退休和外部环境门禁跨域编排
+ blockers:
+  - ARCHFIX-004 尚无真实 MeiliSearch E2E、稳定 pagination/total/fallback contract evidence
+  - ARCHFIX-005/006 依赖 ARCHFIX-004，兼容/legacy/shadow 路径不得在 retirement evidence 之前删除
+  - ARCHFIX-002/ARCHFIX-003 历史外部 acceptance 仍不能由 TEST-TARGET/local evidence 晋级为 production evidence
+  - 工作区包含大量既有修改和未跟踪文件，后续只能增量编辑归属明确文件
+ context_packet:
+  status: ARCHFIX-003_CLOSED_NEXT_TASK_READY
+  objective: 修复 Services Strangler migration 下的开发入口、Owner seam、跨 Owner 读模型、Search 双实现和兼容路径问题
+  authority: current TEST-TARGET/dev environment only; no production claim
+  branch: main
+  commit: ab9d869091f4b92f0d11df9775028de3595e230a
+  active_task: ARCHFIX-004
+  dag: ARCHFIX-001 -> ARCHFIX-002 -> ARCHFIX-003 -> ARCHFIX-004 -> ARCHFIX-005 -> ARCHFIX-006
+  protected_changes: true
+  source_fallback: direct source reads used for exact Java/YAML/script behavior after graphify orientation

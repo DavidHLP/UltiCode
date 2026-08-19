@@ -1,8 +1,7 @@
 package com.ulticode.modules.search.port;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ulticode.app.api.dto.UserIndexDTO;
@@ -22,65 +21,51 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DefaultUserSearchReadPortTest {
 
     @Mock
-    private UserSearchReadMapper userSearchReadMapper;
+    private UserDirectoryQueryPort userDirectoryQueryPort;
 
     @InjectMocks
     private DefaultUserSearchReadPort port;
-
     @Test
-    @DisplayName("blank query returns empty list without touching the mapper")
-    void blankQuerySkipsMapper() {
+    @DisplayName("blank query returns empty list without touching the directory port")
+    void blankQuerySkipsDirectoryPort() {
         assertThat(port.searchForIndex("   ", 10)).isEmpty();
         assertThat(port.searchForIndex(null, 10)).isEmpty();
-        verify(userSearchReadMapper, never()).searchIndex(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyInt());
+        verifyNoInteractions(userDirectoryQueryPort);
     }
 
     @Test
-    @DisplayName("non-positive limit returns empty list without touching the mapper")
-    void nonPositiveLimitSkipsMapper() {
+    @DisplayName("non-positive limit returns empty list without touching the directory port")
+    void nonPositiveLimitSkipsDirectoryPort() {
         assertThat(port.searchForIndex("alice", 0)).isEmpty();
         assertThat(port.searchForIndex("alice", -3)).isEmpty();
-        verify(userSearchReadMapper, never()).searchIndex(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyInt());
+        verifyNoInteractions(userDirectoryQueryPort);
     }
 
     @Test
-    @DisplayName("maps rows to index DTOs preserving all fields")
+    @DisplayName("maps directory rows to index DTOs preserving all fields")
     void mapsRowsToDtos() {
         UserSearchRow row = new UserSearchRow();
         row.setId("u-1");
         row.setUsername("alice");
         row.setName("Alice Example");
         row.setAvatar("/avatars/a.png");
-        when(userSearchReadMapper.searchIndex("ali", 5)).thenReturn(List.of(row));
+        when(userDirectoryQueryPort.search("ali", 5))
+                .thenReturn(List.of(UserDirectoryRow.from(row)));
 
         List<UserIndexDTO> result = port.searchForIndex("ali", 5);
 
-        assertThat(result).hasSize(1);
-        UserIndexDTO dto = result.get(0);
-        assertThat(dto.accountId()).isEqualTo("u-1");
-        assertThat(dto.username()).isEqualTo("alice");
-        assertThat(dto.name()).isEqualTo("Alice Example");
-        assertThat(dto.avatar()).isEqualTo("/avatars/a.png");
+        assertThat(result).singleElement().satisfies(dto -> {
+            assertThat(dto.accountId()).isEqualTo("u-1");
+            assertThat(dto.username()).isEqualTo("alice");
+            assertThat(dto.name()).isEqualTo("Alice Example");
+            assertThat(dto.avatar()).isEqualTo("/avatars/a.png");
+        });
     }
 
     @Test
-    @DisplayName("null avatar/name survive the mapping (nullable display columns)")
-    void nullableFieldsSurviveMapping() {
-        UserSearchRow row = new UserSearchRow();
-        row.setId("u-2");
-        row.setUsername("bob");
-        when(userSearchReadMapper.searchIndex("bob", 10)).thenReturn(List.of(row));
-
-        List<UserIndexDTO> result = port.searchForIndex("bob", 10);
-
-        assertThat(result.get(0).name()).isNull();
-        assertThat(result.get(0).avatar()).isNull();
-    }
-
-    @Test
-    @DisplayName("empty mapper result yields empty list, never null")
-    void emptyMapperResultYieldsEmptyList() {
-        when(userSearchReadMapper.searchIndex("zzz", 10)).thenReturn(List.of());
+    @DisplayName("empty directory result yields empty list")
+    void emptyDirectoryResultYieldsEmptyList() {
+        when(userDirectoryQueryPort.search("zzz", 10)).thenReturn(List.of());
         assertThat(port.searchForIndex("zzz", 10)).isEmpty();
     }
 }

@@ -1531,3 +1531,43 @@ The verified code/config keeps local route as rollback entry. Cutover failure fi
 ### Delivery Authority / Terminal Condition
 
 用户已确认本地开放项目没有 production environment。Local shared-schema copy、REVOKE、route switch、direct-provider retirement 和 runtime observation 已在 preflight 后完成；不得把它描述为 production deployment。Terminal condition is CONTRACT-007/CONTRACT-008 evidence closure with no Confirmed Finding，已满足。
+
+## ARCHFIX Execution Packet (2026-08-19)
+
+### Historical boundary
+
+The preceding ARCH-002/ARCH-003 blocker-remediation packet and the Submission/Search extraction packet above are historical execution records. They remain preserved for audit and are not the active packet for the current architecture-hardening objective.
+
+### Objective
+
+修复开发入口复杂、Owner seam 不可执行、跨 Owner 读模型过浅、Search 双实现以及兼容路径过多的问题；不引入新的 broker、Kubernetes、Service Mesh 或独立 MySQL 集群。
+
+### Active DAG
+
+`ARCHFIX-001` → `ARCHFIX-002` → `ARCHFIX-003` → `ARCHFIX-004` → `ARCHFIX-005` → `ARCHFIX-006`
+
+首个可执行 Task：`ARCHFIX-001`，状态为 `ready`。当前 Task 状态唯一真源是 `.auto-flow/TASKS.yaml`；历史 Task 保存在 `.auto-flow/TASKS.history.yaml`。
+
+### Scope
+
+- `dev-lite` / `dev-full` 启动入口和默认配置
+- 每 Owner schema、runtime account、migration identity 和唯一 writer
+- Admin/Search/Submission 粗粒度、批量、版本化 Query contract
+- Search 唯一默认 implementation、分页和 fallback 语义
+- 已有兼容、legacy、shadow 路径的证据化退休
+- 相关测试、脚本、Compose、配置和文档
+
+### Out of Scope
+
+- 新增 Kafka、RocketMQ、Kubernetes、Service Mesh 或独立 MySQL 集群
+- 修改 applied migration
+- 未有 rollback/retirement evidence 时删除 compatibility path
+- 将 local/TEST-TARGET rehearsal 宣称为 production acceptance
+
+### Delivery Boundary
+
+当前仅授权 TEST-TARGET/dev 环境内的脚本、配置、代码、测试和可回滚 rehearsal。不得自动 push、merge、publish 或修改未授权外部资源。
+
+### Terminal Condition
+
+ARCHFIX-006 只有在 dev-lite 首次启动、dev-full 显式启动、Owner grant isolation、粗粒度读 contract、Search 唯一路径和兼容退休全部具备 fresh evidence，且 focused/module/integration/security/formal review 通过后才能完成；证据缺失时保持 blocked。

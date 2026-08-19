@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
  * App datasource query touches Auth-owned {@code users}.
  */
 @Component
-public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
+public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
 
     private static final int ACCOUNT_PAGE_SIZE = 100;
 
@@ -49,80 +49,6 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
         this.profileReadMapper = profileReadMapper;
     }
 
-    @Override
-    public List<UserSearchRow> searchIndex(String query, int limit) {
-        if (query == null || query.isBlank() || limit <= 0) {
-            return List.of();
-        }
-
-        RpcResult<AuthAccountDTO> usernameResponse = queryAccounts(new AccountQueryDTO(
-                query, null, null, null, 1, Math.min(limit, ACCOUNT_PAGE_SIZE),
-                "username", "asc", true));
-        Map<String, AuthAccountDTO> usernameAccounts = new LinkedHashMap<>();
-        for (AuthAccountDTO account : pageItems(usernameResponse)) {
-            if (containsIgnoreCase(account.username(), query)) {
-                usernameAccounts.put(account.accountId(), account);
-            }
-        }
-
-        List<UserProfileReadRow> nameMatches = profileSearchCandidates(query, Math.min(limit, ACCOUNT_PAGE_SIZE));
-        Map<String, UserProfileReadRow> profiles = profileMap(nameMatches);
-        Set<String> profileIds = new LinkedHashSet<>(profiles.keySet());
-        profileIds.removeAll(usernameAccounts.keySet());
-        Map<String, UserIdentityDTO> identities = batchIdentities(profileIds);
-
-        Set<String> accountIds = new LinkedHashSet<>(usernameAccounts.keySet());
-        accountIds.addAll(identities.keySet());
-        profiles.putAll(profileMap(profileRows(accountIds)));
-
-        Map<String, UserSearchRow> rows = new LinkedHashMap<>();
-        usernameAccounts.values().forEach(account -> rows.put(
-                account.accountId(), toRow(account, profiles.get(account.accountId()))));
-        identities.values().forEach(identity -> rows.put(
-                identity.accountId(), toRow(identity, profiles.get(identity.accountId()))));
-
-        return rows.values().stream()
-                .sorted(rowComparator())
-                .limit(limit)
-                .toList();
-
-    }
-    @Override
-    public UserSearchRow findIndexRowById(String id) {
-        if (id == null || id.isBlank()) {
-            return null;
-        }
-        AuthAccountDTO account = accountOrNull(accountById(id));
-        if (account == null) {
-            return null;
-        }
-        UserProfileDTO profile = profileReadMapper.findByAccountId(account.accountId());
-        UserProfileReadRow searchProfile = toSearchProfile(profile);
-        return toRow(account, searchProfile);
-    }
-
-    @Override
-    public List<UserSearchRow> enumerateIndex(int offset, int limit) {
-        if (offset < 0 || limit <= 0) {
-            return List.of();
-        }
-        int page = offset / ACCOUNT_PAGE_SIZE + 1;
-        int skip = offset % ACCOUNT_PAGE_SIZE;
-        RpcResult<AuthAccountDTO> response = queryAccounts(new AccountQueryDTO(
-                null, null, null, null, page, ACCOUNT_PAGE_SIZE, "id", "asc", false));
-        List<AuthAccountDTO> pageItems = pageItems(response);
-        if (skip >= pageItems.size()) {
-            return List.of();
-        }
-        List<AuthAccountDTO> pageAccounts =
-                pageItems.subList(skip, Math.min(skip + limit, pageItems.size()));
-        Set<String> accountIds = pageAccounts.stream().map(AuthAccountDTO::accountId)
-                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-        Map<String, UserProfileReadRow> profiles = profileMap(profileRows(accountIds));
-        return pageAccounts.stream()
-                .map(account -> toRow(account, profiles.get(account.accountId())))
-                .toList();
-    }
     /** Test seam; production injection is supplied by Dubbo. */
     void setAccountQueryService(AccountQueryService accountQueryService) {
         this.accountQueryService = accountQueryService;
@@ -132,6 +58,106 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
     void setIdentityQueryService(IdentityQueryService identityQueryService) {
         this.identityQueryService = identityQueryService;
     }
+
+    @Override
+    public List<UserDirectoryRow> search(String query, int limit) {
+        if (query == null || query.isBlank() || limit <= 0) {
+            return List.of();
+        }
+        RpcResult<AuthAccountDTO> usernameResponse = queryAccounts(new AccountQueryDTO(
+                query, null, null, null, 1, Math.min(limit, ACCOUNT_PAGE_SIZE),
+                "username", "asc", true));
+        Map<String, AuthAccountDTO> usernameAccounts = new LinkedHashMap<>();
+        for (AuthAccountDTO account : pageItems(usernameResponse)) {
+            if (containsIgnoreCase(account.username(), query)) {
+                usernameAccounts.put(account.accountId(), account);
+            }
+        }
+        List<UserProfileReadRow> nameMatches = profileSearchCandidates(query, Math.min(limit, ACCOUNT_PAGE_SIZE));
+        Map<String, UserProfileReadRow> profiles = profileMap(nameMatches);
+        Set<String> profileIds = new LinkedHashSet<>(profiles.keySet());
+        profileIds.removeAll(usernameAccounts.keySet());
+        Map<String, UserIdentityDTO> identities = batchIdentities(profileIds);
+        Set<String> accountIds = new LinkedHashSet<>(usernameAccounts.keySet());
+        accountIds.addAll(identities.keySet());
+        profiles.putAll(profileMap(profileRows(accountIds)));
+        Map<String, UserSearchRow> rows = new LinkedHashMap<>();
+        usernameAccounts.values().forEach(account -> rows.put(
+                account.accountId(), toRow(account, profiles.get(account.accountId()))));
+        identities.values().forEach(identity -> rows.put(
+                identity.accountId(), toRow(identity, profiles.get(identity.accountId()))));
+        return rows.values().stream().sorted(rowComparator()).limit(limit)
+                .map(UserDirectoryRow::from)
+                .toList();
+    }
+
+    @Override
+    public UserDirectoryRow findById(String accountId) {
+        if (accountId == null || accountId.isBlank()) {
+            return null;
+        }
+        AuthAccountDTO account = accountOrNull(accountById(accountId));
+        if (account == null) {
+            return null;
+        }
+        List<UserProfileReadRow> profileRows =
+                profileReadMapper.findSearchRowsByAccountIds(Set.of(account.accountId()));
+        UserProfileReadRow profile = profileRows == null ? null : profileRows.stream().findFirst().orElse(null);
+        return UserDirectoryRow.from(toRow(account, profile));
+    }
+
+    @Override
+    public List<UserDirectoryRow> enumerate(int offset, int limit) {
+        if (offset < 0 || limit <= 0) {
+            return List.of();
+        }
+        int page = offset / ACCOUNT_PAGE_SIZE + 1;
+        int skip = offset % ACCOUNT_PAGE_SIZE;
+        List<AuthAccountDTO> pageAccounts = pageItems(queryAccounts(new AccountQueryDTO(
+                null, null, null, null, page, ACCOUNT_PAGE_SIZE, "id", "asc", false)));
+        if (skip >= pageAccounts.size()) {
+            return List.of();
+        }
+        pageAccounts = pageAccounts.subList(skip, Math.min(skip + limit, pageAccounts.size()));
+        Set<String> accountIds = pageAccounts.stream().map(AuthAccountDTO::accountId)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        Map<String, UserProfileReadRow> profiles = profileMap(profileRows(accountIds));
+        return pageAccounts.stream().map(account -> UserDirectoryRow.from(
+                toRow(account, profiles.get(account.accountId())))).toList();
+    }
+
+    @Override
+    public List<UserDirectoryRow> findByIds(Set<String> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return List.of();
+        }
+        Map<String, UserProfileReadRow> profiles = profileMap(profileRows(accountIds));
+        if (accountQueryService == null) {
+            throw unavailable();
+        }
+        RpcResult<List<AuthAccountDTO>> response;
+        try {
+            response = accountQueryService.getAccountsByIds(accountIds);
+        } catch (RuntimeException exception) {
+            throw unavailable();
+        }
+        requireSuccess(response);
+        if (response.data() == null) {
+            throw unavailable();
+        }
+        Map<String, UserDirectoryRow> rows = new LinkedHashMap<>();
+        for (AuthAccountDTO account : response.data()) {
+            if (account != null && accountIds.contains(account.accountId())) {
+                rows.putIfAbsent(account.accountId(),
+                        UserDirectoryRow.from(toRow(account, profiles.get(account.accountId()))));
+            }
+        }
+        return new ArrayList<>(rows.values());
+    }
+
+
+
+
 
     private RpcResult<AuthAccountDTO> queryAccounts(AccountQueryDTO query) {
         if (accountQueryService == null) {
@@ -143,6 +169,7 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
             throw unavailable();
         }
     }
+
 
 
     private RpcResult<AuthAccountDTO> accountById(String id) {
@@ -241,18 +268,11 @@ public class OwnerUserSearchReadAdapter implements UserSearchReadMapper {
         row.setAvatar(profile.avatar());
         return row;
     }
-
     private UserSearchRow toRow(AuthAccountDTO account, UserProfileReadRow profile) {
         UserSearchRow row = new UserSearchRow();
         row.setId(account.accountId());
         row.setUsername(account.username());
-        LocalDateTime authUpdated = account.updatedAt() != null ? account.updatedAt() : account.joinedAt();
-        LocalDateTime profileUpdated = profile != null ? profile.getUpdatedAt() : null;
-        LocalDateTime watermark = authUpdated;
-        if (profileUpdated != null && (watermark == null || profileUpdated.isAfter(watermark))) {
-            watermark = profileUpdated;
-        }
-        row.setUpdatedAt(watermark);
+        row.setUpdatedAt(account.updatedAt() != null ? account.updatedAt() : account.joinedAt());
         row.setJoinedAt(account.joinedAt());
         row.setDeletedAt(account.deletedAt());
         applyProfile(row, profile);

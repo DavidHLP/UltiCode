@@ -189,8 +189,8 @@ class AccountAdministrationProviderTest {
     private static String legacyStateFingerprint() {
         String payload = String.join("|",
                 "6:user-1", "7:DISABLE", "4:test");
+        return sha256("com.ulticode.auth.api.command.ChangeAccountStateCommand\u001f" + payload);
     }
-
     private static String sha256(String value) {
         try {
             return java.util.HexFormat.of().formatHex(

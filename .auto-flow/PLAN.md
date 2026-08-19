@@ -2,20 +2,25 @@
 
 ---
 
-## Current active plan: Services Owner architecture hardening (2026-08-18)
-
 Objective: move the Services Strangler migration from an established multi-process Owner topology toward stronger boundaries, while preserving local rollback paths and avoiding production claims.
 
-Task DAG: `ARCH-001` (done) → `{ARCH-002 blocked, ARCH-004 done, ARCH-005 done}`; `ARCH-003` is blocked by the absent production stability gate; `ARCH-006` is done after the final Review/Validation/Coverage audit.
+Task DAG: `ARCH-001` (done) → `{ARCH-002 blocked, ARCH-004 done, ARCH-005 done}`; `ARCH-003` is blocked by absent external production stability evidence; `ARCH-006/ARCH-007` remain in progress until the external gates close.
 
-Implementation slices completed in this run:
+Local implementation evidence is retained below and in `.local/evidence/`, but it is DEV-LOCAL/TEST-TARGET rehearsal evidence only. It MUST NOT close ARCH-002/003 or be described as external/production acceptance.
 
-- `ARCH-001`: add API-only immutable `SubmissionFactsSnapshot`; App local/remote request boundaries capture or forward it; Submission owner write methods fail closed without it and no longer inject App/Auth facts ports.
-- `ARCH-004`: aggregate the Admin analytics overview behind `AnalyticsOverviewData`, batch contest participants, bound component/mapper scanning and record explicit context/call-count evidence. Broader Admin seams remain out of scope.
-- `ARCH-005`: synchronize the migration guide/status docs, remove the invalid root `backend-api` dependency entry, add Search to PM2/local startup handling, and validate the seven-runtime production Compose topology.
-- `ARCH-002`: add owner-specific datasource variables, Auth runtime Flyway fail-closed gating and a reversible database-isolation plan. Disposable four-owner grant evidence passes; physical accounts, cutover and users-owner runtime migration remain pending.
+Implementation slices completed locally:
 
-Validation order: focused API/owner tests → App/Admin regressions → full `services` Maven tests → Maven reactor/Compose/PM2/Bash/static checks → graph refresh and Coverage Audit. Rollback is source/config artifact rollback; no applied migration, production grant, deployment, or remote route change is authorized by this task.
+- `ARCH-001`: immutable Submission facts snapshot and synchronous callback removal.
+- `ARCH-004`: bounded Admin analytics seam.
+- `ARCH-005`: topology/POM/PM2/Compose/docs synchronization.
+- `ARCH-002-001` and `DEV-LOCAL-001..008`: local migration preparation, grants, backfill, cutover/rollback rehearsal and focused validation.
+
+External blockers:
+
+- `ARCH-002`: missing external target/account authority, users/profile responsibility sign-off, physical cutover and remote rollback evidence.
+- `ARCH-003`: missing production stability window, deployment authority, all-writer quiesce, observation/rollback and compatibility-retirement evidence.
+
+Validation order: focused API/owner tests → App/Admin regressions → services checks → Compose/PM2/Bash/static checks → external evidence review. No production grant, deployment, remote route change or compatibility deletion is authorized by this task.
 
 ## Current execution packet — ARCH-002/ARCH-003 blocker remediation (2026-08-19)
 
@@ -25,7 +30,7 @@ Validation order: focused API/owner tests → App/Admin regressions → full `se
 - 本节是当前 Execution Packet 的最高优先级环境裁决，覆盖下文把当前环境称为 `DEV-LOCAL`、把验收保留给外部/production target、或因此保持 Task blocked 的历史措辞；脚本中的 `dev-local` 文件名和确认 token 仅为兼容名称。
 - 当前 `.env`、`ulticode-mysql`、`ulticode-redis`、Docker Compose 和 PM2 构成唯一授权 TEST-TARGET。所有证据必须来自该目标的真实执行，不得改写为 production evidence。
 - 已记录的 `DEV-LOCAL-001..008` 结果作为 TEST-TARGET baseline 使用，但不能只靠重命名关闭 ARCH Task；必须重新执行对应权限、数据、quiesce、cutover、observation、rollback、兼容退役和最终验证 Gate。
-- 原 Task DAG、least-privilege、single-writer、all-writer quiesce、fail-closed、secret、backup、水位和 rollback 不变量保持不变。`ARCH-002-002` 立即解除权限 blocker，后续 Task 仅按依赖和真实证据推进。
+- 本地 Task DAG、least-privilege、single-writer、all-writer quiesce、fail-closed、secret、backup、水位和 rollback 不变量保持不变。`ARCH-002-002` 及后续外部门禁保持 `blocked`，仅按真实外部证据推进。
 
 ### Objective
 
@@ -117,7 +122,7 @@ Validation order: focused API/owner tests → App/Admin regressions → full `se
 
 ### Terminal Condition
 
-当 `ARCH-002-001..005`、`ARCH-003-001..005` 和 `ARCH-007` 全部 `done`，每个用户要求都有 TEST-TARGET Evidence/Review/Validation/Rollback，实际 owner account/grant/users responsibility/remote stability/quiesce/observation/rollback/monitoring 证据齐全，且最终 Review `Confirmed Findings=0` 时，才关闭两个 blocker。当前 `ARCH-002-001` 已 `done`；`ARCH-002-002` 因本次 TEST-TARGET 全权限授权进入 `ready`，其余 Task 按 DAG 等待依赖。
+当 `ARCH-002-001..005`、`ARCH-003-001..005` 和 `ARCH-007` 全部 `done`，每个用户要求都有外部 Evidence/Review/Validation/Rollback，实际 owner account/grant/users responsibility/remote stability/quiesce/observation/rollback/monitoring 证据齐全，且最终 Review `Confirmed Findings=0` 时，才关闭两个 blocker。当前仅 `ARCH-002-001` 与 DEV-LOCAL remediation 已在本地完成；`ARCH-002-002..005`、`ARCH-003-001..005` 和 `ARCH-007` 保持 `blocked`，等待外部证据。
 
 ### Task DAG
 

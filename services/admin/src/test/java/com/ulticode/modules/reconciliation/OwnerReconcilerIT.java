@@ -178,9 +178,10 @@ class OwnerReconcilerIT {
     }
 
     @Test
-    @DisplayName("admin mapper returns performer candidates without a local users join")
+    @DisplayName("admin mapper returns performer references in bounded pages")
     void mapperReturnsAuditPerformerCandidates() {
-        assertThat(auditOrphanMapper.auditPerformerIds())
-                .contains("u-001", "u-del", "ghost-user");
+        assertThat(auditOrphanMapper.auditPerformerIds(0, 2))
+                .extracting(AuditReferenceCount::getPerformerId)
+                .containsExactly("ghost-user", "u-001");
     }
 }

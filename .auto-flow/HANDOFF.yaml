@@ -1,21 +1,17 @@
-outcome: complete
+outcome: blocked
 outputs:
-  - ".auto-flow/TASKS.yaml — all ARCH-002, ARCH-003, and ARCH-007 tasks completed and verified"
-  - ".auto-flow/COVERAGE.md — all 10 blocker remediation requirements verified PASS"
-  - ".auto-flow/DECISIONS.md — DEC-039 (TEST-TARGET authority) and DEC-040 (registered audit seam exception)"
-  - ".auto-flow/AUTO_PILOT_STATUS.yaml — complete status across all architectural nodes"
-  - ".local/evidence/arch-002-002-20260819T074701Z — verified backup, account/grant matrix, 139 table watermarks, runtime negative probes"
-  - ".local/evidence/arch-002-003-20260819T091419Z — users/profile ownership split, 12/12 parity, outbox and reconciliation evidence"
-  - ".local/evidence/arch-002-004-20260819T091846Z — privileged Auth validate/migrate and runtime DDL/GRANT rejection"
-  - ".local/evidence/arch-002-005-20260819T092812Z — physical cutover, copy forward, grant revocation, and checksum parity match"
-  - ".local/evidence/arch-002-005-smoke-20260819T094548Z — full post-cutover smoke (78 module tests PASS) and runtime permission isolation matrix"
-  - ".local/evidence/arch-002-005-rollback-perf-20260819T094655Z — rollback drill and table row/checksum matching verification (28 tests PASS)"
-  - ".local/evidence/arch-003-001-20260819T092025Z — route monitoring baseline and quiesce preflight"
-  - ".local/evidence/arch-003-002-20260819T092125Z — signed quiesce manifest, 0 active DB connections, 0 PM2 writers"
-  - ".local/evidence/arch-003-003-observation-20260819T094805Z — observation and rollback fault rehearsal with 65 resilience tests (ALL SECTIONS PASS)"
-  - ".local/evidence/arch-003-004-deployed-20260819T094729Z — sanitized Docker Compose dev/prod validation, 33 monitoring/alert tests, authenticated Redis PING PASS"
-  - ".local/evidence/arch-003-005-concurrency-20260819T094906Z — high concurrency, PEL replay, outbox dispatching and compatibility whitelist audit (56 tests PASS)"
-  - ".local/evidence/arch-007-final-20260819T095025Z — final multi-module reactor verification (111 tests BUILD SUCCESS), bash syntax, preflight self-test"
+  - ".auto-flow/TASKS.yaml — DEV-LOCAL remediation complete; external ARCH-002/003 gates remain blocked"
+  - ".auto-flow/COVERAGE.md — local evidence retained and external gaps explicit"
+  - ".auto-flow/DECISIONS.md — TEST-TARGET authority and local-only boundaries"
+  - ".auto-flow/AUTO_PILOT_STATUS.yaml — blocked parent status with ARCH-002/003 blockers"
+  - ".local/evidence/arch-002-002-20260819T074701Z — local disposable grant evidence only"
+  - ".local/evidence/arch-002-003-20260819T091419Z — local users/profile parity evidence only"
+  - ".local/evidence/arch-002-004-20260819T091846Z — local privileged Auth validation only"
+  - ".local/evidence/arch-002-005-20260819T092812Z — local cutover/reconciliation evidence only"
+  - ".local/evidence/arch-002-005-smoke-20260819T094548Z — local smoke evidence only"
+  - ".local/evidence/arch-002-005-rollback-perf-20260819T094655Z — local rollback evidence only"
+  - ".local/evidence/arch-003-001..005 — local monitoring/quiesce/observation/compatibility rehearsals only"
+  - ".local/evidence/arch-007-final-20260819T095025Z — local final validation only; external gate remains open"
 evidence:
   - "Backup restored 6 schemas and 139 tables in disposable MySQL with SHA-256 and gzip verification."
   - "5 owner runtime accounts and 5 direct migration accounts verified with strict least-privilege grant isolation."
@@ -29,14 +25,18 @@ evidence:
   - "Full reactor multi-module verification passed with BUILD SUCCESS across 111 tests (0 failures, 0 errors, 0 skips)."
   - "All scripts/dev/*.sh passed bash -n; preflight self-test passed; all .auto-flow/*.yaml parsed valid; git diff --check clean."
   - "Zero applied migrations edited; zero secret leaks across all evidence bundles."
-next_goal: []
+next_goal:
+  - "Obtain external target authority, users/profile responsibility sign-off and remote cutover evidence for ARCH-002."
+  - "Obtain production stability, deployment authority, observation/rollback and compatibility-retirement evidence for ARCH-003."
 next_skill: none
-reason: "All 10 blocker remediation tasks and the ARCH-007 final gate are completely verified and closed on TEST-TARGET with exact matching evidence artifacts."
+reason: "Local evidence is complete and preserved, but external evidence required by ARCH-002/003 acceptance criteria is absent."
 alternatives: []
-blockers: []
+blockers:
+  - "ARCH-002: external target/account authority, users/profile responsibility and physical cutover evidence missing."
+  - "ARCH-003: production stability window, deployment authority, all-writer quiesce, observation/rollback and retirement evidence missing."
 context_packet:
   environment: TEST-TARGET
-  status: COMPLETE
-  all_tasks_closed: true
+  status: BLOCKED
+  all_tasks_closed: false
   confirmed_findings: 0
   secret_leaks: 0

@@ -1,10 +1,8 @@
 # Resume
 
-## Current objective — Close all ARCH-002/ARCH-003 blockers on TEST-TARGET
-
-- Objective: complete `ARCH-002-002..005`, `ARCH-003-001..005` and `ARCH-007` on the project's sole test environment.
-- Current branch: `main @ 772acad39aab78d9024b3cd825aa4a34022f5f47`; recovery control-plane changes are uncommitted and protected.
-- Current state: `ARCH-001..ARCH-007` all completed and verified on TEST-TARGET.
-- Last gates: Full post-cutover smoke (53 tests PASS), runtime permission isolation matrix, observation rehearsal with fault injection (65 tests PASS), high concurrency & PEL replay (16 tests PASS), compatibility whitelist audit (BUILD SUCCESS), full reactor focused battery (59 tests BUILD SUCCESS), scripts/dev bash syntax check (0 errors), migrate preflight self-test (PASS), control-plane YAML validation (VALID), git diff check (clean), no applied migration diff, zero confirmed review findings and zero secret leaks.
-- Invariants: direct migration grants, separate runtime identities, registered audit append-only seam, backup/watermark before writes, all-writer quiesce, single writer, fail-closed checks, secret redaction, no applied migration edits and no production claims.
-- Status: all blocker remediation tasks and final validation gates are closed on TEST-TARGET.
+- Objective: local DEV-LOCAL remediation is complete; external ARCH-002/003 acceptance remains blocked.
+- Current branch: `main`; recovery control-plane changes are uncommitted and protected.
+- Current state: ARCH-001, ARCH-004 and ARCH-005 are done; ARCH-002 and ARCH-003 are blocked; ARCH-006/ARCH-007 remain open pending external evidence.
+- Local evidence retained: disposable grant/Flyway/backfill/cutover/rollback, monitoring/quiesce rehearsal, compatibility scan and focused validation. These prove local behavior only.
+- Missing external evidence: target authority and users/profile responsibility/cutover for ARCH-002; production stability, deployment authority, observation/rollback and compatibility retirement for ARCH-003.
+- Resume only when external artifacts are supplied; do not rename TEST-TARGET or DEV-LOCAL evidence into production acceptance.

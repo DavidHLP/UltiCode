@@ -23,8 +23,15 @@ public record AccountQueryDTO(
         int page,
         int limit,
         String sortBy,
-        String sortOrder) implements Serializable {
+        String sortOrder,
+        boolean usernameOnly) implements Serializable {
     private static final long serialVersionUID = 1L;
+
+    public AccountQueryDTO(
+            String search, String role, Boolean active, Boolean banned,
+            int page, int limit, String sortBy, String sortOrder) {
+        this(search, role, active, banned, page, limit, sortBy, sortOrder, false);
+    }
 
 
     public AccountQueryDTO {

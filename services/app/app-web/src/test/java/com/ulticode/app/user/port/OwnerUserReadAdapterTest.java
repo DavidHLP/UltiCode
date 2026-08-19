@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,6 +64,17 @@ class OwnerUserReadAdapterTest {
         assertThat(adapter.selectActiveUsers(10, 0))
                 .extracting(UserSummaryView::username)
                 .containsExactly("alice");
+    }
+
+    @Test
+    void selectActiveUsersPreservesNonPageAlignedOffset() {
+        List<AuthAccountDTO> accounts = IntStream.range(0, 13)
+                .mapToObj(i -> account("u-" + i, "user-" + i)).toList();
+        when(accountQueryService.queryAccounts(any())).thenReturn(RpcResult.page(accounts, 20, 1, 13, "t-1"));
+        when(profileReadMapper.findByAccountIds(any())).thenReturn(
+                accounts.stream().map(a -> UserProfileDTO.empty(a.accountId())).toList());
+        assertThat(adapter.selectActiveUsers(10, 3)).extracting(UserSummaryView::username)
+                .containsExactly("user-3", "user-4", "user-5", "user-6", "user-7", "user-8", "user-9", "user-10", "user-11", "user-12");
     }
 
     @Test

@@ -28,11 +28,11 @@ public interface AuthAccountQueryMapper {
 
     @Select("<script>"
             + "SELECT " + COLUMNS + " FROM users WHERE is_deleted = 0"
-            + "<if test='search != null and search != \"\"'>"
-            + "  AND (username LIKE CONCAT('%', #{search}, '%') OR email LIKE CONCAT('%', #{search}, '%'))"
+            + "<if test='search != null and search != \"\" and usernameOnly'>"
+            + "  AND username LIKE CONCAT('%', #{search}, '%')"
             + "</if>"
-            + "<if test='role != null and role != \"\"'>"
-            + "  AND role = #{role}"
+            + "<if test='search != null and search != \"\" and !usernameOnly'>"
+            + "  AND (username LIKE CONCAT('%', #{search}, '%') OR email LIKE CONCAT('%', #{search}, '%'))"
             + "</if>"
             + "<if test='active != null'>"
             + "  AND is_active = #{active}"
@@ -44,6 +44,7 @@ public interface AuthAccountQueryMapper {
             + "  <when test='sortBy == \"username\"'> ORDER BY username </when>"
             + "  <when test='sortBy == \"email\"'> ORDER BY email </when>"
             + "  <when test='sortBy == \"lastLoginAt\"'> ORDER BY last_login_at </when>"
+            + "  <when test='sortBy == \"id\"'> ORDER BY id </when>"
             + "  <otherwise> ORDER BY joined_at </otherwise>"
             + "</choose>"
             + "<choose>"
@@ -57,6 +58,7 @@ public interface AuthAccountQueryMapper {
             @Param("role") String role,
             @Param("active") Boolean active,
             @Param("banned") Boolean banned,
+            @Param("usernameOnly") boolean usernameOnly,
             @Param("sortBy") String sortBy,
             @Param("sortOrder") String sortOrder,
             @Param("offset") int offset,

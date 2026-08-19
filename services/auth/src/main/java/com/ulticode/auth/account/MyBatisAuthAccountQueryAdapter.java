@@ -52,6 +52,7 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
                         role,
                         query.active(),
                         query.banned(),
+                        query.usernameOnly(),
                         query.sortBy(),
                         query.sortOrder(),
                         offset,

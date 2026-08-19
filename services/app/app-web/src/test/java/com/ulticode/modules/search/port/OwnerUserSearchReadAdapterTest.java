@@ -54,7 +54,7 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(account), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("ali")).thenReturn(List.of());
+        when(profileReadMapper.findSearchCandidatesBounded("ali", 10)).thenReturn(List.of());
         when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1")))
                 .thenReturn(List.of(profile("u-1", "Alice", "/alice.png", null)));
 
@@ -74,13 +74,13 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO alice = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(alice), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("ali"))
+        when(profileReadMapper.findSearchCandidatesBounded("ali", 10))
                 .thenReturn(List.of(profile("u-1", "Alice", "/a.png", null),
                         profile("u-2", "Alice Cooper", "/b.png", null)));
         when(identityQueryService.batchGetIdentity(Set.of("u-2")))
                 .thenReturn(RpcResult.success(List.of(
                         new UserIdentityDTO("u-2", "bob", "USER", true, false)), "t-search"));
-        when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1", "u-2")))
+        when(profileReadMapper.findSearchRowsByAccountIds(any()))
                 .thenReturn(List.of(profile("u-1", "Alice", "/a.png", null),
                         profile("u-2", "Alice Cooper", "/b.png", null)));
 
@@ -95,12 +95,11 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(account), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("ali"))
+        when(profileReadMapper.findSearchCandidatesBounded("ali", 10))
                 .thenReturn(List.of(profile("gone", "Alice", null, null)));
         when(identityQueryService.batchGetIdentity(Set.of("gone")))
                 .thenReturn(RpcResult.success(List.of(), "t-search"));
-        when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1")))
-                .thenReturn(List.of());
+        when(profileReadMapper.findSearchRowsByAccountIds(any())).thenReturn(List.of());
 
         List<UserSearchRow> rows = adapter.searchIndex("ali", 10);
 
@@ -131,8 +130,8 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO first = account("u-1", "alice", "2026-08-01T00:00:00", "2026-08-16T08:00:00");
         AuthAccountDTO second = account("u-2", "bob", "2026-08-01T00:00:00", "2026-08-16T08:00:00");
         when(accountQueryService.queryAccounts(any()))
-                .thenReturn(RpcResult.page(List.of(second, first), 2, 1, 100, "t-backfill"));
-        when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-2")))
+                .thenReturn(RpcResult.page(List.of(first, second), 2, 1, 100, "t-backfill"));
+        when(profileReadMapper.findSearchRowsByAccountIds(any()))
                 .thenReturn(List.of(profile("u-2", "Bob", "/b.png", "2026-08-16T12:00:00")));
 
         UserSearchBackfillReadPort backfill = new UserSearchBackfillReadPort(adapter);
@@ -159,10 +158,8 @@ class OwnerUserSearchReadAdapterTest {
     void unavailableIdentityFailsClosedForProfileSearch() {
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(), 0, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidates("alice"))
+        when(profileReadMapper.findSearchCandidatesBounded("alice", 10))
                 .thenReturn(List.of(profile("u-1", "Alice", null, null)));
-        adapter.setIdentityQueryService(null);
-
         assertThatThrownBy(() -> adapter.searchIndex("alice", 10))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Auth account query unavailable");

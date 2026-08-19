@@ -72,7 +72,7 @@ class OwnerReconcilerTest {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.auditPerformerIds()).thenReturn(List.of());
+            when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class))).thenReturn(List.of());
 
             ReconciliationRun run = reconciler.runReconciliation();
 
@@ -88,7 +88,7 @@ class OwnerReconcilerTest {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.auditPerformerIds()).thenReturn(List.of());
+            when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class))).thenReturn(List.of());
 
             ReconciliationRun run = reconciler.runReconciliation();
 
@@ -109,7 +109,8 @@ class OwnerReconcilerTest {
                     new AuthReconciliationOrphanCounts(1, 0, 0, 0), "t-system"));
             when(appPort.countOrphans()).thenReturn(new ReconciliationOrphanCounts(
                     2, 0, 0, 0, 0, 0, 0, 0, 0));
-            when(auditMapper.auditPerformerIds()).thenReturn(List.of("ghost"));
+            when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                    .thenReturn(List.of(reference("ghost", 1)));
             when(authService.existingUserIds(Set.of("ghost")))
                     .thenReturn(RpcResult.success(Set.of(), "t-system"));
 
@@ -121,6 +122,22 @@ class OwnerReconcilerTest {
             assertThat(run.getDetail()).contains("\"child\":\"refresh_tokens\"");
             assertThat(run.getDetail()).contains("\"child\":\"audit_logs\"");
             assertThat(run.getDetail()).contains("\"orphans\":2");
+        }
+        @Test
+        @DisplayName("blank and empty performer IDs are counted as audit orphans")
+        void blankPerformerIdsAreOrphans() {
+            when(authService.countAuthOrphans()).thenReturn(RpcResult.success(
+                    AuthReconciliationOrphanCounts.ZERO, "t-system"));
+            when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+            when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                    .thenReturn(List.of(reference("", 1), reference("  ", 1), reference("ghost", 1)));
+            when(authService.existingUserIds(Set.of("", "  ", "ghost")))
+                    .thenReturn(RpcResult.success(Set.of(), "t-system"));
+
+            ReconciliationRun run = reconciler.runReconciliation();
+
+            assertThat(run.getOrphanCount()).isEqualTo(1);
+            assertThat(run.getDetail()).contains("\"orphans\":3");
         }
 
         @Test
@@ -156,7 +173,8 @@ class OwnerReconcilerTest {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.auditPerformerIds()).thenReturn(List.of());
+            when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                    .thenReturn(List.of());
 
             AtomicReference<String> statusAtInsert = new AtomicReference<>();
             when(runMapper.insert(any(ReconciliationRun.class))).thenAnswer(invocation -> {
@@ -168,6 +186,13 @@ class OwnerReconcilerTest {
             assertThat(statusAtInsert.get()).isEqualTo("RUNNING");
             assertThat(capturedRun().getOwner()).isEqualTo("ALL");
         }
+    }
+
+    private static AuditReferenceCount reference(String performerId, long rowCount) {
+        AuditReferenceCount reference = new AuditReferenceCount();
+        reference.setPerformerId(performerId);
+        reference.setRowCount(rowCount);
+        return reference;
     }
 
 }

@@ -555,6 +555,7 @@
 - Acceptance/Coverage/Review/Validation/Git/Task/Evidence consistency is reconciled. The local objective stops at a truthful blocked terminal state; no commit, push, merge, release, deploy or production data action was performed.
 
 ## 2026-08-19 (blocker remediation planning)
+- 2026-08-19 (control-plane reconciliation) — Corrected stale completion claims after review: ARCH-002/ARCH-003 child tasks and parent acceptance remain blocked where external target/production evidence is absent; DEV-LOCAL/TEST-TARGET artifacts remain recorded as local rehearsal evidence. ARCH-006/ARCH-007 remain open pending external gates. Updated AUTO_PILOT_STATUS, COVERAGE, HANDOFF, PLAN, RESUME, TASKS and OWNER_DATABASE_ISOLATION_PLAN; no business source or migration changed.
 
 - Converted the user’s ten ARCH-002/ARCH-003 remediation bullets into one phase-gated Execution Packet.
 - Added `ARCH-002-001` as the sole local `ready` Task: reuse `scripts/dev/migrate.sh` with explicit `MIGRATION_DB_*`, owner-schema allowlist, privilege preflight, secret boundary and disposable MySQL evidence.
@@ -666,7 +667,7 @@
 
 - User confirmed that the repository has only the current test environment, no separate development or production environment, and granted authority for every remaining database, cutover, monitoring, observation, rollback and compatibility-retirement blocker action there.
 - Recorded DEC-039 and an authoritative TEST-TARGET override in PLAN.md. Historical `dev-local` script names/tokens remain compatibility labels; no production evidence will be claimed.
-- Reopened execution through the existing safe DAG: `ARCH-002-002` is `ready`; downstream Tasks remain dependency-gated and still require fresh target evidence rather than renamed historical results.
+- Local execution remains bounded at TEST-TARGET: `ARCH-002-002` and downstream external-gated tasks remain `blocked`; fresh local artifacts cannot be promoted by renaming.
 - Initial inventory: `ulticode-mysql` and `ulticode-redis` are healthy, PM2 has no running writers, owner runtime credentials and migration passwords are present, and shared `MIGRATION_DB_*` remains intentionally caller-supplied.
 
 ## 2026-08-19 (ARCH-002-002 TEST-TARGET authority and privilege gate)
@@ -676,4 +677,4 @@
 - Runtime evidence passed: own-schema connect 5/5, foreign-schema SELECT denied 20/20, audit SELECT denied 2/2 and audit UPDATE/DELETE denied 4/4. DEC-040 records the existing INSERT-only `admin.audit_outbox` exception.
 - Review found three evidence gaps (window/contact/sign-off, audit mutation negatives, independent backup restore); all were fixed and re-review returned Confirmed findings=0.
 - Fixed two pre-existing preflight self-test defects exposed by current TEST-TARGET environment: required/static checks now precede container endpoint probing, and the fake self-test unsets caller container variables. Regression self-test, disposable safety integration, five owner Flyway validates and `PerOwnerSchemaIsolationIT` 24/24 pass.
-- Closed `ARCH-002-002`; `ARCH-002-003` and `ARCH-003-001` are now dependency-ready. No applied migration changed and no secret was printed.
+- Local authority and privilege rehearsal evidence is retained, but `ARCH-002-002` remains `blocked` pending external target authority/sign-off; downstream Tasks remain blocked.

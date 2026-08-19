@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Nightly reconciliation job and orphan scanner (P5-RECONCILE-001),
@@ -181,21 +182,29 @@ public class OwnerReconciler {
                 orphan("user_follows", "following_id", "App", "users", "Auth", counts.userFollowsByFollowing()));
     }
 
-    /** Admin-local audit_logs candidates checked against Auth physical existence. */
+    /** Admin-local audit_logs candidates checked against Auth physical existence in bounded pages. */
     private OrphanDetectionResult auditLogsOrphans() {
-        List<String> performerIds = auditOrphanMapper.auditPerformerIds();
-        if (performerIds == null) {
-            performerIds = List.of();
+        long missing = 0;
+        int offset = 0;
+        final int pageSize = 500;
+        while (true) {
+            List<AuditReferenceCount> references = auditOrphanMapper.auditPerformerIds(offset, pageSize);
+            if (references == null || references.isEmpty()) {
+                break;
+            }
+            Set<String> candidates = references.stream()
+                    .map(AuditReferenceCount::getPerformerId)
+                    .collect(Collectors.toSet());
+            Set<String> existing = existingUserIds(candidates);
+            missing += references.stream()
+                    .filter(reference -> !existing.contains(reference.getPerformerId()))
+                    .mapToLong(AuditReferenceCount::getRowCount)
+                    .sum();
+            if (references.size() < pageSize) {
+                break;
+            }
+            offset += pageSize;
         }
-        Set<String> candidates = new HashSet<>();
-        performerIds.stream()
-                .filter(id -> id != null && !id.isBlank())
-                .forEach(candidates::add);
-        Set<String> existing = existingUserIds(candidates);
-        long missing = performerIds.stream()
-                .filter(id -> id != null && !id.isBlank())
-                .filter(id -> !existing.contains(id))
-                .count();
         return orphan("audit_logs", "performer_id", "Admin", "users", "Auth", missing);
     }
 

@@ -11,6 +11,7 @@ import com.ulticode.common.rpc.RpcResult;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -63,10 +64,26 @@ public class OwnerUserReadAdapter implements UserReadMapper {
         if (limit <= 0 || offset < 0) {
             return List.of();
         }
-        int page = offset / limit + 1;
-        RpcResult<AuthAccountDTO> response = accountQueryService().queryAccounts(
-                new AccountQueryDTO(null, null, true, false, page, limit, "joinedAt", "desc"));
-        List<AuthAccountDTO> accounts = pageItems(response);
+        int remainder = offset % limit;
+        int pageLimit = Math.min(100, limit + remainder);
+        int page = offset / pageLimit + 1;
+        int skip = offset % pageLimit;
+        List<AuthAccountDTO> accounts = new ArrayList<>();
+        while (accounts.size() < skip + limit) {
+            List<AuthAccountDTO> pageAccounts = pageItems(accountQueryService().queryAccounts(
+                    new AccountQueryDTO(null, null, true, false, page++, pageLimit, "joinedAt", "desc")));
+            if (pageAccounts.isEmpty()) {
+                break;
+            }
+            accounts.addAll(pageAccounts);
+            if (pageAccounts.size() < pageLimit) {
+                break;
+            }
+        }
+        if (skip >= accounts.size()) {
+            return List.of();
+        }
+        accounts = accounts.subList(skip, Math.min(skip + limit, accounts.size()));
         if (accounts.isEmpty()) {
             return List.of();
         }

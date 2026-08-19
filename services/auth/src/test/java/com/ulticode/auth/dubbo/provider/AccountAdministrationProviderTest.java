@@ -163,6 +163,45 @@ class AccountAdministrationProviderTest {
     }
 
     @Test
+    @DisplayName("legacy fingerprint replays and versioned fingerprint conflicts")
+    void legacyFingerprintCompatibility() {
+        IdMetadata idempotency = IdMetadata.of("key-legacy", null);
+        ChangeAccountStateCommand original = stateCommand(
+                "cmd-legacy", idempotency, "user-1", 2L,
+                ChangeAccountStateCommand.AccountStateAction.DISABLE);
+        AuthCommandReceiptEntity receipt = new AuthCommandReceiptEntity();
+        receipt.setStatus("SUCCESS");
+        receipt.setRequestFingerprint(legacyStateFingerprint());
+        receipt.setResultPayload("{\"accountId\":\"user-1\",\"active\":false,\"banned\":false,\"version\":3}");
+        when(receiptMapper.findByReceiptKey("AccountAdministrationService", "changeState", "key-legacy"))
+                .thenReturn(receipt);
+
+        assertThat(provider.changeState(original).success()).isTrue();
+
+        receipt.setRequestFingerprint(CommandReceiptExecutor.fingerprint(original));
+        ChangeAccountStateCommand changedVersion = stateCommand(
+                "cmd-legacy-2", idempotency, "user-1", 3L,
+                ChangeAccountStateCommand.AccountStateAction.DISABLE);
+        assertThat(provider.changeState(changedVersion).error().code())
+                .isEqualTo(AuthErrorCode.IDEMPOTENCY_KEY_CONFLICT.code());
+    }
+
+    private static String legacyStateFingerprint() {
+        String payload = String.join("|",
+                "6:user-1", "7:DISABLE", "4:test");
+    }
+
+    private static String sha256(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    @Test
     @DisplayName("changeAuthorization updates role, synchronizes permissions and bumps version")
     void changeAuthorizationSuccess() {
         when(authAccountPort.findById("user-1"))

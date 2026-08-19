@@ -51,8 +51,6 @@ idempotency 和 expected authz version 调用 Auth owner。
 - runtime 账号不得拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式角色继承或未登记的其他 Owner 表 DML；唯一登记例外是 `auth_rw`/`app_rw` 对 `admin.audit_outbox` 的 append-only `INSERT`；
 - 每次切换前后保存 rows/checksum/privilege snapshot；
 - 失败时先回滚 route/consumer 到上一 artifact，再按 manifest/copy/reconcile runbook 回写；不得 `DROP`、`TRUNCATE` 或重置共享 source；
-- 本项目没有 production environment；当前 TEST-TARGET 的真实执行证据是唯一验收环境，所有报告必须明确 `production_claim=false`。
-
-## 验收与阻塞
-
-ARCH-002 的完成条件是：Owner 专用连接与账号实际可用、迁移回填可重复、权限负向与 rollback 通过、writer quiesce/cutover/observation 完整，并通过最终 Review/Validation；仅修改配置或创建账号不等于完成。
+- 本地 TEST-TARGET/DEV-LOCAL 证据只能证明 rehearsal 与脚本契约；不得替代外部目标 authority、users/profile responsibility sign-off、physical cutover 或 production acceptance。
+- ARCH-002 当前 blocked，直到真实目标账号/权限、责任切换、回填/回滚与最终外部 Review/Validation 证据齐全。
+- ARCH-003 的 remote stability、deployment authority、all-writer quiesce、observation/rollback 和 compatibility retirement 仍是外部 blocker。

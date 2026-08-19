@@ -91,7 +91,7 @@ public class CommandReceiptExecutor {
                 service, operation, idempotencyKey);
         if (existing != null) {
             if (existing.getRequestFingerprint() != null
-                    && !requestFingerprint.equals(existing.getRequestFingerprint())) {
+                    && !matchesFingerprint(existing.getRequestFingerprint(), command)) {
                 return RpcResult.failure(AuthErrorCode.IDEMPOTENCY_KEY_CONFLICT, traceId);
             }
             if (!SUCCESS.equals(existing.getStatus())) {
@@ -152,8 +152,25 @@ public class CommandReceiptExecutor {
         return command.trace().traceId();
     }
 
-    /** Fingerprint business fields only; command metadata changes between retries. */
+    /** Fingerprint business fields and optimistic-lock version; metadata changes between retries. */
     public static String fingerprint(WriteCommand command) {
+        return fingerprint(command, true);
+    }
+
+    /**
+     * Matches receipts written before expectedVersion became part of the
+     * fingerprint while ensuring new receipts retain optimistic-lock semantics.
+     */
+    private static boolean matchesFingerprint(String stored, WriteCommand command) {
+        return fingerprint(command).equals(stored) || legacyFingerprint(command).equals(stored);
+    }
+
+    private static String legacyFingerprint(WriteCommand command) {
+        return fingerprint(command, false);
+    }
+
+
+    private static String fingerprint(WriteCommand command, boolean includeExpectedVersion) {
         Objects.requireNonNull(command, "command");
         String payload;
         if (command instanceof CreateAccountCommand value) {
@@ -167,13 +184,17 @@ public class CommandReceiptExecutor {
         } else if (command instanceof DeleteAccountCommand value) {
             payload = join(value.accountId(), value.rationale());
         } else if (command instanceof ChangeAccountStateCommand value) {
-            payload = join(value.accountId(), value.action(), value.rationale());
+            payload = includeExpectedVersion
+                    ? join(value.accountId(), value.expectedVersion(), value.action(), value.rationale())
+                    : join(value.accountId(), value.action(), value.rationale());
         } else if (command instanceof ChangeAuthorizationCommand value) {
             String permissions = value.permissions().stream()
                     .sorted()
                     .map(CommandReceiptExecutor::encode)
                     .collect(Collectors.joining("|"));
-            payload = join(value.accountId(), value.role(), permissions, value.rationale());
+            payload = includeExpectedVersion
+                    ? join(value.accountId(), value.expectedVersion(), value.role(), permissions, value.rationale())
+                    : join(value.accountId(), value.role(), permissions, value.rationale());
         } else {
             payload = command.getClass().getName();
         }

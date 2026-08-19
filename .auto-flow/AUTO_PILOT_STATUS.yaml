@@ -1,6 +1,6 @@
 objective: "Services Owner architecture hardening"
 domain: "owner boundaries, Admin seam and database isolation preparation"
-status: complete
+status: blocked
 scope:
   - "ARCH-001 immutable Submission facts snapshot and synchronous callback removal"
   - "ARCH-002 owner datasource/Flyway/isolation preparation with disposable grant evidence"
@@ -13,7 +13,7 @@ out_of_scope:
   - "Editing applied migrations, claiming users split completion without owner/runtime evidence"
   - "Speculative broader Admin seam rewrite or new broker/parallel architecture"
 terminal_condition:
-  - "ARCH-001, ARCH-004, ARCH-005 and final ARCH-006 evidence are closed"
+  - "ARCH-001, ARCH-004 and ARCH-005 local evidence are closed; final ARCH-006/ARCH-007 gate remains in progress/blocked until external ARCH-002/003 evidence exists"
   - "ARCH-002 and ARCH-003 are either completed with external evidence or accurately blocked"
   - "Review, Tier C validation, rollback boundaries and local-only scope are persisted"
 nodes:
@@ -22,10 +22,12 @@ nodes:
     status: done
   - id: ARCH-002
     goal: "Owner datasource/Flyway/isolation preparation and users migration plan"
-    status: done
+    status: blocked
+    blocker: "External target authority, users/profile responsibility sign-off, and production/remote cutover evidence are missing; local TEST-TARGET evidence is retained below."
   - id: ARCH-003
     goal: "Remove App dual-track compatibility after production stability evidence"
-    status: done
+    status: blocked
+    blocker: "External production stability, deployment authority, observation window, rollback and compatibility-retirement evidence are missing; local rehearsal evidence is not external acceptance."
   - id: ARCH-004
     goal: "Admin analytics coarse seam and bounded scan"
     status: done
@@ -34,8 +36,9 @@ nodes:
     status: done
   - id: ARCH-006
     goal: "Final architecture Review, Validation, Completion and Coverage Audit"
-    status: done
-resume_point: "All blocker remediation tasks (ARCH-002-001..005, ARCH-003-001..005 and ARCH-007) are complete and verified on TEST-TARGET with full multi-module test battery (59 tests), post-cutover smoke (53 tests), observation rehearsal (65 tests), zero confirmed review findings and zero secret leaks."
+    status: in_progress
+    blocker: "Final gate cannot close while ARCH-002 and ARCH-003 remain blocked."
+resume_point: "Local DEV-LOCAL remediation and evidence are complete; resume at the external authority boundary for ARCH-002-002..005 and ARCH-003-001..005. Do not treat TEST-TARGET rehearsal as external acceptance."
 planned_remediation:
   - "Reuse scripts/dev/migrate.sh for explicit privileged MIGRATION_DB_* connection, owner schema allowlist, privilege preflight and disposable MySQL evidence."
   - "Keep ARCH-002 and ARCH-003 blocked until real authority, target, users responsibility, remote stability and rollback evidence exist."

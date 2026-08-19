@@ -8,6 +8,7 @@ import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementCons
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionCreatedContestConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
+import com.ulticode.modules.moderation.consumer.UserBannedModerationConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
@@ -79,7 +80,7 @@ public class SubmissionJudgedInboxBridge {
             SubmissionJudgedWebSocketConsumer webSocketConsumer,
             SubmissionJudgedContestConsumer contestConsumer) {
         this(redisTemplate, inboxMapper, objectMapper, uuidGenerator, null,
-                achievementConsumer, webSocketConsumer, contestConsumer, null);
+                achievementConsumer, webSocketConsumer, contestConsumer, null, null);
     }
 
     public SubmissionJudgedInboxBridge(
@@ -92,7 +93,7 @@ public class SubmissionJudgedInboxBridge {
             SubmissionJudgedContestConsumer contestConsumer,
             SubmissionCreatedContestConsumer createdContestConsumer) {
         this(redisTemplate, inboxMapper, objectMapper, uuidGenerator, null,
-                achievementConsumer, webSocketConsumer, contestConsumer, createdContestConsumer);
+                achievementConsumer, webSocketConsumer, contestConsumer, createdContestConsumer, null);
     }
 
     @Autowired
@@ -105,7 +106,8 @@ public class SubmissionJudgedInboxBridge {
             SubmissionJudgedAchievementConsumer achievementConsumer,
             SubmissionJudgedWebSocketConsumer webSocketConsumer,
             SubmissionJudgedContestConsumer contestConsumer,
-            SubmissionCreatedContestConsumer createdContestConsumer) {
+            SubmissionCreatedContestConsumer createdContestConsumer,
+            ObjectProvider<UserBannedModerationConsumer> moderationConsumerProvider) {
         PlatformTransactionManager transactionManager = transactionManagerProvider == null
                 ? null
                 : transactionManagerProvider.getIfAvailable();
@@ -138,10 +140,23 @@ public class SubmissionJudgedInboxBridge {
                 ? Set.of(EVENT_TYPE)
                 : Set.of(EVENT_TYPE,
                         com.ulticode.submission.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE);
-        this.bindings = List.of(
+        List<Binding> mutableBindings = new ArrayList<>(List.of(
                 new Binding("App-Achievement", achievementInbox, Set.of(EVENT_TYPE)),
                 new Binding("App-WebSocket", webSocketInbox, Set.of(EVENT_TYPE)),
-                new Binding("App-Contest", contestInbox, contestEventTypes));
+                new Binding("App-Contest", contestInbox, contestEventTypes)));
+        UserBannedModerationConsumer moderationConsumer = moderationConsumerProvider == null
+                ? null
+                : moderationConsumerProvider.getIfAvailable();
+        if (moderationConsumer != null) {
+            InboxConsumer moderationInbox = new InboxConsumer(
+                    inboxMapper, "App-Moderation", transactionTemplate);
+            moderationInbox.registerHandler(
+                    UserBannedModerationConsumer.EVENT_TYPE, moderationConsumer::consume);
+            moderationInbox.registerHandler(POISON_EVENT_TYPE, SubmissionJudgedInboxBridge::rejectPoison);
+            mutableBindings.add(new Binding(
+                    "App-Moderation", moderationInbox, Set.of(UserBannedModerationConsumer.EVENT_TYPE)));
+        }
+        this.bindings = List.copyOf(mutableBindings);
     }
 
     /**

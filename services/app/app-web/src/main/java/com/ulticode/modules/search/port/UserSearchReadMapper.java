@@ -1,53 +1,30 @@
 package com.ulticode.modules.search.port;
 
 import java.util.List;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 /**
- * MyBatis read model for the user search index.
+ * Consumer port for the user search read model.
  *
- * <p>Migration-state Q-read of the Auth-owned {@code users} table
- * (ADR-P7-APP-DECOMPOSITION rule 3; precedent: {@code GlobalRankingMapper}
- * and {@code ContestParticipantMapper} already join/read {@code users}
- * from backend-app). Reads only display/identity columns — never
- * credentials. Soft-deleted accounts are excluded.
+ * <p>Account fields are resolved through the Auth owner and profile fields
+ * through the App-owned profile read seam by the Spring adapter. This
+ * interface deliberately contains no datasource annotations so App cannot
+ * accidentally read Auth-owned {@code users} through its datasource.
  */
-@Mapper
 public interface UserSearchReadMapper {
 
-    @Select("SELECT u.id, u.username, p.name, p.avatar "
-            + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
-            + "WHERE u.is_deleted = 0 "
-            + "AND (u.username LIKE CONCAT('%', #{query}, '%') "
-            + "     OR p.name LIKE CONCAT('%', #{query}, '%')) "
-            + "ORDER BY u.username ASC "
-            + "LIMIT #{limit}")
-    List<UserSearchRow> searchIndex(@Param("query") String query, @Param("limit") int limit);
+    /**
+     * Find non-deleted accounts whose username or App-owned profile name
+     * contains the query, ordered deterministically by username.
+     */
+    List<UserSearchRow> searchIndex(String query, int limit);
 
     /**
-     * Single-row read for the user search document after a profile write
-     * (SEARCH-001 slice-b): returns the complete index-safe row so the App
-     * publisher can emit a self-sufficient UPSERT.
+     * Read one complete, index-safe row for a non-deleted account.
      */
-    @Select("SELECT u.id, u.username, p.name, p.avatar "
-            + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
-            + "WHERE u.id = #{id} AND u.is_deleted = 0")
-    UserSearchRow findIndexRowById(@Param("id") String id);
+    UserSearchRow findIndexRowById(String id);
 
     /**
-     * SEARCH-003 backfill enumeration page (DEC-017): stable id-ordered
-     * paging of the same Q-read shape as {@link #searchIndex}, plus the
-     * version columns (users.updated_at/deleted_at/joined_at and the
-     * App-owned profile updated_at) for the backfill watermark.
+     * Enumerate non-deleted accounts in stable id order for search backfill.
      */
-    @Select("SELECT u.id, u.username, p.name, p.avatar, "
-            + "u.updated_at, u.deleted_at, u.joined_at, "
-            + "p.updated_at AS profile_updated_at "
-            + "FROM users u LEFT JOIN user_profiles p ON u.id = p.account_id "
-            + "WHERE u.is_deleted = 0 "
-            + "ORDER BY u.id ASC "
-            + "LIMIT #{limit} OFFSET #{offset}")
-    List<UserSearchRow> enumerateIndex(@Param("offset") int offset, @Param("limit") int limit);
+    List<UserSearchRow> enumerateIndex(int offset, int limit);
 }

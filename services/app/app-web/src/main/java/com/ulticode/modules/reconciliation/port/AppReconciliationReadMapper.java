@@ -2,59 +2,79 @@ package com.ulticode.modules.reconciliation.port;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Param;
 
-/**
- * App-side reconciliation read model.
- *
- * <p>Each orphan query joins an App-owned child table to the shared
- * {@code users} table (Q-read of the Auth owner, allowed by
- * ADR-P7-APP-DECOMPOSITION rule 3; same precedent as
- * {@code GlobalRankingMapper}). Orphan predicate matches the legacy
- * scanner exactly: child ref non-null AND parent id absent
- * (soft-deleted parents still physically exist and are NOT orphans).
- *
- * <p>P7-RECON-CONTRACTS-001: replaces the monolith's cross-owner
- * JdbcTemplate SQL; no cross-owner DB grants introduced.
- */
+import java.util.List;
+
+/** App-local reconciliation candidates; Auth parent existence is resolved via RPC. */
 @Mapper
 public interface AppReconciliationReadMapper {
+    @Select("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+              AND table_name IN (
+                    'submissions', 'solutions', 'forum_posts', 'notifications',
+                    'user_profiles', 'contest_participants', 'user_achievements',
+                    'user_follows'
+              )
+            """)
+    List<String> existingChildTables();
+
+    @Select("""
+            SELECT user_id AS account_id, COUNT(*) AS row_count
+            FROM submissions
+            WHERE user_id IS NOT NULL AND user_id > #{afterId}
+            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
+            """)
+    List<UserReferenceCount> submissionUserCounts(
+            @Param("afterId") String afterId, @Param("limit") int limit);
+
+    @Select("""
+            SELECT user_id AS account_id, COUNT(*) AS row_count
+            FROM solutions
+            WHERE user_id IS NOT NULL AND user_id > #{afterId}
+            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
+            """)
+    List<UserReferenceCount> solutionUserCounts(
+            @Param("afterId") String afterId, @Param("limit") int limit);
+
+    @Select("""
+            SELECT user_id AS account_id, COUNT(*) AS row_count
+            FROM forum_posts
+            WHERE user_id IS NOT NULL AND user_id > #{afterId}
+            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
+            """)
+    List<UserReferenceCount> forumPostUserCounts(
+            @Param("afterId") String afterId, @Param("limit") int limit);
+
+    @Select("""
+            SELECT user_id AS account_id, COUNT(*) AS row_count
+            FROM notifications
+            WHERE user_id IS NOT NULL AND user_id > #{afterId}
+            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
+            """)
+    List<UserReferenceCount> notificationUserCounts(
+            @Param("afterId") String afterId, @Param("limit") int limit);
+
+    @Select("""
+            SELECT account_id, COUNT(*) AS row_count
+            FROM user_profiles
+            WHERE account_id IS NOT NULL AND account_id > #{afterId}
+            GROUP BY account_id ORDER BY account_id LIMIT #{limit}
+            """)
+    List<UserReferenceCount> userProfileAccountCounts(
+            @Param("afterId") String afterId, @Param("limit") int limit);
+
+    @Select("""
+            SELECT user_id AS account_id, COUNT(*) AS row_count
+            FROM contest_participants
+            WHERE user_id IS NOT NULL AND user_id > #{afterId}
+            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
+            """)
+    List<UserReferenceCount> contestParticipantUserCounts(
+            @Param("afterId") String afterId, @Param("limit") int limit);
 
     @Select("SELECT COUNT(*) FROM user_profiles")
     long countUserProfiles();
-
-    @Select("SELECT COUNT(*) FROM submissions c LEFT JOIN users p ON c.user_id = p.id "
-            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanSubmissions();
-
-    @Select("SELECT COUNT(*) FROM solutions c LEFT JOIN users p ON c.user_id = p.id "
-            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanSolutions();
-
-    @Select("SELECT COUNT(*) FROM forum_posts c LEFT JOIN users p ON c.user_id = p.id "
-            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanForumPosts();
-
-    @Select("SELECT COUNT(*) FROM notifications c LEFT JOIN users p ON c.user_id = p.id "
-            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanNotifications();
-
-    @Select("SELECT COUNT(*) FROM user_profiles c LEFT JOIN users p ON c.account_id = p.id "
-            + "WHERE c.account_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanUserProfiles();
-
-    @Select("SELECT COUNT(*) FROM contest_participants c LEFT JOIN users p ON c.user_id = p.id "
-            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanContestParticipants();
-
-    @Select("SELECT COUNT(*) FROM user_achievements c LEFT JOIN users p ON c.user_id = p.id "
-            + "WHERE c.user_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanUserAchievements();
-
-    @Select("SELECT COUNT(*) FROM user_follows c LEFT JOIN users p ON c.follower_id = p.id "
-            + "WHERE c.follower_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanUserFollowsByFollower();
-
-    @Select("SELECT COUNT(*) FROM user_follows c LEFT JOIN users p ON c.following_id = p.id "
-            + "WHERE c.following_id IS NOT NULL AND p.id IS NULL")
-    long countOrphanUserFollowsByFollowing();
 }

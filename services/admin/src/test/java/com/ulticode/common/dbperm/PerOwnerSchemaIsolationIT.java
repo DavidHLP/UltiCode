@@ -249,6 +249,25 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
+        @DisplayName("DENIED: UPDATE/DELETE on admin.audit_outbox (append-only)")
+        void deniedMutationsOnAuditOutbox() {
+            assertThatThrownBy(() -> {
+                try (Connection c = connectAs("auth_rw", AUTH_RW_PW);
+                     Statement s = c.createStatement()) {
+                    s.executeUpdate("UPDATE `admin`.`audit_outbox` SET performer_id = 'x' WHERE id = 'missing'");
+                }
+            }).isInstanceOf(SQLException.class)
+              .satisfies(e -> assertThat(((SQLException) e).getErrorCode()).isIn(1142, 1044));
+            assertThatThrownBy(() -> {
+                try (Connection c = connectAs("auth_rw", AUTH_RW_PW);
+                     Statement s = c.createStatement()) {
+                    s.executeUpdate("DELETE FROM `admin`.`audit_outbox` WHERE id = 'missing'");
+                }
+            }).isInstanceOf(SQLException.class)
+              .satisfies(e -> assertThat(((SQLException) e).getErrorCode()).isIn(1142, 1044));
+        }
+
+        @Test
         @DisplayName("information_schema: auth_rw has 4 auth grants, 1 admin audit_outbox INSERT, 0 app")
         void authRw_schemaPrivilegeVerification() throws Exception {
             try (Connection c = connectAs("auth_rw", AUTH_RW_PW)) {
@@ -393,6 +412,25 @@ class PerOwnerSchemaIsolationIT {
                 try (Connection c = connectAs("app_rw", APP_RW_PW);
                      Statement s = c.createStatement()) {
                     s.executeQuery("SELECT * FROM `admin`.`audit_outbox`");
+                }
+            }).isInstanceOf(SQLException.class)
+              .satisfies(e -> assertThat(((SQLException) e).getErrorCode()).isIn(1142, 1044));
+        }
+
+        @Test
+        @DisplayName("DENIED: UPDATE/DELETE on admin.audit_outbox (append-only)")
+        void deniedMutationsOnAuditOutbox() {
+            assertThatThrownBy(() -> {
+                try (Connection c = connectAs("app_rw", APP_RW_PW);
+                     Statement s = c.createStatement()) {
+                    s.executeUpdate("UPDATE `admin`.`audit_outbox` SET performer_id = 'x' WHERE id = 'missing'");
+                }
+            }).isInstanceOf(SQLException.class)
+              .satisfies(e -> assertThat(((SQLException) e).getErrorCode()).isIn(1142, 1044));
+            assertThatThrownBy(() -> {
+                try (Connection c = connectAs("app_rw", APP_RW_PW);
+                     Statement s = c.createStatement()) {
+                    s.executeUpdate("DELETE FROM `admin`.`audit_outbox` WHERE id = 'missing'");
                 }
             }).isInstanceOf(SQLException.class)
               .satisfies(e -> assertThat(((SQLException) e).getErrorCode()).isIn(1142, 1044));

@@ -31,10 +31,13 @@ import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
 import com.ulticode.app.api.dto.ModerationUserInfo;
 import com.ulticode.app.api.service.ModerationAccountPort;
+import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
+import com.ulticode.common.util.TraceIdUtil;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +90,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final ModerationProjection moderationProjection;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
-
+    private final IntegrationEventPublisher integrationEventPublisher;
     // ==================== Queue Operations ====================
 
     @Override
@@ -158,29 +161,19 @@ public class ModerationServiceImpl implements ModerationService {
         moderationAction.setDurationDays(dto.getDurationDays());
         actionMapper.insert(moderationAction);
 
-        // Update queue item based on action via strategy handler
+        // Update queue item and reports before external owner side effects
         LocalDateTime now = LocalDateTime.now(clock);
         item.setReviewedById(moderatorId);
         item.setReviewedAt(now);
         item.setResolution(actionType.name());
         item.setResolutionNote(dto.getNote());
-
-        // Apply the action's queue transition + side effect in one owned switch
-        // (C06 deepening). The sealed ModerationActionHandler strategy + the
-        // ActionContext proxy that called back into this service are gone: every
-        // action's resolve/flag/warn/ban behavior lives here, the package-private
-        // sink methods are reached directly, and the variation stays internal.
-        // The per-action inputs travel in a narrow ActionRequest value record so
-        // the switch signature is not an 8-parameter data clump (the record is a
-        // pure value — not the old service-callback ActionContext proxy).
-        applyAction(new ActionRequest(actionType, moderatorId, dto.getNote(),
-                dto.getDurationDays(), now, id, moderationAction.getId()), item);
-
         queueMapper.updateById(item);
-
-        // Update related reports
         updateReportsStatus(id, actionType == ModerationActionType.DISMISSED ? "DISMISSED" : "RESOLVED");
-
+        String effectiveActionId = moderationAction.getId() != null && !moderationAction.getId().isBlank()
+                ? moderationAction.getId()
+                : java.util.UUID.randomUUID().toString();
+        applyAction(new ActionRequest(actionType, moderatorId, dto.getNote(),
+                dto.getDurationDays(), now, id, effectiveActionId), item);
         log.info("Moderation action {} performed on queue item {} by moderator {}", actionType, id, moderatorId);
         return moderationProjection.queueItemById(id);
     }
@@ -473,7 +466,10 @@ public class ModerationServiceImpl implements ModerationService {
         ban.setReason(reason != null ? reason : "No reason provided");
         ban.setCategory(category);
         ban.setBannedById(bannedById);
-        ban.setActionId(actionId);
+        String effectiveActionId = actionId != null && !actionId.isBlank()
+                ? actionId
+                : java.util.UUID.randomUUID().toString();
+        ban.setActionId(effectiveActionId);
         ban.setIsPermanent(isPermanent);
         LocalDateTime now = LocalDateTime.now(clock);
         ban.setStartedAt(now);
@@ -482,8 +478,24 @@ public class ModerationServiceImpl implements ModerationService {
         }
         banMapper.insert(ban);
 
-        // Update user's ban status via owner account port
-        accountPort.updateBanStatus(userId, true, reason);
+        // Record durable outbox event in the same transaction for Auth owner ban state propagation
+        Map<String, Object> payload = Map.of(
+                "userId", userId,
+                "isBanned", true,
+                "reason", reason != null ? reason : "",
+                "bannedById", bannedById != null ? bannedById : "",
+                "actionId", effectiveActionId
+        );
+        integrationEventPublisher.publishWithId(
+                effectiveActionId,
+                "moderation",
+                "UserBanned",
+                userId,
+                1L,
+                queueId,
+                TraceIdUtil.current(),
+                payload
+        );
     }
 
     void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {

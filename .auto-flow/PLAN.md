@@ -19,6 +19,14 @@ Validation order: focused API/owner tests → App/Admin regressions → full `se
 
 ## Current execution packet — ARCH-002/ARCH-003 blocker remediation (2026-08-19)
 
+### Test Environment Authority Override (2026-08-19)
+
+- 用户确认本项目只有当前测试环境，不存在独立开发环境或 production environment，并授权 Agent 完成全部测试环境账号、direct grant、Flyway、backfill、writer quiesce、cutover、监控、观察、故障注入、rollback 和 compatibility retirement 操作。
+- 本节是当前 Execution Packet 的最高优先级环境裁决，覆盖下文把当前环境称为 `DEV-LOCAL`、把验收保留给外部/production target、或因此保持 Task blocked 的历史措辞；脚本中的 `dev-local` 文件名和确认 token 仅为兼容名称。
+- 当前 `.env`、`ulticode-mysql`、`ulticode-redis`、Docker Compose 和 PM2 构成唯一授权 TEST-TARGET。所有证据必须来自该目标的真实执行，不得改写为 production evidence。
+- 已记录的 `DEV-LOCAL-001..008` 结果作为 TEST-TARGET baseline 使用，但不能只靠重命名关闭 ARCH Task；必须重新执行对应权限、数据、quiesce、cutover、observation、rollback、兼容退役和最终验证 Gate。
+- 原 Task DAG、least-privilege、single-writer、all-writer quiesce、fail-closed、secret、backup、水位和 rollback 不变量保持不变。`ARCH-002-002` 立即解除权限 blocker，后续 Task 仅按依赖和真实证据推进。
+
 ### Objective
 
 完成 `ARCH-002` 的真实 Owner 数据库隔离证据和 `ARCH-003` 的远程路由稳定/兼容退役证据，使 Services Owner architecture hardening 从“本地完成、外部门禁 blocked”进入可重新收口状态。唯一执行方向是：先完成本地特权 migration job preparation，再取得外部权限与运行时证据，最后才允许物理 cutover、观察和兼容路径退役。
@@ -48,7 +56,7 @@ Validation order: focused API/owner tests → App/Admin regressions → full `se
 
 ### Behavioral Invariants
 
-- migration principal 与 runtime Owner principal 永远分离；runtime 不拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式 role 或其他 Owner DML。
+- migration principal 与 runtime Owner principal 永远分离；runtime 不拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式 role 或未登记的其他 Owner DML。既有 `auth_rw`/`app_rw` 对 `admin.audit_outbox` 的 table-scoped `INSERT` 是唯一登记的 append-only audit contract seam，必须继续拒绝 SELECT/UPDATE/DELETE。
 - 所有输入、schema、account host、privilege inspection、writer inventory 和 cutover marker 缺失或歧义时 fail closed。
 - 每个业务表只有一个 Owner writer；route、provider、dispatcher、reaper、scheduler 和 direct client 的写入方向必须可审计。
 - `users/profile` 迁移保持 expand/backfill/verify 兼容顺序；不编辑 applied migration，不进行跨 Owner SQL 或分布式事务。
@@ -109,7 +117,7 @@ Validation order: focused API/owner tests → App/Admin regressions → full `se
 
 ### Terminal Condition
 
-当 `ARCH-002-001..005`、`ARCH-003-001..005` 和 `ARCH-007` 全部 `done`，每个用户要求都有 Evidence/Review/Validation/Rollback，实际 owner account/grant/users responsibility/remote stability/quiesce/observation/rollback/deployment 证据齐全，且最终 Review `Confirmed Findings=0` 时，才关闭两个 blocker。当前 `ARCH-002-001` 已 `done`；`ARCH-002-002..005` 与 `ARCH-003-001..005` 保持 `blocked`，`ARCH-007` 保持 `pending`，不存在 Ready Task。
+当 `ARCH-002-001..005`、`ARCH-003-001..005` 和 `ARCH-007` 全部 `done`，每个用户要求都有 TEST-TARGET Evidence/Review/Validation/Rollback，实际 owner account/grant/users responsibility/remote stability/quiesce/observation/rollback/monitoring 证据齐全，且最终 Review `Confirmed Findings=0` 时，才关闭两个 blocker。当前 `ARCH-002-001` 已 `done`；`ARCH-002-002` 因本次 TEST-TARGET 全权限授权进入 `ready`，其余 Task 按 DAG 等待依赖。
 
 ### Task DAG
 
@@ -146,7 +154,7 @@ Validation order: focused API/owner tests → App/Admin regressions → full `se
 
 ### Final Validation Tier
 
-Tier C/D cross-service owner/config/startup validation：focused → module → integration → reactor `verify` → real target cutover/observation/performance/security/concurrency review → Compose/POM/YAML/bash/diff/graph Coverage → `ARCH-007` Completion Gate。没有外部目标时只能完成 `ARCH-002-001`，其余任务保持 blocked。
+Tier C/D cross-service owner/config/startup validation：focused → module → integration → reactor `verify` → TEST-TARGET cutover/observation/performance/security/concurrency review → Compose/POM/YAML/bash/diff/graph Coverage → `ARCH-007` Completion Gate。当前测试环境是唯一目标，不制造或要求不存在的 production evidence。
 
 ### Expected Review Areas
 

@@ -13,23 +13,6 @@ import java.util.Map;
 @Mapper
 public interface DashboardMapper {
 
-    // User statistics
-    @Select("SELECT COUNT(*) FROM users WHERE is_deleted = 0")
-    Long countTotalUsers();
-
-    @Select("SELECT COUNT(*) FROM users WHERE is_deleted = 0 AND is_active = 1")
-    Long countActiveUsers();
-
-    @Select("SELECT COUNT(*) FROM users WHERE is_deleted = 0 AND is_banned = 1")
-    Long countBannedUsers();
-
-    @Select("SELECT COUNT(*) FROM users WHERE is_deleted = 0 AND last_login_at >= #{since}")
-    Long countActiveUsersSince(LocalDateTime since);
-
-    @Select("SELECT role, COUNT(*) as count FROM users WHERE is_deleted = 0 GROUP BY role")
-    List<Map<String, Object>> countUsersByRoleRaw();
-
-
     // Problem statistics
     @Select("SELECT COUNT(*) FROM problems")
     Long countTotalProblems();
@@ -40,10 +23,8 @@ public interface DashboardMapper {
     @Select("SELECT difficulty, COUNT(*) as count FROM problems GROUP BY difficulty")
     List<Map<String, Object>> countProblemsByDifficultyRaw();
 
-
     @Select("SELECT status, COUNT(*) as count FROM problems GROUP BY status")
     List<Map<String, Object>> countProblemsByStatusRaw();
-
 
     // Contest statistics
     @Select("SELECT COUNT(*) FROM contests")
@@ -93,16 +74,6 @@ public interface DashboardMapper {
 
     @Select("SELECT COUNT(*) FROM forum_comments WHERE is_deleted = 0 AND is_flagged = 1")
     Long countFlaggedComments();
-
-    // Chart data queries
-    @Select("""
-            SELECT DATE_FORMAT(joined_at, #{dateFormat}) as date, COUNT(*) as count
-            FROM users
-            WHERE is_deleted = 0 AND joined_at >= #{start} AND joined_at <= #{end}
-            GROUP BY DATE_FORMAT(joined_at, #{dateFormat})
-            ORDER BY date
-            """)
-    List<Map<String, Object>> getUsersChartData(LocalDateTime start, LocalDateTime end, String dateFormat);
 
     @Select("""
             SELECT DATE_FORMAT(created_at, #{dateFormat}) as date, COUNT(*) as count

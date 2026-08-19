@@ -19,6 +19,8 @@ import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -70,7 +72,7 @@ class OwnerReconcilerTest {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.countOrphanAuditLogs()).thenReturn(0L);
+            when(auditMapper.auditPerformerIds()).thenReturn(List.of());
 
             ReconciliationRun run = reconciler.runReconciliation();
 
@@ -86,7 +88,7 @@ class OwnerReconcilerTest {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.countOrphanAuditLogs()).thenReturn(0L);
+            when(auditMapper.auditPerformerIds()).thenReturn(List.of());
 
             ReconciliationRun run = reconciler.runReconciliation();
 
@@ -107,7 +109,9 @@ class OwnerReconcilerTest {
                     new AuthReconciliationOrphanCounts(1, 0, 0, 0), "t-system"));
             when(appPort.countOrphans()).thenReturn(new ReconciliationOrphanCounts(
                     2, 0, 0, 0, 0, 0, 0, 0, 0));
-            when(auditMapper.countOrphanAuditLogs()).thenReturn(1L);
+            when(auditMapper.auditPerformerIds()).thenReturn(List.of("ghost"));
+            when(authService.existingUserIds(Set.of("ghost")))
+                    .thenReturn(RpcResult.success(Set.of(), "t-system"));
 
             ReconciliationRun run = reconciler.runReconciliation();
 
@@ -120,15 +124,13 @@ class OwnerReconcilerTest {
         }
 
         @Test
-        @DisplayName("failed auth RPC records zero auth orphans instead of failing")
-        void failedAuthRpcDegradesToZero() {
+        @DisplayName("failed auth RPC fails the reconciliation run closed")
+        void failedAuthRpcFailsClosed() {
             when(authService.countAuthOrphans()).thenReturn(null);
-            when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.countOrphanAuditLogs()).thenReturn(0L);
 
             ReconciliationRun run = reconciler.runReconciliation();
 
-            assertThat(run.getStatus()).isEqualTo("COMPLETED");
+            assertThat(run.getStatus()).isEqualTo("FAILED");
             assertThat(run.getOrphanCount()).isZero();
         }
     }
@@ -154,7 +156,7 @@ class OwnerReconcilerTest {
             when(authService.countAuthOrphans())
                     .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
             when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
-            when(auditMapper.countOrphanAuditLogs()).thenReturn(0L);
+            when(auditMapper.auditPerformerIds()).thenReturn(List.of());
 
             AtomicReference<String> statusAtInsert = new AtomicReference<>();
             when(runMapper.insert(any(ReconciliationRun.class))).thenAnswer(invocation -> {

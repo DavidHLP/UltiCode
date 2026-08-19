@@ -1,5 +1,10 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.error.AuthErrorCode;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
 import com.ulticode.modules.admin.mapper.DashboardMapper;
@@ -20,8 +25,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,21 +41,30 @@ class DefaultDashboardStatsProjectionTest {
     @Mock
     private DashboardMapper dashboardMapper;
 
+    @Mock
+    private AccountQueryService accountQueryService;
+
     private DefaultDashboardStatsProjection projection;
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultDashboardStatsProjection(dashboardMapper, CLOCK);
+        projection = new DefaultDashboardStatsProjection(dashboardMapper, CLOCK, accountQueryService);
     }
 
     @Test
     @DisplayName("loadStats correctly shapes all 7 dashboard stat blocks")
     void loadStats_shapesAllStatBlocks() {
-        when(dashboardMapper.countTotalUsers()).thenReturn(100L);
-        when(dashboardMapper.countActiveUsers()).thenReturn(80L);
-        when(dashboardMapper.countBannedUsers()).thenReturn(5L);
-        when(dashboardMapper.countActiveUsersSince(any(LocalDateTime.class))).thenReturn(20L);
-        when(dashboardMapper.countUsersByRoleRaw()).thenReturn(List.of(Map.of("role", "ADMIN", "count", 2L)));
+        AuthAccountDTO admin = account("admin", "ADMIN", true, false,
+                FIXED_INSTANT.atZone(ZoneId.of("UTC")).toLocalDateTime().minusHours(1),
+                FIXED_INSTANT.atZone(ZoneId.of("UTC")).toLocalDateTime().minusHours(1));
+        AuthAccountDTO bannedUser = account("banned", "USER", true, true,
+                LocalDateTime.of(2026, 7, 20, 9, 0),
+                LocalDateTime.of(2026, 7, 27, 11, 0));
+        AuthAccountDTO oldUser = account("old", "USER", false, false,
+                LocalDateTime.of(2026, 6, 1, 9, 0),
+                LocalDateTime.of(2026, 6, 1, 9, 0));
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(admin, bannedUser, oldUser), 3L, 1, 100, "t-test"));
 
         when(dashboardMapper.countTotalProblems()).thenReturn(50L);
         when(dashboardMapper.countPublishedProblems()).thenReturn(40L);
@@ -72,15 +88,17 @@ class DefaultDashboardStatsProjectionTest {
         when(dashboardMapper.countForumPosts()).thenReturn(80L);
         when(dashboardMapper.countForumComments()).thenReturn(200L);
         when(dashboardMapper.countForumCommunities()).thenReturn(5L);
-        when(dashboardMapper.countFlaggedPosts()).thenReturn(2L);
-        when(dashboardMapper.countFlaggedComments()).thenReturn(3L);
-
         DashboardStatsVO stats = projection.loadStats();
 
         assertThat(stats).isNotNull();
-        assertThat(stats.getUsers().getTotal()).isEqualTo(100L);
-        assertThat(stats.getUsers().getActive()).isEqualTo(80L);
-        assertThat(stats.getUsers().getBanned()).isEqualTo(5L);
+        assertThat(stats.getUsers().getTotal()).isEqualTo(3L);
+        assertThat(stats.getUsers().getActive()).isEqualTo(2L);
+        assertThat(stats.getUsers().getBanned()).isEqualTo(1L);
+        assertThat(stats.getUsers().getActiveToday()).isEqualTo(2L);
+        assertThat(stats.getUsers().getActiveWeek()).isEqualTo(2L);
+        assertThat(stats.getUsers().getActiveMonth()).isEqualTo(2L);
+        assertThat(stats.getUsers().getByRole()).containsEntry("ADMIN", 1L)
+                .containsEntry("USER", 2L);
 
         assertThat(stats.getProblems().getTotal()).isEqualTo(50L);
         assertThat(stats.getProblems().getPublished()).isEqualTo(40L);
@@ -103,17 +121,86 @@ class DefaultDashboardStatsProjectionTest {
     }
 
     @Test
-    @DisplayName("loadChartStats returns points shaped from raw query data")
+    @DisplayName("loadChartStats shapes Auth account data")
     void loadChartStats_shapesChartData() {
-        when(dashboardMapper.getUsersChartData(any(), any(), anyString()))
-                .thenReturn(List.of(Map.of("date", "2026-07-28", "count", 5L)));
+        AuthAccountDTO recent = account("recent", "USER", true, false,
+                LocalDateTime.of(2026, 7, 28, 9, 0),
+                LocalDateTime.of(2026, 7, 28, 9, 0));
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(recent), 1L, 1, 100, "t-test"));
 
-        ChartStatsVO chart = projection.loadChartStats("users", "7d", 7);
+        ChartStatsVO chart = projection.loadChartStats("users", "day", 7);
 
         assertThat(chart).isNotNull();
         assertThat(chart.getMetric()).isEqualTo("users");
         assertThat(chart.getData()).hasSize(1);
         assertThat(chart.getData().get(0).getDate()).isEqualTo("2026-07-28");
-        assertThat(chart.getData().get(0).getCount()).isEqualTo(5L);
+        assertThat(chart.getData().get(0).getCount()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("loadChartStats paginates joined-at records and stops at the window")
+    void loadChartStats_scansPagesAndStopsAtWindow() {
+        AuthAccountDTO recent = account("recent", "USER", true, false,
+                LocalDateTime.of(2026, 7, 27, 9, 0),
+                LocalDateTime.of(2026, 7, 27, 9, 0));
+        AuthAccountDTO old = account("old", "USER", true, false,
+                LocalDateTime.of(2026, 7, 1, 9, 0),
+                LocalDateTime.of(2026, 7, 1, 9, 0));
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(
+                        RpcResult.page(List.of(recent), 2L, 1, 1, "t-test"),
+                        RpcResult.page(List.of(old), 2L, 2, 1, "t-test"));
+
+        ChartStatsVO chart = projection.loadChartStats("users", "day", 7);
+
+        assertThat(chart.getData()).singleElement()
+                .satisfies(point -> {
+                    assertThat(point.getDate()).isEqualTo("2026-07-27");
+                    assertThat(point.getCount()).isEqualTo(1L);
+                });
+        verify(accountQueryService, times(2)).queryAccounts(any());
+    }
+
+    @Test
+    @DisplayName("loadChartStats returns empty user data for an empty Auth page")
+    void loadChartStats_returnsEmptyForNoAccounts() {
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(), 0L, 1, 100, "t-test"));
+
+        ChartStatsVO chart = projection.loadChartStats("users", "day", 7);
+
+        assertThat(chart.getData()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("loadChartStats fails closed when Auth is unavailable")
+    void loadChartStats_failsClosedOnAuthFailure() {
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, "t-test"));
+
+        assertThatThrownBy(() -> projection.loadChartStats("users", "day", 7))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Auth account owner unavailable");
+    }
+
+    @Test
+    @DisplayName("loadStats fails closed on inconsistent Auth pagination metadata")
+    void loadStats_failsClosedOnInconsistentPagination() {
+        AuthAccountDTO account = account("account", "USER", true, false,
+                LocalDateTime.of(2026, 7, 28, 9, 0),
+                LocalDateTime.of(2026, 7, 28, 9, 0));
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(account), 3L, 1, 100, "t-test"));
+
+        assertThatThrownBy(projection::loadStats)
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Auth account owner unavailable");
+    }
+
+    private static AuthAccountDTO account(String id, String role, boolean active, boolean banned,
+                                          LocalDateTime joinedAt, LocalDateTime lastLoginAt) {
+        return new AuthAccountDTO(id, id, id + "@example.com", role, active, banned,
+                null, null, joinedAt, lastLoginAt, 1L);
     }
 }

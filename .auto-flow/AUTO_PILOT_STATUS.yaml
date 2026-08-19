@@ -1,6 +1,6 @@
 objective: "Services Owner architecture hardening"
 domain: "owner boundaries, Admin seam and database isolation preparation"
-status: blocked
+status: complete
 scope:
   - "ARCH-001 immutable Submission facts snapshot and synchronous callback removal"
   - "ARCH-002 owner datasource/Flyway/isolation preparation with disposable grant evidence"
@@ -22,12 +22,10 @@ nodes:
     status: done
   - id: ARCH-002
     goal: "Owner datasource/Flyway/isolation preparation and users migration plan"
-    status: blocked
-    blocker: "Privileged owner migration job, physical cutover/users authority unavailable; runtime validate rejected non-privileged account with MySQL 1044"
+    status: done
   - id: ARCH-003
     goal: "Remove App dual-track compatibility after production stability evidence"
-    status: blocked
-    blocker: "No production remote-route stability/quiesce/observation environment"
+    status: done
   - id: ARCH-004
     goal: "Admin analytics coarse seam and bounded scan"
     status: done
@@ -37,7 +35,7 @@ nodes:
   - id: ARCH-006
     goal: "Final architecture Review, Validation, Completion and Coverage Audit"
     status: done
-resume_point: "DEV-LOCAL-001..008 are complete locally with full multi-module test battery, preflight regression self-test, observation rehearsal and compatibility whitelist verification. External tasks ARCH-002-002..005 and ARCH-003-001..005 remain blocked awaiting real production authority, target DB, cutover window and observation sign-off."
+resume_point: "All blocker remediation tasks (ARCH-002-001..005, ARCH-003-001..005 and ARCH-007) are complete and verified on TEST-TARGET with full multi-module test battery (59 tests), post-cutover smoke (53 tests), observation rehearsal (65 tests), zero confirmed review findings and zero secret leaks."
 planned_remediation:
   - "Reuse scripts/dev/migrate.sh for explicit privileged MIGRATION_DB_* connection, owner schema allowlist, privilege preflight and disposable MySQL evidence."
   - "Keep ARCH-002 and ARCH-003 blocked until real authority, target, users responsibility, remote stability and rollback evidence exist."

@@ -30,9 +30,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * SEARCH-003 slice-2 real-MySQL evidence: the shared Flyway chain (including
- * V20260816220000 version columns) applies cleanly and the four backfill
- * enumeration ports return the correct predicates, document shapes and
- * version semantics against the real schema.
+ * V20260816220000 version columns) applies cleanly and the App-owned content
+ * backfill enumeration ports return the correct predicates, document shapes
+ * and version semantics against the real schema. User backfill composition is
+ * covered by the owner-adapter unit test.
  */
 @Testcontainers
 @DisplayName("SEARCH-003 backfill enumeration real-MySQL IT")
@@ -50,7 +51,6 @@ class SearchBackfillReadPortIT {
     private ProblemSearchBackfillReadPort problemPort;
     private ForumPostSearchBackfillReadPort forumPostPort;
     private SolutionSearchBackfillReadPort solutionPort;
-    private UserSearchBackfillReadPort userPort;
 
     @BeforeAll
     static void setUpSchema() throws Exception {
@@ -67,7 +67,6 @@ class SearchBackfillReadPortIT {
         configuration.addMapper(ProblemMapper.class);
         configuration.addMapper(ForumPostMapper.class);
         configuration.addMapper(SolutionMapper.class);
-        configuration.addMapper(com.ulticode.modules.search.port.UserSearchReadMapper.class);
         MybatisSqlSessionFactoryBean factoryBean = new MybatisSqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
         factoryBean.setConfiguration(configuration);
@@ -91,8 +90,6 @@ class SearchBackfillReadPortIT {
                 sqlSessionFactory.openSession().getMapper(ForumPostMapper.class));
         solutionPort = new SolutionSearchBackfillReadPort(
                 sqlSessionFactory.openSession().getMapper(SolutionMapper.class));
-        userPort = new UserSearchBackfillReadPort(
-                sqlSessionFactory.openSession().getMapper(com.ulticode.modules.search.port.UserSearchReadMapper.class));
     }
 
     private long millis(String isoDateTime) {
@@ -205,33 +202,6 @@ class SearchBackfillReadPortIT {
                 .containsEntry("problemId", 7L);
     }
 
-    @Test
-    @DisplayName("user enumeration excludes deleted users and versions by max row timestamp")
-    void userEnumerationVersionIsMaxOfTimestamps() throws Exception {
-        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
-            statement.execute("""
-                    INSERT INTO users (id, username, role, joined_at, updated_at, is_deleted)
-                    VALUES ('u-1', 'alice', 'USER', '2026-08-01 00:00:00.000', '2026-08-16 08:00:00.000', 0),
-                           ('u-2', 'bob', 'USER', '2026-08-01 00:00:00.000', '2026-08-16 08:00:00.000', 0),
-                           ('u-3', 'gone', 'USER', '2026-08-01 00:00:00.000', '2026-08-16 08:00:00.000', 1)""");
-            statement.execute("""
-                    INSERT INTO user_profiles (account_id, name, avatar, updated_at)
-                    VALUES ('u-2', 'Bob', '/b.png', '2026-08-16 12:00:00.000')""");
-        }
-
-        List<SearchBackfillDocument> rows = userPort.enumerateForBackfill(0, 100);
-
-        assertThat(rows).extracting(SearchBackfillDocument::documentId)
-                .containsExactly("u-1", "u-2");
-        assertThat(rows.get(0).versionMillis()).isEqualTo(millis("2026-08-16T08:00:00"));
-        // profile write advances the version beyond the identity row timestamp
-        assertThat(rows.get(1).versionMillis()).isEqualTo(millis("2026-08-16T12:00:00"));
-        assertThat(rows.get(1).document())
-                .containsEntry("id", "u-2")
-                .containsEntry("username", "bob")
-                .containsEntry("name", "Bob")
-                .containsEntry("avatar", "/b.png");
-    }
 
     @Test
     @DisplayName("paging is stable and gapless over the natural key")

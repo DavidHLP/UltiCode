@@ -22,7 +22,24 @@ public record AuthAccountDTO(
         LocalDateTime bannedUntil,
         LocalDateTime joinedAt,
         LocalDateTime lastLoginAt,
-        long authzVersion) implements Serializable {
+        long authzVersion,
+        LocalDateTime updatedAt,
+        LocalDateTime deletedAt) implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    public AuthAccountDTO(
+            String accountId,
+            String username,
+            String email,
+            String role,
+            boolean active,
+            boolean banned,
+            String bannedReason,
+            LocalDateTime bannedUntil,
+            LocalDateTime joinedAt,
+            LocalDateTime lastLoginAt,
+            long authzVersion) {
+        this(accountId, username, email, role, active, banned, bannedReason,
+                bannedUntil, joinedAt, lastLoginAt, authzVersion, joinedAt, null);
+    }
 }

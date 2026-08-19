@@ -1,5 +1,6 @@
 package com.ulticode.app.config;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -18,7 +19,7 @@ import org.springframework.context.annotation.Profile;
  */
 @Configuration
 @Profile("!test")
-@MapperScan({
+@MapperScan(value = {
         "com.ulticode.modules.follow.mapper",
         "com.ulticode.modules.bookmark.mapper",
         "com.ulticode.modules.solution.mapper",
@@ -37,11 +38,10 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.app.idempotency.mapper",
         "com.ulticode.modules.problemlist.mapper",
         "com.ulticode.modules.reconciliation.port",
-        "com.ulticode.modules.search.port",
         "com.ulticode.modules.submission.mapper",
         "com.ulticode.modules.submission.outbox.mapper",
         "com.ulticode.modules.submission.result",
         "com.ulticode.modules.subscription.mapper",
-})
+}, annotationClass = Mapper.class)
 public class MapperScanConfig {
 }

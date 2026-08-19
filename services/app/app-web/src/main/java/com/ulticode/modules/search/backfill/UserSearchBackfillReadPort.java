@@ -13,10 +13,10 @@ import java.util.List;
 /**
  * SEARCH-003 user backfill enumeration (DEC-017).
  *
- * <p>The user document changes on identity writes (Auth, {@code users}
- * row), profile writes (App, {@code user_profiles} row) and soft deletes.
- * The version is the GREATEST of the row timestamps that can advance, so a
- * snapshot is ordered against every live event that touches either side.
+ * <p>The user document changes on identity writes (Auth) and profile writes
+ * (App). The injected {@link UserSearchReadMapper} composes both owner read
+ * seams without reading Auth-owned tables through the App datasource. The
+ * version is the greatest timestamp available from the composed row.
  */
 @Component
 @RequiredArgsConstructor

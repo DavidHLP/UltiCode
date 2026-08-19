@@ -1,20 +1,32 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.ChartDataPoint;
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
 import com.ulticode.modules.admin.mapper.DashboardMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.lang.management.ManagementFactory;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Default implementation of {@link DashboardStatsProjection}.
@@ -25,14 +37,38 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DefaultDashboardStatsProjection implements DashboardStatsProjection {
+
+    private static final int ACCOUNT_PAGE_SIZE = 100;
+    private static final DateTimeFormatter HOUR_BUCKET_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
+    private static final DateTimeFormatter DAY_BUCKET_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter MONTH_BUCKET_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM");
 
     private final DashboardMapper dashboardMapper;
     private final Clock clock;
 
+    @Autowired(required = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
+    private AccountQueryService accountQueryService;
+
     @Value("${app.version:1.0.0}")
     private String appVersion;
+
+    @Autowired
+    public DefaultDashboardStatsProjection(DashboardMapper dashboardMapper, Clock clock) {
+        this.dashboardMapper = dashboardMapper;
+        this.clock = clock;
+    }
+
+    public DefaultDashboardStatsProjection(DashboardMapper dashboardMapper, Clock clock,
+                                           AccountQueryService accountQueryService) {
+        this(dashboardMapper, clock);
+        this.accountQueryService = accountQueryService;
+    }
 
     @Override
     public DashboardStatsVO loadStats() {
@@ -66,7 +102,7 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         result.setEndDate(now);
 
         String dateFormat = getDateFormat(period);
-        List<Map<String, Object>> rawData = fetchChartData(metric, startDate, now, dateFormat);
+        List<Map<String, Object>> rawData = fetchChartData(metric, startDate, now, dateFormat, period);
         result.setData(toChartDataPoints(rawData));
 
         return result;
@@ -76,16 +112,57 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
 
     private DashboardStatsVO.UserStats buildUserStats() {
         DashboardStatsVO.UserStats stats = new DashboardStatsVO.UserStats();
+        stats.setTotal(0L);
+        stats.setActive(0L);
+        stats.setBanned(0L);
+        stats.setActiveToday(0L);
+        stats.setActiveWeek(0L);
+        stats.setActiveMonth(0L);
+        stats.setByRole(new HashMap<>());
+
+        AccountScan scan = scanAccounts(null);
+
         LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime todayStart = now.minusDays(1);
+        LocalDateTime weekStart = now.minusWeeks(1);
+        LocalDateTime monthStart = now.minusMonths(1);
+        long active = 0L;
+        long banned = 0L;
+        long activeToday = 0L;
+        long activeWeek = 0L;
+        long activeMonth = 0L;
+        Map<String, Long> roleCounts = new HashMap<>();
 
-        stats.setTotal(dashboardMapper.countTotalUsers());
-        stats.setActive(dashboardMapper.countActiveUsers());
-        stats.setBanned(dashboardMapper.countBannedUsers());
-        stats.setActiveToday(dashboardMapper.countActiveUsersSince(now.minusDays(1)));
-        stats.setActiveWeek(dashboardMapper.countActiveUsersSince(now.minusWeeks(1)));
-        stats.setActiveMonth(dashboardMapper.countActiveUsersSince(now.minusMonths(1)));
-        stats.setByRole(shapeRoleCounts(dashboardMapper.countUsersByRoleRaw()));
+        for (AuthAccountDTO account : scan.accounts()) {
+            if (account.active()) {
+                active++;
+            }
+            if (account.banned()) {
+                banned++;
+            }
+            if (account.lastLoginAt() != null) {
+                if (!account.lastLoginAt().isBefore(todayStart)) {
+                    activeToday++;
+                }
+                if (!account.lastLoginAt().isBefore(weekStart)) {
+                    activeWeek++;
+                }
+                if (!account.lastLoginAt().isBefore(monthStart)) {
+                    activeMonth++;
+                }
+            }
+            if (account.role() != null) {
+                roleCounts.merge(account.role(), 1L, Long::sum);
+            }
+        }
 
+        stats.setTotal(scan.total());
+        stats.setActive(active);
+        stats.setBanned(banned);
+        stats.setActiveToday(activeToday);
+        stats.setActiveWeek(activeWeek);
+        stats.setActiveMonth(activeMonth);
+        stats.setByRole(roleCounts);
         return stats;
     }
 
@@ -159,15 +236,144 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
     // ---------- chart data ----------
 
     private List<Map<String, Object>> fetchChartData(String metric, LocalDateTime start,
-                                                      LocalDateTime end, String dateFormat) {
+                                                      LocalDateTime end, String dateFormat,
+                                                      String period) {
         return switch (metric.toLowerCase()) {
-            case "users" -> dashboardMapper.getUsersChartData(start, end, dateFormat);
+            case "users" -> fetchUserChartData(start, end, period);
             case "submissions" -> dashboardMapper.getSubmissionsChartData(start, end, dateFormat);
             case "problems" -> dashboardMapper.getProblemsChartData(start, end, dateFormat);
             case "contests" -> dashboardMapper.getContestsChartData(start, end, dateFormat);
             case "solutions" -> dashboardMapper.getSolutionsChartData(start, end, dateFormat);
             case "forum_posts" -> dashboardMapper.getForumPostsChartData(start, end, dateFormat);
             default -> List.of();
+        };
+    }
+    private List<Map<String, Object>> fetchUserChartData(LocalDateTime start, LocalDateTime end,
+                                                          String period) {
+        AccountScan scan = scanAccounts(start);
+        if (scan.accounts().isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Long> buckets = new TreeMap<>();
+        for (AuthAccountDTO account : scan.accounts()) {
+            LocalDateTime joinedAt = account.joinedAt();
+            if (joinedAt.isBefore(start) || joinedAt.isAfter(end)) {
+                continue;
+            }
+            buckets.merge(formatTimeBucket(joinedAt, period), 1L, Long::sum);
+        }
+
+        return buckets.entrySet().stream()
+                .map(entry -> {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("date", entry.getKey());
+                    row.put("count", entry.getValue());
+                    return row;
+                })
+                .toList();
+    }
+
+    /**
+     * Read Auth accounts in joined-at descending order. A non-null lower bound lets the
+     * caller stop as soon as the ordered page contains an older account.
+     */
+    private AccountScan scanAccounts(LocalDateTime stopBefore) {
+        if (accountQueryService == null) {
+            throw unavailable();
+        }
+
+        try {
+            List<AuthAccountDTO> accounts = new ArrayList<>();
+            long total = -1L;
+            for (int pageNumber = 1; ; pageNumber++) {
+                RpcResult<AuthAccountDTO> response = accountQueryService.queryAccounts(
+                        new AccountQueryDTO(null, null, null, null, pageNumber,
+                                ACCOUNT_PAGE_SIZE, "joinedAt", "desc"));
+                if (response == null || !response.success() || response.page() == null) {
+                    throw unavailable();
+                }
+
+                RpcResult.Page page = response.page();
+                if (page.page() == null || page.page() != pageNumber
+                        || page.pageSize() == null || page.pageSize() < 1
+                        || page.pageSize() > ACCOUNT_PAGE_SIZE
+                        || page.total() == null || page.total() < 0
+                        || page.totalPages() == null || page.totalPages() < 0) {
+                    throw unavailable();
+                }
+                long expectedTotalPages = page.total() == 0L
+                        ? 0L
+                        : (page.total() - 1L) / page.pageSize() + 1L;
+                if (page.totalPages() != expectedTotalPages) {
+                    throw unavailable();
+                }
+                if (total < 0L) {
+                    total = page.total();
+                } else if (total != page.total()) {
+                    throw unavailable();
+                }
+
+                List<?> pageItems = page.items();
+                if (pageItems == null || pageItems.size() > page.pageSize()) {
+                    throw unavailable();
+                }
+                if (pageItems.isEmpty()) {
+                    if (total == 0L) {
+                        return new AccountScan(accounts, total);
+                    }
+                    throw unavailable();
+                }
+                if (pageNumber < page.totalPages() && pageItems.size() < page.pageSize()) {
+                    throw unavailable();
+                }
+                if (page.totalPages() == 0 || pageNumber > page.totalPages()) {
+                    throw unavailable();
+                }
+
+                boolean reachedWindow = false;
+                for (Object item : pageItems) {
+                    if (!(item instanceof AuthAccountDTO account)
+                            || account.joinedAt() == null
+                            || account.role() == null
+                            || account.role().isBlank()) {
+                        throw unavailable();
+                    }
+                    if (!reachedWindow && stopBefore != null && account.joinedAt().isBefore(stopBefore)) {
+                        reachedWindow = true;
+                    }
+                    if (!reachedWindow) {
+                        accounts.add(account);
+                    }
+                }
+
+                if (reachedWindow || pageNumber >= page.totalPages()) {
+                    if (!reachedWindow && accounts.size() != total) {
+                        throw unavailable();
+                    }
+                    return new AccountScan(accounts, total);
+                }
+            }
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            log.warn("Auth account query unavailable while loading dashboard");
+            throw unavailable();
+        }
+    }
+
+    private BusinessException unavailable() {
+        return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Auth account owner unavailable");
+    }
+
+    private String formatTimeBucket(LocalDateTime value, String period) {
+        return switch (period.toLowerCase()) {
+            case "hour" -> value.format(HOUR_BUCKET_FORMAT) + ":00";
+            case "week" -> String.format(java.util.Locale.ROOT, "%04d-%02d",
+                    value.getYear(), value.get(WeekFields.ISO.weekOfYear()));
+            case "month" -> value.format(MONTH_BUCKET_FORMAT);
+            case "year" -> String.format(java.util.Locale.ROOT, "%04d", value.getYear());
+            default -> value.format(DAY_BUCKET_FORMAT);
         };
     }
 
@@ -209,15 +415,11 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         };
     }
 
+    private record AccountScan(List<AuthAccountDTO> accounts, long total) {
+    }
+
     // ---------- Map -> Map<String,Long> shape rules (previously default methods on mapper) ----------
 
-    private Map<String, Long> shapeRoleCounts(List<Map<String, Object>> raw) {
-        Map<String, Long> result = new HashMap<>();
-        for (Map<String, Object> row : raw) {
-            result.put((String) row.get("role"), ((Number) row.get("count")).longValue());
-        }
-        return result;
-    }
 
     private Map<String, Long> shapeCounts(List<Map<String, Object>> raw, String keyColumn) {
         Map<String, Long> result = new HashMap<>();

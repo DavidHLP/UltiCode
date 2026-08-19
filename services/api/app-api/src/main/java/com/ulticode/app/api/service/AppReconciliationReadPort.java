@@ -5,13 +5,11 @@ import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 /**
  * App-owned reconciliation read port.
  *
- * <p>Provides the App-side facts the nightly reconciliation aggregator
- * needs (ADR-P7-OWNER-BOUNDARY-RECONCILIATION-20260802 Decision 4):
- * the user_profiles row count for the users → user_profiles dual-write
- * pair, and orphan counts for the nine App child references pointing
- * at the Auth-owned users table. The provider implements the orphan
- * predicate as App-local SQL against App-owned tables plus a Q-read of
- * the shared users table (allowed by ADR-P7-APP-DECOMPOSITION rule 3).
+ * <p>Provides App-side facts for the nightly reconciliation aggregator:
+ * the {@code user_profiles} row count and orphan counts for App child
+ * references to Auth-owned accounts. The provider reads child ids only from
+ * App-owned tables and resolves physical account existence through the Auth
+ * reconciliation contract; no shared-table Q-read is permitted.
  */
 public interface AppReconciliationReadPort {
 

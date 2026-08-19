@@ -4,6 +4,8 @@ import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.UuidGenerator;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Nightly reconciliation job and orphan scanner (P5-RECONCILE-001),
@@ -147,14 +151,12 @@ public class OwnerReconciler {
 
     /** Four Auth-internal orphan checks via the auth Dubbo provider. */
     private List<OrphanDetectionResult> authOrphans() {
+        if (authQueryService == null) {
+            throw authUnavailable();
+        }
         RpcResult<AuthReconciliationOrphanCounts> result = authQueryService.countAuthOrphans();
         if (result == null || !result.success() || result.data() == null) {
-            log.warn("Auth orphan query failed; recording zero counts");
-            return List.of(
-                    orphan("refresh_tokens", "user_id", "Auth", "users", "Auth", 0),
-                    orphan("password_resets", "user_id", "Auth", "users", "Auth", 0),
-                    orphan("oauth_provider_identities", "user_id", "Auth", "users", "Auth", 0),
-                    orphan("user_permissions", "user_id", "Auth", "users", "Auth", 0));
+            throw authUnavailable();
         }
         AuthReconciliationOrphanCounts counts = result.data();
         return List.of(
@@ -179,10 +181,46 @@ public class OwnerReconciler {
                 orphan("user_follows", "following_id", "App", "users", "Auth", counts.userFollowsByFollowing()));
     }
 
-    /** Admin-local audit_logs orphan check (admin owns the table). */
+    /** Admin-local audit_logs candidates checked against Auth physical existence. */
     private OrphanDetectionResult auditLogsOrphans() {
-        return orphan("audit_logs", "performer_id", "Admin", "users", "Auth",
-                auditOrphanMapper.countOrphanAuditLogs());
+        List<String> performerIds = auditOrphanMapper.auditPerformerIds();
+        if (performerIds == null) {
+            performerIds = List.of();
+        }
+        Set<String> candidates = new HashSet<>();
+        performerIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .forEach(candidates::add);
+        Set<String> existing = existingUserIds(candidates);
+        long missing = performerIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .filter(id -> !existing.contains(id))
+                .count();
+        return orphan("audit_logs", "performer_id", "Admin", "users", "Auth", missing);
+    }
+
+    private Set<String> existingUserIds(Set<String> candidates) {
+        if (candidates.isEmpty()) {
+            return Set.of();
+        }
+        if (authQueryService == null) {
+            throw authUnavailable();
+        }
+        List<String> ids = new ArrayList<>(candidates);
+        Set<String> existing = new HashSet<>();
+        for (int start = 0; start < ids.size(); start += 500) {
+            Set<String> batch = Set.copyOf(ids.subList(start, Math.min(start + 500, ids.size())));
+            RpcResult<Set<String>> result = authQueryService.existingUserIds(batch);
+            if (result == null || !result.success() || result.data() == null) {
+                throw authUnavailable();
+            }
+            existing.addAll(result.data());
+        }
+        return existing;
+    }
+
+    private BusinessException authUnavailable() {
+        return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Auth reconciliation owner unavailable");
     }
 
     private static OrphanDetectionResult orphan(String childTable, String childColumn,

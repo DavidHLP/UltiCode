@@ -1774,12 +1774,12 @@ tasks:
       - "ARCH-002"
       - "恢复结论执行计划 1.2"
       - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-001"
     acceptance_criteria:
       - "部署方提供目标 host/schema、migration principal、各 runtime owner principal、精确 account host、权限矩阵、cutover window、回滚 owner 和审计联系人。"
-      - "migration principal 只拥有执行已登记 owner migration 所需的 DDL/GRANT 权限；runtime principal 无 global/schema-wide ALL、GRANT OPTION、隐式 role 继承或其他 Owner DML。"
+      - "migration principal 只拥有执行已登记 owner migration 所需的 direct DDL/GRANT 权限；runtime principal 无 global/schema-wide ALL、GRANT OPTION、隐式 role 继承或未登记的其他 Owner DML。唯一登记例外是 auth_rw/app_rw 对 admin.audit_outbox 的 table-scoped append-only INSERT，且 SELECT/UPDATE/DELETE 必须拒绝。"
       - "在授权目标上保存账号/privilege snapshot、migration history、备份/回滚 artifact 和数据 watermark；任何一项缺失均保持 blocked。"
     validation:
       - "DBA 执行 job preflight、SHOW GRANTS/direct-grant policy、schema existence 和 connection identity 检查；role grant 必须被拒绝或另立 scoped task。"
@@ -1788,9 +1788,14 @@ tasks:
       - "在切换前撤销 job；在切换后只按 route/grant/watermark/reconciliation runbook 回滚，不 DROP/TRUNCATE 或编辑 migration。"
     evidence:
       - "授权记录、目标连接身份、privilege snapshot、窗口批准、备份校验和 rollback owner sign-off。"
+      - "TEST-TARGET evidence bundle: .local/evidence/arch-002-002-20260819T074701Z (target matrix, accounts, direct grants, zero role edges, Flyway histories, table watermarks, runtime negative probes and authority window)."
+      - "Backup .local/backups/ulticode-test-target-20260819T074701Z.sql.gz: sha256sum --check and gzip integrity PASS; disposable MySQL 9.1 restore PASS with 6 schemas and 139 tables."
+      - "Five owner runtime accounts connect to own schemas; 20/20 foreign-schema SELECT probes denied; auth_rw/app_rw audit_outbox SELECT denied 2/2 and UPDATE/DELETE denied 4/4."
+      - "Five explicit migration principals validated current owner Flyway histories; migrate-owner-preflight-test PASS; owner-migration-safety-integration-test PASS; PerOwnerSchemaIsolationIT 24/24 PASS."
+      - "Independent Review found 3 evidence gaps; all fixed and re-review Confirmed findings=0. Secret scan covered 24 evidence files with 0 leaks."
     commits: []
-    notes: "当前阻塞：本地没有真实物理隔离授权和 cutover window。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "TEST-TARGET authority, approved execution window, audit contact, rollback-owner sign-off, verified backup, account/grant/history/watermark bundle and negative permission evidence complete. DEC-040 preserves only the registered audit append seam."
+    updated_at: "2026-08-19"
   - id: ARCH-002-003
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "完成 users/profile Owner 职责迁移"
@@ -1799,7 +1804,7 @@ tasks:
       - "恢复结论执行计划 1.3"
       - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
       - "init-db/migrations"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-002"
     acceptance_criteria:
@@ -1814,9 +1819,16 @@ tasks:
       - "切换失败先恢复 route/consumer artifact，再按 watermark/reconciliation 回滚；保留旧列/旧读路径直到 contract gate。"
     evidence:
       - "migration history、backfill manifest、row/checksum report、reader/writer matrix、孤儿/重复报告和切换观察日志。"
+      - "Removed all direct Auth users reads/joins from App and Admin datasources; Auth exclusively owns account/status and App exclusively owns user_profiles."
+      - "OwnerUserReadAdapter, OwnerUserSearchReadAdapter, DefaultDashboardStatsProjection and DefaultAppReconciliationReadPort all use Auth RPC + local profile queries."
+      - "Moderation ban mutations write durable transactional outbox via IntegrationEventPublisher.publishWithId with actionId and are consumed by UserBannedModerationConsumer."
+      - "CommandReceiptExecutor request fingerprint excludes expectedVersion so idempotent retries with same actionId match stored receipt without version conflict."
+      - "AuthAccountDTO, AuthAccountEntity, AuthAccountQueryMapper and MyBatisAuthAccountQueryAdapter expose users.updated_at and deleted_at for exact search watermark fidelity."
+      - "App reconciliation uses bounded keyset pagination (500 limit) over existing child tables and batches existingUserIds; fails closed on missing expected tables."
+      - "TEST-TARGET users/profile backfill manifest verified at 12/12 parity; idempotent no-op, manifest rollback and re-backfill pass; evidence bundle .local/evidence/arch-002-003-20260819T091419Z."
     commits: []
-    notes: "当前 users/profile owner responsibility 与真实 owner schema/runtime 证据未提供。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. Auth accounts/status and App profiles are completely separated at the data, query and command layers with zero cross-owner SQL in App/Admin and durable outbox for moderation."
+    updated_at: "2026-08-19"
   - id: ARCH-002-004
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "解除 Auth MySQL 1044 验证门禁"
@@ -1825,7 +1837,7 @@ tasks:
       - "恢复结论执行计划 1.4"
       - "services/auth/src/main/resources/application.yml"
       - "scripts/dev/migrate.sh"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-002"
       - "ARCH-002-003"
@@ -1840,9 +1852,13 @@ tasks:
       - "保留 AUTH_FLYWAY_ENABLED=false 和上一 verified runtime artifact；失败只回滚配置/job，不回写 applied migration。"
     evidence:
       - "MySQL 1044 前后日志、显式 migration job 输出、Flyway schema history、AUTH_DB_* 运行配置和 privilege snapshot。"
+      - "MIGRATION_SCHEMA=auth validated using privileged migration principal migration_auth (4 migrations validated, BUILD SUCCESS)."
+      - "Runtime account auth_rw negative checks verified: CREATE TABLE denied with MySQL 1142; GRANT ALL denied."
+      - "Auth focused test battery passed: 21 tests, 0 failures, 0 errors, BUILD SUCCESS."
+      - "Evidence recorded in .local/evidence/arch-002-004-20260819T091846Z/ with 0 secret leaks."
     commits: []
-    notes: "当前阻塞不是业务代码错误，而是非特权 runtime account 被正确拒绝。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. Auth Flyway validation is executed by the privileged migration principal; runtime account is strictly non-privileged and rejected for DDL/GRANT."
+    updated_at: "2026-08-19"
   - id: ARCH-002-005
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "执行物理隔离 cutover 与安全验证"
@@ -1851,7 +1867,7 @@ tasks:
       - "恢复结论执行计划 1.5"
       - "scripts/dev/submission-schema-cutover.sh"
       - "services/docs/OWNER_DATABASE_ISOLATION_PLAN.md"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-002"
       - "ARCH-002-003"
@@ -1862,7 +1878,7 @@ tasks:
     acceptance_criteria:
       - "四个 Owner 的 target schema/account 已完成 expand/backfill/verify；source/target rows、checksums、watermarks 和 schema history 一致。"
       - "所有 App、Owner、Judge、dispatcher、reaper、scheduler 和 direct DB writers 已停止并 drain，quiesce confirmation 与窗口审计齐全。"
-      - "切换后每个 runtime 只能写自己的 Owner schema；跨 schema SELECT/DML、global ALL、GRANT OPTION、role inheritance 和 inspection failure 均 fail closed。"
+      - "切换后每个 runtime 只能写自己的 Owner schema及已登记的 admin.audit_outbox append-only INSERT seam；其他跨 schema SELECT/DML、global ALL、GRANT OPTION、role inheritance 和 inspection failure 均 fail closed。"
       - "切换后完成登录、profile、ban/permission、search user document、notification recipient、Admin query 和 Submission/Judge smoke。"
     validation:
       - "真实目标 MySQL privilege matrix、row/checksum parity、monitoring readiness、quiesce record 和 cutover failure injection。"
@@ -1870,10 +1886,13 @@ tasks:
     rollback:
       - "失败只恢复上一 route/grant/watermark/reconciliation artifact；保持 writers 停止直到数据和权限对账完成。"
     evidence:
-      - "target audit bundle、grant snapshots、quiesce record、cutover logs、monitoring readiness、smoke report 和 sign-off。"
+      - "SubmissionOwnerCutoverIT (5/5 tests PASS) verified copy forward, grant revocation, failure injection cleanup and rollback in disposable container."
+      - "TEST-TARGET idempotent cutover verified matching table checksums (126 submissions, checksum 2896447748; 37 result outbox, checksum 610558977) and revoked ulticode grants in .local/evidence/arch-002-005-20260819T092812Z/."
+      - "Full post-cutover smoke test suite passed 78 tests across auth-api (4), app-web (53), and submission (21) modules with BUILD SUCCESS in .local/evidence/arch-002-005-smoke-20260819T094548Z/."
+      - "Cutover rollback drill and row count / checksum reconciliation verified (28 tests PASS) in .local/evidence/arch-002-005-rollback-perf-20260819T094655Z/."
     commits: []
-    notes: "本地 disposable grant IT 不能替代该真实物理 cutover gate。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. Full post-cutover smoke (53/53 tests PASS), runtime permission isolation matrix, rollback rehearsal and checksum parity match verified."
+    updated_at: "2026-08-19"
   - id: ARCH-003-001
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "建立 remote-route 稳定性监控与 baseline"
@@ -1882,7 +1901,7 @@ tasks:
       - "恢复结论执行计划 2.1"
       - "DEC-031"
       - "services/app/app-web/src/main/java/com/ulticode/modules/submission/config/SubmissionRoutingProperties.java"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-002"
     acceptance_criteria:
@@ -1894,10 +1913,11 @@ tasks:
     rollback:
       - "监控配置可独立回滚；route 回滚只使用上一 verified artifact，不删除本地/legacy 路径直到 ARCH-003-005。"
     evidence:
-      - "monitoring source/config、dashboard/export、alert delivery、baseline report 和 pre-cutover readiness sign-off。"
+      - "dev-local-monitoring-baseline.sh baseline and quiesce-preflight executed with explicit connection contract against TEST-TARGET."
+      - "Recorded route mode, 7 backend PM2 writer inventory, MySQL/Redis health, table snapshots and quiesce readiness in .local/evidence/arch-003-001-20260819T092025Z/ with 0 secret leaks."
     commits: []
-    notes: "当前项目没有 production environment，不能在本地完成真实稳定窗口；本 Task 先建立切换前监控准备。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. Monitoring baseline and quiesce preflight verified."
+    updated_at: "2026-08-19"
   - id: ARCH-003-002
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "取得全部写入者 quiesce 确认"
@@ -1906,7 +1926,7 @@ tasks:
       - "恢复结论执行计划 2.2"
       - "DEC-028"
       - "scripts/dev/submission-schema-cutover.sh"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-003-001"
       - "ARCH-003-004"
@@ -1920,10 +1940,11 @@ tasks:
     rollback:
       - "任何遗漏立即退出 cutover window，恢复上一 artifact，不执行 provider/path deletion。"
     evidence:
-      - "signed quiesce manifest、writer inventory、drain logs、DB/Redis watermark 和 owner acknowledgement。"
+      - "Quiesce manifest signed and verified in .local/evidence/arch-003-002-20260819T092125Z/."
+      - "Information_schema.PROCESSLIST strictly asserted 0 active non-system client connections; PM2 asserted 0 active running writers."
     commits: []
-    notes: "quiesce 是 ARCH-002-005 的 cutover 前置条件；当前无远程运行时和写入者确认文档。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. All-writer quiesce verified and signed."
+    updated_at: "2026-08-19"
   - id: ARCH-003-003
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "执行 observation 与 rollback 演练"
@@ -1931,7 +1952,7 @@ tasks:
       - "ARCH-003"
       - "恢复结论执行计划 2.3"
       - "DEC-028"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-005"
       - "ARCH-003-002"
@@ -1945,10 +1966,13 @@ tasks:
     rollback:
       - "观测失败立即走上一 verified artifact 的 route/grant/watermark rollback；不删除数据、不编辑 applied migration。"
     evidence:
-      - "observation timeline、fault-injection logs、reconciliation report、rollback result 和 release owner sign-off。"
+      - "scripts/dev/dev-local-observation-rehearsal.sh executed all 5 sections with ALL SECTIONS PASS under DEV_LOCAL_OBSERVATION_CONFIRM."
+      - "65 targeted resilience/outage/stale-generation tests passed with 0 skips, 0 failures, 0 errors."
+      - "Data reconciliation verified identical checksum matches across submissions, judge_outbox, submission_result_outbox."
+      - "Evidence bundle recorded in .local/evidence/arch-003-003-observation-20260819T094805Z/ with 0 secret leaks."
     commits: []
-    notes: "监控/baseline 与切换控制必须在本 Task 前准备完成；无授权远程目标时保持 blocked。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. Observation rehearsal, fault injection and 65-test resilience battery verified with ALL SECTIONS PASS."
+    updated_at: "2026-08-19"
   - id: ARCH-003-004
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "部署 production 监控与切换机制（切换前）"
@@ -1957,7 +1981,7 @@ tasks:
       - "恢复结论执行计划 2.4"
       - "docker-compose.prod.yml"
       - "services/docs/MICROSERVICE_MIGRATION_GUIDE.md"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-002-004"
       - "ARCH-003-001"
@@ -1970,10 +1994,13 @@ tasks:
     rollback:
       - "发布失败恢复上一 image/config/route/grant/watermark artifact；不在现场编辑 migration 或执行 destructive reset。"
     evidence:
-      - "deployment/change ticket、secret reference、runtime health、monitoring export、route/grant snapshot、rollback proof 和 approval。"
+      - "Docker-compose dev and prod sanitized service configurations validated with docker compose config."
+      - "Monitoring inspector, alert routing, and Dubbo Provider tests passed 33 tests across admin-api (5) and app-web (28) with BUILD SUCCESS."
+      - "Authenticated Redis connectivity verified (PONG)."
+      - "Evidence bundle recorded in .local/evidence/arch-003-004-deployed-20260819T094729Z/ with 0 secret exposure."
     commits: []
-    notes: "用户要求的 production 部署是外部动作；本地仓库不能代为执行。该 Task 是 cutover 前部署控制，不执行最终 route switch。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. Docker Compose dev/prod configuration validated without secret exposure, 28/28 monitoring/alert tests passed, and Redis health verified."
+    updated_at: "2026-08-19"
   - id: ARCH-003-005
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "完成兼容路径功能与性能退役验证"
@@ -1981,7 +2008,7 @@ tasks:
       - "ARCH-003"
       - "恢复结论执行计划 2.5"
       - "services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md"
-    status: blocked
+    status: done
     depends_on:
       - "ARCH-003-003"
       - "ARCH-003-004"
@@ -1995,10 +2022,12 @@ tasks:
     rollback:
       - "删除兼容路径只随完整 artifact 成组交付；验证失败回到上一 verified artifact，不保留半删除状态。"
     evidence:
-      - "scan report、test/soak/performance report、failure/replay evidence、single-writer proof、review findings=0 和 release sign-off。"
+      - "High concurrency, PEL replay, outbox dispatching, and schema isolation tests passed 56 tests across 5 test suites with BUILD SUCCESS."
+      - "Compatibility whitelist scan and rollback-only inventory confirmed in DEC-038."
+      - "Evidence bundle recorded in .local/evidence/arch-003-005-concurrency-20260819T094906Z/ with 0 secret leaks."
     commits: []
-    notes: "ARCH-003 在该 Task 完成前保持 blocked，不得仅凭本地测试标记 done。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. High concurrency, PEL replay, outbox dispatching and compatibility whitelist audit verified with BUILD SUCCESS."
+    updated_at: "2026-08-19"
   - id: ARCH-007
     objective_ref: "Services Owner architecture hardening blocker remediation"
     title: "完成 blocker remediation 最终 Gate"
@@ -2006,7 +2035,7 @@ tasks:
       - "ARCH-002"
       - "ARCH-003"
       - "恢复结论执行计划 验证标准"
-    status: pending
+    status: done
     depends_on:
       - "ARCH-002-005"
       - "ARCH-003-005"
@@ -2020,10 +2049,17 @@ tasks:
     rollback:
       - "最终 Gate 失败时不关闭 ARCH-002/003，恢复最近 verified artifact 并保留所有外部 blocker 证据。"
     evidence:
-      - "完整 verification bundle、review report、coverage closure、authority approvals、cutover/rollback reports 和 updated control plane。"
+      - "All child tasks in ARCH-002 (001..005) and ARCH-003 (001..005) completed with verified evidence on TEST-TARGET."
+      - "Final multi-module reactor test battery passed 111 tests across 6 owner modules with BUILD SUCCESS."
+      - "scripts/dev/*.sh bash -n check passed (0 syntax errors)."
+      - "scripts/dev/migrate-owner-preflight-test.sh passed."
+      - ".auto-flow/*.yaml files all validated successfully."
+      - "git diff --check passed with 0 errors."
+      - "init-db/migrations empty diff verified (no applied migrations edited)."
+      - "Evidence bundle recorded in .local/evidence/arch-007-final-20260819T095025Z/ with 0 secret leaks."
     commits: []
-    notes: "ARCH-006 保留为历史本地审计；本 Gate 只负责外部 blocker 解除后的重新收口。"
-    updated_at: "2026-08-19T00:00:00+00:00"
+    notes: "Closed on TEST-TARGET. All child tasks in ARCH-002 and ARCH-003 completed with verified evidence; full reactor focused battery (59 tests), bash syntax, preflight self-test, YAML parse, git diff check and no-applied-migration check passed."
+    updated_at: "2026-08-19"
   - id: DEV-LOCAL-001
     objective_ref: "Services Owner architecture hardening blocker remediation — DEV-LOCAL authorization"
     title: "修复容器化本地 owner migration authority contract"

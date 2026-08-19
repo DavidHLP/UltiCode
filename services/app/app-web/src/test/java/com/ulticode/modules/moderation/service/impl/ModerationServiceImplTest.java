@@ -34,6 +34,7 @@ import com.ulticode.modules.moderation.mapper.UserBanMapper;
 import com.ulticode.modules.moderation.mapper.UserWarningMapper;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
+import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.app.api.service.ModerationAccountPort;
 import java.time.Clock;
 import java.time.Instant;
@@ -67,6 +68,7 @@ class ModerationServiceImplTest {
   @Mock private ContentModerationPort contentModerationPort;
   @Mock private ModerationProjection moderationProjection;
   @Mock private CurrentUserProvider currentUserProvider;
+  @Mock private IntegrationEventPublisher integrationEventPublisher;
 
   private ModerationServiceImpl service() {
     return new ModerationServiceImpl(
@@ -80,7 +82,8 @@ class ModerationServiceImplTest {
         contentModerationPort,
         moderationProjection,
         CLOCK,
-        currentUserProvider);
+        currentUserProvider,
+        integrationEventPublisher);
   }
 
   // ----- createAppeal guards + transition -----
@@ -239,6 +242,33 @@ class ModerationServiceImplTest {
     verify(warningMapper, never()).insert(any(UserWarning.class));
   }
 
+  @Test
+  void performActionWithTempBanInsertsBanAndPublishesDurableOutboxEvent() {
+    when(queueMapper.selectById("q-1")).thenReturn(queueItem("q-1"));
+    when(moderationProjection.queueItemById("q-1")).thenReturn(new ModerationQueueVO());
+
+    PerformModerationActionDTO dto = new PerformModerationActionDTO();
+    dto.setAction(ModerationActionType.TEMP_BANNED);
+    dto.setNote("ban note");
+    dto.setDurationDays(7);
+
+    service().performAction("q-1", dto, "mod-1");
+
+    ArgumentCaptor<UserBan> banCaptor = ArgumentCaptor.forClass(UserBan.class);
+    verify(banMapper).insert(banCaptor.capture());
+    UserBan ban = banCaptor.getValue();
+    assertThat(ban.getUserId()).isEqualTo("author-1");
+    assertThat(ban.getQueueId()).isEqualTo("q-1");
+    assertThat(ban.getReason()).isEqualTo("ban note");
+    assertThat(ban.getCategory()).isEqualTo("SPAM");
+    assertThat(ban.getBannedById()).isEqualTo("mod-1");
+    assertThat(ban.getActionId()).isNotBlank();
+    assertThat(ban.getIsPermanent()).isFalse();
+
+    verify(integrationEventPublisher).publishWithId(
+        eq(ban.getActionId()), eq("moderation"), eq("UserBanned"), eq("author-1"),
+        eq(1L), eq("q-1"), any(), any());
+  }
   // ----- fixtures -----
 
   private static ModerationQueue queue(String id, String authorId, String status) {

@@ -343,3 +343,19 @@
 - **Alternatives**: Delete App-local submission writer immediately (rejected: eliminates rollback capability if production cutover fails); leave routing uncontrolled (rejected: risks dual-writing).
 - **Consequences**: Rollback safety is preserved across all environments; compatibility retirement is documented and verified as ready, while external `ARCH-003-005` production retirement gate remains explicitly blocked.
 - **Affected Tasks**: `DEV-LOCAL-007`, `DEV-LOCAL-008`, `ARCH-003-005`.
+
+## DEC-039: Current test environment is the authoritative cutover target
+
+- **Context**: The previous blocker plan separated authorized `DEV-LOCAL` rehearsal from an unavailable production target. The user now confirms that this project has only the current test environment, no separate development or production environment, and grants full authority for all remaining blocker operations there.
+- **Decision**: Treat the current `.env`/Docker/PM2 environment as the sole `TEST-TARGET`. Existing `dev-local` script names and confirmation tokens remain unchanged for compatibility, but their rerun evidence may close `ARCH-002-002..005` and `ARCH-003-001..005` when each original least-privilege, parity, quiesce, cutover, observation, rollback and compatibility-retirement criterion passes. No production claim is made or required.
+- **Alternatives**: Keep waiting for a nonexistent production environment (rejected: creates an impossible terminal condition); rename every script/token before execution (rejected: unrelated churn); waive runtime evidence (rejected: authority does not replace Acceptance or safety proof).
+- **Consequences**: `ARCH-002-002` becomes executable immediately. Downstream Tasks advance only through the existing DAG and fresh TEST-TARGET evidence. Persistent test data may be changed only after backup, watermarks and all-writer quiesce; secrets remain unprinted and uncommitted.
+- **Affected Tasks**: `ARCH-002`, `ARCH-003`, `ARCH-002-002..005`, `ARCH-003-001..005`, `ARCH-007`.
+
+## DEC-040: Audit append-only grant is an explicit owner-contract exception
+
+- **Context**: Fresh TEST-TARGET grant inspection found `auth_rw` and `app_rw` each have table-scoped `INSERT` on `admin.audit_outbox`. The initial ARCH wording rejected every cross-owner DML, but applied migration `V20260729140000`, `PerOwnerSchemaIsolationIT`, `AuthAuditOutboxMapper` and `AppAuditOutboxMapper` deliberately define this append-only audit seam.
+- **Decision**: Preserve this single registered exception. It is not general foreign-schema access: only `INSERT` is allowed, Admin remains the sole claimant/processor, and SELECT/UPDATE/DELETE must fail. All other cross-owner runtime grants remain prohibited.
+- **Alternatives**: Revoke the grants now (rejected: breaks transaction-bound audit writes and contradicts the applied migration); create a new remote audit path (rejected: changes transaction semantics and adds a second architecture); ignore the grant (rejected: would falsify least-privilege evidence).
+- **Consequences**: ARCH-002-002/005 privilege checks use an explicit allowlist rather than a blanket no-cross-schema rule. Existing negative tests and fresh target probes must prove the seam remains append-only.
+- **Affected Tasks**: `ARCH-002-002`, `ARCH-002-005`, `ARCH-007`.

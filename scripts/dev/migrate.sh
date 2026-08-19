@@ -147,21 +147,6 @@ has_role_grant() {
 owner_preflight() {
   local runtime_user current_user current_user_name current_db schema_exists
   local grants schema_grants global_grants effective_grants line schema_marker
-  if [[ -n "${MIGRATION_MYSQL_CONTAINER:-}" ]]; then
-    command -v docker >/dev/null 2>&1 \
-      || fail_preflight "docker CLI is required when MIGRATION_MYSQL_CONTAINER is set"
-    valid_container_ref "$MIGRATION_MYSQL_CONTAINER" \
-      || fail_preflight "invalid migration MySQL container reference"
-    valid_port "$MIGRATION_MYSQL_CONTAINER_PORT" \
-      || fail_preflight "invalid migration MySQL container port: $MIGRATION_MYSQL_CONTAINER_PORT"
-    [[ "$(docker inspect -f '{{.State.Running}}' "$MIGRATION_MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
-      || fail_preflight "migration MySQL container is not running: $MIGRATION_MYSQL_CONTAINER"
-    mysql_container_targets_configured_host "$MIGRATION_MYSQL_CONTAINER" "$MIGRATION_MYSQL_CONTAINER_PORT" \
-      "$MIGRATION_DB_HOST" "$MIGRATION_DB_PORT" \
-      || fail_preflight "configured migration target $MIGRATION_DB_HOST:$MIGRATION_DB_PORT is not a published endpoint of $MIGRATION_MYSQL_CONTAINER:$MIGRATION_MYSQL_CONTAINER_PORT"
-  else
-    command -v mysql >/dev/null 2>&1 || fail_preflight "mysql CLI is required for owner migrations"
-  fi
   for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
       MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
     [[ -n "${!variable:-}" ]] || fail_preflight "$variable is required for MIGRATION_SCHEMA=$MIGRATION_SCHEMA"
@@ -181,6 +166,21 @@ owner_preflight() {
   [[ -n "$runtime_user" ]] || fail_preflight "runtime owner account is not configured"
   [[ "$MIGRATION_DB_USER" != "$runtime_user" ]] \
     || fail_preflight "migration account must differ from runtime owner account '$runtime_user'"
+  if [[ -n "${MIGRATION_MYSQL_CONTAINER:-}" ]]; then
+    command -v docker >/dev/null 2>&1 \
+      || fail_preflight "docker CLI is required when MIGRATION_MYSQL_CONTAINER is set"
+    valid_container_ref "$MIGRATION_MYSQL_CONTAINER" \
+      || fail_preflight "invalid migration MySQL container reference"
+    valid_port "$MIGRATION_MYSQL_CONTAINER_PORT" \
+      || fail_preflight "invalid migration MySQL container port: $MIGRATION_MYSQL_CONTAINER_PORT"
+    [[ "$(docker inspect -f '{{.State.Running}}' "$MIGRATION_MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+      || fail_preflight "migration MySQL container is not running: $MIGRATION_MYSQL_CONTAINER"
+    mysql_container_targets_configured_host "$MIGRATION_MYSQL_CONTAINER" "$MIGRATION_MYSQL_CONTAINER_PORT" \
+      "$MIGRATION_DB_HOST" "$MIGRATION_DB_PORT" \
+      || fail_preflight "configured migration target $MIGRATION_DB_HOST:$MIGRATION_DB_PORT is not a published endpoint of $MIGRATION_MYSQL_CONTAINER:$MIGRATION_MYSQL_CONTAINER_PORT"
+  else
+    command -v mysql >/dev/null 2>&1 || fail_preflight "mysql CLI is required for owner migrations"
+  fi
 
   current_user="$(mysql_query 'SELECT CURRENT_USER();')" \
     || fail_preflight "cannot connect with the explicit migration account"

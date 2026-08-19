@@ -28,9 +28,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -143,6 +145,8 @@ class OwnerReconcilerIT {
         when(authService.countActiveUsers()).thenReturn(RpcResult.success(2L, "t-system"));
         when(authService.countAuthOrphans())
                 .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of("u-001", "u-del"), "t-system"));
 
         AppReconciliationReadPort appPort = mock(AppReconciliationReadPort.class);
         when(appPort.countUserProfiles()).thenReturn(2L);
@@ -174,10 +178,9 @@ class OwnerReconcilerIT {
     }
 
     @Test
-    @DisplayName("soft-deleted parent physically exists and is NOT an orphan")
-    void softDeletedParentIsNotOrphan() {
-        // al-2 references the soft-deleted but physically present u-del → not orphan
-        // al-ghost references a nonexistent id → orphan; al-1 references u-001 → not orphan
-        assertThat(auditOrphanMapper.countOrphanAuditLogs()).isEqualTo(1L);
+    @DisplayName("admin mapper returns performer candidates without a local users join")
+    void mapperReturnsAuditPerformerCandidates() {
+        assertThat(auditOrphanMapper.auditPerformerIds())
+                .contains("u-001", "u-del", "ghost-user");
     }
 }

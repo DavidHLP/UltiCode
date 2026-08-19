@@ -1,16 +1,23 @@
 package com.ulticode.modules.reconciliation.port;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
+import com.ulticode.auth.api.service.ReconciliationQueryService;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcResult;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DefaultAppReconciliationReadPort} — the
@@ -19,11 +26,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultAppReconciliationReadPortTest {
 
-    @Mock
-    private AppReconciliationReadMapper mapper;
+    @Mock private AppReconciliationReadMapper mapper;
+    @Mock private ReconciliationQueryService authQueryService;
 
-    @InjectMocks
     private DefaultAppReconciliationReadPort port;
+
+    @BeforeEach
+    void setUp() {
+        port = new DefaultAppReconciliationReadPort(mapper);
+        port.setAuthQueryService(authQueryService);
+        lenient().when(mapper.existingChildTables()).thenReturn(List.of(
+                "submissions", "solutions", "forum_posts", "notifications",
+                "user_profiles", "contest_participants"));
+    }
 
     @Test
     @DisplayName("countUserProfiles delegates to mapper")
@@ -33,38 +48,37 @@ class DefaultAppReconciliationReadPortTest {
     }
 
     @Test
-    @DisplayName("countOrphans maps all nine mapper counts into the record in order")
-    void countOrphansMapsAllNine() {
-        when(mapper.countOrphanSubmissions()).thenReturn(1L);
-        when(mapper.countOrphanSolutions()).thenReturn(2L);
-        when(mapper.countOrphanForumPosts()).thenReturn(3L);
-        when(mapper.countOrphanNotifications()).thenReturn(4L);
-        when(mapper.countOrphanUserProfiles()).thenReturn(5L);
-        when(mapper.countOrphanContestParticipants()).thenReturn(6L);
-        when(mapper.countOrphanUserAchievements()).thenReturn(7L);
-        when(mapper.countOrphanUserFollowsByFollower()).thenReturn(8L);
-        when(mapper.countOrphanUserFollowsByFollowing()).thenReturn(9L);
+    @DisplayName("countOrphans batches Auth existence and preserves grouped child-row counts")
+    void countOrphansUsesAuthOwnerExistence() {
+        when(mapper.submissionUserCounts("", 500)).thenReturn(List.of(
+                reference("missing", 2L), reference("present", 1L)));
+        when(mapper.userProfileAccountCounts("", 500)).thenReturn(List.of(
+                reference("soft-deleted", 1L)));
+        when(authQueryService.existingUserIds(Set.of("missing", "present")))
+                .thenReturn(RpcResult.success(Set.of("present"), "t-1"));
+        when(authQueryService.existingUserIds(Set.of("soft-deleted")))
+                .thenReturn(RpcResult.success(Set.of("soft-deleted"), "t-1"));
 
         ReconciliationOrphanCounts counts = port.countOrphans();
 
-        assertThat(counts.submissions()).isEqualTo(1L);
-        assertThat(counts.solutions()).isEqualTo(2L);
-        assertThat(counts.forumPosts()).isEqualTo(3L);
-        assertThat(counts.notifications()).isEqualTo(4L);
-        assertThat(counts.userProfiles()).isEqualTo(5L);
-        assertThat(counts.contestParticipants()).isEqualTo(6L);
-        assertThat(counts.userAchievements()).isEqualTo(7L);
-        assertThat(counts.userFollowsByFollower()).isEqualTo(8L);
-        assertThat(counts.userFollowsByFollowing()).isEqualTo(9L);
+        assertThat(counts.submissions()).isEqualTo(2L);
+        assertThat(counts.solutions()).isZero();
+        assertThat(counts.userProfiles()).isZero();
+    }
 
-        verify(mapper).countOrphanSubmissions();
-        verify(mapper).countOrphanSolutions();
-        verify(mapper).countOrphanForumPosts();
-        verify(mapper).countOrphanNotifications();
-        verify(mapper).countOrphanUserProfiles();
-        verify(mapper).countOrphanContestParticipants();
-        verify(mapper).countOrphanUserAchievements();
-        verify(mapper).countOrphanUserFollowsByFollower();
-        verify(mapper).countOrphanUserFollowsByFollowing();
+    @Test
+    @DisplayName("countOrphans fails closed when Auth owner is unavailable")
+    void countOrphansFailsClosed() {
+        when(mapper.submissionUserCounts("", 500)).thenReturn(List.of(reference("u-1", 1L)));
+        when(authQueryService.existingUserIds(Set.of("u-1"))).thenReturn(null);
+
+        assertThatThrownBy(port::countOrphans).isInstanceOf(BusinessException.class);
+    }
+
+    private static UserReferenceCount reference(String accountId, long rowCount) {
+        UserReferenceCount reference = new UserReferenceCount();
+        reference.setAccountId(accountId);
+        reference.setRowCount(rowCount);
+        return reference;
     }
 }

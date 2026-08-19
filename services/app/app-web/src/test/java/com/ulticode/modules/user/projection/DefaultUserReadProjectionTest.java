@@ -16,7 +16,6 @@ import com.ulticode.modules.user.dto.UserVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -159,11 +158,11 @@ class DefaultUserReadProjectionTest {
     class FindByEmailTests {
 
         @Test
-        @DisplayName("should throw UnsupportedOperationException — email lookup removed from app read port")
-        @Disabled("P7: email lookup removed from app read port")
-        void shouldThrowUnsupportedOperationException() {
-            assertThrows(UnsupportedOperationException.class,
-                    () -> userReadProjection.findByEmail("test@example.com"));
+        @DisplayName("should query the Auth-owned account seam")
+        void shouldFindByEmail() {
+            when(userReadMapper.selectByEmail("test@example.com")).thenReturn(testUser);
+            assertThat(userReadProjection.findByEmail("test@example.com"))
+                    .contains(testUser);
         }
     }
 

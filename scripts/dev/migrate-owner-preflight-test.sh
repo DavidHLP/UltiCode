@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+# Keep caller/test-environment container settings from changing fake-host cases.
+unset MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT
+
 FAKE_BIN="$TMP_DIR/bin"
 ENV_FILE="$TMP_DIR/.env"
 MAVEN_MARKER="$TMP_DIR/maven-marker"

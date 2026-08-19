@@ -661,3 +661,19 @@
 - Added durable disposable MySQL 9.1/Redis 7 behavior coverage; verified missing DML rejection, real Auth/App owner migrations, soft-deleted account/profile preservation, and table/global/role/routine grant failure plus zero-grant success.
 - Current-machine evidence: physical users/profile preflight 12/12 with matching checksums and zero missing/orphans; full observation rehearsal 65 tests with zero failures/errors/skips, matching Submission checksums and effective grants 0.
 - Compose dev/prod, shell syntax, diff, secret scan, no-applied-migration check, graphify update and two-axis formal review passed. No commit, push, production mutation or persistent data write was performed.
+
+## 2026-08-19 (TEST-TARGET blocker authority and replanning)
+
+- User confirmed that the repository has only the current test environment, no separate development or production environment, and granted authority for every remaining database, cutover, monitoring, observation, rollback and compatibility-retirement blocker action there.
+- Recorded DEC-039 and an authoritative TEST-TARGET override in PLAN.md. Historical `dev-local` script names/tokens remain compatibility labels; no production evidence will be claimed.
+- Reopened execution through the existing safe DAG: `ARCH-002-002` is `ready`; downstream Tasks remain dependency-gated and still require fresh target evidence rather than renamed historical results.
+- Initial inventory: `ulticode-mysql` and `ulticode-redis` are healthy, PM2 has no running writers, owner runtime credentials and migration passwords are present, and shared `MIGRATION_DB_*` remains intentionally caller-supplied.
+
+## 2026-08-19 (ARCH-002-002 TEST-TARGET authority and privilege gate)
+
+- Created a verified TEST-TARGET backup and evidence bundle under `.local/`: SHA-256/gzip checks passed and a disposable MySQL 9.1 restore produced all 6 schemas and 139 tables.
+- Captured five owner runtime and five direct migration identities, grants, zero role edges, Flyway histories, 139 table watermarks, authority window, audit contact and rollback-owner sign-off without secret leakage.
+- Runtime evidence passed: own-schema connect 5/5, foreign-schema SELECT denied 20/20, audit SELECT denied 2/2 and audit UPDATE/DELETE denied 4/4. DEC-040 records the existing INSERT-only `admin.audit_outbox` exception.
+- Review found three evidence gaps (window/contact/sign-off, audit mutation negatives, independent backup restore); all were fixed and re-review returned Confirmed findings=0.
+- Fixed two pre-existing preflight self-test defects exposed by current TEST-TARGET environment: required/static checks now precede container endpoint probing, and the fake self-test unsets caller container variables. Regression self-test, disposable safety integration, five owner Flyway validates and `PerOwnerSchemaIsolationIT` 24/24 pass.
+- Closed `ARCH-002-002`; `ARCH-002-003` and `ARCH-003-001` are now dependency-ready. No applied migration changed and no secret was printed.

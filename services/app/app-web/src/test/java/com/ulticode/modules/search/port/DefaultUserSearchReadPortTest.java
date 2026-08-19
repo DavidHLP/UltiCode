@@ -15,8 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Unit tests for {@link DefaultUserSearchReadPort} — the App-side
- * Q-read adapter over the Auth-owned {@code users} table.
+ * Unit tests for {@link DefaultUserSearchReadPort}, the App-side adapter over
+ * the owner-composed user search read port.
  */
 @ExtendWith(MockitoExtension.class)
 class DefaultUserSearchReadPortTest {

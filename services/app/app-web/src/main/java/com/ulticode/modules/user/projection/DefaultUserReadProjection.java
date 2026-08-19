@@ -93,8 +93,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
         if (email == null || email.isBlank()) {
             return Optional.empty();
         }
-        // UserReadMapper does not expose email lookup; throw unsupported
-        throw new UnsupportedOperationException("Email lookup is not supported in the relocated projection");
+        return Optional.ofNullable(userReadMapper.selectByEmail(email));
     }
 
     @Override

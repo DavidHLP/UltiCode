@@ -172,9 +172,14 @@ assert_ready() {
       echo "Column shape mismatch: $SOURCE_SCHEMA.$table vs $TARGET_SCHEMA.$table" >&2
       return 1
     fi
-    if [[ "$(row_count "$TARGET_SCHEMA" "$table")" != "0" ]]; then
-      echo "Target table is not empty: $TARGET_SCHEMA.$table" >&2
-      return 1
+    local target_rows source_rows
+    target_rows="$(row_count "$TARGET_SCHEMA" "$table")" || return 1
+    source_rows="$(row_count "$SOURCE_SCHEMA" "$table")" || return 1
+    if [[ "$target_rows" != "0" ]]; then
+      if [[ "$target_rows" != "$source_rows" || "$(checksum "$TARGET_SCHEMA" "$table")" != "$(checksum "$SOURCE_SCHEMA" "$table")" ]]; then
+        echo "Target table has non-empty conflicting rows: $TARGET_SCHEMA.$table ($target_rows rows vs source $source_rows rows)" >&2
+        return 1
+      fi
     fi
   done
   for table in "${TARGET_ONLY_TABLES[@]}"; do
@@ -182,10 +187,7 @@ assert_ready() {
       echo "Target-only table missing: $TARGET_SCHEMA.$table; run submission migrations first" >&2
       return 1
     fi
-    if [[ "$(row_count "$TARGET_SCHEMA" "$table")" != "0" ]]; then
-      echo "Target-only table is not empty: $TARGET_SCHEMA.$table" >&2
-      return 1
-    fi
+    # Target-only table structure verified; rows may exist if previously recorded
   done
 }
 
@@ -232,10 +234,14 @@ revoke_app_grants() {
     echo "SUBMISSION_APP_DB_USER and SUBMISSION_APP_DB_HOST are required to revoke App grants." >&2
     return 1
   fi
+  local grant_count
   for table in "${TABLES[@]}"; do
-    if ! mysql_query "REVOKE SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` FROM '$APP_DB_USER'@'$APP_DB_HOST';"; then
-      echo "Grant revocation failed for $SOURCE_SCHEMA.$table from '$APP_DB_USER'@'$APP_DB_HOST'." >&2
-      return 1
+    grant_count="$(app_user_table_grant_count "$SOURCE_SCHEMA" "$table")" || return 1
+    if [[ "$grant_count" -gt 0 ]]; then
+      if ! mysql_query "REVOKE SELECT, INSERT, UPDATE, DELETE ON \`$SOURCE_SCHEMA\`.\`$table\` FROM '$APP_DB_USER'@'$APP_DB_HOST';"; then
+        echo "REVOKE failed for $SOURCE_SCHEMA.$table from '$APP_DB_USER'@'$APP_DB_HOST'." >&2
+        return 1
+      fi
     fi
   done
   if ! mysql_query "FLUSH PRIVILEGES;"; then
@@ -340,7 +346,7 @@ app_user_schema_dml_grant_exists() {
   [[ "$count" -gt 0 ]]
 }
 
-app_user_table_grant_exists() {
+app_user_table_grant_count() {
   local schema="$1" table="$2" count
   if ! count="$(mysql_query "SELECT COUNT(DISTINCT PRIVILEGE_TYPE)
       FROM information_schema.table_privileges
@@ -350,7 +356,7 @@ app_user_table_grant_exists() {
     return 2
   fi
   [[ "$count" =~ ^[0-9]+$ ]] || return 2
-  [[ "$count" == "4" ]]
+  echo "$count"
 }
 
 app_user_table_unsafe_grant_exists() {
@@ -427,25 +433,24 @@ assert_revoke_ready() {
   fi
   local missing=0
   for table in "${TABLES[@]}"; do
-    if app_user_table_grant_exists "$SOURCE_SCHEMA" "$table"; then
-      if app_user_table_unsafe_grant_exists "$SOURCE_SCHEMA" "$table"; then
-        echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has an unsafe extra/ALL table privilege on $SOURCE_SCHEMA.$table; refusing cutover." >&2
-        missing=1
-      else
-        check_status=$?
-        if [[ "$check_status" -eq 2 ]]; then
-          echo "Unable to inspect table privileges on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
-          missing=1
-        fi
-      fi
+    grant_count="$(app_user_table_grant_count "$SOURCE_SCHEMA" "$table")" || {
+      echo "Unable to inspect table grants on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+      missing=1
+      continue
+    }
+    if [[ "$grant_count" != "4" && "$grant_count" != "0" ]]; then
+      echo "App user '$APP_DB_USER'@'$APP_DB_HOST' must have either 4 table-scoped DML grants or 0 grants (already isolated) on $SOURCE_SCHEMA.$table before cutover." >&2
+      missing=1
+    fi
+    if app_user_table_unsafe_grant_exists "$SOURCE_SCHEMA" "$table"; then
+      echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has an unsafe extra/ALL table privilege on $SOURCE_SCHEMA.$table; refusing cutover." >&2
+      missing=1
     else
       check_status=$?
       if [[ "$check_status" -eq 2 ]]; then
-        echo "Unable to inspect table grants on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
-      else
-        echo "App user '$APP_DB_USER'@'$APP_DB_HOST' must have exactly table-scoped SELECT/INSERT/UPDATE/DELETE grants on $SOURCE_SCHEMA.$table before cutover." >&2
+        echo "Unable to inspect table privileges on $SOURCE_SCHEMA.$table for '$APP_DB_USER'@'$APP_DB_HOST'; refusing cutover." >&2
+        missing=1
       fi
-      missing=1
     fi
     if app_user_column_grant_exists "$SOURCE_SCHEMA" "$table"; then
       echo "App user '$APP_DB_USER'@'$APP_DB_HOST' has column-level privileges on $SOURCE_SCHEMA.$table; refusing table-only REVOKE." >&2
@@ -515,12 +520,14 @@ case "$ACTION" in
       echo "Unable to capture source rows/checksums before copy; refusing cutover." >&2
       exit 1
     fi
-    if ! copy_forward; then
-      echo "Copy failed; aborting without revoking grants." >&2
-      if ! cleanup_failed_cutover; then
-        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
+    if [[ "$(row_count "$TARGET_SCHEMA" "submissions")" == "0" ]]; then
+      if ! copy_forward; then
+        echo "Copy failed; aborting without revoking grants." >&2
+        if ! cleanup_failed_cutover; then
+          echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
+        fi
+        exit 1
       fi
-      exit 1
     fi
     if ! source_after="$(source_snapshot "$SOURCE_SCHEMA")"; then
       echo "Unable to recheck source rows/checksums after copy; refusing to revoke grants." >&2

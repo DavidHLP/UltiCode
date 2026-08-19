@@ -15,19 +15,14 @@ import java.util.Map;
 /**
  * Search source for the user domain. Owns:
  * <ul>
- *   <li>The {@link UserSearchReadPort} call (App-side Q-read of the
- *       Auth-owned users table; non-deleted predicate, username/name
- *       LIKE matching and LIMIT cap enforced by the port adapter).</li>
+ *   <li>The {@link UserSearchReadPort} call (owner-composed Auth account and
+ *       App profile read; non-deleted predicate and username/name matching
+ *       are enforced by the port adapter).</li>
  *   <li>The {@code /users/{username}} URL template.</li>
  *   <li>The user metadata projection (username, avatar).</li>
  * </ul>
  *
- * <p>P7-SEARCH-RELOCATE-001: replaced the direct legacy {@code UserMapper}
- * dependency with {@link UserSearchReadPort} (port extracted in
- * P7-SEARCH-CONTRACTS-001). Behavioral parity with the previous
- * {@code QueryWrapper} path: same LIKE columns, same is_deleted=0
- * predicate, same LIMIT cap; results additionally arrive in a
- * deterministic username order (port adapter).
+ * <p>Results arrive in a deterministic username order from the read port.
  */
 @Service
 @RequiredArgsConstructor

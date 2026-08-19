@@ -9,11 +9,9 @@ import org.springframework.stereotype.Component;
 /**
  * App-side adapter for {@link UserSearchReadPort}.
  *
- * <p>Migration-state Q-read of the Auth-owned {@code users} table via
- * {@link UserSearchReadMapper} (ADR-P7-APP-DECOMPOSITION rule 3 — App
- * READS users table for account display fields, no RPC dependency).
- * When the physical DB splits, swap the mapper for the Auth identity
- * query seam without touching the search consumer.
+ * <p>Delegates to the owner-composed {@link UserSearchReadMapper} port. Auth
+ * account data is obtained through the adapter's owner query seam rather than
+ * through the App datasource.
  */
 @Component
 @RequiredArgsConstructor

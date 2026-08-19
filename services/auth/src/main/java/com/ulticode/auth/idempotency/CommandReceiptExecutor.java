@@ -167,14 +167,13 @@ public class CommandReceiptExecutor {
         } else if (command instanceof DeleteAccountCommand value) {
             payload = join(value.accountId(), value.rationale());
         } else if (command instanceof ChangeAccountStateCommand value) {
-            payload = join(value.accountId(), value.expectedVersion(), value.action(), value.rationale());
+            payload = join(value.accountId(), value.action(), value.rationale());
         } else if (command instanceof ChangeAuthorizationCommand value) {
             String permissions = value.permissions().stream()
                     .sorted()
                     .map(CommandReceiptExecutor::encode)
                     .collect(Collectors.joining("|"));
-            payload = join(value.accountId(), value.expectedVersion(), value.role(),
-                    permissions, value.rationale());
+            payload = join(value.accountId(), value.role(), permissions, value.rationale());
         } else {
             payload = command.getClass().getName();
         }

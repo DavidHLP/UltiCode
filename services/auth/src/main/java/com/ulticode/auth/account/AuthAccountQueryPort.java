@@ -2,6 +2,7 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.service.AccountQueryService;
 
 import java.util.List;
 import java.util.Optional;

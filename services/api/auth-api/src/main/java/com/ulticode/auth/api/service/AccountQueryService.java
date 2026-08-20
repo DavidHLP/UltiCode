@@ -4,7 +4,9 @@ import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.common.rpc.RpcResult;
 
+import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -42,5 +44,7 @@ public interface AccountQueryService {
             long activeToday,
             long activeWeek,
             long activeMonth,
-            java.util.Map<String, Long> byRole) {}
+            Map<String, Long> byRole) implements Serializable {
+        private static final long serialVersionUID = 1L;
+    }
 }

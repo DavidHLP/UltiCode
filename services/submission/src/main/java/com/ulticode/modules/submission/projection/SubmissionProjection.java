@@ -31,12 +31,14 @@ public interface SubmissionProjection {
     SubmissionVO toVO(Submission submission);
 
     /**
-     * List overload: enrich problem display facts from a pre-fetched batch
-     * map instead of one lookup per row (SPLIT-004 slice-8). Rows whose
-     * problem id is absent from {@code batchFacts} fall back to the single
-     * lookup seam, matching {@link #toVO(Submission)} semantics.
+     * Page overload: enrich problem display facts from a pre-fetched batch
+     * map and batch user summaries once for the whole page.
      */
     SubmissionVO toVO(Submission submission, Map<Long, com.ulticode.app.api.service.ProblemFactsPort.ProblemDisplayFacts> batchFacts);
+
+    List<SubmissionVO> toVO(
+            List<Submission> submissions,
+            Map<Long, com.ulticode.app.api.service.ProblemFactsPort.ProblemDisplayFacts> batchFacts);
 
     /**
      * Convert a submission entity to its full user-facing detail VO with

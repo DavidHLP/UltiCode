@@ -102,9 +102,7 @@ public class SubmissionUserQueryProvider implements SubmissionUserQueryPort {
                         .filter(java.util.Objects::nonNull)
                         .collect(Collectors.toSet()));
 
-        List<SubmissionVO> voList = records.stream()
-                .map(s -> submissionProjection.toVO(s, batchFacts))
-                .toList();
+        List<SubmissionVO> voList = submissionProjection.toVO(records, batchFacts);
 
         return PageResult.of(voList, result.getTotal(), page, pageSize);
     }

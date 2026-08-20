@@ -72,20 +72,24 @@ public class SearchDocumentIndexWorker {
     private final io.micrometer.core.instrument.Counter staleCounter;
 
     private static final RedisScript<Long> ATOMIC_DEAD_LETTER_SCRIPT = RedisScript.of("""
-            local marked = redis.call('SET', KEYS[3], '1', 'NX', 'EX', ARGV[6])
+            local marked = redis.call('SET', KEYS[3], '1', 'NX', 'EX', ARGV[10])
             if marked then
                 local added = redis.pcall('XADD', KEYS[2], '*',
                     'eventId', ARGV[1],
-                    'eventType', ARGV[2],
-                    'aggregateId', ARGV[3],
-                    'aggregateVersion', ARGV[4],
-                    'payload', ARGV[5])
+                    'owner', ARGV[2],
+                    'eventType', ARGV[3],
+                    'aggregateId', ARGV[4],
+                    'aggregateVersion', ARGV[5],
+                    'schemaVersion', ARGV[6],
+                    'causationId', ARGV[7],
+                    'traceId', ARGV[8],
+                    'payload', ARGV[9])
                 if type(added) == 'table' and added['err'] then
                     redis.call('DEL', KEYS[3])
                     return -1
                 end
             end
-            redis.call('XACK', KEYS[1], ARGV[7], ARGV[8])
+            redis.call('XACK', KEYS[1], ARGV[11], ARGV[12])
             return 1
             """, Long.class);
 
@@ -238,9 +242,13 @@ public class SearchDocumentIndexWorker {
                 ATOMIC_DEAD_LETTER_SCRIPT,
                 List.of(props.getStreamKey(), props.getDlqKey(), markerKey),
                 fields.getOrDefault("eventId", ""),
+                fields.getOrDefault("owner", ""),
                 fields.getOrDefault("eventType", ""),
                 fields.getOrDefault("aggregateId", ""),
                 fields.getOrDefault("aggregateVersion", ""),
+                fields.getOrDefault("schemaVersion", ""),
+                fields.getOrDefault("causationId", ""),
+                fields.getOrDefault("traceId", ""),
                 fields.getOrDefault("payload", ""),
                 "86400",
                 props.getGroup(),

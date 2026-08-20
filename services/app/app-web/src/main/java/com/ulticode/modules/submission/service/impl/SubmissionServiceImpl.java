@@ -101,9 +101,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         IPage<SubmissionMapper.SubmissionWithProblem> result =
                 submissionMapper.findByUserIdWithProblem(userId, pageParam);
 
-        List<SubmissionVO> voList = result.getRecords().stream()
-                .map(submissionProjection::toVO)
-                .toList();
+        List<SubmissionVO> voList = submissionProjection.toVO(result.getRecords());
 
         return PageResult.of(voList, result.getTotal(), page, pageSize);
     }

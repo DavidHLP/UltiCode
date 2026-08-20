@@ -41,3 +41,13 @@ Historical `.auto-flow/SERVICES_AUTONOMY_*` coverage remains authoritative for i
 - Candidate 03 / report lines 304-361 → ARCH-REVIEW-003 → AC-003.1..3.4 → bounded summary and provider unavailable evidence.
 - Candidate 04 / report lines 363-424 → ARCH-REVIEW-004 → AC-004.1..4.4 → profile/config/Compose evidence.
 - Recommendation and skipped directions / report lines 426-446 → ARCH-REVIEW-005 → AC-005.1..5.3 → no infrastructure expansion and development-only gate.
+
+## Reviewer CR remediation 2026-08-20
+
+| Review finding | Task | Evidence |
+| --- | --- | --- |
+| AuthAccountQueryPort missing AccountQueryService import; dashboard payload not Serializable | CRFIX-REVIEW-001 | Auth compile; auth-api contract 16/0/0/0 |
+| Submission pages still performed single-row user/problem enrichment | CRFIX-REVIEW-002 | App multi-row projection regression; real MySQL Submission IT 8/0/0/0 |
+| Auth dashboard summary dropped role counts | CRFIX-REVIEW-003 | Mapper role grouping real MySQL 2/0/0/0; adapter unit test |
+| Search DLQ dropped owner/schemaVersion/causationId/traceId | CRFIX-REVIEW-004 | Worker 11/0/0/0; real Redis + Meili E2E 4/0/0/0 |
+| All findings re-reviewed and validated | CRFIX-REVIEW-005 | affected reactor PASS; full verify PASS; fresh IT XML 68 reports / 225 tests / 0 failures / 0 errors / 17 skips |

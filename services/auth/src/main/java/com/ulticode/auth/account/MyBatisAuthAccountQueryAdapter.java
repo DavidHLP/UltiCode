@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** MySQL implementation of {@link AuthAccountQueryPort}. */
@@ -105,9 +107,15 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
             java.time.LocalDateTime monthStart) {
         AuthAccountQueryMapper.AccountStatsRow row =
                 mapper.dashboardStatsSummary(todayStart, weekStart, monthStart);
+        Map<String, Long> byRole = new LinkedHashMap<>();
+        for (AuthAccountQueryMapper.RoleCountRow roleCount : mapper.dashboardRoleCounts()) {
+            if (roleCount.role() != null) {
+                byRole.merge(roleCount.role(), roleCount.count(), Long::sum);
+            }
+        }
         return new com.ulticode.auth.api.service.AccountQueryService.AccountStatsSummary(
                 row.total(), row.active(), row.banned(), row.activeToday(),
-                row.activeWeek(), row.activeMonth(), java.util.Map.of());
+                row.activeWeek(), row.activeMonth(), Map.copyOf(byRole));
     }
 
     private AuthAccountDTO toDto(AuthAccountEntity entity) {

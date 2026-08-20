@@ -123,6 +123,17 @@ public interface AuthAccountQueryMapper {
             @Param("weekStart") java.time.LocalDateTime weekStart,
             @Param("monthStart") java.time.LocalDateTime monthStart);
 
+    @Select("""
+            SELECT role, COUNT(*) AS count
+            FROM users
+            WHERE is_deleted = 0
+            GROUP BY role
+            ORDER BY role
+            """)
+    List<RoleCountRow> dashboardRoleCounts();
+
     record AccountStatsRow(long total, long active, long banned,
                            long activeToday, long activeWeek, long activeMonth) {}
+
+    record RoleCountRow(String role, long count) {}
 }

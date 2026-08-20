@@ -48,3 +48,16 @@ authority:
   publish: false
   deploy: false
   production_action: false
+cr_review:
+  status: complete
+  findings_fixed:
+    - missing AccountQueryService import
+    - non-Serializable AccountStatsSummary
+    - unbatched Submission page enrichment
+    - empty Auth dashboard role counts
+    - incomplete Search DLQ envelope
+  evidence:
+    - affected reactor BUILD SUCCESS
+    - services verify BUILD SUCCESS
+    - fresh integration XML 68 reports / 225 tests / 0 failures / 0 errors / 17 skips
+    - real MySQL, Redis and Meili stub tests passed

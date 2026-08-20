@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Default adapter of {@link SubmissionProjection}.
@@ -126,8 +129,8 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionVO toVO(Submission submission) {
-        return toVO(submission, userReadPort.findAllById(List.of(submission.getUserId())),
-                problemFacts.findDisplayFactsBatch(List.of(submission.getProblemId())));
+        return toVO(submission, findSingleUser(submission.getUserId()),
+                findSingleFact(submission.getProblemId()));
     }
 
     private SubmissionVO toVO(
@@ -245,6 +248,25 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionVO toVO(SubmissionMapper.SubmissionWithProblem submission) {
+        return toVO(submission, findUsers(List.of(submission.userId())));
+    }
+
+    @Override
+    public List<SubmissionVO> toVO(List<SubmissionMapper.SubmissionWithProblem> submissions) {
+        if (submissions == null || submissions.isEmpty()) {
+            return List.of();
+        }
+        Set<String> userIds = submissions.stream()
+                .map(SubmissionMapper.SubmissionWithProblem::userId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, SubmissionUserReadPort.UserSummary> users = findUsers(userIds);
+        return submissions.stream().map(row -> toVO(row, users)).toList();
+    }
+
+    private SubmissionVO toVO(
+            SubmissionMapper.SubmissionWithProblem submission,
+            Map<String, SubmissionUserReadPort.UserSummary> users) {
         SubmissionVO vo = new SubmissionVO();
 
         vo.setId(submission.id());
@@ -261,7 +283,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         vo.setMemoryPercentile(submission.memoryPercentile());
         vo.setMemoryDistBinsMb(normalizeBins(submission.memoryDistBinsMb()));
 
-        SubmissionUserReadPort.UserSummary user = userReadPort.findById(submission.userId());
+        SubmissionUserReadPort.UserSummary user = users.get(submission.userId());
         if (user != null) {
             SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
             userInfo.setId(user.id());
@@ -280,6 +302,30 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         }
 
         return vo;
+    }
+
+    private Map<String, SubmissionUserReadPort.UserSummary> findUsers(Iterable<String> userIds) {
+        if (userReadPort == null) {
+            return Map.of();
+        }
+        Map<String, SubmissionUserReadPort.UserSummary> users = userReadPort.findAllById(userIds);
+        return users == null ? Map.of() : users;
+    }
+
+    private Map<String, SubmissionUserReadPort.UserSummary> findSingleUser(String userId) {
+        if (userReadPort == null || userId == null) {
+            return Map.of();
+        }
+        SubmissionUserReadPort.UserSummary user = userReadPort.findById(userId);
+        return user == null ? Map.of() : Map.of(userId, user);
+    }
+
+    private Map<Long, ProblemFactsPort.ProblemDisplayFacts> findSingleFact(Long problemId) {
+        if (problemFacts == null || problemId == null) {
+            return Map.of();
+        }
+        ProblemFactsPort.ProblemDisplayFacts fact = problemFacts.findDisplayFacts(problemId);
+        return fact == null ? Map.of() : Map.of(problemId, fact);
     }
 
     @Override

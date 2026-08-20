@@ -23,6 +23,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Tests the P0-1 user-projection contract of {@link DefaultSubmissionProjection}.
@@ -221,6 +224,35 @@ class DefaultSubmissionProjectionTest {
 
             assertThat(vo.getId()).isEqualTo("sub-9");
             assertThat(vo.getProblem()).isNull();
+        }
+
+        @Test
+        @DisplayName("Page projection batches user enrichment once")
+        void pageProjectionBatchesUsers() {
+            SubmissionMapper.SubmissionWithProblem first =
+                    joinedRow("sub-1", "u-1");
+            SubmissionMapper.SubmissionWithProblem second =
+                    joinedRow("sub-2", "u-2");
+            when(userReadPort.findAllById(any())).thenReturn(Map.of(
+                    "u-1", new com.ulticode.app.api.service.SubmissionUserReadPort.UserSummary(
+                            "u-1", "alice", "Alice", "a.png"),
+                    "u-2", new com.ulticode.app.api.service.SubmissionUserReadPort.UserSummary(
+                            "u-2", "bob", "Bob", "b.png")));
+
+            List<SubmissionVO> result = projection.toVO(List.of(first, second));
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get(0).getUser().getUsername()).isEqualTo("alice");
+            assertThat(result.get(1).getUser().getUsername()).isEqualTo("bob");
+            verify(userReadPort, times(1)).findAllById(any());
+            verify(userReadPort, never()).findById(any());
+        }
+
+        private SubmissionMapper.SubmissionWithProblem joinedRow(String id, String userId) {
+            return new SubmissionMapper.SubmissionWithProblem(
+                    id, 200L, userId, "java", "code", "Accepted",
+                    42, 64.0, "notes", 0, java.time.LocalDateTime.now(),
+                    50.0, 60.0, null, null, null, "Two Sum", "two-sum");
         }
     }
 

@@ -17,6 +17,7 @@ import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.error.NamespacedErrorCode;
@@ -26,6 +27,7 @@ import com.ulticode.common.tracing.TraceMetadata;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -119,6 +121,14 @@ class BackendAuthApiContractShapeTest {
         assertThat(missing)
                 .as("backend-auth-api must expose every &sect;6.2 contract type")
                 .isEmpty();
+    }
+
+    @Test
+    void dashboard_summary_is_transport_serializable() {
+        assertThat(Serializable.class.isAssignableFrom(
+                AccountQueryService.AccountStatsSummary.class))
+                .as("Hessian/Dubbo dashboard payload must be Serializable")
+                .isTrue();
     }
 
     /* ===== String UUID identifiers ==================================== */

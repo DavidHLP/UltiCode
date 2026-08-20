@@ -42,6 +42,7 @@ class AuthAccountQueryMapperCollationIT {
                         CREATE TABLE users (
                           id varchar(36) NOT NULL,
                           username varchar(50) NOT NULL,
+                          role varchar(32) NULL,
                           is_deleted tinyint(1) NOT NULL DEFAULT 0,
                           PRIMARY KEY (id)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -56,11 +57,11 @@ class AuthAccountQueryMapperCollationIT {
         try (SqlSession session = sessionFactory.openSession()) {
             try (var statement = session.getConnection().createStatement()) {
                 statement.executeUpdate("""
-                        INSERT INTO users (id, username, is_deleted) VALUES
-                        ('jose', 'José', 0),
-                        ('alice', 'ALICE', 0),
-                        ('bob', 'bob', 0),
-                        ('deleted', 'NoMatch', 1)
+                        INSERT INTO users (id, username, role, is_deleted) VALUES
+                        ('jose', 'José', 'USER', 0),
+                        ('alice', 'ALICE', 'ADMIN', 0),
+                        ('bob', 'bob', 'USER', 0),
+                        ('deleted', 'NoMatch', 'USER', 1)
                         """);
             }
             AuthAccountQueryMapper mapper = session.getMapper(AuthAccountQueryMapper.class);
@@ -69,6 +70,31 @@ class AuthAccountQueryMapperCollationIT {
                     List.of("jose", "alice", "bob", "deleted"), "e");
 
             assertThat(count).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void dashboardRoleCountsGroupLiveAccountsAndExcludeDeletedAccounts() throws Exception {
+        try (SqlSession session = sessionFactory.openSession()) {
+            try (var statement = session.getConnection().createStatement()) {
+                statement.executeUpdate("""
+                        INSERT INTO users (id, username, role, is_deleted) VALUES
+                        ('role-admin', 'admin-2', 'ADMIN', 0),
+                        ('role-user-1', 'user-2', 'USER', 0),
+                        ('role-user-2', 'user-3', 'USER', 0),
+                        ('role-deleted', 'deleted-2', 'USER', 1)
+                        """);
+            }
+
+            List<AuthAccountQueryMapper.RoleCountRow> counts =
+                    session.getMapper(AuthAccountQueryMapper.class).dashboardRoleCounts();
+
+            assertThat(counts)
+                    .extracting(AuthAccountQueryMapper.RoleCountRow::role,
+                            AuthAccountQueryMapper.RoleCountRow::count)
+                    .containsExactly(
+                            org.assertj.core.groups.Tuple.tuple("ADMIN", 1L),
+                            org.assertj.core.groups.Tuple.tuple("USER", 2L));
         }
     }
 }

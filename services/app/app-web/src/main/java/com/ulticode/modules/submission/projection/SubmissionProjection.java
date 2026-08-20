@@ -95,6 +95,12 @@ public interface SubmissionProjection {
     SubmissionVO toVO(SubmissionMapper.SubmissionWithProblem submission);
 
     /**
+     * Convert a page of pre-joined submissions while batching user enrichment
+     * once for the whole page.
+     */
+    List<SubmissionVO> toVO(List<SubmissionMapper.SubmissionWithProblem> submissions);
+
+    /**
      * Aggregate the {@code YYYY-MM-DD} dates on which {@code userId} made
      * submissions in the given year. Used by the calendar view.
      *

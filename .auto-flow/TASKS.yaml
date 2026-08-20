@@ -33,6 +33,31 @@ tasks:
   status: done
   depends_on: [FINAL-001]
   evidence: [graphify update, YAML parse, git diff --check, HANDOFF complete, no blockers]
+- id: CRFIX-REVIEW-001
+  title: 修复 Auth dashboard contract import and Hessian serialization
+  status: done
+  depends_on: [FINAL-002]
+  evidence: [auth-api contract 16/0/0/0, auth compile, AccountStatsSummary Serializable]
+- id: CRFIX-REVIEW-002
+  title: 修复 Submission page-level user/problem batching
+  status: done
+  depends_on: [CRFIX-REVIEW-001]
+  evidence: [App projection multi-row batch regression, Submission MySQL IT 8/0/0/0]
+- id: CRFIX-REVIEW-003
+  title: 恢复 Auth dashboard role counts
+  status: done
+  depends_on: [CRFIX-REVIEW-001]
+  evidence: [real MySQL mapper role-count IT 2/0/0/0, adapter unit test]
+- id: CRFIX-REVIEW-004
+  title: 保留 Search DLQ full integration envelope
+  status: done
+  depends_on: [CRFIX-REVIEW-002]
+  evidence: [Search worker unit 11/0/0/0, Redis+Meili E2E 4/0/0/0]
+- id: CRFIX-REVIEW-005
+  title: 完成 CR re-review 与风险验证
+  status: done
+  depends_on: [CRFIX-REVIEW-003, CRFIX-REVIEW-004]
+  evidence: [affected reactor BUILD SUCCESS, services verify BUILD SUCCESS, fresh IT XML 68 reports 225 tests 0 failures 0 errors 17 skips, graphify update, diff check]
 notes: >-
   Development-only authority. No commit, push, publish, deploy or production action.
   Existing business changes and control-plane history remain in the working tree.

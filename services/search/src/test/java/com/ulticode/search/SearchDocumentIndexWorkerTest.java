@@ -14,6 +14,7 @@ import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.search.config.SearchWorkerProperties;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -69,9 +71,13 @@ class SearchDocumentIndexWorkerTest {
     private MapRecord<String, String, String> record(String id, String eventType, String payload, String version) {
         return StreamRecords.mapBacked(Map.of(
                         "eventId", "evt-" + id,
+                        "owner", "App",
                         "eventType", eventType,
                         "aggregateId", "doc-" + id,
                         "aggregateVersion", version,
+                        "schemaVersion", "1",
+                        "causationId", "cause-" + id,
+                        "traceId", "trace-" + id,
                         "payload", payload))
                 .withStreamKey("stream:integration")
                 .withId(RecordId.of("evt-" + id));
@@ -276,6 +282,20 @@ class SearchDocumentIndexWorkerTest {
                         upsertPayload("problems"))));
         when(redisTemplate.execute(any(), anyList(), any())).thenReturn(1L);
         worker.consume();
+
+        ArgumentCaptor<org.springframework.data.redis.core.script.RedisScript> script =
+                ArgumentCaptor.forClass(org.springframework.data.redis.core.script.RedisScript.class);
+        ArgumentCaptor<List> keys = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<Object[]> args = ArgumentCaptor.forClass(Object[].class);
+        verify(redisTemplate).execute(script.capture(), keys.capture(), args.capture());
+
+        assertThat(script.getValue().getScriptAsString())
+                .contains("'owner'", "'schemaVersion'", "'causationId'", "'traceId'");
+        assertThat(Arrays.asList(args.getValue()))
+                .containsExactly(
+                        "evt-9", "App", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        "doc-9", "0", "1", "cause-9", "trace-9",
+                        upsertPayload("problems"), "86400", "search-worker", "evt-9");
     }
 
 }

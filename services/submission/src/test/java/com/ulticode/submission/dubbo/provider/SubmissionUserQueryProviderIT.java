@@ -39,6 +39,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -124,6 +126,9 @@ class SubmissionUserQueryProviderIT {
 
         SubmissionUserReadPort userReadPort = mock(SubmissionUserReadPort.class);
         when(userReadPort.findById(any())).thenReturn(null);
+        when(userReadPort.findAllById(any())).thenReturn(Map.of(
+                "user-1", new SubmissionUserReadPort.UserSummary(
+                        "user-1", "alice", "Alice", "avatar.png")));
         ProblemFactsPort problemFacts = mock(ProblemFactsPort.class);
         when(problemFacts.findDisplayFacts(any())).thenReturn(null);
         when(problemFacts.findDisplayFactsBatch(any())).thenReturn(Map.of());
@@ -277,9 +282,13 @@ class SubmissionUserQueryProviderIT {
     void findByUserIdEnrichesProblemFacts() {
         ProblemFactsPort problemFacts = mock(ProblemFactsPort.class);
         when(problemFacts.findDisplayFactsBatch(any())).thenReturn(Map.of(
-                101L, new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum")));
+                101L, new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum"),
+                102L, new ProblemFactsPort.ProblemDisplayFacts(102L, "Three Sum", "three-sum")));
         SubmissionUserReadPort userReadPort = mock(SubmissionUserReadPort.class);
         when(userReadPort.findById(any())).thenReturn(null);
+        when(userReadPort.findAllById(any())).thenReturn(Map.of(
+                "user-1", new SubmissionUserReadPort.UserSummary(
+                        "user-1", "alice", "Alice", "avatar.png")));
         SubmissionProjection enrichedProjection = new DefaultSubmissionProjection(
                 submissionMapper, userReadPort, problemFacts, new ObjectMapper());
         SubmissionUserQueryProvider enrichedProvider =
@@ -288,6 +297,8 @@ class SubmissionUserQueryProviderIT {
 
         insertRow("sub-1", 101L, "user-1", "python", "Accepted", 12,
                 LocalDateTime.of(2026, 8, 1, 10, 0));
+        insertRow("sub-2", 102L, "user-1", "java", "Wrong_Answer", 20,
+                LocalDateTime.of(2026, 8, 2, 10, 0));
         session.commit();
 
         SubmissionQueryDTO query = new SubmissionQueryDTO();
@@ -295,11 +306,14 @@ class SubmissionUserQueryProviderIT {
         query.setPageSize(10);
         var page = enrichedProvider.findByUserId("user-1", query);
 
-        assertThat(page.getItems()).hasSize(1);
-        SubmissionVO.ProblemInfo problem = page.getItems().get(0).getProblem();
-        assertThat(problem).isNotNull();
-        assertThat(problem.getTitle()).isEqualTo("Two Sum");
-        assertThat(problem.getSlug()).isEqualTo("two-sum");
+        assertThat(page.getItems()).hasSize(2);
+        assertThat(page.getItems()).allSatisfy(item -> {
+            assertThat(item.getProblem()).isNotNull();
+            assertThat(item.getUser()).isNotNull();
+            assertThat(item.getUser().getUsername()).isEqualTo("alice");
+        });
+        assertThat(page.getItems().get(0).getUser().getUsername()).isEqualTo("alice");
+        verify(userReadPort, times(1)).findAllById(any());
     }
 
     @Test

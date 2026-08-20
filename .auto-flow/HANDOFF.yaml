@@ -1,21 +1,21 @@
 outcome: complete
 outputs:
-  - 'Compatibility Closure: app-web Search/Auth contract 编译漂移已确认根因为 stale API artifacts；强制安装最新 backend-app-api/backend-auth-api 后 test-compile 通过'
-  - 'Submission Projection 专项测试已恢复并通过：DefaultSubmissionProjectionTest 11/0/0/0'
-  - 'Final Verification: app/app-web 及依赖 reactor 全量 test BUILD SUCCESS'
-  - 'Graphify update completed: 15,920 nodes / 61,175 edges'
-  - 'Control-plane YAML and git diff --check PASS'
+  - 'All five reviewer CRs fixed in Auth, App/Submission Projection and Search DLQ'
+  - 'CRFIX-REVIEW-001..005 recorded done in TASKS.yaml'
+  - 'Fresh Review and Validation packets reconciled with current source and tests'
 evidence:
-  - 'API reactor install: backend-auth-api and backend-app-api BUILD SUCCESS'
-  - 'app-web test-compile after fresh API install: BUILD SUCCESS'
-  - 'DefaultSubmissionProjectionTest: 11 tests, 0 failures, 0 errors, 0 skipped'
-  - 'app/app-web reactor test: BUILD SUCCESS; all listed modules PASS'
-  - 'SearchDocumentIndexWorkerTest: 11/0/0/0 PASS'
-  - 'DefaultDashboardStatsProjectionTest: 6/0/0/0 PASS'
+  - 'Auth contract 16/0/0/0; real MySQL role-count mapper 2/0/0/0'
+  - 'HiddenCaseLeakIT + DefaultSubmissionProjectionTest 14/0/0/0'
+  - 'SubmissionUserQueryProviderIT real MySQL 8/0/0/0'
+  - 'SearchDocumentIndexWorkerTest 11/0/0/0; SearchWorkerEndToEndIT real Redis/Meili 4/0/0/0'
+  - 'Affected reactor test BUILD SUCCESS'
+  - './mvnw verify -B BUILD SUCCESS'
+  - 'Fresh direct integration selector 68 reports / 225 tests / 0 failures / 0 errors / 17 skips'
+  - 'graphify update . and git diff check PASS'
   - 'No commit, push, publish or deploy performed'
 next_goal: none
 next_skill: none
-reason: 'All requested development blockers are resolved and final related reactor validation passes. The previous test drift was an artifact freshness issue, not an unresolved contract defect.'
+reason: 'All reviewer findings are fixed and revalidated; development-only acceptance is complete. Production acceptance is not claimed.'
 alternatives: []
 blockers: []
 authority:

@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -151,14 +152,20 @@ class SearchWorkerEndToEndIT {
     }
 
     private RecordId xadd(String id, String version, String payload) {
-        MapRecord<String, String, String> record = StreamRecords.mapBacked(Map.of(
-                        "eventId", "evt-" + id,
-                        "owner", "App",
-                        "eventType", SearchDocumentChangedEventContract.EVENT_TYPE,
-                        "aggregateId", "doc-" + id,
-                        "aggregateVersion", version,
-                        "schemaVersion", "1",
-                        "payload", payload))
+        return xadd(id, version, payload, Map.of());
+    }
+
+    private RecordId xadd(String id, String version, String payload, Map<String, String> extraFields) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("eventId", "evt-" + id);
+        fields.put("owner", "App");
+        fields.put("eventType", SearchDocumentChangedEventContract.EVENT_TYPE);
+        fields.put("aggregateId", "doc-" + id);
+        fields.put("aggregateVersion", version);
+        fields.put("schemaVersion", "1");
+        fields.putAll(extraFields);
+        fields.put("payload", payload);
+        MapRecord<String, String, String> record = StreamRecords.mapBacked(fields)
                 .withStreamKey(STREAM)
                 .withId(RecordId.autoGenerate());
         return redis.opsForStream().add(record);
@@ -224,5 +231,36 @@ class SearchWorkerEndToEndIT {
         assertThat(processed).isEqualTo(1);
         assertThat(WRITE_BODIES).hasSize(1); // no second Meili write
         assertThat(pendingCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("exhausted events preserve the full envelope in the real Redis DLQ")
+    void exhaustedEventPreservesEnvelope() {
+        int previousMaxAttempts = props.getMaxAttempts();
+        props.setMaxAttempts(0);
+        try {
+            xadd("dlq-1", "100", "{\"index\":\"unsupported\",\"operation\":\"UPSERT\"}",
+                    Map.of("causationId", "cause-1", "traceId", "trace-1"));
+
+            // First delivery fails and remains in the PEL; the next cycle dead-letters it.
+            worker.consume();
+            worker.consume();
+
+            var dlq = redis.opsForStream()
+                    .range(props.getDlqKey(), org.springframework.data.domain.Range.unbounded());
+            assertThat(dlq).hasSize(1);
+            assertThat(dlq.get(0).getValue())
+                    .containsEntry("eventId", "evt-dlq-1")
+                    .containsEntry("owner", "App")
+                    .containsEntry("eventType", SearchDocumentChangedEventContract.EVENT_TYPE)
+                    .containsEntry("aggregateId", "doc-dlq-1")
+                    .containsEntry("aggregateVersion", "100")
+                    .containsEntry("schemaVersion", "1")
+                    .containsEntry("causationId", "cause-1")
+                    .containsEntry("traceId", "trace-1");
+            assertThat(pendingCount()).isZero();
+        } finally {
+            props.setMaxAttempts(previousMaxAttempts);
+        }
     }
 }

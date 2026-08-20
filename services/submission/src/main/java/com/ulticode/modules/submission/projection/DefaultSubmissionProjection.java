@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Write-path projection adapter for {@code backend-submission}.
@@ -51,6 +54,41 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionVO toVO(Submission submission) {
+        return project(
+                submission,
+                findUsers(List.of(submission.getUserId())),
+                findSingleFact(submission.getProblemId()));
+    }
+
+    @Override
+    public SubmissionVO toVO(
+            Submission submission,
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> batchFacts) {
+        return project(submission, findUsers(List.of(submission.getUserId())),
+                batchFacts == null ? Map.of() : batchFacts);
+    }
+
+    @Override
+    public List<SubmissionVO> toVO(
+            List<Submission> submissions,
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> batchFacts) {
+        if (submissions == null || submissions.isEmpty()) {
+            return List.of();
+        }
+        Set<String> userIds = submissions.stream()
+                .map(Submission::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, SubmissionUserReadPort.UserSummary> users = findUsers(userIds);
+        Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts =
+                batchFacts == null ? Map.of() : batchFacts;
+        return submissions.stream().map(s -> project(s, users, facts)).toList();
+    }
+
+    private SubmissionVO project(
+            Submission submission,
+            Map<String, SubmissionUserReadPort.UserSummary> users,
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> factsById) {
         SubmissionVO vo = new SubmissionVO();
 
         vo.setId(submission.getId());
@@ -123,29 +161,13 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
             }
         }
 
-        applyUserSummary(vo, submission.getUserId());
-        ProblemFactsPort.ProblemDisplayFacts facts =
-                problemFacts != null ? problemFacts.findDisplayFacts(submission.getProblemId()) : null;
-        applyProblemSummary(vo, facts);
+        applyUserSummary(vo, users.get(submission.getUserId()));
+        applyProblemSummary(vo, factsById.get(submission.getProblemId()));
 
         return vo;
     }
 
-    @Override
-    public SubmissionVO toVO(Submission submission,
-                             Map<Long, ProblemFactsPort.ProblemDisplayFacts> batchFacts) {
-        SubmissionVO vo = toVO(submission);
-        ProblemFactsPort.ProblemDisplayFacts facts =
-                batchFacts != null ? batchFacts.get(submission.getProblemId()) : null;
-        if (facts != null) {
-            applyProblemSummary(vo, facts);
-        }
-        return vo;
-    }
-
-    private void applyUserSummary(SubmissionVO vo, String userId) {
-        SubmissionUserReadPort.UserSummary user =
-                userReadPort != null ? userReadPort.findById(userId) : null;
+    private void applyUserSummary(SubmissionVO vo, SubmissionUserReadPort.UserSummary user) {
         if (user == null) {
             return;
         }
@@ -155,6 +177,22 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         userInfo.setName(user.name());
         userInfo.setAvatar(user.avatar());
         vo.setUser(userInfo);
+    }
+
+    private Map<String, SubmissionUserReadPort.UserSummary> findUsers(Iterable<String> userIds) {
+        if (userReadPort == null) {
+            return Map.of();
+        }
+        Map<String, SubmissionUserReadPort.UserSummary> users = userReadPort.findAllById(userIds);
+        return users == null ? Map.of() : users;
+    }
+
+    private Map<Long, ProblemFactsPort.ProblemDisplayFacts> findSingleFact(Long problemId) {
+        if (problemFacts == null || problemId == null) {
+            return Map.of();
+        }
+        ProblemFactsPort.ProblemDisplayFacts fact = problemFacts.findDisplayFacts(problemId);
+        return fact == null ? Map.of() : Map.of(problemId, fact);
     }
 
     private void applyProblemSummary(SubmissionVO vo, ProblemFactsPort.ProblemDisplayFacts facts) {

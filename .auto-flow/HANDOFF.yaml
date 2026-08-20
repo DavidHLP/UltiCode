@@ -1,29 +1,28 @@
-outcome: pass
+outcome: complete
 outputs:
-  - Completion/Coverage Audit closed ARCHFIX-004-004: actual disposable Meili E2E and fallback evidence
-  - ARCHFIX-005 development-only runtime shadow retirement closed; rollback seams intentionally remain in source for dev-lite
-  - User confirmed there is no production environment and authorized reversible blocker remediation in the sole development/TEST-TARGET
-  - Protected pre-existing .auto-flow changes remain uncommitted; no publish or push is authorized
-  - ARCHFIX-006 final development startup/architecture gate closed; all current ARCHFIX tasks are complete in this target
+  - CRFIX-001 closed all four Search review findings and formal review-loop findings
+  - Meili exact totals are cap-checked; uncertain totals trigger whole-request database fallback
+  - Auth owner supplies bounded collation-aware overlap counts; DB fallback pagination is stable
+  - Real-Meili IT is opt-in and the documented integration commands are runnable without its variables
 evidence:
-  - app/admin reactor compile and test-compile PASS
-  - focused Search/owner/database suite PASS: 40 tests, 0 failures, 0 errors, 0 skipped
-  - SearchSourceContractTest and OwnerUserSearchReadAdapterTest cover offset/count forwarding, account_id ASC merge, offset and unique union count
-  - codebase-memory generation refreshed to 2026-08-19T19:04:59Z; all operated-on paths have no recorded coverage issue
-  - graphify update PASS at 27,950 nodes / 81,614 edges / 1,021 communities; nine unrelated config/IDE zero-node warnings remain
+  - focused Auth/Search reactor 40 tests, 0 failures, 0 errors, 2 opt-in skips
+  - Auth provider plus real MySQL 8 collation tests 11/0/0/0
+  - disposable MeiliSearch v1.8 test 2/0/0/0 with 1500 matching documents and verified task cleanup
+  - scripts/dev/test.sh integration exit 0 and All integration checks passed
+  - documented mvnw -Dtest='*IT' test -B exit 0
+  - affected auth/app-web reactor verify exit 0 with JaCoCo PASS
+  - 822 Surefire reports, 2769 tests, 0 failures, 0 errors, 29 skips
+  - general and Java formal reviews PASS
+  - graphify update 27987 nodes and 81739 edges; codebase-memory coverage has no recorded gaps
   - git diff --check PASS
-  - MEILI_HOST / MEILI_MASTER_KEY alignment and both Compose config checks PASS with ephemeral validation key
-  - Review PASS: offset-propagation finding fixed and rechecked; Meili fallback/config/real-E2E review Confirmed=0
-  - affected reactor verify PASS: 604 Surefire reports, 2031 tests, 0 failures, 0 errors, 16 skipped; BUILD SUCCESS; JaCoCo PASS
-  - final YAML parse and git diff --check PASS
-  - real DefaultSearchReadProjectionRealMeiliIT PASS: 2 tests, 0 failures, 0 errors, 0 skipped against disposable Meili v1.8
 next_goal: none
 next_skill: none
-reason: Development-only ARCHFIX acceptance, validation, review, rollback and evidence are complete; no commit, push, publish or production action is authorized.
+reason: Acceptance, Coverage, Review, real-service validation, standard commands, reactor verify, graph and diff gates all pass.
 alternatives: []
 blockers: []
-context_packet:
-  status: ARCHFIX_COMPLETE_DEV_ONLY
-  active_task: ARCHFIX-006
-  authority: sole development/TEST-TARGET; user-authorized reversible remediation; no production environment or claim
-  protected_changes: true
+authority:
+  commit: false
+  push: false
+  publish: false
+  deploy: false
+  production_action: false

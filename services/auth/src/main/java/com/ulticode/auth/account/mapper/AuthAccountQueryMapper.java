@@ -34,6 +34,17 @@ public interface AuthAccountQueryMapper {
     List<AuthAccountEntity> findByIds(@Param("accountIds") List<String> accountIds);
 
     @Select("<script>"
+            + "SELECT COUNT(*) FROM users WHERE is_deleted = 0"
+            + " AND username NOT LIKE CONCAT('%', #{usernameQuery}, '%')"
+            + " AND id IN "
+            + "<foreach collection='accountIds' item='accountId' open='(' separator=',' close=')'>"
+            + "#{accountId}</foreach>"
+            + "</script>")
+    long countByIdsExcludingUsernameMatch(
+            @Param("accountIds") List<String> accountIds,
+            @Param("usernameQuery") String usernameQuery);
+
+    @Select("<script>"
             + "SELECT " + COLUMNS + " FROM users WHERE is_deleted = 0"
             + "<if test='search != null and search != \"\" and usernameOnly'>"
             + "  AND username LIKE CONCAT('%', #{search}, '%')"

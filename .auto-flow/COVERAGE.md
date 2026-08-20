@@ -122,3 +122,13 @@ Validation tiers: focused -> app-web module -> real MeiliSearch integration -> b
 - App/Judge profile assertions passed for both dev-lite and dev-full; shell syntax, Node syntax, Compose dev/prod config, YAML parsing and `git diff --check` passed.
 - The formal review HIGH finding (dev-lite App/Judge queue mismatch) was fixed and rechecked; no secret leakage or critical finding remained. `graphify update .` completed with 27,957 nodes / 81,621 edges; the nine unrelated config/IDE zero-node warnings remain expected.
 - All current ARCHFIX control pointers now agree: ARCHFIX-001..006 done, no active blocker, development-only authority and no production claim.
+
+## CRFIX-001 coverage (2026-08-20)
+
+| Review finding | Implementation | Evidence |
+|---|---|---|
+| opt-in Real-Meili IT breaks standard suite | environment conditions plus parent Surefire selected-test handling | wrapper integration exit 0; bare `*IT` exit 0; 2 skips without variables |
+| capped/estimated Meili total | exhaustive page query, cap check and whole-request DB fallback | cap regression plus real 1,500-document Meili test |
+| unstable DB offset pagination | `id ASC` in Problem/Forum/Solution adapters | deterministic SQL wrapper tests for all three |
+| collation-inexact user union count | bounded Auth-owner `NOT LIKE` count RPC | owner union tests plus real MySQL `utf8mb4_0900_ai_ci` IT |
+| review-loop performance/security findings | count/hit split, 100-ID provider bound, null/overflow/task-status guards | focused suites and two formal re-reviews PASS |

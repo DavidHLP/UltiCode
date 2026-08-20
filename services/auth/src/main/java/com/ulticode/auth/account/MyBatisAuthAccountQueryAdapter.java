@@ -77,6 +77,21 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
         }
         return mapper.findByIds(ids).stream().map(this::toDto).toList();
     }
+
+    @Override
+    public long countByIdsExcludingUsernameMatch(java.util.Set<String> accountIds, String usernameQuery) {
+        if (accountIds == null || accountIds.isEmpty() || usernameQuery == null || usernameQuery.isBlank()) {
+            return 0;
+        }
+        List<String> ids = accountIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+        return ids.isEmpty() ? 0 : mapper.countByIdsExcludingUsernameMatch(ids, usernameQuery.trim());
+    }
+
+    @Override
     public long countAccounts(AccountQueryDTO query) {
         String search = query.search() != null ? query.search().trim() : null;
         String role = query.role() != null ? query.role().trim() : null;

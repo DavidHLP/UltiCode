@@ -132,6 +132,28 @@ tasks:
   commits: []
   notes: Final development-only gate closed after quick checks, profile assertions, cutover/rollback evidence, formal review finding remediation and control-plane audit. No production environment or release action is claimed.
   updated_at: '2026-08-20'
+- id: CRFIX-001
+  title: 修复 Search exact total、稳定分页、跨 Owner union count 与 Real-Meili IT 门禁
+  source: [review-2026-08-20, DefaultSearchReadProjection, OwnerUserSearchReadAdapter]
+  status: done
+  depends_on: [ARCHFIX-004-004]
+  acceptance_criteria:
+  - 标准 integration 命令在未提供 MEILI_E2E_HOST/MEILI_E2E_KEY 时跳过 opt-in Real-Meili IT，而不是构建失败。
+  - Meili total 只在未触及 pagination.maxTotalHits 时使用；无法证明精确时整次请求回退数据库。
+  - Problem、ForumPost、Solution 数据库分页均在 OFFSET 前按 owner id ASC 稳定排序。
+  - User exact count 复用 Auth/App 数据库谓词与 account_id ASC 合并游标，不使用 Java collation 近似判断重叠。
+  validation: [focused regression tests, real disposable Meili IT, standard integration command, reactor verify, graph and diff checks]
+  rollback: 回滚本原子代码与测试切片；无 schema、migration、writer 或持久数据变更
+  evidence:
+  - focused Auth/Search reactor 40 tests, 0 failures, 0 errors, 2 opt-in skips
+  - real MySQL 8 utf8mb4_0900_ai_ci collation IT 1/0/0/0 and bounded Auth provider suite 10/0/0/0
+  - real disposable MeiliSearch v1.8 gate 2/0/0/0 with 1500 matching documents and successful cleanup tasks
+  - scripts/dev/test.sh integration exit 0; 822 Surefire reports, 2769 tests, 0 failures, 0 errors, 29 skips
+  - documented mvnw -Dtest='*IT' command exit 0; affected auth/app-web reactor verify exit 0 and JaCoCo PASS
+  - general and Java formal reviews PASS; graphify 27987 nodes/81739 edges; final coverage and git diff --check PASS
+  commits: []
+  notes: All original findings and review-loop findings closed. No commit, push, publish, deployment or production action authorized.
+  updated_at: '2026-08-20'
 services_autonomy_convergence:
   ledger: .auto-flow/SERVICES_AUTONOMY_TASKS.yaml
   coverage: .auto-flow/SERVICES_AUTONOMY_COVERAGE.md

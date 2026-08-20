@@ -22,6 +22,7 @@ import java.util.Optional;
 public class AccountQueryProvider implements AccountQueryService {
 
     private static final String DEFAULT_TRACE_ID = "t-system";
+    private static final int MAX_ACCOUNT_ID_BATCH = 100;
 
     private final AuthAccountQueryPort queryPort;
 
@@ -67,6 +68,24 @@ public class AccountQueryProvider implements AccountQueryService {
         }
         return RpcResult.success(queryPort.findByIds(accountIds), DEFAULT_TRACE_ID);
     }
+
+    @Override
+    public RpcResult<Long> countAccountsByIdsExcludingUsernameMatch(
+            java.util.Set<String> accountIds, String usernameQuery) {
+        if (usernameQuery == null || usernameQuery.isBlank()) {
+            return RpcResult.failure(AuthErrorCode.INVALID_ACCOUNT_REQUEST, DEFAULT_TRACE_ID);
+        }
+        if (accountIds == null || accountIds.isEmpty()) {
+            return RpcResult.success(0L, DEFAULT_TRACE_ID);
+        }
+        if (accountIds.size() > MAX_ACCOUNT_ID_BATCH
+                || accountIds.stream().anyMatch(id -> id == null || id.isBlank())) {
+            return RpcResult.failure(AuthErrorCode.INVALID_ACCOUNT_REQUEST, DEFAULT_TRACE_ID);
+        }
+        return RpcResult.success(
+                queryPort.countByIdsExcludingUsernameMatch(accountIds, usernameQuery), DEFAULT_TRACE_ID);
+    }
+
     @Override
     public RpcResult<AuthAccountDTO> queryAccounts(AccountQueryDTO query) {
         if (query == null) {

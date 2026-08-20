@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -74,8 +73,7 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         if (query == null || query.isBlank()) {
             return 0;
         }
-        long usernameMatches = usernameMatchCount(query);
-        long profileOnlyMatches = 0;
+        long total = usernameMatchCount(query);
         long profileTotal = profileReadMapper.countSearchCandidates(query);
         for (long offset = 0; offset < profileTotal;) {
             List<UserProfileReadRow> candidates = profileReadMapper.findSearchCandidates(
@@ -83,18 +81,13 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
             if (candidates == null || candidates.isEmpty()) {
                 break;
             }
-            Map<String, AuthAccountDTO> accounts = accountsByIds(accountIds(candidates));
-            for (AuthAccountDTO account : accounts.values()) {
-                if (!containsIgnoreCase(account.username(), query)) {
-                    profileOnlyMatches++;
-                }
-            }
+            total += countAccountsByIdsExcludingUsernameMatch(accountIds(candidates), query);
             offset += candidates.size();
             if (candidates.size() < ACCOUNT_PAGE_SIZE) {
                 break;
             }
         }
-        return usernameMatches + profileOnlyMatches;
+        return total;
     }
 
     @Override
@@ -156,6 +149,23 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
             throw unavailable();
         }
         return total;
+    }
+
+    private long countAccountsByIdsExcludingUsernameMatch(Set<String> accountIds, String query) {
+        if (accountQueryService == null) {
+            throw unavailable();
+        }
+        try {
+            RpcResult<Long> response = accountQueryService
+                    .countAccountsByIdsExcludingUsernameMatch(accountIds, query);
+            requireSuccess(response);
+            if (response.data() == null) {
+                throw unavailable();
+            }
+            return response.data();
+        } catch (RuntimeException exception) {
+            throw unavailable();
+        }
     }
 
     private RpcResult<AuthAccountDTO> queryAccounts(AccountQueryDTO query) {
@@ -284,10 +294,6 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         row.setName(profile.getName());
         row.setAvatar(profile.getAvatar());
         row.setProfileUpdatedAt(profile.getUpdatedAt());
-    }
-
-    private boolean containsIgnoreCase(String value, String query) {
-        return value != null && value.toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT));
     }
 
     private void requireSuccess(RpcResult<?> response) {
@@ -419,7 +425,7 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
             Map<String, AuthAccountDTO> accounts = accountsByIds(accountIds(candidates));
             List<UserDirectoryRow> rows = candidates.stream()
                     .map(candidate -> accounts.get(candidate.getAccountId()))
-                    .filter(account -> account != null && !containsIgnoreCase(account.username(), query))
+                    .filter(account -> account != null)
                     .map(account -> UserDirectoryRow.from(toRow(account, profiles.get(account.accountId()))))
                     .toList();
             return new PageBatch(rows, candidates.size() < ACCOUNT_PAGE_SIZE);

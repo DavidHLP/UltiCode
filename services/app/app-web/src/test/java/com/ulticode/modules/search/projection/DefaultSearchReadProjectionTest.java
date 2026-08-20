@@ -3,7 +3,9 @@ package com.ulticode.modules.search.projection;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
+import com.meilisearch.sdk.model.Pagination;
 import com.meilisearch.sdk.model.SearchResult;
+import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.ulticode.app.api.dto.ForumPostIndexDTO;
 import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.problem.entity.Problem;
@@ -19,12 +21,14 @@ import com.ulticode.modules.search.source.SearchSource;import com.ulticode.modul
 import com.ulticode.app.api.dto.SolutionIndexDTO;
 import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.modules.search.source.UserSearchSource;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -68,6 +72,9 @@ class DefaultSearchReadProjectionTest {
 
     @Mock
     private SearchResult searchable;
+
+    @Mock
+    private SearchResultPaginated countResult;
 
     private DefaultSearchReadProjection searchProjection;
 
@@ -398,15 +405,75 @@ class DefaultSearchReadProjectionTest {
             hits.add(hit);
 
             when(meiliSearchClient.index(anyString())).thenReturn(index);
-            when(index.search(any(SearchRequest.class))).thenReturn(searchable);
+            when(index.search(any(SearchRequest.class))).thenReturn(countResult, searchable);
+            when(index.getPaginationSettings()).thenReturn(new Pagination(1_000));
+            when(countResult.getTotalHits()).thenReturn(7);
             when(searchable.getHits()).thenReturn(hits);
-            when(searchable.getEstimatedTotalHits()).thenReturn(7);
 
             SearchResponseVO response = searchProjection.search(queryDTO);
 
             assertEquals(7, response.getTotal());
             assertEquals(1, response.getResults().size());
             assertEquals("/forum/detailed/post-123", response.getResults().get(0).getUrl());
+            ArgumentCaptor<SearchRequest> requests = ArgumentCaptor.forClass(SearchRequest.class);
+            verify(index, times(2)).search(requests.capture());
+            assertEquals(1, requests.getAllValues().get(0).getPage());
+            assertEquals(0, requests.getAllValues().get(0).getHitsPerPage());
+            assertEquals(0, requests.getAllValues().get(1).getOffset());
+            assertEquals(20, requests.getAllValues().get(1).getLimit());
+        }
+
+        @Test
+        @DisplayName("should fall back when MeiliSearch exact total reaches its configured cap")
+        void shouldFallBackWhenExactTotalReachesConfiguredCap() throws Exception {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            queryDTO.setIndex(SearchIndexType.PROBLEMS);
+            when(meiliSearchClient.index(anyString())).thenReturn(index);
+            when(index.search(any(SearchRequest.class))).thenReturn(countResult);
+            when(index.getPaginationSettings()).thenReturn(new Pagination(1_000));
+            when(countResult.getTotalHits()).thenReturn(1_000);
+            when(problemSearchReadPort.countForIndex("test")).thenReturn(1_500L);
+            when(problemSearchReadPort.searchForIndex("test", 0, 20)).thenReturn(List.of());
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertEquals(1_500, response.getTotal());
+            verify(index, times(1)).search(any(SearchRequest.class));
+            verify(problemSearchReadPort).searchForIndex("test", 0, 20);
+        }
+
+        @Test
+        @DisplayName("should fetch MeiliSearch hits only from indexes contributing to the requested page")
+        void shouldFetchHitsOnlyFromContributingIndexes() throws Exception {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            queryDTO.setPage(4);
+            queryDTO.setLimit(2);
+            SearchResultPaginated problemCount = mock(SearchResultPaginated.class);
+            SearchResultPaginated userCount = mock(SearchResultPaginated.class);
+            SearchResultPaginated postCount = mock(SearchResultPaginated.class);
+            SearchResultPaginated solutionCount = mock(SearchResultPaginated.class);
+            when(problemCount.getTotalHits()).thenReturn(3);
+            when(userCount.getTotalHits()).thenReturn(2);
+            when(postCount.getTotalHits()).thenReturn(1);
+            when(solutionCount.getTotalHits()).thenReturn(4);
+            when(meiliSearchClient.index(anyString())).thenReturn(index);
+            when(index.getPaginationSettings()).thenReturn(new Pagination(1_000));
+            when(index.search(any(SearchRequest.class)))
+                    .thenReturn(problemCount, userCount, postCount, solutionCount, searchable);
+            when(searchable.getHits()).thenReturn(new ArrayList<>(List.of(
+                    new HashMap<>(java.util.Map.of("id", "s1", "title", "Solution 1")),
+                    new HashMap<>(java.util.Map.of("id", "s2", "title", "Solution 2")))));
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertEquals(10, response.getTotal());
+            assertEquals(2, response.getResults().size());
+            ArgumentCaptor<SearchRequest> requests = ArgumentCaptor.forClass(SearchRequest.class);
+            verify(index, times(5)).search(requests.capture());
+            assertThat(requests.getAllValues().subList(0, 4))
+                    .allSatisfy(request -> assertEquals(0, request.getHitsPerPage()));
+            assertEquals(0, requests.getAllValues().get(4).getOffset());
+            assertEquals(2, requests.getAllValues().get(4).getLimit());
         }
 
         @Test
@@ -428,9 +495,10 @@ class DefaultSearchReadProjectionTest {
             hits.add(hit);
 
             when(meiliSearchClient.index(anyString())).thenReturn(index);
-            when(index.search(any(SearchRequest.class))).thenReturn(searchable);
+            when(index.search(any(SearchRequest.class))).thenReturn(countResult, searchable);
+            when(index.getPaginationSettings()).thenReturn(new Pagination(1_000));
+            when(countResult.getTotalHits()).thenReturn(1);
             when(searchable.getHits()).thenReturn(hits);
-            when(searchable.getEstimatedTotalHits()).thenReturn(1);
 
             SearchResponseVO response = searchProjection.search(queryDTO);
 
@@ -464,6 +532,10 @@ class DefaultSearchReadProjectionTest {
             queryDTO.setPage(3);
             queryDTO.setLimit(10);
             assertEquals(20, queryDTO.getOffset());
+
+            queryDTO.setPage(Integer.MAX_VALUE);
+            queryDTO.setLimit(100);
+            assertEquals(Integer.MAX_VALUE, queryDTO.getOffset());
         }
 
         @Test
@@ -476,6 +548,21 @@ class DefaultSearchReadProjectionTest {
             // Act & Assert
             assertEquals(1, dto.getPage());
             assertEquals(20, dto.getLimit());
+        }
+
+        @Test
+        @DisplayName("should reject explicit null pagination values")
+        void shouldRejectNullPaginationValues() {
+            SearchQueryDTO dto = new SearchQueryDTO();
+            dto.setQuery("test");
+            dto.setPage(null);
+            dto.setLimit(null);
+
+            try (var factory = Validation.buildDefaultValidatorFactory()) {
+                assertThat(factory.getValidator().validate(dto))
+                        .extracting(violation -> violation.getPropertyPath().toString())
+                        .contains("page", "limit");
+            }
         }
     }
 

@@ -26,4 +26,7 @@ public interface AccountQueryService {
 
     /** Return existing, non-deleted accounts for the supplied IDs only. */
     RpcResult<List<AuthAccountDTO>> getAccountsByIds(Set<String> accountIds);
+
+    /** Count supplied, non-deleted accounts whose usernames do not match the database search predicate. */
+    RpcResult<Long> countAccountsByIdsExcludingUsernameMatch(Set<String> accountIds, String usernameQuery);
 }

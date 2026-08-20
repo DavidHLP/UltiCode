@@ -108,17 +108,30 @@ class OwnerUserSearchReadAdapterTest {
     void countReturnsUniqueActiveUnionAcrossOwners() {
         AuthAccountDTO alice = account("u-1", "alice", "2026-08-01T00:00:00", null);
         AuthAccountDTO bob = account("u-2", "bob", "2026-08-01T00:00:00", null);
-        AuthAccountDTO carol = account("u-3", "carol", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(alice, bob), 2, 1, 100, "t-search"));
         when(profileReadMapper.countSearchCandidates("ali")).thenReturn(2L);
         when(profileReadMapper.findSearchCandidates("ali", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Alice", null, null),
                         profile("u-3", "Alice Carol", null, null)));
-        when(accountQueryService.getAccountsByIds(Set.of("u-1", "u-3")))
-                .thenReturn(RpcResult.success(List.of(alice, carol), "t-search"));
+        when(accountQueryService.countAccountsByIdsExcludingUsernameMatch(Set.of("u-1", "u-3"), "ali"))
+                .thenReturn(RpcResult.success(1L, "t-search"));
 
         assertThat(adapter.count("ali")).isEqualTo(3);
+    }
+
+    @Test
+    void countDeduplicatesUsingOwnerDatabasePredicates() {
+        AuthAccountDTO jose = account("u-1", "José", "2026-08-01T00:00:00", null);
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(jose), 1, 1, 100, "t-search"));
+        when(profileReadMapper.countSearchCandidates("e")).thenReturn(1L);
+        when(profileReadMapper.findSearchCandidates("e", 0, 100))
+                .thenReturn(List.of(profile("u-1", "Elena", null, null)));
+        when(accountQueryService.countAccountsByIdsExcludingUsernameMatch(Set.of("u-1"), "e"))
+                .thenReturn(RpcResult.success(0L, "t-search"));
+
+        assertThat(adapter.count("e")).isEqualTo(1);
     }
 
     @Test

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -33,6 +34,7 @@ public class SearchQueryDTO {
     /**
      * Page number (1-based).
      */
+    @NotNull(message = "Page is required")
     @Min(value = 1, message = "Page must be at least 1")
     @Schema(description = "Page number (1-based)", example = "1", defaultValue = "1")
     private Integer page = 1;
@@ -40,6 +42,7 @@ public class SearchQueryDTO {
     /**
      * Number of results per page.
      */
+    @NotNull(message = "Limit is required")
     @Min(value = 1, message = "Limit must be at least 1")
     @Max(value = 100, message = "Limit must be at most 100")
     @Schema(description = "Number of results per page", example = "20", defaultValue = "20")
@@ -51,6 +54,7 @@ public class SearchQueryDTO {
      * @return the offset value
      */
     public int getOffset() {
-        return (page - 1) * limit;
+        long offset = ((long) page - 1) * limit;
+        return (int) Math.min(offset, Integer.MAX_VALUE);
     }
 }

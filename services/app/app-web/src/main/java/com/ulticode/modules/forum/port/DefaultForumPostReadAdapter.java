@@ -37,6 +37,7 @@ public class DefaultForumPostReadAdapter implements ForumPostReadPort {
         QueryWrapper<ForumPost> wrapper = new QueryWrapper<>();
         wrapper.eq("is_deleted", false)
                 .and(w -> w.like("title", query).or().like("excerpt", query))
+                .orderByAsc("id")
                 .last("LIMIT " + limit + " OFFSET " + offset);
         List<ForumPost> posts = forumPostMapper.selectList(wrapper);
         if (posts == null || posts.isEmpty()) {

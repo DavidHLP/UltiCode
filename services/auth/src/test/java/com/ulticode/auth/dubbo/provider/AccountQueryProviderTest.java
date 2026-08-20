@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -110,5 +113,45 @@ class AccountQueryProviderTest {
         assertThat(result.page()).isNotNull();
         assertThat(result.page().total()).isEqualTo(1L);
         assertThat(result.page().items()).hasSize(1);
+    }
+
+    @Test
+    void countAccountsByIdsExcludingUsernameMatchDelegatesToOwnerPredicate() {
+        Set<String> accountIds = Set.of("user-100", "user-200");
+        when(queryPort.countByIdsExcludingUsernameMatch(accountIds, "e")).thenReturn(1L);
+
+        RpcResult<Long> result = provider.countAccountsByIdsExcludingUsernameMatch(accountIds, "e");
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data()).isEqualTo(1L);
+    }
+
+    @Test
+    void countAccountsByIdsExcludingUsernameMatchRejectsBlankQuery() {
+        RpcResult<Long> result = provider.countAccountsByIdsExcludingUsernameMatch(Set.of("user-100"), " ");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AuthErrorCode.INVALID_ACCOUNT_REQUEST.code());
+    }
+
+    @Test
+    void countAccountsByIdsExcludingUsernameMatchRejectsOversizedBatch() {
+        Set<String> accountIds = IntStream.rangeClosed(1, 101)
+                .mapToObj(index -> "user-" + index)
+                .collect(Collectors.toSet());
+
+        RpcResult<Long> result = provider.countAccountsByIdsExcludingUsernameMatch(accountIds, "e");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AuthErrorCode.INVALID_ACCOUNT_REQUEST.code());
+    }
+
+    @Test
+    void countAccountsByIdsExcludingUsernameMatchRejectsBlankAccountId() {
+        RpcResult<Long> result = provider.countAccountsByIdsExcludingUsernameMatch(
+                Set.of("user-100", " "), "e");
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AuthErrorCode.INVALID_ACCOUNT_REQUEST.code());
     }
 }

@@ -1,11 +1,9 @@
 # Resume
 
-ARCHFIX-003 remains complete in the actual workspace. The Search projection focused rerun passed 15 tests with 0 failures, 0 errors and 0 skipped; git diff --check passed. No business source is dirty.
+CRFIX-001 is complete. All four Search CR findings and all formal review-loop findings are closed.
 
-Active continuation: ARCHFIX-001 through ARCHFIX-006 are complete against the sole development/TEST-TARGET. ARCHFIX-005 retired shadow runtime behavior while preserving dev-lite rollback seams; ARCHFIX-006 final startup/architecture acceptance is closed.
+Current behavior: Real-Meili IT is opt-in and skips without its two environment variables; Meili totals are accepted only below `pagination.maxTotalHits`, otherwise the whole request falls back to exact database reads. Problem, ForumPost and Solution DB pages order by owner `id ASC`. User union counts use a bounded Auth-owner MySQL collation predicate rather than Java string comparison.
 
-Exact user DB fallback pagination uses owner-side account_id ASC batched merge/dedup; the plan preserves bounded batches and records the ordering decision. ARCHFIX-004-003 also aligns App Meili config with the existing MEILI_HOST/MEILI_MASTER_KEY Compose/worker names.
+Evidence: focused Auth/Search 40/0/0/2; real MySQL collation/provider 11/0/0/0; real Meili v1.8 2/0/0/0 with 1,500 matches; standard integration wrapper and documented bare `*IT` command exit 0; affected reactor verify and JaCoCo pass; 822 Surefire reports / 2,769 tests / 0 failures / 0 errors / 29 skips; both formal reviews PASS; graphify and codebase-memory coverage refreshed; diff check passed.
 
-Evidence: ARCHFIX-004 focused/real E2E evidence is fresh; ARCHFIX-005 has disposable cutover/rollback, App grant, profile flag and single-writer evidence. Development evidence must remain labeled as development evidence. No commit/push/publish authorized; protected control-plane and task files remain dirty.
-
-Next: no required development task remains. Preserve rollback seams and all current .auto-flow/ changes uncommitted; commit/push/publish only with a separate explicit request.
+No development task remains. Preserve all current uncommitted changes; no commit, push, publish, deployment or production action is authorized.

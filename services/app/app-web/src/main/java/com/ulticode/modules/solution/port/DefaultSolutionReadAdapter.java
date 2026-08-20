@@ -51,6 +51,7 @@ public class DefaultSolutionReadAdapter implements SolutionReadPort {
         )
                 .eq("is_published", true)
                 .eq("is_deleted", false)
+                .orderByAsc("id")
                 .last("LIMIT " + limit + " OFFSET " + offset);
 
         List<Solution> solutions = solutionMapper.selectList(wrapper);

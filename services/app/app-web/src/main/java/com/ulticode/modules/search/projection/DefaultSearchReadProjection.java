@@ -3,7 +3,6 @@ package com.ulticode.modules.search.projection;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
-import com.meilisearch.sdk.model.SearchResult;
 import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.meilisearch.sdk.model.Searchable;
 import com.ulticode.modules.search.dto.SearchIndexType;
@@ -110,26 +109,32 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
         long totalHits = 0;
 
         if (indexType != null) {
-            SearchIndexPage page = searchIndex(indexType, query, limit, offset);
-            results.addAll(page.items());
-            totalHits = page.total();
+            totalHits = exactTotal(indexType, query);
+            if (offset < totalHits) {
+                results.addAll(searchIndex(indexType, query, limit, offset));
+            }
         } else {
-            int remainingOffset = offset;
+            Map<SearchIndexType, Long> totals = new EnumMap<>(SearchIndexType.class);
+            for (SearchIndexType type : SearchIndexType.values()) {
+                long total = exactTotal(type, query);
+                totals.put(type, total);
+                totalHits += total;
+            }
+            long remainingOffset = offset;
             int remainingLimit = limit;
             for (SearchIndexType type : SearchIndexType.values()) {
-                int requestOffset = remainingLimit > 0 ? remainingOffset : 0;
-                int requestLimit = remainingLimit > 0 ? remainingLimit : 1;
-                SearchIndexPage page = searchIndex(type, query, requestLimit, requestOffset);
-                totalHits += page.total();
                 if (remainingLimit == 0) {
+                    break;
+                }
+                long typeTotal = totals.get(type);
+                if (remainingOffset >= typeTotal) {
+                    remainingOffset -= typeTotal;
                     continue;
                 }
-                if (remainingOffset >= page.total()) {
-                    remainingOffset -= (int) page.total();
-                    continue;
-                }
-                int accepted = Math.min(page.items().size(), remainingLimit);
-                results.addAll(page.items().subList(0, accepted));
+                List<SearchResponseVO.SearchResultItem> items = searchIndex(
+                        type, query, remainingLimit, Math.toIntExact(remainingOffset));
+                int accepted = Math.min(items.size(), remainingLimit);
+                results.addAll(items.subList(0, accepted));
                 remainingLimit -= accepted;
                 remainingOffset = 0;
             }
@@ -147,7 +152,8 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
     /**
      * Search a specific MeiliSearch index.
      */
-    private SearchIndexPage searchIndex(SearchIndexType indexType, String query, int limit, int offset) {
+    private List<SearchResponseVO.SearchResultItem> searchIndex(
+            SearchIndexType indexType, String query, int limit, int offset) {
         Index index = meiliSearchClient.index(indexType.getIndexName());
         SearchRequest searchRequest = SearchRequest.builder()
                 .q(query)
@@ -157,7 +163,6 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
                 .build();
 
         Searchable searchResult = index.search(searchRequest);
-        long total = reportedTotal(searchResult);
         List<SearchResponseVO.SearchResultItem> items = new ArrayList<>();
         if (searchResult.getHits() != null) {
             for (Object hit : searchResult.getHits()) {
@@ -166,17 +171,28 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
                 items.add(convertMeiliSearchHit(hitMap, indexType));
             }
         }
-        return new SearchIndexPage(items, total);
+        return items;
     }
 
-    private long reportedTotal(Searchable searchResult) {
-        if (searchResult instanceof SearchResult result) {
-            return result.getEstimatedTotalHits();
+    private long exactTotal(SearchIndexType indexType, String query) {
+        Index index = meiliSearchClient.index(indexType.getIndexName());
+        Searchable countResult = index.search(SearchRequest.builder()
+                .q(query)
+                .page(1)
+                .hitsPerPage(0)
+                .build());
+        return exactTotal(index, countResult);
+    }
+
+    private long exactTotal(Index index, Searchable searchResult) {
+        if (!(searchResult instanceof SearchResultPaginated result)) {
+            throw new IllegalStateException("MeiliSearch response did not include an exhaustive total");
         }
-        if (searchResult instanceof SearchResultPaginated result) {
-            return result.getTotalHits();
+        int maxTotalHits = index.getPaginationSettings().getMaxTotalHits();
+        if (maxTotalHits <= 0 || result.getTotalHits() >= maxTotalHits) {
+            throw new IllegalStateException("MeiliSearch total reached pagination.maxTotalHits");
         }
-        throw new IllegalStateException("MeiliSearch response did not include a total");
+        return result.getTotalHits();
     }
 
     /**
@@ -350,6 +366,4 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
         return "";
     }
 
-    private record SearchIndexPage(List<SearchResponseVO.SearchResultItem> items, long total) {
-    }
 }

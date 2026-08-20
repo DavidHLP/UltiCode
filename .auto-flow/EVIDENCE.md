@@ -554,3 +554,12 @@
 - CONTRACT-007 remains blocked: direct Submission provider handoff, compat retirement, grant/cutover and
   single-writer evidence still require explicit release authority plus the existing SPLIT-005 sandbox/Testcontainers
   gate. CONTRACT-008 remains pending behind it.
+
+## CRFIX-001 Search CR closure evidence (2026-08-20)
+
+- Real-Meili IT is explicitly opt-in and reports two skips when `MEILI_E2E_HOST`/`MEILI_E2E_KEY` are absent. Both `scripts/dev/test.sh integration` and the documented reactor `-Dtest='*IT'` command exit 0.
+- Meili counts use `page=1,hitsPerPage=0`; a count reaching `pagination.maxTotalHits`, an unreadable setting or any backend failure triggers whole-request database fallback. All-index reads count every index first and fetch hits only from page contributors.
+- Problem, ForumPost and Solution DB fallback queries order by owner `id ASC` before `LIMIT/OFFSET`; extreme page offsets saturate instead of wrapping to the first page.
+- User union count uses a bounded Auth-owner `NOT LIKE` count over each 100-ID profile page. `AuthAccountQueryMapperCollationIT` passed against MySQL 8 `utf8mb4_0900_ai_ci` for accent/case-insensitive and soft-delete behavior.
+- Validation: focused Auth/Search 40/0/0/2; provider plus real-collation 11/0/0/0; real Meili v1.8 2/0/0/0 with 1,500 matching documents; final Surefire XML 822 reports / 2,769 tests / 0 failures / 0 errors / 29 skips; affected reactor verify and JaCoCo passed.
+- General and Java formal reviews ended PASS with no remaining high-confidence finding. `graphify update .` rebuilt 27,987 nodes / 81,739 edges; codebase-memory coverage reported no recorded gaps; `git diff --check` passed.

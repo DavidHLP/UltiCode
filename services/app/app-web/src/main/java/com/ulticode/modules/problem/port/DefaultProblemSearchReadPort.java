@@ -25,6 +25,7 @@ public class DefaultProblemSearchReadPort implements ProblemSearchReadPort {
         wrapper.eq("is_published", true)
                 .eq("is_deleted", false)
                 .and(w -> w.like("title", query).or().like("slug", query))
+                .orderByAsc("id")
                 .last("LIMIT " + limit + " OFFSET " + offset);
         List<Problem> problems = problemMapper.selectList(wrapper);
         if (problems == null || problems.isEmpty()) {

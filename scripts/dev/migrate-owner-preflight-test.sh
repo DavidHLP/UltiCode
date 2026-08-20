@@ -78,12 +78,14 @@ expected_database="auth"
 if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" || "${FAKE_MYSQL_MODE:-success}" == "notification-missing-grant-option" ]]; then
   expected_database="notification"
 fi
-if [[ "${FAKE_MYSQL_CONTAINER_MODE:-false}" == "true" ]]; then
-  [[ "$host" == "127.0.0.1" && "$port" == "3306" \
-    && "$user" == "migration_user" && "$database" == "$expected_database" ]] || exit 91
-else
-  [[ "$host" == "migration-host" && "$port" == "3306" \
-    && "$user" == "migration_user" && "$database" == "$expected_database" ]] || exit 91
+if [[ "${FAKE_MYSQL_MODE:-}" != "auth-contract-gate" || -n "$database" ]]; then
+  if [[ "${FAKE_MYSQL_CONTAINER_MODE:-false}" == "true" ]]; then
+    [[ "$host" == "127.0.0.1" && "$port" == "3306" \
+      && "$user" == "migration_user" && "$database" == "$expected_database" ]] || exit 91
+  else
+    [[ "$host" == "migration-host" && "$port" == "3306" \
+      && "$user" == "migration_user" && "$database" == "$expected_database" ]] || exit 91
+  fi
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "global-all" && "$query" == *"mysql.role_edges"* ]]; then
   exit 95
@@ -165,6 +167,14 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" && "$query" == *"GROUP_C
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" && "$query" == *"auth.search_document_changed_outbox"* ]]; then
   printf '0\n'
+  exit 0
+fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "auth-contract-gate" && "$query" =~ information_schema\.tables ]]; then
+  printf '1\n'
+  exit 0
+fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "auth-contract-gate" && "$query" =~ information_schema\.columns ]]; then
+  printf '9\n'
   exit 0
 fi
 case "$query" in
@@ -703,6 +713,23 @@ notification_conflict_output="$(run_expect_failure env \
   "$ROOT_DIR/scripts/dev/notification-schema-cutover.sh" preflight)"
 assert_contains "$notification_conflict_output" "Configured database target external-host:23306 is not a published endpoint"
 
+contract_gate_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  FAKE_MYSQL_MODE=auth-contract-gate \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  "$ROOT_DIR/scripts/dev/migrate.sh" migrate)"
+assert_contains "$contract_gate_output" "contract-preflight requires DEV_LOCAL_OWNER_PROFILE_CONTRACT_CONFIRM=I_UNDERSTAND_AUTH_PROFILE_CONTRACT"
+[[ ! -f "$MAVEN_MARKER" ]] || {
+  echo 'Auth contract migration must not run before the parity preflight.' >&2
+  exit 1
+}
+
 rm -f "$MAVEN_MARKER"
 env \
   PATH="$FAKE_BIN:$PATH" \
@@ -748,5 +775,14 @@ submission_bootstrap_line="$(awk -v start="$owner_loop_line" 'NR >= start && /pr
   echo 'Submission migration principal must be bootstrapped before Owner Flyway.' >&2
   exit 1
 }
+
+owner_probe_block="$(sed -n '/^verify_owner_accounts() {/,/^}/p' "$ROOT_DIR/scripts/dev/up.sh")"
+case "$owner_probe_block" in
+  *'MIGRATION_MYSQL_CONTAINER_PORT:-3306'*) ;;
+  *) echo 'Owner readiness probe must use MIGRATION_MYSQL_CONTAINER_PORT.' >&2; exit 1 ;;
+esac
+case "$owner_probe_block" in
+  *'-P 3306'*) echo 'Owner readiness probe must not hard-code port 3306.' >&2; exit 1 ;;
+esac
 
 echo 'migrate-owner-preflight-test: PASS'

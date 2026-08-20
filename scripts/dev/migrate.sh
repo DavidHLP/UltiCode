@@ -347,12 +347,37 @@ owner_baseline_preflight() {
     "$MIGRATION_SCHEMA" "$expected_table" "$expected_columns" "$MIGRATION_BASELINE_VERSION" "$actual_rows"
 }
 
+auth_contract_preflight() {
+  [[ "$MIGRATION_SCHEMA" == "auth" && "$COMMAND" == "migrate" ]] || return 0
+
+  local auth_users_table_count auth_profile_column_count
+  auth_users_table_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'auth' AND table_name = 'users';")" \
+    || fail_preflight "cannot inspect Auth users table before contract migration"
+  [[ "$auth_users_table_count" == "1" ]] || return 0
+
+  auth_profile_column_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name IN ('name','avatar','bio','company','github','location','twitter','website','preferred_language');")" \
+    || fail_preflight "cannot inspect Auth profile columns before contract migration"
+  [[ "$auth_profile_column_count" == "0" ]] && return 0
+  [[ "$auth_profile_column_count" == "9" ]] || \
+    fail_preflight "Auth users profile columns are not in the expected expand-phase shape: found $auth_profile_column_count"
+
+  echo "Running Auth/Profile contract preflight before dropping Auth profile columns..."
+  MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
+    MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
+    MIGRATION_DB_USER="$MIGRATION_DB_USER" \
+    MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
+    MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
+    MIGRATION_MYSQL_CONTAINER_PORT="$MIGRATION_MYSQL_CONTAINER_PORT" \
+    "$ROOT_DIR/scripts/dev/owner-user-profile-backfill.sh" contract-preflight
+}
+
 if [[ -n "${MIGRATION_SCHEMA:-}" ]]; then
   owner_schema "$MIGRATION_SCHEMA" \
     || fail_preflight "unsupported MIGRATION_SCHEMA=$MIGRATION_SCHEMA"
   [[ -f "$ROOT_DIR/init-db/flyway-$MIGRATION_SCHEMA.conf" ]] \
     || fail_preflight "missing owner Flyway config for $MIGRATION_SCHEMA"
   owner_preflight
+  auth_contract_preflight
   if [[ "$COMMAND" == "baseline" ]]; then
     owner_baseline_preflight
   fi

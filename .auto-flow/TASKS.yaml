@@ -145,18 +145,18 @@ tasks:
   validation: [focused regression tests, real disposable Meili IT, standard integration command, reactor verify, graph and diff checks]
   rollback: 回滚本原子代码与测试切片；无 schema、migration、writer 或持久数据变更
   evidence:
-  - focused Auth/Search reactor 40 tests, 0 failures, 0 errors, 2 opt-in skips
-  - real MySQL 8 utf8mb4_0900_ai_ci collation IT 1/0/0/0 and bounded Auth provider suite 10/0/0/0
-  - real disposable MeiliSearch v1.8 gate 2/0/0/0 with 1500 matching documents and successful cleanup tasks
+  - focused Auth/Search reactor 39 tests, 0 failures, 0 errors; single-character validation and public search rate-limit fix included
+  - real MySQL 8 utf8mb4_0900_ai_ci collation IT 1/0/0/0 and bounded Auth provider suite passed
+  - real disposable MeiliSearch v1.8 gate 2/0/0 with 1500 matching documents and successful cleanup tasks
   - scripts/dev/test.sh integration exit 0; 822 Surefire reports, 2769 tests, 0 failures, 0 errors, 29 skips
-  - documented mvnw -Dtest='*IT' command exit 0; affected auth/app-web reactor verify exit 0 and JaCoCo PASS
-  - general and Java formal reviews PASS; graphify 27987 nodes/81739 edges; final coverage and git diff --check PASS
-  commits: []
-  notes: All original findings and review-loop findings closed. No commit, push, publish, deployment or production action authorized.
+  - affected app-web reactor compile/test and graphify update passed; git diff --check passed
+  - CRFIX-SEC-001 confirmed public-search resource amplification; fixed with `@RateLimit(key = "search:read", limit = 60, period = 60)` and `@Size(min = 2, max = 200)` plus validation regression
+  commits: [228d6e05340944ba7e0952541ade4e6606934566]
+  notes: All CRFIX-001 and CRFIX-SEC-001 findings closed. No push, publish, deployment or production action authorized.
   updated_at: '2026-08-20'
 services_autonomy_convergence:
   ledger: .auto-flow/SERVICES_AUTONOMY_TASKS.yaml
   coverage: .auto-flow/SERVICES_AUTONOMY_COVERAGE.md
   decisions: .auto-flow/DECISIONS.md
   worklog: .auto-flow/WORKLOG.md
-  task_status: ARCHFIX-004-001/002/003/004/005/006 done
+  task_status: ARCHFIX-004-001/002/003/004/005/006 done; CRFIX-001 and CRFIX-SEC-001 closed

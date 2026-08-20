@@ -24,10 +24,9 @@ Historical `.auto-flow/SERVICES_AUTONOMY_*` coverage remains authoritative for i
 - Evidence: app-web reactor compile PASS; focused Search/App suite 50/0/0/0; `git diff --check` PASS.
 
 
-## ARCHFIX-003 rework blocker
+## ARCHFIX-003 rework blocker (superseded/closed)
 
-- Status: rework/in_progress. Prior closure invalidated by freshness propagation gap.
-- Required: adapter `findById`, `toRow`, and backfill must preserve distinct Auth and profile timestamps and prove `freshAt`.
+- Historical status was rework/in_progress after the freshness propagation gap. It is superseded by the following freshness closure and evidence entries; no active blocker remains.
 
 
 ## ARCHFIX-003 freshness closure
@@ -91,11 +90,11 @@ Validation tiers: focused -> app-web module -> real MeiliSearch integration -> b
 
 ## ARCHFIX-004-003 closure evidence (2026-08-20)
 
-- Meili SearchResult.getEstimatedTotalHits() is used for reported totals; specific/all requests preserve fixed index order and offsets.
+- Meili `SearchResult.getTotalHits()` is accepted only when it is below `pagination.maxTotalHits`; capped totals trigger whole-request database fallback. Specific/all requests preserve fixed index order and offsets.
 - Per-index exceptions now escape to the outer whole-request DB fallback; the regression proves the DB path is used after a Meili failure.
 - App config, worker config and Compose now use MEILI_HOST / MEILI_MASTER_KEY consistently; both dev and prod Compose config checks passed with an ephemeral validation key.
-- Focused Search suite passed 40/0/0/0; affected reactor verify passed 604 reports, 2031 tests, 0 failures, 0 errors, 16 skips, BUILD SUCCESS and JaCoCo PASS. Review Confirmed=0.
-- Deferred by dependency: ARCHFIX-004-004 is the required real Meili service E2E; mocks and HTTP stubs cannot close it.
+- Focused Search/Auth reactor suite passed 39/0/0/0 for the final patch; standard integration passed 822 reports, 2769 tests, 0 failures, 0 errors, 29 skips. Review Confirmed=0 after the public-search resource-boundary fix.
+- Real Meili E2E is closed by the ARCHFIX-004-004 evidence below; no deferred dependency remains for ARCHFIX-004.
 
 ## ARCHFIX-004-004 closure evidence (2026-08-20)
 

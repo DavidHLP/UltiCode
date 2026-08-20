@@ -19,7 +19,7 @@ public class SearchQueryDTO {
      * Search query string.
      */
     @NotBlank(message = "Query is required")
-    @Size(min = 1, max = 200, message = "Query must be between 1 and 200 characters")
+    @Size(min = 2, max = 200, message = "Query must be between 2 and 200 characters")
     @Schema(description = "Search query string", example = "Two Sum", required = true)
     private String query;
 

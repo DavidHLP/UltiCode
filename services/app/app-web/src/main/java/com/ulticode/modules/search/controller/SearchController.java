@@ -4,6 +4,7 @@ import com.ulticode.common.response.Result;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
 import com.ulticode.modules.search.projection.SearchReadProjection;
+import com.ulticode.websecurity.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class SearchController {
     @Operation(summary = "Search content",
             description = "Full-text search across problems, users, posts, and solutions. " +
                     "Supports filtering by index type and pagination.")
+    @RateLimit(key = "search:read", limit = 60, period = 60)
     @GetMapping
     public Result<SearchResponseVO> search(@Valid SearchQueryDTO queryDTO) {
         return Result.success(searchProjection.search(queryDTO));

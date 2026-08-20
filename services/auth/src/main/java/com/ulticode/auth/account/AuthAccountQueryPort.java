@@ -22,4 +22,8 @@ public interface AuthAccountQueryPort {
     long countByIdsExcludingUsernameMatch(java.util.Set<String> accountIds, String usernameQuery);
 
     long countAccounts(AccountQueryDTO query);
+
+    AccountQueryService.AccountStatsSummary dashboardStatsSummary(java.time.LocalDateTime todayStart,
+                                                                   java.time.LocalDateTime weekStart,
+                                                                   java.time.LocalDateTime monthStart);
 }

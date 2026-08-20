@@ -14,120 +14,30 @@
 
 Historical `.auto-flow/SERVICES_AUTONOMY_*` coverage remains authoritative for its prior ledger and is not overwritten by this plan.
 
+## Architecture review 2026-08-20 coverage
 
-## ARCHFIX-003 caller seam closure
+| Requirement / finding | Task | Required evidence |
+| --- | --- | --- |
+| Search worker DLQ 的 `XADD` → `XACK` crash window 必须收敛为幂等原子状态转移 | ARCH-REVIEW-001 | exact worker/queue source trace; disposable Redis crash-window regression; source PEL/DLQ/ACK assertions; focused tests; reactor compile/test; diff check |
+| Submission read Projection 页面内不得逐行远程 enrichment | ARCH-REVIEW-002 | exact caller trace; page-level batch facts/users; missing/fallback semantics; N+1 regression; focused Submission tests; reactor compile/test |
+| Admin dashboard 不得隐藏全量 Auth 分页 fan-out | ARCH-REVIEW-003 | Auth-owned bounded summary contract; window/freshness/unavailable semantics; Admin projection tests; bounded-call assertion; reactor compile/test |
+| 开发运行时以 canonical profile 为默认真相，generic DB 变量仅供 migration bootstrap | ARCH-REVIEW-004 | profile/startup assertions; explicit Owner config fail-closed runtime test; Compose dev/prod config; clean-checkout smoke; docs consistency |
+| 所有评审任务完成且不制造 production acceptance | ARCH-REVIEW-005 | focused/module/integration/security checks; formal review; graphify update; YAML/diff checks; development-only authority audit; no unresolved mapped item |
 
-- `UserSearchBackfillReadPort` -> `UserDirectoryQueryPort.enumerate`
-- `DefaultUserSearchReadPort` -> `UserDirectoryQueryPort.search`
-- `DefaultAppUserWritePort` -> `UserDirectoryQueryPort.findById`
-- `UserSearchReadMapper` and legacy adapter methods removed; no remaining references.
-- Evidence: app-web reactor compile PASS; focused Search/App suite 50/0/0/0; `git diff --check` PASS.
+### Architecture review execution packet
 
+- Objective: 在 development/TEST-TARGET 权限边界内完成评审报告中的四项架构收敛，直到全部验收证据闭合。
+- In scope: Search DLQ failure transfer; Submission page-level read batching; Auth-owned bounded Admin summary; canonical development profile/config cleanup; tests, local docs and control-plane evidence required by those changes。
+- Out of scope: 新增物理服务、RocketMQ/Seata/Kubernetes/Service Mesh、生产 cutover/deployment/publish、删除可逆 rollback seam、writer/schema/migration 改造（除非实现中发现不可避免且另行裁决）。
+- Root cause: 已有 owner/contract seam 存在，但 Search 失败转移不是原子状态转移，Submission 读 Projection 未真正使用批量结果，Admin 将 owner 分页细节泄漏到 projection，开发配置仍公开迁移期兼容变量作为 runtime 真相。
+- Behavioral invariants: Owner 单写者；Submission facts snapshot 语义不变；HTTP/Result/公共 Dubbo 兼容；至少一次消费不丢消息；DLQ 至多一条逻辑记录；跨 Owner 读取有界、可失败且不逐行 RPC；Auth 拥有账号统计事实；runtime 显式 Owner 配置 fail-closed；rollback source seam 保留；不宣称 production acceptance。
+- Delivery authority: 仅限当前 development/TEST-TARGET；不 commit/push/publish/deploy/生产操作，控制面文件不暂存。
+- Terminal condition: ARCH-REVIEW-001..005 均 `done`，每项 Required Evidence 已记录，Confirmed findings=0，focused/module/integration/security/formal review 与控制面审计通过。
 
-## ARCHFIX-003 rework blocker (superseded/closed)
+### Source-to-task mapping
 
-- Historical status was rework/in_progress after the freshness propagation gap. It is superseded by the following freshness closure and evidence entries; no active blocker remains.
-
-
-## ARCHFIX-003 freshness closure
-
-- `findById` reads App `updated_at` via `findSearchRowsByAccountIds`, while Auth `updatedAt` remains separate.
-- `toRow` no longer overwrites Auth `updatedAt` with profile watermark.
-- `UserDirectoryRow.from` computes `freshAt = max(authUpdatedAt, profileUpdatedAt)`.
-- Adapter and backfill freshness regressions pass.
-
-
-## Freshness blocker rework evidence
-
-- Backfill now consumes `UserDirectoryRow.freshAt()` directly; no legacy watermark recomputation remains.
-- `findById` uses Search profile projection with `updatedAt` and treats null mapper results as missing profile.
-- Actual workspace focused suite: 23/0/0/0.
-
-
-## Duplicate account contract closure
-
-- `findByIds` drops null/out-of-request accounts and deduplicates duplicate account IDs with first-result-wins semantics.
-- Regression covers duplicate requested account and out-of-request response account.
-- Actual focused suite: 24/0/0/0.
-
-## ARCHFIX-004 Search coverage (2026-08-20)
-
-| Requirement | Task | Evidence |
-|---|---|---|
-| single provider | 004-001 | contract/bean scan, no second provider |
-| atomic source/read contract migration | 004-001 | four sources, four app-api seams, Solution provider/Admin adapter, UserDirectoryQueryPort, compile |
-| specific offset/total | 004-002/003 | source count/offset and Meili request/total assertions |
-| all-index deterministic aggregation | 004-002/004 | fixed SearchIndexType order, page-boundary tests and real multi-index E2E |
-| cross-Owner user exact count/page | 004-001/002 | account_id ASC batched merge, duplicate filtering, Auth usernameOnly count and profile count/page tests |
-| disabled database fallback | 004-003 | MEILISEARCH_ENABLED=false focused/dev-lite evidence |
-| whole-request fallback | 004-003/004 | failure injection and real failure evidence |
-| public compatibility | 004-002/004 | controller contract and Console build/type evidence |
-| canonical Meili environment names | 004-003 | App/Compose/worker config scan and disabled/configured tests |
-| no writer/schema/migration change | 004-001..004 | diff/source/migration scans |
-| retirement deferred | 005 | retirement inventory and rollback evidence |
-
-Validation tiers: focused -> app-web module -> real MeiliSearch integration -> boundary scans -> formal review.
-
-## ARCHFIX-004-001 closure evidence (2026-08-20)
-
-- Acceptance closed: count-capable SearchSource plus four source implementations and app-api seams compile; specific-index offset reaches the source read seam; user Auth/App merge is bounded, account_id ASC and deduplicated; Solution's existing two-argument Dubbo method remains; no writer/schema/migration changed.
-- Review: one specific-index offset finding was fixed and rechecked; Confirmed findings = 0.
-- Validation: focused Search/owner suite 38/0/0/0; SolutionApiContractShapeTest and BackendAppApplicationTest passed; affected reactor verify BUILD SUCCESS with 604 Surefire reports, 2029 tests, 0 failures, 0 errors, 16 skips and JaCoCo PASS; graphify/codebase-memory coverage refreshed; YAML parse and git diff --check passed.
-- Deferred by dependency: ARCHFIX-004-002 owns all-index DB page allocation and exact response totals; ARCHFIX-004-003 owns Meili whole-request fallback and canonical environment names; ARCHFIX-004-004 owns real Meili E2E.
-
-## ARCHFIX-004-002 validation evidence (2026-08-20)
-
-- Specific-index DB fallback now returns exact source count, forwards page offset/limit and returns empty rows without querying on out-of-range offsets.
-- All-index DB fallback uses fixed SearchIndexType order, maps a global offset into source-local offsets, fills the remaining page and sums exact source counts.
-- Focused Search/owner suite passed 40 tests with 0 failures, 0 errors and 0 skips; affected reactor verify passed with 604 reports, 2031 tests, 0 failures, 0 errors and 16 skips; JaCoCo passed.
-- Review found no Confirmed findings; graphify/codebase-memory coverage, YAML parse and git diff check passed. Meili behavior/config and real E2E remain intentionally deferred to 004-003/004.
-
-## ARCHFIX-004-002 closure evidence (2026-08-20)
-
-- Acceptance closed: specific-index exact totals/offset, all-index fixed-order global page allocation, summed totals and stable out-of-range rows are covered by focused regressions.
-- Review and Validation closed with Confirmed=0; affected reactor verify passed with 604 reports, 2031 tests, 0 failures, 0 errors, 16 skips, BUILD SUCCESS and JaCoCo PASS.
-- No writer/schema/migration/config change was included; ARCHFIX-004-003 remains the sole owner of Meili fallback/config behavior.
-
-## ARCHFIX-004-003 closure evidence (2026-08-20)
-
-- Meili `SearchResult.getTotalHits()` is accepted only when it is below `pagination.maxTotalHits`; capped totals trigger whole-request database fallback. Specific/all requests preserve fixed index order and offsets.
-- Per-index exceptions now escape to the outer whole-request DB fallback; the regression proves the DB path is used after a Meili failure.
-- App config, worker config and Compose now use MEILI_HOST / MEILI_MASTER_KEY consistently; both dev and prod Compose config checks passed with an ephemeral validation key.
-- Focused Search/Auth reactor suite passed 39/0/0/0 for the final patch; standard integration passed 822 reports, 2769 tests, 0 failures, 0 errors, 29 skips. Review Confirmed=0 after the public-search resource-boundary fix.
-- Real Meili E2E is closed by the ARCHFIX-004-004 evidence below; no deferred dependency remains for ARCHFIX-004.
-
-## ARCHFIX-004-004 closure evidence (2026-08-20)
-
-- Actual getmeili/meilisearch:v1.8 disposable service passed health and SDK integration. DefaultSearchReadProjectionRealMeiliIT passed 2/2 with specific offset/total, all-index summed total and whole-request fallback after a broken client.
-- Test data used a unique run id and cleanup; the loopback container was stopped and the failed Compose-created disposable volume was removed. The Compose network overlap was not force-repaired.
-- ARCHFIX-004 is now fully evidenced locally; production route, deployment, runtime observation and compatibility-retirement authority remain separate gates.
-
-## ARCHFIX-005 development-only retirement gate (2026-08-20)
-
-- User authority: the repository has no production environment; the current development/TEST-TARGET is the sole authorized target for reversible blocker remediation.
-- The current `.env` keeps `APP_SUBMISSION_ROUTING_MODE=local`; source/config inventory still shows the remote route, local rollback adapters and shadow components. Retirement must follow the actual caller graph and keep one runnable rollback artifact until the dev gate closes.
-- Required development evidence: one active writer and default reader, route/quiesce/observation/rollback checks, compatibility scan, focused single-writer tests, formal review and a clean diff. Development evidence is not production evidence.
-
-## ARCHFIX-005 closure evidence (2026-08-20)
-
-- Runtime retirement: `dev-lite` forces local route with App outbox/generation/Streams flags off; `dev-full` requires remote route/cutover and enables the owner/Streams flags. App and Judge receive the same profile flag set, so local legacy queue work is not left without a consumer.
-- Disposable owner gate: `owner-migration-safety-integration-test.sh` passed real Submission copy, App grant revoke, target ownership check, rollback copy-back and grant restoration, followed by table/global/role/routine grant rejection checks.
-- Focused route/provider suite passed 22/0/0/0; `migrate-owner-preflight-test.sh` passed; Compose network down/up recreation passed without fixed IPAM/static-address overlap.
-- Source-level local adapters, dispatcher and reaper remain rollback seams for dev-lite; no rollback-only source was deleted. No production environment or production action is claimed.
-
-## ARCHFIX-006 closure evidence (2026-08-20)
-
-- `scripts/dev/test.sh quick` passed the backend reactor plus auth-core, console and management tests/type checks; the stale `.env` Meili interpolation blocker was fixed with an in-memory ephemeral key fallback.
-- App/Judge profile assertions passed for both dev-lite and dev-full; shell syntax, Node syntax, Compose dev/prod config, YAML parsing and `git diff --check` passed.
-- The formal review HIGH finding (dev-lite App/Judge queue mismatch) was fixed and rechecked; no secret leakage or critical finding remained. `graphify update .` completed with 27,957 nodes / 81,621 edges; the nine unrelated config/IDE zero-node warnings remain expected.
-- All current ARCHFIX control pointers now agree: ARCHFIX-001..006 done, no active blocker, development-only authority and no production claim.
-
-## CRFIX-001 coverage (2026-08-20)
-
-| Review finding | Implementation | Evidence |
-|---|---|---|
-| opt-in Real-Meili IT breaks standard suite | environment conditions plus parent Surefire selected-test handling | wrapper integration exit 0; bare `*IT` exit 0; 2 skips without variables |
-| capped/estimated Meili total | exhaustive page query, cap check and whole-request DB fallback | cap regression plus real 1,500-document Meili test |
-| unstable DB offset pagination | `id ASC` in Problem/Forum/Solution adapters | deterministic SQL wrapper tests for all three |
-| collation-inexact user union count | bounded Auth-owner `NOT LIKE` count RPC | owner union tests plus real MySQL `utf8mb4_0900_ai_ci` IT |
-| review-loop performance/security findings | count/hit split, 100-ID provider bound, null/overflow/task-status guards | focused suites and two formal re-reviews PASS |
+- Candidate 01 / report lines 181-239 → ARCH-REVIEW-001 → AC-001.1..1.4 → Redis crash-window and reactor evidence.
+- Candidate 02 / report lines 241-302 → ARCH-REVIEW-002 → AC-002.1..2.4 → batch/N+1 and missing/fallback evidence.
+- Candidate 03 / report lines 304-361 → ARCH-REVIEW-003 → AC-003.1..3.4 → bounded summary and provider unavailable evidence.
+- Candidate 04 / report lines 363-424 → ARCH-REVIEW-004 → AC-004.1..4.4 → profile/config/Compose evidence.
+- Recommendation and skipped directions / report lines 426-446 → ARCH-REVIEW-005 → AC-005.1..5.3 → no infrastructure expansion and development-only gate.

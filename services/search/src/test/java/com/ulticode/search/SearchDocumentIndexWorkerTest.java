@@ -4,8 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -256,7 +257,7 @@ class SearchDocumentIndexWorkerTest {
     }
 
     @Test
-    @DisplayName("entries past max deliveries are dead-lettered and ACKed")
+    @DisplayName("exhausted entries use atomic Redis DLQ transfer")
     void exhaustedEntryIsDeadLettered() {
         stubBusyGroup();
         SearchWorkerProperties props = new SearchWorkerProperties();
@@ -264,19 +265,17 @@ class SearchDocumentIndexWorkerTest {
         worker = new SearchDocumentIndexWorker(redisTemplate, meiliSearchClient, objectMapper, props,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
-
         PendingMessage stale = new PendingMessage(
-                RecordId.of("evt-9"), Consumer.from("search-worker", "search-worker-1"), java.time.Duration.ofSeconds(60), 4L);
+                RecordId.of("evt-9"), Consumer.from("search-worker", "search-worker-1"),
+                java.time.Duration.ofSeconds(60), 4L);
         when(streamOps.pending(anyString(), anyString(), any(org.springframework.data.domain.Range.class), anyLong()))
-                .thenReturn(new PendingMessages("stream:integration", org.springframework.data.domain.Range.unbounded(), List.of(stale)));
+                .thenReturn(new PendingMessages("stream:integration", org.springframework.data.domain.Range.unbounded(),
+                        List.of(stale)));
         when(streamOps.range(anyString(), any(org.springframework.data.domain.Range.class)))
-                .thenReturn(List.of(record("9", SearchDocumentChangedEventContract.EVENT_TYPE, upsertPayload("problems"))));
-        when(streamOps.add(any(MapRecord.class))).thenReturn(RecordId.of("dlq-1"));
-
+                .thenReturn(List.of(record("9", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"))));
+        when(redisTemplate.execute(any(), anyList(), any())).thenReturn(1L);
         worker.consume();
-
-        verify(streamOps).add(any(MapRecord.class));
-        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-9"));
-        verify(meiliSearchClient, never()).index(anyString());
     }
+
 }

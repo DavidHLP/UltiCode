@@ -102,4 +102,11 @@ public class AccountQueryProvider implements AccountQueryService {
         List<AuthAccountDTO> items = queryPort.queryAccounts(query, offset, limit);
         return RpcResult.page(items, total, page, limit, DEFAULT_TRACE_ID);
     }
+
+    @Override
+    public RpcResult<AccountQueryService.AccountStatsSummary> getDashboardStatsSummary() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        return RpcResult.success(queryPort.dashboardStatsSummary(
+                now.minusDays(1), now.minusWeeks(1), now.minusMonths(1)), DEFAULT_TRACE_ID);
+    }
 }

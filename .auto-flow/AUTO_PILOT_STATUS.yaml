@@ -1,84 +1,50 @@
-objective: Services architecture hardening — ARCHFIX
-domain: dev entrypoints, owner boundaries, coarse query seams, Search behavior and compatibility retirement
-status: done
-active_task: ARCHFIX-006
-resume_point: ARCHFIX-001..006 are closed with fresh development-only acceptance, validation, review, rollback and evidence; no production claim or external release action was performed.
+objective: Architecture review report /tmp/architecture-review-20260820-045601.html — all requested development tasks to terminal state
+domain: development architecture hardening
+status: complete
+active_task: none
+resume_point: All architecture-review nodes ARCH-REVIEW-001..005 are complete; no further actionable node remains.
 control_plane:
   task_authority: .auto-flow/TASKS.yaml
-  historical_tasks: .auto-flow/TASKS.history.yaml
-  plan: .auto-flow/PLAN.md
   coverage: .auto-flow/COVERAGE.md
   decisions: .auto-flow/DECISIONS.md
   resume: .auto-flow/RESUME.md
   handoff: .auto-flow/HANDOFF.yaml
-scope:
-- ARCHFIX-001 dev-lite/dev-full startup split
-- ARCHFIX-002 per-Owner schema/runtime-account/migration-identity boundary
-- ARCHFIX-003 coarse batched versioned Admin/Search/Submission Query contracts
-- ARCHFIX-004 one default Search implementation with explicit fallback semantics
-- ARCHFIX-005 evidence-gated compatibility and shadow path retirement
-- ARCHFIX-006 final architecture and startup acceptance
-out_of_scope:
-- New Kafka, RocketMQ, Kubernetes, Service Mesh or independent MySQL clusters
-- Editing applied migrations
-- Deleting rollback-only compatibility paths without retirement evidence
-- Claiming development evidence as production acceptance or inventing a production environment
-terminal_condition:
-- ARCHFIX-001..006 have fresh Acceptance, Validation, Review, Rollback and Evidence
-- dev-lite first run and explicit dev-full gate behavior pass
-- owner grant isolation, coarse Query contracts, one Search default and compatibility retirement pass
-- Missing evidence keeps the relevant Task blocked; no completion is fabricated
+  evidence: .auto-flow/EVIDENCE.md
 nodes:
-- id: ARCHFIX-001
-  goal: Establish dev-lite and dev-full startup profiles
+- id: ARCH-REVIEW-001
+  goal: Search worker DLQ atomic failure transfer
   status: done
-  depends_on: []
-- id: ARCHFIX-002
-  goal: Complete per-Owner schema and unique writer configuration
+  evidence: SearchDocumentIndexWorkerTest 11/0/0/0; reactor PASS
+- id: ARCH-REVIEW-002
+  goal: Submission page-level batched facts and users
   status: done
-  depends_on: [ARCHFIX-001]
-- id: ARCHFIX-003
-  goal: Aggregate Admin/Search/Submission deep Query interfaces
+  evidence: DefaultSubmissionProjectionTest 11/0/0/0; app-web reactor PASS
+- id: ARCH-REVIEW-003
+  goal: Auth-owned bounded dashboard summary
   status: done
-  depends_on: [ARCHFIX-002]
-  evidence: UserDirectoryQueryPort freshness and duplicate/out-of-request contract closure; focused Search/App 24/0/0/0; reactor PASS
-- id: ARCHFIX-004-001
-  goal: Atomically migrate count-capable SearchSource and four read adapters
+  evidence: DefaultDashboardStatsProjectionTest 6/0/0/0; admin reactor PASS
+- id: ARCH-REVIEW-004
+  goal: Canonical development profile and owner configuration
   status: done
-  depends_on: []
-- id: ARCHFIX-004-002
-  goal: Implement deterministic database pagination and exact totals
+  evidence: Compose profile/config checks PASS; YAML and diff checks PASS
+- id: ARCH-REVIEW-005
+  goal: Final architecture review gate and control-plane closure
   status: done
-  depends_on: [ARCHFIX-004-001]
-- id: ARCHFIX-004-003
-  goal: Enforce whole-request MeiliSearch fallback
-  status: done
-  depends_on: [ARCHFIX-004-002]
-- id: ARCHFIX-004-004
-  goal: Execute real MeiliSearch E2E gate
-  status: done
-  depends_on: [ARCHFIX-004-003]
-- id: ARCHFIX-005
-  goal: Retire verified compatibility and shadow paths
-  status: done
-  depends_on: [ARCHFIX-004-004]
-  evidence: development profiles retire shadow runtime; disposable cutover/rollback and single-writer evidence; rollback seams preserved
-- id: ARCHFIX-006
-  goal: Run final architecture and startup acceptance
-  status: done
-  evidence: quick gate, profile/startup checks, cutover rollback, formal review recheck, Compose/YAML/bash/graph validation
-  depends_on: [ARCHFIX-005]
-planned_remediation:
-- Preserve historical ARCH-002/ARCH-003 and Submission/Search packets for audit.
-- Advance only through the dependency DAG and record fresh evidence per Task.
-- Keep only tasks lacking current development evidence blocked or pending.
-historical_objectives:
-- objective: ARCH-001..ARCH-006 Services Owner architecture hardening packet
-  status: historical
-  artifact: .auto-flow/PLAN.md historical sections and .auto-flow/WORKLOG.md
-- objective: 将 backend-app-api 收敛为 App-owned contract seam，并建立 Submission/Notification owner API 边界
-  status: historical
-  artifact: .auto-flow/TASKS.history.yaml
-- objective: 学习 arthas-mcp 全部工具并沉淀可复用 Skill 与 Agent
-  status: complete
-  artifact: /home/davidhlp/.codex/skills/arthas-mcp-diagnostics
+  evidence: app/app-web -am test BUILD SUCCESS; graphify update; control-plane YAML parse; git diff --check
+terminal_condition:
+- all nodes done
+- required development evidence recorded
+- no confirmed findings
+- no production acceptance claim
+- no commit/push/publish/deploy performed
+objective_handoff:
+  outcome: complete
+  next_goal: none
+  next_skill: none
+  blockers: []
+authority:
+  commit: false
+  push: false
+  publish: false
+  deploy: false
+  production_action: false

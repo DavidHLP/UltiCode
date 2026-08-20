@@ -1,162 +1,38 @@
 version: 1
-objective: 修复 Services Strangler migration 下的开发入口、Owner seam、跨 Owner 读模型、Search 双实现和兼容路径问题
+objective: 关闭 architecture review blockers 与 app-web contract/test drift
 updated_at: '2026-08-20'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
-- id: ARCHFIX-001
-  title: 建立 dev-lite 与 dev-full 双启动入口
+- id: RECOVERY-001
+  title: 对账现有控制面与工作区修改
   status: done
   depends_on: []
-  evidence: [bash syntax, help contract, isolated mode smoke, review confirmed findings=0]
-- id: ARCHFIX-002
-  title: 完成每 Owner schema 与唯一写账号配置
+  evidence: [control-plane YAML loaded, git status reconciled, graphify query]
+- id: RECOVERY-002
+  title: 定位 Submission 测试 API 漂移
   status: done
-  depends_on: [ARCHFIX-001]
-  evidence: [owner credential generation, fail-closed migration identity, strict Compose, grant-negative integration]
-- id: ARCHFIX-003
-  title: 聚合 Admin/Search/Submission 深读 Interface
-  source: [user-request-2026-08-19-3, AdminAnalyticsPort, SubmissionAdminReadPort, OwnerUserSearchReadAdapter]
+  depends_on: [RECOVERY-001]
+  evidence: [exact test/source API comparison, stale local API artifact confirmed]
+- id: COMPAT-001
+  title: 修复 app-web Search contract 测试漂移
   status: done
-  depends_on: [ARCHFIX-002]
-  evidence: [UserDirectoryQueryPort, Auth batch query, freshness direct-pass, duplicate/out-of-request filtering, focused Search/App 24/0/0/0, reactor PASS, diff check PASS]
-  notes: Freshness and duplicate account contract blockers resolved in actual workspace.
-  updated_at: '2026-08-19T23:56:39+08:00'
-- id: ARCHFIX-004-001
-  title: 原子迁移 count-capable SearchSource 与四类 read adapters
-  source: [ARCHFIX-DEC-006, SearchSource, SearchResponseVO, SearchQueryDTO, app-api read ports, UserDirectoryQueryPort]
+  depends_on: [RECOVERY-002]
+  evidence: [fresh backend-auth-api/backend-app-api install, app-web test-compile BUILD SUCCESS]
+- id: COMPAT-002
+  title: 恢复 Submission Projection 专项测试
   status: done
-  depends_on: []
-  acceptance_criteria:
-  - SearchSource 同时表达 offset/limit rows 与 exact count；四个 source、四个 app-api read seam 及其 App adapter 原子迁移并保持 reactor 可编译。
-  - source 继续拥有 mapper、URL、metadata；SearchResponseVO 字段、Result envelope、单一 SearchReadProjection provider 不变。
-  - UserDirectoryQueryPort 通过 Auth/App owner seam 以 account_id ASC 分页批量合并、去重并提供 exact count；不引入跨 Owner SQL、不做无界一次性加载。
-  - SolutionReadPort 的既有两参数 Dubbo 方法保留兼容转发，新分页/count 能力由 App provider 与 Admin adapter 同步暴露。
-  - 不修改 writer、schema 或 migration；偏移量必须真正到达 mapper/owner read seam。
-  validation: [contract and owner-boundary tests, source/adapter pagination-count tests, app-web focused compile/test, app-api and admin solution contract tests, diff check]
-  rollback: 回滚本原子代码切片；无数据、配置、schema 或 migration 变更
-  evidence:
-  - app/admin reactor test-compile and compile PASS
-  - focused Search/owner tests 38/0/0/0 PASS, including specific-index offset propagation
-  - SearchSourceContractTest proves offset/count forwarding
-  - OwnerUserSearchReadAdapter tests prove account_id ASC merge, offset and unique union count
-  - affected reactor verify: 604 Surefire reports, 2029 tests, 0 failures, 0 errors, 16 skipped; BUILD SUCCESS and JaCoCo PASS
-  - graphify update completed; git diff --check PASS
-  commits: []
-  notes: Acceptance, Review and Tier-C validation closed with Confirmed=0. No commit authorized. Projection exact totals/fallback behavior remain ARCHFIX-004-002/003.
-  updated_at: '2026-08-20'
-- id: ARCHFIX-004-002
-  title: 实现 database 分页与 exact total
-  source: [ARCHFIX-DEC-006, DefaultSearchReadProjection, ARCHFIX-004-001]
+  depends_on: [COMPAT-001]
+  evidence: [DefaultSubmissionProjectionTest 11/0/0/0 PASS]
+- id: FINAL-001
+  title: 执行全量相关 reactor 验证
   status: done
-  depends_on: [ARCHFIX-004-001]
-  acceptance_criteria: [specific-index offset/limit/exact total, all-index deterministic page and summed total, stable empty/out-of-range behavior]
-  validation: [database fallback contract tests, app-web compile/test]
-  rollback: restore prior Search projection artifact
-  evidence:
-  - focused database fallback suite 40/0/0/0 PASS
-  - specific-index offset/total and out-of-range rows covered
-  - all-index account/source boundary mapping and exact summed total covered
-  - affected reactor verify BUILD SUCCESS; 604 Surefire reports, 2031 tests, 0 failures, 0 errors, 16 skips; JaCoCo PASS
-  - graphify/codebase-memory coverage refreshed; YAML parse and git diff --check PASS
-  commits: []
-  notes: Acceptance, Review and Tier-C validation closed with Confirmed=0. No commit authorized. Meili behavior/config remains ARCHFIX-004-003.
-  updated_at: '2026-08-20'
-- id: ARCHFIX-004-003
-  title: 统一 MeiliSearch 全请求 fallback
-  source: [ARCHFIX-DEC-006, DefaultSearchReadProjection, MeiliSearchConfig, docker-compose.prod.yml]
+  depends_on: [COMPAT-002]
+  evidence: [app/app-web -am test BUILD SUCCESS, Search worker 11/0/0/0, Admin summary 6/0/0/0]
+- id: FINAL-002
+  title: 完成 Review 与控制面终态收口
   status: done
-  depends_on: [ARCHFIX-004-002]
-  acceptance_criteria: [specific-index backend pagination/total, all-index failure triggers whole-request database fallback, unconfigured path remains database, App reads canonical MEILI_HOST/MEILI_MASTER_KEY names used by Compose and worker]
-  validation: [mocked failure tests, configured/unconfigured tests, Compose config, diff check]
-  rollback: set MEILISEARCH_ENABLED=false or restore prior artifact
-  evidence:
-  - focused Search suite 40/0/0/0 PASS, including configured/unconfigured and whole-request fallback cases
-  - affected reactor verify BUILD SUCCESS; 604 Surefire reports, 2031 tests, 0 failures, 0 errors, 16 skips; JaCoCo PASS
-  - dev/prod Compose config passed with an ephemeral MEILI_MASTER_KEY; graphify, YAML and diff checks passed
-  - Review Confirmed=0; real service evidence was carried by ARCHFIX-004-004
-  commits: []
-  notes: Acceptance, Review and Tier-C validation closed with Confirmed=0. No commit authorized. Real Meili evidence is closed by ARCHFIX-004-004.
-  updated_at: '2026-08-20'
-- id: ARCHFIX-004-004
-  title: 执行真实 MeiliSearch E2E 门禁
-  source: [.auto-flow/COVERAGE.md, ARCHFIX-DEC-006, Search worker E2E fixtures]
-  status: done
-  depends_on: [ARCHFIX-004-003]
-  acceptance_criteria: [real MeiliSearch representative indexes, specific/all-index page-offset-total proof, whole-request fallback proof]
-  validation: [real MeiliSearch E2E, Search focused suite, services compile/test, diff check]
-  rollback: clean disposable E2E resources and restore last runnable artifact/config
-  evidence:
-  - real disposable MeiliSearch v1.8 image pulled and loopback service health returned 200 available
-  - DefaultSearchReadProjectionRealMeiliIT passed 2 tests, 0 failures, 0 errors, 0 skipped against actual SDK/service
-  - real indexes proved specific offset/total and all-index summed total; broken client proved whole-request DB fallback
-  - run-unique documents were deleted in @AfterAll; disposable container stopped; no persistent test volume retained
-  - graphify/codebase-memory coverage, YAML parse and git diff --check PASS
-  commits: []
-  notes: Real gate closed locally with disposable service. Production/runtime release authority remains separate and unclaimed.
-  updated_at: '2026-08-20'
-- id: ARCHFIX-005
-  title: 完成已验证兼容与 shadow runtime 退役
-  status: done
-  depends_on: [ARCHFIX-004-004]
-  acceptance_criteria: [development-only runtime retirement evidence, one writer and one default reader, reversible route/quiesce/observation/rollback proof, rollback seams preserved]
-  validation: [compatibility scan, single-writer tests, formal review]
-  rollback: restore last runnable artifact
-  evidence:
-  - current source/config inventory confirms Submission remote route, local rollback path and shadow/compat gates remain active
-  - user confirmed there is no production environment; the current development/TEST-TARGET is the sole authorized target
-  - reversible development route, quiesce, observation and rollback evidence is now the applicable gate
-  - disposable MySQL owner-safety integration passed real Submission cutover copy, App grant revoke, rollback copy-back and grant restore
-  - App/Judge dev-lite and dev-full queue flags are aligned; dev-lite disables App shadow runtime while preserving local writer/read rollback
-  - focused Submission routing/provider suite passed 22/0/0/0; migration preflight regression passed
-  - Compose network was recreated without fixed IPAM/static-address overlap; dev/prod config, shell/Node/YAML/diff checks passed
-  commits: []
-  notes: >-
-    Closed as development-only runtime retirement: both supported profiles disable
-    App shadow runtime when appropriate, while local writer/read adapters remain
-    source-level rollback seams required by dev-lite. Do not claim production
-    acceptance, push, publish, or perform destructive data operations; preserve
-    single-writer, grant, reconciliation and rollback invariants.
-  updated_at: '2026-08-20'
-- id: ARCHFIX-006
-  title: 执行最终架构与启动验收
-  status: done
-  depends_on: [ARCHFIX-005]
-  acceptance_criteria: [all ARCHFIX evidence fresh, review and validation pass, no blocker fabricated closed]
-  validation: [focused, module, integration, security, formal review]
-  rollback: restore last verified artifact
-  evidence:
-  - scripts/dev/test.sh quick passed all backend, auth-core, console and management checks with ephemeral Meili key fallback
-  - Compose dev/prod config, shell syntax, Node syntax, YAML parse and git diff --check passed
-  - graphify refreshed after the current source/config changes; no graph extraction error
-  - formal review found one dev-lite App/Judge queue mismatch; the fix was applied and profile assertions passed
-  commits: []
-  notes: Final development-only gate closed after quick checks, profile assertions, cutover/rollback evidence, formal review finding remediation and control-plane audit. No production environment or release action is claimed.
-  updated_at: '2026-08-20'
-- id: CRFIX-001
-  title: 修复 Search exact total、稳定分页、跨 Owner union count 与 Real-Meili IT 门禁
-  source: [review-2026-08-20, DefaultSearchReadProjection, OwnerUserSearchReadAdapter]
-  status: done
-  depends_on: [ARCHFIX-004-004]
-  acceptance_criteria:
-  - 标准 integration 命令在未提供 MEILI_E2E_HOST/MEILI_E2E_KEY 时跳过 opt-in Real-Meili IT，而不是构建失败。
-  - Meili total 只在未触及 pagination.maxTotalHits 时使用；无法证明精确时整次请求回退数据库。
-  - Problem、ForumPost、Solution 数据库分页均在 OFFSET 前按 owner id ASC 稳定排序。
-  - User exact count 复用 Auth/App 数据库谓词与 account_id ASC 合并游标，不使用 Java collation 近似判断重叠。
-  validation: [focused regression tests, real disposable Meili IT, standard integration command, reactor verify, graph and diff checks]
-  rollback: 回滚本原子代码与测试切片；无 schema、migration、writer 或持久数据变更
-  evidence:
-  - focused Auth/Search reactor 39 tests, 0 failures, 0 errors; single-character validation and public search rate-limit fix included
-  - real MySQL 8 utf8mb4_0900_ai_ci collation IT 1/0/0/0 and bounded Auth provider suite passed
-  - real disposable MeiliSearch v1.8 gate 2/0/0 with 1500 matching documents and successful cleanup tasks
-  - scripts/dev/test.sh integration exit 0; 822 Surefire reports, 2769 tests, 0 failures, 0 errors, 29 skips
-  - affected app-web reactor compile/test and graphify update passed; git diff --check passed
-  - CRFIX-SEC-001 confirmed public-search resource amplification; fixed with `@RateLimit(key = "search:read", limit = 60, period = 60)` and `@Size(min = 2, max = 200)` plus validation regression
-  commits: [228d6e05340944ba7e0952541ade4e6606934566]
-  notes: All CRFIX-001 and CRFIX-SEC-001 findings closed. No push, publish, deployment or production action authorized.
-  updated_at: '2026-08-20'
-services_autonomy_convergence:
-  ledger: .auto-flow/SERVICES_AUTONOMY_TASKS.yaml
-  coverage: .auto-flow/SERVICES_AUTONOMY_COVERAGE.md
-  decisions: .auto-flow/DECISIONS.md
-  worklog: .auto-flow/WORKLOG.md
-  task_status: ARCHFIX-004-001/002/003/004/005/006 done; CRFIX-001 and CRFIX-SEC-001 closed
+  depends_on: [FINAL-001]
+  evidence: [graphify update, YAML parse, git diff --check, HANDOFF complete, no blockers]
+notes: >-
+  Development-only authority. No commit, push, publish, deploy or production action.
+  Existing business changes and control-plane history remain in the working tree.

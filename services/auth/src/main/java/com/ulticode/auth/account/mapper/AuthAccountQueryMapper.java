@@ -106,4 +106,23 @@ public interface AuthAccountQueryMapper {
             @Param("active") Boolean active,
             @Param("banned") Boolean banned,
             @Param("usernameOnly") boolean usernameOnly);
+
+    @Select("""
+            SELECT
+                COUNT(*) AS total,
+                COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0) AS active,
+                COALESCE(SUM(CASE WHEN is_banned = 1 THEN 1 ELSE 0 END), 0) AS banned,
+                COALESCE(SUM(CASE WHEN last_login_at >= #{todayStart} THEN 1 ELSE 0 END), 0) AS activeToday,
+                COALESCE(SUM(CASE WHEN last_login_at >= #{weekStart} THEN 1 ELSE 0 END), 0) AS activeWeek,
+                COALESCE(SUM(CASE WHEN last_login_at >= #{monthStart} THEN 1 ELSE 0 END), 0) AS activeMonth
+            FROM users
+            WHERE is_deleted = 0
+            """)
+    AccountStatsRow dashboardStatsSummary(
+            @Param("todayStart") java.time.LocalDateTime todayStart,
+            @Param("weekStart") java.time.LocalDateTime weekStart,
+            @Param("monthStart") java.time.LocalDateTime monthStart);
+
+    record AccountStatsRow(long total, long active, long banned,
+                           long activeToday, long activeWeek, long activeMonth) {}
 }

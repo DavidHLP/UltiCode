@@ -98,6 +98,18 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
         return mapper.countAccounts(search, role, query.active(), query.banned(), query.usernameOnly());
     }
 
+    @Override
+    public com.ulticode.auth.api.service.AccountQueryService.AccountStatsSummary dashboardStatsSummary(
+            java.time.LocalDateTime todayStart,
+            java.time.LocalDateTime weekStart,
+            java.time.LocalDateTime monthStart) {
+        AuthAccountQueryMapper.AccountStatsRow row =
+                mapper.dashboardStatsSummary(todayStart, weekStart, monthStart);
+        return new com.ulticode.auth.api.service.AccountQueryService.AccountStatsSummary(
+                row.total(), row.active(), row.banned(), row.activeToday(),
+                row.activeWeek(), row.activeMonth(), java.util.Map.of());
+    }
+
     private AuthAccountDTO toDto(AuthAccountEntity entity) {
         return new AuthAccountDTO(
                 entity.getId(),

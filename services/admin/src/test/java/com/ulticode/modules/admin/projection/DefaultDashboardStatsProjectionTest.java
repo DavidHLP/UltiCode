@@ -63,8 +63,9 @@ class DefaultDashboardStatsProjectionTest {
         AuthAccountDTO oldUser = account("old", "USER", false, false,
                 LocalDateTime.of(2026, 6, 1, 9, 0),
                 LocalDateTime.of(2026, 6, 1, 9, 0));
-        when(accountQueryService.queryAccounts(any()))
-                .thenReturn(RpcResult.page(List.of(admin, bannedUser, oldUser), 3L, 1, 100, "t-test"));
+        when(accountQueryService.getDashboardStatsSummary())
+                .thenReturn(RpcResult.success(new AccountQueryService.AccountStatsSummary(
+                        3, 2, 1, 2, 2, 2, Map.of("ADMIN", 1L, "USER", 2L)), "t-test"));
 
         when(dashboardMapper.countTotalProblems()).thenReturn(50L);
         when(dashboardMapper.countPublishedProblems()).thenReturn(40L);

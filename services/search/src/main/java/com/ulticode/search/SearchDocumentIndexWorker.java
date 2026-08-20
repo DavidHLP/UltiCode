@@ -9,9 +9,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Range;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
@@ -24,6 +26,7 @@ import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
 
 /**
  * SEARCH-002 indexing worker: consumes {@code SearchDocumentChanged} events
@@ -67,6 +70,24 @@ public class SearchDocumentIndexWorker {
     private final io.micrometer.core.instrument.Counter processedCounter;
     private final io.micrometer.core.instrument.Counter deadLetterCounter;
     private final io.micrometer.core.instrument.Counter staleCounter;
+
+    private static final RedisScript<Long> ATOMIC_DEAD_LETTER_SCRIPT = RedisScript.of("""
+            local marked = redis.call('SET', KEYS[3], '1', 'NX', 'EX', ARGV[6])
+            if marked then
+                local added = redis.pcall('XADD', KEYS[2], '*',
+                    'eventId', ARGV[1],
+                    'eventType', ARGV[2],
+                    'aggregateId', ARGV[3],
+                    'aggregateVersion', ARGV[4],
+                    'payload', ARGV[5])
+                if type(added) == 'table' and added['err'] then
+                    redis.call('DEL', KEYS[3])
+                    return -1
+                end
+            end
+            redis.call('XACK', KEYS[1], ARGV[7], ARGV[8])
+            return 1
+            """, Long.class);
 
     public SearchDocumentIndexWorker(
             StringRedisTemplate redisTemplate,
@@ -197,7 +218,6 @@ public class SearchDocumentIndexWorker {
         if (reclaimIds.isEmpty()) {
             return List.of();
         }
-
         List<MapRecord<String, String, String>> reclaimed = streams.claim(
                 props.getStreamKey(),
                 props.getGroup(),
@@ -206,24 +226,32 @@ public class SearchDocumentIndexWorker {
                 reclaimIds.toArray(RecordId[]::new));
         return reclaimed == null ? List.of() : reclaimed;
     }
-
     private void deadLetter(StreamOperations<String, String, String> streams, PendingMessage message) {
-        try {
-            List<MapRecord<String, String, String>> source = streams.range(
-                    props.getStreamKey(),
-                    Range.closed(message.getId().getValue(), message.getId().getValue()));
-            MapRecord<String, String, String> record =
-                    source == null || source.isEmpty() ? null : source.get(0);
-            Map<String, String> fields = record == null ? Map.of() : record.getValue();
-            streams.add(MapRecord.create(props.getDlqKey(), fields));
-            streams.acknowledge(props.getStreamKey(), props.getGroup(), message.getId());
-            deadLetterCounter.increment();
-            log.error("Dead-lettered search event {} after {} deliveries (eventType={})",
-                    message.getId().getValue(), message.getTotalDeliveryCount(),
-                    fields.getOrDefault("eventType", "?"));
-        } catch (RuntimeException e) {
-            log.warn("Failed to dead-letter search event {}: {}", message.getId().getValue(), e.getMessage());
+        List<MapRecord<String, String, String>> source = streams.range(
+                props.getStreamKey(),
+                Range.closed(message.getId().getValue(), message.getId().getValue()));
+        MapRecord<String, String, String> record =
+                source == null || source.isEmpty() ? null : source.get(0);
+        Map<String, String> fields = record == null ? Map.of() : record.getValue();
+        String markerKey = props.getDlqKey() + ":seen:" + message.getId().getValue();
+        Long result = redisTemplate.execute(
+                ATOMIC_DEAD_LETTER_SCRIPT,
+                List.of(props.getStreamKey(), props.getDlqKey(), markerKey),
+                fields.getOrDefault("eventId", ""),
+                fields.getOrDefault("eventType", ""),
+                fields.getOrDefault("aggregateId", ""),
+                fields.getOrDefault("aggregateVersion", ""),
+                fields.getOrDefault("payload", ""),
+                "86400",
+                props.getGroup(),
+                message.getId().getValue());
+        if (result == null || result < 0L) {
+            throw new IllegalStateException("Atomic Search DLQ transfer failed for " + message.getId());
         }
+        deadLetterCounter.increment();
+        log.error("Dead-lettered search event {} after {} deliveries (eventType={})",
+                message.getId().getValue(), message.getTotalDeliveryCount(),
+                fields.getOrDefault("eventType", "?"));
     }
 
     private boolean process(MapRecord<String, String, String> record) {

@@ -29,4 +29,18 @@ public interface AccountQueryService {
 
     /** Count supplied, non-deleted accounts whose usernames do not match the database search predicate. */
     RpcResult<Long> countAccountsByIdsExcludingUsernameMatch(Set<String> accountIds, String usernameQuery);
+
+    /**
+     * Return one bounded summary for dashboard statistics owned by Auth.
+     */
+    RpcResult<AccountStatsSummary> getDashboardStatsSummary();
+
+    record AccountStatsSummary(
+            long total,
+            long active,
+            long banned,
+            long activeToday,
+            long activeWeek,
+            long activeMonth,
+            java.util.Map<String, Long> byRole) {}
 }

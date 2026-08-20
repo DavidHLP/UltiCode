@@ -126,6 +126,14 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionVO toVO(Submission submission) {
+        return toVO(submission, userReadPort.findAllById(List.of(submission.getUserId())),
+                problemFacts.findDisplayFactsBatch(List.of(submission.getProblemId())));
+    }
+
+    private SubmissionVO toVO(
+            Submission submission,
+            Map<String, SubmissionUserReadPort.UserSummary> users,
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> factsById) {
         SubmissionVO vo = new SubmissionVO();
 
         vo.setId(submission.getId());
@@ -213,7 +221,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
             }
         }
 
-        SubmissionUserReadPort.UserSummary user = userReadPort.findById(submission.getUserId());
+        SubmissionUserReadPort.UserSummary user = users.get(submission.getUserId());
         if (user != null) {
             SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
             userInfo.setId(user.id());
@@ -223,7 +231,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
             vo.setUser(userInfo);
         }
 
-        ProblemFactsPort.ProblemDisplayFacts facts = problemFacts.findDisplayFacts(submission.getProblemId());
+        ProblemFactsPort.ProblemDisplayFacts facts = factsById.get(submission.getProblemId());
         if (facts != null) {
             SubmissionVO.ProblemInfo problemInfo = new SubmissionVO.ProblemInfo();
             problemInfo.setId(facts.id());

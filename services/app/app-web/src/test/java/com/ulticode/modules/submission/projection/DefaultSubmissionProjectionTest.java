@@ -18,8 +18,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -42,13 +44,14 @@ class DefaultSubmissionProjectionTest {
     @Mock private ProblemFactsPort problemFacts;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-
     private DefaultSubmissionProjection projection;
 
     @BeforeEach
     void setUp() {
         projection = new DefaultSubmissionProjection(
                 submissionMapper, submissionStreakCalculator, userReadPort, problemFacts, objectMapper);
+        org.mockito.Mockito.lenient().when(userReadPort.findAllById(any())).thenReturn(Map.of());
+        org.mockito.Mockito.lenient().when(problemFacts.findDisplayFactsBatch(any())).thenReturn(Map.of());
     }
 
     private Submission buildSubmission(Submission.TestCaseDetail... details) {
@@ -87,8 +90,8 @@ class DefaultSubmissionProjectionTest {
                 detail("Accepted", CaseScope.SAMPLE, "tc-1", "out", "exp", null),
                 detail("Wrong Answer", CaseScope.HIDDEN, "tc-h-1", "SECRET_OUT", "SECRET_EXP", "diff")
         );
-        when(userReadPort.findById("u-1")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
+        org.mockito.Mockito.lenient().when(userReadPort.findById("u-1")).thenReturn(null);
+        org.mockito.Mockito.lenient().when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -108,8 +111,8 @@ class DefaultSubmissionProjectionTest {
         Submission s = buildSubmission(
                 detail("Wrong Answer", null, null, "out", "exp", "diff") // legacy
         );
-        when(userReadPort.findById("u-1")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
+        org.mockito.Mockito.lenient().when(userReadPort.findById("u-1")).thenReturn(null);
+        org.mockito.Mockito.lenient().when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -127,8 +130,8 @@ class DefaultSubmissionProjectionTest {
                 detail("Accepted", CaseScope.SAMPLE, "tc-1", "out", "exp", null),
                 detail("Wrong Answer", CaseScope.HIDDEN, "tc-h-1", "SECRET_OUT", "SECRET_EXP", "diff")
         );
-        when(userReadPort.findById("u-1")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
+        org.mockito.Mockito.lenient().when(userReadPort.findById("u-1")).thenReturn(null);
+        org.mockito.Mockito.lenient().when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -147,8 +150,8 @@ class DefaultSubmissionProjectionTest {
                 detail("Wrong Answer", CaseScope.HIDDEN, "tc-h-1", "HIDDEN_OUT", "HIDDEN_EXP", "hidden-diff"),
                 detail("Wrong Answer", CaseScope.SAMPLE, "tc-1", "SAMPLE_OUT", "SAMPLE_EXP", "sample-diff")
         );
-        when(userReadPort.findById("u-1")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
+        org.mockito.Mockito.lenient().when(userReadPort.findById("u-1")).thenReturn(null);
+        org.mockito.Mockito.lenient().when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -164,8 +167,8 @@ class DefaultSubmissionProjectionTest {
         Submission s = buildSubmission(
                 detail("Compile Error", CaseScope.SAMPLE, "tc-1", "", "", "javac: class Solution is missing")
         );
-        when(userReadPort.findById("u-1")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
+        org.mockito.Mockito.lenient().when(userReadPort.findById("u-1")).thenReturn(null);
+        org.mockito.Mockito.lenient().when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 

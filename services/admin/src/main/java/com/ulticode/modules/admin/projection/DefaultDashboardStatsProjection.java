@@ -112,57 +112,22 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
 
     private DashboardStatsVO.UserStats buildUserStats() {
         DashboardStatsVO.UserStats stats = new DashboardStatsVO.UserStats();
-        stats.setTotal(0L);
-        stats.setActive(0L);
-        stats.setBanned(0L);
-        stats.setActiveToday(0L);
-        stats.setActiveWeek(0L);
-        stats.setActiveMonth(0L);
-        stats.setByRole(new HashMap<>());
-
-        AccountScan scan = scanAccounts(null);
-
-        LocalDateTime now = LocalDateTime.now(clock);
-        LocalDateTime todayStart = now.minusDays(1);
-        LocalDateTime weekStart = now.minusWeeks(1);
-        LocalDateTime monthStart = now.minusMonths(1);
-        long active = 0L;
-        long banned = 0L;
-        long activeToday = 0L;
-        long activeWeek = 0L;
-        long activeMonth = 0L;
-        Map<String, Long> roleCounts = new HashMap<>();
-
-        for (AuthAccountDTO account : scan.accounts()) {
-            if (account.active()) {
-                active++;
-            }
-            if (account.banned()) {
-                banned++;
-            }
-            if (account.lastLoginAt() != null) {
-                if (!account.lastLoginAt().isBefore(todayStart)) {
-                    activeToday++;
-                }
-                if (!account.lastLoginAt().isBefore(weekStart)) {
-                    activeWeek++;
-                }
-                if (!account.lastLoginAt().isBefore(monthStart)) {
-                    activeMonth++;
-                }
-            }
-            if (account.role() != null) {
-                roleCounts.merge(account.role(), 1L, Long::sum);
-            }
+        if (accountQueryService == null) {
+            throw unavailable();
         }
-
-        stats.setTotal(scan.total());
-        stats.setActive(active);
-        stats.setBanned(banned);
-        stats.setActiveToday(activeToday);
-        stats.setActiveWeek(activeWeek);
-        stats.setActiveMonth(activeMonth);
-        stats.setByRole(roleCounts);
+        RpcResult<AccountQueryService.AccountStatsSummary> response =
+                accountQueryService.getDashboardStatsSummary();
+        if (response == null || !response.success() || response.data() == null) {
+            throw unavailable();
+        }
+        AccountQueryService.AccountStatsSummary summary = response.data();
+        stats.setTotal(summary.total());
+        stats.setActive(summary.active());
+        stats.setBanned(summary.banned());
+        stats.setActiveToday(summary.activeToday());
+        stats.setActiveWeek(summary.activeWeek());
+        stats.setActiveMonth(summary.activeMonth());
+        stats.setByRole(summary.byRole());
         return stats;
     }
 

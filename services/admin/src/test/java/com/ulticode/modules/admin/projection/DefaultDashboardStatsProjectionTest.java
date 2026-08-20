@@ -3,11 +3,13 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
-import com.ulticode.modules.admin.mapper.DashboardMapper;
+import com.ulticode.modules.admin.port.AdminDashboardReadPort;
+import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,7 +41,7 @@ class DefaultDashboardStatsProjectionTest {
     private static final Clock CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.of("UTC"));
 
     @Mock
-    private DashboardMapper dashboardMapper;
+    private AdminDashboardReadPort dashboardReadPort;
 
     @Mock
     private AccountQueryService accountQueryService;
@@ -48,7 +50,8 @@ class DefaultDashboardStatsProjectionTest {
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultDashboardStatsProjection(dashboardMapper, CLOCK, accountQueryService);
+        projection = new DefaultDashboardStatsProjection(dashboardReadPort, CLOCK, accountQueryService);
+        when(dashboardReadPort.loadStats(any(LocalDateTime.class))).thenReturn(emptyDashboardData());
     }
 
     @Test
@@ -67,28 +70,16 @@ class DefaultDashboardStatsProjectionTest {
                 .thenReturn(RpcResult.success(new AccountQueryService.AccountStatsSummary(
                         3, 2, 1, 2, 2, 2, Map.of("ADMIN", 1L, "USER", 2L)), "t-test"));
 
-        when(dashboardMapper.countTotalProblems()).thenReturn(50L);
-        when(dashboardMapper.countPublishedProblems()).thenReturn(40L);
-        when(dashboardMapper.countProblemsByDifficultyRaw()).thenReturn(List.of(Map.of("difficulty", "EASY", "count", 30L)));
-        when(dashboardMapper.countProblemsByStatusRaw()).thenReturn(List.of(Map.of("status", "PUBLISHED", "count", 40L)));
-
-        when(dashboardMapper.countTotalContests()).thenReturn(10L);
-        when(dashboardMapper.countUpcomingContests(any(LocalDateTime.class))).thenReturn(2L);
-        when(dashboardMapper.countRunningContests(any(LocalDateTime.class))).thenReturn(1L);
-        when(dashboardMapper.countFinishedContests(any(LocalDateTime.class))).thenReturn(7L);
-
-        when(dashboardMapper.countTotalSubmissions()).thenReturn(500L);
-        when(dashboardMapper.countSubmissionsSince(any(LocalDateTime.class))).thenReturn(50L);
-        when(dashboardMapper.calculateAcceptanceRate()).thenReturn(65.5);
-        when(dashboardMapper.countSubmissionsSince(any())).thenReturn(10L);
-
-        when(dashboardMapper.countTotalSolutions()).thenReturn(30L);
-        when(dashboardMapper.countPublishedSolutions()).thenReturn(25L);
-        when(dashboardMapper.countFlaggedSolutions()).thenReturn(1L);
-
-        when(dashboardMapper.countForumPosts()).thenReturn(80L);
-        when(dashboardMapper.countForumComments()).thenReturn(200L);
-        when(dashboardMapper.countForumCommunities()).thenReturn(5L);
+        when(dashboardReadPort.loadStats(any(LocalDateTime.class))).thenReturn(
+                new AdminDashboardReadPort.DashboardData(
+                        new DashboardAppStatsDTO(
+                                50, 40,
+                                List.of(new DashboardAppStatsDTO.Count("EASY", 30)),
+                                List.of(new DashboardAppStatsDTO.Count("PUBLISHED", 40)),
+                                10, 2, 1, 7,
+                                30, 25, 1,
+                                80, 200, 5, 0, 0),
+                        new SubmissionDashboardStatsDTO(500, 50, 50, 50, 65.5)));
         DashboardStatsVO stats = projection.loadStats();
 
         assertThat(stats).isNotNull();
@@ -119,6 +110,23 @@ class DefaultDashboardStatsProjectionTest {
         assertThat(stats.getForum().getPosts()).isEqualTo(80L);
         assertThat(stats.getForum().getComments()).isEqualTo(200L);
         assertThat(stats.getSystem().getUptime()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("loadChartStats routes owner metrics through one dashboard read seam")
+    void loadChartStats_routesOwnerMetricThroughReadSeam() {
+        when(dashboardReadPort.loadChartData(org.mockito.ArgumentMatchers.eq("problems"), any(LocalDateTime.class),
+                any(LocalDateTime.class), org.mockito.ArgumentMatchers.eq("day")))
+                .thenReturn(List.of(new AdminDashboardReadPort.ChartPoint("2026-07-28", 4L)));
+
+        ChartStatsVO chart = projection.loadChartStats("problems", "day", 7);
+
+        assertThat(chart.getData()).singleElement().satisfies(point -> {
+            assertThat(point.getDate()).isEqualTo("2026-07-28");
+            assertThat(point.getCount()).isEqualTo(4L);
+        });
+        verify(dashboardReadPort).loadChartData("problems", chart.getStartDate(),
+                chart.getEndDate(), "day");
     }
 
     @Test
@@ -203,5 +211,15 @@ class DefaultDashboardStatsProjectionTest {
                                           LocalDateTime joinedAt, LocalDateTime lastLoginAt) {
         return new AuthAccountDTO(id, id, id + "@example.com", role, active, banned,
                 null, null, joinedAt, lastLoginAt, 1L);
+    }
+
+    private static AdminDashboardReadPort.DashboardData emptyDashboardData() {
+        return new AdminDashboardReadPort.DashboardData(
+                new DashboardAppStatsDTO(
+                        0, 0, List.of(), List.of(),
+                        0, 0, 0, 0,
+                        0, 0, 0,
+                        0, 0, 0, 0, 0),
+                new SubmissionDashboardStatsDTO(0, 0, 0, 0, 0.0));
     }
 }

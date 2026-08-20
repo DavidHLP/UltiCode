@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -87,5 +88,26 @@ class DefaultSubmissionAdminReadAdapterTest {
 
         assertThat(result.memoryDistBinsMb()).containsExactly(1, 2);
         assertThat(result.runtimeDistBinsMs()).containsExactly(3, 4);
+    }
+
+    @Test
+    void dashboardStatsPreserveOwnerAcceptanceRateAndChartBuckets() {
+        when(submissionMapper.selectCount(any())).thenReturn(2L);
+        when(submissionMapper.calculateDashboardAcceptanceRate()).thenReturn(65.5);
+        when(submissionMapper.countDashboardByBucket(
+                any(LocalDateTime.class), any(LocalDateTime.class), any()))
+                .thenReturn(List.of(java.util.Map.of("bucket", "2026-08-20", "count", 3L)));
+
+        var adapter = new DefaultSubmissionAdminReadAdapter(
+                submissionMapper, problemAdminReadAdapter, new ObjectMapper());
+
+        var stats = adapter.loadDashboardStats(LocalDateTime.of(2026, 8, 20, 10, 0));
+        var chart = adapter.loadDashboardChartData(
+                LocalDateTime.of(2026, 8, 1, 0, 0),
+                LocalDateTime.of(2026, 8, 20, 0, 0), "day");
+
+        assertThat(stats.acceptanceRate()).isEqualTo(65.5);
+        assertThat(chart).containsExactly(
+                new com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO("2026-08-20", 3L));
     }
 }

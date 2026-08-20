@@ -3,61 +3,176 @@ objective: 关闭 architecture review blockers 与 app-web contract/test drift
 updated_at: '2026-08-20'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
-- id: RECOVERY-001
-  title: 对账现有控制面与工作区修改
-  status: done
-  depends_on: []
-  evidence: [control-plane YAML loaded, git status reconciled, graphify query]
-- id: RECOVERY-002
-  title: 定位 Submission 测试 API 漂移
-  status: done
-  depends_on: [RECOVERY-001]
-  evidence: [exact test/source API comparison, stale local API artifact confirmed]
-- id: COMPAT-001
-  title: 修复 app-web Search contract 测试漂移
-  status: done
-  depends_on: [RECOVERY-002]
-  evidence: [fresh backend-auth-api/backend-app-api install, app-web test-compile BUILD SUCCESS]
-- id: COMPAT-002
-  title: 恢复 Submission Projection 专项测试
-  status: done
-  depends_on: [COMPAT-001]
-  evidence: [DefaultSubmissionProjectionTest 11/0/0/0 PASS]
-- id: FINAL-001
-  title: 执行全量相关 reactor 验证
-  status: done
-  depends_on: [COMPAT-002]
-  evidence: [app/app-web -am test BUILD SUCCESS, Search worker 11/0/0/0, Admin summary 6/0/0/0]
-- id: FINAL-002
-  title: 完成 Review 与控制面终态收口
-  status: done
-  depends_on: [FINAL-001]
-  evidence: [graphify update, YAML parse, git diff --check, HANDOFF complete, no blockers]
-- id: CRFIX-REVIEW-001
-  title: 修复 Auth dashboard contract import and Hessian serialization
-  status: done
-  depends_on: [FINAL-002]
-  evidence: [auth-api contract 16/0/0/0, auth compile, AccountStatsSummary Serializable]
-- id: CRFIX-REVIEW-002
-  title: 修复 Submission page-level user/problem batching
-  status: done
-  depends_on: [CRFIX-REVIEW-001]
-  evidence: [App projection multi-row batch regression, Submission MySQL IT 8/0/0/0]
-- id: CRFIX-REVIEW-003
-  title: 恢复 Auth dashboard role counts
-  status: done
-  depends_on: [CRFIX-REVIEW-001]
-  evidence: [real MySQL mapper role-count IT 2/0/0/0, adapter unit test]
-- id: CRFIX-REVIEW-004
-  title: 保留 Search DLQ full integration envelope
-  status: done
-  depends_on: [CRFIX-REVIEW-002]
-  evidence: [Search worker unit 11/0/0/0, Redis+Meili E2E 4/0/0/0]
-- id: CRFIX-REVIEW-005
-  title: 完成 CR re-review 与风险验证
-  status: done
-  depends_on: [CRFIX-REVIEW-003, CRFIX-REVIEW-004]
-  evidence: [affected reactor BUILD SUCCESS, services verify BUILD SUCCESS, fresh IT XML 68 reports 225 tests 0 failures 0 errors 17 skips, graphify update, diff check]
-notes: >-
-  Development-only authority. No commit, push, publish, deploy or production action.
-  Existing business changes and control-plane history remain in the working tree.
+  - id: RECOVERY-001
+    title: 对账现有控制面与工作区修改
+    status: done
+    depends_on: []
+    evidence: [control-plane YAML loaded, git status reconciled, graphify query]
+  - id: RECOVERY-002
+    title: 定位 Submission 测试 API 漂移
+    status: done
+    depends_on: [RECOVERY-001]
+    evidence: [exact test/source API comparison, stale local API artifact confirmed]
+  - id: COMPAT-001
+    title: 修复 app-web Search contract 测试漂移
+    status: done
+    depends_on: [RECOVERY-002]
+    evidence: [fresh backend-auth-api/backend-app-api install, app-web test-compile BUILD SUCCESS]
+  - id: COMPAT-002
+    title: 恢复 Submission Projection 专项测试
+    status: done
+    depends_on: [COMPAT-001]
+    evidence: [DefaultSubmissionProjectionTest 11/0/0/0 PASS]
+  - id: FINAL-001
+    title: 执行全量相关 reactor 验证
+    status: done
+    depends_on: [COMPAT-002]
+    evidence: [app/app-web -am test BUILD SUCCESS, Search worker 11/0/0/0, Admin summary 6/0/0/0]
+  - id: FINAL-002
+    title: 完成 Review 与控制面终态收口
+    status: done
+    depends_on: [FINAL-001]
+    evidence: [graphify update, YAML parse, git diff --check, HANDOFF complete, no blockers]
+  - id: CRFIX-REVIEW-001
+    title: 修复 Auth dashboard contract import and Hessian serialization
+    status: done
+    depends_on: [FINAL-002]
+    evidence: [auth-api contract 16/0/0/0, auth compile, AccountStatsSummary Serializable]
+  - id: CRFIX-REVIEW-002
+    title: 修复 Submission page-level user/problem batching
+    status: done
+    depends_on: [CRFIX-REVIEW-001]
+    evidence: [App projection multi-row batch regression, Submission MySQL IT 8/0/0/0]
+  - id: CRFIX-REVIEW-003
+    title: 恢复 Auth dashboard role counts
+    status: done
+    depends_on: [CRFIX-REVIEW-001]
+    evidence: [real MySQL mapper role-count IT 2/0/0/0, adapter unit test]
+  - id: CRFIX-REVIEW-004
+    title: 保留 Search DLQ full integration envelope
+    status: done
+    depends_on: [CRFIX-REVIEW-002]
+    evidence: [Search worker unit 11/0/0/0, Redis+Meili E2E 4/0/0/0]
+  - id: CRFIX-REVIEW-005
+    title: 完成 CR re-review 与风险验证
+    status: done
+    depends_on: [CRFIX-REVIEW-003, CRFIX-REVIEW-004]
+    evidence: [affected reactor BUILD SUCCESS, services verify BUILD SUCCESS, fresh IT XML 68 reports 225 tests 0 failures 0 errors 17 skips, graphify update, diff check]
+    notes: >-
+      Development-only authority. No commit, push, publish, deploy or production action.
+      Existing business changes and control-plane history remain in the working tree.
+
+  - id: AR20260820-001
+    title: 收敛 DevStack dev-lite Owner migration readiness
+    source: [architecture-review-20260820-164414.html#candidate-1]
+    status: done
+    depends_on: []
+    acceptance_criteria: [deterministic Owner migration order, explicit dev-lite readiness, explicit dev-full seam]
+    validation: [up.sh smoke, config checks, diff check]
+    rollback: [revert startup changes, retain cutover entrypoints]
+    evidence:
+      - 'bash -n scripts/dev/up.sh scripts/dev/migrate.sh PASS'
+      - 'scripts/dev/up.sh --help contract PASS'
+      - 'scripts/dev/devstack-manifest-test.sh PASS'
+      - 'scripts/dev/migrate-owner-preflight-test.sh PASS'
+      - 'scripts/dev/owner-migration-safety-integration-test.sh PASS'
+      - 'fresh disposable MySQL 9.1 up.sh migration-only smoke PASS for all five Owner chains, provisioning, and readiness'
+      - 'Compose dev/prod config, default local profile assertions, dev-full cutover-negative check, graphify update, and git diff --check PASS'
+    commits: []
+    notes: Development-only.
+    updated_at: '2026-08-20'
+  - id: AR20260820-002
+    title: 隔离 Admin Dashboard 外部表读取 seam
+    source: [architecture-review-20260820-164414.html#candidate-2]
+    status: done
+    depends_on: [AR20260820-001]
+    acceptance_criteria: [no foreign-table selects, one bounded coarse read seam, unavailable semantics]
+    validation: [Admin tests, reactor, bounded-call assertions]
+    rollback: [restore through source seam]
+    evidence:
+      - 'affected Admin/App/Submission reactor compile BUILD SUCCESS'
+      - 'focused seam/projection tests: 37 tests, 0 failures, 0 errors; full affected reactor unit suite BUILD SUCCESS'
+      - 'App DashboardAdminReadProviderIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
+      - 'SubmissionAdminReadProviderIT: 4 tests, 0 failures, 0 errors, real MySQL 8.0'
+      - 'affected reactor verify: 1399 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
+      - 'Admin foreign-table SQL boundary and MapperScan boundary PASS'
+      - 'Admin dashboard authorization focused tests: 26 tests, 0 failures, 0 errors'
+      - 'graphify update ., control-plane YAML parse, and git diff --check PASS'
+    commits: []
+    notes: Admin owns read shape only.
+    updated_at: '2026-08-20'
+  - id: AR20260820-003
+    title: 隔离 App Submission 兼容矩阵
+    source: [architecture-review-20260820-164414.html#candidate-3]
+    status: done
+    depends_on: [AR20260820-002]
+    acceptance_criteria: [one stable intake, explicit migration seam, rollback preserved]
+    validation: [routing tests, compile, integration]
+    rollback: [retain adapters and authority]
+    evidence:
+      - 'SubmissionRoutingProperties central selection helper implemented for write/fence/user-read wrappers'
+      - 'SubmissionRoutingPortTest: 9 tests, 0 failures, 0 errors'
+      - 'SubmissionRoutingPropertiesTest: 3 tests, 0 failures, 0 errors; FlagCombinationValidatorTest: 9 tests, 0 failures, 0 errors'
+      - 'SubmissionPortWiringTest and affected App compile/test BUILD SUCCESS'
+      - 'affected App verify: 1401 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
+      - 'routing seam/config assertions, graphify update, YAML parse, and git diff --check PASS'
+      - 'Remote/local adapters and legacy dispatcher retained; no production cutover or rollback path deletion'
+    commits: []
+    notes: No production retirement.
+    updated_at: '2026-08-20'
+  - id: AR20260820-004
+    title: 对齐 Auth Account 与 App Profile schema ownership
+    source: [architecture-review-20260820-164414.html#candidate-4]
+    status: done
+    depends_on: [AR20260820-003]
+    acceptance_criteria: [later migration removes unused columns, App sole profile writer, expand-verify-contract]
+    validation: [migration and schema-contract tests]
+    rollback: [never edit applied migrations]
+    evidence:
+      - 'AuthProfileSchemaOwnershipIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
+      - 'Auth reactor verify: BUILD SUCCESS, 217 tests, 0 failures, 0 errors, 0 skipped'
+      - 'App profile writer/provider focus: 19 tests, 0 failures, 0 errors, real MySQL 8.0 provider included'
+      - 'owner-migration-safety-integration-test: MySQL 9.1 Auth/App migrations, account/profile backfill, soft-deleted preservation and grant isolation PASS'
+      - 'migrate-owner-preflight-test, bash -n, graphify update, and git diff --check PASS'
+    commits: []
+    notes: Owner/schema drift fix only.
+    updated_at: '2026-08-20'
+  - id: AR20260820-005
+    title: 补齐 Search 写入读取 disposable 验证 seam
+    source: [architecture-review-20260820-164414.html#candidate-5]
+    status: done
+    depends_on: [AR20260820-004]
+    acceptance_criteria: [event-to-query harness, idempotent writes, DLQ and fallback observable]
+    validation: [Search tests, Redis+Meili E2E, reactor]
+    rollback: [disable harness only]
+    evidence:
+      - 'SearchEventToQueryE2EIT: 3 tests, 0 failures, 0 errors, real Redis 7 + real getmeili/meilisearch:v1.8'
+      - 'Search worker focus: SearchDocumentIndexWorkerTest 11/0/0 and SearchWorkerEndToEndIT 4/0/0'
+      - 'App Search focus: SearchEventToQueryE2EIT, DefaultSearchReadProjectionTest, SearchSourceContractTest and SearchDocumentChangedPublisherTest 32/0/0'
+      - 'Affected App verify: BUILD SUCCESS, 1401 tests, 0 failures, 0 errors, 13 skipped; backend-search reactor package SUCCESS'
+      - 'Compose dev/prod config with disposable MEILI_MASTER_KEY, control-plane YAML, graphify update, and git diff --check PASS'
+    commits: []
+    notes: No runtime service added.
+    updated_at: '2026-08-20'
+  - id: AR20260820-006
+    title: 完成架构评审终态审计与开发交付收口
+    source: [architecture-review-20260820-164414.html#top-recommendation, architecture-review-20260820-164414.html#do-not-split]
+    status: done
+    depends_on: [AR20260820-001, AR20260820-002, AR20260820-003, AR20260820-004, AR20260820-005]
+    acceptance_criteria:
+      - all report requirements are evidence-backed
+      - no new modules are added to force convergence
+      - judge-runtime remains the existing storage-free implementation and is not physically split again
+      - rollback paths are retained and local rehearsal is not production acceptance
+      - focused/module/integration/security/formal review has zero unresolved findings
+    validation: [full reactor, integration evidence, graphify update, YAML parse, diff check, final review]
+    rollback: [no unauthorized history or deployment operation]
+    evidence:
+      - 'AR20260820-001..005 are done; each acceptance, rollback, review, validation and Coverage mapping is recorded above'
+      - 'Full services ./mvnw verify -B: BUILD SUCCESS, total time 01:26; all reactor modules including judge/search succeeded'
+      - 'Fresh direct integration evidence: 68 reports, 225 tests, 0 failures, 0 errors, 17 skips; current owner migration, Search Redis/Meili, Auth/App MySQL and Judge runtime focused gates also pass'
+      - 'JudgeRuntimeConfiguration/source/POM audit proves storage-free explicit import; no new runtime module or physical judge split was added'
+      - 'Rollback inventory, development-only authority, control-plane YAML, graphify update and git diff --check PASS'
+    commits: []
+    notes: Terminal gate; development-only authority.
+    updated_at: '2026-08-20'

@@ -307,6 +307,11 @@ cd UltiCode
 ./scripts/dev/up.sh --skip-install
 ```
 
+默认 `dev-lite` 会先按 `auth → admin → app → notification → submission`
+顺序应用五条 Owner migration 链，设置并探测本地 Owner 账号，再启动最小后端运行集；
+它强制 Submission 使用本地兼容路径。需要远程 Submission/cutover seam 时必须显式运行
+`./scripts/dev/up.sh --mode dev-full`，并先满足 `SUBMISSION_CUTOVER_COMPLETE=true`。
+
 ### 🔑 首次登录
 
 dev 数据库会自动创建固定管理员账号：

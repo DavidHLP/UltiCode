@@ -75,7 +75,7 @@ while [[ $# -gt 0 ]]; do
 done
 [[ "${MYSQL_PWD:-}" == "secret" ]] || exit 90
 expected_database="auth"
-if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" ]]; then
+if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" || "${FAKE_MYSQL_MODE:-success}" == "notification-missing-grant-option" ]]; then
   expected_database="notification"
 fi
 if [[ "${FAKE_MYSQL_CONTAINER_MODE:-false}" == "true" ]]; then
@@ -139,8 +139,16 @@ if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" && "$query" ==
   printf 'notification\n'
   exit 0
 fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-missing-grant-option" && "$query" == *"SELECT DATABASE"* ]]; then
+  printf 'notification\n'
+  exit 0
+fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-create-user" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
   printf 'GRANT CREATE USER, RELOAD ON *.* TO `migration_user`@`localhost` WITH GRANT OPTION\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `notification`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
+  exit 0
+fi
+if [[ "${FAKE_MYSQL_MODE:-success}" == "notification-missing-grant-option" && "$query" == *"SHOW GRANTS FOR CURRENT_USER"* ]]; then
+  printf 'GRANT CREATE USER, RELOAD ON *.* TO `migration_user`@`localhost`\nGRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON `notification`.* TO `migration_user`@`localhost` WITH GRANT OPTION\n'
   exit 0
 fi
 if [[ "${FAKE_MYSQL_MODE:-success}" == "bootstrap-auth" && "$query" == *"table_name = 'flyway_schema_history'"* ]]; then
@@ -488,6 +496,23 @@ assert_contains "$global_capabilities_output" "no grants on owner schema"
   exit 1
 }
 
+notification_grant_option_output="$(run_expect_failure env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$ENV_FILE" \
+  FAKE_MYSQL_MODE=notification-missing-grant-option \
+  MIGRATION_SCHEMA=notification \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=notification \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate 2>&1)"
+assert_contains "$notification_grant_option_output" "global GRANT OPTION"
+[[ ! -f "$MAVEN_MARKER" ]] || {
+  echo 'Maven must not run without global grant option for Notification owner grants.' >&2
+  exit 1
+}
+
 role_output="$(run_expect_failure env \
   PATH="$FAKE_BIN:$PATH" \
   ENV_FILE="$ENV_FILE" \
@@ -698,28 +723,29 @@ env \
 assert_contains "$(cat "$MAVEN_MARKER")" "DB_HOST=runtime-host DB_PORT=3306 DB_NAME=override_db DB_USER=shared_migration"
 
 shared_migration_line="$(awk '/MIGRATION_SCHEMA= / && $0 !~ /submission/ {print NR; exit}' "$ROOT_DIR/scripts/dev/up.sh")"
-submission_migration_line="$(awk '/MIGRATION_SCHEMA=submission/ {print NR; exit}' "$ROOT_DIR/scripts/dev/up.sh")"
-[[ "$shared_migration_line" =~ ^[0-9]+$ && "$submission_migration_line" =~ ^[0-9]+$ \
-  && "$shared_migration_line" -lt "$submission_migration_line" ]] || {
-  echo 'Shared schema bootstrap must precede Submission owner migration.' >&2
+owner_loop_line="$(awk -v start="$shared_migration_line" 'NR > start && /for owner in "\${DEVSTACK_OWNER_MIGRATION_ORDER\[@\]}"; do/ {print NR; exit}' "$ROOT_DIR/scripts/dev/up.sh")"
+owner_migration_line="$(awk -v start="$owner_loop_line" 'NR > start && /MIGRATION_SCHEMA="\$owner"/ {print NR; exit}' "$ROOT_DIR/scripts/dev/up.sh")"
+[[ "$shared_migration_line" =~ ^[0-9]+$ && "$owner_loop_line" =~ ^[0-9]+$ \
+  && "$shared_migration_line" -lt "$owner_loop_line" ]] || {
+  echo 'Shared schema bootstrap must precede the Owner migration manifest.' >&2
   exit 1
 }
-submission_bootstrap_line="$(awk '/^[[:space:]]+provision_submission_migration_principal$/ {print NR; exit}' "$ROOT_DIR/scripts/dev/up.sh")"
-[[ "$submission_bootstrap_line" =~ ^[0-9]+$ && "$submission_bootstrap_line" -lt "$submission_migration_line" ]] || {
-  echo 'Submission migration principal must be bootstrapped after shared migrations and before owner Flyway.' >&2
+[[ "$owner_migration_line" =~ ^[0-9]+$ ]] || {
+  echo 'Owner migration manifest must invoke migrate.sh with MIGRATION_SCHEMA.' >&2
   exit 1
 }
-owner_migration_block="$(awk -v start="$submission_migration_line" 'NR >= start && NR <= start + 8 {print}' "$ROOT_DIR/scripts/dev/up.sh")"
+owner_migration_block="$(awk -v start="$owner_loop_line" 'NR >= start && NR <= start + 28 {print}' "$ROOT_DIR/scripts/dev/up.sh")"
 case "$owner_migration_block" in
-  *'MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER"'*) ;;
+  *'owner_migration_user="$SUBMISSION_MIGRATION_DB_USER"'*) ;;
   *) echo 'Submission owner Flyway must use SUBMISSION_MIGRATION_DB_USER.' >&2; exit 1 ;;
 esac
 case "$owner_migration_block" in
-  *'MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD"'*) ;;
+  *'owner_migration_password="$SUBMISSION_MIGRATION_DB_PASSWORD"'*) ;;
   *) echo 'Submission owner Flyway must use SUBMISSION_MIGRATION_DB_PASSWORD.' >&2; exit 1 ;;
 esac
-[[ "$owner_migration_block" != *'MIGRATION_DB_USER="$MIGRATION_DB_USER"'* ]] || {
-  echo 'Submission owner Flyway must not reuse the shared migration identity.' >&2
+submission_bootstrap_line="$(awk -v start="$owner_loop_line" 'NR >= start && /provision_submission_migration_principal$/ {print NR; exit}' "$ROOT_DIR/scripts/dev/up.sh")"
+[[ "$submission_bootstrap_line" =~ ^[0-9]+$ && "$submission_bootstrap_line" -lt "$owner_migration_line" ]] || {
+  echo 'Submission migration principal must be bootstrapped before Owner Flyway.' >&2
   exit 1
 }
 

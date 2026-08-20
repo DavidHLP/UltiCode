@@ -10,6 +10,7 @@ import com.ulticode.submission.api.dto.LanguageCountDTO;
 import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.entity.Submission;
@@ -230,5 +231,19 @@ class SubmissionAdminReadProviderIT {
         assertThat(provider.countSubmissionsInRange(LocalDateTime.of(2026, 8, 2, 0, 0))).isEqualTo(1);
         assertThat(provider.countAcceptedSubmissionsInRange(
                 LocalDateTime.of(2026, 8, 1, 0, 0))).isEqualTo(1);
+
+        var dashboard = provider.loadDashboardStats(LocalDateTime.of(2026, 8, 3, 12, 0));
+        assertThat(dashboard.total()).isEqualTo(2);
+        assertThat(dashboard.today()).isEqualTo(0);
+        assertThat(dashboard.week()).isEqualTo(2);
+        assertThat(dashboard.month()).isEqualTo(2);
+        assertThat(dashboard.acceptanceRate()).isEqualTo(50.0);
+
+        List<SubmissionDashboardChartDataDTO> chart = provider.loadDashboardChartData(
+                LocalDateTime.of(2026, 8, 1, 0, 0),
+                LocalDateTime.of(2026, 8, 3, 0, 0),
+                "day");
+        assertThat(chart).extracting(SubmissionDashboardChartDataDTO::date)
+                .containsExactly("2026-08-01", "2026-08-02");
     }
 }

@@ -2,6 +2,8 @@ package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.port.adapter.DefaultSubmissionAdminReadAdapter;
@@ -79,5 +81,16 @@ public class SubmissionAdminReadProvider implements SubmissionAdminReadPort {
     @Override
     public long countAcceptedSubmissionsInRange(LocalDateTime from) {
         return delegate.countAcceptedSubmissionsInRange(from);
+    }
+
+    @Override
+    public SubmissionDashboardStatsDTO loadDashboardStats(LocalDateTime now) {
+        return delegate.loadDashboardStats(now);
+    }
+
+    @Override
+    public List<SubmissionDashboardChartDataDTO> loadDashboardChartData(
+            LocalDateTime start, LocalDateTime end, String period) {
+        return delegate.loadDashboardChartData(start, end, period);
     }
 }

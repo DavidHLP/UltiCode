@@ -23,14 +23,7 @@ public class SubmissionWriteRoutingPort implements SubmissionWritePort {
     private final SubmissionRoutingProperties routing;
 
     private SubmissionWritePort delegate() {
-        if (!routing.isRemote()) {
-            return local;
-        }
-        RemoteSubmissionWritePort remotePort = remote.getIfAvailable();
-        if (remotePort == null) {
-            throw new IllegalStateException("Remote Submission route is enabled but unavailable");
-        }
-        return remotePort;
+        return routing.select(local, remote::getIfAvailable, "write");
     }
 
     @Override

@@ -30,11 +30,13 @@ username、email、password、refresh/reset、role、permission、active、ban�
 `V20260806120000__Drop_Profile_Columns_From_Users.sql` 完成 shared `users` profile
 列的 contract；这两份 applied migration 不得编辑。
 
-Auth owner bootstrap 中保留的兼容 profile 列作为 rollback 数据形状继续存在，
-但运行时职责已经切开：Auth account/status 写入只进入 `auth.users`，App profile
-写入只进入 `app.user_profiles`。App 用户投影通过 Auth RPC 与 App profile mapper
-组合，不再由 App datasource join `users`；moderation ban 命令携带 actor、trace、
-idempotency 和 expected authz version 调用 Auth owner。
+Auth owner bootstrap 的兼容 profile 列由后续 Auth-owner contract migration
+`V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` 收窄；该 migration
+不得回写或编辑早期 expand migration。运行时职责已经切开：Auth account/status
+写入只进入 `auth.users`，App profile 写入只进入 `app.user_profiles`。App 用户投影
+通过 Auth RPC 与 App profile mapper 组合，不再由 App datasource join `users`；
+moderation ban 命令携带 actor、trace、idempotency 和 expected authz version 调用
+Auth owner。
 
 对尚未完成的 owner schema/runtime 切换，仍按以下顺序执行：
 
@@ -43,7 +45,10 @@ idempotency 和 expected authz version 调用 Auth owner。
 3. **Verify**：Auth、Admin、App、Search、Notification reader/writer 矩阵已转换为 Owner RPC + local profile read，并由 focused tests/静态扫描复核。
 4. **Cut over**：TEST-TARGET backfill 在 PM2 writers=0 时执行 idempotent no-op → manifest-scoped rollback → re-backfill；12/12 account/profile rows 和完整 checksums 匹配。
 5. **Observe**：登录/account、profile 写读、ban/permission、搜索用户文档、通知收件人和管理查询由后续 ARCH Gate 继续验证。
-6. **Contract**：在备份、回滚 artifact 和权限负向测试完成后，才讨论撤销旧 grant/列；禁止编辑 applied migration。
+6. **Contract**：对既有 owner schema 先以 quiesce confirmation 执行
+   `owner-user-profile-backfill.sh contract-preflight`，确认 manifest、完整
+   account/profile checksum（含 soft-deleted accounts）和 App profile writer，
+   再执行 Auth-owner contract migration；禁止编辑 applied migration。
 
 ## 权限与回滚
 

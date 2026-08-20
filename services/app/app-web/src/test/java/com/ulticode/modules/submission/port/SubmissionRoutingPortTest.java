@@ -6,6 +6,9 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.config.SubmissionRoutingProperties;
 import com.ulticode.modules.submission.port.adapter.RemoteSubmissionFencePort;
 import com.ulticode.modules.submission.port.adapter.RemoteSubmissionWritePort;
+import com.ulticode.modules.submission.port.adapter.LocalSubmissionUserQueryAdapter;
+import com.ulticode.modules.submission.port.adapter.RemoteSubmissionUserQueryAdapter;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +45,15 @@ class SubmissionRoutingPortTest {
 
     @Mock
     private ObjectProvider<RemoteSubmissionFencePort> remoteFenceProvider;
+
+    @Mock
+    private LocalSubmissionUserQueryAdapter localUserQuery;
+
+    @Mock
+    private RemoteSubmissionUserQueryAdapter remoteUserQuery;
+
+    @Mock
+    private ObjectProvider<RemoteSubmissionUserQueryAdapter> remoteUserQueryProvider;
 
     @Test
     @DisplayName("local mode never calls the remote provider")
@@ -160,6 +172,35 @@ class SubmissionRoutingPortTest {
         assertThat(routing.currentGeneration("sub-1")).contains(3L);
         verify(remoteFence).currentGeneration("sub-1");
         verifyNoInteractions(localFence);
+    }
+
+    @Test
+    @DisplayName("local mode routes user reads through the same migration seam")
+    void localModeUsesLocalUserQuery() {
+        SubmissionRoutingProperties properties = properties("local");
+        when(localUserQuery.aggregateDates("user-1", 2026)).thenReturn(java.util.List.of("2026-08-20"));
+
+        SubmissionUserQueryPort routing = new SubmissionUserQueryRoutingPort(
+                localUserQuery, remoteUserQueryProvider, properties);
+
+        assertThat(routing.aggregateDates("user-1", 2026)).containsExactly("2026-08-20");
+        verify(localUserQuery).aggregateDates("user-1", 2026);
+        verifyNoInteractions(remoteUserQueryProvider, remoteUserQuery);
+    }
+
+    @Test
+    @DisplayName("remote mode routes user reads through the explicit owner adapter")
+    void remoteModeUsesRemoteUserQuery() {
+        SubmissionRoutingProperties properties = properties("remote");
+        when(remoteUserQueryProvider.getIfAvailable()).thenReturn(remoteUserQuery);
+        when(remoteUserQuery.aggregateDates("user-1", 2026)).thenReturn(java.util.List.of("2026-08-20"));
+
+        SubmissionUserQueryPort routing = new SubmissionUserQueryRoutingPort(
+                localUserQuery, remoteUserQueryProvider, properties);
+
+        assertThat(routing.aggregateDates("user-1", 2026)).containsExactly("2026-08-20");
+        verify(remoteUserQuery).aggregateDates("user-1", 2026);
+        verifyNoInteractions(localUserQuery);
     }
 
     private SubmissionRoutingProperties properties(String mode) {

@@ -9,6 +9,8 @@ import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.response.PageResult;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -169,6 +172,41 @@ public class DefaultSubmissionAdminReadAdapter implements SubmissionAdminReadPor
                         .ge(Submission::getCreatedAt, from)
                         .eq(Submission::getStatus, "Accepted"));
         return n == null ? 0L : n;
+    }
+
+    @Override
+    public SubmissionDashboardStatsDTO loadDashboardStats(LocalDateTime now) {
+        return new SubmissionDashboardStatsDTO(
+                countAll(),
+                countCreatedSince(now.minusDays(1)),
+                countCreatedSince(now.minusWeeks(1)),
+                countCreatedSince(now.minusMonths(1)),
+                value(submissionMapper.calculateDashboardAcceptanceRate()));
+    }
+
+    @Override
+    public List<SubmissionDashboardChartDataDTO> loadDashboardChartData(
+            LocalDateTime start, LocalDateTime end, String period) {
+        String dateFormat = dateFormat(period);
+        return submissionMapper.countDashboardByBucket(start, end, dateFormat).stream()
+                .map(row -> new SubmissionDashboardChartDataDTO(
+                        (String) row.get("bucket"),
+                        row.get("count") instanceof Number number ? number.longValue() : 0L))
+                .toList();
+    }
+
+    private static String dateFormat(String period) {
+        return switch (period == null ? "" : period.toLowerCase(Locale.ROOT)) {
+            case "hour" -> "%Y-%m-%d %H:00";
+            case "week" -> "%Y-%u";
+            case "month" -> "%Y-%m";
+            case "year" -> "%Y";
+            default -> "%Y-%m-%d";
+        };
+    }
+
+    private static double value(Double value) {
+        return value == null ? 0.0 : value;
     }
 
     private SubmissionAdminRowDTO toDto(Submission s, boolean detail) {

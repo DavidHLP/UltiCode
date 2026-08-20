@@ -116,8 +116,9 @@ NOTIFICATION_DB_NAME=notification
 NOTIFICATION_DB_USER=notification_rw
 NOTIFICATION_DB_PASSWORD="$notification_db_password"
 
-# The local PM2 stack uses the direct Submission owner only after the explicit
-# schema cutover; up.sh stops safely while SUBMISSION_CUTOVER_COMPLETE=false.
+# The local PM2 stack provisions all five Owner accounts from this file. The
+# direct Submission route remains cutover-gated; dev-lite forces the local
+# compatibility route and dev-full requires the explicit cutover flag.
 SUBMISSION_DB_HOST=localhost
 SUBMISSION_DB_PORT=23306
 SUBMISSION_DB_NAME=submission

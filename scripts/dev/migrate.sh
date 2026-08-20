@@ -135,6 +135,30 @@ has_grant_option() {
   [[ "$1" == *"WITH GRANT OPTION"* ]]
 }
 
+has_global_owner_superset() {
+  local account="$1"
+  local grant_text="$2"
+  local required_privilege
+
+  if has_grant_privilege "$grant_text" "ALL PRIVILEGES"; then
+    has_grant_option "$grant_text"
+    return
+  fi
+
+  # MySQL 9.1 renders the local system root account as an explicit static
+  # privilege list plus dynamic privileges instead of `ALL PRIVILEGES`.
+  # Accept that shape only for root with direct grant option and the complete
+  # owner-migration capability set; arbitrary non-root global lists remain
+  # rejected so a scoped migration identity cannot silently become global.
+  [[ "$account" == "root" ]] || return 1
+  has_grant_option "$grant_text" || return 1
+  for required_privilege in \
+      SELECT INSERT UPDATE DELETE CREATE ALTER INDEX REFERENCES \
+      "CREATE USER" RELOAD; do
+    has_grant_privilege "$grant_text" "$required_privilege" || return 1
+  done
+}
+
 has_role_grant() {
   local grant_text="$1"
   local line
@@ -218,10 +242,11 @@ owner_preflight() {
     fi
   done <<< "$grants"
   effective_grants="$schema_grants"
-  if has_grant_privilege "$global_grants" "ALL PRIVILEGES"; then
+  if has_global_owner_superset "$current_user_name" "$global_grants"; then
     # A literal global ALL is an explicit compatibility superset. Direct
-    # global capability lists are intentionally not accepted as owner scope;
-    # dedicated migration principals must carry schema-scoped grants.
+    # global capability lists are intentionally not accepted as owner scope
+    # unless MySQL identifies the account as the local system root; dedicated
+    # migration principals must carry schema-scoped grants.
     effective_grants+=$'\n'"$global_grants"
   fi
   [[ -n "$effective_grants" ]] \
@@ -232,19 +257,21 @@ owner_preflight() {
       || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': $required_privilege"
   done
   if ! has_grant_option "$schema_grants"; then
-    if ! has_grant_privilege "$global_grants" "ALL PRIVILEGES" \
-        || ! has_grant_option "$global_grants"; then
+    if ! has_global_owner_superset "$current_user_name" "$global_grants"; then
       fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': GRANT OPTION"
     fi
   fi
   if [[ "$MIGRATION_SCHEMA" == "notification" || "$MIGRATION_SCHEMA" == "submission" ]]; then
     has_grant_privilege "$global_grants" "CREATE USER" \
       || fail_preflight "required migration privilege missing: CREATE USER"
+    has_grant_option "$global_grants" \
+      || fail_preflight "required migration privilege missing: global GRANT OPTION"
   fi
   if [[ "$MIGRATION_SCHEMA" == "auth" || "$MIGRATION_SCHEMA" == "notification" || "$MIGRATION_SCHEMA" == "submission" ]]; then
     # These canonical owner migrations contain FLUSH PRIVILEGES. A direct
-    # RELOAD grant is required; literal global ALL remains the explicit
-    # compatibility superset, while arbitrary global capability lists fail.
+    # RELOAD grant is required; literal global ALL or the MySQL 9.1 root
+    # capability shape is the explicit compatibility superset, while
+    # arbitrary non-root global capability lists fail.
     if ! has_grant_privilege "$global_grants" "RELOAD" \
         && ! has_grant_privilege "$global_grants" "ALL PRIVILEGES"; then
       fail_preflight "required migration privilege missing: RELOAD"
@@ -388,12 +415,30 @@ run_flyway() {
   run_flyway_config "flyway.conf" "$1"
 }
 
+owner_baseline_if_needed() {
+  local history_count bootstrap_table_count
+  [[ "${DEV_LOCAL_OWNER_BASELINE:-false}" == "true" ]] || return 0
+  [[ "${DEV_LOCAL_OWNER_BASELINE_CONFIRM:-}" == "I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE" ]] || return 0
+
+  history_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$MIGRATION_SCHEMA' AND table_name = 'flyway_schema_history';")" \
+    || fail_preflight "cannot inspect owner Flyway history before automatic DEV-LOCAL baseline"
+  [[ "$history_count" == "0" ]] || return 0
+
+  bootstrap_table_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$MIGRATION_SCHEMA' AND table_name <> 'flyway_schema_history';")" \
+    || fail_preflight "cannot inspect owner schema before automatic DEV-LOCAL baseline"
+  [[ "$bootstrap_table_count" != "0" ]] || return 0
+
+  owner_baseline_preflight
+  run_flyway baseline
+}
+
 # 仅保留既有主库迁移的自愈行为。owner schema 的历史漂移必须显式处理，
 # 不能自动 repair 后继续，否则可能把版本冲突伪装成成功。
 if [[ "$COMMAND" == "baseline" ]]; then
   run_flyway baseline
 elif [[ "$COMMAND" == "migrate" ]]; then
   if [[ -n "${MIGRATION_SCHEMA:-}" ]]; then
+    owner_baseline_if_needed
     run_flyway migrate
   elif ! run_flyway migrate; then
     echo "Flyway migrate failed; running repair then retrying..." >&2

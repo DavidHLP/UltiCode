@@ -7,12 +7,9 @@ import com.ulticode.modules.admin.dto.DashboardStatsVO;
  * Read-side deep module owning dashboard statistics aggregation and chart-data shaping.
  *
  * <p>Mirrors the ADR-0011 {@code *Projection} pattern: the interface is the test surface,
- * the implementation absorbs entity&rarr;VO shaping + cross-mapper enrichment that previously
- * lived in {@code DashboardServiceImpl} (7 private sub-aggregators) and the {@code default}
- * methods on {@code DashboardMapper}.
- *
- * <p>The mapper keeps only raw {@code @Select} queries; this projection owns the Java-side
- * shape rule and is unit-testable in pure JVM without a database.
+ * the implementation absorbs owner-read data&rarr;VO shaping that previously lived beside
+ * direct foreign-table queries. Owner SQL and bounded RPC failure semantics stay behind
+ * {@code AdminDashboardReadPort}.
  */
 public interface DashboardStatsProjection {
 

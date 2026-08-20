@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.app.idempotency.mapper",
         "com.ulticode.modules.problemlist.mapper",
         "com.ulticode.modules.reconciliation.port",
+        "com.ulticode.modules.dashboard.mapper",
         "com.ulticode.modules.submission.mapper",
         "com.ulticode.modules.submission.outbox.mapper",
         "com.ulticode.modules.submission.result",

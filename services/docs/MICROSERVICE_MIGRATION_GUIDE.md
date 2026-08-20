@@ -246,6 +246,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 - 一个 HTTP 请求最多进入一个业务 Provider 单跳；Provider 不再同步调用第三个服务完成同一业务命令；
 - Admin Dashboard 等组合读优先使用 Admin 自有事件投影；确需实时数据时，从 Admin 并行调用少量批量 RPC，而不是逐行 N+1；
+- App Submission 的 write、fence、user-read 三条兼容路径共享同一个 `SubmissionRoutingProperties` migration seam；`dev-lite/local` 只解析本地实现，`remote` 只有在 cutover gate 通过后解析远程 adapter，旧本地路径保留为 rollback。
 - Gateway 只做路由、TLS、header 清理、基础限流和 trace，不是唯一安全边界；四个服务都验证自己的 JWT/服务身份；
 - Auth 下线时，未过期 access token 仍可被 App/Admin 本地验证；登录、刷新和高风险 fresh-auth 操作 fail closed。
 
@@ -263,7 +264,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 |---|---|
 | Responsibility | 登录/注册/OAuth、密码与外部身份绑定、access token 签发、refresh rotation/revoke、账号 active/ban、角色与权限定义/授予、JWKS/key rotation、认证安全邮件 |
 | Owned Domain | Account、Credential、ExternalIdentity、RefreshSession、Role/Permission Assignment、Authorization Version |
-| Owned Tables | 迁移态：`users`、`refresh_tokens`、`role_permissions`、`user_permissions`；`password_resets` 经数据核验后退役。目标态把 `users` profile 列迁到 App `user_profiles`；可保留 Auth 表名 `users` 以降低迁移成本 |
+| Owned Tables | `users`（account/authz columns only）、`refresh_tokens`、`role_permissions`、`user_permissions`；`password_resets` 经数据核验后退役。Profile fields belong to App `user_profiles`; the later Auth contract migration `V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` removes the compatibility columns |
 | Exposed HTTP API | `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、OAuth authorize/callback、forgot/reset password、JWKS；兼容期接管 `/users/me/password` 等凭证端点 |
 | Dubbo Provider | `IdentityQueryService`、`AccountAdministrationService`、`AuthorizationSnapshotService`；均为窄 DTO、批量优先 |
 | Dubbo Consumer | 原则上无业务同步 Consumer；安全邮件使用本服务 SMTP adapter，不调用 App EmailService |
@@ -486,7 +487,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 1. **同库、唯一 Owner**：先建立 owner manifest、consumer-owned port 和 ArchUnit 规则；每表只有一个写模块。
 2. **同实例、不同 DB user**：`auth_rw`、`admin_rw`、`app_rw` 只获自己表权限；兼容账号单独命名并设置删除日期。
 3. **同实例、分 schema/database**：优先搬 Auth 的 refresh/RBAC 和 Admin 治理表；App 业务聚合整组搬，避免拆开本地事务。
-4. **垂直拆 `users`**：新增 App `user_profiles(account_id PK, ...)`，回填和校验；Auth 独占旧 `users`/account 字段；App 切读写 profile；最终删除 Auth 表中的 profile 列属于后续 contract migration。
+4. **垂直拆 `users`**：新增 App `user_profiles(account_id PK, ...)`，回填和校验；Auth 独占 `users`/account 字段；App 切读写 profile；对既有 owner schema 先运行 `scripts/dev/owner-user-profile-backfill.sh contract-preflight`，再执行 Auth contract migration 删除兼容 profile 列。
 5. **独立实例按需**：只有资源隔离、SLA、备份或伸缩需要时再把逻辑 database 搬到独立 MySQL 实例，不作为完成微服务化的前置条件。
 
 生产迁移不可让四个服务同时执行同一份全局 Flyway history。过渡期由单独 migration job 串行执行；分 schema 后把 migration 仍保留在 canonical `init-db/migrations/` 下按 Owner 分目录，并使用各自 schema history。
@@ -594,7 +595,7 @@ public interface ContentModerationService {
 
 - Admin Controller/应用服务可调用一个 App 或 Auth Provider；Provider 不再调用另一个 Provider完成同一命令。
 - App Provider 验证转发的用户断言或 service principal，不同步回 Auth 读取普通身份。
-- Composite Dashboard 用 Admin 本地 read model；临时实时聚合只能并行批量调用 Auth/App，并设置总 deadline、部分结果语义。
+- Composite Dashboard 用 Admin 本地 read model；临时实时聚合只能并行批量调用 Owner read seam，并设置总 deadline 与明确的部分结果语义。当前 Dashboard 的完整 VO 选择 fail closed，不返回半成品统计。
 - 在 ArchUnit/架构测试中禁止 `backend-auth` 依赖 app/admin API，禁止 App 依赖 admin API，并为运行时 trace 设置“同步服务跳数 > 1”告警。
 
 ## 7. Authentication Architecture
@@ -944,7 +945,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；暴露 direct Submission owner write/fence provider，默认端口为内部 HTTP `9106`、Dubbo `20886`；provider 直接写 Submission schema，App 仅通过 `APP_SUBMISSION_ROUTING_MODE=remote` 访问该 owner。
 - 生产 Compose 必须显式提供 `SUBMISSION_DB_HOST/PORT/NAME/USER/PASSWORD`、`SUBMISSION_CUTOVER_COMPLETE=true` 与 Redis 连接变量；`backend-submission` 不再回落到 App 的 `DB_*` 或容器内 `localhost`。`SUBMISSION_DB_USER` 必须是已单独 provision/unlock 的 Submission owner 账号。cutover runbook 的 `SUBMISSION_APP_DB_USER` + `SUBMISSION_APP_DB_HOST` 必须精确标识实际 App 运行账号；该账号只能持有待迁移表的表级 DML grants，不能有其它 host、global/schema/table `ALL`、`GRANT OPTION` 或角色继承；preflight 会拒绝这些姿态，避免 REVOKE 后仍可跨 Owner 写入。`init-env.sh` 只生成凭证并将 marker 置为 false；`up.sh --prepare-submission-owner` 以 owner-first 顺序迁移/解锁且不启动 PM2，正常 `up.sh` 与 App routing properties 在 marker 未置 true 时有意停止。执行 cutover/rollback 前必须停止并 drain 所有可能写入 source 或 target 的进程：`backend-app`/App PM2（submission intake、contest/rejudge、local outbox dispatcher、lease reaper、scheduler）、`backend-submission`（owner writer、dispatcher、reaper）、`backend-judge`（legacy/remote verdict 与 lease writer）以及任何 direct admin/maintenance client；所有 in-flight judge/outbox work 必须结束。随后提供一次性 `SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS`；runbook 会复核 copy 前后 source rows/checksums，rollback `copy_back` 在单事务中执行，任何 partial revoke/restore/cleanup failure 都显式升级。
-- `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 版本账本与 tombstone 语义见 §11.5（SEARCH-003）。worker 单测 12/12 + boot 无 web/无业务表契约 + compose（meilisearch 服务 + backend-search 服务，内网 expose）校验通过；真实 Redis+Meili E2E 仍受网络阻塞（记录 gap），落线前消费方不得假定事件已生效。
+- `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 版本账本与 tombstone 语义见 §11.5（SEARCH-003）。worker 单测、boot 无 web/无业务表契约、compose（meilisearch 服务 + backend-search 服务，内网 expose）和 test-only `SearchEventToQueryE2EIT` disposable Redis+Meili 闭环均有独立验证；落线前消费方仍不得假定生产事件已生效。
 
 ### 11.1 `SearchDocumentChanged` 发布矩阵（SEARCH-001）
 
@@ -972,6 +973,9 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 **版本语义**：`aggregateVersion` = 事件发布时刻（live publisher）或行最后变更时间（backfill）的 epoch 毫秒（同一墙钟域）。worker 对每索引维护 Redis 版本账本 `search:doc-version:{index}`（field=documentId）：UPSERT 仅当 incoming 严格新于账本版本才写（stale 跳过计数 `search.worker.stale_skipped`，仍 ACK）；DELETE 写负值 tombstone（`-V`），非严格新于 tombstone 的 UPSERT 一律跳过（防 backfill 乱序复活已删文档）；写入文档的 `_aggregateVersion` 供 diff watermark 与可观测。多副本并发 HGET/HSET 非原子：worker 按单副本运行，账本为 best-effort 排序辅助。外部重建 Meili 索引后必须 `DEL search:doc-version:{index}` 再重跑 backfill。
 
 **Backfill（App 侧 `SearchBackfillRunner`）**：唯一写者仍是 worker——runner 只枚举 owner 库并发布 `SearchDocumentChanged` 事件（经 integration outbox → stream）。门控 `app.search.backfill.enabled=true` + `meilisearch.enabled=true`（默认关；索引选择 `app.search.backfill.indexes`，空=全部）。协议：watermark W=now → 分页枚举快照（谓词与 Q-read 一致；文档形状与 live publisher 逐字一致）→ 预检读 Meili 现有 `id+_aggregateVersion`（不可达即失败不半跑）→ 全量 UPSERT（版本=行 updated_at；用户=max(users.updated_at, profile.updated_at, deleted_at, joined_at)）→ 仅 `_aggregateVersion < W` 且不在快照的 id 发 DELETE（backfill 期间新建/更新的文档由 live 事件负责）。重跑幂等收敛；每次输出 snapshot/existing/upserts/deletes/watermark 计数日志。
+
+**Disposable event-to-query proof（AR20260820-005）**：运行
+`cd services && ./mvnw -pl app/app-web -am -Dtest=SearchEventToQueryE2EIT -Dsurefire.failIfNoSpecifiedTests=false test -B`；test-only harness 使用真实 Redis 与 Compose 同版本的 MeiliSearch，发布现有 envelope、驱动现有 worker，再通过 `SearchReadProjection` 查询。它同时覆盖 duplicate UPSERT、DELETE tombstone/stale suppression、Redis DLQ envelope 和 Meili 不可用时的 DB fallback；不增加运行时模块或 writer。
 
 **启用顺序（SEARCH-003-slice-4 后）**：
 App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并提供与查询谓词一致的 count；用户搜索在 Auth 账号与 App profile 两个 Owner seam 之间按 `account_id ASC` 分页批量合并并去重，不执行跨 Owner SQL 或无界一次性加载。此内部契约迁移不改变 `/search` 的 Result、SearchResponseVO 字段或唯一 Meili writer 边界。

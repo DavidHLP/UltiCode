@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcPolicy;
@@ -10,7 +11,8 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.ChartDataPoint;
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
-import com.ulticode.modules.admin.mapper.DashboardMapper;
+import com.ulticode.modules.admin.port.AdminDashboardReadPort;
+import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +35,7 @@ import java.util.TreeMap;
  *
  * <p>Owns the entity&rarr;VO shaping rule for all 7 dashboard stat blocks plus the chart-data
  * dispatcher. Previously this logic was spread across {@code DashboardServiceImpl} (7 private
- * sub-aggregators) and 3 {@code default} methods on {@code DashboardMapper}.
+ * sub-aggregators) and direct foreign-table mapper queries.
  */
 @Slf4j
 @Component
@@ -47,7 +49,7 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
     private static final DateTimeFormatter MONTH_BUCKET_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM");
 
-    private final DashboardMapper dashboardMapper;
+    private final AdminDashboardReadPort dashboardReadPort;
     private final Clock clock;
 
     @Autowired(required = false)
@@ -59,26 +61,28 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
     private String appVersion;
 
     @Autowired
-    public DefaultDashboardStatsProjection(DashboardMapper dashboardMapper, Clock clock) {
-        this.dashboardMapper = dashboardMapper;
+    public DefaultDashboardStatsProjection(AdminDashboardReadPort dashboardReadPort, Clock clock) {
+        this.dashboardReadPort = dashboardReadPort;
         this.clock = clock;
     }
 
-    public DefaultDashboardStatsProjection(DashboardMapper dashboardMapper, Clock clock,
+    public DefaultDashboardStatsProjection(AdminDashboardReadPort dashboardReadPort, Clock clock,
                                            AccountQueryService accountQueryService) {
-        this(dashboardMapper, clock);
+        this(dashboardReadPort, clock);
         this.accountQueryService = accountQueryService;
     }
 
     @Override
     public DashboardStatsVO loadStats() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        AdminDashboardReadPort.DashboardData dashboardData = dashboardReadPort.loadStats(now);
         DashboardStatsVO stats = new DashboardStatsVO();
         stats.setUsers(buildUserStats());
-        stats.setProblems(buildProblemStats());
-        stats.setContests(buildContestStats());
-        stats.setSubmissions(buildSubmissionStats());
-        stats.setSolutions(buildSolutionStats());
-        stats.setForum(buildForumStats());
+        stats.setProblems(buildProblemStats(dashboardData.app()));
+        stats.setContests(buildContestStats(dashboardData.app()));
+        stats.setSubmissions(buildSubmissionStats(dashboardData.submission()));
+        stats.setSolutions(buildSolutionStats(dashboardData.app()));
+        stats.setForum(buildForumStats(dashboardData.app()));
         stats.setSystem(buildSystemStats());
         return stats;
     }
@@ -101,8 +105,8 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         result.setStartDate(startDate);
         result.setEndDate(now);
 
-        String dateFormat = getDateFormat(period);
-        List<Map<String, Object>> rawData = fetchChartData(metric, startDate, now, dateFormat, period);
+        List<AdminDashboardReadPort.ChartPoint> rawData =
+                fetchChartData(metric, startDate, now, period);
         result.setData(toChartDataPoints(rawData));
 
         return result;
@@ -131,61 +135,59 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         return stats;
     }
 
-    private DashboardStatsVO.ProblemStats buildProblemStats() {
+    private DashboardStatsVO.ProblemStats buildProblemStats(DashboardAppStatsDTO data) {
         DashboardStatsVO.ProblemStats stats = new DashboardStatsVO.ProblemStats();
 
-        stats.setTotal(dashboardMapper.countTotalProblems());
-        stats.setPublished(dashboardMapper.countPublishedProblems());
+        stats.setTotal(data.totalProblems());
+        stats.setPublished(data.publishedProblems());
         stats.setUnpublished(stats.getTotal() - stats.getPublished());
-        stats.setByDifficulty(shapeCounts(dashboardMapper.countProblemsByDifficultyRaw(), "difficulty"));
-        stats.setByStatus(shapeCounts(dashboardMapper.countProblemsByStatusRaw(), "status"));
+        stats.setByDifficulty(shapeCounts(data.problemsByDifficulty()));
+        stats.setByStatus(shapeCounts(data.problemsByStatus()));
 
         return stats;
     }
 
-    private DashboardStatsVO.ContestStats buildContestStats() {
+    private DashboardStatsVO.ContestStats buildContestStats(DashboardAppStatsDTO data) {
         DashboardStatsVO.ContestStats stats = new DashboardStatsVO.ContestStats();
-        LocalDateTime now = LocalDateTime.now(clock);
 
-        stats.setTotal(dashboardMapper.countTotalContests());
-        stats.setUpcoming(dashboardMapper.countUpcomingContests(now));
-        stats.setRunning(dashboardMapper.countRunningContests(now));
-        stats.setFinished(dashboardMapper.countFinishedContests(now));
+        stats.setTotal(data.totalContests());
+        stats.setUpcoming(data.upcomingContests());
+        stats.setRunning(data.runningContests());
+        stats.setFinished(data.finishedContests());
 
         return stats;
     }
 
-    private DashboardStatsVO.SubmissionStats buildSubmissionStats() {
+    private DashboardStatsVO.SubmissionStats buildSubmissionStats(SubmissionDashboardStatsDTO data) {
         DashboardStatsVO.SubmissionStats stats = new DashboardStatsVO.SubmissionStats();
-        LocalDateTime now = LocalDateTime.now(clock);
 
-        stats.setTotal(dashboardMapper.countTotalSubmissions());
-        stats.setToday(dashboardMapper.countSubmissionsSince(now.minusDays(1)));
-        stats.setWeek(dashboardMapper.countSubmissionsSince(now.minusWeeks(1)));
-        stats.setMonth(dashboardMapper.countSubmissionsSince(now.minusMonths(1)));
-        stats.setAcceptanceRate(dashboardMapper.calculateAcceptanceRate());
+        stats.setTotal(data.total());
+        stats.setToday(data.today());
+        stats.setWeek(data.week());
+        stats.setMonth(data.month());
+        stats.setAcceptanceRate(data.acceptanceRate());
 
         return stats;
     }
 
-    private DashboardStatsVO.SolutionStats buildSolutionStats() {
+    private DashboardStatsVO.SolutionStats buildSolutionStats(DashboardAppStatsDTO data) {
         DashboardStatsVO.SolutionStats stats = new DashboardStatsVO.SolutionStats();
 
-        stats.setTotal(dashboardMapper.countTotalSolutions());
-        stats.setPublished(dashboardMapper.countPublishedSolutions());
-        stats.setFlagged(dashboardMapper.countFlaggedSolutions());
+        stats.setTotal(data.totalSolutions());
+        stats.setPublished(data.publishedSolutions());
+        stats.setFlagged(data.flaggedSolutions());
 
         return stats;
     }
 
-    private DashboardStatsVO.ForumStats buildForumStats() {
+    private DashboardStatsVO.ForumStats buildForumStats(DashboardAppStatsDTO data) {
         DashboardStatsVO.ForumStats stats = new DashboardStatsVO.ForumStats();
 
-        stats.setPosts(dashboardMapper.countForumPosts());
-        stats.setComments(dashboardMapper.countForumComments());
-        stats.setCommunities(dashboardMapper.countForumCommunities());
-        stats.setFlaggedPosts(dashboardMapper.countFlaggedPosts());
-        stats.setFlaggedComments(dashboardMapper.countFlaggedComments());
+        stats.setPosts(data.forumPosts());
+        stats.setComments(data.forumComments());
+        stats.setCommunities(data.forumCommunities());
+        stats.setFlaggedPosts(data.flaggedForumPosts());
+        stats.setFlaggedComments(data.flaggedForumComments());
 
         return stats;
     }
@@ -200,21 +202,17 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
 
     // ---------- chart data ----------
 
-    private List<Map<String, Object>> fetchChartData(String metric, LocalDateTime start,
-                                                      LocalDateTime end, String dateFormat,
-                                                      String period) {
+    private List<AdminDashboardReadPort.ChartPoint> fetchChartData(
+            String metric, LocalDateTime start, LocalDateTime end, String period) {
         return switch (metric.toLowerCase()) {
             case "users" -> fetchUserChartData(start, end, period);
-            case "submissions" -> dashboardMapper.getSubmissionsChartData(start, end, dateFormat);
-            case "problems" -> dashboardMapper.getProblemsChartData(start, end, dateFormat);
-            case "contests" -> dashboardMapper.getContestsChartData(start, end, dateFormat);
-            case "solutions" -> dashboardMapper.getSolutionsChartData(start, end, dateFormat);
-            case "forum_posts" -> dashboardMapper.getForumPostsChartData(start, end, dateFormat);
+            case "submissions", "problems", "contests", "solutions", "forum_posts" ->
+                    dashboardReadPort.loadChartData(metric, start, end, period);
             default -> List.of();
         };
     }
-    private List<Map<String, Object>> fetchUserChartData(LocalDateTime start, LocalDateTime end,
-                                                          String period) {
+    private List<AdminDashboardReadPort.ChartPoint> fetchUserChartData(
+            LocalDateTime start, LocalDateTime end, String period) {
         AccountScan scan = scanAccounts(start);
         if (scan.accounts().isEmpty()) {
             return List.of();
@@ -230,12 +228,7 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         }
 
         return buckets.entrySet().stream()
-                .map(entry -> {
-                    Map<String, Object> row = new HashMap<>();
-                    row.put("date", entry.getKey());
-                    row.put("count", entry.getValue());
-                    return row;
-                })
+                .map(entry -> new AdminDashboardReadPort.ChartPoint(entry.getKey(), entry.getValue()))
                 .toList();
     }
 
@@ -342,17 +335,12 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         };
     }
 
-    private List<ChartDataPoint> toChartDataPoints(List<Map<String, Object>> rawData) {
+    private List<ChartDataPoint> toChartDataPoints(List<AdminDashboardReadPort.ChartPoint> rawData) {
         return rawData.stream()
                 .map(row -> {
                     ChartDataPoint point = new ChartDataPoint();
-                    point.setDate((String) row.get("date"));
-                    Object countObj = row.get("count");
-                    if (countObj instanceof Number) {
-                        point.setCount(((Number) countObj).longValue());
-                    } else {
-                        point.setCount(0L);
-                    }
+                    point.setDate(row.date());
+                    point.setCount(row.count());
                     return point;
                 })
                 .toList();
@@ -369,28 +357,15 @@ public class DefaultDashboardStatsProjection implements DashboardStatsProjection
         };
     }
 
-    private String getDateFormat(String period) {
-        return switch (period.toLowerCase()) {
-            case "hour" -> "%Y-%m-%d %H:00";
-            case "day" -> "%Y-%m-%d";
-            case "week" -> "%Y-%u";
-            case "month" -> "%Y-%m";
-            case "year" -> "%Y";
-            default -> "%Y-%m-%d";
-        };
-    }
-
     private record AccountScan(List<AuthAccountDTO> accounts, long total) {
     }
 
-    // ---------- Map -> Map<String,Long> shape rules (previously default methods on mapper) ----------
-
-
-    private Map<String, Long> shapeCounts(List<Map<String, Object>> raw, String keyColumn) {
+    // ---------- Owner count -> Admin Map shape rules ----------
+    private Map<String, Long> shapeCounts(List<DashboardAppStatsDTO.Count> raw) {
         Map<String, Long> result = new HashMap<>();
-        for (Map<String, Object> row : raw) {
-            if (row.get(keyColumn) != null) {
-                result.put((String) row.get(keyColumn), ((Number) row.get("count")).longValue());
+        for (DashboardAppStatsDTO.Count row : raw) {
+            if (row.key() != null) {
+                result.put(row.key(), row.count());
             }
         }
         return result;

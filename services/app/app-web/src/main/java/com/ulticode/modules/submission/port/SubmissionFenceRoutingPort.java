@@ -21,14 +21,7 @@ public class SubmissionFenceRoutingPort implements SubmissionFencePort {
     private final SubmissionRoutingProperties routing;
 
     private SubmissionFencePort delegate() {
-        if (!routing.isRemote()) {
-            return local;
-        }
-        RemoteSubmissionFencePort remotePort = remote.getIfAvailable();
-        if (remotePort == null) {
-            throw new IllegalStateException("Remote Submission fence route is enabled but unavailable");
-        }
-        return remotePort;
+        return routing.select(local, remote::getIfAvailable, "fence");
     }
 
     @Override

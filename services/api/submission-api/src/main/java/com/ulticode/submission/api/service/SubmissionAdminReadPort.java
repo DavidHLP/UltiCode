@@ -2,6 +2,8 @@ package com.ulticode.submission.api.service;
 
 import com.ulticode.submission.api.dto.LanguageCountDTO;
 import com.ulticode.submission.api.dto.StatusCountDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
+import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.common.response.PageResult;
@@ -68,4 +70,11 @@ public interface SubmissionAdminReadPort {
 
     /** Accepted submissions created at or after {@code from}. */
     long countAcceptedSubmissionsInRange(LocalDateTime from);
+
+    /** Load the bounded submission aggregates used by the Admin Dashboard. */
+    SubmissionDashboardStatsDTO loadDashboardStats(LocalDateTime now);
+
+    /** Load date buckets for the bounded Admin Dashboard submission chart. */
+    List<SubmissionDashboardChartDataDTO> loadDashboardChartData(
+            LocalDateTime start, LocalDateTime end, String period);
 }

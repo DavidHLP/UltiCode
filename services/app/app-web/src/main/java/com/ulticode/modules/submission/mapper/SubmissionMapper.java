@@ -427,6 +427,23 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
+    /** Submission dashboard date buckets owned by App's compatibility path. */
+    @Select("""
+            SELECT DATE_FORMAT(created_at, #{dateFormat}) AS bucket, COUNT(*) AS count
+            FROM submissions
+            WHERE created_at >= #{startDate} AND created_at <= #{endDate}
+            GROUP BY DATE_FORMAT(created_at, #{dateFormat})
+            ORDER BY bucket
+            """)
+    List<Map<String, Object>> countDashboardByBucket(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("dateFormat") String dateFormat);
+
+    /** Preserve the legacy Admin Dashboard acceptance-rate calculation. */
+    @Select("SELECT COALESCE(SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) FROM submissions")
+    Double calculateDashboardAcceptanceRate();
+
     /**
      * Daily active users aggregation based on submissions.
      * Groups submissions by date and counts distinct users per day.

@@ -70,16 +70,21 @@ database. Run it before owner-specific migration; owner Flyway configs set
 `flyway.createSchemas=false`, and the owner preflight intentionally fails closed
 when the target schema is absent.
 
-`scripts/dev/up.sh` keeps the shared `MIGRATION_DB_*` identity for the schema
-bootstrap chain and passes `SUBMISSION_MIGRATION_DB_USER/PASSWORD` to the
-Submission owner migration and local account provisioning. These identities
-must not be merged or silently defaulted to the runtime account.
+`scripts/dev/up.sh` first runs the shared schema bootstrap, then applies the
+deterministic Owner manifest (`auth`, `admin`, `app`, `notification`,
+`submission`) through the corresponding `flyway-*.conf` files. It keeps the
+shared `MIGRATION_DB_*` identity for Auth/Admin/App/Notification and passes
+`SUBMISSION_MIGRATION_DB_USER/PASSWORD` to the Submission owner migration.
+Finally it provisions and probes all five local runtime accounts before PM2
+starts. These identities must not be merged or silently defaulted to a runtime
+account.
 
 The Auth, Notification and Submission owner chains contain canonical
 `FLUSH PRIVILEGES` statements. Their migration principal therefore needs the
 direct global `RELOAD` capability (or the explicitly supported literal global
-`ALL PRIVILEGES` compatibility superset); arbitrary global capability lists do
-not satisfy the preflight.
+`ALL PRIVILEGES` compatibility superset); Notification and Submission also
+need global `GRANT OPTION` because their owner grants include `GRANT USAGE ON
+*.*`. Arbitrary non-root global capability lists do not satisfy the preflight.
 
 For a pre-created bootstrap-only table with no owner history, the only
 supported adoption path is an explicit DEV-LOCAL command with
@@ -88,6 +93,9 @@ supported adoption path is an explicit DEV-LOCAL command with
 The command checks the expected table set, ordered column signature, absent
 history and zero rows before running `baseline`; ordinary `migrate` never
 silently baselines an unknown schema.
+The supported `scripts/dev/up.sh` path supplies that confirmation only after
+the shared chain and manifest identify the canonical bootstrap shape; an
+unexpected table set still fails closed.
 Credentials belong in the local `.env`/CI secret store, never in this directory
 or `.auto-flow`. The shared migration chain without `MIGRATION_SCHEMA` retains
 the historical `DB_*` contract.

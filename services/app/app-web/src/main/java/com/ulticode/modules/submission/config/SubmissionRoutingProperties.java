@@ -4,6 +4,8 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.function.Supplier;
+
 /** Selects the single active App-to-Submission writer route during cutover. */
 @Configuration
 @ConfigurationProperties(prefix = "app.submission.routing")
@@ -34,6 +36,23 @@ public class SubmissionRoutingProperties {
 
     public void setCutoverComplete(boolean cutoverComplete) {
         this.cutoverComplete = cutoverComplete;
+    }
+
+    /**
+     * Central migration-seam policy shared by write, fence and user-read
+     * routes. Only the selected implementation is resolved; no dual call is
+     * possible in either mode.
+     */
+    public <T> T select(T local, Supplier<T> remoteSupplier, String operation) {
+        if (!isRemote()) {
+            return local;
+        }
+        T remote = remoteSupplier.get();
+        if (remote == null) {
+            throw new IllegalStateException(
+                    "Remote Submission " + operation + " route is enabled but unavailable");
+        }
+        return remote;
     }
 
     @PostConstruct

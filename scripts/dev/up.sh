@@ -14,6 +14,8 @@ unset NODE_OPTIONS
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 export ENV_FILE
+# shellcheck source=scripts/dev/devstack-manifest.sh
+source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
 # Preserve explicit caller-provided migration values while loading .env.
 MIGRATION_DB_HOST_WAS_SET="${MIGRATION_DB_HOST+x}"
@@ -192,9 +194,11 @@ if [[ -n "$ONLY" ]]; then
 elif [[ "$FRONTEND_ONLY" == true ]]; then
   PM2_APPS="ulticode-9002,ulticode-9003"
 elif [[ "$NO_FRONTEND" == true ]]; then
-  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge"
+  PM2_APPS="$(devstack_apps_csv "${DEVSTACK_BACKEND_APPS[@]}")"
+elif [[ "$DEV_MODE" == "dev-lite" ]]; then
+  PM2_APPS="$(devstack_apps_csv "${DEVSTACK_DEV_LITE_APPS[@]}")"
 else
-  PM2_APPS="ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-9002,ulticode-9003"
+  PM2_APPS="$(devstack_apps_csv "${DEVSTACK_DEV_FULL_APPS[@]}")"
 fi
 
 # ===== 前置检查 =====
@@ -262,11 +266,15 @@ required_vars=(
   NACOS_AUTH_IDENTITY_KEY NACOS_AUTH_IDENTITY_VALUE
 )
 if [[ "$FRONTEND_ONLY" != true ]]; then
-  required_vars+=(
-    SUBMISSION_DB_HOST SUBMISSION_DB_PORT SUBMISSION_DB_NAME
-    SUBMISSION_DB_USER SUBMISSION_DB_PASSWORD
-    SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
-  )
+  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
+    owner_prefix="${owner^^}"
+    required_vars+=(
+      "${owner_prefix}_DB_HOST" "${owner_prefix}_DB_PORT"
+      "${owner_prefix}_DB_NAME" "${owner_prefix}_DB_USER"
+      "${owner_prefix}_DB_PASSWORD"
+    )
+  done
+  required_vars+=(SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD)
   if [[ "$DEV_MODE" == "dev-full" ]]; then
     required_vars+=(APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE)
   fi
@@ -282,10 +290,18 @@ if [[ "$FRONTEND_ONLY" != true && ! "$SUBMISSION_MIGRATION_DB_USER" =~ ^[A-Za-z0
   exit 1
 fi
 if [[ "$FRONTEND_ONLY" != true ]]; then
-  [[ "$SUBMISSION_DB_NAME" == "submission" ]] || {
-    echo "SUBMISSION_DB_NAME must be submission for the local owner runtime." >&2
-    exit 1
-  }
+  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
+    owner_prefix="${owner^^}"
+    owner_name_var="${owner_prefix}_DB_NAME"
+    [[ "${!owner_name_var}" == "$owner" ]] || {
+      echo "${owner_name_var} must be $owner for the local owner runtime." >&2
+      exit 1
+    }
+    [[ -f "$ROOT_DIR/init-db/flyway-$owner.conf" ]] || {
+      echo "Missing owner Flyway manifest entry: init-db/flyway-$owner.conf" >&2
+      exit 1
+    }
+  done
   [[ "$SUBMISSION_DB_USER" == "submission_rw" ]] || {
     echo "Local PM2 requires SUBMISSION_DB_USER=submission_rw; provision custom production accounts outside up.sh." >&2
     exit 1
@@ -321,7 +337,7 @@ compose=(
 )
 
 provision_submission_migration_principal() {
-  local container="${MYSQL_CONTAINER:-ulticode-mysql}"
+  local container="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
   local escaped_password="$SUBMISSION_MIGRATION_DB_PASSWORD"
   escaped_password="${escaped_password//\\/\\\\}"
   escaped_password="${escaped_password//\'/\'\'}"
@@ -329,27 +345,51 @@ provision_submission_migration_principal() {
   docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$container" \
     mysql --default-character-set=utf8mb4 -u "$MIGRATION_DB_USER" \
     --batch --skip-column-names \
-    -e "CREATE USER IF NOT EXISTS '$SUBMISSION_MIGRATION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$SUBMISSION_MIGRATION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT RELOAD ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, GRANT OPTION ON submission.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT CREATE USER ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; FLUSH PRIVILEGES;"
+    -e "CREATE USER IF NOT EXISTS '$SUBMISSION_MIGRATION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$SUBMISSION_MIGRATION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT USAGE ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%' WITH GRANT OPTION; GRANT RELOAD ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, GRANT OPTION ON submission.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; GRANT CREATE USER ON *.* TO '$SUBMISSION_MIGRATION_DB_USER'@'%'; FLUSH PRIVILEGES;"
 }
 
-provision_submission_owner() {
-  local container="${MYSQL_CONTAINER:-ulticode-mysql}"
-  local escaped_password="$SUBMISSION_DB_PASSWORD"
-  escaped_password="${escaped_password//\\/\\\\}"
-  escaped_password="${escaped_password//\'/\'\'}"
+provision_owner_accounts() {
+  local container="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
+  local owner owner_prefix user_var password_var user password escaped_password
+  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
+    owner_prefix="${owner^^}"
+    user_var="${owner_prefix}_DB_USER"
+    password_var="${owner_prefix}_DB_PASSWORD"
+    user="${!user_var}"
+    password="${!password_var}"
+    [[ "$user" =~ ^[A-Za-z0-9_]+$ ]] || {
+      echo "${user_var} must contain only letters, digits, or underscore." >&2
+      return 1
+    }
+    escaped_password="${password//\\/\\\\}"
+    escaped_password="${escaped_password//\'/\'\'}"
+    echo "Provisioning local $owner owner account '$user'..."
+    docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$container" \
+      mysql --default-character-set=utf8mb4 -u "$MIGRATION_DB_USER" \
+      --batch --skip-column-names \
+      -e "ALTER USER '$user'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$user'@'%' ACCOUNT UNLOCK;"
+  done
+}
 
-  docker exec -e MYSQL_PWD="$SUBMISSION_MIGRATION_DB_PASSWORD" "$container" \
-    mysql --default-character-set=utf8mb4 -u "$SUBMISSION_MIGRATION_DB_USER" \
-    --batch --skip-column-names \
-    -e "ALTER USER '$SUBMISSION_DB_USER'@'%' IDENTIFIED BY '$escaped_password'; ALTER USER '$SUBMISSION_DB_USER'@'%' ACCOUNT UNLOCK;"
-
-  if ! docker exec -e MYSQL_PWD="$SUBMISSION_DB_PASSWORD" "$container" \
-      mysql --default-character-set=utf8mb4 -u "$SUBMISSION_DB_USER" \
-      --batch --skip-column-names -h 127.0.0.1 -P 3306 "$SUBMISSION_DB_NAME" \
-      -e "SELECT 1" >/dev/null 2>&1; then
-    echo "Submission owner account '$SUBMISSION_DB_USER'@'%' is not unlocked or cannot connect to $SUBMISSION_DB_NAME." >&2
-    return 1
-  fi
+verify_owner_accounts() {
+  local container="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
+  local owner owner_prefix user_var password_var name_var user password database
+  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
+    owner_prefix="${owner^^}"
+    user_var="${owner_prefix}_DB_USER"
+    password_var="${owner_prefix}_DB_PASSWORD"
+    name_var="${owner_prefix}_DB_NAME"
+    user="${!user_var}"
+    password="${!password_var}"
+    database="${!name_var}"
+    docker exec -e MYSQL_PWD="$password" "$container" \
+      mysql --default-character-set=utf8mb4 -u "$user" \
+      --batch --skip-column-names -h 127.0.0.1 -P 3306 "$database" \
+      -e "SELECT 1" >/dev/null || {
+        echo "Owner readiness failed: $user cannot connect to $database." >&2
+        return 1
+      }
+  done
 }
 
 wait_for_health() {
@@ -397,18 +437,30 @@ if [[ "$SKIP_MIGRATE" != true ]]; then
     MIGRATION_DB_USER="$MIGRATION_DB_USER" \
     MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
     "$ROOT_DIR/scripts/dev/migrate.sh" migrate
-  echo "Provisioning the DEV-LOCAL/owner Submission migration principal..."
-  provision_submission_migration_principal
-  echo "Applying Submission owner migrations..."
-  MIGRATION_SCHEMA=submission \
-    MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
-    MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
-    MIGRATION_DB_NAME="$MIGRATION_DB_NAME" \
-    MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER" \
-    MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD" \
-    "$ROOT_DIR/scripts/dev/migrate.sh" migrate
-  echo "Provisioning the local Submission owner account..."
-  provision_submission_owner
+  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
+    if [[ "$owner" == "submission" ]]; then
+      echo "Provisioning the DEV-LOCAL/owner Submission migration principal..."
+      provision_submission_migration_principal
+      owner_migration_user="$SUBMISSION_MIGRATION_DB_USER"
+      owner_migration_password="$SUBMISSION_MIGRATION_DB_PASSWORD"
+    else
+      owner_migration_user="$MIGRATION_DB_USER"
+      owner_migration_password="$MIGRATION_DB_PASSWORD"
+    fi
+    echo "Applying ${owner^} owner migrations..."
+    MIGRATION_SCHEMA="$owner" \
+      MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
+      MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
+      MIGRATION_DB_NAME="$owner" \
+      MIGRATION_DB_USER="$owner_migration_user" \
+      MIGRATION_DB_PASSWORD="$owner_migration_password" \
+      DEV_LOCAL_OWNER_BASELINE="${DEV_LOCAL_OWNER_BASELINE:-true}" \
+      DEV_LOCAL_OWNER_BASELINE_CONFIRM="${DEV_LOCAL_OWNER_BASELINE_CONFIRM:-I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE}" \
+      "$ROOT_DIR/scripts/dev/migrate.sh" migrate
+  done
+  echo "Provisioning local Owner accounts and checking schema readiness..."
+  provision_owner_accounts
+  verify_owner_accounts
 
 if [[ "$PREPARE_SUBMISSION_OWNER" == true ]]; then
   echo "Submission owner prepared; no PM2 service was started. Run the cutover preflight/cutover runbook, set SUBMISSION_CUTOVER_COMPLETE=true, then run ./scripts/dev/up.sh." >&2
@@ -637,36 +689,18 @@ check_pm2_online() {
 apps_csv=",$PM2_APPS,"
 for _ in $(seq 1 90); do
   all_ok=true
-  if [[ "$apps_csv" == *",ulticode-auth,"* ]]; then
-    check_port 9101 '/api/v1/auth/health' || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-admin,"* ]]; then
-    check_port 9102 '/api/v1/admin/health' || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-app,"* ]]; then
-    check_port 9103 '/api/v1/app/health' || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-notification,"* ]]; then
-    check_port 9105 '/api/v1/notification/health' || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-submission,"* ]]; then
-    check_pm2_online ulticode-submission || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-judge,"* ]]; then
-    check_pm2_online ulticode-judge || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-search,"* ]]; then
-    check_pm2_online ulticode-search || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-9002,"* ]]; then
-    check_port 9002 '/' || all_ok=false
-  fi
-  if [[ "$apps_csv" == *",ulticode-9003,"* ]]; then
-    check_port 9003 '/' || all_ok=false
-  fi
+  for app in "${DEVSTACK_READINESS_APPS[@]}"; do
+    [[ "$apps_csv" == *",$app,"* ]] || continue
+    IFS='|' read -r readiness_kind readiness_port readiness_path <<< "$(devstack_readiness "$app")"
+    case "$readiness_kind" in
+      http) check_port "$readiness_port" "$readiness_path" || all_ok=false ;;
+      pm2) check_pm2_online "$app" || all_ok=false ;;
+    esac
+  done
   if [[ "$all_ok" == true ]]; then
     cat <<EOF
-Development stack is ready (services: $PM2_APPS).
+Development stack is ready (mode: $DEV_MODE; services: $PM2_APPS).
+Owner migrations: $(devstack_apps_csv "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}")
 
   Console:    http://localhost:9002
   Management: http://localhost:9003

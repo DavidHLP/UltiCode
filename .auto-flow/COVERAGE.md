@@ -14,7 +14,7 @@
 
 Historical `.auto-flow/SERVICES_AUTONOMY_*` coverage remains authoritative for its prior ledger and is not overwritten by this plan.
 
-## Architecture review 2026-08-20 coverage
+## Existing architecture review 2026-08-20 coverage
 
 | Requirement / finding | Task | Required evidence |
 | --- | --- | --- |
@@ -24,30 +24,44 @@ Historical `.auto-flow/SERVICES_AUTONOMY_*` coverage remains authoritative for i
 | 开发运行时以 canonical profile 为默认真相，generic DB 变量仅供 migration bootstrap | ARCH-REVIEW-004 | profile/startup assertions; explicit Owner config fail-closed runtime test; Compose dev/prod config; clean-checkout smoke; docs consistency |
 | 所有评审任务完成且不制造 production acceptance | ARCH-REVIEW-005 | focused/module/integration/security checks; formal review; graphify update; YAML/diff checks; development-only authority audit; no unresolved mapped item |
 
-### Architecture review execution packet
+Historical task IDs above remain `done` in TASKS.yaml and are not superseded.
 
-- Objective: 在 development/TEST-TARGET 权限边界内完成评审报告中的四项架构收敛，直到全部验收证据闭合。
-- In scope: Search DLQ failure transfer; Submission page-level read batching; Auth-owned bounded Admin summary; canonical development profile/config cleanup; tests, local docs and control-plane evidence required by those changes。
-- Out of scope: 新增物理服务、RocketMQ/Seata/Kubernetes/Service Mesh、生产 cutover/deployment/publish、删除可逆 rollback seam、writer/schema/migration 改造（除非实现中发现不可避免且另行裁决）。
-- Root cause: 已有 owner/contract seam 存在，但 Search 失败转移不是原子状态转移，Submission 读 Projection 未真正使用批量结果，Admin 将 owner 分页细节泄漏到 projection，开发配置仍公开迁移期兼容变量作为 runtime 真相。
-- Behavioral invariants: Owner 单写者；Submission facts snapshot 语义不变；HTTP/Result/公共 Dubbo 兼容；至少一次消费不丢消息；DLQ 至多一条逻辑记录；跨 Owner 读取有界、可失败且不逐行 RPC；Auth 拥有账号统计事实；runtime 显式 Owner 配置 fail-closed；rollback source seam 保留；不宣称 production acceptance。
-- Delivery authority: 仅限当前 development/TEST-TARGET；不 commit/push/publish/deploy/生产操作，控制面文件不暂存。
-- Terminal condition: ARCH-REVIEW-001..005 均 `done`，每项 Required Evidence 已记录，Confirmed findings=0，focused/module/integration/security/formal review 与控制面审计通过。
+## Report /tmp/architecture-review-20260820-164414.html execution coverage
 
-### Source-to-task mapping
-
-- Candidate 01 / report lines 181-239 → ARCH-REVIEW-001 → AC-001.1..1.4 → Redis crash-window and reactor evidence.
-- Candidate 02 / report lines 241-302 → ARCH-REVIEW-002 → AC-002.1..2.4 → batch/N+1 and missing/fallback evidence.
-- Candidate 03 / report lines 304-361 → ARCH-REVIEW-003 → AC-003.1..3.4 → bounded summary and provider unavailable evidence.
-- Candidate 04 / report lines 363-424 → ARCH-REVIEW-004 → AC-004.1..4.4 → profile/config/Compose evidence.
-- Recommendation and skipped directions / report lines 426-446 → ARCH-REVIEW-005 → AC-005.1..5.3 → no infrastructure expansion and development-only gate.
-
-## Reviewer CR remediation 2026-08-20
-
-| Review finding | Task | Evidence |
+| Requirement / report item | Task / acceptance | Required evidence |
 | --- | --- | --- |
-| AuthAccountQueryPort missing AccountQueryService import; dashboard payload not Serializable | CRFIX-REVIEW-001 | Auth compile; auth-api contract 16/0/0/0 |
-| Submission pages still performed single-row user/problem enrichment | CRFIX-REVIEW-002 | App multi-row projection regression; real MySQL Submission IT 8/0/0/0 |
-| Auth dashboard summary dropped role counts | CRFIX-REVIEW-003 | Mapper role grouping real MySQL 2/0/0/0; adapter unit test |
-| Search DLQ dropped owner/schemaVersion/causationId/traceId | CRFIX-REVIEW-004 | Worker 11/0/0/0; real Redis + Meili E2E 4/0/0/0 |
-| All findings re-reviewed and validated | CRFIX-REVIEW-005 | affected reactor PASS; full verify PASS; fresh IT XML 68 reports / 225 tests / 0 failures / 0 errors / 17 skips |
+| Candidate 01: dev-lite is a real local module; Owner migrations/readiness deterministic; dev-full explicit | AR20260820-001 / all ACs | `up.sh`, migration manifest/config and `ecosystem.config.cjs` trace; fresh-schema smoke; negative default-profile check; Compose consistency |
+| Candidate 02: Admin Dashboard does not directly read foreign Owner tables; one bounded coarse seam | AR20260820-002 / all ACs | Dashboard trace; Admin read contract; unavailable/freshness semantics; no foreign mapper SQL; bounded-call tests; reactor evidence |
+| Candidate 03: App Submission compatibility matrix is behind one stable intake seam | AR20260820-003 / all ACs | routing trace; adapter inventory; validator/property tests; dev-lite local default; rollback preservation |
+| Candidate 04: Account/Profile schema and implementation ownership agree | AR20260820-004 / all ACs | drift trace; later migration; applied boundary/preflight; account-only projection; profile writer exclusivity; schema-contract evidence |
+| Candidate 05: Search write/read closure has one disposable verification seam | AR20260820-005 / all ACs | SearchReadProjection/worker trace; Redis→Meili→query envelope; idempotency; DLQ/fallback; disposable E2E; no runtime expansion |
+| Report `#do-not-split`, lines 296-298: 不通过增加更多模块收敛；不再物理拆分已是 storage-free implementation 的 judge-runtime；不删除 rollback path；local rehearsal 不得宣称 production authority | AR20260820-006 / terminal AC | no-module-expansion decision; judge-runtime storage-free boundary check; rollback-seam inventory; development-only authority review and no production acceptance evidence |
+
+### AR20260820-004 completion evidence
+
+- Drift trace: Auth account entity/query mapper is account-only; App `DefaultAppUserWritePort` and `ProfileWriteProvider` write `user_profiles`; backfill now has separate account/profile projections.
+- Contract evidence: `V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` plus real MySQL schema IT proves the nine profile columns are absent while account/authz columns and Auth account mapper behavior remain.
+- Expand/verify evidence: manifest v2, checksum parity, duplicate/orphan checks, soft-deleted source inclusion, quiesced `contract-preflight`, and owner migration safety integration all pass.
+- Rollback/authority: applied migrations remain untouched; manifest-backed rollback remains available before contraction; no production or external authority action was performed.
+
+### AR20260820-005 completion evidence
+
+- Harness seam: test-only App dependency on `backend-search`; existing `SearchDocumentIndexWorker` and `SearchReadProjection` are exercised together without a runtime split.
+- Real transport: Redis 7 stream plus `getmeili/meilisearch:v1.8` passed event → index → query, duplicate write convergence, DELETE/tombstone ordering and full DLQ envelope.
+- Fallback: Meili connection failure routed the same projection request to the stub owner `SearchSource` DB path; existing unit and stub-transport tests stayed green.
+- Scope/authority: unique disposable keys and container lifecycle prevent local-state mutation; no production acceptance, deployment or new runtime module was performed.
+
+### AR20260820-006 terminal evidence
+
+- All report requirements are mapped to AR20260820-001..005 completion packets; the top DevStack recommendation is complete and the three `do-not-split` constraints are preserved.
+- Full reactor verify, fresh integration evidence, current owner/MySQL/Redis/Meili/Judge focused gates, Compose/YAML, graph and diff checks provide the final validation basis; any environment-gated skip is named rather than counted as a pass.
+- No new runtime module was added to force convergence; `judge-runtime` remains storage-free and rollback seams remain. The working tree retains pre-existing user changes and this task's uncommitted implementation; no external delivery was authorized.
+
+
+- Objective: 完成 `/tmp/architecture-review-20260820-164414.html` 五个候选任务及终态审计。
+- In scope: DevStack/dev-lite；Admin read seam；App Submission seam；Account/Profile schema；Search disposable verification；tests/config/docs/control-plane。
+- Out of scope: 新物理服务或基础设施；RocketMQ/Seata/Kubernetes/Service Mesh；生产 deployment/cutover/publish；删除 rollback seam；未经裁决的 writer/schema 重构；commit/push。
+- Root cause: Owner/Contract 方向已成形，但启动、Admin foreign reads、App compatibility、schema ownership 和 Search E2E 仍有边界泄漏或证据缺口。
+- Invariants: Owner single-writer；source ownership 不转移；bounded reads；Submission snapshot；public compatibility；explicit Owner config fail-closed；Search sole writer/idempotent/fallback；expand-verify-contract；rollback seam；development-only authority。
+- Delivery authority: 仅 development/TEST-TARGET；`.auto-flow/` 不暂存。
+- Terminal condition: AR20260820-001..006 均 done，Required Evidence 全部记录，Confirmed Findings=0，验证和控制面审计通过。

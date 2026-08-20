@@ -19,6 +19,7 @@ import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -130,6 +131,23 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "WHERE created_at >= #{startDate} AND created_at < #{endDate}")
     long countDistinctUsersInRange(@Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
+
+    /** Submission dashboard date buckets owned by the Submission schema. */
+    @Select("""
+            SELECT DATE_FORMAT(created_at, #{dateFormat}) AS bucket, COUNT(*) AS count
+            FROM submissions
+            WHERE created_at >= #{startDate} AND created_at <= #{endDate}
+            GROUP BY DATE_FORMAT(created_at, #{dateFormat})
+            ORDER BY bucket
+            """)
+    List<Map<String, Object>> countDashboardByBucket(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("dateFormat") String dateFormat);
+
+    /** Preserve the legacy Admin Dashboard acceptance-rate calculation. */
+    @Select("SELECT COALESCE(SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0), 0) FROM submissions")
+    Double calculateDashboardAcceptanceRate();
 
     /** Submission calendar dates for a user/year (user read). */
     @Select("SELECT DISTINCT DATE_FORMAT(created_at, '%Y-%m-%d') as date FROM submissions "

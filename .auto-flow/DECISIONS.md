@@ -25,3 +25,169 @@
 
 ### Affected tasks
 ARCH-REVIEW-001, ARCH-REVIEW-002, ARCH-REVIEW-003, ARCH-REVIEW-004, ARCH-REVIEW-005.
+
+## Architecture review execution planning addendum (2026-08-20)
+
+### Context
+`/tmp/architecture-review-20260820-164414.html` identifies five candidates. The repository already has Owner/Contract seams, but the report finds shallow startup behavior, Admin foreign-table reads, an App Submission compatibility matrix, Account/Profile schema drift, and a split Search verification surface. The target is development/TEST-TARGET only.
+
+### Decision
+Execute one ordered DAG: `AR20260820-001` DevStack/dev-lite → `AR20260820-002` Admin Dashboard read seam → `AR20260820-003` App Submission migration seam → `AR20260820-004` Account/Profile schema contract → `AR20260820-005` Search disposable verification → `AR20260820-006` final audit. Implement the smallest complete change at the existing seam; do not add physical services or speculative infrastructure.
+
+### Alternatives
+- Do not add more Contest/Moderation/Notification services: the report provides no independent writer/seam evidence.
+- Do not introduce RocketMQ/Seata/Kubernetes/Service Mesh: current development reliability primitives are sufficient.
+- Do not delete legacy/remote rollback paths: production quiesce, observability and retirement authority are absent.
+- Do not make Admin a foreign-data owner: preserve source ownership and use one bounded read seam.
+
+### Consequences
+Startup and read boundaries become explicit and testable; migration compatibility remains reversible; verification depth improves without runtime expansion. Development configuration may narrow its default interface while migration bootstrap remains available.
+
+### Affected tasks
+AR20260820-001, AR20260820-002, AR20260820-003, AR20260820-004, AR20260820-005, AR20260820-006.
+
+## Report do-not-split constraints (2026-08-20)
+
+### Context
+The report explicitly states that convergence must not be achieved by adding more modules, physically splitting the existing storage-free judge-runtime again, deleting rollback paths, or claiming production authority from local rehearsal.
+
+### Decision
+Treat each constraint as a mandatory terminal acceptance item for `AR20260820-006`: preserve current service boundaries, preserve judge-runtime's storage-free execution boundary, inventory and retain rollback seams, and label all evidence development-only.
+
+### Affected tasks
+AR20260820-006.
+
+## AR20260820-002 Dashboard read seam (2026-08-20)
+
+### Context
+`DefaultDashboardStatsProjection` currently preserves the Admin HTTP shape but
+uses `DashboardMapper` for direct SELECTs against App-owned problems/contests/
+solutions/forum tables and the Submission table. Admin's datasource and mapper
+scan are already owner-local, so the implementation depends on hidden grants
+and cannot be a real Admin owner boundary.
+
+### Decision
+Keep the existing `DashboardStatsProjection` interface and `DashboardStatsVO` /
+`ChartStatsVO` contracts. Add one Admin-owned `AdminDashboardReadPort` seam
+behind the projection; implement the App-owned aggregates in an entity-free
+`DashboardAdminReadPort` provider and extend the existing Submission admin read
+contract for submission dashboard stats/charts. The seam owns bounded fan-out,
+maps owner DTOs to Admin read data, and converts owner failures to an explicit
+unavailable error. Delete the Admin `DashboardMapper`; do not add a service,
+schema, writer, event infrastructure, or production route change.
+
+### Alternatives rejected
+- Do not let Admin inject App/Submission mappers or widen Admin mapper scanning.
+- Do not make the Dashboard controller call several owner ports directly; keep
+  aggregation and failure semantics behind one deep Admin interface.
+- Do not add an event projection in this task; no existing event/read-model
+  authority is available for dashboard freshness, so use bounded owner queries.
+
+### Affected task
+AR20260820-002.
+
+## AR20260820-003 Submission migration seam (2026-08-20)
+
+### Decision
+Keep the existing `SubmissionWritePort`, `SubmissionFencePort`, and
+`SubmissionUserQueryPort` interfaces as the stable App intake/read/fence
+surfaces. Centralize local/remote implementation selection and unavailable
+provider failure in `SubmissionRoutingProperties.select(...)`, then make all
+three routing wrappers delegate through that helper.
+
+### Consequences
+`dev-lite/local` has one deterministic local route policy, `remote` remains
+cutover-gated, and write/fence/user-read cannot silently diverge or dual-call.
+The remote adapters, App-local implementation, legacy outbox/dispatcher and
+rollback configuration remain available; production retirement is deferred.
+
+### Rejected alternative
+Do not delete the legacy/local implementation or remove judge envelope/cutover
+flags in this development-only task: the dispatcher still uses cutover
+watermarks and external quiesce/observation authority is absent.
+
+### Affected task
+AR20260820-003.
+
+## AR20260820-004 Auth/Profile ownership (2026-08-20)
+
+### Decision
+Keep Auth `users` as an account/authz projection and make App
+`user_profiles` the only profile storage and writer. Add one later Auth-owner
+contract migration to drop the nine legacy profile columns; update the existing
+backfill/parity script to project account columns to Auth and profile columns to
+App without changing the legacy source.
+
+### Compatibility
+Use expand → verify → contract: run the existing preflight/backfill with an
+explicit quiesce confirmation, verify full account/profile parity including
+soft-deleted accounts, then apply the later migration. Auth Java mappers already
+select account-only columns, so no public DTO or RPC contract changes are
+needed.
+
+### Rejected alternative
+Do not edit the original Auth migration, retain profile columns in Auth as a
+second writer, or add cross-owner SQL to the Auth migration. Do not add a new
+service or migration framework for a schema-contract gap.
+
+### Affected task
+AR20260820-004.
+
+## AR20260820-005 Search disposable verification seam (2026-08-20)
+
+### Decision
+Add one test-only integration harness at the App `SearchReadProjection`
+boundary. It starts disposable Redis and MeiliSearch, publishes the existing
+wire envelope to the existing stream, invokes the existing worker, queries the
+existing projection, and asserts idempotency, delete/version behavior, DLQ
+envelope transfer, and DB fallback.
+
+### Compatibility
+Keep `backend-search` free of App contracts at runtime. Any dependency from
+App to the worker is test scope only; no production bean, route, event field,
+or ownership boundary changes. Unique stream/group/index identifiers isolate
+the test from the local default stack.
+
+### Rejected alternative
+Do not add a new runtime service, duplicate the Search projection, or replace
+the existing worker E2E stub. Do not report the env-gated external Meili test
+as real E2E evidence when the disposable image cannot be pulled.
+
+### Affected task
+AR20260820-005.
+
+## AR20260820-006 Terminal architecture audit (2026-08-20)
+
+### Decision
+Close the report execution after Candidates 01–05 are evidence-backed. Keep
+the existing distributed modular-monolith seams: do not add modules to force
+convergence, do not physically split `judge-runtime`, and do not retire any
+rollback or local compatibility path.
+
+### Authority
+All evidence is development/TEST-TARGET evidence. No production acceptance,
+deployment, cutover, grant, commit, push or publish action is authorized or
+claimed. The terminal audit records the boundary rather than widening scope.
+
+### Affected task
+AR20260820-006.
+
+## AR20260820-001 DevStack implementation decisions (2026-08-20)
+
+### Decision
+Keep the existing shared Flyway bootstrap, then apply the declarative Owner
+manifest in `auth → admin → app → notification → submission` order. When the
+shared chain leaves one of the canonical bootstrap-only tables (`auth` search
+outbox, `admin` audit outbox, or `submission` created outbox), `up.sh` may use
+the existing DEV-LOCAL baseline guard only after exact shape, empty history,
+and zero-row checks; unknown shapes fail closed.
+
+### Compatibility
+Treat MySQL 9.1's local `root` explicit static privilege list as the same
+local migration superset only when it has direct `GRANT OPTION` and the full
+owner-migration capability set. Non-root global capability lists remain
+rejected. Notification and Submission migration identities also require
+global `GRANT OPTION` because their migrations grant `USAGE ON *.*`.
+
+### Affected task
+AR20260820-001.

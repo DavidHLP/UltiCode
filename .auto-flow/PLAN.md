@@ -1634,3 +1634,183 @@ External/production authority is not required for the local implementation slice
 ### ARCHFIX-004 Replan Note (2026-08-20)
 
 The original contract-only ARCHFIX-004-001 slice was blocked: changing SearchSource.searchDatabase alone breaks four implementations and DefaultSearchReadProjection, while the underlying app-api read ports expose neither offset nor count. It is superseded by the ready atomic packet above, which updates every affected contract, adapter/provider and compile caller before advancing to 004-002. No page-size-as-total fallback is acceptable.
+
+## AR20260820-002 Execution Packet (2026-08-20)
+
+### Objective
+Remove Admin Dashboard's direct foreign-owner table reads while preserving the
+existing `/admin/dashboard/stats` and `/admin/dashboard/charts` response
+contracts and chart semantics.
+
+### In scope
+- `DashboardController`, `DashboardStatsProjection`,
+  `DefaultDashboardStatsProjection`, Admin-owned dashboard read seam and tests.
+- App-owned entity-free dashboard aggregate contract/provider/mapper for
+  problems, contests, solutions, and forum.
+- Existing `SubmissionAdminReadPort` extension for owner-side submission
+  dashboard counts and chart buckets, with both App compatibility and
+  Submission owner providers kept in sync.
+- Admin/Application contract and datasource/mapper-scan architecture tests,
+  bounded-call and unavailable-owner tests, focused Admin/App/Submission
+  compile/test checks and docs/control-plane evidence.
+
+### Out of scope and invariants
+- No new physical service, schema/migration, writer, broker, event projection,
+  production route, grant, deployment, or public HTTP field change.
+- Admin remains the owner of Dashboard VO/read shape only; App owns App tables,
+  Submission owns submission tables, and Auth remains the account owner.
+- The Admin caller crosses one `AdminDashboardReadPort`; owner adapters use
+  bounded query calls and fail closed on unavailable/malformed owner data.
+
+### Acceptance and validation
+- No Admin mapper or Admin SQL selects `problems`, `contests`, `submissions`,
+  `solutions`, or `forum_*`; Admin mapper scan remains Admin-local.
+- One Dashboard read seam supplies all non-user stats/charts; one owner call
+  per aggregate is asserted; unavailable owner behavior is explicit.
+- Existing Admin Dashboard controller authorization and HTTP VO/chart behavior
+  remain unchanged.
+- Focused Admin/App/Submission tests, affected reactor compile/test,
+  architecture/contract checks, `git diff --check`, graph refresh, and the
+  highest applicable integration/runtime smoke pass.
+
+### Rollback
+Restore the last runnable Dashboard projection and existing owner contracts;
+no data rollback is needed because this task changes read seams only.
+
+## AR20260820-003 Execution Packet (2026-08-20)
+
+### Objective
+Converge App Submission local/remote/legacy compatibility behavior behind one
+stable intake/migration seam without deleting rollback implementations or
+changing the public Submission contract.
+
+### In scope
+- `SubmissionRoutingProperties` as the single route policy for write, fence,
+  and user-read paths.
+- `SubmissionWriteRoutingPort`, `SubmissionFenceRoutingPort`, and
+  `SubmissionUserQueryRoutingPort` delegating through the same local/remote
+  selection and unavailable-provider failure behavior.
+- Existing `RemoteSubmission*Adapter` conditional activation, App-local
+  compatibility/legacy path, feature-flag validator tests, and routing docs.
+
+### Out of scope and invariants
+- No public HTTP/Result/Submission DTO change, dual write, applied migration,
+  schema/table owner change, new service, broker, production cutover, or
+  deletion of legacy/rollback adapters.
+- `dev-lite/local` remains the default and never resolves remote providers;
+  `dev-full/remote` remains cutover-gated by `cutover-complete=true`.
+- All three route families use one policy helper, fail closed when remote is
+  configured but unavailable, and preserve the local implementation for rollback.
+
+### Acceptance and validation
+- One stable route policy is exercised by write, fence, and user-read paths;
+  no route family duplicates mode/provider selection logic.
+- Invalid mode and remote-without-cutover fail at startup/property validation;
+  local/remote route tests prove no dual interaction.
+- Existing feature flag/cutover validator tests, affected reactor compile/test,
+  graph refresh, docs consistency and `git diff --check` pass.
+
+### Rollback
+Revert the policy-helper/routing-wrapper change; local and remote adapters,
+legacy dispatcher and rollback flags remain present and unchanged in behavior.
+
+## AR20260820-004 Execution Packet (2026-08-20)
+
+### Objective
+Align Auth `users` with account/authz ownership after App
+`user_profiles` becomes the sole profile writer, while preserving the
+expand/backfill/verify rollback window and never editing an applied migration.
+
+### In scope
+- A later Auth-owner migration that contracts only the unused profile columns.
+- The existing owner profile backfill script's account/profile projection and
+  parity checks, including soft-deleted source accounts.
+- Auth schema-contract evidence proving the migration removes profile columns,
+  retains account columns, and leaves Auth account queries executable.
+- Focused migration/schema checks, affected Auth/App tests, graph refresh, and
+  control-plane evidence.
+
+### Out of scope and invariants
+- No edit to `V20260729140100__Create_Auth_Schema_Tables.sql` or any applied
+  migration; no production migration, grant, cutover, or service split.
+- Auth owns account identity/authentication/authorization only. App owns every
+  profile field and remains the sole profile writer.
+- The legacy source is read-only during backfill; preflight, manifest checksums,
+  quiesce confirmation, parity verification, and explicit rollback remain.
+
+### Acceptance and validation
+- Fresh Auth migration chain ends without the nine profile columns and keeps
+  the account/authz columns required by the Auth persistence contract.
+- Backfill SQL and parity checks no longer require Auth profile columns, and a
+  real MySQL run proves account/profile parity for live and soft-deleted rows.
+- Auth account mapper tests, App profile writer tests, migration contract test,
+  affected reactor checks, graph refresh, YAML/diff checks pass.
+
+### Rollback
+Before contraction, use the existing manifest-backed owner rollback after
+quiescing writers. After the later migration is applied, rollback means restore
+the last known-good schema through a new forward migration/backup procedure;
+the applied migration itself is never edited.
+
+## AR20260820-005 Execution Packet (2026-08-20)
+
+### Objective
+Make the existing Search worker/read module relationship reproducible through
+one disposable event-to-query harness without adding a runtime service or
+changing the Search ownership boundaries.
+
+### In scope
+- A test-only App harness that uses the existing `SearchReadProjection`
+  interface and `SearchDocumentIndexWorker` with disposable Redis and
+  MeiliSearch containers.
+- Real envelope transport, idempotent UPSERT/DELETE/version-ledger behavior,
+  Redis DLQ envelope preservation, and the existing DB fallback path.
+- Minimal test-scope dependency wiring only; existing worker/unit and gated
+  real-Meili projection tests remain unchanged.
+
+### Out of scope and invariants
+- No new runtime module/service, HTTP route, event contract, Meili writer, or
+  production configuration change.
+- `SearchDocumentIndexWorker` remains the sole Meili writer; App read remains
+  Meili-first with whole-request DB fallback; source URL/DB behavior remains
+  behind `SearchSource`.
+- The harness owns all disposable resources and uses unique keys/documents so
+  retries cannot touch a developer's default stack.
+
+### Acceptance and validation
+- A real Redis + real Meili test proves event → worker → index →
+  `SearchReadProjection` query, stable duplicate replay, delete tombstone and
+  stale-upsert suppression.
+- The same harness proves atomic DLQ envelope transfer after retry exhaustion
+  and DB fallback when Meili is unavailable.
+- Focused worker/harness tests, affected App/Search reactor checks,
+  Compose/config/static boundary checks, graph refresh and `git diff --check`
+  pass. If the disposable Meili image is unavailable, preserve a separate
+  explicit external gate rather than claiming E2E completion.
+
+### Rollback
+Remove or disable the test-only harness/dependency; no runtime or persisted
+state rollback is needed.
+
+## AR20260820-006 Terminal Audit Packet (2026-08-20)
+
+### Objective
+Close the architecture-review execution with evidence-backed Candidate
+01–05 outcomes, a no-new-module/judge-runtime boundary audit, retained
+rollback seams, and an explicit development-only authority statement.
+
+### Acceptance and validation
+- All five candidate tasks are `done` with implementation, review, validation,
+  rollback and Coverage evidence in the control plane.
+- Full services `./mvnw verify -B` succeeds; focused real MySQL/Redis/Meili,
+  owner migration and App/Auth/Search/Judge checks remain green; Compose,
+  YAML, graph and diff gates pass.
+- Judge remains the existing storage-free worker/configuration; no physical
+  split or new runtime module was introduced by this report execution.
+- Local rehearsal, disposable containers and test-only harnesses are not
+  production acceptance; no commit/push/deploy/cutover/grant action occurs.
+
+### Rollback
+No new mutation is required. Existing local/remote/legacy, migration
+preflight/manifest, Search DLQ/fallback, and worker disable seams remain the
+rollback inventory; only control-plane status/evidence is finalized.

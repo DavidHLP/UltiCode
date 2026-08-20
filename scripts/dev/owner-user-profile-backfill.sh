@@ -9,10 +9,10 @@ ACTION="${1:-preflight}"
 MANIFEST_FILE="${OWNER_BACKFILL_MANIFEST:-$ROOT_DIR/.local/owner-user-profile-backfill.manifest}"
 
 case "$ACTION" in
-  preflight|backfill|rollback)
+  preflight|contract-preflight|backfill|rollback)
     ;;
   *)
-    echo "Usage: $0 [preflight|backfill|rollback]" >&2
+    echo "Usage: $0 [preflight|contract-preflight|backfill|rollback]" >&2
     exit 2
     ;;
 esac
@@ -39,6 +39,7 @@ AUTH_SCHEMA="${OWNER_BACKFILL_AUTH_SCHEMA:-auth}"
 APP_SCHEMA="${OWNER_BACKFILL_APP_SCHEMA:-app}"
 MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+PROFILE_COLUMNS=(name avatar bio company github location twitter website preferred_language)
 
 valid_identifier() {
   [[ "$1" =~ ^[A-Za-z0-9_]+$ ]]
@@ -126,12 +127,26 @@ profiles_count() {
   mysql_query "SELECT COUNT(*) FROM $1.user_profiles;"
 }
 
+profile_column_sql() {
+  local column
+  local quoted=()
+  for column in "${PROFILE_COLUMNS[@]}"; do
+    quoted+=("'$column'")
+  done
+  local IFS=,
+  printf '%s' "${quoted[*]}"
+}
+
+auth_profile_columns_count() {
+  mysql_query "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='$AUTH_SCHEMA' AND table_name='users' AND column_name IN ($(profile_column_sql));"
+}
+
 users_checksum() {
   local schema="$1"
   if [[ "$schema" == "$SOURCE_SCHEMA" ]]; then
-    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', u.id, u.username, p.name, u.email, p.avatar, SHA2(COALESCE(u.password, ''), 256), p.bio, p.company, p.github, u.joined_at, p.location, p.twitter, p.website, p.preferred_language, u.role, u.is_active, u.is_banned, u.banned_until, u.banned_reason, u.last_login_at, u.created_by, u.updated_by, u.is_deleted, u.deleted_at, u.deleted_by, u.password_reset_token_hash, u.password_reset_expires_at, u.authz_version) ORDER BY u.id SEPARATOR '\\n')), MD5('')) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id;"
+    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', id, username, email, SHA2(COALESCE(password, ''), 256), joined_at, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version) ORDER BY id SEPARATOR '\\n')), MD5('')) FROM $SOURCE_SCHEMA.users;"
   else
-    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', id, username, name, email, avatar, SHA2(COALESCE(password, ''), 256), bio, company, github, joined_at, location, twitter, website, preferred_language, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version) ORDER BY id SEPARATOR '\\n')), MD5('')) FROM $schema.users;"
+    mysql_query "SELECT COALESCE(MD5(GROUP_CONCAT(CONCAT_WS('|', id, username, email, SHA2(COALESCE(password, ''), 256), joined_at, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version) ORDER BY id SEPARATOR '\\n')), MD5('')) FROM $schema.users;"
   fi
 }
 
@@ -187,7 +202,7 @@ verify_parity() {
   assert_no_extra_targets
   source_missing="$(source_missing_profiles)"
   source_orphan="$(source_orphan_profiles)"
-  mismatch_users="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles s ON s.account_id=u.id LEFT JOIN $AUTH_SCHEMA.users a ON a.id=u.id WHERE a.id IS NULL OR NOT (a.username <=> u.username) OR NOT (a.name <=> s.name) OR NOT (a.email <=> u.email) OR NOT (a.avatar <=> s.avatar) OR NOT (a.password <=> u.password) OR NOT (a.bio <=> s.bio) OR NOT (a.company <=> s.company) OR NOT (a.github <=> s.github) OR NOT (a.joined_at <=> u.joined_at) OR NOT (a.location <=> s.location) OR NOT (a.twitter <=> s.twitter) OR NOT (a.website <=> s.website) OR NOT (a.preferred_language <=> s.preferred_language) OR NOT (a.role <=> u.role) OR NOT (a.is_active <=> u.is_active) OR NOT (a.is_banned <=> u.is_banned) OR NOT (a.banned_until <=> u.banned_until) OR NOT (a.banned_reason <=> u.banned_reason) OR NOT (a.last_login_at <=> u.last_login_at) OR NOT (a.created_by <=> u.created_by) OR NOT (a.updated_by <=> u.updated_by) OR NOT (a.is_deleted <=> u.is_deleted) OR NOT (a.deleted_at <=> u.deleted_at) OR NOT (a.deleted_by <=> u.deleted_by) OR NOT (a.password_reset_token_hash <=> u.password_reset_token_hash) OR NOT (a.password_reset_expires_at <=> u.password_reset_expires_at) OR NOT (a.authz_version <=> u.authz_version);")"
+  mismatch_users="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $AUTH_SCHEMA.users a ON a.id=u.id WHERE a.id IS NULL OR NOT (a.username <=> u.username) OR NOT (a.email <=> u.email) OR NOT (a.password <=> u.password) OR NOT (a.joined_at <=> u.joined_at) OR NOT (a.role <=> u.role) OR NOT (a.is_active <=> u.is_active) OR NOT (a.is_banned <=> u.is_banned) OR NOT (a.banned_until <=> u.banned_until) OR NOT (a.banned_reason <=> u.banned_reason) OR NOT (a.last_login_at <=> u.last_login_at) OR NOT (a.created_by <=> u.created_by) OR NOT (a.updated_by <=> u.updated_by) OR NOT (a.is_deleted <=> u.is_deleted) OR NOT (a.deleted_at <=> u.deleted_at) OR NOT (a.deleted_by <=> u.deleted_by) OR NOT (a.password_reset_token_hash <=> u.password_reset_token_hash) OR NOT (a.password_reset_expires_at <=> u.password_reset_expires_at) OR NOT (a.authz_version <=> u.authz_version);")"
   mismatch_profiles="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.user_profiles s LEFT JOIN $APP_SCHEMA.user_profiles p ON p.account_id=s.account_id WHERE NOT (p.name <=> s.name) OR NOT (p.avatar <=> s.avatar) OR NOT (p.bio <=> s.bio) OR NOT (p.company <=> s.company) OR NOT (p.github <=> s.github) OR NOT (p.location <=> s.location) OR NOT (p.twitter <=> s.twitter) OR NOT (p.website <=> s.website) OR NOT (p.preferred_language <=> s.preferred_language);")"
   target_missing_profiles="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.users u LEFT JOIN $APP_SCHEMA.user_profiles p ON p.account_id=u.id WHERE p.account_id IS NULL;")"
   target_orphan_profiles="$(mysql_query "SELECT COUNT(*) FROM $APP_SCHEMA.user_profiles p LEFT JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id WHERE u.id IS NULL;")"
@@ -203,8 +218,8 @@ manifest_value() {
 }
 refresh_manifest_checksums() {
   local refreshed_manifest="${MANIFEST_FILE}.tmp"
-  awk '!/^checksum_schema=|^post_users_checksum=|^post_profiles_checksum=|^rolled_back=/' "$MANIFEST_FILE" > "$refreshed_manifest"
-  printf 'checksum_schema=full_projection_with_password_sha256\npost_users_checksum=%s\npost_profiles_checksum=%s\n' \
+  awk '!/^version=|^checksum_schema=|^post_users_checksum=|^post_profiles_checksum=|^rolled_back=/' "$MANIFEST_FILE" > "$refreshed_manifest"
+  printf 'version=2\nchecksum_schema=account_projection_with_password_sha256\npost_users_checksum=%s\npost_profiles_checksum=%s\n' \
     "$(users_checksum "$AUTH_SCHEMA")" "$(profiles_checksum "$APP_SCHEMA")" >> "$refreshed_manifest"
   mv "$refreshed_manifest" "$MANIFEST_FILE"
 }
@@ -214,7 +229,7 @@ write_manifest() {
   mkdir -p "$(dirname "$MANIFEST_FILE")"
   umask 077
   {
-    printf 'version=1\nsource_schema=%s\nauth_schema=%s\napp_schema=%s\nusers_checksum_before=%s\nprofiles_checksum_before=%s\n' \
+    printf 'version=2\nchecksum_schema=account_projection_with_password_sha256\nsource_schema=%s\nauth_schema=%s\napp_schema=%s\nusers_checksum_before=%s\nprofiles_checksum_before=%s\n' \
       "$SOURCE_SCHEMA" "$AUTH_SCHEMA" "$APP_SCHEMA" "$(users_checksum "$AUTH_SCHEMA")" "$(profiles_checksum "$APP_SCHEMA")"
     while IFS= read -r id; do
       [[ -z "$id" ]] && continue
@@ -236,6 +251,28 @@ require_quiesce() {
   }
 }
 
+contract_preflight() {
+  [[ "${DEV_LOCAL_OWNER_PROFILE_CONTRACT_CONFIRM:-}" == "I_UNDERSTAND_AUTH_PROFILE_CONTRACT" ]] || {
+    echo 'contract-preflight requires DEV_LOCAL_OWNER_PROFILE_CONTRACT_CONFIRM=I_UNDERSTAND_AUTH_PROFILE_CONTRACT' >&2
+    exit 1
+  }
+  require_quiesce
+  [[ -f "$MANIFEST_FILE" ]] || {
+    echo "Backfill manifest is required before Auth profile contract: $MANIFEST_FILE" >&2
+    exit 1
+  }
+  [[ "$(manifest_value version)" == "2" ]] || {
+    echo 'Run backfill once to upgrade the manifest to version 2 before contract.' >&2
+    exit 1
+  }
+  [[ "$(auth_profile_columns_count)" == "${#PROFILE_COLUMNS[@]}" ]] || {
+    echo 'Auth users profile columns are not in the expected expand-phase shape.' >&2
+    exit 1
+  }
+  verify_parity
+  echo 'DEV-LOCAL Auth/Profile contract preflight: PASS'
+}
+
 require_tables
 print_snapshot preflight
 
@@ -244,6 +281,9 @@ case "$ACTION" in
     assert_no_duplicates
     assert_no_extra_targets
     echo 'DEV-LOCAL users/profile preflight: PASS'
+    ;;
+  contract-preflight)
+    contract_preflight
     ;;
   backfill)
     [[ "${DEV_LOCAL_OWNER_BACKFILL_CONFIRM:-}" == "I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL" ]] || {
@@ -267,9 +307,9 @@ case "$ACTION" in
     fi
     write_manifest
     query="START TRANSACTION;
-INSERT INTO $AUTH_SCHEMA.users (id, username, name, email, avatar, password, bio, company, github, joined_at, location, twitter, website, preferred_language, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version)
-SELECT u.id, u.username, p.name, u.email, p.avatar, u.password, p.bio, p.company, p.github, u.joined_at, p.location, p.twitter, p.website, p.preferred_language, u.role, u.is_active, u.is_banned, u.banned_until, u.banned_reason, u.last_login_at, u.created_by, u.updated_by, u.is_deleted, u.deleted_at, u.deleted_by, u.password_reset_token_hash, u.password_reset_expires_at, u.authz_version
-FROM $SOURCE_SCHEMA.users u LEFT JOIN $SOURCE_SCHEMA.user_profiles p ON p.account_id=u.id;
+INSERT INTO $AUTH_SCHEMA.users (id, username, email, password, joined_at, role, is_active, is_banned, banned_until, banned_reason, last_login_at, created_by, updated_by, is_deleted, deleted_at, deleted_by, password_reset_token_hash, password_reset_expires_at, authz_version)
+SELECT u.id, u.username, u.email, u.password, u.joined_at, u.role, u.is_active, u.is_banned, u.banned_until, u.banned_reason, u.last_login_at, u.created_by, u.updated_by, u.is_deleted, u.deleted_at, u.deleted_by, u.password_reset_token_hash, u.password_reset_expires_at, u.authz_version
+FROM $SOURCE_SCHEMA.users u;
 INSERT INTO $APP_SCHEMA.user_profiles (account_id, name, avatar, bio, company, github, location, twitter, website, preferred_language)
 SELECT p.account_id, p.name, p.avatar, p.bio, p.company, p.github, p.location, p.twitter, p.website, p.preferred_language
 FROM $SOURCE_SCHEMA.user_profiles p JOIN $SOURCE_SCHEMA.users u ON u.id=p.account_id;
@@ -295,7 +335,7 @@ COMMIT;"
       echo "Backfill manifest is required for safe rollback: $MANIFEST_FILE" >&2
       exit 1
     }
-    [[ "$(manifest_value version)" == "1" ]] || {
+    [[ "$(manifest_value version)" == "2" ]] || {
       echo 'Unsupported backfill manifest version.' >&2
       exit 1
     }

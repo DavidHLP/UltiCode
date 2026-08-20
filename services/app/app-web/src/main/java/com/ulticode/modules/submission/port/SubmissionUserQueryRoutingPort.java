@@ -38,14 +38,7 @@ public class SubmissionUserQueryRoutingPort implements SubmissionUserQueryPort {
     private final SubmissionRoutingProperties routing;
 
     private SubmissionUserQueryPort delegate() {
-        if (!routing.isRemote()) {
-            return local;
-        }
-        RemoteSubmissionUserQueryAdapter remotePort = remote.getIfAvailable();
-        if (remotePort == null) {
-            throw new IllegalStateException("Remote Submission user-read route is enabled but unavailable");
-        }
-        return remotePort;
+        return routing.select(local, remote::getIfAvailable, "user-read");
     }
 
     @Override

@@ -35,6 +35,14 @@ public class DefaultSolutionReadAdapter implements SolutionReadPort {
 
     @Override
     public List<SolutionIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    @Override
+    public List<SolutionIndexDTO> searchForIndex(String query, int offset, int limit) {
+        if (query == null || query.isBlank() || offset < 0 || limit <= 0) {
+            return List.of();
+        }
         QueryWrapper<Solution> wrapper = new QueryWrapper<>();
         wrapper.and(w -> w
                 .like("title", query)
@@ -43,7 +51,7 @@ public class DefaultSolutionReadAdapter implements SolutionReadPort {
         )
                 .eq("is_published", true)
                 .eq("is_deleted", false)
-                .last("LIMIT " + limit);
+                .last("LIMIT " + limit + " OFFSET " + offset);
 
         List<Solution> solutions = solutionMapper.selectList(wrapper);
 
@@ -54,6 +62,23 @@ public class DefaultSolutionReadAdapter implements SolutionReadPort {
                         s.getSummary(),
                         s.getProblemId()))
                 .toList();
+    }
+
+    @Override
+    public long countForIndex(String query) {
+        if (query == null || query.isBlank()) {
+            return 0;
+        }
+        QueryWrapper<Solution> wrapper = new QueryWrapper<>();
+        wrapper.and(w -> w
+                .like("title", query)
+                .or()
+                .like("summary", query)
+        )
+                .eq("is_published", true)
+                .eq("is_deleted", false);
+        Long count = solutionMapper.selectCount(wrapper);
+        return count == null ? 0 : count;
     }
 
     @Override

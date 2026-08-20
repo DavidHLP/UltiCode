@@ -37,7 +37,7 @@ public class UserSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        List<UserIndexDTO> users = userSearchReadPort.searchForIndex(query, limit);
+        List<UserIndexDTO> users = userSearchReadPort.searchForIndex(query, offset, limit);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(users.size());
         for (UserIndexDTO user : users) {
@@ -57,6 +57,11 @@ public class UserSearchSource implements SearchSource {
                     .build());
         }
         return results;
+    }
+
+    @Override
+    public long countDatabase(String query) {
+        return userSearchReadPort.countForIndex(query);
     }
 
     @Override

@@ -214,5 +214,5 @@ code-execution:
 # family; SearchController lives in backend-app now.
 meilisearch:
   enabled: ${MEILISEARCH_ENABLED:false}
-  host: ${MEILISEARCH_HOST:}
-  api-key: ${MEILISEARCH_API_KEY:}
+  host: ${MEILI_HOST:http://localhost:7700}
+  api-key: ${MEILI_MASTER_KEY:}

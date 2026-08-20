@@ -63,6 +63,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON app.* 
 GRANT RELOAD ON *.* TO 'migration_full'@'%';"
 
 set +e
+trap - ERR
 env ENV_FILE="$TEST_ENV" MIGRATION_SCHEMA=auth MIGRATION_DB_HOST=127.0.0.1 \
   MIGRATION_DB_PORT="$MYSQL_TEST_PORT" MIGRATION_DB_NAME=auth \
   MIGRATION_DB_USER=migration_missing MIGRATION_DB_PASSWORD="$MIGRATION_PASSWORD" \
@@ -70,6 +71,7 @@ env ENV_FILE="$TEST_ENV" MIGRATION_SCHEMA=auth MIGRATION_DB_HOST=127.0.0.1 \
   bash "$ROOT_DIR/scripts/dev/migrate.sh" validate > "$TEST_DIR/missing-dml.log" 2>&1
 MISSING_DML_STATUS=$?
 set -e
+trap 'printf "owner-migration-safety-integration-test: FAIL line=%s\n" "$LINENO" >&2' ERR
 if [[ "$MISSING_DML_STATUS" -eq 0 ]] || ! grep -q "required migration privilege missing on 'auth': INSERT" "$TEST_DIR/missing-dml.log"; then
   echo "missing Flyway DML rejection: FAIL" >&2
   exit 1
@@ -112,8 +114,29 @@ CREATE TABLE submission.submissions LIKE ulticode.submissions;
 CREATE TABLE submission.judge_outbox LIKE ulticode.judge_outbox;
 CREATE TABLE submission.submission_result_outbox LIKE ulticode.submission_result_outbox;
 CREATE TABLE submission.submission_created_outbox (id VARCHAR(40) PRIMARY KEY);
+GRANT SELECT, INSERT, UPDATE, DELETE ON ulticode.submissions TO 'app_rw'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON ulticode.judge_outbox TO 'app_rw'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON ulticode.submission_result_outbox TO 'app_rw'@'%';
+INSERT INTO ulticode.submissions VALUES ('submission-1');
+INSERT INTO ulticode.judge_outbox VALUES ('judge-1');
+INSERT INTO ulticode.submission_result_outbox VALUES ('result-1');
 CREATE USER 'ulticode'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';"
 printf 'grant isolation fixture setup: PASS\n'
+
+env ENV_FILE="$TEST_ENV" \
+  SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+  SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover.log" 2>&1
+CUTOVER_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM submission.submissions),(SELECT COUNT(*) FROM submission.judge_outbox),(SELECT COUNT(*) FROM submission.submission_result_outbox),(SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode' AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE')); ")"
+[[ "$CUTOVER_COUNTS" == $'1\t1\t1\t0' ]]
+
+env ENV_FILE="$TEST_ENV" \
+  SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_ROLLBACK \
+  SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" rollback --execute > "$TEST_DIR/submission-rollback.log" 2>&1
+ROLLBACK_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM ulticode.submissions),(SELECT COUNT(*) FROM ulticode.judge_outbox),(SELECT COUNT(*) FROM ulticode.submission_result_outbox),(SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode' AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE')); ")"
+[[ "$ROLLBACK_COUNTS" == $'1\t1\t1\t12' ]]
+printf 'submission cutover/rollback: PASS\n'
 
 expect_rehearsal_grant_failure() {
   local label="$1"

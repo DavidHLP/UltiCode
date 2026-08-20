@@ -3,6 +3,8 @@ package com.ulticode.modules.search.projection;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
+import com.meilisearch.sdk.model.SearchResult;
+import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.meilisearch.sdk.model.Searchable;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
@@ -33,9 +35,9 @@ import java.util.Map;
  * facade used to inline is preserved here: the MeiliSearch-optional setter
  * injection (the {@link Client} bean is created only when
  * {@code meilisearch.enabled=true}), the per-index fan-out with
- * {@code perIndexLimit}, the broad-catch fallback to database queries on
- * any MeiliSearch failure, and the per-type metadata enrichment for
- * MeiliSearch hits.
+ * reported hit totals with fixed-order page mapping, the broad-catch fallback
+ * to database queries on any MeiliSearch failure, and the per-type metadata
+ * enrichment for MeiliSearch hits.
  *
  * @author ulticode
  */
@@ -102,31 +104,34 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
         String query = queryDTO.getQuery().trim();
         SearchIndexType indexType = queryDTO.getIndex();
         int limit = queryDTO.getLimit();
-        int offset = queryDTO.getOffset();
+        int offset = Math.max(queryDTO.getOffset(), 0);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>();
         long totalHits = 0;
 
         if (indexType != null) {
-            // Search in specific index
-            SearchResponseVO.SearchResultItem[] items = searchIndex(indexType, query, limit, offset);
-            for (SearchResponseVO.SearchResultItem item : items) {
-                results.add(item);
-                totalHits++;
-            }
+            SearchIndexPage page = searchIndex(indexType, query, limit, offset);
+            results.addAll(page.items());
+            totalHits = page.total();
         } else {
-            // Search all indices
-            int perIndexLimit = Math.max(5, limit / 4);
+            int remainingOffset = offset;
+            int remainingLimit = limit;
             for (SearchIndexType type : SearchIndexType.values()) {
-                SearchResponseVO.SearchResultItem[] items = searchIndex(type, query, perIndexLimit, 0);
-                for (SearchResponseVO.SearchResultItem item : items) {
-                    results.add(item);
-                    totalHits++;
+                int requestOffset = remainingLimit > 0 ? remainingOffset : 0;
+                int requestLimit = remainingLimit > 0 ? remainingLimit : 1;
+                SearchIndexPage page = searchIndex(type, query, requestLimit, requestOffset);
+                totalHits += page.total();
+                if (remainingLimit == 0) {
+                    continue;
                 }
-            }
-            // Limit total results
-            if (results.size() > limit) {
-                results = results.subList(0, limit);
+                if (remainingOffset >= page.total()) {
+                    remainingOffset -= (int) page.total();
+                    continue;
+                }
+                int accepted = Math.min(page.items().size(), remainingLimit);
+                results.addAll(page.items().subList(0, accepted));
+                remainingLimit -= accepted;
+                remainingOffset = 0;
             }
         }
 
@@ -142,33 +147,36 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
     /**
      * Search a specific MeiliSearch index.
      */
-    private SearchResponseVO.SearchResultItem[] searchIndex(SearchIndexType indexType, String query, int limit, int offset) {
-        try {
-            Index index = meiliSearchClient.index(indexType.getIndexName());
-            SearchRequest searchRequest = SearchRequest.builder()
-                    .q(query)
-                    .limit(limit)
-                    .offset(offset)
-                    .attributesToHighlight(new String[]{"title", "summary", "excerpt", "content", "name", "username", "bio"})
-                    .build();
+    private SearchIndexPage searchIndex(SearchIndexType indexType, String query, int limit, int offset) {
+        Index index = meiliSearchClient.index(indexType.getIndexName());
+        SearchRequest searchRequest = SearchRequest.builder()
+                .q(query)
+                .limit(limit)
+                .offset(offset)
+                .attributesToHighlight(new String[]{"title", "summary", "excerpt", "content", "name", "username", "bio"})
+                .build();
 
-            Searchable searchResult = index.search(searchRequest);
-
-            List<SearchResponseVO.SearchResultItem> items = new ArrayList<>();
-            if (searchResult.getHits() != null) {
-                for (Object hit : searchResult.getHits()) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> hitMap = (Map<String, Object>) hit;
-                    items.add(convertMeiliSearchHit(hitMap, indexType));
-                }
+        Searchable searchResult = index.search(searchRequest);
+        long total = reportedTotal(searchResult);
+        List<SearchResponseVO.SearchResultItem> items = new ArrayList<>();
+        if (searchResult.getHits() != null) {
+            for (Object hit : searchResult.getHits()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> hitMap = (Map<String, Object>) hit;
+                items.add(convertMeiliSearchHit(hitMap, indexType));
             }
-
-            return items.toArray(new SearchResponseVO.SearchResultItem[0]);
-        // broad catch: fallback to database search on MeiliSearch failure
-        } catch (Exception e) {
-            log.error("Error searching MeiliSearch index {}: {}", indexType.getIndexName(), e.getMessage());
-            return new SearchResponseVO.SearchResultItem[0];
         }
+        return new SearchIndexPage(items, total);
+    }
+
+    private long reportedTotal(Searchable searchResult) {
+        if (searchResult instanceof SearchResult result) {
+            return result.getEstimatedTotalHits();
+        }
+        if (searchResult instanceof SearchResultPaginated result) {
+            return result.getTotalHits();
+        }
+        throw new IllegalStateException("MeiliSearch response did not include a total");
     }
 
     /**
@@ -278,34 +286,51 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
         String query = queryDTO.getQuery().trim();
         SearchIndexType indexType = queryDTO.getIndex();
         int limit = queryDTO.getLimit();
+        int offset = Math.max(queryDTO.getOffset(), 0);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>();
+        long total = 0;
 
-        if (indexType == null) {
-            // Aggregate across all sources with per-source budget
-            int problemBudget = limit / 2;
-            int others = limit / 4;
-            for (SearchSource source : sources) {
-                SearchIndexType type = source.getIndexType();
-                int budget = (type == SearchIndexType.PROBLEMS) ? problemBudget : others;
-                results.addAll(source.searchDatabase(query, 0, budget));
-            }
-        } else {
+        if (indexType != null) {
             // Route to the specific source
             SearchSource source = sourcesByType.get(indexType);
             if (source != null) {
-                results.addAll(source.searchDatabase(query, 0, limit));
+                total = source.countDatabase(query);
+                if (offset < total) {
+                    List<SearchResponseVO.SearchResultItem> page =
+                            source.searchDatabase(query, offset, limit);
+                    results.addAll(page.subList(0, Math.min(page.size(), limit)));
+                }
             }
-        }
-
-        // Limit total results
-        if (results.size() > limit) {
-            results = results.subList(0, limit);
+        } else {
+            int remainingOffset = offset;
+            int remainingLimit = limit;
+            for (SearchIndexType type : SearchIndexType.values()) {
+                SearchSource source = sourcesByType.get(type);
+                if (source == null) {
+                    continue;
+                }
+                long sourceTotal = source.countDatabase(query);
+                total += sourceTotal;
+                if (remainingLimit == 0) {
+                    continue;
+                }
+                if (remainingOffset >= sourceTotal) {
+                    remainingOffset -= (int) sourceTotal;
+                    continue;
+                }
+                List<SearchResponseVO.SearchResultItem> page =
+                        source.searchDatabase(query, remainingOffset, remainingLimit);
+                int accepted = Math.min(page.size(), remainingLimit);
+                results.addAll(page.subList(0, accepted));
+                remainingLimit -= accepted;
+                remainingOffset = 0;
+            }
         }
 
         return SearchResponseVO.builder()
                 .query(queryDTO.getQuery())
-                .total(results.size())
+                .total(total)
                 .page(queryDTO.getPage())
                 .limit(limit)
                 .results(results)
@@ -323,5 +348,8 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
             }
         }
         return "";
+    }
+
+    private record SearchIndexPage(List<SearchResponseVO.SearchResultItem> items, long total) {
     }
 }

@@ -73,7 +73,10 @@ public interface AuthAccountQueryMapper {
 
     @Select("<script>"
             + "SELECT COUNT(*) FROM users WHERE is_deleted = 0"
-            + "<if test='search != null and search != \"\"'>"
+            + "<if test='search != null and search != \"\" and usernameOnly'>"
+            + "  AND username LIKE CONCAT('%', #{search}, '%')"
+            + "</if>"
+            + "<if test='search != null and search != \"\" and !usernameOnly'>"
             + "  AND (username LIKE CONCAT('%', #{search}, '%') OR email LIKE CONCAT('%', #{search}, '%'))"
             + "</if>"
             + "<if test='role != null and role != \"\"'>"
@@ -90,5 +93,6 @@ public interface AuthAccountQueryMapper {
             @Param("search") String search,
             @Param("role") String role,
             @Param("active") Boolean active,
-            @Param("banned") Boolean banned);
+            @Param("banned") Boolean banned,
+            @Param("usernameOnly") boolean usernameOnly);
 }

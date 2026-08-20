@@ -30,14 +30,14 @@ public class DefaultForumPostReadAdapter implements ForumPostReadPort {
     private final ForumPostMapper forumPostMapper;
 
     @Override
-    public List<ForumPostIndexDTO> searchForIndex(String query, int limit) {
-        if (query == null || query.isBlank() || limit <= 0) {
+    public List<ForumPostIndexDTO> searchForIndex(String query, int offset, int limit) {
+        if (query == null || query.isBlank() || offset < 0 || limit <= 0) {
             return List.of();
         }
         QueryWrapper<ForumPost> wrapper = new QueryWrapper<>();
         wrapper.eq("is_deleted", false)
                 .and(w -> w.like("title", query).or().like("excerpt", query))
-                .last("LIMIT " + limit);
+                .last("LIMIT " + limit + " OFFSET " + offset);
         List<ForumPost> posts = forumPostMapper.selectList(wrapper);
         if (posts == null || posts.isEmpty()) {
             return List.of();
@@ -49,5 +49,21 @@ public class DefaultForumPostReadAdapter implements ForumPostReadPort {
                         p.getExcerpt(),
                         p.getPermalink()))
                 .toList();
+    }
+
+    public List<ForumPostIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    @Override
+    public long countForIndex(String query) {
+        if (query == null || query.isBlank()) {
+            return 0;
+        }
+        QueryWrapper<ForumPost> wrapper = new QueryWrapper<>();
+        wrapper.eq("is_deleted", false)
+                .and(w -> w.like("title", query).or().like("excerpt", query));
+        Long count = forumPostMapper.selectCount(wrapper);
+        return count == null ? 0 : count;
     }
 }

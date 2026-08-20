@@ -11,9 +11,11 @@ import java.util.Set;
  */
 public interface UserDirectoryQueryPort {
 
-    int CONTRACT_VERSION = 1;
+    int CONTRACT_VERSION = 2;
 
-    List<UserDirectoryRow> search(String query, int limit);
+    List<UserDirectoryRow> search(String query, int offset, int limit);
+
+    long count(String query);
 
     UserDirectoryRow findById(String accountId);
 

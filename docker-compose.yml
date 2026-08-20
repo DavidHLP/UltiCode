@@ -24,8 +24,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      infrastructure:
-        ipv4_address: 172.18.0.2
+      - infrastructure
 
   redis:
     image: redis:7-alpine
@@ -43,8 +42,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      infrastructure:
-        ipv4_address: 172.18.0.3
+      - infrastructure
 
   nacos:
     image: nacos/nacos-server:v2.3.2
@@ -78,8 +76,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      infrastructure:
-        ipv4_address: 172.18.0.4
+      - infrastructure
 
   meilisearch:
     image: getmeili/meilisearch:v1.8
@@ -107,9 +104,6 @@ services:
 networks:
   infrastructure:
     internal: true
-    ipam:
-      config:
-        - subnet: 172.18.0.0/24
 
 volumes:
   mysql_data:

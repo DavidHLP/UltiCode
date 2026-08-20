@@ -28,6 +28,10 @@ public interface SolutionReadPort {
      */
     List<SolutionIndexDTO> searchForIndex(String query, int limit);
 
+    List<SolutionIndexDTO> searchForIndex(String query, int offset, int limit);
+
+    long countForIndex(String query);
+
     /**
      * Count published solutions for a given problem.
      *

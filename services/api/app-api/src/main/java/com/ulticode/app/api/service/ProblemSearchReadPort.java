@@ -20,5 +20,11 @@ public interface ProblemSearchReadPort {
      * @param limit maximum number of rows
      * @return matching index projections, never null
      */
-    List<ProblemIndexDTO> searchForIndex(String query, int limit);
+    List<ProblemIndexDTO> searchForIndex(String query, int offset, int limit);
+
+    default List<ProblemIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    long countForIndex(String query);
 }

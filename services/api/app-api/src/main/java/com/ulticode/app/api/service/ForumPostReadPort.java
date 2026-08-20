@@ -23,5 +23,11 @@ public interface ForumPostReadPort {
      * @param limit maximum results
      * @return list of matching posts as index DTOs
      */
-    List<ForumPostIndexDTO> searchForIndex(String query, int limit);
+    List<ForumPostIndexDTO> searchForIndex(String query, int offset, int limit);
+
+    default List<ForumPostIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    long countForIndex(String query);
 }

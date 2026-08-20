@@ -974,6 +974,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 **Backfill（App 侧 `SearchBackfillRunner`）**：唯一写者仍是 worker——runner 只枚举 owner 库并发布 `SearchDocumentChanged` 事件（经 integration outbox → stream）。门控 `app.search.backfill.enabled=true` + `meilisearch.enabled=true`（默认关；索引选择 `app.search.backfill.indexes`，空=全部）。协议：watermark W=now → 分页枚举快照（谓词与 Q-read 一致；文档形状与 live publisher 逐字一致）→ 预检读 Meili 现有 `id+_aggregateVersion`（不可达即失败不半跑）→ 全量 UPSERT（版本=行 updated_at；用户=max(users.updated_at, profile.updated_at, deleted_at, joined_at)）→ 仅 `_aggregateVersion < W` 且不在快照的 id 发 DELETE（backfill 期间新建/更新的文档由 live 事件负责）。重跑幂等收敛；每次输出 snapshot/existing/upserts/deletes/watermark 计数日志。
 
 **启用顺序（SEARCH-003-slice-4 后）**：
+App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并提供与查询谓词一致的 count；用户搜索在 Auth 账号与 App profile 两个 Owner seam 之间按 `account_id ASC` 分页批量合并并去重，不执行跨 Owner SQL 或无界一次性加载。此内部契约迁移不改变 `/search` 的 Result、SearchResponseVO 字段或唯一 Meili writer 边界。
 1. 启动 MeiliSearch（compose 已含 meilisearch 服务与 `MEILI_MASTER_KEY`）并将 App 读路径 `meilisearch.enabled=true`；
 2. 启用 worker（`SEARCH_WORKER_ENABLED=true`，compose prod backend-search）与 Auth dispatcher（`AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED=true`）；
 3. 对每个索引执行 backfill（可先 `problems` 冒烟）；

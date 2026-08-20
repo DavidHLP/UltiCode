@@ -1,165 +1,140 @@
 version: 1
 objective: 修复 Services Strangler migration 下的开发入口、Owner seam、跨 Owner 读模型、Search 双实现和兼容路径问题
-updated_at: '2026-08-19'
+updated_at: '2026-08-20'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
 - id: ARCHFIX-001
   title: 建立 dev-lite 与 dev-full 双启动入口
   status: done
   depends_on: []
-  evidence:
-  - bash syntax
-  - help contract
-  - isolated mode smoke
-  - review confirmed findings=0
+  evidence: [bash syntax, help contract, isolated mode smoke, review confirmed findings=0]
 - id: ARCHFIX-002
   title: 完成每 Owner schema 与唯一写账号配置
   status: done
-  depends_on:
-  - ARCHFIX-001
-  evidence:
-  - owner credential generation
-  - fail-closed migration identity
-  - strict Compose
-  - grant-negative integration
+  depends_on: [ARCHFIX-001]
+  evidence: [owner credential generation, fail-closed migration identity, strict Compose, grant-negative integration]
 - id: ARCHFIX-003
   title: 聚合 Admin/Search/Submission 深读 Interface
-  source:
-  - user-request-2026-08-19-3
-  - AdminAnalyticsPort
-  - SubmissionAdminReadPort
-  - OwnerUserSearchReadAdapter
+  source: [user-request-2026-08-19-3, AdminAnalyticsPort, SubmissionAdminReadPort, OwnerUserSearchReadAdapter]
   status: done
-  depends_on:
-  - ARCHFIX-002
-  acceptance_criteria:
-  - 新增一个 App-owned UserDirectoryQueryPort，批量返回版本化 UserDirectoryRow；调用方不再组合 Auth account、Auth
-    identity 和 App profile RPC/mapper。
-  - UserDirectoryQueryPort 仅承载 Search 用户读模型：query、bounded page、stable id ASC enumeration
-    和 batch ids；不把 Admin analytics 或 Submission domain DTO 塞进同一接口。
-  - Auth owner 提供一次批量 Query contract；App adapter 只调用该 contract，不跨 Owner SQL、不暴露 Entity/Mapper。
-  - timeout、不可用、空结果、重复 account id、missing profile 和 freshness/version 字段语义明确并有测试。
-  - 现有 AdminAnalyticsPort 和 SubmissionAdminReadPort 保持独立粗粒度 owner seams，不创建第二套并行实现。
-  validation:
-  - contract shape tests
-  - bounded pagination/batch tests
-  - timeout/partial/freshness tests
-  - affected owner reactor tests
-  rollback:
-  - 保留现有 OwnerUserSearchReadAdapter 作为受控 rollback，切换不双写；失败恢复上一可运行 artifact
-  evidence:
-  - UserDirectoryQueryPort added
-  - Auth AccountQueryService now exposes getAccountsByIds
-  - Auth mapper uses bounded IN query and returns existing IDs only
-  - Owner adapter no longer filters page 1; >100 regression test added
-  - auth-api/auth compile and AccountQueryProviderTest passed
-  - app-web compile remains blocked by baseline SubmissionFactsSnapshot and Lombok/accessor
-    errors
-  - restored queryAccounts helper outside enumerateIndex
-  - restored test injection setters
-  - added UserDirectoryRow with contractVersion and freshness timestamps
-  - adapter now uniquely implements UserDirectoryQueryPort List<UserDirectoryRow>
-    methods
-  - AccountQueryProviderTest PASS after repair
-  - freshAt now takes max(authUpdatedAt, profileUpdatedAt)
-  - freshness regression test added for profile-only update
-  - UserDirectoryRow and adapter brace/signature checks PASS
-  - AccountQueryProviderTest PASS
-  - app-web targeted test blocked at compile by missing pre-existing SubmissionFactsSnapshot
-    in submission API consumers
-  - migrated UserSearchBackfillReadPort, DefaultUserSearchReadPort, DefaultAppUserWritePort
-    to UserDirectoryQueryPort
-  - removed UserSearchReadMapper and legacy adapter methods
-  - focused Search/App tests 50/0/0 PASS
-  - app-web reactor compile/test PASS
-  - TEST-target reactor compile PASS
-  - 'focused Search/App suite PASS: 50 tests, 0 failures, 0 errors, 0 skipped'
-  - legacy seam reference scan PASS
-  - git diff --check PASS
-  - 'REOPENED: focused tests did not cover adapter/findById/backfill freshness end-to-end'
-  - adapter findById now loads profile updated_at through SEARCH_COLUMNS
-  - toRow preserves Auth account.updatedAt in UserSearchRow.updatedAt and profile
-    timestamp in profileUpdatedAt
-  - findById end-to-end freshness regression passes
-  - backfill test passes with profile-only newer timestamp
-  - freshness/Search focused suite 27/0/0/0 PASS
-  - git diff --check PASS
-  - workspace-confirmed backfill uses UserDirectoryRow.freshAt directly
-  - workspace-confirmed findById handles null profile row list safely
-  - real workspace focused suite 23/0/0/0 PASS
-  - source scan confirms no UserSearchRow/LocalDateTime/userVersionMillis in UserSearchBackfillReadPort
-  - git diff --check PASS
-  - findByIds now filters to requested IDs and deduplicates by accountId using putIfAbsent
-  - duplicate/out-of-request account regression passes
-  - focused suite 24/0/0/0 PASS
-  - 'source scan: backfill uses freshAt directly'
-  - 'source scan: findById null profile safe'
-  - 'source scan: findByIds filters requested IDs and putIfAbsent deduplicates'
-  - focused suite 24/0/0/0 PASS
-  - git diff --check PASS
-  commits: []
+  depends_on: [ARCHFIX-002]
+  evidence: [UserDirectoryQueryPort, Auth batch query, freshness direct-pass, duplicate/out-of-request filtering, focused Search/App 24/0/0/0, reactor PASS, diff check PASS]
   notes: Freshness and duplicate account contract blockers resolved in actual workspace.
   updated_at: '2026-08-19T23:56:39+08:00'
-- id: ARCHFIX-004
-  title: 统一 Search 行为与唯一默认实现
-  status: pending
-  depends_on:
-  - ARCHFIX-003
+- id: ARCHFIX-004-001
+  title: 原子迁移 count-capable SearchSource 与四类 read adapters
+  source: [ARCHFIX-DEC-006, SearchSource, SearchResponseVO, SearchQueryDTO, app-api read ports, UserDirectoryQueryPort]
+  status: done
+  depends_on: []
   acceptance_criteria:
-  - one default Search implementation
-  - stable pagination/total/fallback semantics
-  validation:
-  - Search focused tests
-  - real MeiliSearch E2E
-  - fallback contract tests
-  rollback:
-  - restore previous adapter flag
-  evidence: []
+  - SearchSource 同时表达 offset/limit rows 与 exact count；四个 source、四个 app-api read seam 及其 App adapter 原子迁移并保持 reactor 可编译。
+  - source 继续拥有 mapper、URL、metadata；SearchResponseVO 字段、Result envelope、单一 SearchReadProjection provider 不变。
+  - UserDirectoryQueryPort 通过 Auth/App owner seam 以 account_id ASC 分页批量合并、去重并提供 exact count；不引入跨 Owner SQL、不做无界一次性加载。
+  - SolutionReadPort 的既有两参数 Dubbo 方法保留兼容转发，新分页/count 能力由 App provider 与 Admin adapter 同步暴露。
+  - 不修改 writer、schema 或 migration；偏移量必须真正到达 mapper/owner read seam。
+  validation: [contract and owner-boundary tests, source/adapter pagination-count tests, app-web focused compile/test, app-api and admin solution contract tests, diff check]
+  rollback: 回滚本原子代码切片；无数据、配置、schema 或 migration 变更
+  evidence:
+  - app/admin reactor test-compile and compile PASS
+  - focused Search/owner tests 38/0/0/0 PASS, including specific-index offset propagation
+  - SearchSourceContractTest proves offset/count forwarding
+  - OwnerUserSearchReadAdapter tests prove account_id ASC merge, offset and unique union count
+  - affected reactor verify: 604 Surefire reports, 2029 tests, 0 failures, 0 errors, 16 skipped; BUILD SUCCESS and JaCoCo PASS
+  - graphify update completed; git diff --check PASS
   commits: []
-  notes: ''
-  updated_at: '2026-08-19'
+  notes: Acceptance, Review and Tier-C validation closed with Confirmed=0. No commit authorized. Projection exact totals/fallback behavior remain ARCHFIX-004-002/003.
+  updated_at: '2026-08-20'
+- id: ARCHFIX-004-002
+  title: 实现 database 分页与 exact total
+  source: [ARCHFIX-DEC-006, DefaultSearchReadProjection, ARCHFIX-004-001]
+  status: done
+  depends_on: [ARCHFIX-004-001]
+  acceptance_criteria: [specific-index offset/limit/exact total, all-index deterministic page and summed total, stable empty/out-of-range behavior]
+  validation: [database fallback contract tests, app-web compile/test]
+  rollback: restore prior Search projection artifact
+  evidence:
+  - focused database fallback suite 40/0/0/0 PASS
+  - specific-index offset/total and out-of-range rows covered
+  - all-index account/source boundary mapping and exact summed total covered
+  - affected reactor verify BUILD SUCCESS; 604 Surefire reports, 2031 tests, 0 failures, 0 errors, 16 skips; JaCoCo PASS
+  - graphify/codebase-memory coverage refreshed; YAML parse and git diff --check PASS
+  commits: []
+  notes: Acceptance, Review and Tier-C validation closed with Confirmed=0. No commit authorized. Meili behavior/config remains ARCHFIX-004-003.
+  updated_at: '2026-08-20'
+- id: ARCHFIX-004-003
+  title: 统一 MeiliSearch 全请求 fallback
+  source: [ARCHFIX-DEC-006, DefaultSearchReadProjection, MeiliSearchConfig, docker-compose.prod.yml]
+  status: done
+  depends_on: [ARCHFIX-004-002]
+  acceptance_criteria: [specific-index backend pagination/total, all-index failure triggers whole-request database fallback, unconfigured path remains database, App reads canonical MEILI_HOST/MEILI_MASTER_KEY names used by Compose and worker]
+  validation: [mocked failure tests, configured/unconfigured tests, Compose config, diff check]
+  rollback: set MEILISEARCH_ENABLED=false or restore prior artifact
+  evidence:
+  - focused Search suite 40/0/0/0 PASS, including configured/unconfigured and whole-request fallback cases
+  - affected reactor verify BUILD SUCCESS; 604 Surefire reports, 2031 tests, 0 failures, 0 errors, 16 skips; JaCoCo PASS
+  - dev/prod Compose config passed with an ephemeral MEILI_MASTER_KEY; graphify, YAML and diff checks passed
+  - Review Confirmed=0; real service evidence was carried by ARCHFIX-004-004
+  commits: []
+  notes: Acceptance, Review and Tier-C validation closed with Confirmed=0. No commit authorized. Real Meili evidence is closed by ARCHFIX-004-004.
+  updated_at: '2026-08-20'
+- id: ARCHFIX-004-004
+  title: 执行真实 MeiliSearch E2E 门禁
+  source: [.auto-flow/COVERAGE.md, ARCHFIX-DEC-006, Search worker E2E fixtures]
+  status: done
+  depends_on: [ARCHFIX-004-003]
+  acceptance_criteria: [real MeiliSearch representative indexes, specific/all-index page-offset-total proof, whole-request fallback proof]
+  validation: [real MeiliSearch E2E, Search focused suite, services compile/test, diff check]
+  rollback: clean disposable E2E resources and restore last runnable artifact/config
+  evidence:
+  - real disposable MeiliSearch v1.8 image pulled and loopback service health returned 200 available
+  - DefaultSearchReadProjectionRealMeiliIT passed 2 tests, 0 failures, 0 errors, 0 skipped against actual SDK/service
+  - real indexes proved specific offset/total and all-index summed total; broken client proved whole-request DB fallback
+  - run-unique documents were deleted in @AfterAll; disposable container stopped; no persistent test volume retained
+  - graphify/codebase-memory coverage, YAML parse and git diff --check PASS
+  commits: []
+  notes: Real gate closed locally with disposable service. Production/runtime release authority remains separate and unclaimed.
+  updated_at: '2026-08-20'
 - id: ARCHFIX-005
-  title: 删除已验证的兼容与 shadow 路径
-  status: pending
-  depends_on:
-  - ARCHFIX-004
-  acceptance_criteria:
-  - retirement evidence exists
-  - one writer and one default reader remain
-  validation:
-  - compatibility scan
-  - single-writer tests
-  - formal review
-  rollback:
-  - restore last runnable artifact
-  evidence: []
+  title: 完成已验证兼容与 shadow runtime 退役
+  status: done
+  depends_on: [ARCHFIX-004-004]
+  acceptance_criteria: [development-only runtime retirement evidence, one writer and one default reader, reversible route/quiesce/observation/rollback proof, rollback seams preserved]
+  validation: [compatibility scan, single-writer tests, formal review]
+  rollback: restore last runnable artifact
+  evidence:
+  - current source/config inventory confirms Submission remote route, local rollback path and shadow/compat gates remain active
+  - user confirmed there is no production environment; the current development/TEST-TARGET is the sole authorized target
+  - reversible development route, quiesce, observation and rollback evidence is now the applicable gate
+  - disposable MySQL owner-safety integration passed real Submission cutover copy, App grant revoke, rollback copy-back and grant restore
+  - App/Judge dev-lite and dev-full queue flags are aligned; dev-lite disables App shadow runtime while preserving local writer/read rollback
+  - focused Submission routing/provider suite passed 22/0/0/0; migration preflight regression passed
+  - Compose network was recreated without fixed IPAM/static-address overlap; dev/prod config, shell/Node/YAML/diff checks passed
   commits: []
-  notes: ''
-  updated_at: '2026-08-19'
+  notes: >-
+    Closed as development-only runtime retirement: both supported profiles disable
+    App shadow runtime when appropriate, while local writer/read adapters remain
+    source-level rollback seams required by dev-lite. Do not claim production
+    acceptance, push, publish, or perform destructive data operations; preserve
+    single-writer, grant, reconciliation and rollback invariants.
+  updated_at: '2026-08-20'
 - id: ARCHFIX-006
   title: 执行最终架构与启动验收
-  status: pending
-  depends_on:
-  - ARCHFIX-005
-  acceptance_criteria:
-  - all ARCHFIX evidence fresh
-  - review and validation pass
-  - no blocker fabricated closed
-  validation:
-  - focused
-  - module
-  - integration
-  - security
-  - formal review
-  rollback:
-  - restore last verified artifact
-  evidence: []
+  status: done
+  depends_on: [ARCHFIX-005]
+  acceptance_criteria: [all ARCHFIX evidence fresh, review and validation pass, no blocker fabricated closed]
+  validation: [focused, module, integration, security, formal review]
+  rollback: restore last verified artifact
+  evidence:
+  - scripts/dev/test.sh quick passed all backend, auth-core, console and management checks with ephemeral Meili key fallback
+  - Compose dev/prod config, shell syntax, Node syntax, YAML parse and git diff --check passed
+  - graphify refreshed after the current source/config changes; no graph extraction error
+  - formal review found one dev-lite App/Judge queue mismatch; the fix was applied and profile assertions passed
   commits: []
-  notes: Final gate.
-  updated_at: '2026-08-19'
+  notes: Final development-only gate closed after quick checks, profile assertions, cutover/rollback evidence, formal review finding remediation and control-plane audit. No production environment or release action is claimed.
+  updated_at: '2026-08-20'
 services_autonomy_convergence:
   ledger: .auto-flow/SERVICES_AUTONOMY_TASKS.yaml
   coverage: .auto-flow/SERVICES_AUTONOMY_COVERAGE.md
   decisions: .auto-flow/DECISIONS.md
   worklog: .auto-flow/WORKLOG.md
-  task_status: ARCHFIX-003 in_progress; bounded UserDirectoryQueryPort slice selected
+  task_status: ARCHFIX-004-001/002/003/004/005/006 done

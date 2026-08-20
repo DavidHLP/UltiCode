@@ -49,7 +49,7 @@ class DefaultUserSearchReadPortTest {
         row.setUsername("alice");
         row.setName("Alice Example");
         row.setAvatar("/avatars/a.png");
-        when(userDirectoryQueryPort.search("ali", 5))
+        when(userDirectoryQueryPort.search("ali", 0, 5))
                 .thenReturn(List.of(UserDirectoryRow.from(row)));
 
         List<UserIndexDTO> result = port.searchForIndex("ali", 5);
@@ -65,7 +65,7 @@ class DefaultUserSearchReadPortTest {
     @Test
     @DisplayName("empty directory result yields empty list")
     void emptyDirectoryResultYieldsEmptyList() {
-        when(userDirectoryQueryPort.search("zzz", 10)).thenReturn(List.of());
+        when(userDirectoryQueryPort.search("zzz", 0, 10)).thenReturn(List.of());
         assertThat(port.searchForIndex("zzz", 10)).isEmpty();
     }
 }

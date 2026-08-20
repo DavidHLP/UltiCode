@@ -11,9 +11,7 @@ import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.user.port.UserProfileReadMapper;
 import com.ulticode.app.user.port.UserProfileReadRow;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
-import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.search.backfill.SearchBackfillDocument;
@@ -37,16 +35,12 @@ class OwnerUserSearchReadAdapterTest {
     @Mock
     private AccountQueryService accountQueryService;
 
-    @Mock
-    private IdentityQueryService identityQueryService;
-
     private OwnerUserSearchReadAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new OwnerUserSearchReadAdapter(profileReadMapper);
         adapter.setAccountQueryService(accountQueryService);
-        adapter.setIdentityQueryService(identityQueryService);
     }
 
     @Test
@@ -54,7 +48,7 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(account), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidatesBounded("ali", 10)).thenReturn(List.of());
+        when(profileReadMapper.findSearchCandidates("ali", 0, 100)).thenReturn(List.of());
         when(profileReadMapper.findSearchRowsByAccountIds(Set.of("u-1")))
                 .thenReturn(List.of(profile("u-1", "Alice", "/alice.png", null)));
 
@@ -67,7 +61,6 @@ class OwnerUserSearchReadAdapterTest {
             assertThat(row.getName()).isEqualTo("Alice");
             assertThat(row.getAvatar()).isEqualTo("/alice.png");
         });
-        verify(identityQueryService, never()).batchGetIdentity(any());
     }
 
     @Test
@@ -75,12 +68,12 @@ class OwnerUserSearchReadAdapterTest {
         AuthAccountDTO alice = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(alice), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidatesBounded("ali", 10))
+        when(profileReadMapper.findSearchCandidates("ali", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Alice", "/a.png", null),
                         profile("u-2", "Alice Cooper", "/b.png", null)));
-        when(identityQueryService.batchGetIdentity(Set.of("u-2")))
+        when(accountQueryService.getAccountsByIds(Set.of("u-1", "u-2")))
                 .thenReturn(RpcResult.success(List.of(
-                        new UserIdentityDTO("u-2", "bob", "USER", true, false)), "t-search"));
+                        alice, account("u-2", "bob", "2026-08-01T00:00:00", null)), "t-search"));
         when(profileReadMapper.findSearchRowsByAccountIds(any()))
                 .thenReturn(List.of(profile("u-1", "Alice", "/a.png", null),
                         profile("u-2", "Alice Cooper", "/b.png", null)));
@@ -93,13 +86,49 @@ class OwnerUserSearchReadAdapterTest {
     }
 
     @Test
+    void pagedSearchMergesOwnerStreamsAndAppliesOffset() {
+        AuthAccountDTO alice = account("u-1", "alice", "2026-08-01T00:00:00", null);
+        AuthAccountDTO carol = account("u-3", "carol", "2026-08-01T00:00:00", null);
+        AuthAccountDTO bob = account("u-2", "bob", "2026-08-01T00:00:00", null);
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(alice, carol), 2, 1, 100, "t-search"));
+        when(profileReadMapper.findSearchCandidates("a", 0, 100))
+                .thenReturn(List.of(profile("u-2", "Alice Bob", null, null)));
+        when(accountQueryService.getAccountsByIds(Set.of("u-2")))
+                .thenReturn(RpcResult.success(List.of(bob), "t-search"));
+        when(profileReadMapper.findSearchRowsByAccountIds(any())).thenReturn(List.of());
+
+        List<UserDirectoryRow> rows = adapter.search("a", 1, 2);
+
+        assertThat(rows).extracting(directoryRow -> directoryRow.row().getId())
+                .containsExactly("u-2", "u-3");
+    }
+
+    @Test
+    void countReturnsUniqueActiveUnionAcrossOwners() {
+        AuthAccountDTO alice = account("u-1", "alice", "2026-08-01T00:00:00", null);
+        AuthAccountDTO bob = account("u-2", "bob", "2026-08-01T00:00:00", null);
+        AuthAccountDTO carol = account("u-3", "carol", "2026-08-01T00:00:00", null);
+        when(accountQueryService.queryAccounts(any()))
+                .thenReturn(RpcResult.page(List.of(alice, bob), 2, 1, 100, "t-search"));
+        when(profileReadMapper.countSearchCandidates("ali")).thenReturn(2L);
+        when(profileReadMapper.findSearchCandidates("ali", 0, 100))
+                .thenReturn(List.of(profile("u-1", "Alice", null, null),
+                        profile("u-3", "Alice Carol", null, null)));
+        when(accountQueryService.getAccountsByIds(Set.of("u-1", "u-3")))
+                .thenReturn(RpcResult.success(List.of(alice, carol), "t-search"));
+
+        assertThat(adapter.count("ali")).isEqualTo(3);
+    }
+
+    @Test
     void missingAccountIsDroppedAndMissingProfileKeepsNullableFields() {
         AuthAccountDTO account = account("u-1", "alice", "2026-08-01T00:00:00", null);
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(account), 1, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidatesBounded("ali", 10))
+        when(profileReadMapper.findSearchCandidates("ali", 0, 100))
                 .thenReturn(List.of(profile("gone", "Alice", null, null)));
-        when(identityQueryService.batchGetIdentity(Set.of("gone")))
+        when(accountQueryService.getAccountsByIds(Set.of("gone")))
                 .thenReturn(RpcResult.success(List.of(), "t-search"));
         when(profileReadMapper.findSearchRowsByAccountIds(any())).thenReturn(List.of());
 
@@ -229,8 +258,10 @@ class OwnerUserSearchReadAdapterTest {
     void unavailableIdentityFailsClosedForProfileSearch() {
         when(accountQueryService.queryAccounts(any()))
                 .thenReturn(RpcResult.page(List.of(), 0, 1, 100, "t-search"));
-        when(profileReadMapper.findSearchCandidatesBounded("alice", 10))
+        when(profileReadMapper.findSearchCandidates("alice", 0, 100))
                 .thenReturn(List.of(profile("u-1", "Alice", null, null)));
+        when(accountQueryService.getAccountsByIds(Set.of("u-1")))
+                .thenThrow(new RuntimeException("account query unavailable"));
         assertThatThrownBy(() -> adapter.search("alice", 10))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Auth account query unavailable");

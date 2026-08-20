@@ -1538,6 +1538,10 @@ The verified code/config keeps local route as rollback entry. Cutover failure fi
 
 The preceding ARCH-002/ARCH-003 blocker-remediation packet and the Submission/Search extraction packet above are historical execution records. They remain preserved for audit and are not the active packet for the current architecture-hardening objective.
 
+### Current authority override (2026-08-20)
+
+The user confirmed that this repository has no production environment and authorized reversible blocker remediation in the sole development/TEST-TARGET. The active acceptance target is therefore development-only: route, writer-quiesce, observation, rollback and compatibility-retirement evidence may close ARCHFIX-005/006 when freshly verified. No development result is production evidence; no push, publish, applied-migration edit or destructive data operation is in scope.
+
 ### Objective
 
 修复开发入口复杂、Owner seam 不可执行、跨 Owner 读模型过浅、Search 双实现以及兼容路径过多的问题；不引入新的 broker、Kubernetes、Service Mesh 或独立 MySQL 集群。
@@ -1546,7 +1550,7 @@ The preceding ARCH-002/ARCH-003 blocker-remediation packet and the Submission/Se
 
 `ARCHFIX-001` → `ARCHFIX-002` → `ARCHFIX-003` → `ARCHFIX-004` → `ARCHFIX-005` → `ARCHFIX-006`
 
-首个可执行 Task：`ARCHFIX-001`，状态为 `ready`。当前 Task 状态唯一真源是 `.auto-flow/TASKS.yaml`；历史 Task 保存在 `.auto-flow/TASKS.history.yaml`。
+最终 Task：`ARCHFIX-006`，状态为 `done`；`ARCHFIX-001..006` 已完成。当前 Task 状态唯一真源是 `.auto-flow/TASKS.yaml`；历史 Task 保存在 `.auto-flow/TASKS.history.yaml`。
 
 ### Scope
 
@@ -1571,3 +1575,62 @@ The preceding ARCH-002/ARCH-003 blocker-remediation packet and the Submission/Se
 ### Terminal Condition
 
 ARCHFIX-006 只有在 dev-lite 首次启动、dev-full 显式启动、Owner grant isolation、粗粒度读 contract、Search 唯一路径和兼容退休全部具备 fresh evidence，且 focused/module/integration/security/formal review 通过后才能完成；证据缺失时保持 blocked。
+
+## ARCHFIX-004 Execution Packet (2026-08-20)
+
+Objective: unify Search offset/page/limit, exact total, deterministic all-index aggregation, and whole-request MeiliSearch fallback without a second provider, writer, migration, or owner boundary.
+
+In scope: DefaultSearchReadProjection, SearchReadProjection, SearchSource adapters, focused contract tests, real MeiliSearch E2E. Out of scope: new infrastructure, public SearchResponseVO field changes, compatibility retirement before ARCHFIX-005, production/external mutations.
+
+Root cause: the single Spring provider currently has two behavioral paths; database fallback resets offsets and reports page length as total, while all-index MeiliSearch can hide a failed index.
+
+Invariants: page stays 1-based; all backends use (page-1)*limit; total is exact; ordering is deterministic; any configured MeiliSearch failure triggers complete database fallback; unconfigured MeiliSearch remains database fallback; Search remains read-only and public response consumers stay compatible.
+
+DAG: ARCHFIX-004-001 (ready atomic count-capable SearchSource/read-adapter migration) -> ARCHFIX-004-002 (database pagination/exact totals) -> ARCHFIX-004-003 (whole-request MeiliSearch fallback) -> ARCHFIX-004-004 (real MeiliSearch E2E) -> ARCHFIX-005 -> ARCHFIX-006.
+
+ARCHFIX-004-001 acceptance: one internal source contract expresses page rows plus exact count and is migrated atomically with all four source implementations, app-api/owner read seams, compatibility callers and compile surfaces, preserving reactor compilation; source owns mapper/URL/metadata; offset/limit is passed through; no second Search provider. The contract-only slice is superseded by the atomic packet below.
+ARCHFIX-004-002 acceptance: specific-index offset/limit/exact total; all-index deterministic page and summed total; stable empty/out-of-range response.
+ARCHFIX-004-003 acceptance: MeiliSearch request carries offset/limit/true total; any all-index failure triggers whole-request database fallback; disabled path remains database.
+ARCHFIX-004-004 acceptance: real MeiliSearch representative indexes prove specific/all page-offset-total and failure fallback; unavailable real service leaves task blocked, HTTP stub cannot close it.
+
+Delivery authority: current TEST-TARGET/dev and disposable local resources only; no production claim, push, merge, publish, route switch, or applied migration edit.
+
+## ARCHFIX-004 Atomic implementation packet (2026-08-20)
+
+### Active Task
+
+ARCHFIX-004-001 is ready. It is the smallest compile-safe vertical slice: migrate the read contract and every current implementation/caller before changing projection totals. The prior contract-only attempt remains historical and was fully reverted.
+
+### Unique implementation path
+
+1. Add offset-aware rows plus exact-count capability to SearchSource; migrate ProblemSearchSource, UserSearchSource, ForumSearchSource, and SolutionSearchSource.
+2. Extend the four app-api search seams and their App adapters with parameterized offset/limit and matching count predicates. Keep the existing two-argument SolutionReadPort Dubbo method as a compatibility forwarder; update SolutionReadProvider and Admin's DubboSolutionReadAdapter.
+3. Extend UserDirectoryQueryPort without crossing Owner tables. OwnerUserSearchReadAdapter will merge Auth username candidates and App profile-name candidates in account_id ASC order using bounded pages and Auth batch lookup, filter deleted/out-of-request/duplicate accounts, and expose exact union count. Auth's username-only count and App profile candidate count/page predicates must match the returned rows.
+4. Update the projection call site only enough to compile against the migrated contract; leave exact DB aggregation for ARCHFIX-004-002. No second provider, Search writer, migration or schema change.
+5. In ARCHFIX-004-002, make DB fallback compute per-source counts first, skip source-local offsets to satisfy the global offset, fetch only the remaining page rows, sum exact totals, and return stable empty/out-of-range results. Preserve SearchResponseVO and Result.
+6. In ARCHFIX-004-003, use Meili reported hit totals, propagate any index failure to the outer request, apply the same fixed index-order pagination, and fall back to DB for the whole request. Align App config to MEILI_HOST/MEILI_MASTER_KEY; retain local disabled default.
+7. In ARCHFIX-004-004, run the real Meili gate. The existing HTTP stub/worker IT is supplemental only; unavailable real service keeps the task blocked.
+
+### Invariants and boundaries
+
+- SearchQueryDTO remains 1-based page with existing validation; SearchResponseVO fields and HTTP Result envelope remain unchanged.
+- One DefaultSearchReadProjection remains the only Search reader; Search worker remains the only Meili writer.
+- No cross-Owner SQL, shared business table, applied migration edit, new broker, or production route/grant/deploy action.
+- DB user fallback ordering is deterministic account_id ASC, and all cross-Owner reads are bounded/batched; the ordering is not exposed as a new public field.
+
+### Task evidence and rollback
+
+- ARCHFIX-004-001: contract/owner-boundary tests, source/adapter offset-count tests, app-api/Admin Solution contract tests, app-web focused compile/test, git diff --check.
+- ARCHFIX-004-002: mapper predicate/count tests, specific-index and all-index boundary tests, app-web module test/compile, Console type/build compatibility checks.
+- ARCHFIX-004-003: configured/unconfigured/failure-injection tests, App/Compose/worker config scan and Compose validation.
+- ARCHFIX-004-004: real Meili representative-index E2E for specific/all offset-total and whole-request failure fallback; stub evidence cannot close it.
+- Every task rolls back by restoring the last runnable Java/config artifact; no data rollback is needed because the plan forbids schema/writer changes.
+
+### Open gates
+
+External/production authority is not required for the local implementation slice, but real Meili availability is required for ARCHFIX-004-004. The App/Compose environment-name mismatch is a confirmed configuration gap assigned to ARCHFIX-004-003, not silently fixed during recovery.
+
+
+### ARCHFIX-004 Replan Note (2026-08-20)
+
+The original contract-only ARCHFIX-004-001 slice was blocked: changing SearchSource.searchDatabase alone breaks four implementations and DefaultSearchReadProjection, while the underlying app-api read ports expose neither offset nor count. It is superseded by the ready atomic packet above, which updates every affected contract, adapter/provider and compile caller before advancing to 004-002. No page-size-as-total fallback is acceptable.

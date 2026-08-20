@@ -40,7 +40,7 @@ public class SolutionSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        List<SolutionIndexDTO> solutions = solutionReadPort.searchForIndex(query, limit);
+        List<SolutionIndexDTO> solutions = solutionReadPort.searchForIndex(query, offset, limit);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(solutions.size());
         for (SolutionIndexDTO solution : solutions) {
@@ -53,6 +53,11 @@ public class SolutionSearchSource implements SearchSource {
                     .build());
         }
         return results;
+    }
+
+    @Override
+    public long countDatabase(String query) {
+        return solutionReadPort.countForIndex(query);
     }
 
     @Override

@@ -126,6 +126,9 @@ SUBMISSION_DB_PASSWORD="$submission_db_password"
 SUBMISSION_MIGRATION_DB_USER=migration_submission
 SUBMISSION_MIGRATION_DB_PASSWORD="$submission_migration_password"
 APP_SUBMISSION_ROUTING_MODE=remote
+# Exact App runtime account used by the submission cutover grant gate.
+SUBMISSION_APP_DB_USER=app_rw
+SUBMISSION_APP_DB_HOST=%
 MIGRATION_MYSQL_CONTAINER=ulticode-mysql
 MIGRATION_MYSQL_CONTAINER_PORT=3306
 DEV_LOCAL_OWNER_BASELINE=true

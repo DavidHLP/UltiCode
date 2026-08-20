@@ -20,11 +20,11 @@ public class DefaultUserSearchReadPort implements UserSearchReadPort {
     private final UserDirectoryQueryPort userDirectoryQueryPort;
 
     @Override
-    public List<UserIndexDTO> searchForIndex(String query, int limit) {
-        if (query == null || query.isBlank() || limit <= 0) {
+    public List<UserIndexDTO> searchForIndex(String query, int offset, int limit) {
+        if (query == null || query.isBlank() || offset < 0 || limit <= 0) {
             return List.of();
         }
-        return userDirectoryQueryPort.search(query, limit).stream()
+        return userDirectoryQueryPort.search(query, offset, limit).stream()
                 .map(UserDirectoryRow::row)
                 .map(row -> new UserIndexDTO(
                         row.getId(),
@@ -32,5 +32,17 @@ public class DefaultUserSearchReadPort implements UserSearchReadPort {
                         row.getName(),
                         row.getAvatar()))
                 .toList();
+    }
+
+    public List<UserIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    @Override
+    public long countForIndex(String query) {
+        if (query == null || query.isBlank()) {
+            return 0;
+        }
+        return userDirectoryQueryPort.count(query);
     }
 }

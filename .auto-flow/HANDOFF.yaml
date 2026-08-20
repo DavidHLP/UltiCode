@@ -1,38 +1,29 @@
 outcome: pass
 outputs:
-  - Context Packet: ARCHFIX-003 已在实际工作区完成 freshness、missing-profile、findByIds duplicate/out-of-request rework；ARCHFIX-004 是下一 Ready Task
-  - Protected Worktree Inventory: 所有现有 tracked/未跟踪修改均保留，未覆盖业务或用户文件
-  - Call/Data Flow: Search callers -> UserDirectoryQueryPort -> OwnerUserSearchReadAdapter -> Auth AccountQueryService/IdentityQueryService + App UserProfileReadMapper；backfill 使用 freshAt；profile write 使用 findById 后发布 SearchDocumentChanged
-  - Verification Record: 安装最新 auth-api/app-api 后 app-web focused suite 39/0/0/0 PASS，auth AccountQueryProviderTest 6/0/0/0 PASS，git diff --check PASS
-  - Known Stale-Class Failure: 未安装共享契约时首次 focused test 因旧本地 Maven artifacts 报 AccountQueryDTO/AccountQueryService NoSuchMethodError；已通过 reactor install 修复验证，不是业务回归
-  - Search Boundary Finding: SearchReadProjection 仍是单一默认实现，但 MeiliSearch 与 database fallback 的 total、all-index page/offset 和失败语义需要 ARCHFIX-004 的 fresh contract/E2E 证据
- evidence:
-  - graphify query/path on ARCHFIX-003, UserDirectoryQueryPort, OwnerUserSearchReadAdapter; graphify graph.json/GRAPH_REPORT timestamps 2026-08-19 23:47 +0800
-  - HEAD ab9d869091f4b92f0d11df9775028de3595e230a; branch main
-  - git status shows pre-existing control-plane, env/compose/script/config, Search/Auth/App source/test modifications plus untracked TASKS.history.yaml, OwnerUserSearchReadAdapter.java.tmp, UserDirectoryQueryPort.java, UserDirectoryRow.java; all protected
-  - OwnerUserSearchReadAdapterTest: 11 tests; DefaultSearchReadProjectionTest included in app-web focused run; total app-web focused run 39 tests pass after dependency installation
-  - AccountQueryProviderTest: 6 tests pass
-  - git diff --check passes
-  - .auto-flow/TASKS.yaml records ARCHFIX-003 done with freshness and duplicate contract evidence, ARCHFIX-004 pending, ARCHFIX-005/006 pending
-  - .auto-flow/COVERAGE.md explicitly requires ARCHFIX-004 single default/pagination/total/fallback/real MeiliSearch E2E evidence and ARCHFIX-005 retirement evidence
-  - scripts/dev/test.sh supports quick/full/integration; services/AGENTS.md requires Maven compile/test/IT/verify proportional to risk
- next_goal: 为 ARCHFIX-004 制定唯一 Search 实现、分页/total/fallback contract 与真实 MeiliSearch E2E 的执行计划；先确认产品对 all-index total/page 语义的唯一裁决，再实现和验证
- next_skill: plan-development-work
- reason: Context Packet 已完整，ARCHFIX-003 的实际行为、调用链、验证顺序、工作区保护和 ARCHFIX-004/005/006 缺口均有证据；原始 Services 架构目标仍需规划和实施，不能将当前 local focused PASS 误报为全部目标完成
- alternatives:
-  - auto-pilot：若后续目标同时要求 Search、兼容退休和外部环境门禁跨域编排
- blockers:
-  - ARCHFIX-004 尚无真实 MeiliSearch E2E、稳定 pagination/total/fallback contract evidence
-  - ARCHFIX-005/006 依赖 ARCHFIX-004，兼容/legacy/shadow 路径不得在 retirement evidence 之前删除
-  - ARCHFIX-002/ARCHFIX-003 历史外部 acceptance 仍不能由 TEST-TARGET/local evidence 晋级为 production evidence
-  - 工作区包含大量既有修改和未跟踪文件，后续只能增量编辑归属明确文件
- context_packet:
-  status: ARCHFIX-003_CLOSED_NEXT_TASK_READY
-  objective: 修复 Services Strangler migration 下的开发入口、Owner seam、跨 Owner 读模型、Search 双实现和兼容路径问题
-  authority: current TEST-TARGET/dev environment only; no production claim
-  branch: main
-  commit: ab9d869091f4b92f0d11df9775028de3595e230a
-  active_task: ARCHFIX-004
-  dag: ARCHFIX-001 -> ARCHFIX-002 -> ARCHFIX-003 -> ARCHFIX-004 -> ARCHFIX-005 -> ARCHFIX-006
+  - Completion/Coverage Audit closed ARCHFIX-004-004: actual disposable Meili E2E and fallback evidence
+  - ARCHFIX-005 development-only runtime shadow retirement closed; rollback seams intentionally remain in source for dev-lite
+  - User confirmed there is no production environment and authorized reversible blocker remediation in the sole development/TEST-TARGET
+  - Protected pre-existing .auto-flow changes remain uncommitted; no publish or push is authorized
+  - ARCHFIX-006 final development startup/architecture gate closed; all current ARCHFIX tasks are complete in this target
+evidence:
+  - app/admin reactor compile and test-compile PASS
+  - focused Search/owner/database suite PASS: 40 tests, 0 failures, 0 errors, 0 skipped
+  - SearchSourceContractTest and OwnerUserSearchReadAdapterTest cover offset/count forwarding, account_id ASC merge, offset and unique union count
+  - codebase-memory generation refreshed to 2026-08-19T19:04:59Z; all operated-on paths have no recorded coverage issue
+  - graphify update PASS at 27,950 nodes / 81,614 edges / 1,021 communities; nine unrelated config/IDE zero-node warnings remain
+  - git diff --check PASS
+  - MEILI_HOST / MEILI_MASTER_KEY alignment and both Compose config checks PASS with ephemeral validation key
+  - Review PASS: offset-propagation finding fixed and rechecked; Meili fallback/config/real-E2E review Confirmed=0
+  - affected reactor verify PASS: 604 Surefire reports, 2031 tests, 0 failures, 0 errors, 16 skipped; BUILD SUCCESS; JaCoCo PASS
+  - final YAML parse and git diff --check PASS
+  - real DefaultSearchReadProjectionRealMeiliIT PASS: 2 tests, 0 failures, 0 errors, 0 skipped against disposable Meili v1.8
+next_goal: none
+next_skill: none
+reason: Development-only ARCHFIX acceptance, validation, review, rollback and evidence are complete; no commit, push, publish or production action is authorized.
+alternatives: []
+blockers: []
+context_packet:
+  status: ARCHFIX_COMPLETE_DEV_ONLY
+  active_task: ARCHFIX-006
+  authority: sole development/TEST-TARGET; user-authorized reversible remediation; no production environment or claim
   protected_changes: true
-  source_fallback: direct source reads used for exact Java/YAML/script behavior after graphify orientation

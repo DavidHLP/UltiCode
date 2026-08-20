@@ -35,6 +35,16 @@ public class DubboSolutionReadAdapter implements SolutionReadPort {
     }
 
     @Override
+    public List<SolutionIndexDTO> searchForIndex(String query, int offset, int limit) {
+        return solutionReadPort.searchForIndex(query, offset, limit);
+    }
+
+    @Override
+    public long countForIndex(String query) {
+        return solutionReadPort.countForIndex(query);
+    }
+
+    @Override
     public long countByProblemId(Long problemId) {
         return solutionReadPort.countByProblemId(problemId);
     }

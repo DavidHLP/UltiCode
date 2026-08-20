@@ -28,6 +28,14 @@ set -a
 source "$ENV_FILE"
 set +a
 
+# Compose validates the Meili service even when the quick gate does not start
+# it. Older generated env files may not contain a key; keep this disposable and
+# in-memory rather than mutating the developer's secret file.
+if [[ -z "${MEILI_MASTER_KEY:-}" ]]; then
+  MEILI_MASTER_KEY="$(openssl rand -hex 32)"
+  export MEILI_MASTER_KEY
+fi
+
 if ! [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ && "$TEST_DB_NAME" =~ ^[A-Za-z0-9_]+$ && "$TEST_MYSQL_DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
   echo "DB_USER, TEST_DB_NAME, and TEST_MYSQL_DB_NAME must contain only letters, digits, or underscore." >&2
   exit 1

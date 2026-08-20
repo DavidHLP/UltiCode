@@ -65,7 +65,7 @@ Options:
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   --mode <dev-lite|dev-full>
-                       选择默认启动 profile；默认 dev-lite
+                       dev-lite=local/no App shadow；dev-full=remote/owner；默认 dev-lite
   -h, --help           显示此帮助
 
 Examples:
@@ -76,8 +76,8 @@ Examples:
   ./scripts/dev/up.sh --prepare-submission-owner # 准备 owner，随后执行 cutover runbook
   ./scripts/dev/up.sh --no-frontend --skip-bootstrap
   ./scripts/dev/up.sh --skip-infra --skip-migrate
-  ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环
-  ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/full 栈
+  ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环，不启用 App shadow
+  ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/owner 栈
 EOF
 }
 
@@ -198,7 +198,7 @@ else
 fi
 
 # ===== 前置检查 =====
-for command in docker mvn pnpm pm2 curl timeout; do
+for command in docker mvn pnpm pm2 curl timeout openssl; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command not found: $command" >&2
     exit 1
@@ -213,6 +213,14 @@ set -a
 source "$ENV_FILE"
 set +a
 
+# Older generated env files may not contain a Meili key. Compose still
+# interpolates that service during dev startup, so provide a disposable
+# in-memory value without rewriting the developer's secret file.
+if [[ -z "${MEILI_MASTER_KEY:-}" ]]; then
+  MEILI_MASTER_KEY="$(openssl rand -hex 32)"
+  export MEILI_MASTER_KEY
+fi
+
 [[ -n "$MIGRATION_DB_HOST_WAS_SET" ]] && MIGRATION_DB_HOST="$MIGRATION_DB_HOST_OVERRIDE"
 [[ -n "$MIGRATION_DB_PORT_WAS_SET" ]] && MIGRATION_DB_PORT="$MIGRATION_DB_PORT_OVERRIDE"
 [[ -n "$MIGRATION_DB_NAME_WAS_SET" ]] && MIGRATION_DB_NAME="$MIGRATION_DB_NAME_OVERRIDE"
@@ -224,11 +232,21 @@ set +a
 if [[ "$DEV_MODE" == "dev-lite" ]]; then
   APP_SUBMISSION_ROUTING_MODE="local"
   SUBMISSION_CUTOVER_COMPLETE="false"
+  APP_FEATURES_USE_JUDGE_OUTBOX="false"
+  APP_FEATURES_USE_GENERATION_FENCE="false"
+  APP_FEATURES_JUDGE_QUEUE_USE_PORT="false"
+  APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION="2"
 else
   APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-remote}"
   SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
+  APP_FEATURES_USE_JUDGE_OUTBOX="true"
+  APP_FEATURES_USE_GENERATION_FENCE="true"
+  APP_FEATURES_JUDGE_QUEUE_USE_PORT="true"
+  APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION="2"
 fi
-export APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE
+export APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE \
+  APP_FEATURES_USE_JUDGE_OUTBOX APP_FEATURES_USE_GENERATION_FENCE \
+  APP_FEATURES_JUDGE_QUEUE_USE_PORT APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION
 
 : "${SUBMISSION_MIGRATION_DB_USER:=${DEV_MIGRATION_SUBMISSION_USER:-}}"
 : "${SUBMISSION_MIGRATION_DB_PASSWORD:=${DEV_MIGRATION_SUBMISSION_PASSWORD:-}}"

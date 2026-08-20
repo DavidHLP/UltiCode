@@ -80,7 +80,7 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
     public long countAccounts(AccountQueryDTO query) {
         String search = query.search() != null ? query.search().trim() : null;
         String role = query.role() != null ? query.role().trim() : null;
-        return mapper.countAccounts(search, role, query.active(), query.banned());
+        return mapper.countAccounts(search, role, query.active(), query.banned(), query.usernameOnly());
     }
 
     private AuthAccountDTO toDto(AuthAccountEntity entity) {

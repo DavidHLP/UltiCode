@@ -17,15 +17,15 @@ public class DefaultProblemSearchReadPort implements ProblemSearchReadPort {
     private final ProblemMapper problemMapper;
 
     @Override
-    public List<ProblemIndexDTO> searchForIndex(String query, int limit) {
-        if (query == null || query.isBlank() || limit <= 0) {
+    public List<ProblemIndexDTO> searchForIndex(String query, int offset, int limit) {
+        if (query == null || query.isBlank() || offset < 0 || limit <= 0) {
             return List.of();
         }
         QueryWrapper<Problem> wrapper = new QueryWrapper<>();
         wrapper.eq("is_published", true)
                 .eq("is_deleted", false)
                 .and(w -> w.like("title", query).or().like("slug", query))
-                .last("LIMIT " + limit);
+                .last("LIMIT " + limit + " OFFSET " + offset);
         List<Problem> problems = problemMapper.selectList(wrapper);
         if (problems == null || problems.isEmpty()) {
             return List.of();
@@ -33,5 +33,22 @@ public class DefaultProblemSearchReadPort implements ProblemSearchReadPort {
         return problems.stream()
                 .map(p -> new ProblemIndexDTO(String.valueOf(p.getId()), p.getTitle(), p.getSlug(), p.getDifficulty()))
                 .toList();
+    }
+
+    public List<ProblemIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    @Override
+    public long countForIndex(String query) {
+        if (query == null || query.isBlank()) {
+            return 0;
+        }
+        QueryWrapper<Problem> wrapper = new QueryWrapper<>();
+        wrapper.eq("is_published", true)
+                .eq("is_deleted", false)
+                .and(w -> w.like("title", query).or().like("slug", query));
+        Long count = problemMapper.selectCount(wrapper);
+        return count == null ? 0 : count;
     }
 }

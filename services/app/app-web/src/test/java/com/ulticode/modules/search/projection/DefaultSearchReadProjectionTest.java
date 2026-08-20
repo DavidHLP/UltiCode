@@ -3,7 +3,7 @@ package com.ulticode.modules.search.projection;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
-import com.meilisearch.sdk.model.Searchable;
+import com.meilisearch.sdk.model.SearchResult;
 import com.ulticode.app.api.dto.ForumPostIndexDTO;
 import com.ulticode.app.api.service.ForumPostReadPort;
 import com.ulticode.modules.problem.entity.Problem;
@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -66,7 +67,7 @@ class DefaultSearchReadProjectionTest {
     private Index index;
 
     @Mock
-    private Searchable searchable;
+    private SearchResult searchable;
 
     private DefaultSearchReadProjection searchProjection;
 
@@ -97,15 +98,13 @@ class DefaultSearchReadProjectionTest {
         void shouldSearchProblemsWhenMeiliSearchNotAvailable() {
             // Arrange - MeiliSearch client is not set
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(1L);
 
             List<ProblemIndexDTO> problems = new ArrayList<>();
             ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
             problems.add(problem);
 
-            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(problems);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -131,12 +130,13 @@ class DefaultSearchReadProjectionTest {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.USERS);
+            when(userSearchReadPort.countForIndex(anyString())).thenReturn(1L);
 
             List<UserIndexDTO> users = new ArrayList<>();
             UserIndexDTO user = new UserIndexDTO("user-123", "testuser", "Test User", "avatar.png");
             users.add(user);
-
-            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt()))
+                    .thenReturn(users);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -159,11 +159,12 @@ class DefaultSearchReadProjectionTest {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.POSTS);
+            when(forumPostReadPort.countForIndex(anyString())).thenReturn(1L);
 
             List<ForumPostIndexDTO> posts = new ArrayList<>();
             posts.add(new ForumPostIndexDTO("post-123", "Test Post", "This is a test post", "test-post"));
 
-            when(forumPostReadPort.searchForIndex("test", 20)).thenReturn(posts);
+            when(forumPostReadPort.searchForIndex("test", 0, 20)).thenReturn(posts);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -181,16 +182,52 @@ class DefaultSearchReadProjectionTest {
         }
 
         @Test
+        @DisplayName("should pass the requested offset to a specific source")
+        void shouldPassOffsetToSpecificSource() {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
+            queryDTO.setIndex(SearchIndexType.POSTS);
+            queryDTO.setPage(2);
+            when(forumPostReadPort.countForIndex(anyString())).thenReturn(21L);
+
+            when(forumPostReadPort.searchForIndex("test", 20, 20))
+                    .thenReturn(List.of(new ForumPostIndexDTO(
+                            "post-2", "Second page", "Excerpt", "second-page")));
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertThat(response.getResults()).singleElement()
+                    .extracting(SearchResponseVO.SearchResultItem::getId)
+                    .isEqualTo("post-2");
+            verify(forumPostReadPort).searchForIndex("test", 20, 20);
+        }
+
+        @Test
+        @DisplayName("should return empty out-of-range rows with the exact total")
+        void shouldReturnEmptyRowsWhenSpecificOffsetIsOutOfRange() {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
+            queryDTO.setIndex(SearchIndexType.PROBLEMS);
+            queryDTO.setPage(2);
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(3L);
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertThat(response.getTotal()).isEqualTo(3);
+            assertThat(response.getResults()).isEmpty();
+            verify(problemSearchReadPort, never()).searchForIndex(anyString(), anyInt(), anyInt());
+        }
+
+        @Test
         @DisplayName("should search solutions when index type is SOLUTIONS")
         void shouldSearchSolutionsWhenIndexTypeIsSolutions() {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.SOLUTIONS);
+            when(solutionReadPort.countForIndex(anyString())).thenReturn(1L);
 
 
             List<SolutionIndexDTO> solutions = new ArrayList<>();
             solutions.add(new SolutionIndexDTO("solution-123", "Test Solution", "This is a test solution", 1L));
-            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(solutions);
+            when(solutionReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(solutions);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -213,6 +250,8 @@ class DefaultSearchReadProjectionTest {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             // index is null by default
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(1L);
+            when(userSearchReadPort.countForIndex(anyString())).thenReturn(1L);
 
             List<ProblemIndexDTO> problems = new ArrayList<>();
             ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
@@ -222,11 +261,8 @@ class DefaultSearchReadProjectionTest {
             UserIndexDTO user = new UserIndexDTO("user-123", "testuser", "Test User", "avatar.png");
             users.add(user);
 
-            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
-            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(problems);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(users);
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
 
@@ -236,8 +272,34 @@ class DefaultSearchReadProjectionTest {
             assertTrue(response.getResults().size() >= 2);
 
             // Verify that both problems and users were searched
-            verify(problemSearchReadPort).searchForIndex(anyString(), anyInt());
-            verify(userSearchReadPort).searchForIndex(anyString(), anyInt());
+            verify(problemSearchReadPort).searchForIndex(anyString(), anyInt(), anyInt());
+            verify(userSearchReadPort).searchForIndex(anyString(), anyInt(), anyInt());
+        }
+
+        @Test
+        @DisplayName("should map a global offset across source boundaries and keep exact total")
+        void shouldMapGlobalOffsetAcrossSources() {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
+            queryDTO.setPage(2);
+            queryDTO.setLimit(2);
+
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(3L);
+            when(userSearchReadPort.countForIndex(anyString())).thenReturn(2L);
+            when(forumPostReadPort.countForIndex(anyString())).thenReturn(1L);
+            when(solutionReadPort.countForIndex(anyString())).thenReturn(0L);
+            when(problemSearchReadPort.searchForIndex("test", 2, 2))
+                    .thenReturn(List.of(new ProblemIndexDTO("p-3", "Third", "third", "Easy")));
+            when(userSearchReadPort.searchForIndex("test", 0, 1))
+                    .thenReturn(List.of(new UserIndexDTO("u-1", "alice", "Alice", null)));
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertThat(response.getTotal()).isEqualTo(6);
+            assertThat(response.getResults())
+                    .extracting(SearchResponseVO.SearchResultItem::getId)
+                    .containsExactly("p-3", "u-1");
+            verify(problemSearchReadPort).searchForIndex("test", 2, 2);
+            verify(userSearchReadPort).searchForIndex("test", 0, 1);
         }
 
         @Test
@@ -246,6 +308,8 @@ class DefaultSearchReadProjectionTest {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setLimit(2);
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(5L);
+            when(userSearchReadPort.countForIndex(anyString())).thenReturn(5L);
 
             List<ProblemIndexDTO> problems = new ArrayList<>();
             for (int i = 1; i <= 5; i++) {
@@ -258,10 +322,7 @@ class DefaultSearchReadProjectionTest {
                 users.add(new UserIndexDTO("user-" + i, "testuser" + i, "Test User " + i, null));
             }
 
-            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
-            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(problems);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -302,24 +363,25 @@ class DefaultSearchReadProjectionTest {
         }
 
         @Test
-        @DisplayName("should return empty results when MeiliSearch returns errors for all indices")
-        void shouldReturnEmptyResultsWhenMeiliSearchReturnsErrorsForAllIndices() throws Exception {
+        @DisplayName("should fall back to the database when MeiliSearch fails")
+        void shouldFallBackToDatabaseWhenMeiliSearchFails() throws Exception {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            queryDTO.setIndex(SearchIndexType.PROBLEMS);
             when(meiliSearchClient.index(anyString())).thenReturn(index);
             when(index.search(any(SearchRequest.class))).thenThrow(new RuntimeException("MeiliSearch error"));
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(1L);
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt()))
+                    .thenReturn(List.of(new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy")));
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
 
-            // Assert - MeiliSearch errors are caught per index, so total is 0
+            // Assert - one backend failure falls back for the whole request
             assertNotNull(response);
-            assertEquals(0, response.getTotal());
-            assertTrue(response.getResults().isEmpty());
-
-            // Verify that database fallback was NOT called (since we didn't set up mocks for it)
-            verify(problemSearchReadPort, never()).searchForIndex(anyString(), anyInt());
-            verify(userSearchReadPort, never()).searchForIndex(anyString(), anyInt());
+            assertEquals(1, response.getTotal());
+            assertEquals("1", response.getResults().get(0).getId());
+            verify(problemSearchReadPort).searchForIndex(anyString(), anyInt(), anyInt());
         }
 
         @Test
@@ -338,9 +400,11 @@ class DefaultSearchReadProjectionTest {
             when(meiliSearchClient.index(anyString())).thenReturn(index);
             when(index.search(any(SearchRequest.class))).thenReturn(searchable);
             when(searchable.getHits()).thenReturn(hits);
+            when(searchable.getEstimatedTotalHits()).thenReturn(7);
 
             SearchResponseVO response = searchProjection.search(queryDTO);
 
+            assertEquals(7, response.getTotal());
             assertEquals(1, response.getResults().size());
             assertEquals("/forum/detailed/post-123", response.getResults().get(0).getUrl());
         }
@@ -366,6 +430,7 @@ class DefaultSearchReadProjectionTest {
             when(meiliSearchClient.index(anyString())).thenReturn(index);
             when(index.search(any(SearchRequest.class))).thenReturn(searchable);
             when(searchable.getHits()).thenReturn(hits);
+            when(searchable.getEstimatedTotalHits()).thenReturn(1);
 
             SearchResponseVO response = searchProjection.search(queryDTO);
 
@@ -423,15 +488,13 @@ class DefaultSearchReadProjectionTest {
         void shouldIncludeProblemMetadata() {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
+            when(problemSearchReadPort.countForIndex(anyString())).thenReturn(1L);
 
             List<ProblemIndexDTO> problems = new ArrayList<>();
             ProblemIndexDTO problem = new ProblemIndexDTO("1", "Two Sum", "two-sum", "Easy");
             problems.add(problem);
 
-            when(problemSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(problems);
-            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(forumPostReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
-            when(solutionReadPort.searchForIndex(anyString(), anyInt())).thenReturn(new ArrayList<>());
+            when(problemSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(problems);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);
@@ -449,12 +512,13 @@ class DefaultSearchReadProjectionTest {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.USERS);
+            when(userSearchReadPort.countForIndex(anyString())).thenReturn(1L);
 
             List<UserIndexDTO> users = new ArrayList<>();
             UserIndexDTO user = new UserIndexDTO("user-123", "testuser", "Test User", "https://example.com/avatar.png");
             users.add(user);
 
-            when(userSearchReadPort.searchForIndex(anyString(), anyInt())).thenReturn(users);
+            when(userSearchReadPort.searchForIndex(anyString(), anyInt(), anyInt())).thenReturn(users);
 
             // Act
             SearchResponseVO response = searchProjection.search(queryDTO);

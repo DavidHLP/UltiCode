@@ -49,15 +49,23 @@ public interface SearchSource {
      * into {@link SearchResponseVO.SearchResultItem} entries. The source
      * owns its own query, mapper, and per-row metadata.
      *
-     * <p>The {@code offset} is passed through for forward compatibility; the
-     * source applies its own {@code LIMIT} derived from {@code limit}.
+     * <p>The source applies both {@code offset} and {@code limit} to its
+     * owner-side read contract.
      *
      * @param query the trimmed user query (already trimmed by the caller)
-     * @param offset the offset returned to the caller (informational)
+     * @param offset the zero-based row offset
      * @param limit the maximum rows to return
      * @return the matched rows projected into SearchResultItem, never null
      */
     List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit);
+
+    /**
+     * Count all rows matching the same predicate as {@link #searchDatabase}.
+     *
+     * @param query the trimmed user query (already trimmed by the caller)
+     * @return the exact number of matching rows
+     */
+    long countDatabase(String query);
 
     /**
      * Build the frontend URL for a single entity of this source by its

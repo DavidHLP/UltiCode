@@ -20,6 +20,7 @@ DB_USER=ulticode
 DB_PASSWORD=runtime-password
 DB_NAME=ulticode
 AUTH_DB_USER=auth_rw
+NOTIFICATION_DB_USER=notification_rw
 EOF
 
 cat >"$TMP_DIR/stale.env" <<'EOF'

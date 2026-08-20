@@ -34,7 +34,7 @@ public class ProblemSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        List<ProblemIndexDTO> problems = problemSearchReadPort.searchForIndex(query, limit);
+        List<ProblemIndexDTO> problems = problemSearchReadPort.searchForIndex(query, offset, limit);
 
         return problems.stream()
                 .map(dto -> SearchResponseVO.SearchResultItem.builder()
@@ -46,6 +46,11 @@ public class ProblemSearchSource implements SearchSource {
                         .metadata(createProblemMetadata(dto))
                         .build())
                 .toList();
+    }
+
+    @Override
+    public long countDatabase(String query) {
+        return problemSearchReadPort.countForIndex(query);
     }
 
     @Override

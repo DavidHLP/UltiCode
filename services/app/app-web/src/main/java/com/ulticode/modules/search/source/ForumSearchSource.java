@@ -33,7 +33,7 @@ public class ForumSearchSource implements SearchSource {
 
     @Override
     public List<SearchResponseVO.SearchResultItem> searchDatabase(String query, int offset, int limit) {
-        List<ForumPostIndexDTO> posts = forumPostReadPort.searchForIndex(query, limit);
+        List<ForumPostIndexDTO> posts = forumPostReadPort.searchForIndex(query, offset, limit);
 
         List<SearchResponseVO.SearchResultItem> results = new ArrayList<>(posts.size());
         for (ForumPostIndexDTO post : posts) {
@@ -46,6 +46,11 @@ public class ForumSearchSource implements SearchSource {
                     .build());
         }
         return results;
+    }
+
+    @Override
+    public long countDatabase(String query) {
+        return forumPostReadPort.countForIndex(query);
     }
 
     @Override

@@ -25,5 +25,11 @@ public interface UserSearchReadPort {
      * @param limit maximum number of rows
      * @return matching index projections, never null
      */
-    List<UserIndexDTO> searchForIndex(String query, int limit);
+    List<UserIndexDTO> searchForIndex(String query, int offset, int limit);
+
+    default List<UserIndexDTO> searchForIndex(String query, int limit) {
+        return searchForIndex(query, 0, limit);
+    }
+
+    long countForIndex(String query);
 }

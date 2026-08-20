@@ -31,6 +31,16 @@ public class SolutionReadProvider implements SolutionReadPort {
     }
 
     @Override
+    public List<SolutionIndexDTO> searchForIndex(String query, int offset, int limit) {
+        return delegate.searchForIndex(query, offset, limit);
+    }
+
+    @Override
+    public long countForIndex(String query) {
+        return delegate.countForIndex(query);
+    }
+
+    @Override
     public long countByProblemId(Long problemId) {
         return delegate.countByProblemId(problemId);
     }

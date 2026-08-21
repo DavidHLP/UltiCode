@@ -58,7 +58,7 @@ class SearchBackfillReadPortIT {
                 mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
         Flyway.configure()
                 .dataSource(dataSource)
-                .locations("filesystem:../../../init-db/migrations")
+                .locations("filesystem:../../../init-db/migrations/*.sql")
                 .load()
                 .migrate();
 

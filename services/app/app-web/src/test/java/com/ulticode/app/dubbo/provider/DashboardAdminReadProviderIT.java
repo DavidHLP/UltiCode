@@ -44,7 +44,8 @@ class DashboardAdminReadProviderIT {
         dataSource.setMaximumPoolSize(2);
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
             statement.execute("CREATE TABLE problems (id BIGINT PRIMARY KEY, difficulty VARCHAR(32), "
-                    + "is_active TINYINT NOT NULL, is_deleted TINYINT NOT NULL, created_at DATETIME NOT NULL, "
+                    + "is_active TINYINT NOT NULL, is_deleted TINYINT NOT NULL, published_at DATETIME NULL, "
+                    + "created_at DATETIME NOT NULL, "
                     + "updated_at DATETIME NOT NULL)");
             statement.execute("CREATE TABLE contests (id VARCHAR(40) PRIMARY KEY, start_time DATETIME NOT NULL, "
                     + "end_time DATETIME NOT NULL, created_at DATETIME NOT NULL)");
@@ -95,8 +96,11 @@ class DashboardAdminReadProviderIT {
     @Test
     void readsOnlyAppOwnedDashboardTables() throws Exception {
         try (var statement = session.getConnection().createStatement()) {
-            statement.execute("INSERT INTO problems VALUES (1, 'EASY', 1, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
-            statement.execute("INSERT INTO problems VALUES (2, 'HARD', 0, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
+            statement.execute("INSERT INTO problems VALUES "
+                    + "(1, 'EASY', 1, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00', '2026-08-20 09:00:00'), "
+                    + "(2, 'HARD', 0, 0, NULL, '2026-08-20 09:00:00', '2026-08-20 09:00:00'), "
+                    + "(3, 'MEDIUM', 0, 1, NULL, '2026-08-20 09:00:00', '2026-08-20 09:00:00'), "
+                    + "(4, 'EASY', 1, 1, NULL, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
             statement.execute("INSERT INTO contests VALUES ('c-1', '2026-08-21 09:00:00', '2026-08-22 09:00:00', '2026-08-20 09:00:00')");
             statement.execute("INSERT INTO solutions VALUES ('s-1', 1, 'u-1', 'Solution', 'content', '2026-08-20 09:00:00')");
             statement.execute("INSERT INTO forum_posts VALUES ('p-1', 'c-1', 'u-1', 'Post', 'content', '2026-08-20 09:00:00')");
@@ -105,8 +109,13 @@ class DashboardAdminReadProviderIT {
 
         var stats = provider.loadDashboardStats(LocalDateTime.of(2026, 8, 20, 10, 0));
 
-        assertThat(stats.totalProblems()).isEqualTo(2);
+        assertThat(stats.totalProblems()).isEqualTo(4);
         assertThat(stats.publishedProblems()).isEqualTo(1);
+        assertThat(stats.problemsByStatus())
+                .containsExactlyInAnyOrder(
+                        new com.ulticode.app.api.dto.DashboardAppStatsDTO.Count("ACTIVE", 1),
+                        new com.ulticode.app.api.dto.DashboardAppStatsDTO.Count("INACTIVE", 1),
+                        new com.ulticode.app.api.dto.DashboardAppStatsDTO.Count("DELETED", 2));
         assertThat(stats.totalContests()).isEqualTo(1);
         assertThat(stats.totalSolutions()).isEqualTo(1);
         assertThat(stats.publishedSolutions()).isEqualTo(1);
@@ -119,7 +128,9 @@ class DashboardAdminReadProviderIT {
     @Test
     void returnsOwnerChartBucketsWithWhitelistedPeriodFormat() throws Exception {
         try (var statement = session.getConnection().createStatement()) {
-            statement.execute("INSERT INTO problems VALUES (1, 'EASY', 1, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
+            statement.execute("INSERT INTO problems VALUES "
+                    + "(1, 'EASY', 1, 0, '2026-08-20 09:00:00', '2026-08-01 09:00:00', '2026-08-20 09:00:00'), "
+                    + "(2, 'HARD', 1, 0, NULL, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
         }
         session.commit();
 

@@ -32,7 +32,12 @@ public interface DashboardAdminMapper {
                    END AS bucket,
                    COUNT(*) AS count
             FROM problems
-            GROUP BY is_deleted, is_active
+            GROUP BY CASE
+                         WHEN is_deleted = 1 THEN 'DELETED'
+                         WHEN is_active = 1 THEN 'ACTIVE'
+                         ELSE 'INACTIVE'
+                     END
+            ORDER BY bucket
             """)
     List<DashboardBucketCount> countProblemsByStatus();
 
@@ -75,10 +80,10 @@ public interface DashboardAdminMapper {
     Long countFlaggedForumComments();
 
     @Select("""
-            SELECT DATE_FORMAT(created_at, #{dateFormat}) AS bucket, COUNT(*) AS count
+            SELECT DATE_FORMAT(published_at, #{dateFormat}) AS bucket, COUNT(*) AS count
             FROM problems
-            WHERE created_at >= #{start} AND created_at <= #{end}
-            GROUP BY DATE_FORMAT(created_at, #{dateFormat})
+            WHERE published_at >= #{start} AND published_at <= #{end}
+            GROUP BY DATE_FORMAT(published_at, #{dateFormat})
             ORDER BY bucket
             """)
     List<DashboardBucketCount> chartProblems(

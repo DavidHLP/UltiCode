@@ -53,7 +53,11 @@ class AuthProfileSchemaOwnershipIT {
             .withCopyFileToContainer(
                     MountableFile.forHostPath(migrationPath(
                             "V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql").toString()),
-                    "/docker-entrypoint-initdb.d/02-auth-profile-contract.sql");
+                    "/docker-entrypoint-initdb.d/02-auth-profile-contract.sql")
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath(migrationPath(
+                            "V20260821100000__Guard_Auth_Users_To_Account_Ownership.sql").toString()),
+                    "/docker-entrypoint-initdb.d/03-auth-profile-contract-follow-up.sql");
 
     private static JdbcTemplate jdbcTemplate;
     private static SqlSessionFactory sqlSessionFactory;

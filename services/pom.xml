@@ -27,11 +27,11 @@
 		<module>judge-runtime</module>
 		<module>auth</module>
 		<module>admin</module>
+		<module>search</module>
 		<module>app</module>
 		<module>submission</module>
 		<module>notification</module>
 		<module>judge</module>
-		<module>search</module>
 	</modules>
 
 	<properties>

@@ -26,7 +26,7 @@ Historical `.auto-flow/SERVICES_AUTONOMY_*` coverage remains authoritative for i
 
 Historical task IDs above remain `done` in TASKS.yaml and are not superseded.
 
-## Report /tmp/architecture-review-20260820-164414.html execution coverage
+## Report /tmp/architecture-review-20260820.html execution coverage
 
 | Requirement / report item | Task / acceptance | Required evidence |
 | --- | --- | --- |
@@ -35,6 +35,7 @@ Historical task IDs above remain `done` in TASKS.yaml and are not superseded.
 | Candidate 03: App Submission compatibility matrix is behind one stable intake seam | AR20260820-003 / all ACs | routing trace; adapter inventory; validator/property tests; dev-lite local default; rollback preservation |
 | Candidate 04: Account/Profile schema and implementation ownership agree | AR20260820-004 / all ACs | drift trace; later migration; applied boundary/preflight; account-only projection; profile writer exclusivity; schema-contract evidence |
 | Candidate 05: Search write/read closure has one disposable verification seam | AR20260820-005 / all ACs | SearchReadProjection/worker trace; Redis→Meili→query envelope; idempotency; DLQ/fallback; disposable E2E; no runtime expansion |
+| Report C4 Judge 双形态 and C5 DevProfile are explicitly rejected background candidates; no judge split, global config rewrite, or infrastructure expansion is authorized | AR20260820-006 / rejected-scope AC | rejected-candidate decision; do-not-split boundary audit; no new runtime/config module; development-only authority |
 | Report `#do-not-split`, lines 296-298: 不通过增加更多模块收敛；不再物理拆分已是 storage-free implementation 的 judge-runtime；不删除 rollback path；local rehearsal 不得宣称 production authority | AR20260820-006 / terminal AC | no-module-expansion decision; judge-runtime storage-free boundary check; rollback-seam inventory; development-only authority review and no production acceptance evidence |
 
 ### AR20260820-004 completion evidence
@@ -53,12 +54,12 @@ Historical task IDs above remain `done` in TASKS.yaml and are not superseded.
 
 ### AR20260820-006 terminal evidence
 
-- All report requirements are mapped to AR20260820-001..005 completion packets; the top DevStack recommendation is complete and the three `do-not-split` constraints are preserved.
+- All executable report requirements are mapped to AR20260820-001..005 completion packets; rejected C4/C5 are mapped to AR20260820-006 without implementation, the top recommendation is complete, and the three `do-not-split` constraints are preserved.
 - Full reactor verify, fresh integration evidence, current owner/MySQL/Redis/Meili/Judge focused gates, Compose/YAML, graph and diff checks provide the final validation basis; any environment-gated skip is named rather than counted as a pass.
 - No new runtime module was added to force convergence; `judge-runtime` remains storage-free and rollback seams remain. The working tree retains pre-existing user changes and this task's uncommitted implementation; no external delivery was authorized.
 
 
-- Objective: 完成 `/tmp/architecture-review-20260820-164414.html` 五个候选任务及终态审计。
+- Objective: 完成 `/tmp/architecture-review-20260820.html` 五个可执行候选任务及终态审计；C4/C5 为已拒绝背景候选，已映射但不实施。
 - In scope: DevStack/dev-lite；Admin read seam；App Submission seam；Account/Profile schema；Search disposable verification；tests/config/docs/control-plane。
 - Out of scope: 新物理服务或基础设施；RocketMQ/Seata/Kubernetes/Service Mesh；生产 deployment/cutover/publish；删除 rollback seam；未经裁决的 writer/schema 重构；commit/push。
 - Root cause: Owner/Contract 方向已成形，但启动、Admin foreign reads、App compatibility、schema ownership 和 Search E2E 仍有边界泄漏或证据缺口。

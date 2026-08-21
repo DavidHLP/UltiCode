@@ -3,6 +3,7 @@ package com.ulticode.app.dubbo.provider;
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
 import com.ulticode.app.api.service.DashboardAdminReadPort;
+import com.ulticode.common.dto.DashboardBucketCount;
 import com.ulticode.modules.dashboard.mapper.DashboardAdminMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -10,7 +11,6 @@ import org.apache.dubbo.config.annotation.DubboService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /** App-owner provider for the entity-free Admin Dashboard read seam. */
 @DubboService(group = "backend-app", version = "1.0.0")
@@ -44,27 +44,25 @@ public class DashboardAdminReadProvider implements DashboardAdminReadPort {
     public List<DashboardChartDataDTO> loadDashboardChartData(
             String metric, LocalDateTime start, LocalDateTime end, String period) {
         String dateFormat = dateFormat(period);
-        List<Map<String, Object>> rows = switch (metric == null ? "" : metric.toLowerCase(Locale.ROOT)) {
+        List<DashboardBucketCount> rows = switch (metric == null ? "" : metric.toLowerCase(Locale.ROOT)) {
             case "problems" -> dashboardAdminMapper.chartProblems(start, end, dateFormat);
             case "contests" -> dashboardAdminMapper.chartContests(start, end, dateFormat);
             case "solutions" -> dashboardAdminMapper.chartSolutions(start, end, dateFormat);
             case "forum_posts" -> dashboardAdminMapper.chartForumPosts(start, end, dateFormat);
             default -> List.of();
         };
-        return rows.stream()
-                .map(row -> new DashboardChartDataDTO(
-                        (String) row.get("bucket"), count((Number) row.get("count"))))
+        return rows == null ? List.of() : rows.stream()
+                .map(row -> new DashboardChartDataDTO(row.getBucket(), count(row.getCount())))
                 .toList();
     }
 
-    private static List<DashboardAppStatsDTO.Count> counts(List<Map<String, Object>> rows) {
+    private static List<DashboardAppStatsDTO.Count> counts(List<DashboardBucketCount> rows) {
         if (rows == null) {
             return List.of();
         }
         return rows.stream()
-                .filter(row -> row.get("bucket") != null)
-                .map(row -> new DashboardAppStatsDTO.Count(
-                        String.valueOf(row.get("bucket")), count((Number) row.get("count"))))
+                .filter(row -> row.getBucket() != null)
+                .map(row -> new DashboardAppStatsDTO.Count(row.getBucket(), count(row.getCount())))
                 .toList();
     }
 

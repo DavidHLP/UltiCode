@@ -1,8 +1,8 @@
-objective: Architecture review report /tmp/architecture-review-20260820-045601.html — all requested development tasks to terminal state
+objective: Architecture review report /tmp/architecture-review-20260820.html — all executable development tasks to terminal state
 domain: development architecture hardening
 status: complete
 active_task: none
-resume_point: All architecture-review nodes ARCH-REVIEW-001..005 are complete; no further actionable node remains.
+resume_point: AR20260820-001..006 are complete; report C4/C5 are rejected background candidates and no further actionable node remains.
 control_plane:
   task_authority: .auto-flow/TASKS.yaml
   coverage: .auto-flow/COVERAGE.md
@@ -11,26 +11,30 @@ control_plane:
   handoff: .auto-flow/HANDOFF.yaml
   evidence: .auto-flow/EVIDENCE.md
 nodes:
-- id: ARCH-REVIEW-001
-  goal: Search worker DLQ atomic failure transfer
+- id: AR20260820-001
+  goal: DevStack dev-lite Owner migration readiness
   status: done
-  evidence: SearchDocumentIndexWorkerTest 11/0/0/0; reactor PASS
-- id: ARCH-REVIEW-002
-  goal: Submission page-level batched facts and users
+  evidence: DevStack manifest, preflight, owner safety, Compose and fresh MySQL smoke PASS
+- id: AR20260820-002
+  goal: Admin Dashboard canonical owner read seam
   status: done
-  evidence: DefaultSubmissionProjectionTest 11/0/0/0; app-web reactor PASS
-- id: ARCH-REVIEW-003
-  goal: Auth-owned bounded dashboard summary
+  evidence: canonical App Dashboard MySQL IT 2/0/0/0; typed mapper and bounded Admin seam PASS
+- id: AR20260820-003
+  goal: Submission compatibility routing seam
   status: done
-  evidence: DefaultDashboardStatsProjectionTest 6/0/0/0; admin reactor PASS
-- id: ARCH-REVIEW-004
-  goal: Canonical development profile and owner configuration
+  evidence: shared select routing/property/wiring tests and rollback inventory PASS
+- id: AR20260820-004
+  goal: Auth account and App profile schema ownership
   status: done
-  evidence: Compose profile/config checks PASS; YAML and diff checks PASS
-- id: ARCH-REVIEW-005
-  goal: Final architecture review gate and control-plane closure
+  evidence: Auth schema IT 2/0/0/0; shared Flyway SearchBackfill IT 5/0/0/0; owner safety PASS
+- id: AR20260820-005
+  goal: Search disposable event-to-query verification
   status: done
-  evidence: app/app-web -am test BUILD SUCCESS; graphify update; control-plane YAML parse; git diff --check
+  evidence: Search worker/E2E 15/0/0/0; SearchEventToQueryE2EIT 3/0/0/0; test-only reactor dependency PASS
+- id: AR20260820-006
+  goal: Final architecture review and development-only closure
+  status: done
+  evidence: full verify exit 0; Coverage/Review/YAML/graph/diff/authority audit PASS
 terminal_condition:
 - all nodes done
 - required development evidence recorded
@@ -56,8 +60,11 @@ cr_review:
     - unbatched Submission page enrichment
     - empty Auth dashboard role counts
     - incomplete Search DLQ envelope
+    - Auth contract migration shared-schema failure
+    - raw dashboard mapper rows and legacy App schema queries
+    - test-only Search dependency reactor ordering
   evidence:
     - affected reactor BUILD SUCCESS
     - services verify BUILD SUCCESS
-    - fresh integration XML 68 reports / 225 tests / 0 failures / 0 errors / 17 skips
-    - real MySQL, Redis and Meili stub tests passed
+    - fresh services verify XML 829 reports / 2792 tests / 0 failures / 0 errors / 29 skips
+    - real MySQL, Redis and Meili target gates passed; broad IT selector timeout is not counted as pass

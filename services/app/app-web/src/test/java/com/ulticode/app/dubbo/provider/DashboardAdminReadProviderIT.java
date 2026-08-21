@@ -43,17 +43,17 @@ class DashboardAdminReadProviderIT {
         dataSource.setPassword(mysql.getPassword());
         dataSource.setMaximumPoolSize(2);
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
-            statement.execute("CREATE TABLE problems (id BIGINT PRIMARY KEY, is_published TINYINT NOT NULL, "
-                    + "difficulty VARCHAR(32), status VARCHAR(32), published_at DATETIME NULL)");
+            statement.execute("CREATE TABLE problems (id BIGINT PRIMARY KEY, difficulty VARCHAR(32), "
+                    + "is_active TINYINT NOT NULL, is_deleted TINYINT NOT NULL, created_at DATETIME NOT NULL, "
+                    + "updated_at DATETIME NOT NULL)");
             statement.execute("CREATE TABLE contests (id VARCHAR(40) PRIMARY KEY, start_time DATETIME NOT NULL, "
                     + "end_time DATETIME NOT NULL, created_at DATETIME NOT NULL)");
-            statement.execute("CREATE TABLE solutions (id VARCHAR(40) PRIMARY KEY, is_published TINYINT NOT NULL, "
-                    + "is_flagged TINYINT NOT NULL, created_at DATETIME NOT NULL)");
-            statement.execute("CREATE TABLE forum_posts (id VARCHAR(40) PRIMARY KEY, is_deleted TINYINT NOT NULL, "
-                    + "is_flagged TINYINT NOT NULL, created_at DATETIME NOT NULL)");
-            statement.execute("CREATE TABLE forum_comments (id VARCHAR(40) PRIMARY KEY, is_deleted TINYINT NOT NULL, "
-                    + "is_flagged TINYINT NOT NULL)");
-            statement.execute("CREATE TABLE forum_communities (id VARCHAR(40) PRIMARY KEY)");
+            statement.execute("CREATE TABLE solutions (id VARCHAR(40) PRIMARY KEY, problem_id BIGINT NOT NULL, "
+                    + "user_id VARCHAR(40) NOT NULL, title VARCHAR(200) NOT NULL, content TEXT NOT NULL, "
+                    + "created_at DATETIME NOT NULL)");
+            statement.execute("CREATE TABLE forum_posts (id VARCHAR(40) PRIMARY KEY, community_id VARCHAR(40) NOT NULL, "
+                    + "user_id VARCHAR(40) NOT NULL, title VARCHAR(200) NOT NULL, content TEXT NOT NULL, "
+                    + "created_at DATETIME NOT NULL)");
         }
 
         var configuration = new MybatisConfiguration();
@@ -68,9 +68,7 @@ class DashboardAdminReadProviderIT {
     void setUp() throws Exception {
         session = sqlSessionFactory.openSession(false);
         try (var statement = session.getConnection().createStatement()) {
-            statement.execute("DELETE FROM forum_comments");
             statement.execute("DELETE FROM forum_posts");
-            statement.execute("DELETE FROM forum_communities");
             statement.execute("DELETE FROM solutions");
             statement.execute("DELETE FROM contests");
             statement.execute("DELETE FROM problems");
@@ -97,13 +95,11 @@ class DashboardAdminReadProviderIT {
     @Test
     void readsOnlyAppOwnedDashboardTables() throws Exception {
         try (var statement = session.getConnection().createStatement()) {
-            statement.execute("INSERT INTO problems VALUES (1, 1, 'EASY', 'PUBLISHED', '2026-08-20 09:00:00')");
-            statement.execute("INSERT INTO problems VALUES (2, 0, 'HARD', 'DRAFT', NULL)");
+            statement.execute("INSERT INTO problems VALUES (1, 'EASY', 1, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
+            statement.execute("INSERT INTO problems VALUES (2, 'HARD', 0, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
             statement.execute("INSERT INTO contests VALUES ('c-1', '2026-08-21 09:00:00', '2026-08-22 09:00:00', '2026-08-20 09:00:00')");
-            statement.execute("INSERT INTO solutions VALUES ('s-1', 1, 1, '2026-08-20 09:00:00')");
-            statement.execute("INSERT INTO forum_posts VALUES ('p-1', 0, 1, '2026-08-20 09:00:00')");
-            statement.execute("INSERT INTO forum_comments VALUES ('cm-1', 0, 0)");
-            statement.execute("INSERT INTO forum_communities VALUES ('f-1')");
+            statement.execute("INSERT INTO solutions VALUES ('s-1', 1, 'u-1', 'Solution', 'content', '2026-08-20 09:00:00')");
+            statement.execute("INSERT INTO forum_posts VALUES ('p-1', 'c-1', 'u-1', 'Post', 'content', '2026-08-20 09:00:00')");
         }
         session.commit();
 
@@ -113,16 +109,17 @@ class DashboardAdminReadProviderIT {
         assertThat(stats.publishedProblems()).isEqualTo(1);
         assertThat(stats.totalContests()).isEqualTo(1);
         assertThat(stats.totalSolutions()).isEqualTo(1);
-        assertThat(stats.flaggedSolutions()).isEqualTo(1);
+        assertThat(stats.publishedSolutions()).isEqualTo(1);
+        assertThat(stats.flaggedSolutions()).isZero();
         assertThat(stats.forumPosts()).isEqualTo(1);
-        assertThat(stats.forumComments()).isEqualTo(1);
-        assertThat(stats.forumCommunities()).isEqualTo(1);
+        assertThat(stats.forumComments()).isZero();
+        assertThat(stats.forumCommunities()).isZero();
     }
 
     @Test
     void returnsOwnerChartBucketsWithWhitelistedPeriodFormat() throws Exception {
         try (var statement = session.getConnection().createStatement()) {
-            statement.execute("INSERT INTO problems VALUES (1, 1, 'EASY', 'PUBLISHED', '2026-08-20 09:00:00')");
+            statement.execute("INSERT INTO problems VALUES (1, 'EASY', 1, 0, '2026-08-20 09:00:00', '2026-08-20 09:00:00')");
         }
         session.commit();
 

@@ -2,6 +2,8 @@ package com.ulticode.modules.submission.port.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
+import com.ulticode.common.dto.DashboardBucketCount;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.modules.problem.adapter.DefaultProblemAdminReadAdapter;
 import com.ulticode.modules.submission.entity.Submission;
@@ -96,7 +98,7 @@ class DefaultSubmissionAdminReadAdapterTest {
         when(submissionMapper.calculateDashboardAcceptanceRate()).thenReturn(65.5);
         when(submissionMapper.countDashboardByBucket(
                 any(LocalDateTime.class), any(LocalDateTime.class), any()))
-                .thenReturn(List.of(java.util.Map.of("bucket", "2026-08-20", "count", 3L)));
+                .thenReturn(List.of(new DashboardBucketCount("2026-08-20", 3L)));
 
         var adapter = new DefaultSubmissionAdminReadAdapter(
                 submissionMapper, problemAdminReadAdapter, new ObjectMapper());
@@ -108,6 +110,6 @@ class DefaultSubmissionAdminReadAdapterTest {
 
         assertThat(stats.acceptanceRate()).isEqualTo(65.5);
         assertThat(chart).containsExactly(
-                new com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO("2026-08-20", 3L));
+                new SubmissionDashboardChartDataDTO("2026-08-20", 3L));
     }
 }

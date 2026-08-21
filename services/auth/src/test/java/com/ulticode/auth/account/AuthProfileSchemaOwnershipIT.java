@@ -43,7 +43,7 @@ class AuthProfileSchemaOwnershipIT {
 
     @Container
     private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("ulticode_auth_schema_contract_test")
+            .withDatabaseName("auth")
             .withUsername("root")
             .withPassword("root")
             .withCopyFileToContainer(

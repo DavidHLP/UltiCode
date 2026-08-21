@@ -9,6 +9,7 @@ import com.ulticode.submission.api.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.submission.api.dto.WeeklyProgressDTO;
 import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.UserBestStats;
+import com.ulticode.common.dto.DashboardBucketCount;
 import com.ulticode.modules.submission.entity.Submission;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
@@ -19,16 +20,15 @@ import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
  * Submission storage mapper owned by {@code backend-submission}.
  *
- * <p>SPLIT-003 slice-2 copies only the write-path methods from the App-owned
- * mapper: CRUD (via {@link BaseMapper}) plus the verdict fence CAS. Read-only
- * analytics/listing queries stay in App until SPLIT-004 moves the read
- * contract.
+ * <p>SPLIT-003 slice-2 copies the write-path methods from the App-owned
+ * mapper: CRUD (via {@link BaseMapper}) plus the verdict fence CAS. The
+ * dashboard-only aggregate reads below are the narrow owner seam used during
+ * the Admin read migration; other read contracts remain in App.
  */
 @Mapper
 public interface SubmissionMapper extends BaseMapper<Submission> {
@@ -140,7 +140,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             GROUP BY DATE_FORMAT(created_at, #{dateFormat})
             ORDER BY bucket
             """)
-    List<Map<String, Object>> countDashboardByBucket(
+    List<DashboardBucketCount> countDashboardByBucket(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             @Param("dateFormat") String dateFormat);

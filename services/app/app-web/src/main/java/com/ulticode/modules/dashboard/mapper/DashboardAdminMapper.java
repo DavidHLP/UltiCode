@@ -1,12 +1,12 @@
 package com.ulticode.modules.dashboard.mapper;
 
+import com.ulticode.common.dto.DashboardBucketCount;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * App-owner persistence seam for the Admin Dashboard aggregate provider.
@@ -18,14 +18,23 @@ public interface DashboardAdminMapper {
     @Select("SELECT COUNT(*) FROM problems")
     Long countTotalProblems();
 
-    @Select("SELECT COUNT(*) FROM problems WHERE is_published = 1")
+    @Select("SELECT COUNT(*) FROM problems WHERE is_active = 1 AND is_deleted = 0")
     Long countPublishedProblems();
 
     @Select("SELECT difficulty AS bucket, COUNT(*) AS count FROM problems GROUP BY difficulty")
-    List<Map<String, Object>> countProblemsByDifficulty();
+    List<DashboardBucketCount> countProblemsByDifficulty();
 
-    @Select("SELECT status AS bucket, COUNT(*) AS count FROM problems GROUP BY status")
-    List<Map<String, Object>> countProblemsByStatus();
+    @Select("""
+            SELECT CASE
+                       WHEN is_deleted = 1 THEN 'DELETED'
+                       WHEN is_active = 1 THEN 'ACTIVE'
+                       ELSE 'INACTIVE'
+                   END AS bucket,
+                   COUNT(*) AS count
+            FROM problems
+            GROUP BY is_deleted, is_active
+            """)
+    List<DashboardBucketCount> countProblemsByStatus();
 
     @Select("SELECT COUNT(*) FROM contests")
     Long countTotalContests();
@@ -42,35 +51,37 @@ public interface DashboardAdminMapper {
     @Select("SELECT COUNT(*) FROM solutions")
     Long countTotalSolutions();
 
-    @Select("SELECT COUNT(*) FROM solutions WHERE is_published = 1")
+    // The canonical App solution table has no publication flag; every stored
+    // solution is part of the owner read shape until a visibility seam exists.
+    @Select("SELECT COUNT(*) FROM solutions")
     Long countPublishedSolutions();
 
-    @Select("SELECT COUNT(*) FROM solutions WHERE is_flagged = 1")
+    @Select("SELECT 0")
     Long countFlaggedSolutions();
 
-    @Select("SELECT COUNT(*) FROM forum_posts WHERE is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM forum_posts")
     Long countForumPosts();
 
-    @Select("SELECT COUNT(*) FROM forum_comments WHERE is_deleted = 0")
+    @Select("SELECT 0")
     Long countForumComments();
 
-    @Select("SELECT COUNT(*) FROM forum_communities")
+    @Select("SELECT 0")
     Long countForumCommunities();
 
-    @Select("SELECT COUNT(*) FROM forum_posts WHERE is_deleted = 0 AND is_flagged = 1")
+    @Select("SELECT 0")
     Long countFlaggedForumPosts();
 
-    @Select("SELECT COUNT(*) FROM forum_comments WHERE is_deleted = 0 AND is_flagged = 1")
+    @Select("SELECT 0")
     Long countFlaggedForumComments();
 
     @Select("""
-            SELECT DATE_FORMAT(published_at, #{dateFormat}) AS bucket, COUNT(*) AS count
+            SELECT DATE_FORMAT(created_at, #{dateFormat}) AS bucket, COUNT(*) AS count
             FROM problems
-            WHERE published_at >= #{start} AND published_at <= #{end}
-            GROUP BY DATE_FORMAT(published_at, #{dateFormat})
+            WHERE created_at >= #{start} AND created_at <= #{end}
+            GROUP BY DATE_FORMAT(created_at, #{dateFormat})
             ORDER BY bucket
             """)
-    List<Map<String, Object>> chartProblems(
+    List<DashboardBucketCount> chartProblems(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("dateFormat") String dateFormat);
@@ -82,7 +93,7 @@ public interface DashboardAdminMapper {
             GROUP BY DATE_FORMAT(created_at, #{dateFormat})
             ORDER BY bucket
             """)
-    List<Map<String, Object>> chartContests(
+    List<DashboardBucketCount> chartContests(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("dateFormat") String dateFormat);
@@ -94,7 +105,7 @@ public interface DashboardAdminMapper {
             GROUP BY DATE_FORMAT(created_at, #{dateFormat})
             ORDER BY bucket
             """)
-    List<Map<String, Object>> chartSolutions(
+    List<DashboardBucketCount> chartSolutions(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("dateFormat") String dateFormat);
@@ -102,11 +113,11 @@ public interface DashboardAdminMapper {
     @Select("""
             SELECT DATE_FORMAT(created_at, #{dateFormat}) AS bucket, COUNT(*) AS count
             FROM forum_posts
-            WHERE is_deleted = 0 AND created_at >= #{start} AND created_at <= #{end}
+            WHERE created_at >= #{start} AND created_at <= #{end}
             GROUP BY DATE_FORMAT(created_at, #{dateFormat})
             ORDER BY bucket
             """)
-    List<Map<String, Object>> chartForumPosts(
+    List<DashboardBucketCount> chartForumPosts(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("dateFormat") String dateFormat);

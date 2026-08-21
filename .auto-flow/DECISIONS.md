@@ -29,7 +29,7 @@ ARCH-REVIEW-001, ARCH-REVIEW-002, ARCH-REVIEW-003, ARCH-REVIEW-004, ARCH-REVIEW-
 ## Architecture review execution planning addendum (2026-08-20)
 
 ### Context
-`/tmp/architecture-review-20260820-164414.html` identifies five candidates. The repository already has Owner/Contract seams, but the report finds shallow startup behavior, Admin foreign-table reads, an App Submission compatibility matrix, Account/Profile schema drift, and a split Search verification surface. The target is development/TEST-TARGET only.
+`/tmp/architecture-review-20260820.html` identifies five executable candidates plus two rejected background candidates. The repository already has Owner/Contract seams, but the report finds shallow startup behavior, Admin foreign-table reads, an App Submission compatibility matrix, Account/Profile schema drift, and a split Search verification surface. The target is development/TEST-TARGET only.
 
 ### Decision
 Execute one ordered DAG: `AR20260820-001` DevStack/dev-lite → `AR20260820-002` Admin Dashboard read seam → `AR20260820-003` App Submission migration seam → `AR20260820-004` Account/Profile schema contract → `AR20260820-005` Search disposable verification → `AR20260820-006` final audit. Implement the smallest complete change at the existing seam; do not add physical services or speculative infrastructure.

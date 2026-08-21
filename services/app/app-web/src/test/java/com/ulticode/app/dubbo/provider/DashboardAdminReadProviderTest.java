@@ -2,6 +2,7 @@ package com.ulticode.app.dubbo.provider;
 
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
+import com.ulticode.common.dto.DashboardBucketCount;
 import com.ulticode.modules.dashboard.mapper.DashboardAdminMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -26,9 +26,9 @@ class DashboardAdminReadProviderTest {
         when(mapper.countTotalProblems()).thenReturn(5L);
         when(mapper.countPublishedProblems()).thenReturn(3L);
         when(mapper.countProblemsByDifficulty()).thenReturn(
-                List.of(Map.of("bucket", "EASY", "count", 2L)));
+                List.of(new DashboardBucketCount("EASY", 2L)));
         when(mapper.countProblemsByStatus()).thenReturn(
-                List.of(Map.of("bucket", "PUBLISHED", "count", 3L)));
+                List.of(new DashboardBucketCount("PUBLISHED", 3L)));
 
         DashboardAppStatsDTO result = new DashboardAdminReadProvider(mapper)
                 .loadDashboardStats(LocalDateTime.of(2026, 8, 20, 10, 0));
@@ -47,7 +47,7 @@ class DashboardAdminReadProviderTest {
                 LocalDateTime.of(2026, 8, 1, 0, 0),
                 LocalDateTime.of(2026, 8, 20, 0, 0),
                 "%Y-%u"))
-                .thenReturn(List.of(Map.of("bucket", "2026-33", "count", 7L)));
+                .thenReturn(List.of(new DashboardBucketCount("2026-33", 7L)));
 
         List<DashboardChartDataDTO> result = new DashboardAdminReadProvider(mapper)
                 .loadDashboardChartData(

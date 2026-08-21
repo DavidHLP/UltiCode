@@ -11,6 +11,7 @@ import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
+import com.ulticode.common.dto.DashboardBucketCount;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.response.PageResult;
@@ -185,10 +186,11 @@ public class SubmissionAdminReadProvider implements SubmissionAdminReadPort {
     public List<SubmissionDashboardChartDataDTO> loadDashboardChartData(
             LocalDateTime start, LocalDateTime end, String period) {
         String dateFormat = dateFormat(period);
-        return submissionMapper.countDashboardByBucket(start, end, dateFormat).stream()
+        List<DashboardBucketCount> rows = submissionMapper
+                .countDashboardByBucket(start, end, dateFormat);
+        return rows == null ? List.of() : rows.stream()
                 .map(row -> new SubmissionDashboardChartDataDTO(
-                        (String) row.get("bucket"),
-                        row.get("count") instanceof Number number ? number.longValue() : 0L))
+                        row.getBucket(), row.getCount() == null ? 0L : row.getCount()))
                 .toList();
     }
 

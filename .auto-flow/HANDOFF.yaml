@@ -1,18 +1,19 @@
-outcome: pass
+outcome: complete
 outputs:
-  - 'Completion/Coverage Audit: AR20260820-006 terminal acceptance, top recommendation, do-not-split constraints, review, validation, rollback assumptions, and evidence consistency PASS; parent task complete'
-  - 'Final architecture audit: AR20260820-001..005 done with evidence-backed DevStack, Admin seam, Submission seam, Auth/App schema contract and Search disposable E2E'
-  - 'Review Packet: Confirmed Findings=0; no new module expansion, judge-runtime remains storage-free, rollback paths remain available, and local evidence is not production acceptance'
-  - 'Validation Packet: full services verify BUILD SUCCESS; fresh integration evidence and current focused real MySQL/Redis/Meili/Judge gates recorded; Compose/YAML/diff/graph checks PASS'
-  - 'No commit, push, publish, deploy, production route/grant, cutover or production acceptance action performed'
+  - 'Run-development-loop terminal: /tmp/architecture-review-20260820.html mapped to AR20260820-001..006; C4/C5 rejected background candidates mapped to AR006 without implementation'
+  - 'Task Ledger: 17 tasks done, AR20260820-001..006 done, ready/pending empty; Coverage explicitly records canonical report items and do-not-split boundaries'
+  - 'Review closure: Auth shared-Flyway guard, canonical App Dashboard schema/typed mapper rows, and test-only Search reactor ordering fixed; no Confirmed Findings remain'
+  - 'Delivery boundary: development/TEST-TARGET only; judge-runtime remains storage-free; rollback/local compatibility seams retained; no production action'
+  - 'Validation: services verify exit 0, focused Auth/Search/Dashboard/Submission gates pass, owner migration safety pass, Compose/YAML/scripts/diff/graph checks pass'
 evidence:
-  - 'Full services ./mvnw verify -B: BUILD SUCCESS, total time 01:26; all reactor modules including backend-judge and backend-search succeeded'
-  - 'Fresh direct integration evidence: 68 reports, 225 tests, 0 failures, 0 errors, 17 skips; current owner migration safety and Search real Redis/Meili E2E are independently green'
-  - 'JudgeRuntimeConfiguration and POM/source audit prove explicit storage-free worker boundary; focused judge/judge-runtime tests pass, environment-gated Redis test remains explicitly skipped without REDIS_HOST'
-  - 'Control-plane YAML, graphify update, git diff --check, rollback inventory and authority audit PASS; no unresolved blockers'
+  - 'Fresh verify: MAVEN_EXIT=0, BUILD SUCCESS; Surefire XML 829 reports, 2792 tests, 0 failures, 0 errors, 29 skips'
+  - 'Focused real gates: AuthProfileSchemaOwnershipIT 2/0/0/0; SearchBackfillReadPortIT 5/0/0/0; Dashboard canonical App MySQL 2/0/0/0; Submission owner/adapter 8/0/0/0; Search worker/E2E 15/0/0/0 plus SearchEventToQueryE2EIT 3/0/0/0'
+  - 'owner-migration-safety-integration-test.sh exit 0; DevStack/preflight/shell syntax/Compose dev+prod/YAML/diff/graph refresh PASS'
+  - 'Broad *IT,*IntegrationTest selector was attempted after fixes but host tool timed out at 300 seconds without exit; recorded as unavailable, not pass evidence'
+  - 'git status is intentionally dirty only from control-plane updates and the uncommitted implementation; no user business changes were discarded'
 next_goal: null
 next_skill: none
-reason: 'AR20260820-006 terminal audit passed; the architecture-review objective is complete under development/TEST-TARGET authority only.'
+reason: 'run-development-loop: RECOVER→PLAN→IMPLEMENT→REVIEW→VALIDATE→COMPLETION 全部可执行 Gate 通过；广泛 IT selector 仅受宿主时限限制，目标相关 integration 已有真实证据；证据仅 development/TEST-TARGET'
 alternatives: []
 blockers: []
 authority:

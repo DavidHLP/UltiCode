@@ -64,7 +64,7 @@ tasks:
 
   - id: AR20260820-001
     title: 收敛 DevStack dev-lite Owner migration readiness
-    source: [architecture-review-20260820-164414.html#candidate-1]
+    source: [/tmp/architecture-review-20260820.html#candidate-1]
     status: done
     depends_on: []
     acceptance_criteria: [deterministic Owner migration order, explicit dev-lite readiness, explicit dev-full seam]
@@ -83,7 +83,7 @@ tasks:
     updated_at: '2026-08-20'
   - id: AR20260820-002
     title: 隔离 Admin Dashboard 外部表读取 seam
-    source: [architecture-review-20260820-164414.html#candidate-2]
+    source: [/tmp/architecture-review-20260820.html#candidate-2]
     status: done
     depends_on: [AR20260820-001]
     acceptance_criteria: [no foreign-table selects, one bounded coarse read seam, unavailable semantics]
@@ -93,6 +93,7 @@ tasks:
       - 'affected Admin/App/Submission reactor compile BUILD SUCCESS'
       - 'focused seam/projection tests: 37 tests, 0 failures, 0 errors; full affected reactor unit suite BUILD SUCCESS'
       - 'App DashboardAdminReadProviderIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
+      - 'canonical app-schema DashboardAdminReadProviderIT plus typed DashboardBucketCount mapper: 2/0/0/0'
       - 'SubmissionAdminReadProviderIT: 4 tests, 0 failures, 0 errors, real MySQL 8.0'
       - 'affected reactor verify: 1399 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
       - 'Admin foreign-table SQL boundary and MapperScan boundary PASS'
@@ -103,7 +104,7 @@ tasks:
     updated_at: '2026-08-20'
   - id: AR20260820-003
     title: 隔离 App Submission 兼容矩阵
-    source: [architecture-review-20260820-164414.html#candidate-3]
+    source: [/tmp/architecture-review-20260820.html#candidate-3]
     status: done
     depends_on: [AR20260820-002]
     acceptance_criteria: [one stable intake, explicit migration seam, rollback preserved]
@@ -122,7 +123,7 @@ tasks:
     updated_at: '2026-08-20'
   - id: AR20260820-004
     title: 对齐 Auth Account 与 App Profile schema ownership
-    source: [architecture-review-20260820-164414.html#candidate-4]
+    source: [/tmp/architecture-review-20260820.html#candidate-4]
     status: done
     depends_on: [AR20260820-003]
     acceptance_criteria: [later migration removes unused columns, App sole profile writer, expand-verify-contract]
@@ -130,6 +131,7 @@ tasks:
     rollback: [never edit applied migrations]
     evidence:
       - 'AuthProfileSchemaOwnershipIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
+      - 'SearchBackfillReadPortIT shared Flyway regression: 5 tests, 0 failures, 0 errors; contract migration no-op on already narrowed schema'
       - 'Auth reactor verify: BUILD SUCCESS, 217 tests, 0 failures, 0 errors, 0 skipped'
       - 'App profile writer/provider focus: 19 tests, 0 failures, 0 errors, real MySQL 8.0 provider included'
       - 'owner-migration-safety-integration-test: MySQL 9.1 Auth/App migrations, account/profile backfill, soft-deleted preservation and grant isolation PASS'
@@ -139,7 +141,7 @@ tasks:
     updated_at: '2026-08-20'
   - id: AR20260820-005
     title: 补齐 Search 写入读取 disposable 验证 seam
-    source: [architecture-review-20260820-164414.html#candidate-5]
+    source: [/tmp/architecture-review-20260820.html#candidate-5]
     status: done
     depends_on: [AR20260820-004]
     acceptance_criteria: [event-to-query harness, idempotent writes, DLQ and fallback observable]
@@ -150,13 +152,14 @@ tasks:
       - 'Search worker focus: SearchDocumentIndexWorkerTest 11/0/0 and SearchWorkerEndToEndIT 4/0/0'
       - 'App Search focus: SearchEventToQueryE2EIT, DefaultSearchReadProjectionTest, SearchSourceContractTest and SearchDocumentChangedPublisherTest 32/0/0'
       - 'Affected App verify: BUILD SUCCESS, 1401 tests, 0 failures, 0 errors, 13 skipped; backend-search reactor package SUCCESS'
+      - 'services reactor order places backend-search before app; SearchEventToQueryE2EIT test-only dependency compiles in a fresh reactor'
       - 'Compose dev/prod config with disposable MEILI_MASTER_KEY, control-plane YAML, graphify update, and git diff --check PASS'
     commits: []
     notes: No runtime service added.
     updated_at: '2026-08-20'
   - id: AR20260820-006
     title: 完成架构评审终态审计与开发交付收口
-    source: [architecture-review-20260820-164414.html#top-recommendation, architecture-review-20260820-164414.html#do-not-split]
+    source: [/tmp/architecture-review-20260820.html#top-recommendation, /tmp/architecture-review-20260820.html#do-not-split]
     status: done
     depends_on: [AR20260820-001, AR20260820-002, AR20260820-003, AR20260820-004, AR20260820-005]
     acceptance_criteria:
@@ -169,8 +172,8 @@ tasks:
     rollback: [no unauthorized history or deployment operation]
     evidence:
       - 'AR20260820-001..005 are done; each acceptance, rollback, review, validation and Coverage mapping is recorded above'
-      - 'Full services ./mvnw verify -B: BUILD SUCCESS, total time 01:26; all reactor modules including judge/search succeeded'
-      - 'Fresh direct integration evidence: 68 reports, 225 tests, 0 failures, 0 errors, 17 skips; current owner migration, Search Redis/Meili, Auth/App MySQL and Judge runtime focused gates also pass'
+      - 'Fresh services ./mvnw verify -B: BUILD SUCCESS, MAVEN_EXIT=0; Surefire XML 829 reports, 2792 tests, 0 failures, 0 errors, 29 skips'
+      - 'Current target integration gates: 12 focused owner/MySQL tests plus SearchBackfillReadPortIT 5/0/0/0, SearchEventToQueryE2EIT 3/0/0/0, owner migration safety PASS; broad *IT selector timed out at host 300s without exit and is not counted as pass'
       - 'JudgeRuntimeConfiguration/source/POM audit proves storage-free explicit import; no new runtime module or physical judge split was added'
       - 'Rollback inventory, development-only authority, control-plane YAML, graphify update and git diff --check PASS'
     commits: []

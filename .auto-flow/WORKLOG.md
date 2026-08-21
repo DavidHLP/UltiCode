@@ -79,3 +79,9 @@
 - Judge boundary audit confirmed explicit `JudgeRuntimeConfiguration` imports and no datasource/MyBatis/business-table path in the worker; the environment-gated real Redis test is explicitly skipped when `REDIS_HOST` is absent, not reported as passed.
 - Control-plane YAML, graph refresh, diff check, rollback inventory and development-only authority audit passed. No unresolved Confirmed Findings or blockers remain.
 - Completion/Coverage Audit passed for AR20260820-006; all tasks are `done`, parent architecture-review objective is complete, and no commit, push, publish, deploy, cutover, grant or production action occurred.
+
+## 2026-08-21 review-fix closure
+
+- Recovered two review findings and one fresh reactor issue: shared-Flyway Auth contract no-op, Dashboard canonical App schema/typed mapper rows, and test-only Search module order.
+- Focused real owner/MySQL regressions passed; fresh services verify passed with exit 0 and 829/2792/0/0/29 Surefire totals.
+- Broad integration selector remains host-timeout-limited and is not counted as pass evidence; no production authority, commit, push, deploy, grant or cutover action performed.

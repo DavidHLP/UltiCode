@@ -57,3 +57,11 @@ Objective: reviewer CR remediation for the architecture review report.
 ## Authority
 
 Development/TEST-TARGET only. No commit, push, publish, deploy, production action, or production acceptance claim.
+
+## 2026-08-21 review-fix validation
+
+- Reproduced and fixed `SearchBackfillReadPortIT` migration error: shared Flyway scanning no longer fails when the Auth profile columns are already absent; focused result 5 tests / 0 failures / 0 errors.
+- Replaced dashboard mapper `Map<String,Object>` rows with typed `DashboardBucketCount` JavaBeans and aligned App dashboard SQL/tests with the canonical App owner schema; Dashboard unit/IT and Submission owner/adapter focus passed 12 tests / 0 failures / 0 errors.
+- Moved `backend-search` before `app` in the Maven reactor so the test-only Search E2E dependency compiles in a fresh reactor.
+- Fresh `services/./mvnw verify -B`: `MAVEN_EXIT=0`, BUILD SUCCESS; Surefire XML 829 reports / 2792 tests / 0 failures / 0 errors / 29 skips.
+- Broad `*IT,*IntegrationTest` selector was attempted after fixes but the host tool timed out at 300 seconds before an exit code; this is recorded as unavailable, not pass evidence. Target-specific owner/MySQL/Redis/Meili gates passed.

@@ -47,7 +47,7 @@
   `done` and AR20260820-003 is now `in_progress`.
 
 ## Active objective
-完成 `/tmp/architecture-review-20260820-164414.html`，使用独立任务 ID `AR20260820-001..006`，顺序为 DevStack → Admin read seam → App Submission seam → Account/Profile schema → Search verification → final audit。
+完成 `/tmp/architecture-review-20260820.html`，使用独立任务 ID `AR20260820-001..006`，顺序为 DevStack → Admin read seam → App Submission seam → Account/Profile schema → Search verification → final audit；报告 C4/C5 为拒绝背景候选，不实施。
 
 ## Active task
 `AR20260820-006`（done）：完成架构评审终态审计与开发交付收口。
@@ -104,6 +104,16 @@ rollback seams, and kept development/TEST-TARGET authority explicit. A direct
 integration selector had fresh evidence of 68 reports / 225 tests / 0 failures
 / 0 errors / 17 skips; current focused MySQL, Redis, Meili and owner migration
 gates are also recorded. The parent objective is complete.
+
+## 2026-08-21 post-review closure
+
+Fixed the shared-Flyway Auth contract no-op case, aligned Dashboard App reads
+with the canonical owner schema, replaced dashboard mapper maps with typed
+`DashboardBucketCount` rows, and ordered the test-only Search worker before
+`app` in the Maven reactor. Focused owner/MySQL regressions and fresh
+`services/./mvnw verify -B` passed (`MAVEN_EXIT=0`; 829 reports / 2792 tests /
+0 failures / 0 errors / 29 skips). The broad integration selector remains
+host-timeout-limited at 300 seconds and is not reported as passed.
 
 ## Authority and limitations
 Development/TEST-TARGET only；没有 commit、push、publish、deploy 或生产操作。

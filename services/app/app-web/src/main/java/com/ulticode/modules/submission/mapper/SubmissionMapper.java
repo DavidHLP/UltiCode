@@ -18,6 +18,7 @@ import com.ulticode.submission.api.dto.WeeklyActiveUserCount;
 import com.ulticode.submission.api.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.common.dto.DifficultyCountDTO;
+import com.ulticode.common.dto.DashboardBucketCount;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
@@ -435,7 +436,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             GROUP BY DATE_FORMAT(created_at, #{dateFormat})
             ORDER BY bucket
             """)
-    List<Map<String, Object>> countDashboardByBucket(
+    List<DashboardBucketCount> countDashboardByBucket(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             @Param("dateFormat") String dateFormat);

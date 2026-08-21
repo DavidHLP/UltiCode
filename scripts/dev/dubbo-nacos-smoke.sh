@@ -36,7 +36,9 @@ fi
 
 # shellcheck disable=SC1090
 set +u
+set -a
 source "$ENV_FILE"
+set +a
 set -u
 
 # Defensive: explicit exports keep the variables visible to child processes.
@@ -163,7 +165,7 @@ echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
   cd "$ROOT_DIR/services"
   SERVER_PORT=9101 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 240 ./mvnw -pl auth -am \
+      timeout --kill-after=15 240 ./mvnw -f auth/pom.xml \
         -Dspring-boot.run.profiles=dev \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \

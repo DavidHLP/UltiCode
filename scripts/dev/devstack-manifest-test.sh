@@ -39,7 +39,7 @@ assert_file_contains ecosystem.config.cjs "APP_RUNTIME_MODE: process.env.APP_RUN
 assert_file_contains docker-compose.prod.yml 'APP_SEARCH_READ_MODE=indexed'
 assert_file_contains docker-compose.prod.yml 'APP_SEARCH_FALLBACK_TO_DATABASE=true'
 assert_file_contains services/docs/MICROSERVICE_MIGRATION_GUIDE.md 'Phase 7'
-if rg -q 'APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION|envelope-version:' \
+if grep -Eq 'APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION|envelope-version:' \
   "$ROOT_DIR/services/app/app-web/src/main/resources/application.yml" \
   "$ROOT_DIR/services/judge/src/main/resources/application.yml" \
   "$ROOT_DIR/scripts/dev/devstack-manifest.sh" \

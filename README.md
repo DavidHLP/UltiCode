@@ -366,6 +366,8 @@ pm2 restart ulticode-search       # 需要本地 Search 时显式启动
 pm2 logs ulticode-auth
 
 # 直接启动单个 owner
+# Load the generated owner datasource credentials into Maven child processes.
+set -a; source .env; set +a
 (cd services && ./mvnw -pl auth -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl admin -am spring-boot:run -Dmaven.test.skip=true)
 (cd services && ./mvnw -pl app/app-web -am spring-boot:run -Dmaven.test.skip=true)

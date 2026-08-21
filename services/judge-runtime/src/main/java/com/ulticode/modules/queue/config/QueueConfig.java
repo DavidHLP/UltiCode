@@ -1,9 +1,9 @@
 package com.ulticode.modules.queue.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.queue.redis.JudgeStreamKeys;
+import com.ulticode.submission.api.queue.JudgeStreamKeys;
 import com.ulticode.modules.queue.constants.QueueConstants;
-import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.submission.api.queue.JudgeQueue;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Data;

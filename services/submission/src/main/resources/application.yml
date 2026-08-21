@@ -5,9 +5,9 @@ spring:
   application:
     name: backend-submission
   datasource:
-    url: jdbc:mysql://${SUBMISSION_DB_HOST:localhost}:${SUBMISSION_DB_PORT:23306}/${SUBMISSION_DB_NAME:submission}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
-    username: ${SUBMISSION_DB_USER:}
-    password: ${SUBMISSION_DB_PASSWORD:}
+    url: jdbc:mysql://${SUBMISSION_DB_HOST}:${SUBMISSION_DB_PORT}/${SUBMISSION_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    username: ${SUBMISSION_DB_USER}
+    password: ${SUBMISSION_DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: ${SUBMISSION_DB_POOL_SIZE:8}
@@ -33,11 +33,13 @@ mybatis-plus:
       id-type: input
 
 app:
+  runtime:
+    mode: ${APP_RUNTIME_MODE:dev-lite}
   features:
-    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:true}
-    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
+    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
     judge-queue:
-      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
+      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
 
 management:
   endpoints:

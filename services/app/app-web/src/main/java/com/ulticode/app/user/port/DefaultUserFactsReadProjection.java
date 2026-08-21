@@ -3,34 +3,44 @@ package com.ulticode.app.user.port;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/**
+ * Owner-composed User Facts View projection.
+ *
+ * <p>This is the single read seam for the Auth account + App profile fact
+ * composition used by Search and other cross-owner readers. It owns batching,
+ * missing-account semantics and fail-closed owner-unavailable behavior; the
+ * callers do not assemble two owner reads themselves.</p>
+ */
 @Component
-public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
+public class DefaultUserFactsReadProjection implements UserFactsProjection {
 
     private final UserProfileReadMapper profileReadMapper;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private AccountQueryService accountQueryService;
 
-    public OwnerUserReadAdapter(UserProfileReadMapper profileReadMapper) {
+    public DefaultUserFactsReadProjection(UserProfileReadMapper profileReadMapper) {
         this.profileReadMapper = profileReadMapper;
     }
 
+    /** Test seam for injecting a deterministic Auth owner adapter. */
     public void setAccountQueryService(AccountQueryService accountQueryService) {
         this.accountQueryService = accountQueryService;
     }
@@ -41,11 +51,7 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
             return null;
         }
         AuthAccountDTO account;
-        try {
-            account = accountOrNull(accountQueryService().getAccountById(id));
-        } catch (RuntimeException exception) {
-            throw unavailable();
-        }
+        account = ownerCall(() -> accountOrNull(accountQueryService().getAccountById(id)));
         return account == null ? null : toFact(account, searchProfileById(account.accountId()));
     }
 
@@ -63,16 +69,13 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
             return Map.of();
         }
         RpcResult<List<AuthAccountDTO>> response;
-        try {
-            response = accountQueryService().getAccountsByIds(requested);
-        } catch (RuntimeException exception) {
-            throw unavailable();
-        }
+        response = ownerCall(() -> accountQueryService().getAccountsByIds(requested));
         requireSuccess(response);
         if (response.data() == null) {
             throw unavailable();
         }
-        List<UserProfileReadRow> profileRows = profileReadMapper.findSearchRowsByAccountIds(requested);
+        List<UserProfileReadRow> profileRows = ownerCall(
+                () -> profileReadMapper.findSearchRowsByAccountIds(requested));
         if (profileRows == null) {
             profileRows = List.of();
         }
@@ -103,7 +106,8 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         if (requested.isEmpty()) {
             return Map.of();
         }
-        List<UserProfileReadRow> profileRows = profileReadMapper.findSearchRowsByAccountIds(requested.keySet());
+        List<UserProfileReadRow> profileRows = ownerCall(
+                () -> profileReadMapper.findSearchRowsByAccountIds(requested.keySet()));
         if (profileRows == null) {
             profileRows = List.of();
         }
@@ -121,8 +125,9 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         if (id == null || id.isBlank()) {
             return null;
         }
-        AuthAccountDTO account = accountOrNull(accountQueryService().getAccountById(id));
-        return account == null ? null : compose(account, profileReadMapper.findByAccountId(account.accountId()));
+        AuthAccountDTO account = ownerCall(() -> accountOrNull(accountQueryService().getAccountById(id)));
+        return account == null ? null : compose(account,
+                ownerCall(() -> profileReadMapper.findByAccountId(account.accountId())));
     }
 
     @Override
@@ -130,8 +135,9 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         if (username == null || username.isBlank()) {
             return null;
         }
-        AuthAccountDTO account = accountOrNull(accountQueryService().getAccountByUsername(username));
-        return account == null ? null : compose(account, profileReadMapper.findByAccountId(account.accountId()));
+        AuthAccountDTO account = ownerCall(() -> accountOrNull(accountQueryService().getAccountByUsername(username)));
+        return account == null ? null : compose(account,
+                ownerCall(() -> profileReadMapper.findByAccountId(account.accountId())));
     }
 
     @Override
@@ -139,8 +145,9 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         if (email == null || email.isBlank()) {
             return null;
         }
-        AuthAccountDTO account = accountOrNull(accountQueryService().getAccountByEmail(email));
-        return account == null ? null : compose(account, profileReadMapper.findByAccountId(account.accountId()));
+        AuthAccountDTO account = ownerCall(() -> accountOrNull(accountQueryService().getAccountByEmail(email)));
+        return account == null ? null : compose(account,
+                ownerCall(() -> profileReadMapper.findByAccountId(account.accountId())));
     }
 
     @Override
@@ -157,16 +164,13 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
             return Map.of();
         }
         RpcResult<List<AuthAccountDTO>> response;
-        try {
-            response = accountQueryService().getAccountsByIds(requested);
-        } catch (RuntimeException exception) {
-            throw unavailable();
-        }
+        response = ownerCall(() -> accountQueryService().getAccountsByIds(requested));
         requireSuccess(response);
         if (response.data() == null) {
             throw unavailable();
         }
-        List<UserProfileDTO> profileRows = profileReadMapper.findByAccountIds(requested);
+        List<UserProfileDTO> profileRows = ownerCall(
+                () -> profileReadMapper.findByAccountIds(requested));
         if (profileRows == null) {
             profileRows = List.of();
         }
@@ -183,36 +187,6 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         return result;
     }
 
-    private UserProfileReadRow searchProfileById(String accountId) {
-        List<UserProfileReadRow> rows = profileReadMapper.findSearchRowsByAccountIds(Set.of(accountId));
-        return rows == null ? null : rows.stream().findFirst().orElse(null);
-    }
-
-    private UserFactView toFact(AuthAccountDTO account, UserProfileReadRow profile) {
-        return toFact(new UserAccountFact(
-                account.accountId(),
-                account.username(),
-                account.joinedAt(),
-                account.updatedAt(),
-                account.deletedAt(),
-                account.active(),
-                account.banned()), profile);
-    }
-
-    private UserFactView toFact(UserAccountFact account, UserProfileReadRow profile) {
-        return new UserFactView(
-                account.id(),
-                account.username(),
-                profile == null ? null : profile.getName(),
-                profile == null ? null : profile.getAvatar(),
-                account.joinedAt(),
-                account.authUpdatedAt(),
-                profile == null ? null : profile.getUpdatedAt(),
-                account.deletedAt(),
-                account.active(),
-                account.banned());
-    }
-
     @Override
     public List<UserSummaryView> selectActiveUsers(int limit, int offset) {
         if (limit <= 0 || offset < 0) {
@@ -224,8 +198,9 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         int skip = offset % pageLimit;
         List<AuthAccountDTO> accounts = new ArrayList<>();
         while (accounts.size() < skip + limit) {
-            List<AuthAccountDTO> pageAccounts = pageItems(accountQueryService().queryAccounts(
-                    new AccountQueryDTO(null, null, true, false, page++, pageLimit, "joinedAt", "desc")));
+            int currentPage = page++;
+            List<AuthAccountDTO> pageAccounts = pageItems(ownerCall(() -> accountQueryService().queryAccounts(
+                    new AccountQueryDTO(null, null, true, false, currentPage, pageLimit, "joinedAt", "desc"))));
             if (pageAccounts.isEmpty()) {
                 break;
             }
@@ -237,21 +212,21 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         if (skip >= accounts.size()) {
             return List.of();
         }
-        accounts = accounts.subList(skip, Math.min(skip + limit, accounts.size()));
-        if (accounts.isEmpty()) {
+        List<AuthAccountDTO> selectedAccounts = accounts.subList(skip, Math.min(skip + limit, accounts.size()));
+        if (selectedAccounts.isEmpty()) {
             return List.of();
         }
-        Map<String, UserProfileDTO> profiles = profileReadMapper.findByAccountIds(
-                        accounts.stream().map(AuthAccountDTO::accountId).collect(Collectors.toSet()))
+        Map<String, UserProfileDTO> profiles = ownerCall(() -> profileReadMapper.findByAccountIds(
+                        selectedAccounts.stream().map(AuthAccountDTO::accountId).collect(Collectors.toSet())))
                 .stream()
                 .collect(Collectors.toMap(UserProfileDTO::accountId, profile -> profile));
-        return accounts.stream().map(account -> compose(account, profiles.get(account.accountId()))).toList();
+        return selectedAccounts.stream().map(account -> compose(account, profiles.get(account.accountId()))).toList();
     }
 
     @Override
     public long countActiveUsers() {
-        RpcResult<AuthAccountDTO> response = accountQueryService().queryAccounts(
-                new AccountQueryDTO(null, null, true, false, 1, 1, "joinedAt", "desc"));
+        RpcResult<AuthAccountDTO> response = ownerCall(() -> accountQueryService().queryAccounts(
+                new AccountQueryDTO(null, null, true, false, 1, 1, "joinedAt", "desc")));
         requireSuccess(response);
         if (response.page() == null || response.page().total() == null) {
             throw unavailable();
@@ -264,21 +239,26 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         return selectById(id) == null ? 0 : 1;
     }
 
-    private AccountQueryService accountQueryService() {
-        if (accountQueryService == null) {
-            throw unavailable();
-        }
-        return accountQueryService;
+    private UserProfileReadRow searchProfileById(String accountId) {
+        List<UserProfileReadRow> rows = ownerCall(
+                () -> profileReadMapper.findSearchRowsByAccountIds(Set.of(accountId)));
+        return rows == null ? null : rows.stream().findFirst().orElse(null);
     }
 
-    private AuthAccountDTO accountOrNull(RpcResult<AuthAccountDTO> response) {
-        if (response != null && !response.success() && response.error() != null
-                && AuthErrorCode.NAMESPACE.equals(response.error().namespace())
-                && response.error().code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code()) {
-            return null;
-        }
-        requireSuccess(response);
-        return response.data();
+    private UserFactView toFact(AuthAccountDTO account, UserProfileReadRow profile) {
+        return toFact(new UserAccountFact(
+                account.accountId(), account.username(), account.joinedAt(),
+                account.updatedAt(), account.deletedAt(), account.active(), account.banned()), profile);
+    }
+
+    private UserFactView toFact(UserAccountFact account, UserProfileReadRow profile) {
+        return new UserFactView(
+                account.id(), account.username(),
+                profile == null ? null : profile.getName(),
+                profile == null ? null : profile.getAvatar(),
+                account.joinedAt(), account.authUpdatedAt(),
+                profile == null ? null : profile.getUpdatedAt(),
+                account.deletedAt(), account.active(), account.banned());
     }
 
     private List<AuthAccountDTO> pageItems(RpcResult<AuthAccountDTO> response) {
@@ -296,6 +276,42 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         return accounts;
     }
 
+    private UserSummaryView compose(AuthAccountDTO account, UserProfileDTO profile) {
+        UserProfileDTO resolved = profile != null ? profile : UserProfileDTO.empty(account.accountId());
+        return new UserSummaryView(
+                account.accountId(), account.username(), resolved.name(), account.email(), resolved.avatar(),
+                resolved.bio(), resolved.company(), resolved.github(), account.joinedAt(), resolved.location(),
+                resolved.twitter(), resolved.website(), resolved.preferredLanguage(), account.role(),
+                account.active(), account.banned(), account.lastLoginAt());
+    }
+
+    private AccountQueryService accountQueryService() {
+        if (accountQueryService == null) {
+            throw unavailable();
+        }
+        return accountQueryService;
+    }
+
+    private <T> T ownerCall(Supplier<T> operation) {
+        try {
+            return operation.get();
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw unavailable();
+        }
+    }
+
+    private AuthAccountDTO accountOrNull(RpcResult<AuthAccountDTO> response) {
+        if (response != null && !response.success() && response.error() != null
+                && AuthErrorCode.NAMESPACE.equals(response.error().namespace())
+                && response.error().code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code()) {
+            return null;
+        }
+        requireSuccess(response);
+        return response.data();
+    }
+
     private void requireSuccess(RpcResult<?> response) {
         if (response == null || !response.success()) {
             throw unavailable();
@@ -304,14 +320,5 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
 
     private BusinessException unavailable() {
         return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Auth account query unavailable");
-    }
-
-    private UserSummaryView compose(AuthAccountDTO account, UserProfileDTO profile) {
-        UserProfileDTO resolved = profile != null ? profile : UserProfileDTO.empty(account.accountId());
-        return new UserSummaryView(
-                account.accountId(), account.username(), resolved.name(), account.email(), resolved.avatar(),
-                resolved.bio(), resolved.company(), resolved.github(), account.joinedAt(), resolved.location(),
-                resolved.twitter(), resolved.website(), resolved.preferredLanguage(), account.role(),
-                account.active(), account.banned(), account.lastLoginAt());
     }
 }

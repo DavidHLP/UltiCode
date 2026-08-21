@@ -41,14 +41,13 @@ class FeatureFlagsPropertiesBindingTest {
     @Test
     @DisplayName("nested judge-queue.use-port binds to JudgeQueue.usePort (was silently dropped pre-P0-2)")
     void usePortBindsFromNestedYaml() throws Exception {
-        String yaml = "app:\n  features:\n    judge-queue:\n      use-port: true\n      envelope-version: 2\n";
+        String yaml = "app:\n  features:\n    judge-queue:\n      use-port: true\n";
         FeatureFlagsProperties props = bind(yaml);
 
         assertThat(props.getJudgeQueue()).as("nested JudgeQueue bean must be bound").isNotNull();
         assertThat(props.getJudgeQueue().isUsePort())
                 .as("nested use-port=true must reach the inner class (was stuck false pre-P0-2)")
                 .isTrue();
-        assertThat(props.getJudgeQueue().getEnvelopeVersion()).isEqualTo(2);
     }
 
     @Test
@@ -56,9 +55,6 @@ class FeatureFlagsPropertiesBindingTest {
     void defaultsWhenOmitted() throws Exception {
         FeatureFlagsProperties props = bind("app:\n  features:\n    use-judge-outbox: false\n");
         assertThat(props.getJudgeQueue().isUsePort()).isFalse();
-        // Matches both shipped application.ymls' bound default; v1 is only
-        // reachable via an explicit override.
-        assertThat(props.getJudgeQueue().getEnvelopeVersion()).isEqualTo(2);
         assertThat(props.getJudgeQueue().getCutoverAt()).isNull();
     }
 

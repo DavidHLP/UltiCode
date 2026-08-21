@@ -4,8 +4,8 @@ import com.ulticode.app.user.port.UserProfileReadMapper;
 import com.ulticode.app.user.port.UserProfileReadRow;
 import com.ulticode.app.user.port.UserFactView;
 import com.ulticode.app.user.port.UserAccountFact;
-import com.ulticode.app.user.port.UserFactsReadPort;
-import com.ulticode.app.user.port.OwnerUserReadAdapter;
+import com.ulticode.app.user.port.UserFactsProjection;
+import com.ulticode.app.user.port.DefaultUserFactsReadProjection;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
@@ -36,29 +36,30 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
     private static final int ACCOUNT_PAGE_SIZE = 100;
 
     private final UserProfileReadMapper profileReadMapper;
-    private final UserFactsReadPort userFactsReadPort;
+    private final UserFactsProjection userFactsReadPort;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private AccountQueryService accountQueryService;
 
     @Autowired
     public OwnerUserSearchReadAdapter(
-            UserProfileReadMapper profileReadMapper, UserFactsReadPort userFactsReadPort) {
+            UserProfileReadMapper profileReadMapper, UserFactsProjection userFactsReadPort) {
         this.profileReadMapper = profileReadMapper;
         this.userFactsReadPort = userFactsReadPort;
     }
 
     /** Test-only convenience constructor; production uses the explicit facts seam. */
     public OwnerUserSearchReadAdapter(UserProfileReadMapper profileReadMapper) {
-        this(profileReadMapper, new OwnerUserReadAdapter(profileReadMapper));
+        this(profileReadMapper, new DefaultUserFactsReadProjection(profileReadMapper));
     }
 
-    /** Test seam; production injection is supplied by Dubbo. */
-    void setAccountQueryService(AccountQueryService accountQueryService) {
+    /** Test-only constructor that injects the Auth owner double explicitly. */
+    OwnerUserSearchReadAdapter(
+            UserProfileReadMapper profileReadMapper,
+            UserFactsProjection userFactsReadPort,
+            AccountQueryService accountQueryService) {
+        this(profileReadMapper, userFactsReadPort);
         this.accountQueryService = accountQueryService;
-        if (userFactsReadPort instanceof OwnerUserReadAdapter ownerUserReadAdapter) {
-            ownerUserReadAdapter.setAccountQueryService(accountQueryService);
-        }
     }
 
     public List<UserDirectoryRow> search(String query, int limit) {

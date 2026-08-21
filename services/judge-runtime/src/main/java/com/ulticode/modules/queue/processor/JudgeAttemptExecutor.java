@@ -1,8 +1,8 @@
 package com.ulticode.modules.queue.processor;
 
 import com.ulticode.modules.queue.job.JudgeJob;
-import com.ulticode.modules.queue.port.JudgeJobHandle;
-import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.submission.api.queue.JudgeJobHandle;
+import com.ulticode.submission.api.queue.JudgeQueue;
 
 /**
  * Single seam that owns the judge attempt lifecycle:

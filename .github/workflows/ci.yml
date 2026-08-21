@@ -207,7 +207,6 @@ jobs:
       USE_JUDGE_OUTBOX: 'false'
       USE_GENERATION_FENCE: 'false'
       JUDGE_QUEUE_USE_PORT: 'false'
-      JUDGE_QUEUE_ENVELOPE_VERSION: '1'
       JUDGE_QUEUE_CUTOVER_AT: '1970-01-01T00:00:00'
       USE_NOTIFICATION_INTENT: 'false'
     steps:

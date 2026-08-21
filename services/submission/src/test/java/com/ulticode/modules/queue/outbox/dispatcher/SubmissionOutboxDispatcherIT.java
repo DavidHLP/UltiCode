@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.queue.port.JudgeJobEnvelope;
+import com.ulticode.submission.api.queue.JudgeJobEnvelope;
 import com.ulticode.modules.submission.created.SubmissionCreatedDispatcher;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxMapper;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxRecord;
@@ -205,7 +205,7 @@ class SubmissionOutboxDispatcherIT {
 
     private static JudgeOutboxDispatcher newJudgeDispatcher(
             JudgeOutboxMapper mapper,
-            ObjectProvider<com.ulticode.modules.queue.port.JudgeQueue> provider) {
+            ObjectProvider<com.ulticode.submission.api.queue.JudgeQueue> provider) {
         JudgeOutboxDispatcher dispatcher = new JudgeOutboxDispatcher(
                 mapper,
                 provider,
@@ -258,10 +258,10 @@ class SubmissionOutboxDispatcherIT {
         judgeOutboxMapper.insert(row);
         session.commit();
 
-        com.ulticode.modules.queue.port.JudgeQueue judgeQueue = mock(
-                com.ulticode.modules.queue.port.JudgeQueue.class);
+        com.ulticode.submission.api.queue.JudgeQueue judgeQueue = mock(
+                com.ulticode.submission.api.queue.JudgeQueue.class);
         @SuppressWarnings("unchecked")
-        ObjectProvider<com.ulticode.modules.queue.port.JudgeQueue> provider =
+        ObjectProvider<com.ulticode.submission.api.queue.JudgeQueue> provider =
                 mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(judgeQueue);
 
@@ -284,7 +284,7 @@ class SubmissionOutboxDispatcherIT {
         session.commit();
 
         @SuppressWarnings("unchecked")
-        ObjectProvider<com.ulticode.modules.queue.port.JudgeQueue> provider =
+        ObjectProvider<com.ulticode.submission.api.queue.JudgeQueue> provider =
                 mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(null);
 

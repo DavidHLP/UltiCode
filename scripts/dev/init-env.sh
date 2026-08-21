@@ -126,7 +126,7 @@ SUBMISSION_DB_USER=submission_rw
 SUBMISSION_DB_PASSWORD="$submission_db_password"
 SUBMISSION_MIGRATION_DB_USER=migration_submission
 SUBMISSION_MIGRATION_DB_PASSWORD="$submission_migration_password"
-APP_SUBMISSION_ROUTING_MODE=remote
+APP_SUBMISSION_ROUTING_MODE=local
 # Exact App runtime account used by the submission cutover grant gate.
 SUBMISSION_APP_DB_USER=app_rw
 SUBMISSION_APP_DB_HOST=%

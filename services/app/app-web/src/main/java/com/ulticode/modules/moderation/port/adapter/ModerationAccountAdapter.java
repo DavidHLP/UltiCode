@@ -2,8 +2,8 @@ package com.ulticode.modules.moderation.port.adapter;
 
 import com.ulticode.app.api.dto.ModerationUserInfo;
 import com.ulticode.app.api.service.ModerationAccountPort;
-import com.ulticode.app.user.port.UserReadMapper;
-import com.ulticode.app.user.port.UserSummaryView;
+import com.ulticode.app.user.port.UserFactView;
+import com.ulticode.app.user.port.UserFactsProjection;
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
@@ -28,7 +28,7 @@ import java.util.UUID;
 @Component
 public class ModerationAccountAdapter implements ModerationAccountPort {
 
-    private final UserReadMapper userReadMapper;
+    private final UserFactsProjection userFactsProjection;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private AccountQueryService accountQueryService;
@@ -36,8 +36,8 @@ public class ModerationAccountAdapter implements ModerationAccountPort {
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
     private AccountAdministrationService accountAdministrationService;
 
-    public ModerationAccountAdapter(UserReadMapper userReadMapper) {
-        this.userReadMapper = userReadMapper;
+    public ModerationAccountAdapter(UserFactsProjection userFactsProjection) {
+        this.userFactsProjection = userFactsProjection;
     }
 
     void setAccountQueryService(AccountQueryService accountQueryService) {
@@ -53,7 +53,7 @@ public class ModerationAccountAdapter implements ModerationAccountPort {
         if (userId == null || userId.isBlank()) {
             return Optional.empty();
         }
-        UserSummaryView user = userReadMapper.selectById(userId);
+        UserFactView user = userFactsProjection.findById(userId);
         return user != null
                 ? Optional.of(new ModerationUserInfo(user.id(), user.username()))
                 : Optional.empty();

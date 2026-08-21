@@ -15,12 +15,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class OwnerUserReadAdapterWhitespaceCrTest {
+class DefaultUserFactsReadProjectionWhitespaceCrTest {
 
     @Test
     void selectByIdsTrimsWhitespace() {
         UserProfileReadMapper profileMapper = mock(UserProfileReadMapper.class);
-        OwnerUserReadAdapter adapter = new OwnerUserReadAdapter(profileMapper);
+        DefaultUserFactsReadProjection adapter = new DefaultUserFactsReadProjection(profileMapper);
         AccountQueryService auth = mock(AccountQueryService.class);
         adapter.setAccountQueryService(auth);
 
@@ -38,19 +38,4 @@ class OwnerUserReadAdapterWhitespaceCrTest {
         assertThat(result).hasSize(1);
     }
 
-    @Test
-    void findByIdsTrimsWhitespace() {
-        UserProfileReadMapper profileMapper = mock(UserProfileReadMapper.class);
-        OwnerUserReadAdapter adapter = new OwnerUserReadAdapter(profileMapper);
-        AccountQueryService auth = mock(AccountQueryService.class);
-        adapter.setAccountQueryService(auth);
-
-        AuthAccountDTO account = new AuthAccountDTO("u-1", "alice", "a@test.com", "USER", true, false,
-                null, null, LocalDateTime.now().minusDays(1), LocalDateTime.now(), 1L);
-        when(auth.getAccountsByIds(any())).thenReturn(new RpcResult<>(true, List.of(account), null, null, "t-1", null, null));
-        when(profileMapper.findSearchRowsByAccountIds(any())).thenReturn(List.of());
-
-        Map<String, UserFactView> result = adapter.findByIds(List.of(" u-1 "));
-        assertThat(result).containsKey("u-1");
-    }
 }

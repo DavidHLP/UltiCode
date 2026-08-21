@@ -19,13 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         classes = BackendSubmissionApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {
-                "spring.autoconfigure.exclude="
-                        + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
-                        + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration",
-                "spring.datasource.url=jdbc:mysql://localhost:1/none?useSSL=false",
-                "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver"
-        })
+                properties = {
+                        "spring.autoconfigure.exclude="
+                                + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
+                                + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration",
+                        "SUBMISSION_DB_HOST=localhost",
+                        "SUBMISSION_DB_PORT=1",
+                        "SUBMISSION_DB_NAME=none",
+                        "SUBMISSION_DB_USER=test",
+                        "SUBMISSION_DB_PASSWORD=test",
+                        "spring.datasource.url=jdbc:mysql://localhost:1/none?useSSL=false",
+                        "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver"
+                })
 @DisplayName("Submission owner boot boundary")
 class BackendSubmissionApplicationTest {
 

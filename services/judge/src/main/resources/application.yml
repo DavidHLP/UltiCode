@@ -35,14 +35,14 @@ spring:
 app:
   runtime:
     role: judge
+    mode: ${APP_RUNTIME_MODE:dev-lite}
   features:
-    use-judge-outbox: true
-    use-generation-fence: true
+    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
     judge-source:
       use-test-cases: ${JUDGE_USE_TEST_CASES:false}
     judge-queue:
-      use-port: true
-      envelope-version: 2
+      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
 
 queue:
   judge:

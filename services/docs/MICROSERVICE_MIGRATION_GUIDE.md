@@ -821,7 +821,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 ### Phase 7 — 删除 Legacy 与收尾
 
-- **Goal**：在生产稳定窗口和权限/回滚证据后删除旧实现、兼容路由、共享权限和无用表/配置，形成稳定的五 Owner + 两 Worker 仓库。
+- **Goal**：这是生产稳定窗口和权限/回滚证据满足后的未来 contract 阶段；当前开发仓库仍保留显式 rollback/compatibility 路径，不能把本节当作已执行的生产收尾。
 - **Code Changes**：删除 `backend-legacy`、旧 local adapters、legacy judge queue 路径、重复 JWT util、无 Consumer Contract；更新启动/部署/开发脚本。
 - **Database Changes**：观察期和审批后执行 contract migration；归档/删除已确认无用 migration-only 表；旧 schema 只读后下线。
 - **Compatibility Strategy**：在删除前完成 N-1 客户端/Provider 支持期；发布说明明确不再支持的旧 API/version。
@@ -832,11 +832,10 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 ## 10. Package / Repository Structure
 
 > **Superseded by ADR-008 (2026-08-08):** The transitional layout below was the
-> Strangler Fig migration structure. With Phase 7 complete (backend-legacy
-> deleted), the repository has migrated to the terminal layout: `services/`
-> (was `backend-spring/`) with `platform/`, `api/`, and owner services; domains
-> sunk into `services/app/modules/`; frontend moved to `apps/` + `packages/`.
-> See `.auto-flow/DECISIONS.md` ADR-008 for the terminal structure.
+> Strangler Fig migration structure. `backend-legacy` has been removed from the
+> repository, but Phase 7's production-only contract/compatibility retirement
+> is not claimed by the development checkout. The current source, DevStack
+> manifest and services architecture status remain authoritative.
 
 当前 Maven reactor（历史布局仅保留在上方 Superseded 说明中）：
 
@@ -844,7 +843,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 repository root/
 └── services/
     ├── pom.xml                    # Maven parent/reactor
-    ├── platform/{common,web-security,integration-inbox}/
+    ├── platform/{common,web-security,integration-inbox,judge-config}/
     ├── api/{auth-api,admin-api,app-api,submission-api,notification-api}/
     ├── judge-runtime/             # shared dependency, not an independent process
     ├── auth/                       # backend-auth Owner

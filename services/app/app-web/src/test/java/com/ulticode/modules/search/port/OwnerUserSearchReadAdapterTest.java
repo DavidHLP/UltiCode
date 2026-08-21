@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ulticode.app.api.dto.UserProfileDTO;
+import com.ulticode.app.user.port.DefaultUserFactsReadProjection;
 import com.ulticode.app.user.port.UserProfileReadMapper;
 import com.ulticode.app.user.port.UserProfileReadRow;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
@@ -36,11 +37,13 @@ class OwnerUserSearchReadAdapterTest {
     private AccountQueryService accountQueryService;
 
     private OwnerUserSearchReadAdapter adapter;
+    private DefaultUserFactsReadProjection factsProjection;
 
     @BeforeEach
     void setUp() {
-        adapter = new OwnerUserSearchReadAdapter(profileReadMapper);
-        adapter.setAccountQueryService(accountQueryService);
+        factsProjection = new DefaultUserFactsReadProjection(profileReadMapper);
+        factsProjection.setAccountQueryService(accountQueryService);
+        adapter = new OwnerUserSearchReadAdapter(profileReadMapper, factsProjection, accountQueryService);
     }
 
     @Test
@@ -261,7 +264,7 @@ class OwnerUserSearchReadAdapterTest {
     }
     @Test
     void unavailableAuthFailsClosed() {
-        adapter.setAccountQueryService(null);
+        adapter = new OwnerUserSearchReadAdapter(profileReadMapper, factsProjection, null);
         assertThatThrownBy(() -> adapter.search("alice", 10))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Auth account query unavailable");

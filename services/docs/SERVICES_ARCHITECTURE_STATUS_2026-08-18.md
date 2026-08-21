@@ -32,9 +32,9 @@ UltiCode 已经完成从单体 JVM 到多进程 Owner/Worker 拓扑的骨架迁�
 
 `judge-runtime` 是 Judge 执行逻辑的共享依赖，不是第八个进程。
 
-共享模块是 `platform/*`、`api/*`、`integration-inbox` 和 `judge-runtime`。`services/pom.xml` reactor 已登记 platform、五个 API/Contract 方向、五个 Owner、两个 Worker 和 `judge-runtime`；不存在实际模块的 `backend-api` dependency-management 条目已移除。
+共享模块是 `platform/*`、`api/*`、`integration-inbox`、`judge-config` 和 `judge-runtime`。`judge-config` 只承载 Submission/Judge 共用的 flag binding/命名模式校验，不是运行时进程；`services/pom.xml` reactor 已登记 platform、五个 API/Contract 方向、五个 Owner、两个 Worker 和 `judge-runtime`；不存在实际模块的 `backend-api` dependency-management 条目已移除。
 
-生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`--only search` 仍可单独启动 Search。
+生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。
 
 ### 2.2 Contract Seam
 

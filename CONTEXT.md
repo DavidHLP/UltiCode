@@ -45,6 +45,13 @@
   (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
   the [[AdminReadModel seam]] ports: ports are for cross-module reads,
   projections are for admin's own VO shape. See ADR-0011.
+- **User Facts View** — the cross-owner read shape that combines Auth account
+  facts with App profile facts for user-facing, Search, and moderation reads.
+  Missing profiles remain nullable; an unavailable account owner fails closed.
+- **User Facts Projection** — the deep read module behind the User Facts View.
+  It owns bounded account/profile batching, input ordering, freshness fields,
+  and missing/unavailable-owner semantics so callers do not assemble the two
+  owner reads themselves.
 - **Search / SearchReadProjection** — the cross-domain read module that
   fans a query across the problems / users / posts / solutions indices
   (MeiliSearch when configured, database LIKE fallback) and aggregates the

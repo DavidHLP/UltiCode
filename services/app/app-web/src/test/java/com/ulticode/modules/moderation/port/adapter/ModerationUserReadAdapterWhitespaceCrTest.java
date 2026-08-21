@@ -1,7 +1,7 @@
 package com.ulticode.modules.moderation.port.adapter;
 
-import com.ulticode.app.user.port.UserReadMapper;
-import com.ulticode.app.user.port.UserSummaryView;
+import com.ulticode.app.user.port.UserFactsProjection;
+import com.ulticode.app.user.port.UserFactView;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,12 +16,12 @@ class ModerationUserReadAdapterWhitespaceCrTest {
 
     @Test
     void findByIdsTrimsWhitespaceAndHitsCanonical() {
-        UserReadMapper mapper = mock(UserReadMapper.class);
+        UserFactsProjection mapper = mock(UserFactsProjection.class);
         ModerationUserReadAdapter adapter = new ModerationUserReadAdapter(mapper);
 
-        UserSummaryView canonical = new UserSummaryView("u-1", "alice", "Alice", "a@test.com", null,
-                null, null, null, null, null, null, null, null, "USER", true, false, null);
-        when(mapper.selectByIds(any())).thenAnswer(inv -> {
+        UserFactView canonical = new UserFactView("u-1", "alice", "Alice", null, null,
+                null, null, null, true, false);
+        when(mapper.findByIds(any())).thenAnswer(inv -> {
             Object arg = inv.getArgument(0);
             assertThat(arg.toString()).doesNotContain(" u-1 ");
             return Map.of("u-1", canonical);

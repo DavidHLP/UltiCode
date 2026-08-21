@@ -1,9 +1,9 @@
 package com.ulticode.modules.queue.outbox.reaper;
 
-import com.ulticode.modules.queue.port.JudgeJobHandle;
+import com.ulticode.submission.api.queue.JudgeJobHandle;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
 import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
-import com.ulticode.modules.queue.redis.JudgeStreamKeys;
+import com.ulticode.submission.api.queue.JudgeStreamKeys;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -50,10 +50,13 @@ final class CancellableQueryExecutor implements AutoCloseable {
     @SafeVarargs
     static void cancel(Query<?>... queries) {
         for (Query<?> query : queries) {
+            // Mark the public result cancelled before interrupting the task;
+            // otherwise the task can race in with completeExceptionally and
+            // turn cancellation into a normal exceptional completion.
+            query.result().cancel(true);
             if (query.execution() != null) {
                 query.execution().cancel(true);
             }
-            query.result().cancel(true);
         }
     }
 

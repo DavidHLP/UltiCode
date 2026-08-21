@@ -1,7 +1,7 @@
 package com.ulticode.modules.user.projection;
 
 import com.ulticode.app.error.UserErrorCode;
-import com.ulticode.app.user.port.UserReadMapper;
+import com.ulticode.app.user.port.UserFactsProjection;
 import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.error.BaseErrorCode;
@@ -54,7 +54,7 @@ import static org.mockito.Mockito.verify;
 class DefaultUserReadProjectionTest {
 
     @Mock
-    private UserReadMapper userReadMapper;
+    private UserFactsProjection userReadMapper;
     @Mock
     private SubmissionStreakPort submissionStreakCalculator;
     @Mock

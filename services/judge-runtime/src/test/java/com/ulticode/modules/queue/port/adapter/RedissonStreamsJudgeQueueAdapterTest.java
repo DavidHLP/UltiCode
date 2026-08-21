@@ -1,9 +1,9 @@
 package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.queue.port.JudgeJobEnvelope;
-import com.ulticode.modules.queue.port.JudgeJobHandle;
-import com.ulticode.modules.queue.redis.JudgeStreamKeys;
+import com.ulticode.submission.api.queue.JudgeJobEnvelope;
+import com.ulticode.submission.api.queue.JudgeJobHandle;
+import com.ulticode.submission.api.queue.JudgeStreamKeys;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RScript;

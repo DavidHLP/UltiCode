@@ -1,7 +1,7 @@
 package com.ulticode.modules.queue.port.adapter;
 
-import com.ulticode.modules.queue.port.JudgeJobEnvelope;
-import com.ulticode.modules.queue.port.JudgeJobHandle;
+import com.ulticode.submission.api.queue.JudgeJobEnvelope;
+import com.ulticode.submission.api.queue.JudgeJobHandle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

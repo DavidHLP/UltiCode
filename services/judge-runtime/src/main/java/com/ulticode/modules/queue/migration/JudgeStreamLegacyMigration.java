@@ -1,6 +1,6 @@
 package com.ulticode.modules.queue.migration;
 
-import com.ulticode.modules.queue.redis.JudgeStreamKeys;
+import com.ulticode.submission.api.queue.JudgeStreamKeys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;

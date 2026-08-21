@@ -2,10 +2,10 @@ package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.queue.redis.JudgeStreamKeys;
-import com.ulticode.modules.queue.port.JudgeJobEnvelope;
-import com.ulticode.modules.queue.port.JudgeJobHandle;
-import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.submission.api.queue.JudgeStreamKeys;
+import com.ulticode.submission.api.queue.JudgeJobEnvelope;
+import com.ulticode.submission.api.queue.JudgeJobHandle;
+import com.ulticode.submission.api.queue.JudgeQueue;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -235,7 +235,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     /**
      * Pending entries count (XPENDING). Used by the unacked reaper to
      * drive the {@code judge.streams.pending} gauge, and by the queue
-     * inspector (via the {@link com.ulticode.modules.queue.port.JudgeQueue#pendingDepth()}
+     * inspector (via the {@link com.ulticode.submission.api.queue.JudgeQueue#pendingDepth()}
      * port method) to normalize monitoring depth across backends.
      */
     public long pendingCount() {

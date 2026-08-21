@@ -1,8 +1,8 @@
 package com.ulticode.modules.queue.port.adapter;
 
-import com.ulticode.modules.queue.port.JudgeJobEnvelope;
-import com.ulticode.modules.queue.port.JudgeJobHandle;
-import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.submission.api.queue.JudgeJobEnvelope;
+import com.ulticode.submission.api.queue.JudgeJobHandle;
+import com.ulticode.submission.api.queue.JudgeQueue;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;

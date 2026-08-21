@@ -12,9 +12,9 @@ spring:
   # P7-MIGRATE-PROBLEM-001: enable datasource for problem domain
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${APP_DB_HOST:?APP_DB_HOST is required}:${APP_DB_PORT:?APP_DB_PORT is required}/${APP_DB_NAME:?APP_DB_NAME is required}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
-    username: ${APP_DB_USER:?APP_DB_USER is required}
-    password: ${APP_DB_PASSWORD:?APP_DB_PASSWORD is required}
+    url: jdbc:mysql://${APP_DB_HOST}:${APP_DB_PORT}/${APP_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
+    username: ${APP_DB_USER}
+    password: ${APP_DB_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -46,6 +46,9 @@ app:
     # HTTP/API is the default App role after judge extraction. The independent
     # backend-judge runtime is the only role allowed to poll judge queues.
     role: ${APP_RUNTIME_ROLE:api}
+    # Supported local launcher default. dev-full overrides this through the
+    # manifest; production Compose must declare its indexed/remote mode.
+    mode: ${APP_RUNTIME_MODE:dev-lite}
   submission:
     routing:
       # local (default) keeps every submission read/write on the App schema.
@@ -62,10 +65,10 @@ app:
     read:
       # dev-lite is deterministic DB read; indexed mode is explicit and
       # requires the event-backed Search worker/Meili path.
-      # Outside the supported dev-lite manifest, preserve the historical
-      # Meili-first behavior; dev-lite always overrides this to database/false.
-      mode: ${APP_SEARCH_READ_MODE:indexed}
-      fallback-to-database: ${APP_SEARCH_FALLBACK_TO_DATABASE:true}
+      # Direct App boot follows the same deterministic default as dev-lite.
+      # Indexed mode is an explicit launcher/Compose capability.
+      mode: ${APP_SEARCH_READ_MODE:database}
+      fallback-to-database: ${APP_SEARCH_FALLBACK_TO_DATABASE:false}
       worker-enabled: ${SEARCH_WORKER_ENABLED:}
     backfill:
       # SEARCH-003 backfill runner (DEC-017). Off by default; the runner bean
@@ -86,7 +89,6 @@ app:
     use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
     judge-queue:
       use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
-      envelope-version: ${APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION:2}
     judge-source:
       # Use legacy problem_examples as test cases (test_cases table has no data yet).
       # Switch to true after seeding test_cases for all problems.

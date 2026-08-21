@@ -7,7 +7,7 @@ import com.ulticode.modules.queue.dto.JobStatusDTO;
 import com.ulticode.app.api.dto.ProbeStatus;
 import com.ulticode.app.api.dto.QueueHealthSnapshotDTO;
 import com.ulticode.modules.queue.dto.QueueStatsDTO;
-import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.submission.api.queue.JudgeQueue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RQueue;

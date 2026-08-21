@@ -1,6 +1,6 @@
 package com.ulticode.modules.moderation.port.adapter;
 
-import com.ulticode.app.user.port.UserReadMapper;
+import com.ulticode.app.user.port.UserFactsProjection;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ModerationAccountAdapterTest {
 
-    @Mock private UserReadMapper userReadMapper;
+    @Mock private UserFactsProjection userFactsProjection;
     @Mock private AccountQueryService accountQueryService;
     @Mock private AccountAdministrationService accountAdministrationService;
 
@@ -34,7 +34,7 @@ class ModerationAccountAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new ModerationAccountAdapter(userReadMapper);
+        adapter = new ModerationAccountAdapter(userFactsProjection);
         adapter.setAccountQueryService(accountQueryService);
         adapter.setAccountAdministrationService(accountAdministrationService);
     }

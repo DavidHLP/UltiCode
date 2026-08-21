@@ -207,6 +207,7 @@ services:
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9103
+      - APP_RUNTIME_MODE=external-full
       # This artifact exports only the direct Submission owner; rollback to local
       # requires the previous verified compatibility artifact.
       - APP_SUBMISSION_ROUTING_MODE=remote
@@ -214,7 +215,8 @@ services:
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      - APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION=2
+      - APP_SEARCH_READ_MODE=indexed
+      - APP_SEARCH_FALLBACK_TO_DATABASE=true
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
       # SEARCH-003 gate: App /search reads MeiliSearch first with DB fallback
       # (guide §11.5); backfill runner is enabled via APP_SEARCH_BACKFILL_ENABLED.
@@ -278,6 +280,10 @@ services:
       - DUBBO_APPLICATION_NAME=backend-submission
       - SUBMISSION_SERVER_PORT=9106
       - SUBMISSION_DUBBO_PORT=20886
+      - APP_RUNTIME_MODE=external-full
+      - APP_FEATURES_USE_JUDGE_OUTBOX=true
+      - APP_FEATURES_USE_GENERATION_FENCE=true
+      - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
     depends_on:
       backend-app:
@@ -436,6 +442,10 @@ services:
       - DUBBO_REGISTRY_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - JUDGE_SERVER_PORT=9104
       - JUDGE_DUBBO_PORT=20884
+      - APP_RUNTIME_MODE=external-full
+      - APP_FEATURES_USE_JUDGE_OUTBOX=true
+      - APP_FEATURES_USE_GENERATION_FENCE=true
+      - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
       - SANDBOX_ENABLED=${SANDBOX_ENABLED:-true}
       - SANDBOX_IMAGE=${SANDBOX_IMAGE:-ulticode-sandbox:latest}

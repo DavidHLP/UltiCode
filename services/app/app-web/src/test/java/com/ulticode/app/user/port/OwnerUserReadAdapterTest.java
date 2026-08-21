@@ -23,16 +23,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class OwnerUserReadAdapterTest {
+class DefaultUserFactsProfileProjectionTest {
 
     @Mock private UserProfileReadMapper profileReadMapper;
     @Mock private AccountQueryService accountQueryService;
 
-    private OwnerUserReadAdapter adapter;
+    private DefaultUserFactsReadProjection adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new OwnerUserReadAdapter(profileReadMapper);
+        adapter = new DefaultUserFactsReadProjection(profileReadMapper);
         adapter.setAccountQueryService(accountQueryService);
     }
 
@@ -67,26 +67,6 @@ class OwnerUserReadAdapterTest {
                 .containsKeys("u-1", "u-2");
         org.mockito.Mockito.verify(accountQueryService).getAccountsByIds(ids);
         org.mockito.Mockito.verify(profileReadMapper).findByAccountIds(ids);
-    }
-
-    @Test
-    void factsComposeLoadedAccountsWithOneSearchProfileBatch() {
-        AuthAccountDTO account = account("u-1", "alice");
-        Set<String> ids = Set.of("u-1");
-        UserProfileReadRow profile = new UserProfileReadRow();
-        profile.setAccountId("u-1");
-        profile.setName("Alice");
-        profile.setAvatar("/alice.png");
-        profile.setUpdatedAt(LocalDateTime.parse("2026-08-20T00:00:00"));
-        when(accountQueryService.getAccountsByIds(ids))
-                .thenReturn(RpcResult.success(List.of(account), "t-facts"));
-        when(profileReadMapper.findSearchRowsByAccountIds(ids)).thenReturn(List.of(profile));
-
-        UserFactView fact = adapter.findByIds(ids).get("u-1");
-
-        assertThat(fact.username()).isEqualTo("alice");
-        assertThat(fact.name()).isEqualTo("Alice");
-        assertThat(fact.profileUpdatedAt()).isEqualTo(profile.getUpdatedAt());
     }
 
     @Test

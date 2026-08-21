@@ -47,7 +47,7 @@ public class QueueConfig {
     }
 
     /**
-     * ADR-003 M3c-2: the {@link com.ulticode.modules.queue.port.JudgeQueue}
+     * ADR-003 M3c-2: the {@link com.ulticode.submission.api.queue.JudgeQueue}
      * port backed by Redisson Streams. Only active when
      * {@code app.features.judge-queue.use-port=true}.
      */
@@ -63,10 +63,10 @@ public class QueueConfig {
         return new RedissonStreamsJudgeQueueAdapter(
                 redissonClient,
                 objectMapper,
-                com.ulticode.modules.queue.redis.JudgeStreamKeys.JUDGE_STREAM_KEY,
-                com.ulticode.modules.queue.redis.JudgeStreamKeys.JUDGE_STREAM_GROUP,
+                com.ulticode.submission.api.queue.JudgeStreamKeys.JUDGE_STREAM_KEY,
+                com.ulticode.submission.api.queue.JudgeStreamKeys.JUDGE_STREAM_GROUP,
                 consumerId,
-                com.ulticode.modules.queue.redis.JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS,
+                com.ulticode.submission.api.queue.JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS,
                 maxDeliveryAttempts,
                 meterRegistry);
     }

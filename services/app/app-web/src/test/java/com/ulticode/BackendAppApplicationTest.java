@@ -14,6 +14,10 @@ import com.ulticode.modules.bookmark.service.BookmarkService;
 import com.ulticode.modules.follow.inspector.FollowInspector;
 import com.ulticode.modules.follow.port.UserReadPort;
 import com.ulticode.modules.follow.service.FollowService;
+import com.ulticode.modules.queue.migration.JudgeStreamLegacyMigration;
+import com.ulticode.modules.queue.outbox.reaper.UnackedStreamEntriesReaper;
+import com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor;
+import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
 import com.ulticode.modules.subscription.service.SubscriptionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -42,6 +47,9 @@ class BackendAppApplicationTest {
     private TestRestTemplate rest;
     @Autowired
     private ResourceServerJwtVerifier resourceServerJwtVerifier;
+
+    @Autowired
+    private ApplicationContext applicationContext;
 
 
     @Autowired
@@ -145,6 +153,9 @@ class BackendAppApplicationTest {
 
     @MockBean
     private com.ulticode.app.user.port.UserReadMapper userReadMapper;
+
+    @MockBean
+    private com.ulticode.app.user.port.UserFactsReadPort userFactsReadPort;
 
 
     @MockBean
@@ -335,6 +346,15 @@ class BackendAppApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"status\":\"UP\"");
+    }
+
+    @Test
+    @DisplayName("App context does not auto-register Judge-only scheduled wiring")
+    void judgeOnlyWiringStaysOutOfAppContext() {
+        assertThat(applicationContext.getBeansOfType(JudgeWorkerProcessor.class)).isEmpty();
+        assertThat(applicationContext.getBeansOfType(DefaultJudgeAttemptExecutor.class)).isEmpty();
+        assertThat(applicationContext.getBeansOfType(UnackedStreamEntriesReaper.class)).isEmpty();
+        assertThat(applicationContext.getBeansOfType(JudgeStreamLegacyMigration.class)).isEmpty();
     }
 
     @Test

@@ -10,7 +10,9 @@ import org.springframework.stereotype.Component;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Production adapter for the moderation module's local
@@ -22,10 +24,9 @@ import java.util.Map;
  * on purpose: the smoke test mocks that exact type, and the sub-interface
  * inherits the app-api contract unchanged.
  *
- * <p>{@link UserReadMapper} has no batch select, so {@link #findByIds}
- * loops {@code selectById} — the caller ({@code DefaultModerationProjection})
- * already caps the id set to the users referenced by one page of queue
- * items, so the loop stays bounded.
+ * <p>{@link #findByIds} crosses the owner-composed batch facts seam once; the
+ * caller ({@code DefaultModerationProjection}) already caps the id set to the
+ * users referenced by one page of queue items.
  */
 @Component
 @RequiredArgsConstructor
@@ -47,12 +48,16 @@ public class ModerationUserReadAdapter implements ModerationUserReadPort {
         if (userIds == null || userIds.isEmpty()) {
             return Collections.emptyMap();
         }
+        Set<String> requested = userIds.stream()
+                .filter(userId -> userId != null && !userId.isBlank())
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        Map<String, UserSummaryView> users = userReadMapper.selectByIds(requested);
+        if (users == null) {
+            users = Map.of();
+        }
         Map<String, ModerationUserInfo> result = new LinkedHashMap<>();
-        for (String userId : userIds) {
-            if (userId == null) {
-                continue;
-            }
-            UserSummaryView user = userReadMapper.selectById(userId);
+        for (String userId : requested) {
+            UserSummaryView user = users.get(userId);
             if (user != null) {
                 result.put(user.id(), new ModerationUserInfo(user.id(), user.username()));
             }

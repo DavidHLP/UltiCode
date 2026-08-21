@@ -15,7 +15,6 @@ import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.modules.submission.fence.LeaseConstants;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -33,8 +32,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author ulticode
  */
 @Slf4j
-@Component
-@org.springframework.context.annotation.Profile("!test")
 public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     private final SubmissionWritePort submissionWritePort;

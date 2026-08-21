@@ -49,6 +49,10 @@ public class SearchResponseVO {
     @Schema(description = "List of search results")
     private List<SearchResultItem> results;
 
+    /** Explicit mode/source/freshness/order/total facts for this response. */
+    @Schema(description = "Read consistency semantics")
+    private SearchReadSemantics semantics;
+
     /**
      * Individual search result item.
      */

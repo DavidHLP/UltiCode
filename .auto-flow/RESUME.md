@@ -47,14 +47,15 @@
   `done` and AR20260820-003 is now `in_progress`.
 
 ## Active objective
-完成 `/tmp/architecture-review-20260820.html`，使用独立任务 ID `AR20260820-001..006`，顺序为 DevStack → Admin read seam → App Submission seam → Account/Profile schema → Search verification → final audit；报告 C4/C5 为拒绝背景候选，不实施。
+实施 `/tmp/architecture-review-20260821112953.html` 的全部 1-5 候选并完成
+run-development-loop 终态审计；当前只接受 development/TEST-TARGET 证据。
 
 ## Active task
-`AR20260820-006`（done）：完成架构评审终态审计与开发交付收口。
+`ARCH-20260821-001`（ready）：将 dev-lite 收敛为唯一第一类开发 interface。
 
-`AR20260820-001` through `AR20260820-006` are `done` with development-only
-evidence; the architecture-review objective is closed. No production
-acceptance or external delivery is implied.
+历史 `AR20260820-001..006` 与 `CRFIX-REVIEW-006` 保持 done，不代表本次新
+目标已完成；本次用户明确重新开启 Judge、user facts 与 Search read-mode
+收敛。禁止将上一目标的 rejected background candidate 当作当前完成证据。
 
 ## AR20260820-003 progress
 Implemented the shared `SubmissionRoutingProperties.select(...)` migration
@@ -115,7 +116,44 @@ with the canonical owner schema, replaced dashboard mapper maps with typed
 0 failures / 0 errors / 29 skips). The broad integration selector remains
 host-timeout-limited at 300 seconds and is not reported as passed.
 
+## 2026-08-21 CRFIX-REVIEW-006 progress
+
+Restored the applied Auth contract migration unchanged and added
+`V20260821100000__Guard_Auth_Users_To_Account_Ownership.sql`; the shared Flyway
+location now matches only root migrations so owner migrations are not replayed
+against the shared schema. Dashboard problem charts use `published_at`, and
+derived problem status SQL groups by the CASE expression.
+
+Focused Dashboard, Auth and Search MySQL regressions, fresh services verify,
+owner migration preflight/safety, Compose dev/prod config, graphify update and
+diff checks passed. Evidence is development/TEST-TARGET only; no external
+delivery or production action was performed.
+
 ## Authority and limitations
 Development/TEST-TARGET only；没有 commit、push、publish、deploy 或生产操作。
 官方 wrapper 首次运行暴露了 HiddenCaseLeakIT 的 strict-stubbing 回归，已修复并重跑通过；
 宿主对长 integration wrapper 的 Maven exit code 等待超时，但 fresh Surefire XML 独立汇总 exit 0。
+
+## 2026-08-21 reopened architecture implementation
+
+Recovered the prior completed ledger without overwriting it. The current
+objective adds ARCH-20260821-001..006 for the five candidates in
+`/tmp/architecture-review-20260821112953.html`: DevStack mode interface,
+explicit Judge-only assembly, Admin query slices, batch owner-composed user
+facts, and explicit Search database/indexed semantics. Existing owner,
+rollback, migration and development-only invariants remain active.
+
+## 2026-08-21 architecture review terminal
+
+All five reopened candidates are implemented and audited. DevStack manifest
+owns mode flags, roles, timeouts and readiness; Judge wiring is explicit with
+only a default-off App rollback adapter; Admin Dashboard and user detail are
+coarse query slices; owner-composed user facts is shared by App, Search and
+Moderation; Search database/indexed reads expose strict worker, source,
+freshness, ordering, total and fallback semantics.
+
+Final Review is Confirmed Findings=0. `services/./mvnw verify -B` exited 0
+with 834 reports / 2805 tests / 0 failures / 0 errors / 29 skips. Disposable
+Redis 7 + Meili v1.8 E2E passed 3/0/0/0; Compose, manifest, YAML, graph and
+diff checks passed. Evidence is development/TEST-TARGET only; no commit,
+push, publish, deploy, cutover, grant or production action occurred.

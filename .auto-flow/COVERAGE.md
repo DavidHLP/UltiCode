@@ -66,3 +66,35 @@ Historical task IDs above remain `done` in TASKS.yaml and are not superseded.
 - Invariants: Owner single-writer；source ownership 不转移；bounded reads；Submission snapshot；public compatibility；explicit Owner config fail-closed；Search sole writer/idempotent/fallback；expand-verify-contract；rollback seam；development-only authority。
 - Delivery authority: 仅 development/TEST-TARGET；`.auto-flow/` 不暂存。
 - Terminal condition: AR20260820-001..006 均 done，Required Evidence 全部记录，Confirmed Findings=0，验证和控制面审计通过。
+
+## 2026-08-21 review findings closure coverage
+
+| Review finding | Task / acceptance | Required evidence |
+| --- | --- | --- |
+| Do not rewrite applied Auth `V20260820180000` | CRFIX-REVIEW-006 / migration compatibility | parent-file unchanged check, later guarded migration, Auth owner MySQL regression, shared root Flyway location excludes owner directories |
+| Preserve `published_at` semantics for problem charts | CRFIX-REVIEW-006 / chart contract | App Dashboard provider real MySQL regression with published row, draft row and publication-time bucket |
+| Aggregate derived `DELETED` status buckets | CRFIX-REVIEW-006 / status aggregation | App Dashboard provider real MySQL regression with deleted active and inactive rows returning one `DELETED` count |
+
+## Architecture review 2026-08-21 full implementation coverage
+
+| Requirement / report item | Task / acceptance | Required evidence |
+| --- | --- | --- |
+| 1. dev-lite is the first-class development interface; dev-full is explicit | ARCH-20260821-001 | manifest mode exports, up.sh/ecosystem trace, mode contract tests, shell syntax, Compose/docs consistency, startup failure semantics |
+| 2. Judge execution wiring is not App automatic compatibility assembly | ARCH-20260821-002 | explicit JudgeRuntimeConfiguration imports, App context absence, Judge boot/config tests, affected reactor compile/test, storage-free/rollback audit |
+| 3. AdminReadModel is organized as query vertical slices | ARCH-20260821-003 | reduced AdminAnalyticsPort surface, all caller/adapter updates, bounded owner reads, projection/reporter tests, no hidden implementor scan |
+| 4. owner-composed user facts has one bounded batch composition path | ARCH-20260821-004 | Auth batch + App profile batch, Moderation no-N+1 regression, missing/unavailable semantics, user facts tests and call-site scan |
+| 5. Search database/indexed reads and fallback policy are explicit | ARCH-20260821-005 | mode binding/default tests, DB-only and indexed strict/fallback tests, Redis+Meili disposable E2E, worker sole-writer, Compose config |
+| Objective terminal state with no production claims | ARCH-20260821-006 | Review Confirmed=0, selected Tier C validation, full applicable reactor evidence, graph/YAML/Compose/diff checks, protected worktree and control-plane audit |
+
+## 2026-08-21 terminal evidence
+
+- Review closure: Standards and Spec axes both returned Confirmed Findings=0;
+  former timeout/cancellation and DevStack timing/readiness findings were
+  re-reviewed after repair.
+- Validation: `services/./mvnw verify -B` exit 0, 834 reports / 2805 tests /
+  0 failures / 0 errors / 29 skips; disposable Search E2E 3/0/0/0.
+- Control plane: manifest contract, bash syntax, Compose dev/prod config,
+  YAML uniqueness/status audit, wiki manifest, graphify update, fresh
+  UltiCode-current coverage and `git diff --check` all pass.
+- Authority: development/TEST-TARGET only. No production acceptance,
+  commit, push, publish, deploy, cutover, grant or applied migration edit.

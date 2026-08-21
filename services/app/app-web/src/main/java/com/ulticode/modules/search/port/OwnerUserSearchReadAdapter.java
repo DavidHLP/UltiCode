@@ -2,22 +2,25 @@ package com.ulticode.modules.search.port;
 
 import com.ulticode.app.user.port.UserProfileReadMapper;
 import com.ulticode.app.user.port.UserProfileReadRow;
+import com.ulticode.app.user.port.UserFactView;
+import com.ulticode.app.user.port.UserAccountFact;
+import com.ulticode.app.user.port.UserFactsReadPort;
+import com.ulticode.app.user.port.OwnerUserReadAdapter;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,17 +36,29 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
     private static final int ACCOUNT_PAGE_SIZE = 100;
 
     private final UserProfileReadMapper profileReadMapper;
+    private final UserFactsReadPort userFactsReadPort;
 
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
     private AccountQueryService accountQueryService;
 
-    public OwnerUserSearchReadAdapter(UserProfileReadMapper profileReadMapper) {
+    @Autowired
+    public OwnerUserSearchReadAdapter(
+            UserProfileReadMapper profileReadMapper, UserFactsReadPort userFactsReadPort) {
         this.profileReadMapper = profileReadMapper;
+        this.userFactsReadPort = userFactsReadPort;
+    }
+
+    /** Test-only convenience constructor; production uses the explicit facts seam. */
+    public OwnerUserSearchReadAdapter(UserProfileReadMapper profileReadMapper) {
+        this(profileReadMapper, new OwnerUserReadAdapter(profileReadMapper));
     }
 
     /** Test seam; production injection is supplied by Dubbo. */
     void setAccountQueryService(AccountQueryService accountQueryService) {
         this.accountQueryService = accountQueryService;
+        if (userFactsReadPort instanceof OwnerUserReadAdapter ownerUserReadAdapter) {
+            ownerUserReadAdapter.setAccountQueryService(accountQueryService);
+        }
     }
 
     public List<UserDirectoryRow> search(String query, int limit) {
@@ -95,14 +110,11 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         if (accountId == null || accountId.isBlank()) {
             return null;
         }
-        AuthAccountDTO account = accountOrNull(accountById(accountId));
-        if (account == null) {
+        UserFactView fact = userFactsReadPort.findById(accountId);
+        if (fact == null) {
             return null;
         }
-        List<UserProfileReadRow> profileRows =
-                profileReadMapper.findSearchRowsByAccountIds(Set.of(account.accountId()));
-        UserProfileReadRow profile = profileRows == null ? null : profileRows.stream().findFirst().orElse(null);
-        return UserDirectoryRow.from(toRow(account, profile));
+        return UserDirectoryRow.from(toRow(fact));
     }
 
     @Override
@@ -118,11 +130,12 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
             return List.of();
         }
         pageAccounts = pageAccounts.subList(skip, Math.min(skip + limit, pageAccounts.size()));
-        Set<String> accountIds = pageAccounts.stream().map(AuthAccountDTO::accountId)
-                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-        Map<String, UserProfileReadRow> profiles = profileMap(profileRows(accountIds));
-        return pageAccounts.stream().map(account -> UserDirectoryRow.from(
-                toRow(account, profiles.get(account.accountId())))).toList();
+        Map<String, UserFactView> facts = factsForAccounts(pageAccounts);
+        return pageAccounts.stream()
+                .map(account -> facts.get(account.accountId()))
+                .filter(java.util.Objects::nonNull)
+                .map(fact -> UserDirectoryRow.from(toRow(fact)))
+                .toList();
     }
 
     @Override
@@ -130,12 +143,13 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         if (accountIds == null || accountIds.isEmpty()) {
             return List.of();
         }
-        Map<String, UserProfileReadRow> profiles = profileMap(profileRows(accountIds));
-        Map<String, AuthAccountDTO> accounts = accountsByIds(accountIds);
+        Map<String, UserFactView> facts = userFactsReadPort.findByIds(accountIds);
         Map<String, UserDirectoryRow> rows = new LinkedHashMap<>();
-        for (AuthAccountDTO account : accounts.values()) {
-            rows.putIfAbsent(account.accountId(),
-                    UserDirectoryRow.from(toRow(account, profiles.get(account.accountId()))));
+        for (String accountId : accountIds) {
+            UserFactView fact = facts.get(accountId);
+            if (fact != null) {
+                rows.putIfAbsent(accountId, UserDirectoryRow.from(toRow(fact)));
+            }
         }
         return new ArrayList<>(rows.values());
     }
@@ -179,17 +193,6 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         }
     }
 
-    private RpcResult<AuthAccountDTO> accountById(String id) {
-        if (accountQueryService == null) {
-            throw unavailable();
-        }
-        try {
-            return accountQueryService.getAccountById(id);
-        } catch (RuntimeException exception) {
-            throw unavailable();
-        }
-    }
-
     private List<AuthAccountDTO> pageItems(RpcResult<AuthAccountDTO> response) {
         requirePage(response);
         List<AuthAccountDTO> accounts = new ArrayList<>();
@@ -209,45 +212,6 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         }
     }
 
-    private AuthAccountDTO accountOrNull(RpcResult<AuthAccountDTO> response) {
-        if (response != null && !response.success() && response.error() != null
-                && AuthErrorCode.NAMESPACE.equals(response.error().namespace())
-                && response.error().code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code()) {
-            return null;
-        }
-        requireSuccess(response);
-        if (response.data() == null) {
-            throw unavailable();
-        }
-        return response.data();
-    }
-
-    private Map<String, AuthAccountDTO> accountsByIds(Set<String> accountIds) {
-        if (accountIds.isEmpty()) {
-            return Map.of();
-        }
-        if (accountQueryService == null) {
-            throw unavailable();
-        }
-        RpcResult<List<AuthAccountDTO>> response;
-        try {
-            response = accountQueryService.getAccountsByIds(accountIds);
-        } catch (RuntimeException exception) {
-            throw unavailable();
-        }
-        requireSuccess(response);
-        if (response.data() == null) {
-            throw unavailable();
-        }
-        Map<String, AuthAccountDTO> accounts = new LinkedHashMap<>();
-        for (AuthAccountDTO account : response.data()) {
-            if (account != null && accountIds.contains(account.accountId())) {
-                accounts.putIfAbsent(account.accountId(), account);
-            }
-        }
-        return accounts;
-    }
-
     private Set<String> accountIds(List<UserProfileReadRow> rows) {
         Set<String> ids = new LinkedHashSet<>();
         for (UserProfileReadRow row : rows) {
@@ -258,42 +222,26 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
         return ids;
     }
 
-    private List<UserProfileReadRow> profileRows(Set<String> ids) {
-        if (ids.isEmpty()) {
-            return List.of();
-        }
-        List<UserProfileReadRow> rows = profileReadMapper.findSearchRowsByAccountIds(ids);
-        return rows == null ? List.of() : rows;
-    }
-
-    private Map<String, UserProfileReadRow> profileMap(List<UserProfileReadRow> rows) {
-        Map<String, UserProfileReadRow> profiles = new HashMap<>();
-        for (UserProfileReadRow row : rows) {
-            if (row != null && row.getAccountId() != null && !row.getAccountId().isBlank()) {
-                profiles.putIfAbsent(row.getAccountId(), row);
-            }
-        }
-        return profiles;
-    }
-
-    private UserSearchRow toRow(AuthAccountDTO account, UserProfileReadRow profile) {
+    private UserSearchRow toRow(UserFactView fact) {
         UserSearchRow row = new UserSearchRow();
-        row.setId(account.accountId());
-        row.setUsername(account.username());
-        row.setUpdatedAt(account.updatedAt() != null ? account.updatedAt() : account.joinedAt());
-        row.setJoinedAt(account.joinedAt());
-        row.setDeletedAt(account.deletedAt());
-        applyProfile(row, profile);
+        row.setId(fact.id());
+        row.setUsername(fact.username());
+        row.setUpdatedAt(fact.authUpdatedAt() != null ? fact.authUpdatedAt() : fact.joinedAt());
+        row.setJoinedAt(fact.joinedAt());
+        row.setDeletedAt(fact.deletedAt());
+        row.setName(fact.name());
+        row.setAvatar(fact.avatar());
+        row.setProfileUpdatedAt(fact.profileUpdatedAt());
         return row;
     }
 
-    private void applyProfile(UserSearchRow row, UserProfileReadRow profile) {
-        if (profile == null) {
-            return;
-        }
-        row.setName(profile.getName());
-        row.setAvatar(profile.getAvatar());
-        row.setProfileUpdatedAt(profile.getUpdatedAt());
+    private Map<String, UserFactView> factsForAccounts(List<AuthAccountDTO> accounts) {
+        List<UserAccountFact> facts = accounts.stream()
+                .map(account -> new UserAccountFact(
+                        account.accountId(), account.username(), account.joinedAt(),
+                        account.updatedAt(), account.deletedAt(), account.active(), account.banned()))
+                .toList();
+        return userFactsReadPort.compose(facts);
     }
 
     private void requireSuccess(RpcResult<?> response) {
@@ -395,11 +343,11 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
             if (accounts.isEmpty()) {
                 return new PageBatch(List.of(), true);
             }
-            Set<String> ids = accounts.stream().map(AuthAccountDTO::accountId)
-                    .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
-            Map<String, UserProfileReadRow> profiles = profileMap(profileRows(ids));
+            Map<String, UserFactView> facts = factsForAccounts(accounts);
             List<UserDirectoryRow> rows = accounts.stream()
-                    .map(account -> UserDirectoryRow.from(toRow(account, profiles.get(account.accountId()))))
+                    .map(account -> facts.get(account.accountId()))
+                    .filter(java.util.Objects::nonNull)
+                    .map(fact -> UserDirectoryRow.from(toRow(fact)))
                     .toList();
             return new PageBatch(rows, accounts.size() < ACCOUNT_PAGE_SIZE);
         }
@@ -421,12 +369,11 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
                 return new PageBatch(List.of(), true);
             }
             offset += candidates.size();
-            Map<String, UserProfileReadRow> profiles = profileMap(candidates);
-            Map<String, AuthAccountDTO> accounts = accountsByIds(accountIds(candidates));
+            Map<String, UserFactView> facts = userFactsReadPort.findByIds(accountIds(candidates));
             List<UserDirectoryRow> rows = candidates.stream()
-                    .map(candidate -> accounts.get(candidate.getAccountId()))
-                    .filter(account -> account != null)
-                    .map(account -> UserDirectoryRow.from(toRow(account, profiles.get(account.accountId()))))
+                    .map(candidate -> facts.get(candidate.getAccountId()))
+                    .filter(java.util.Objects::nonNull)
+                    .map(fact -> UserDirectoryRow.from(toRow(fact)))
                     .toList();
             return new PageBatch(rows, candidates.size() < ACCOUNT_PAGE_SIZE);
         }

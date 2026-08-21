@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link DefaultUserReadProjection}.
@@ -71,6 +72,16 @@ class DefaultUserReadProjectionTest {
     private DefaultUserReadProjection userReadProjection;
 
     private UserSummaryView testUser;
+
+    @Test
+    void findAllByIdUsesTheOwnerBatchFactsSeam() {
+        when(userReadMapper.selectByIds(List.of("u-1", "u-2")))
+                .thenReturn(Map.of("u-1", testUser));
+
+        assertThat(userReadProjection.findAllById(List.of("u-1", "u-2")))
+                .containsOnlyKeys("u-1");
+        verify(userReadMapper).selectByIds(List.of("u-1", "u-2"));
+    }
 
     @BeforeEach
     void setUp() {

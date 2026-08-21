@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 /**
  * ADR-003 M3c-2 unacked Streams reaper (§2.6 F6 revision).
@@ -32,8 +31,6 @@ import org.springframework.stereotype.Component;
  * <p>Only active when {@code app.features.judge-queue.use-port=true}.
  */
 @Slf4j
-@Component
-@org.springframework.context.annotation.Profile("!test")
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         name = "app.features.judge-queue.use-port",

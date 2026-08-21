@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,6 +13,7 @@ import com.ulticode.app.api.service.ContestParticipantReadPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -64,6 +66,7 @@ class DefaultAdminAnalyticsPortAdapterTest {
         LocalDateTime to = LocalDateTime.of(2026, 8, 1, 0, 0);
         when(contestAdminReadPort.selectByStartTimeAfter(from)).thenReturn(List.of(contest("contest-1", "First")));
         when(subscriptionReadPort.countActiveSubscriptions()).thenReturn(7L);
+        when(accountQueryService.queryAccounts(any())).thenReturn(RpcResult.page(List.of(), 0, 1, 0, "t-1"));
         when(submissionAdminReadPort.countDistinctUsersInRange(from, to)).thenReturn(30L);
         when(submissionAdminReadPort.countSubmissionsInRange(from)).thenReturn(200L);
         when(submissionAdminReadPort.countAcceptedSubmissionsInRange(from)).thenReturn(50L);
@@ -77,6 +80,17 @@ class DefaultAdminAnalyticsPortAdapterTest {
         verify(submissionAdminReadPort, times(1)).countSubmissionsInRange(from);
         verify(submissionAdminReadPort, times(1)).countAcceptedSubmissionsInRange(from);
         verify(accountQueryService, times(1)).queryAccounts(any());
+    }
+
+    @Test
+    void loadOverviewDataFailsClosedWhenAuthOwnerIsUnavailable() {
+        LocalDateTime from = LocalDateTime.of(2026, 7, 1, 0, 0);
+        LocalDateTime to = LocalDateTime.of(2026, 8, 1, 0, 0);
+        when(accountQueryService.queryAccounts(any())).thenReturn(null);
+
+        assertThatThrownBy(() -> adapter().loadOverviewData(from, to))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .hasMessageContaining("Analytics owner query unavailable");
     }
 
     private DefaultAdminAnalyticsPortAdapter adapter() {

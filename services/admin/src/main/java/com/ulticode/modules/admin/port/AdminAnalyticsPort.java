@@ -17,11 +17,10 @@ import java.util.Set;
  * mappers and compose their queries inline. The admin module now
  * imports only this port.
  *
- * <p><strong>Seam justification — five call sites justify it:</strong>
- * the admin module's contest participation report, revenue report, and
- * overview all read across module boundaries; concentrating the reads
- * behind one port lets the providers ship their own adapters and the
- * admin module focus on shape.
+ * <p><strong>Seam justification:</strong> the admin analytics surface has
+ * three query slices (contest participation, revenue, and overview). The
+ * port keeps owner fan-out behind those slices so reporters only consume
+ * admin-owned read records.
  *
  * <p><b>Entity-leak closure:</b> the historic
  * {@link #loadContestData(LocalDateTime)} returned a record carrying
@@ -48,41 +47,11 @@ public interface AdminAnalyticsPort {
     ContestParticipationData loadContestData(LocalDateTime startDate);
 
     /**
-     * @return total subscriber count for active subscriptions
-     */
-    long countActiveSubscriptions();
-
-    /**
      * @return list of all currently-active subscriptions projected to the
      *         admin-owned {@link SubscriptionSummary} shape (plan only) —
      *         consumed by the revenue reporter for plan/MRR aggregation
      */
     List<SubscriptionSummary> listActiveSubscriptions();
-
-    /**
-     * @return distinct user count who submitted in the period
-     */
-    long countDistinctSubmittersInRange(LocalDateTime from, LocalDateTime to);
-
-    /**
-     * @return total submission count in the period
-     */
-    long countSubmissionsInRange(LocalDateTime from);
-
-    /**
-     * @return accepted submission count in the period
-     */
-    long countAcceptedSubmissionsInRange(LocalDateTime from);
-
-    /**
-     * @return total contest count in the period
-     */
-    long countContestsInRange(LocalDateTime from);
-
-    /**
-     * @return total user count (active or not)
-     */
-    long countAllUsers();
 
     /**
      * Load the dashboard overview in one coarse-grained query seam. The

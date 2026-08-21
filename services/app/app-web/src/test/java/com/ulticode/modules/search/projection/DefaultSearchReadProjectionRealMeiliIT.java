@@ -17,6 +17,7 @@ import com.meilisearch.sdk.model.TaskInfo;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
+import com.ulticode.modules.search.config.SearchReadProperties;
 import com.ulticode.modules.search.source.SearchSource;
 import java.util.ArrayList;
 import java.util.List;
@@ -128,6 +129,9 @@ class DefaultSearchReadProjectionRealMeiliIT {
                 source(SearchIndexType.POSTS, "/forum/detailed/"),
                 source(SearchIndexType.SOLUTIONS, "/solutions/")));
         projection.setMeiliSearchClient(new Client(new Config("http://127.0.0.1:1", "")));
+        projection.setReadMode(SearchReadProperties.Mode.INDEXED);
+        projection.setWorkerEnabled(true);
+        projection.setFallbackToDatabase(true);
 
         SearchResponseVO response = projection.search(query(SearchIndexType.PROBLEMS, 1, 1));
 
@@ -144,6 +148,8 @@ class DefaultSearchReadProjectionRealMeiliIT {
                 source(SearchIndexType.POSTS, "/forum/detailed/"),
                 source(SearchIndexType.SOLUTIONS, "/solutions/")));
         projection.setMeiliSearchClient(searchClient);
+        projection.setReadMode(SearchReadProperties.Mode.INDEXED);
+        projection.setWorkerEnabled(true);
         return projection;
     }
 

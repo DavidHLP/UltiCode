@@ -20,7 +20,17 @@ export interface SearchResponse {
   page: number;
   limit: number;
   results: SearchResult[];
+  semantics?: SearchReadSemantics;
   facets?: Record<string, Record<string, number>>;
+}
+
+export interface SearchReadSemantics {
+  mode: "DATABASE" | "INDEXED";
+  source: "DATABASE" | "MEILISEARCH";
+  freshness: "REALTIME" | "EVENTUAL";
+  ordering: string;
+  total: string;
+  fallbackApplied: boolean;
 }
 
 export interface SearchQuery {

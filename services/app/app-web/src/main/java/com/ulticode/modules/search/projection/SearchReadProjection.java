@@ -27,11 +27,13 @@ import com.ulticode.modules.search.dto.SearchResponseVO;
 public interface SearchReadProjection {
 
     /**
-     * Search across all or a specific index. Uses MeiliSearch when available,
-     * falling back to database LIKE queries on failure or when unconfigured.
+     * Search across all or a specific index. The configured read mode is
+     * explicit: {@code DATABASE} never touches MeiliSearch; {@code INDEXED}
+     * uses the event-backed index and only falls back when its explicit policy
+     * allows it.
      *
      * @param queryDTO the search query parameters
-     * @return the search response with results
+     * @return the search response with results and explicit read semantics
      */
     SearchResponseVO search(SearchQueryDTO queryDTO);
 

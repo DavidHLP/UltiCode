@@ -9,6 +9,7 @@ import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
+import com.ulticode.modules.search.config.SearchReadProperties;
 import com.ulticode.modules.search.source.SearchSource;
 import com.ulticode.search.SearchDocumentIndexWorker;
 import com.ulticode.search.config.SearchWorkerProperties;
@@ -100,6 +101,9 @@ class SearchEventToQueryE2EIT {
         problemSource = new StubSearchSource();
         projection = new DefaultSearchReadProjection(List.of(problemSource));
         projection.setMeiliSearchClient(meili);
+        projection.setReadMode(SearchReadProperties.Mode.INDEXED);
+        projection.setWorkerEnabled(true);
+        projection.setFallbackToDatabase(false);
     }
 
     @Test
@@ -173,6 +177,7 @@ class SearchEventToQueryE2EIT {
                 .build());
         problemSource.databaseCount = 1;
         projection.setMeiliSearchClient(new Client(new Config("http://127.0.0.1:1", "")));
+        projection.setFallbackToDatabase(true);
 
         SearchResponseVO response = projection.search(query(queryText));
 

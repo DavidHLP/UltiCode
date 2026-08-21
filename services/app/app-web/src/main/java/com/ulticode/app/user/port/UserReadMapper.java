@@ -1,7 +1,9 @@
 package com.ulticode.app.user.port;
 
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Consumer-owned read port composing Auth account data with App profile data.
@@ -16,6 +18,12 @@ public interface UserReadMapper {
     UserSummaryView selectByUsername(String username);
 
     UserSummaryView selectByEmail(String email);
+
+    /**
+     * Compose existing account/profile facts for a bounded set of IDs.
+     * Missing accounts are absent; owner-query failures fail closed.
+     */
+    Map<String, UserSummaryView> selectByIds(Collection<String> ids);
 
     List<UserSummaryView> selectActiveUsers(int limit, int offset);
 

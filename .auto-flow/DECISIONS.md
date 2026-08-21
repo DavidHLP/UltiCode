@@ -191,3 +191,109 @@ global `GRANT OPTION` because their migrations grant `USAGE ON *.*`.
 
 ### Affected task
 AR20260820-001.
+
+## Architecture review 2026-08-21 full implementation reopening
+
+### Context
+The user explicitly reopened all five candidates in
+`/tmp/architecture-review-20260821112953.html` and requested implementation
+through terminal state. The previous `AR20260820-006` decision rejected Judge
+and user-facts background deepening; that rejection applies only to the prior
+objective and is superseded for this new objective. Existing source ownership,
+rollback seams and development-only authority remain unchanged.
+
+### Decision
+1. `scripts/dev/devstack-manifest.sh` owns the supported dev-lite/dev-full
+   mode exports. dev-lite is deterministic local Submission + database Search
+   with no Search worker; dev-full is explicit remote/indexed rehearsal and
+   remains cutover-gated.
+2. Judge-only worker/attempt/reaper/migration wiring is explicitly imported by
+   `JudgeRuntimeConfiguration`; the storage-free `judge-runtime` artifact is
+   retained and no new process, schema or infrastructure is introduced.
+3. `AdminAnalyticsPort` is reduced to query slices (contest, revenue and
+   overview); owner adapters retain bounded reads and reporters retain math.
+4. `UserReadMapper` gains a bounded batch composition path for Auth account +
+   App profile facts; Moderation uses it instead of per-ID reads. Search's
+   cursor-specific directory seam remains separate where its ordering/count
+   behavior is materially different.
+5. Search exposes explicit database/indexed read modes and an explicit DB
+   fallback policy. Indexed mode requires an explicitly enabled event-backed
+   worker and returns source/freshness/order/total/fallback semantics. The
+   existing Search worker remains the sole Meili writer; production Compose
+   passes its existing worker gate to App while application defaults preserve
+   the current indexed/fallback behavior.
+
+### Invariants
+- Owner single-writer and account/profile ownership do not move.
+- Public HTTP/contract envelopes remain compatible unless an in-repo caller and
+  its tests are updated together.
+- No applied migration is edited; no production cutover, grant, deploy or push.
+- Existing local/remote/legacy rollback adapters remain available.
+- All new mode behavior fails closed on malformed configuration and remains
+  testable through the module interface.
+
+### Alternatives rejected
+- Do not add a new runtime process, message broker, service mesh or schema.
+- Do not physically split the storage-free judge-runtime artifact in this task.
+- Do not delete rollback adapters or claim production acceptance from TEST-TARGET.
+
+### Affected tasks
+ARCH-20260821-001, ARCH-20260821-002, ARCH-20260821-003,
+ARCH-20260821-004, ARCH-20260821-005, ARCH-20260821-006.
+
+## Architecture review 2026-08-21 terminal decisions
+
+- Treat the first-class DevStack interface as the owner of not only mode
+  values but also phase timing and per-runtime readiness evidence.
+- Keep App Judge compatibility explicit and rollback-only; the adapter polls
+  only legacy RQueue and delegates all execution lifecycle to the shared
+  attempt executor.
+- Treat Dashboard and the existing Admin user list/detail projection as two
+  coarse Admin query slices; do not create a universal Admin query service.
+- Treat `UserFactsReadPort` plus `UserAccountFact`/`UserFactView` as the single
+  owner-composed account/profile composition seam. Search keeps only its
+  cursor/count predicates and consumes that seam for facts.
+- Keep the new Search worker gate fail-closed for indexed reads. Development
+  evidence and production configuration consistency are not production
+  acceptance; no external delivery action is authorized.
+
+## Architecture review 2026-08-21 execution packet
+
+### Root cause / capability gap
+The prior implementation closed individual migration seams but left the new
+report's five developer-facing interfaces partly implicit: mode exports were
+split between manifest/up.sh/ecosystem/YAML, Judge-only beans were discovered
+from a shared artifact, Admin analytics exposed metric-level methods, user
+facts lacked a common batch composition path, and Search silently selected
+Meili or DB fallback.
+
+### Ordered implementation
+1. Update the existing DevStack manifest, launcher, PM2 environment and docs;
+   add mode contract assertions before touching Java behavior.
+2. Remove Judge-only component stereotypes from the shared execution classes;
+   retain explicit imports in `JudgeRuntimeConfiguration` and add App-absence /
+   Judge-wiring tests.
+3. Reduce `AdminAnalyticsPort` to contest, revenue and overview query slices;
+   keep owner DTO adapters and reporter math, update all tests and Javadocs.
+4. Add `UserReadMapper.selectByIds`, implement one Auth batch + one App profile
+   batch in `OwnerUserReadAdapter`, and make Moderation use it; preserve
+   Search's cursor-specific directory contract.
+5. Add `SearchReadProperties` with database/indexed mode and explicit fallback;
+   wire dev-lite/dev-full/production Compose, update projection and tests,
+   including disposable event-to-query E2E.
+6. Review complete call chains and source boundaries, then run Tier C affected
+   reactor, real owner/Redis/Meili gates, config/shell/YAML/graph/diff checks.
+
+### Risk and rollback
+No schema or migration changes. Public contract changes are additive or
+internal to existing owner contracts. Mode changes are reversible via the
+existing environment variables; Java wiring changes are source-revertible;
+Search falls back to database mode as the safe rollback. Do not remove local,
+remote, legacy, shadow, or cutover adapters.
+
+### Required review focus
+Spring component discovery after stereotype removal; PM2 environment
+precedence; mode defaults and cutover gates; Admin analytics hidden callers;
+Auth batch missing/unavailable semantics; Search exact totals, stale index,
+strict indexed failure and explicit fallback; test-only worker dependency and
+production Compose behavior.

@@ -67,11 +67,11 @@ Options:
   --skip-install       跳过 pnpm install (依赖未变时)
   --only <apps>        只起指定 PM2 app, 逗号分隔
                        (如 auth,admin,app,submission,notification,judge,search 或 9101,9102; 前端仍可用 9002/9003)
-  --no-frontend        不起前端 (等同 --only auth,admin,app,submission,notification,judge；Search 需显式 --only search)
+  --no-frontend        不起前端 (dev-lite 等同六个后端；dev-full 另含 Search)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   --mode <dev-lite|dev-full>
-                       dev-lite=local/no App shadow；dev-full=remote/owner；默认 dev-lite
+                       dev-lite=local/DB search/no Search worker；dev-full=remote/indexed/Search worker；默认 dev-lite
   -h, --help           显示此帮助
 
 Examples:
@@ -82,8 +82,8 @@ Examples:
   ./scripts/dev/up.sh --prepare-submission-owner # 准备 owner，随后执行 cutover runbook
   ./scripts/dev/up.sh --no-frontend --skip-bootstrap
   ./scripts/dev/up.sh --skip-infra --skip-migrate
-  ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环，不启用 App shadow
-  ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/owner 栈
+  ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环，DB search，不启用 App shadow
+  ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/indexed/Search owner 栈
 EOF
 }
 
@@ -107,20 +107,7 @@ done
 if [[ -z "$DEV_MODE" ]]; then
   DEV_MODE="dev-lite"
 fi
-case "$DEV_MODE" in
-  dev-lite)
-    export APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-local}"
-    export SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
-    ;;
-  dev-full)
-    export APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-remote}"
-    export SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
-    ;;
-  *)
-    echo "--mode must be dev-lite or dev-full." >&2
-    exit 2
-    ;;
-esac
+devstack_validate_mode_name "$DEV_MODE"
 
 
 if [[ "$DEV_MODE" == "dev-lite" && -z "$ONLY" && "$FRONTEND_ONLY" != true ]]; then
@@ -198,11 +185,9 @@ if [[ -n "$ONLY" ]]; then
 elif [[ "$FRONTEND_ONLY" == true ]]; then
   PM2_APPS="ulticode-9002,ulticode-9003"
 elif [[ "$NO_FRONTEND" == true ]]; then
-  PM2_APPS="$(devstack_apps_csv "${DEVSTACK_BACKEND_APPS[@]}")"
-elif [[ "$DEV_MODE" == "dev-lite" ]]; then
-  PM2_APPS="$(devstack_apps_csv "${DEVSTACK_DEV_LITE_APPS[@]}")"
+  PM2_APPS="$(devstack_backend_apps_for_mode "$DEV_MODE")"
 else
-  PM2_APPS="$(devstack_apps_csv "${DEVSTACK_DEV_FULL_APPS[@]}")"
+  PM2_APPS="$(devstack_apps_for_mode "$DEV_MODE")"
 fi
 
 # ===== 前置检查 =====
@@ -239,24 +224,7 @@ fi
 [[ -n "$SUBMISSION_MIGRATION_DB_USER_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER_OVERRIDE"
 [[ -n "$SUBMISSION_MIGRATION_DB_PASSWORD_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD_OVERRIDE"
 
-if [[ "$DEV_MODE" == "dev-lite" ]]; then
-  APP_SUBMISSION_ROUTING_MODE="local"
-  SUBMISSION_CUTOVER_COMPLETE="false"
-  APP_FEATURES_USE_JUDGE_OUTBOX="false"
-  APP_FEATURES_USE_GENERATION_FENCE="false"
-  APP_FEATURES_JUDGE_QUEUE_USE_PORT="false"
-  APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION="2"
-else
-  APP_SUBMISSION_ROUTING_MODE="${APP_SUBMISSION_ROUTING_MODE:-remote}"
-  SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
-  APP_FEATURES_USE_JUDGE_OUTBOX="true"
-  APP_FEATURES_USE_GENERATION_FENCE="true"
-  APP_FEATURES_JUDGE_QUEUE_USE_PORT="true"
-  APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION="2"
-fi
-export APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE \
-  APP_FEATURES_USE_JUDGE_OUTBOX APP_FEATURES_USE_GENERATION_FENCE \
-  APP_FEATURES_JUDGE_QUEUE_USE_PORT APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION
+devstack_apply_mode "$DEV_MODE"
 
 : "${SUBMISSION_MIGRATION_DB_USER:=${DEV_MIGRATION_SUBMISSION_USER:-}}"
 : "${SUBMISSION_MIGRATION_DB_PASSWORD:=${DEV_MIGRATION_SUBMISSION_PASSWORD:-}}"
@@ -266,25 +234,7 @@ export APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE \
 : "${DEV_SEED_ADMIN_PASSWORD:=admin123}"
 : "${DEV_SEED_ADMIN_ROLE:=ADMIN}"
 
-required_vars=(
-  DB_USER DB_PASSWORD DB_NAME MYSQL_ROOT_PASSWORD REDIS_PASSWORD JWT_SECRET
-  NACOS_USERNAME NACOS_PASSWORD NACOS_AUTH_TOKEN
-  NACOS_AUTH_IDENTITY_KEY NACOS_AUTH_IDENTITY_VALUE
-)
-if [[ "$FRONTEND_ONLY" != true ]]; then
-  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
-    owner_prefix="${owner^^}"
-    required_vars+=(
-      "${owner_prefix}_DB_HOST" "${owner_prefix}_DB_PORT"
-      "${owner_prefix}_DB_NAME" "${owner_prefix}_DB_USER"
-      "${owner_prefix}_DB_PASSWORD"
-    )
-  done
-  required_vars+=(SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD)
-  if [[ "$DEV_MODE" == "dev-full" ]]; then
-    required_vars+=(APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE)
-  fi
-fi
+mapfile -t required_vars < <(devstack_required_vars "$DEV_MODE" "$FRONTEND_ONLY")
 for var in "${required_vars[@]}"; do
   [[ -n "${!var:-}" ]] || {
     echo "Missing required variable in .env: $var" >&2
@@ -295,34 +245,7 @@ if [[ "$FRONTEND_ONLY" != true && ! "$SUBMISSION_MIGRATION_DB_USER" =~ ^[A-Za-z0
   echo "SUBMISSION_MIGRATION_DB_USER must contain only letters, digits, or underscore." >&2
   exit 1
 fi
-if [[ "$FRONTEND_ONLY" != true ]]; then
-  for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
-    owner_prefix="${owner^^}"
-    owner_name_var="${owner_prefix}_DB_NAME"
-    [[ "${!owner_name_var}" == "$owner" ]] || {
-      echo "${owner_name_var} must be $owner for the local owner runtime." >&2
-      exit 1
-    }
-    [[ -f "$ROOT_DIR/init-db/flyway-$owner.conf" ]] || {
-      echo "Missing owner Flyway manifest entry: init-db/flyway-$owner.conf" >&2
-      exit 1
-    }
-  done
-  [[ "$SUBMISSION_DB_USER" == "submission_rw" ]] || {
-    echo "Local PM2 requires SUBMISSION_DB_USER=submission_rw; provision custom production accounts outside up.sh." >&2
-    exit 1
-  }
-  if [[ "$PREPARE_SUBMISSION_OWNER" != true && "$DEV_MODE" == "dev-full" ]]; then
-    [[ "$APP_SUBMISSION_ROUTING_MODE" == "remote" ]] || {
-      echo "dev-full requires APP_SUBMISSION_ROUTING_MODE=remote." >&2
-      exit 1
-    }
-    [[ "$SUBMISSION_CUTOVER_COMPLETE" == "true" ]] || {
-      echo "dev-full requires SUBMISSION_CUTOVER_COMPLETE=true; run the cutover gate first." >&2
-      exit 1
-    }
-  fi
-fi
+devstack_validate_environment "$DEV_MODE" "$ROOT_DIR" "$FRONTEND_ONLY" "$PREPARE_SUBMISSION_OWNER"
 
 if [[ "$FRONTEND_ONLY" != true ]]; then
   # Per-owner shadow-user 迁移 (CREATE USER / 跨库 GRANT / 建库) 需要 DBA 权限,
@@ -400,13 +323,13 @@ verify_owner_accounts() {
 
 wait_for_health() {
   local container="$1"
-  local attempts="${2:-60}"
+  local attempts="${2:-$DEVSTACK_INFRA_READINESS_ATTEMPTS}"
   for ((i = 1; i <= attempts; i++)); do
     status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
     if [[ "$status" == "healthy" || "$status" == "running" ]]; then
       return 0
     fi
-    sleep 2
+    sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
   done
   echo "Container did not become healthy: $container" >&2
   docker logs --tail 100 "$container" >&2 || true
@@ -488,14 +411,14 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     pm2 save
   )
   auth_ready=false
-  for _ in $(seq 1 90); do
+  for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
     auth_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
       http://127.0.0.1:9101/api/v1/auth/health 2>/dev/null || true)"
     if [[ "$auth_code" == "200" ]]; then
       auth_ready=true
       break
     fi
-    sleep 2
+    sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
   done
   if [[ "$auth_ready" != true ]]; then
     echo "ulticode-auth did not become healthy; cannot run dev-admin bootstrap." >&2
@@ -503,7 +426,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     exit 1
   fi
   # Dubbo provider 向 Nacos 的注册滞后于 HTTP 健康端点, 留注册缓冲。
-  sleep 5
+  sleep "$DEVSTACK_DUBBO_REGISTRATION_DELAY_SECONDS"
 
   echo "Creating or restoring the documented development administrator..."
   # NOTE: web-application-type=none 关闭 web 容器,只运行 DevUserBootstrapRunner 创建 dev admin。
@@ -536,7 +459,8 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DEV_SEED_ADMIN_ROLE="$DEV_SEED_ADMIN_ROLE" \
     SERVER_PORT=9102 \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 90 mvn -f admin/pom.xml spring-boot:run \
+      timeout --kill-after="$DEVSTACK_BOOTSTRAP_KILL_AFTER_SECONDS" \
+        "$DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS" mvn -f admin/pom.xml spring-boot:run \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \
         -Dspring-boot.run.arguments='--spring.main.web-application-type=none --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration' \
@@ -613,13 +537,13 @@ echo "Starting PM2 services: $PM2_APPS"
       --only "$first" \
       --update-env
     app_ready=false
-    for _ in $(seq 1 90); do
+    for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
       if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
         http://127.0.0.1:9103/api/v1/app/health 2>/dev/null || true)" == "200" ]]; then
         app_ready=true
         break
       fi
-      sleep 2
+    sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
     done
     if [[ "$app_ready" != true ]]; then
       echo "backend-app did not become healthy; starting ulticode-judge anyway (Dubbo auto-reconnect)." >&2
@@ -675,6 +599,11 @@ check_pm2_online() {
   # 不能用 restart_time (累计值, 连续多次跑 up.sh 也会增长, 会把健康实例误判为 crash-loop)。
   # 持续增长 = crash-loop, 即使瞬间 online 也不算就绪。
   [[ "${restarts:-0}" -lt 5 ]] || return 1
+
+  local banner
+  banner="$(devstack_readiness_banner "$app")"
+  [[ -z "$banner" ]] && return 0
+
   # Judge Worker 无 HTTP 端点, 以 Spring 启动完成 banner 为准
   # (pid/status 在 JVM 完全起来之前就可能就位)。
   # ecosystem.config.cjs 将 judge 日志写到 logs/backend-judge.out.log,
@@ -688,12 +617,12 @@ check_pm2_online() {
   fi
   # 不用 grep -q: 它在首个匹配即提前退出, tail 收到 SIGPIPE(141),
   # 在 set -o pipefail 下管道非零 → 假阴性。改为读完全部输入并丢弃输出。
-  tail -c +$((offset + 1)) "$log" 2>/dev/null \
-    | grep "Started BackendJudgeApplication" >/dev/null 2>&1
+    tail -c +$((offset + 1)) "$log" 2>/dev/null \
+    | grep "$banner" >/dev/null 2>&1
 }
 
 apps_csv=",$PM2_APPS,"
-for _ in $(seq 1 90); do
+for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
   all_ok=true
   for app in "${DEVSTACK_READINESS_APPS[@]}"; do
     [[ "$apps_csv" == *",$app,"* ]] || continue
@@ -732,7 +661,7 @@ EOF
     fi
     exit 0
   fi
-  sleep 2
+  sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
 done
 
 echo "Application readiness check timed out for: $PM2_APPS" >&2

@@ -11,8 +11,11 @@ import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.rpc.RpcResult;
-import lombok.RequiredArgsConstructor;
+import com.ulticode.common.rpc.RpcPolicy;
+import jakarta.annotation.PreDestroy;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,6 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Production adapter for {@link AdminAnalyticsPort}. Concentrates the
@@ -44,17 +51,45 @@ import java.util.stream.Collectors;
  * @author ulticode
  */
 @Component
-@RequiredArgsConstructor
 public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
-
     private final ContestAdminReadPort contestAdminReadPort;
     private final ContestParticipantReadPort contestParticipantReadPort;
     private final SubscriptionReadPort subscriptionReadPort;
     private final SubmissionAdminReadPort submissionAdminReadPort;
+    private final CancellableQueryExecutor queryExecutor;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0",
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
+
+    @Autowired
+    public DefaultAdminAnalyticsPortAdapter(
+            ContestAdminReadPort contestAdminReadPort,
+            ContestParticipantReadPort contestParticipantReadPort,
+            SubscriptionReadPort subscriptionReadPort,
+            SubmissionAdminReadPort submissionAdminReadPort) {
+        this(contestAdminReadPort, contestParticipantReadPort, subscriptionReadPort,
+                submissionAdminReadPort, new CancellableQueryExecutor("admin-analytics-query", 6));
+    }
+
+    DefaultAdminAnalyticsPortAdapter(
+            ContestAdminReadPort contestAdminReadPort,
+            ContestParticipantReadPort contestParticipantReadPort,
+            SubscriptionReadPort subscriptionReadPort,
+            SubmissionAdminReadPort submissionAdminReadPort,
+            CancellableQueryExecutor queryExecutor) {
+        this.contestAdminReadPort = contestAdminReadPort;
+        this.contestParticipantReadPort = contestParticipantReadPort;
+        this.subscriptionReadPort = subscriptionReadPort;
+        this.submissionAdminReadPort = submissionAdminReadPort;
+        this.queryExecutor = queryExecutor;
+    }
+
+    @PreDestroy
+    void shutdownQueryExecutor() {
+        queryExecutor.close();
+    }
 
     @Override
     public ContestParticipationData loadContestData(LocalDateTime startDate) {
@@ -81,59 +116,91 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     }
 
     @Override
-    public long countActiveSubscriptions() {
-        return subscriptionReadPort.countActiveSubscriptions();
-    }
-
-    @Override
     public List<SubscriptionSummary> listActiveSubscriptions() {
         return subscriptionReadPort.listActiveSubscriptionPlans().stream()
                 .map(SubscriptionSummary::new)
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public long countDistinctSubmittersInRange(LocalDateTime from, LocalDateTime to) {
+    private long countActiveSubscriptions() {
+        return subscriptionReadPort.countActiveSubscriptions();
+    }
+
+    private long countDistinctSubmittersInRange(LocalDateTime from, LocalDateTime to) {
         return submissionAdminReadPort.countDistinctUsersInRange(from, to);
     }
 
-    @Override
-    public long countSubmissionsInRange(LocalDateTime from) {
+    private long countSubmissionsInRange(LocalDateTime from) {
         return submissionAdminReadPort.countSubmissionsInRange(from);
     }
 
-    @Override
-    public long countAcceptedSubmissionsInRange(LocalDateTime from) {
+    private long countAcceptedSubmissionsInRange(LocalDateTime from) {
         return submissionAdminReadPort.countAcceptedSubmissionsInRange(from);
     }
 
-    @Override
-    public long countContestsInRange(LocalDateTime from) {
+    private long countContestsInRange(LocalDateTime from) {
         // AC #7: use read-port instead of Contest entity/LambdaQueryWrapper
         return contestAdminReadPort.selectByStartTimeAfter(from).size();
     }
 
-    @Override
-    public long countAllUsers() {
+    private long countAllUsers() {
         if (accountQueryService == null) {
-            return 0L;
+            throw unavailable();
         }
-        RpcResult<AuthAccountDTO> result = accountQueryService.queryAccounts(
-                new AccountQueryDTO(null, null, null, null, 1, 1, "joinedAt", "desc"));
-        if (result == null || result.page() == null || result.page().total() == null) {
-            return 0L;
+        try {
+            RpcResult<AuthAccountDTO> result = accountQueryService.queryAccounts(
+                    new AccountQueryDTO(null, null, null, null, 1, 1, "joinedAt", "desc"));
+            if (result == null || !result.success()
+                    || result.page() == null || result.page().total() == null) {
+                throw unavailable();
+            }
+            return result.page().total();
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw unavailable();
         }
-        return result.page().total();
     }
 
     @Override
     public AnalyticsOverviewData loadOverviewData(LocalDateTime from, LocalDateTime to) {
-        return new AnalyticsOverviewData(
-                countAllUsers(),
-                countDistinctSubmittersInRange(from, to),
-                countSubmissionsInRange(from),
-                countAcceptedSubmissionsInRange(from),
-                countContestsInRange(from),
-                countActiveSubscriptions());
+        CancellableQueryExecutor.Query<Long> totalUsers = queryExecutor.submit(this::countAllUsers);
+        CancellableQueryExecutor.Query<Long> activeUsers = queryExecutor.submit(
+                () -> countDistinctSubmittersInRange(from, to));
+        CancellableQueryExecutor.Query<Long> submissions = queryExecutor.submit(
+                () -> countSubmissionsInRange(from));
+        CancellableQueryExecutor.Query<Long> accepted = queryExecutor.submit(
+                () -> countAcceptedSubmissionsInRange(from));
+        CancellableQueryExecutor.Query<Long> contests = queryExecutor.submit(
+                () -> countContestsInRange(from));
+        CancellableQueryExecutor.Query<Long> subscriptions = queryExecutor.submit(
+                this::countActiveSubscriptions);
+        CompletableFuture<?> all = CompletableFuture.allOf(
+                totalUsers.result(), activeUsers.result(), submissions.result(), accepted.result(),
+                contests.result(), subscriptions.result());
+        try {
+            all.get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            return new AnalyticsOverviewData(
+                    totalUsers.result().join(),
+                    activeUsers.result().join(),
+                    submissions.result().join(),
+                    accepted.result().join(),
+                    contests.result().join(),
+                    subscriptions.result().join());
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            CancellableQueryExecutor.cancel(
+                    totalUsers, activeUsers, submissions, accepted, contests, subscriptions);
+            throw unavailable();
+        } catch (ExecutionException | TimeoutException exception) {
+            CancellableQueryExecutor.cancel(
+                    totalUsers, activeUsers, submissions, accepted, contests, subscriptions);
+            throw unavailable();
+        }
+    }
+
+    private static BusinessException unavailable() {
+        return new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                "Analytics owner query unavailable");
     }
 }

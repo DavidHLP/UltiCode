@@ -309,8 +309,14 @@ cd UltiCode
 
 默认 `dev-lite` 会先按 `auth → admin → app → notification → submission`
 顺序应用五条 Owner migration 链，设置并探测本地 Owner 账号，再启动最小后端运行集；
-它强制 Submission 使用本地兼容路径。需要远程 Submission/cutover seam 时必须显式运行
-`./scripts/dev/up.sh --mode dev-full`，并先满足 `SUBMISSION_CUTOVER_COMPLETE=true`。
+它强制 Submission 使用本地兼容路径、Search 使用确定性的数据库读，并不启动 Search
+worker。需要远程 Submission/cutover seam 或 MeiliSearch indexed read 时必须显式运行
+`./scripts/dev/up.sh --mode dev-full`；该模式会启动 Search worker，并先满足
+`SUBMISSION_CUTOVER_COMPLETE=true`。两种 mode 的 route、Judge flags、Search read
+policy、worker role、readiness 和 failure gates 由
+`scripts/dev/devstack-manifest.sh` 统一声明；`up.sh` 只消费这份 manifest。
+App 的 `APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED` 默认关闭，仅作为 legacy RQueue
+rollback seam 显式启用，正常 App/API 进程不轮询 Judge。
 
 ### 🔑 首次登录
 
@@ -338,7 +344,7 @@ dev 数据库会自动创建固定管理员账号：
 | Submission owner | 内部 HTTP `9106` / Dubbo `20886` | Submission 数据 Owner；写入使用 App 提供的 Facts Snapshot |
 | Notification API | <http://localhost:9105> | 通知 / 邮件 Owner |
 | Judge Worker | Dubbo `20884` / PM2 `ulticode-judge` | 独立判题执行进程，无 HTTP API |
-| Search Worker | PM2 `ulticode-search`（生产 Compose runtime） | Redis Streams → MeiliSearch；本地默认不启动 |
+| Search Worker | PM2 `ulticode-search`（生产 Compose runtime） | Redis Streams → MeiliSearch；dev-lite 不启动，dev-full 显式启动；Search 响应返回 source/freshness/order/total/fallback 语义 |
 | Nacos 控制台 | <http://localhost:28848/nacos> | 配置中心 / 服务发现 |
 | Arthas MCP | <http://localhost:8563/mcp> | STATELESS · Claude Code / IDE 直连 |
 
@@ -354,7 +360,7 @@ dev 数据库会自动创建固定管理员账号：
 `services/auth/`、`services/admin/`、`services/app/`、`services/submission/`、`services/notification/` 是数据 Owner，`services/judge/`、`services/search/` 是 Worker；`judge-runtime/` 只是共享依赖。以下命令均从 repository root 执行。
 
 ```bash
-# 通过 PM2（本地默认后端，Search 显式 opt-in）
+# 通过 PM2（本地默认 dev-lite 后端；Search 在 dev-full 或显式 opt-in）
 pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-notification ulticode-judge
 pm2 restart ulticode-search       # 需要本地 Search 时显式启动
 pm2 logs ulticode-auth

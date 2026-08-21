@@ -59,6 +59,14 @@ app:
       # Remote startup is refused until the explicit data/grant cutover gate is set.
       cutover-complete: ${SUBMISSION_CUTOVER_COMPLETE:false}
   search:
+    read:
+      # dev-lite is deterministic DB read; indexed mode is explicit and
+      # requires the event-backed Search worker/Meili path.
+      # Outside the supported dev-lite manifest, preserve the historical
+      # Meili-first behavior; dev-lite always overrides this to database/false.
+      mode: ${APP_SEARCH_READ_MODE:indexed}
+      fallback-to-database: ${APP_SEARCH_FALLBACK_TO_DATABASE:true}
+      worker-enabled: ${SEARCH_WORKER_ENABLED:}
     backfill:
       # SEARCH-003 backfill runner (DEC-017). Off by default; the runner bean
       # only exists when both this flag and meilisearch.enabled are true.
@@ -72,6 +80,8 @@ app:
     slow-query-ms: 500
 
   features:
+    # Explicit rollback-only seam. Normal App/API boot never owns Judge polling.
+    judge-compatibility-enabled: ${APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED:false}
     use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
     use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
     judge-queue:

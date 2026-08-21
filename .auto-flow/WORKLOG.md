@@ -85,3 +85,80 @@
 - Recovered two review findings and one fresh reactor issue: shared-Flyway Auth contract no-op, Dashboard canonical App schema/typed mapper rows, and test-only Search module order.
 - Focused real owner/MySQL regressions passed; fresh services verify passed with exit 0 and 829/2792/0/0/29 Surefire totals.
 - Broad integration selector remains host-timeout-limited and is not counted as pass evidence; no production authority, commit, push, deploy, grant or cutover action performed.
+
+## 2026-08-21 CRFIX-REVIEW-006
+
+- Restored `V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` byte-for-byte to the parent version and added the later guarded `V20260821100000__Guard_Auth_Users_To_Account_Ownership.sql`.
+- Changed shared Flyway and SearchBackfill test locations to `migrations/*.sql`, preventing owner-directory migrations from running in the shared chain; fresh SearchBackfill MySQL evidence passed 5/0/0/0.
+- Restored Dashboard problem chart bucketing to `published_at` and grouped problem status by the derived CASE expression; Dashboard real MySQL/provider/projection focus passed 11/0/0/0, including draft exclusion and deleted-bucket merge.
+- Auth follow-up/schema IT passed 2/0/0/0; fresh `services/./mvnw verify -B` exited 0 with 757 fresh reports, 2557 tests, 0 failures, 0 errors and 20 skips.
+- `migrate-owner-preflight-test.sh`, MySQL 9.1 owner migration safety rehearsal (with inherited local container overrides cleared), Compose dev/prod config, graphify update and diff check passed. Development/TEST-TARGET only; no external delivery.
+
+## 2026-08-21 architecture review full implementation reopened
+
+- User explicitly requested implementation of all five candidates from
+  `/tmp/architecture-review-20260821112953.html`, including the two items
+  previously recorded as rejected background candidates.
+- Recovered the completed prior ledger and protected its evidence; appended
+  `ARCH-20260821-001..006` rather than reusing historical task IDs.
+- Execution decision: centralize mode exports in the existing DevStack
+  manifest; make Judge-only assembly explicit without adding a process;
+  reduce Admin analytics to query slices; add one bounded user-facts batch
+  path; make Search database/indexed mode and fallback policy explicit.
+- No business implementation has been changed in this phase. Active task is
+  `ARCH-20260821-001`; authority remains development/TEST-TARGET only.
+
+- Planning completed for `ARCH-20260821-001..006`: one ordered DAG, no schema
+  migration or new runtime process, explicit rollback through existing mode
+  variables/adapters, and Tier-C validation for cross-runtime/config/read-seam
+  behavior. Handoff moved to implementation of Task 001.
+
+- ARCH-20260821-001 implemented: `devstack_apply_mode` now owns route, Judge,
+  Admin cutover and Search read defaults; dev-full includes Search; manifest
+  contract, shell syntax, help and ecosystem assertions passed.
+- ARCH-20260821-002 implemented: Judge-only worker, attempt executor, stream
+  reaper and legacy migration lost automatic stereotypes and remain explicitly
+  imported by `JudgeRuntimeConfiguration`; App context absence and Judge wiring
+  tests passed. The focused run found and fixed the pre-existing judge POM
+  literal `@{argLine}` failure before passing 2/0/0/0.
+- ARCH-20260821-001/002 focused review found no hidden caller, Owner, queue,
+  rollback or public contract finding; Task 003 promoted to ready.
+
+- ARCH-20260821-003 implemented the Admin analytics vertical slices: the local
+  `AdminAnalyticsPort` now exposes contest, revenue and overview reads while
+  per-metric fan-out remains private to its adapter. Four reporter/service and
+  adapter tests passed (20/0/0/0); no foreign entity or owner contract moved.
+- Task 004 is now ready for the owner-composed user-facts batch change.
+
+- ARCH-20260821-004 implemented the bounded user-facts batch seam. Auth account
+  IDs and App profiles are fetched once each; Moderation preserves input order
+  without per-ID `selectById`. Focused App tests passed 6/0/0/0 after fixing a
+  strict-stubbing mismatch by normalizing IDs at the adapter seam.
+- Task 005 is now ready for explicit Search database/indexed read semantics.
+
+- ARCH-20260821-005 implemented `SearchReadProperties`: DATABASE mode never
+  touches Meili; INDEXED mode requires Meili unless the explicit fallback policy
+  is enabled. Unit/config focus passed 24/0/0/0 and real Redis 7 + Meili v1.8
+  event-to-query E2E passed 3/0/0/0.
+- All five implementation Tasks are now evidence-backed; ARCH-20260821-006
+  entered in_progress for full contextual Review, Tier C validation and
+  Completion Audit.
+
+## 2026-08-21 architecture review terminal closure
+
+- Closed the two review rework loops: Admin owner fan-out now uses the shared
+  bounded/cancellable executor with regression tests; DevStack manifest owns
+  timing and per-app readiness banners, and non-Judge PM2 readiness no longer
+  depends on the Judge startup log.
+- Search indexed mode now requires explicit `SEARCH_WORKER_ENABLED=true`;
+  production Compose passes the existing worker gate to App, and responses
+  expose mode/source/freshness/order/total/fallback semantics. Console search
+  types were updated additively and type-check passed.
+- Final Review: Standards=0, Spec=0 Confirmed Findings. Final validation:
+  services verify exit 0, 834 reports / 2805 tests / 0 failures / 0 errors /
+  29 skips; Redis 7 + Meili v1.8 Search E2E 3/0/0/0; Compose, manifest,
+  graph, coverage, wiki manifest, YAML and diff checks PASS.
+- Completion Audit: all five report candidates mapped to done Tasks, rollback
+  paths preserved, no migration edited, no unrelated changes discarded, and
+  authority remains development/TEST-TARGET only. No commit/push/publish/
+  deploy/cutover/grant action.

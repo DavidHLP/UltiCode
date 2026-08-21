@@ -81,6 +81,10 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>com.ulticode.search.SearchWorkerApplication</mainClass>
+                    <!-- Keep the main artifact as a normal library so the
+                         App's test-only event-to-query harness can compile
+                         in the full reactor; publish the executable as -exec. -->
+                    <classifier>exec</classifier>
                 </configuration>
             </plugin>
             <!-- No jacoco agent here, so the parent's @{argLine} placeholder

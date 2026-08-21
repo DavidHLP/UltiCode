@@ -14,7 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.Map;
@@ -43,8 +42,6 @@ import java.util.Map;
  * so a crash mid-drain resumes without duplicates.
  */
 @Slf4j
-@Component
-@Profile("!test")
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         name = "app.features.judge-queue.use-port",

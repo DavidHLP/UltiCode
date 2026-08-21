@@ -34,7 +34,7 @@ UltiCode 已经完成从单体 JVM 到多进程 Owner/Worker 拓扑的骨架迁�
 
 共享模块是 `platform/*`、`api/*`、`integration-inbox` 和 `judge-runtime`。`services/pom.xml` reactor 已登记 platform、五个 API/Contract 方向、五个 Owner、两个 Worker 和 `judge-runtime`；不存在实际模块的 `backend-api` dependency-management 条目已移除。
 
-生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh` 默认启动六个后端并明确排除 Search，使用 `--only search` 显式启动 Search。
+生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`--only search` 仍可单独启动 Search。
 
 ### 2.2 Contract Seam
 
@@ -97,7 +97,7 @@ Snapshot 是当前低风险实现；projection 仍需定义事件版本、滞后
 
 ### 4.3 App 双轨兼容
 
-App 当前同时维护 Submission、Notification、Judge Runtime、MeiliSearch 以及 legacy compatibility 实现。Submission 路由默认仍是 local，远程路由由生产配置/门禁显式开启；因此这是可切换迁移架构，不是已经删除 legacy path 的最终形态。生产远程稳定窗口、全写入者 quiesce、旧消息/双写对账和可回滚 artifact 缺失时，不删除这些路径。
+App 当前同时维护 Submission、Notification、MeiliSearch 以及 legacy compatibility 实现；Judge 执行 wiring 已收进独立 Judge 配置，App 仅保留默认关闭的显式 legacy RQueue rollback adapter。Submission 路由默认仍是 local，远程路由由生产配置/门禁显式开启；因此这是可切换迁移架构，不是已经删除 legacy path 的最终形态。生产远程稳定窗口、全写入者 quiesce、旧消息/双写对账和可回滚 artifact 缺失时，不删除这些路径。
 
 ### 4.4 Admin Seam 碎片化
 

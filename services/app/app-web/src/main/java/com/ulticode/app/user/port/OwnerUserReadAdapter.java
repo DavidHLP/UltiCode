@@ -12,12 +12,15 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-public class OwnerUserReadAdapter implements UserReadMapper {
+public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
 
     private final UserProfileReadMapper profileReadMapper;
 
@@ -28,8 +31,87 @@ public class OwnerUserReadAdapter implements UserReadMapper {
         this.profileReadMapper = profileReadMapper;
     }
 
-    void setAccountQueryService(AccountQueryService accountQueryService) {
+    public void setAccountQueryService(AccountQueryService accountQueryService) {
         this.accountQueryService = accountQueryService;
+    }
+
+    @Override
+    public UserFactView findById(String id) {
+        if (id == null || id.isBlank()) {
+            return null;
+        }
+        AuthAccountDTO account;
+        try {
+            account = accountOrNull(accountQueryService().getAccountById(id));
+        } catch (RuntimeException exception) {
+            throw unavailable();
+        }
+        return account == null ? null : toFact(account, searchProfileById(account.accountId()));
+    }
+
+    @Override
+    public Map<String, UserFactView> findByIds(Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        Set<String> requested = ids.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+        if (requested.isEmpty()) {
+            return Map.of();
+        }
+        RpcResult<List<AuthAccountDTO>> response;
+        try {
+            response = accountQueryService().getAccountsByIds(requested);
+        } catch (RuntimeException exception) {
+            throw unavailable();
+        }
+        requireSuccess(response);
+        if (response.data() == null) {
+            throw unavailable();
+        }
+        List<UserProfileReadRow> profileRows = profileReadMapper.findSearchRowsByAccountIds(requested);
+        if (profileRows == null) {
+            profileRows = List.of();
+        }
+        Map<String, UserProfileReadRow> profiles = profileRows.stream()
+                .filter(profile -> profile != null && requested.contains(profile.getAccountId()))
+                .collect(Collectors.toMap(UserProfileReadRow::getAccountId, profile -> profile,
+                        (first, ignored) -> first));
+        Map<String, UserFactView> result = new LinkedHashMap<>();
+        for (AuthAccountDTO account : response.data()) {
+            if (account != null && requested.contains(account.accountId())) {
+                result.putIfAbsent(account.accountId(), toFact(account, profiles.get(account.accountId())));
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Map<String, UserFactView> compose(Collection<UserAccountFact> accounts) {
+        if (accounts == null || accounts.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, UserAccountFact> requested = new LinkedHashMap<>();
+        for (UserAccountFact account : accounts) {
+            if (account != null && account.id() != null && !account.id().isBlank()) {
+                requested.putIfAbsent(account.id(), account);
+            }
+        }
+        if (requested.isEmpty()) {
+            return Map.of();
+        }
+        List<UserProfileReadRow> profileRows = profileReadMapper.findSearchRowsByAccountIds(requested.keySet());
+        if (profileRows == null) {
+            profileRows = List.of();
+        }
+        Map<String, UserProfileReadRow> profiles = profileRows.stream()
+                .filter(profile -> profile != null && requested.containsKey(profile.getAccountId()))
+                .collect(Collectors.toMap(UserProfileReadRow::getAccountId, profile -> profile,
+                        (first, ignored) -> first));
+        Map<String, UserFactView> result = new LinkedHashMap<>();
+        requested.forEach((id, account) -> result.put(id, toFact(account, profiles.get(id))));
+        return result;
     }
 
     @Override
@@ -57,6 +139,69 @@ public class OwnerUserReadAdapter implements UserReadMapper {
         }
         AuthAccountDTO account = accountOrNull(accountQueryService().getAccountByEmail(email));
         return account == null ? null : compose(account, profileReadMapper.findByAccountId(account.accountId()));
+    }
+
+    @Override
+    public Map<String, UserSummaryView> selectByIds(Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        Set<String> requested = ids.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+        if (requested.isEmpty()) {
+            return Map.of();
+        }
+        RpcResult<List<AuthAccountDTO>> response = accountQueryService().getAccountsByIds(requested);
+        requireSuccess(response);
+        if (response.data() == null) {
+            throw unavailable();
+        }
+        List<UserProfileDTO> profileRows = profileReadMapper.findByAccountIds(requested);
+        if (profileRows == null) {
+            profileRows = List.of();
+        }
+        Map<String, UserProfileDTO> profiles = profileRows.stream()
+                .filter(profile -> profile != null && requested.contains(profile.accountId()))
+                .collect(Collectors.toMap(UserProfileDTO::accountId, profile -> profile,
+                        (first, ignored) -> first));
+        Map<String, UserSummaryView> result = new LinkedHashMap<>();
+        for (AuthAccountDTO account : response.data()) {
+            if (account != null && requested.contains(account.accountId())) {
+                result.putIfAbsent(account.accountId(), compose(account, profiles.get(account.accountId())));
+            }
+        }
+        return result;
+    }
+
+    private UserProfileReadRow searchProfileById(String accountId) {
+        List<UserProfileReadRow> rows = profileReadMapper.findSearchRowsByAccountIds(Set.of(accountId));
+        return rows == null ? null : rows.stream().findFirst().orElse(null);
+    }
+
+    private UserFactView toFact(AuthAccountDTO account, UserProfileReadRow profile) {
+        return toFact(new UserAccountFact(
+                account.accountId(),
+                account.username(),
+                account.joinedAt(),
+                account.updatedAt(),
+                account.deletedAt(),
+                account.active(),
+                account.banned()), profile);
+    }
+
+    private UserFactView toFact(UserAccountFact account, UserProfileReadRow profile) {
+        return new UserFactView(
+                account.id(),
+                account.username(),
+                profile == null ? null : profile.getName(),
+                profile == null ? null : profile.getAvatar(),
+                account.joinedAt(),
+                account.authUpdatedAt(),
+                profile == null ? null : profile.getUpdatedAt(),
+                account.deletedAt(),
+                account.active(),
+                account.banned());
     }
 
     @Override

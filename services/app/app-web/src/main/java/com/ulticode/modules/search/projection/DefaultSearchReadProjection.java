@@ -8,6 +8,8 @@ import com.meilisearch.sdk.model.Searchable;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
+import com.ulticode.modules.search.dto.SearchReadSemantics;
+import com.ulticode.modules.search.config.SearchReadProperties;
 import com.ulticode.modules.search.source.SearchSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +32,11 @@ import java.util.Map;
  *
  * <p>Replaces the deprecated {@code SearchServiceImpl} facade. The facade
  * is deleted (not retained as a delegate) because the controller is the
- * only caller, so the indirection was pure shallowness. Every guard the
- * facade used to inline is preserved here: the MeiliSearch-optional setter
- * injection (the {@link Client} bean is created only when
- * {@code meilisearch.enabled=true}), the per-index fan-out with
- * reported hit totals with fixed-order page mapping, the broad-catch fallback
- * to database queries on any MeiliSearch failure, and the per-type metadata
- * enrichment for MeiliSearch hits.
+ * only caller, so the indirection was pure shallowness. The read mode is
+ * explicit: database mode stays deterministic, while indexed mode owns
+ * MeiliSearch totals, fixed-order page mapping, optional fallback, and
+ * per-type metadata enrichment. The {@link Client} bean remains optional
+ * and is created only when {@code meilisearch.enabled=true}.
  *
  * @author ulticode
  */
@@ -46,19 +46,41 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
 
     private final List<SearchSource> sources;
     private final Map<SearchIndexType, SearchSource> sourcesByType;
+    private final SearchReadProperties readProperties;
 
     private Client meiliSearchClient;
 
     /**
      * Spring auto-injects every {@link SearchSource} bean into this list.
      */
-    public DefaultSearchReadProjection(List<SearchSource> sources) {
+    @Autowired
+    public DefaultSearchReadProjection(List<SearchSource> sources, SearchReadProperties readProperties) {
         this.sources = List.copyOf(sources);
+        this.readProperties = readProperties;
         Map<SearchIndexType, SearchSource> map = new EnumMap<>(SearchIndexType.class);
         for (SearchSource source : sources) {
             map.put(source.getIndexType(), source);
         }
         this.sourcesByType = Collections.unmodifiableMap(map);
+    }
+
+    public DefaultSearchReadProjection(List<SearchSource> sources) {
+        this(sources, new SearchReadProperties());
+    }
+
+    /** Test seam for selecting a read mode without booting a Spring context. */
+    void setReadMode(SearchReadProperties.Mode mode) {
+        readProperties.setMode(mode);
+    }
+
+    /** Test seam for making fallback policy explicit in focused tests. */
+    void setFallbackToDatabase(boolean fallbackToDatabase) {
+        readProperties.setFallbackToDatabase(fallbackToDatabase);
+    }
+
+    /** Test seam for the optional DevStack-published worker readiness flag. */
+    void setWorkerEnabled(Boolean workerEnabled) {
+        readProperties.setWorkerEnabled(workerEnabled);
     }
 
     @Autowired(required = false)
@@ -74,18 +96,34 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
 
         log.debug("Searching for: {} with limit: {} and offset: {}", query, limit, offset);
 
-        // Try MeiliSearch first
-        if (isMeiliSearchAvailable()) {
-            try {
-                return searchWithMeiliSearch(queryDTO);
-            // broad catch: fallback to database search on MeiliSearch failure
-            } catch (Exception e) {
-                log.warn("MeiliSearch search failed, falling back to database: {}", e.getMessage());
-            }
+        if (readProperties.getMode() == SearchReadProperties.Mode.DATABASE) {
+            return searchWithDatabase(queryDTO, false);
         }
 
-        // Fallback to database search
-        return searchWithDatabase(queryDTO);
+        if (readProperties.getMode() != SearchReadProperties.Mode.INDEXED) {
+            throw new IllegalStateException("Unsupported search read mode: " + readProperties.getMode());
+        }
+        if (!Boolean.TRUE.equals(readProperties.getWorkerEnabled())) {
+            return indexedUnavailable(queryDTO,
+                    new IllegalStateException("Search worker is not explicitly enabled"));
+        }
+        if (!isMeiliSearchAvailable()) {
+            return indexedUnavailable(queryDTO, null);
+        }
+        try {
+            return searchWithMeiliSearch(queryDTO);
+        } catch (Exception e) {
+            return indexedUnavailable(queryDTO, e);
+        }
+    }
+
+    private SearchResponseVO indexedUnavailable(SearchQueryDTO queryDTO, Exception cause) {
+        if (readProperties.isFallbackToDatabase()) {
+            log.warn("Indexed search unavailable, falling back to database: {}",
+                    cause == null ? "MeiliSearch client is not configured" : cause.getMessage());
+            return searchWithDatabase(queryDTO, true);
+        }
+        throw new IllegalStateException("Indexed search is enabled but MeiliSearch is unavailable", cause);
     }
 
     @Override
@@ -146,6 +184,10 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
                 .page(queryDTO.getPage())
                 .limit(limit)
                 .results(results)
+                .semantics(new SearchReadSemantics(
+                        "INDEXED", "MEILISEARCH", "EVENTUAL",
+                        "MEILI_RELEVANCE_THEN_INDEX_ORDER",
+                        "EXACT_UNDER_MAX_TOTAL_HITS", false))
                 .build();
     }
 
@@ -298,7 +340,7 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
      * its own mapper, columns, and per-row metadata; the aggregator only
      * routes the call and aggregates / truncates the response.
      */
-    private SearchResponseVO searchWithDatabase(SearchQueryDTO queryDTO) {
+    private SearchResponseVO searchWithDatabase(SearchQueryDTO queryDTO, boolean fallbackApplied) {
         String query = queryDTO.getQuery().trim();
         SearchIndexType indexType = queryDTO.getIndex();
         int limit = queryDTO.getLimit();
@@ -350,6 +392,9 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
                 .page(queryDTO.getPage())
                 .limit(limit)
                 .results(results)
+                .semantics(new SearchReadSemantics(
+                        fallbackApplied ? "INDEXED" : "DATABASE",
+                        "DATABASE", "REALTIME", "SOURCE_ID_ASC", "EXACT", fallbackApplied))
                 .build();
     }
 

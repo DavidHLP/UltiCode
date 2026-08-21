@@ -34,6 +34,13 @@ backup:
     mysqldump-path: ${BACKUP_PROCESS_MYSQLDUMP_PATH:mysqldump}
     mysql-path: ${BACKUP_PROCESS_MYSQL_PATH:mysql}
 
+app:
+  features:
+    # dev-lite routes Contest through the App owner; Submission remains local
+    # until the explicit remote cutover gate is complete.
+    contest-dubbo-cutover: ${APP_FEATURES_CONTEST_DUBBO_CUTOVER:false}
+    submission-dubbo-cutover: ${APP_FEATURES_SUBMISSION_DUBBO_CUTOVER:false}
+
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.ulticode.modules.admin.entity

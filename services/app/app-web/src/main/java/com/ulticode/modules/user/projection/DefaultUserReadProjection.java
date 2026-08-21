@@ -74,10 +74,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
         if (ids == null || ids.isEmpty()) {
             return Map.of();
         }
-        return ids.stream()
-                .map(userReadMapper::selectById)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toMap(UserSummaryView::id, u -> u));
+        Map<String, UserSummaryView> users = userReadMapper.selectByIds(ids);
+        return users == null ? Map.of() : users;
     }
 
     @Override

@@ -22,8 +22,24 @@ public interface AdminDashboardReadPort {
             String metric, LocalDateTime start, LocalDateTime end, String period);
 
     record DashboardData(
+            DashboardUserData users,
             DashboardAppStatsDTO app,
             SubmissionDashboardStatsDTO submission) {
+
+        public DashboardData(DashboardAppStatsDTO app, SubmissionDashboardStatsDTO submission) {
+            this(new DashboardUserData(0, 0, 0, 0, 0, 0, java.util.Map.of()), app, submission);
+        }
+    }
+
+    /** Auth-owned dashboard facts already normalized to the Dashboard slice. */
+    record DashboardUserData(
+            long total,
+            long active,
+            long banned,
+            long activeToday,
+            long activeWeek,
+            long activeMonth,
+            java.util.Map<String, Long> byRole) {
     }
 
     record ChartPoint(String date, long count) {

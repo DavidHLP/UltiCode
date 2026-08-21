@@ -3,6 +3,8 @@ package com.ulticode.modules.admin.port.adapter;
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
 import com.ulticode.app.api.service.DashboardAdminReadPort;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.port.AdminDashboardReadPort;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
@@ -30,6 +32,8 @@ class DefaultAdminDashboardReadAdapterTest {
     private DashboardAdminReadPort appDashboardReadPort;
     @Mock
     private SubmissionAdminReadPort submissionAdminReadPort;
+    @Mock
+    private AccountQueryService accountQueryService;
 
     @Test
     void loadStatsUsesOneBoundedCallPerOwner() {
@@ -40,12 +44,16 @@ class DefaultAdminDashboardReadAdapterTest {
         DefaultAdminDashboardReadAdapter adapter = adapter();
         when(appDashboardReadPort.loadDashboardStats(any())).thenReturn(app);
         when(submissionAdminReadPort.loadDashboardStats(any())).thenReturn(submission);
+        when(accountQueryService.getDashboardStatsSummary()).thenReturn(
+                RpcResult.success(new AccountQueryService.AccountStatsSummary(
+                        9, 8, 1, 2, 3, 4, java.util.Map.of("USER", 8L)), "test"));
 
         AdminDashboardReadPort.DashboardData result =
                 adapter.loadStats(LocalDateTime.of(2026, 8, 20, 10, 0));
 
         assertThat(result.app()).isSameAs(app);
         assertThat(result.submission()).isSameAs(submission);
+        assertThat(result.users().total()).isEqualTo(9);
         verify(appDashboardReadPort, times(1)).loadDashboardStats(any());
         verify(submissionAdminReadPort, times(1)).loadDashboardStats(any());
     }
@@ -98,6 +106,7 @@ class DefaultAdminDashboardReadAdapterTest {
         DefaultAdminDashboardReadAdapter adapter =
                 new DefaultAdminDashboardReadAdapter(submissionAdminReadPort);
         ReflectionTestUtils.setField(adapter, "appDashboardReadPort", appDashboardReadPort);
+        ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         return adapter;
     }
 }

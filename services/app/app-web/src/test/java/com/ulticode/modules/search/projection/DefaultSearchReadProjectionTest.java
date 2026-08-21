@@ -14,6 +14,8 @@ import com.ulticode.app.api.dto.UserIndexDTO;import com.ulticode.app.api.service
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
+import com.ulticode.modules.search.dto.SearchReadSemantics;
+import com.ulticode.modules.search.config.SearchReadProperties;
 import com.ulticode.modules.search.source.ForumSearchSource;
 import com.ulticode.modules.search.source.ProblemSearchSource;
 import com.ulticode.app.api.service.UserSearchReadPort;
@@ -38,6 +40,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -123,6 +126,8 @@ class DefaultSearchReadProjectionTest {
             assertEquals(1, response.getPage());
             assertEquals(20, response.getLimit());
             assertEquals(1, response.getResults().size());
+            assertThat(response.getSemantics()).isEqualTo(new SearchReadSemantics(
+                    "DATABASE", "DATABASE", "REALTIME", "SOURCE_ID_ASC", "EXACT", false));
 
             SearchResponseVO.SearchResultItem item = response.getResults().get(0);
             assertEquals("1", item.getId());
@@ -337,11 +342,34 @@ class DefaultSearchReadProjectionTest {
             // Assert
             assertEquals(2, response.getResults().size());
         }
+
+        @Test
+        @DisplayName("database mode ignores a configured MeiliSearch client")
+        void databaseModeDoesNotTouchMeiliSearch() {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            queryDTO.setIndex(SearchIndexType.PROBLEMS);
+            when(problemSearchReadPort.countForIndex("test")).thenReturn(1L);
+            when(problemSearchReadPort.searchForIndex("test", 0, 20)).thenReturn(
+                    List.of(new ProblemIndexDTO("db-1", "Database", "database", "Easy")));
+
+            SearchResponseVO response = searchProjection.search(queryDTO);
+
+            assertThat(response.getResults()).singleElement()
+                    .extracting(SearchResponseVO.SearchResultItem::getId)
+                    .isEqualTo("db-1");
+            verifyNoInteractions(meiliSearchClient);
+        }
     }
 
     @Nested
     @DisplayName("MeiliSearch Integration Tests")
     class MeiliSearchTests {
+
+        @BeforeEach
+        void useIndexedReadMode() {
+            searchProjection.setReadMode(SearchReadProperties.Mode.INDEXED);
+            searchProjection.setWorkerEnabled(true);
+        }
 
         @Test
         @DisplayName("should return true when MeiliSearch client is available")
@@ -370,10 +398,34 @@ class DefaultSearchReadProjectionTest {
         }
 
         @Test
+        @DisplayName("indexed mode fails closed when MeiliSearch is unavailable")
+        void indexedModeFailsClosedWithoutFallback() {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
+            searchProjection.setFallbackToDatabase(false);
+
+            assertThatThrownBy(() -> searchProjection.search(queryDTO))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Indexed search is enabled");
+        }
+
+        @Test
+        @DisplayName("indexed mode fails closed when the DevStack worker is disabled")
+        void indexedModeFailsClosedWhenWorkerIsDisabled() {
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            searchProjection.setWorkerEnabled(false);
+            searchProjection.setFallbackToDatabase(false);
+
+            assertThatThrownBy(() -> searchProjection.search(queryDTO))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Indexed search is enabled");
+        }
+
+        @Test
         @DisplayName("should fall back to the database when MeiliSearch fails")
         void shouldFallBackToDatabaseWhenMeiliSearchFails() throws Exception {
             // Arrange
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            searchProjection.setFallbackToDatabase(true);
             queryDTO.setIndex(SearchIndexType.PROBLEMS);
             when(meiliSearchClient.index(anyString())).thenReturn(index);
             when(index.search(any(SearchRequest.class))).thenThrow(new RuntimeException("MeiliSearch error"));
@@ -388,6 +440,8 @@ class DefaultSearchReadProjectionTest {
             assertNotNull(response);
             assertEquals(1, response.getTotal());
             assertEquals("1", response.getResults().get(0).getId());
+            assertThat(response.getSemantics()).isEqualTo(new SearchReadSemantics(
+                    "INDEXED", "DATABASE", "REALTIME", "SOURCE_ID_ASC", "EXACT", true));
             verify(problemSearchReadPort).searchForIndex(anyString(), anyInt(), anyInt());
         }
 
@@ -427,6 +481,7 @@ class DefaultSearchReadProjectionTest {
         @DisplayName("should fall back when MeiliSearch exact total reaches its configured cap")
         void shouldFallBackWhenExactTotalReachesConfiguredCap() throws Exception {
             ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
+            searchProjection.setFallbackToDatabase(true);
             queryDTO.setIndex(SearchIndexType.PROBLEMS);
             when(meiliSearchClient.index(anyString())).thenReturn(index);
             when(index.search(any(SearchRequest.class))).thenReturn(countResult);

@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,8 +40,6 @@ import java.util.Map;
  * </ol>
  */
 @Slf4j
-@Component
-@org.springframework.context.annotation.Profile("!test")
 @RequiredArgsConstructor
 @ConditionalOnProperty(
         name = "queue.judge.enabled",

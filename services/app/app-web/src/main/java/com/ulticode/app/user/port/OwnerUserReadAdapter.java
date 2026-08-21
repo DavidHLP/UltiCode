@@ -56,6 +56,8 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         }
         Set<String> requested = ids.stream()
                 .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
+                .filter(id -> !id.isBlank())
                 .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         if (requested.isEmpty()) {
             return Map.of();
@@ -148,11 +150,18 @@ public class OwnerUserReadAdapter implements UserReadMapper, UserFactsReadPort {
         }
         Set<String> requested = ids.stream()
                 .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
+                .filter(id -> !id.isBlank())
                 .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         if (requested.isEmpty()) {
             return Map.of();
         }
-        RpcResult<List<AuthAccountDTO>> response = accountQueryService().getAccountsByIds(requested);
+        RpcResult<List<AuthAccountDTO>> response;
+        try {
+            response = accountQueryService().getAccountsByIds(requested);
+        } catch (RuntimeException exception) {
+            throw unavailable();
+        }
         requireSuccess(response);
         if (response.data() == null) {
             throw unavailable();

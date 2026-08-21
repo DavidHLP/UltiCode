@@ -1,6 +1,6 @@
 # Services 架构现状与优化状态
 
-更新时间：2026-08-18
+更新时间：2026-08-21
 
 本文以源码、Maven POM、运行配置、Compose 和实际启动脚本为准；历史迁移指南只作为背景。本文的架构盘点部分是只读 inventory，不代表生产部署或生产数据变更已经执行。
 
@@ -99,9 +99,9 @@ Snapshot 是当前低风险实现；projection 仍需定义事件版本、滞后
 
 App 当前同时维护 Submission、Notification、MeiliSearch 以及 legacy compatibility 实现；Judge 执行 wiring 已收进独立 Judge 配置，App 仅保留默认关闭的显式 legacy RQueue rollback adapter。Submission 路由默认仍是 local，远程路由由生产配置/门禁显式开启；因此这是可切换迁移架构，不是已经删除 legacy path 的最终形态。生产远程稳定窗口、全写入者 quiesce、旧消息/双写对账和可回滚 artifact 缺失时，不删除这些路径。
 
-### 4.4 Admin Seam 碎片化
+### 4.4 Admin Seam 已收敛为粗粒度查询切片
 
-Admin 采用 Dubbo Contract 后仍存在较多细粒度接口，调用方可能形成 chatty RPC 或 N+1，增加调用者的组合负担。`BackendAdminApplication` 的 broad `ComponentScan` 及 exclusion rules 也表明 legacy assembly 尚未完全退出。下一步应按一个可测量的查询垂直切片聚合粗粒度 Query Seam，再以调用次数、查询数和兼容性测试证明收益，最后移除对应 exclusion，而不是一次性重写所有接口。
+Admin 已按可测量的查询垂直切片收敛为粗粒度 Query Seam：Contest 参与、Revenue、Overview 与 Dashboard（含用户图表）分别经 `AdminAnalyticsPort`/`AdminDashboardReadPort` 的 bounded 并行 Owner 组合暴露，Dashboard 用户图表经 `AccountQueryService` 分页扫描并在 `CancellableQueryExecutor` 的 800ms deadline 与 bounded reads 约束下收敛，`BackendAdminApplication` 的 exclusion 随之缩减。剩余细粒度遗留按需再聚合，不再作为阻塞项。
 
 ### 4.5 文档和运维入口漂移
 

@@ -192,7 +192,18 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
             CancellableQueryExecutor.cancel(
                     totalUsers, activeUsers, submissions, accepted, contests, subscriptions);
             throw unavailable();
-        } catch (ExecutionException | TimeoutException exception) {
+        } catch (ExecutionException exception) {
+            CancellableQueryExecutor.cancel(
+                    totalUsers, activeUsers, submissions, accepted, contests, subscriptions);
+            Throwable cause = exception.getCause();
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            if (cause instanceof BusinessException) {
+                throw (BusinessException) cause;
+            }
+            throw unavailable();
+        } catch (TimeoutException exception) {
             CancellableQueryExecutor.cancel(
                     totalUsers, activeUsers, submissions, accepted, contests, subscriptions);
             throw unavailable();

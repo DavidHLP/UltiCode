@@ -17,7 +17,7 @@ final class CancellableQueryExecutor implements AutoCloseable {
 
     CancellableQueryExecutor(String threadName, int maximumPoolSize) {
         this.executor = new ThreadPoolExecutor(
-                0,
+                maximumPoolSize,
                 maximumPoolSize,
                 30,
                 TimeUnit.SECONDS,
@@ -33,8 +33,11 @@ final class CancellableQueryExecutor implements AutoCloseable {
             execution = executor.submit(() -> {
                 try {
                     result.complete(task.call());
-                } catch (Throwable failure) {
-                    result.completeExceptionally(failure);
+                } catch (Error error) {
+                    result.completeExceptionally(error);
+                    throw error;
+                } catch (Exception exception) {
+                    result.completeExceptionally(exception);
                 }
             });
         } catch (RejectedExecutionException rejected) {

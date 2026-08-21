@@ -530,6 +530,14 @@ echo "Starting PM2 services: $PM2_APPS"
       echo 0 > "$ROOT_DIR/logs/.judge-ready-offset"
     fi
   }
+  # Mode convergence: delete PM2 apps omitted by current mode so dev-full -> dev-lite does not leave Search/frontend running.
+  all_pm2_csv="$(devstack_apps_csv "${DEVSTACK_READINESS_APPS[@]}")"
+  IFS=',' read -ra _all <<< "$all_pm2_csv"
+  for _app in "${_all[@]}"; do
+    if [[ ",$PM2_APPS," != *",$_app,"* ]]; then
+      pm2 delete "$_app" 2>/dev/null || pm2 stop "$_app" 2>/dev/null || true
+    fi
+  done
   if [[ ",$PM2_APPS," == *",ulticode-judge,"* && ",$PM2_APPS," == *",ulticode-app,"* ]]; then
     first="${PM2_APPS//ulticode-judge,/}"
     first="${first//,ulticode-judge/}"

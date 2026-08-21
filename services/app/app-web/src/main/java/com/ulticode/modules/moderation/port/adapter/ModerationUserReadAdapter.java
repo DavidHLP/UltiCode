@@ -50,6 +50,8 @@ public class ModerationUserReadAdapter implements ModerationUserReadPort {
         }
         Set<String> requested = userIds.stream()
                 .filter(userId -> userId != null && !userId.isBlank())
+                .map(String::trim)
+                .filter(userId -> !userId.isBlank())
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
         Map<String, UserSummaryView> users = userReadMapper.selectByIds(requested);
         if (users == null) {

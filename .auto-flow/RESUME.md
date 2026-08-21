@@ -51,7 +51,7 @@
 run-development-loop 终态审计；当前只接受 development/TEST-TARGET 证据。
 
 ## Active task
-`ARCH-20260821-001`（ready）：将 dev-lite 收敛为唯一第一类开发 interface。
+无 — `ARCH-20260821-001..006` 已在 `2026-08-21 architecture review terminal` 完成并通过 Completion Audit，当前无活跃任务；`TASKS.yaml` 与 `HANDOFF.yaml` 为终态。
 
 历史 `AR20260820-001..006` 与 `CRFIX-REVIEW-006` 保持 done，不代表本次新
 目标已完成；本次用户明确重新开启 Judge、user facts 与 Search read-mode

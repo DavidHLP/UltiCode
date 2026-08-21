@@ -1,8 +1,33 @@
 # Auto-pilot Evidence
 
-Objective: reviewer CR remediation for the architecture review report.
+Objective: ARCH-20260821 five-candidate architecture convergence (current terminal). Historical objective archived below.
 
-## Final evidence
+## 2026-08-21 architecture review terminal packet (current)
+
+- `ARCH-20260821-001..006`: all `done`; all five report candidates are
+  mapped to implementation, rollback, review and validation evidence.
+- Final Standards and Spec review: Confirmed Findings=0. The two standards
+  rework findings were closed by `CancellableQueryExecutor` bounded queue /
+  Future cancellation / `@PreDestroy` tests and by passing Search worker
+  readiness explicitly through production Compose. The two DevStack spec
+  findings were closed by manifest-owned timing and per-app banner checks.
+- Final `services/./mvnw verify -B`: exit 0, 834 reports / 2805 tests /
+  0 failures / 0 errors / 29 skips. Final disposable Redis 7 + Meili v1.8
+  Search E2E: 3/0/0/0. Admin concurrency focus: 9/0/0/0. Search semantic
+  focus: 25/0/0/0. App context: 6/0/0/0. Judge wiring: 2/0/0/0.
+- Final gates: manifest contract, shell syntax, Compose dev/prod config with
+  disposable in-memory `MEILI_MASTER_KEY`, console type-check, wiki manifest,
+  fresh graphify update, fresh UltiCode-current graph coverage and
+  `git diff --check` all pass.
+- A subsequent forced MCP reindex after a non-behavioral Search properties
+  javadoc/ledger update timed out at the 300s tool limit; the latest
+  successful MCP generation is recorded above, and the final graphify update
+  plus direct source/coverage checks passed. This timeout is not reported as
+  a pass.
+- Authority: development/TEST-TARGET only. No production acceptance,
+  commit, push, publish, deploy, cutover, grant, or applied migration edit.
+
+## 2026-08-20 Final evidence (historical — reviewer CR remediation, superseded)
 
 - Auth contract shape: 16 tests, 0 failures, 0 errors, 0 skipped.
 - Auth mapper role-count integration: 2 tests, 0 failures, 0 errors, 0 skipped, real MySQL 8.0.
@@ -65,28 +90,3 @@ Development/TEST-TARGET only. No commit, push, publish, deploy, production actio
 - Moved `backend-search` before `app` in the Maven reactor so the test-only Search E2E dependency compiles in a fresh reactor.
 - Fresh `services/./mvnw verify -B`: `MAVEN_EXIT=0`, BUILD SUCCESS; Surefire XML 829 reports / 2792 tests / 0 failures / 0 errors / 29 skips.
 - Broad `*IT,*IntegrationTest` selector was attempted after fixes but the host tool timed out at 300 seconds before an exit code; this is recorded as unavailable, not pass evidence. Target-specific owner/MySQL/Redis/Meili gates passed.
-
-## 2026-08-21 architecture review terminal packet
-
-- `ARCH-20260821-001..006`: all `done`; all five report candidates are
-  mapped to implementation, rollback, review and validation evidence.
-- Final Standards and Spec review: Confirmed Findings=0. The two standards
-  rework findings were closed by `CancellableQueryExecutor` bounded queue /
-  Future cancellation / `@PreDestroy` tests and by passing Search worker
-  readiness explicitly through production Compose. The two DevStack spec
-  findings were closed by manifest-owned timing and per-app banner checks.
-- Final `services/./mvnw verify -B`: exit 0, 834 reports / 2805 tests /
-  0 failures / 0 errors / 29 skips. Final disposable Redis 7 + Meili v1.8
-  Search E2E: 3/0/0/0. Admin concurrency focus: 9/0/0/0. Search semantic
-  focus: 25/0/0/0. App context: 6/0/0/0. Judge wiring: 2/0/0/0.
-- Final gates: manifest contract, shell syntax, Compose dev/prod config with
-  disposable in-memory `MEILI_MASTER_KEY`, console type-check, wiki manifest,
-  fresh graphify update, fresh UltiCode-current graph coverage and
-  `git diff --check` all pass.
-- A subsequent forced MCP reindex after a non-behavioral Search properties
-  javadoc/ledger update timed out at the 300s tool limit; the latest
-  successful MCP generation is recorded above, and the final graphify update
-  plus direct source/coverage checks passed. This timeout is not reported as
-  a pass.
-- Authority: development/TEST-TARGET only. No production acceptance,
-  commit, push, publish, deploy, cutover, grant, or applied migration edit.

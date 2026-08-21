@@ -1,6 +1,6 @@
 outcome: complete
 outputs:
-  - 'Context Packet: current HEAD 32e6b78c, prior AR20260820/CRFIX history reconciled, protected user changes identified'
+  - 'Context Packet: current HEAD d09b3651b77fed598eb2a7695b5282056d6e0b65 (reviewed commit), prior 32e6b78c reconciled, protected user changes identified'
   - 'Execution Packet: ordered implementation path, invariants, risk and rollback recorded in DECISIONS.md'
   - 'ARCH-20260821-001..005 implementation, Review and focused checks passed'
   - 'ARCH-20260821-006 Completion Audit passed; five-item architecture objective is terminal'

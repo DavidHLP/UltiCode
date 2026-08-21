@@ -96,7 +96,17 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
             Thread.currentThread().interrupt();
             CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
             throw unavailable();
-        } catch (ExecutionException | TimeoutException exception) {
+        } catch (ExecutionException exception) {
+            CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
+            Throwable cause = exception.getCause();
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            if (cause instanceof BusinessException) {
+                throw (BusinessException) cause;
+            }
+            throw unavailable();
+        } catch (TimeoutException exception) {
             CancellableQueryExecutor.cancel(appFuture, submissionFuture, userFuture);
             throw unavailable();
         }
@@ -191,6 +201,9 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
                 long expectedPages = page.total() == 0L
                         ? 0L : (page.total() - 1L) / page.pageSize() + 1L;
                 if (page.totalPages() != expectedPages) {
+                    throw unavailable();
+                }
+                if (page.total() != 0L && pageNumber > page.totalPages()) {
                     throw unavailable();
                 }
                 if (total < 0L) {

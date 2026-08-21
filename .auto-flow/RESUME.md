@@ -134,6 +134,22 @@ Development/TEST-TARGET only；没有 commit、push、publish、deploy 或生产
 官方 wrapper 首次运行暴露了 HiddenCaseLeakIT 的 strict-stubbing 回归，已修复并重跑通过；
 宿主对长 integration wrapper 的 Maven exit code 等待超时，但 fresh Surefire XML 独立汇总 exit 0。
 
+## 2026-08-21 current report reopened architecture implementation
+
+Current objective: implement and verify all five candidates in
+`/tmp/architecture-review-20260821-163916.html`. The prior
+`ARCH-20260821-001..006` terminal ledger is preserved as historical evidence and
+does not satisfy this report's distinct duplicate-contract, owner-fail-closed,
+named-mode and Projection requirements.
+
+Active task: `ARCHREV-20260821-006` (in_progress); `ARCHREV-20260821-001..005` passed their focused implementation gates.
+
+Execution order: Owner datasource boundary → DevStack policy/defaults → Judge
+transport contract → named migration modes/dead flags → User Facts Projection →
+Review/Tier-C validation/Completion Audit. Authority remains development/
+TEST-TARGET only; do not commit, push, publish, deploy, cut over production,
+revoke grants or edit applied migrations.
+
 ## 2026-08-21 reopened architecture implementation
 
 Recovered the prior completed ledger without overwriting it. The current
@@ -157,3 +173,52 @@ with 834 reports / 2805 tests / 0 failures / 0 errors / 29 skips. Disposable
 Redis 7 + Meili v1.8 E2E passed 3/0/0/0; Compose, manifest, YAML, graph and
 diff checks passed. Evidence is development/TEST-TARGET only; no commit,
 push, publish, deploy, cutover, grant or production action occurred.
+
+## 2026-08-21 current architecture review terminal
+
+`ARCHREV-20260821-001..006` is complete for the current
+`/tmp/architecture-review-20260821-163916.html` report. Owner datasource
+placeholders are Spring-native fail-closed; dev modes are manifest-backed;
+Judge transport and shared flag validator sources are singular; User Facts
+Projection covers full user/profile, Search and Moderation callers with
+normalized owner failure semantics.
+
+Final Review: Standards APPROVE, Spec APPROVE, Confirmed Findings=0.
+Validation: `services/./mvnw verify -B` exit 0, 843 reports / 2827 tests / 0
+failures / 0 errors / 29 skips; Judge Redis 4/4; Search E2E 4/4; Owner safety
+and preflight PASS; Compose/manifest/YAML/diff PASS; graphify update PASS.
+Authority remains development/TEST-TARGET only. No commit, push, publish,
+deploy, production cutover, grant revoke or applied migration edit.
+
+## 2026-08-21-221346 architecture transformation
+
+Current objective: implement all five strategic objectives from
+/tmp/architecture-review-20260821-221346.html. The older ARCHREV terminal
+objective is preserved above and is not completion evidence for this objective.
+
+Active task: none; ARCHX-20260821-001..006 are complete.
+
+Execution order:
+ARCHX-001 DevStack mode contract ->
+ARCHX-002 Judge Streams normal path ->
+ARCHX-003 Submission batch read and ARCHX-004 UserFacts narrow seams
+(independent after recovery) ->
+ARCHX-005 executable architecture docs ->
+ARCHX-006 Review/Tier-C validation/Completion Audit.
+
+Authority remains development/TEST-TARGET only. No commit, push, publish,
+deploy, production cutover, grant revoke or applied migration edit.
+
+## 2026-08-21-221346 architecture transformation terminal
+
+All five strategic objectives reached terminal state. DevStack-only startup
+aliases now delegate to `scripts/dev/up.sh`; normal dev-lite/dev-full Judge
+uses Streams and `legacy-rollback` is explicit; Submission Contest reads use a
+bounded batch contract; `UserFactsProjection` is facts-only with a separate
+directory seam; CONTEXT/docs and executable architecture checks share current
+Owner/Worker terminology.
+
+Final evidence: App affected reactor 1425/0/0/13; services `./mvnw verify -B`
+801 reports / 2705 tests / 0 failures / 0 errors / 20 skips; Submission
+ReadProviderIT 4/0/0; architecture contract, Compose, YAML, graph and diff
+checks PASS. Development/TEST-TARGET only; no production acceptance claim.

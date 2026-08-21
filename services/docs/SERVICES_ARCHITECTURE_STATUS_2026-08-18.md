@@ -8,13 +8,13 @@
 
 UltiCode 已经完成从单体 JVM 到多进程 Owner/Worker 拓扑的骨架迁移：Maven reactor、Contract Seam、独立服务启动入口、生产 Compose 的七个后端 runtime，以及 Outbox/Inbox/Redis Streams 等异步可靠性基础均已存在。
 
-当前仍是 Strangler migration 收敛阶段，不能称为最终微服务形态。主要未收敛项是：
+当前仍是 Strangler migration 收敛阶段，不能称为最终微服务形态。当前需要维护的是：
 
-- Owner 的物理数据库和权限隔离还不完整；
-- 部分读模型仍通过同步 facts enrichment 回访；
-- App 仍保留 local/remote、legacy、shadow 和内置 Judge/Search 兼容路径；
-- Admin 的查询 Seam 仍过细；
-- 迁移指南、根 POM、PM2/启动入口曾落后于代码，正在同步。
+- 开发环境使用显式 Owner schema/account 配置；生产物理切换和外部 authority 不属于本项目；
+- Submission read 通过 bounded batch facts seam 组合，事件化 read projection 仍是未来可选能力；
+- App 保留 local/remote Submission 与显式 legacy rollback seam，但正常 dev-lite/dev-full 使用 Judge Streams；
+- Admin 查询已收敛为粗粒度 query slices，不再作为拆分更多进程的理由；
+- DevStack manifest、源码/POM/config/Compose/PM2 和文档由 executable contract checks 持续对账。
 
 ## 2. 模块与运行拓扑
 
@@ -50,7 +50,7 @@ App request -> Submission write -> App ProblemFacts / Auth UserExistence -> Subm
 
 当前 `backend-submission-api` 增加了不可变 `SubmissionFactsSnapshot`。App 本地和远程 request boundary 组装快照，Submission Owner 只校验快照与 command 的 user/problem 是否匹配，不再在写入事务中注入或调用 `ProblemFactsPort`、`UserExistencePort` 的 Dubbo adapter。缺失、错配或非法快照 fail closed。
 
-这只关闭 Submission 写入链。Submission 读侧的标题/用户 enrichment 仍有 App/Auth facts seam，完整消除需要后续事件化 projection，不能由本次快照改造冒充完成。
+这只关闭 Submission 写入链。Submission 读侧现在通过 bounded batch facts seam 完成标题/用户 enrichment；没有引入事件化 read database，也不把一次请求拆成逐条跨 Owner 调用。
 
 ## 3. 已建立的优势
 
@@ -79,25 +79,20 @@ Submission 已将复杂逻辑收进 Owner 内部：输入验证、事务、本�
 
 ### 4.1 同步回访与单跳原则
 
-长期约束应是“一次请求最多一次业务 Provider hop”。历史 Submission 写入违反了该原则：为校验 Problem Facts 和用户存在，形成 App → Submission → App/Auth。Facts Snapshot 已消除 Owner 写事务内的回访；长远方案仍有两个选择：
-
-1. App 在请求边界提供经过授权和版本化的不可变 facts snapshot；或
-2. Submission 通过事件维护自己的 Problem/User projection，写入只读本地 projection。
-
-Snapshot 是当前低风险实现；projection 仍需定义事件版本、滞后/拒绝策略和回填。
+长期约束应是“一次请求最多一次业务 Provider hop”。Submission 写入使用不可变 Facts Snapshot；Submission read 使用一次 bounded batch seam 取得本页所需的 User/Problem facts。事件化本地 projection 暂不作为开发环境的必需基础设施。
 
 ### 4.2 数据库物理隔离
 
-- Submission 已有独立数据库配置和 `submission_rw` Owner 账号；
-- Auth、Admin、App、Notification 仍主要使用共同数据库名/账号配置，不能称为完整物理隔离；
-- 当前完成度主要是代码级 Owner division，而不是完整数据库 permission isolation；
-- `users` 仍混合账户/凭证、权限、封禁和 profile 字段。
+- 开发环境的 Auth/Admin/App/Notification/Submission runtime 已使用显式 Owner database/account 配置；
+- 当前边界仍是一个 MySQL instance 内的 schema/account isolation，不宣称独立物理集群；
+- users account/profile ownership 由 Auth account 与 App profile read/write seams 表达；
+- production physical cutover、external authority 和 grant retirement 不在当前开发目标内。
 
 后续必须按 expand → backfill → verify → cutover → observe → contract 推进：先建 profile/授权等新表和专用账号，再回填和校验，最后在有权限与回滚证据的窗口撤销旧访问。不要编辑已应用 migration，也不要在没有生产 authority 的情况下执行 revoke 或删除旧列。
 
 ### 4.3 App 双轨兼容
 
-App 当前同时维护 Submission、Notification、MeiliSearch 以及 legacy compatibility 实现；Judge 执行 wiring 已收进独立 Judge 配置，App 仅保留默认关闭的显式 legacy RQueue rollback adapter。Submission 路由默认仍是 local，远程路由由生产配置/门禁显式开启；因此这是可切换迁移架构，不是已经删除 legacy path 的最终形态。生产远程稳定窗口、全写入者 quiesce、旧消息/双写对账和可回滚 artifact 缺失时，不删除这些路径。
+App 当前保留 Submission local/remote compatibility、Search fallback 和显式 legacy rollback seams；Judge normal dev-lite/dev-full 使用 Streams，RQueue 只有 legacy-rollback mode 才能装配。不要在没有 external authority、quiesce、观察窗和 rollback artifact 的情况下删除这些 seams。
 
 ### 4.4 Admin Seam 已收敛为粗粒度查询切片
 
@@ -105,7 +100,7 @@ Admin 已按可测量的查询垂直切片收敛为粗粒度 Query Seam：Contes
 
 ### 4.5 文档和运维入口漂移
 
-历史迁移文本仍出现旧 Owner 数量、旧 `backend-api` 结构和“zero Dubbo implementation”叙述；旧 PM2/启动说明也只覆盖部分运行时。当前权威顺序是：
+历史迁移章节可以保留为历史，但当前状态、启动和领域词汇必须与源码对账。当前权威顺序是：
 
 1. Java source and tests；
 2. Maven POM/reactor；
@@ -114,17 +109,16 @@ Admin 已按可测量的查询垂直切片收敛为粗粒度 Query Seam：Contes
 5. actual startup scripts/PM2 entries；
 6. documentation。
 
-文档只能追随前五项，不能反向定义实际拓扑。
+文档只能追随前五项，不能反向定义实际拓扑；scripts/dev/architecture-contract-test.sh 负责阻止已知漂移回归。
 
 ## 5. 后续优先级
 
 优先级高于继续拆分模块：
 
-1. 消除剩余同步回访，先完成 Submission read projection 的决策和事件契约；
-2. 完成 Auth/Admin/App/Notification 的数据库、账号和权限隔离；
-3. 在真实稳定性和回滚门禁满足后删除 App 双轨兼容代码；
-4. 聚合 Admin 查询接口并消除 fan-out/N+1；
-5. 维护 migration guide、Owner matrix、POM、PM2 和 Compose 的一致性。
+1. 继续用 bounded read contracts 收敛跨 Owner 读取，必要时再评估事件化 projection；
+2. 保持 Owner schema/account isolation 的 development evidence，不伪造 production acceptance；
+3. 只在真实稳定性和回滚门禁满足后删除 legacy compatibility；
+4. 维护 DevStack、Owner matrix、POM、PM2、Compose、CONTEXT 和 migration guide 的 executable consistency。
 
 ## 6. 评审边界
 

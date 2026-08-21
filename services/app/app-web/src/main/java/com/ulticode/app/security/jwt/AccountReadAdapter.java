@@ -2,7 +2,7 @@ package com.ulticode.app.security.jwt;
 
 import com.ulticode.common.auth.AccountInfo;
 import com.ulticode.common.security.AccountReadPort;
-import com.ulticode.app.user.port.UserFactsProjection;
+import com.ulticode.app.user.port.UserDirectoryProjection;
 import com.ulticode.app.user.port.UserSummaryView;
 
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import java.util.Optional;
 /**
  * App-local adapter implementing {@link AccountReadPort} for WebSocket
  * authentication. Reads user account state (active/banned) via the
- * App-owned {@link UserFactsProjection} Q-read to support connection-time
+ * App-owned {@link UserDirectoryProjection} Q-read to support connection-time
  * ban checks.
  *
  * <p>Closes the bean gap created by P7-RELOCATE-WEBSOCKET-001 alongside
@@ -25,7 +25,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AccountReadAdapter implements AccountReadPort {
 
-    private final UserFactsProjection userReadMapper;
+    private final UserDirectoryProjection userReadMapper;
 
     @Override
     public Optional<AccountInfo> findById(String userId) {

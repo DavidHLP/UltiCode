@@ -19,6 +19,8 @@ case "$MODE" in
     ;;
 esac
 
+"$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
+
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
 fi

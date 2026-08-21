@@ -47,6 +47,12 @@ public interface SubmissionProjection {
      */
     SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats);
 
+    /** Detail projection after a bounded problem-facts batch. */
+    SubmissionDetailVO toDetailVO(
+            Submission submission,
+            PerformanceStats stats,
+            Map<Long, com.ulticode.app.api.service.ProblemFactsPort.ProblemDisplayFacts> batchFacts);
+
     /** Aggregate the {@code YYYY-MM-DD} dates for {@code userId} in the year. */
     List<String> aggregateDates(String userId, Integer year);
 

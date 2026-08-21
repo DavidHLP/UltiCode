@@ -248,6 +248,38 @@ class DefaultSubmissionProjectionTest {
             verify(userReadPort, never()).findById(any());
         }
 
+        @Test
+        @DisplayName("Entity batch projection reads users and problems once")
+        void entityBatchProjectionBatchesOwnerFacts() {
+            Submission first = buildSubmission();
+            first.setId("sub-1");
+            first.setProblemId(100L);
+            first.setUserId("u-1");
+            Submission second = buildSubmission();
+            second.setId("sub-2");
+            second.setProblemId(200L);
+            second.setUserId("u-2");
+            when(userReadPort.findAllById(any())).thenReturn(Map.of(
+                    "u-1", new com.ulticode.app.api.service.SubmissionUserReadPort.UserSummary(
+                            "u-1", "alice", "Alice", "a.png"),
+                    "u-2", new com.ulticode.app.api.service.SubmissionUserReadPort.UserSummary(
+                            "u-2", "bob", "Bob", "b.png")));
+            when(problemFacts.findDisplayFactsBatch(any())).thenReturn(Map.of(
+                    100L, new ProblemFactsPort.ProblemDisplayFacts(100L, "One", "one"),
+                    200L, new ProblemFactsPort.ProblemDisplayFacts(200L, "Two", "two")));
+
+            List<SubmissionVO> result = projection.toVOs(List.of(first, second));
+
+            assertThat(result).extracting(vo -> vo.getUser().getUsername())
+                    .containsExactly("alice", "bob");
+            assertThat(result).extracting(vo -> vo.getProblem().getTitle())
+                    .containsExactly("One", "Two");
+            verify(userReadPort, times(1)).findAllById(any());
+            verify(problemFacts, times(1)).findDisplayFactsBatch(any());
+            verify(userReadPort, never()).findById(any());
+            verify(problemFacts, never()).findDisplayFacts(any());
+        }
+
         private SubmissionMapper.SubmissionWithProblem joinedRow(String id, String userId) {
             return new SubmissionMapper.SubmissionWithProblem(
                     id, 200L, userId, "java", "code", "Accepted",

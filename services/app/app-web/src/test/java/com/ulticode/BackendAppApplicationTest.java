@@ -154,6 +154,9 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.user.port.UserFactsProjection userFactsProjection;
 
+    @MockBean
+    private com.ulticode.app.user.port.UserDirectoryProjection userDirectoryProjection;
+
 
     @MockBean
     private com.ulticode.modules.forum.port.ForumUserReadPort forumUserReadPort;

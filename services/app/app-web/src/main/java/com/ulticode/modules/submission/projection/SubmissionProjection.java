@@ -74,6 +74,12 @@ public interface SubmissionProjection {
      */
     SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats);
 
+    /** Detail projection after a bounded problem-facts batch. */
+    SubmissionDetailVO toDetailVO(
+            Submission submission,
+            PerformanceStats stats,
+            java.util.Map<Long, com.ulticode.app.api.service.ProblemFactsPort.ProblemDisplayFacts> batchFacts);
+
     /**
      * Convert a {@code Submission} entity to a {@code SubmissionVO}, applying
      * the same security projection as {@link #toDetailVO(Submission, PerformanceStats)}.
@@ -99,6 +105,9 @@ public interface SubmissionProjection {
      * once for the whole page.
      */
     List<SubmissionVO> toVO(List<SubmissionMapper.SubmissionWithProblem> submissions);
+
+    /** Project entity rows after one user/problem facts batch. */
+    List<SubmissionVO> toVOs(List<Submission> submissions);
 
     /**
      * Aggregate the {@code YYYY-MM-DD} dates on which {@code userId} made

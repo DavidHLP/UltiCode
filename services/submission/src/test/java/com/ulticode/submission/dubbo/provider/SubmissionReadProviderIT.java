@@ -26,6 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -134,10 +135,12 @@ class SubmissionReadProviderIT {
         ProblemFactsPort problemFacts = mock(ProblemFactsPort.class);
         when(problemFacts.findDisplayFacts(101L)).thenReturn(
                 new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum"));
+        when(problemFacts.findDisplayFactsBatch(any())).thenReturn(Map.of(
+                101L, new ProblemFactsPort.ProblemDisplayFacts(101L, "Two Sum", "two-sum")));
 
-        SubmissionProjection projection = new DefaultSubmissionProjection(submissionMapper, null, null, new com.fasterxml.jackson.databind.ObjectMapper());
-        return new SubmissionReadProvider(
-                submissionMapper, projection, userRead, problemFacts);
+        SubmissionProjection projection = new DefaultSubmissionProjection(
+                submissionMapper, userRead, problemFacts, new com.fasterxml.jackson.databind.ObjectMapper());
+        return new SubmissionReadProvider(submissionMapper, projection, problemFacts);
     }
 
     private void insertRow(String id, Long problemId, String userId, String status) {
@@ -177,5 +180,30 @@ class SubmissionReadProviderIT {
     @DisplayName("toVO returns null for a missing submission")
     void toVOMissingReturnsNull() {
         assertThat(newProvider().toVO("missing")).isNull();
+    }
+
+    @Test
+    @DisplayName("toVOs reads a bounded batch in caller order")
+    void toVOsReadsBatchInInputOrder() {
+        insertRow("sub-1", 101L, "user-1", "Accepted");
+        insertRow("sub-2", 101L, "user-1", "Wrong Answer");
+        session.commit();
+
+        List<SubmissionVO> result = newProvider().toVOs(List.of("sub-2", "sub-1"));
+
+        assertThat(result).extracting(SubmissionVO::getId)
+                .containsExactly("sub-2", "sub-1");
+        assertThat(result).extracting(SubmissionVO::getProblem)
+                .allMatch(problem -> problem != null && problem.getTitle().equals("Two Sum"));
+    }
+
+    @Test
+    @DisplayName("toVOs keeps oversized input bounded internally")
+    void toVOsKeepsOversizedInputBounded() {
+        List<String> ids = java.util.stream.IntStream.range(0, 101)
+                .mapToObj(i -> "submission-" + i)
+                .toList();
+
+        assertThat(newProvider().toVOs(ids)).isEmpty();
     }
 }

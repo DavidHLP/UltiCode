@@ -277,11 +277,12 @@ public class DefaultContestProjection implements ContestProjection {
         if (contestProblem == null) {
             throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);
         }
-        return contestSubmissionMapper
+        List<String> submissionIds = contestSubmissionMapper
                 .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
                 .stream()
-                .map(s -> submissionProjection.toVO(s.getId()))
+                .map(s -> s.getId())
                 .toList();
+        return submissionProjection.toVOs(submissionIds);
     }
 
     @Override

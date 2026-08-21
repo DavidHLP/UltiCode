@@ -7,6 +7,7 @@ import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
+import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
@@ -14,17 +15,24 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.submission.api.dto.SubmissionVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -95,6 +103,30 @@ class DefaultContestProjectionVisibilityTest {
         assertThat(result.getIsParticipating()).isTrue();
         assertThat(result.getUserRanking()).isEqualTo(7);
         assertThat(result.getUserScore()).isEqualTo(120L);
+    }
+
+    @Test
+    void contestSubmissionReadUsesOneBatchProjection() {
+        when(contestMapper.selectById("running")).thenReturn(contest("running", true));
+        ContestProblem contestProblem = new ContestProblem();
+        contestProblem.setId("cp-1");
+        contestProblem.setContestId("running");
+        contestProblem.setProblemId(7L);
+        when(contestProblemMapper.findByContestIdAndProblemId("running", 7L))
+                .thenReturn(contestProblem);
+
+        Submission first = new Submission();
+        first.setId("submission-1");
+        Submission second = new Submission();
+        second.setId("submission-2");
+        when(contestSubmissionMapper.findSubmissionsByContestProblemAndUser(
+                "running", "cp-1", "user-1")).thenReturn(List.of(first, second));
+        when(submissionProjection.toVOs(any())).thenReturn(List.of(new SubmissionVO(), new SubmissionVO()));
+
+        assertThat(projection.getContestProblemSubmissions("running", 7L, "user-1"))
+                .hasSize(2);
+        verify(submissionProjection, times(1)).toVOs(any());
+        verify(submissionProjection, never()).toVO(any(String.class));
     }
 
     private static ContestParticipant participant(String id, int rank, int score, boolean virtual) {

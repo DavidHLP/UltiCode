@@ -162,3 +162,100 @@
   paths preserved, no migration edited, no unrelated changes discarded, and
   authority remains development/TEST-TARGET only. No commit/push/publish/
   deploy/cutover/grant action.
+- 2026-08-21: Recovered existing terminal `ARCH-20260821-001..006` as historical evidence only; it belongs to `/tmp/architecture-review-20260821112953.html`, not the current `/tmp/architecture-review-20260821-163916.html` report.
+- 2026-08-21: Opened new `ARCHREV-20260821-001..006` DAG for the current five candidates. Scope is development/TEST-TARGET only; no applied migration, production route/grant, commit, push, publish or deploy is authorized.
+- 2026-08-21: Implemented Owner fail-closed datasource placeholders, manifest-backed named dev modes, shared submission-api Judge transport contracts, shared judge-config flags/validator, and the full UserFactsProjection caller migration.
+- 2026-08-21: Review repair loop closed the Spring placeholder syntax finding, Projection owner-call failure paths, Search concrete-cast test seam, Moderation bypass, CI dead flag, and CancellableQueryExecutor validation race.
+- 2026-08-21: Final evidence passed: services verify 843/2827/0/0/29, Judge Redis 4/4, Search E2E 4/4, owner safety/preflight PASS, Compose/manifest/YAML/diff PASS, Review Standards/Spec APPROVE.
+
+## 2026-08-21-221346 architecture transformation recovery and planning
+
+- Reconciled the new user objective against the existing terminal ARCHREV
+  ledger; preserved the older objective as historical and created
+  ARCHX-20260821-001..006 for the new report.
+- Confirmed current gaps from source: DevStack defaults and Judge flags still
+  select legacy RQueue in normal dev-lite, SubmissionReadPort is single-row
+  while Contest maps one read per submission, UserFactsProjection mixes
+  summary and facts shapes, and durable docs/CONTEXT contain stale ownership
+  and topology claims.
+- Planning decision: use an additive Submission batch contract, narrow
+  internal User Facts interfaces without duplicating the composition
+  implementation, make Streams canonical in normal development, isolate
+  legacy behind an explicit mode, and add source-backed architecture checks.
+- Authority: development/TEST-TARGET only; no production action or applied
+  migration edit.
+
+## 2026-08-21-221346 ARCHX-003 implementation and review
+
+- Added an additive SubmissionReadPort.toVOs(Collection) contract with input
+  order preservation and missing-row omission.
+- App and Submission projections now batch user/problem facts; Submission
+  detail/best paths reuse the batch seam; Contest no longer maps one remote
+  read per submission.
+- Added contract, projection, Contest no-N+1 and real Submission owner batch
+  coverage. Submission API/owner and disposable MySQL provider checks pass.
+- App reactor compilation remains blocked by pre-existing Lombok-generated
+  accessor errors outside this slice; source review found no confirmed
+  batch-contract finding. ARCHX-004 is now active.
+
+## 2026-08-21-221346 ARCHX-004 implementation and review
+
+- Added UserDirectoryProjection for UserSummaryView directory and account
+  reads; UserFactsProjection now exposes only UserFactView batch composition.
+- DefaultUserFactsReadProjection implements both narrow seams, so account/profile
+  batching remains single-owner-composed and Search/Moderation callers keep
+  their existing unavailable-owner semantics.
+- Added interface surface regression coverage and migrated directory callers
+  and context mocks. Source scan found no summary reads through UserFactsProjection.
+- Review found no confirmed finding. App reactor test execution remains
+  blocked by the unrelated Lombok accessor baseline; ARCHX-005 is active.
+
+## 2026-08-21-221346 ARCHX-005 implementation and focused gate
+
+- Added scripts/dev/architecture-contract-test.sh and wired it into the
+  supported scripts/dev/test.sh path.
+- Corrected current architecture status/migration text, README and doctor
+  startup guidance, and sharpened CONTEXT.md with User Directory View and
+  current Notification Owner worker ownership.
+- Executable architecture contract passed: manifest PASS, seam/contract/
+  owner/docs assertions PASS, bash syntax PASS, diff check PASS.
+- Review found no confirmed finding; ARCHX-006 is now active for full review,
+  validation and completion audit.
+
+## 2026-08-21-221346 ARCHX-002 implementation and validation
+
+- Normal dev-lite/dev-full now defaults to Judge Streams, generation fencing and
+  JudgeQueue port; legacy RQueue is isolated behind legacy-rollback mode plus
+  the existing explicit compatibility flag.
+- Added validator tests to the owner module and repaired its inherited
+  Surefire argLine so the module test actually executes.
+- Focused evidence: manifest PASS; judge-config 5/0/0; Judge 2/0/0;
+  Submission 19/0/0. App focused selector exposed an unrelated baseline
+  compile failure in Lombok-generated forum/problem-list/solution accessors.
+- Review classified no confirmed findings; ARCHX-002 is done. The additive
+  Submission batch read slice is now the active task.
+
+## 2026-08-21-221346 ARCHX-001 implementation and review
+
+- Strengthened scripts/dev/devstack-manifest-test.sh to assert all three
+  runtime mode defaults, manifest sourcing, supported onboarding commands and
+  absence of direct PM2/Maven startup bypasses.
+- Replaced README startup/restart instructions with scripts/dev/up.sh mode
+  commands; PM2 remains a log/status surface only.
+- Focused evidence passed: manifest contract exit 0, bash syntax exit 0 and
+  git diff --check exit 0.
+- Contextual Review: no correctness, compatibility, security or scope
+  findings; Task ARCHX-001 is done and ARCHX-002/003/004 are ready.
+
+## 2026-08-21-221346 ARCHX-006 final review, validation and closure
+
+- Final contextual review found and fixed five issues: duplicate Spring property
+  conditions, missing entity batch facts mapping, a missing regression-test
+  import, stale Admin terminology, and three legacy startup bypass aliases.
+- App affected reactor passed: 1425 tests, 0 failures, 0 errors, 13 skips.
+- Full services `./mvnw verify -B` passed: 801 reports, 2705 tests, 0 failures,
+  0 errors, 20 skips; SubmissionReadProviderIT passed 4/0/0.
+- Architecture contract, manifest, shell syntax, Compose dev/prod, YAML,
+  graphify update and diff checks passed. ARCHX-001..006 are terminal.
+- Authority remains development/TEST-TARGET only; no commit, push, publish,
+  deploy, production cutover, grant action or applied migration edit.

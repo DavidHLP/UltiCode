@@ -17,7 +17,7 @@ import java.util.Optional;
  * Admin-local adapter implementing {@link AccountReadPort} for WebSocket
  * authentication (P7-RELOCATE). Reads account state (active/banned) via the
  * Auth-owned public {@link IdentityQueryService} Dubbo contract instead of
- * the App-private {@code UserFactsProjection} Q-read.
+ * an App-private user projection/read seam.
  *
  * <p>The Dubbo reference is {@code check=false}/{@code required=false} so the
  * admin context loads even when the Auth provider is down; an unavailable or

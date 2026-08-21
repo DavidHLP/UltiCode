@@ -315,8 +315,9 @@ worker。需要远程 Submission/cutover seam 或 MeiliSearch indexed read 时�
 `SUBMISSION_CUTOVER_COMPLETE=true`。两种 mode 的 route、Judge flags、Search read
 policy、worker role、readiness 和 failure gates 由
 `scripts/dev/devstack-manifest.sh` 统一声明；`up.sh` 只消费这份 manifest。
-App 的 `APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED` 默认关闭，仅作为 legacy RQueue
-rollback seam 显式启用，正常 App/API 进程不轮询 Judge。
+App 的 `APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED` 默认关闭；legacy RQueue
+rollback seam 还必须配合 `APP_RUNTIME_MODE=legacy-rollback`，正常 dev-lite/dev-full
+进程统一走 Judge Streams，不由 App/API 轮询 Judge。
 
 ### 🔑 首次登录
 
@@ -357,22 +358,18 @@ dev 数据库会自动创建固定管理员账号：
 
 ### 后端 owner 服务与共享 reactor
 
-`services/auth/`、`services/admin/`、`services/app/`、`services/submission/`、`services/notification/` 是数据 Owner，`services/judge/`、`services/search/` 是 Worker；`judge-runtime/` 只是共享依赖。以下命令均从 repository root 执行。
+services/auth/、services/admin/、services/app/、services/submission/、services/notification/ 是数据 Owner，services/judge/、services/search/ 是 Worker；judge-runtime/ 只是共享依赖。启动和重启统一通过 scripts/dev/up.sh，以下命令均从 repository root 执行。
 
 ```bash
-# 通过 PM2（本地默认 dev-lite 后端；Search 在 dev-full 或显式 opt-in）
-pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-notification ulticode-judge
-pm2 restart ulticode-search       # 需要本地 Search 时显式启动
-pm2 logs ulticode-auth
+# 冷启动或按 manifest 重启（唯一受支持的开发入口）
+./scripts/dev/up.sh --mode dev-lite
+./scripts/dev/up.sh --mode dev-full
+./scripts/dev/up.sh --quick --mode dev-lite
+./scripts/dev/up.sh --only auth,app
 
-# 直接启动单个 owner
-# Load the generated owner datasource credentials into Maven child processes.
-set -a; source .env; set +a
-(cd services && ./mvnw -pl auth -am spring-boot:run -Dmaven.test.skip=true)
-(cd services && ./mvnw -pl admin -am spring-boot:run -Dmaven.test.skip=true)
-(cd services && ./mvnw -pl app/app-web -am spring-boot:run -Dmaven.test.skip=true)
-(cd services && ./mvnw -pl notification -am spring-boot:run -Dmaven.test.skip=true)
-(cd services && ./mvnw -pl judge -am spring-boot:run -Dmaven.test.skip=true)
+# 查看 PM2 日志；不要直接用 PM2/Maven 启动 runtime，
+# 否则会绕过 mode、Owner readiness、migration 和 rollback gate。
+pm2 logs ulticode-auth
 
 # 编译 / 测试 / 集成
 (cd services && ./mvnw compile -B)
@@ -380,6 +377,7 @@ set -a; source .env; set +a
 (cd services && ./mvnw -Dtest='*IT' test -B)     # Testcontainers 集成
 (cd services && ./mvnw verify -B)                # 含 JaCoCo 校验
 (cd services && ./mvnw package -DskipTests)
+bash scripts/dev/architecture-contract-test.sh  # 源码/config/docs/domain 一致性
 ```
 
 ### 用户前端 (`apps/console/`)
@@ -526,7 +524,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | 9102 | `ulticode-admin` | Admin Spring Boot | Admin Owner |
 | 9103 | `ulticode-app` | App Spring Boot | App Owner |
 | 9106 | `ulticode-submission` | Submission Spring Boot | Submission data Owner；Dubbo internal only |
-| 9107 | `ulticode-search` | Search Spring Boot worker | 本地 `--only search` opt-in；生产 Compose always-on |
+| 9107 | `ulticode-search` | Search Spring Boot worker | dev-full 或本地 `--only search` opt-in；生产 Compose always-on |
 | 9105 | `ulticode-notification` | Notification Spring Boot | Notification/email Owner |
 | 20884 | `ulticode-judge` | Judge Spring Boot | Redis Streams consumer；Dubbo internal only |
 | 9002 | `ulticode-9002` | Console (Vite) | dev: Vite · prod: 静态服务 |
@@ -537,17 +535,17 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 ### 常用命令
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动本地默认 owner + Judge + 两个前端（Search opt-in）
+./scripts/dev/up.sh --mode dev-lite
 ./scripts/dev/up.sh --only search # 显式启动 Search worker
-pm2 start all                    # 后续启动
-pm2 restart all                  # 重启
-pm2 stop all
+./scripts/dev/up.sh --mode dev-full
+./scripts/dev/up.sh --quick --mode dev-lite
+./scripts/dev/up.sh --only auth,app
 pm2 status                       # 状态
 pm2 logs                         # 实时日志
 pm2 logs ulticode-auth --nostream --lines 200
 pm2 logs ulticode-admin --nostream --lines 200
 pm2 logs ulticode-app --nostream --lines 200
-pm2 save && pm2 resurrect        # 持久化与恢复
+pm2 status                       # 状态；mode 由 up.sh 管理
 ```
 
 ### Arthas MCP
@@ -561,9 +559,7 @@ node /home/davidhlp/project/arthas-diagnostics/bin/arthas-diagnostics.mjs tools
 Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式 attach。
 
 1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
-2. `pm2 restart ulticode-init-db`（跑 Flyway）
-3. `pm2 restart ulticode-auth ulticode-admin ulticode-app ulticode-submission ulticode-notification ulticode-judge`
-4. 启动两个前端
+2. `./scripts/dev/up.sh --mode dev-lite`（包含 Flyway、Owner readiness 和 runtime mode）
 
 > 一键修复： `./scripts/dev/up.sh --skip-install`
 
@@ -589,9 +585,8 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 | `FRONTEND_URL` | 邮件 / 回调拼接 | dev: `http://localhost:9002` |
 | `SPRING_PROFILES_ACTIVE` | Spring Profile | dev / prod |
 
-> **pm2 env 缓存陷阱**：`pm2 restart --update-env` 不会重读 `.env`。
-> 改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
-> `pm2 delete ulticode-auth ulticode-admin ulticode-app ulticode-notification ulticode-submission ulticode-judge ulticode-search && pm2 start ecosystem.config.cjs --only ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-submission,ulticode-judge`
+> **env 重新加载**：改 `.env` 后若 owner 服务报 `RedisWrongPasswordException` 等认证错，请用：
+> `./scripts/dev/up.sh --mode dev-lite --skip-install`
 
 ---
 

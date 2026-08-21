@@ -32,6 +32,12 @@ class FlagCombinationValidatorTest {
         return validator;
     }
 
+    private FlagCombinationValidator legacyRollbackValidator(FeatureFlagsProperties flags) {
+        FlagCombinationValidator validator = validator(flags);
+        ReflectionTestUtils.setField(validator, "runtimeMode", "legacy-rollback");
+        return validator;
+    }
+
     private FeatureFlagsProperties flags(boolean usePort, boolean useJudgeOutbox,
                                          boolean useGenerationFence,
                                          LocalDateTime cutoverAt) {
@@ -44,10 +50,10 @@ class FlagCombinationValidatorTest {
     }
 
     @Test
-    @DisplayName("all-off (CI features-off profile) passes")
+    @DisplayName("legacy rollback all-off flags pass")
     void allOffPasses() {
         FeatureFlagsProperties f = flags(false, false, false, null);
-        assertThatCode(() -> validator(f).validate()).doesNotThrowAnyException();
+        assertThatCode(() -> legacyRollbackValidator(f).validate()).doesNotThrowAnyException();
     }
 
     @Test
@@ -114,15 +120,22 @@ class FlagCombinationValidatorTest {
     }
 
     @Test
-    @DisplayName("named dev-lite rejects Streams cutover flags")
-    void devLiteRejectsFullFlags() {
-        FeatureFlagsProperties f = flags(true, true, true, null);
+    @DisplayName("named dev-lite requires the Streams path")
+    void devLiteRequiresStreams() {
+        FeatureFlagsProperties f = flags(false, false, false, null);
         FlagCombinationValidator v = validator(f);
         ReflectionTestUtils.setField(v, "runtimeMode", "dev-lite");
         assertThatThrownBy(v::validate)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("dev-lite")
-                .hasMessageContaining("dev-full");
+                .hasMessageContaining("use-judge-outbox");
+    }
+
+    @Test
+    @DisplayName("legacy rollback explicitly permits the legacy flags")
+    void legacyRollbackAllowsLegacyFlags() {
+        FeatureFlagsProperties f = flags(false, false, false, null);
+        assertThatCode(() -> legacyRollbackValidator(f).validate()).doesNotThrowAnyException();
     }
 
     @Test

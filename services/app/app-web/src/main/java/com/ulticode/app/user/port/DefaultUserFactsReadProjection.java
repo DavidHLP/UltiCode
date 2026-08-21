@@ -29,7 +29,8 @@ import java.util.stream.Collectors;
  * callers do not assemble two owner reads themselves.</p>
  */
 @Component
-public class DefaultUserFactsReadProjection implements UserFactsProjection {
+public class DefaultUserFactsReadProjection
+        implements UserDirectoryProjection, UserFactsProjection {
 
     private final UserProfileReadMapper profileReadMapper;
 

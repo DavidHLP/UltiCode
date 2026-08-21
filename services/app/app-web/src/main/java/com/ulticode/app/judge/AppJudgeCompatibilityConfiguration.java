@@ -5,7 +5,6 @@ import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor;
 import com.ulticode.modules.queue.processor.JudgeAttemptExecutor;
 import com.ulticode.modules.queue.service.QueueService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -18,10 +17,9 @@ import org.springframework.context.annotation.Profile;
  */
 @Configuration(proxyBeanMethods = false)
 @Profile("!test")
-@ConditionalOnProperty(
-        prefix = "app.features",
-        name = "judge-compatibility-enabled",
-        havingValue = "true")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.features.judge-compatibility-enabled:false}' == 'true' "
+                + "&& '${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @Import(DefaultJudgeAttemptExecutor.class)
 public class AppJudgeCompatibilityConfiguration {
 

@@ -1,8 +1,9 @@
-objective: Architecture review report /tmp/architecture-review-20260820.html — all executable development tasks to terminal state
+prior_objective: Architecture review report /tmp/architecture-review-20260821-163916.html — historical terminal objective
+objective: Architecture transformation report /tmp/architecture-review-20260821-221346.html — five strategic objectives to terminal state
 domain: development architecture hardening
 status: complete
 active_task: none
-resume_point: AR20260820-001..006 are complete; report C4/C5 are rejected background candidates and no further actionable node remains.
+resume_point: ARCHX-20260821-001..006 are complete; current report has no remaining actionable node.
 control_plane:
   task_authority: .auto-flow/TASKS.yaml
   coverage: .auto-flow/COVERAGE.md
@@ -10,7 +11,7 @@ control_plane:
   resume: .auto-flow/RESUME.md
   handoff: .auto-flow/HANDOFF.yaml
   evidence: .auto-flow/EVIDENCE.md
-nodes:
+historical_nodes:
 - id: AR20260820-001
   goal: DevStack dev-lite Owner migration readiness
   status: done
@@ -46,6 +47,25 @@ objective_handoff:
   next_goal: none
   next_skill: none
   blockers: []
+current_nodes:
+  - id: ARCHX-20260821-001
+    goal: DevStack exclusive development contract
+    status: done
+  - id: ARCHX-20260821-002
+    goal: Normal Judge Streams path with legacy rollback isolation
+    status: done
+  - id: ARCHX-20260821-003
+    goal: Submission bounded batch read projection
+    status: done
+  - id: ARCHX-20260821-004
+    goal: UserFactsProjection minimal facts seam
+    status: done
+  - id: ARCHX-20260821-005
+    goal: Executable architecture vocabulary and documentation contract
+    status: done
+  - id: ARCHX-20260821-006
+    goal: Final review, Tier-C validation and completion audit
+    status: done
 authority:
   commit: false
   push: false
@@ -55,16 +75,13 @@ authority:
 cr_review:
   status: complete
   findings_fixed:
-    - missing AccountQueryService import
-    - non-Serializable AccountStatsSummary
-    - unbatched Submission page enrichment
-    - empty Auth dashboard role counts
-    - incomplete Search DLQ envelope
-    - Auth contract migration shared-schema failure
-    - raw dashboard mapper rows and legacy App schema queries
-    - test-only Search dependency reactor ordering
+    - duplicate Spring ConditionalOnProperty declaration in rollback configuration
+    - missing Submission entity batch facts argument
+    - missing ContestProblem test import
+    - stale Admin UserFactsProjection terminology
+    - legacy direct startup bypasses outside DevStack
   evidence:
-    - affected reactor BUILD SUCCESS
-    - services verify BUILD SUCCESS
-    - fresh services verify XML 829 reports / 2792 tests / 0 failures / 0 errors / 29 skips
-    - real MySQL, Redis and Meili target gates passed; broad IT selector timeout is not counted as pass
+    - App affected reactor BUILD SUCCESS; 1425 tests / 0 failures / 0 errors / 13 skips
+    - services verify BUILD SUCCESS; 801 reports / 2705 tests / 0 failures / 0 errors / 20 skips
+    - architecture contract, manifest contract, shell syntax, Compose config, YAML parse, graph update and diff check PASS
+    - development/TEST-TARGET only; no production acceptance claim

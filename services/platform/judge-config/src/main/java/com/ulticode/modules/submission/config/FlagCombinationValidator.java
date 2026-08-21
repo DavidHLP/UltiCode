@@ -56,14 +56,9 @@ public class FlagCombinationValidator {
     }
 
     private void validateRuntimeMode(FeatureFlagsProperties.JudgeQueue judgeQueue) {
-        if ("dev-lite".equals(runtimeMode)) {
-            if (flags.isUseJudgeOutbox() || flags.isUseGenerationFence() || judgeQueue.isUsePort()) {
-                throw new IllegalStateException(
-                        "Runtime mode dev-lite requires legacy local Judge flags; use dev-full for Streams cutover.");
-            }
-            return;
-        }
-        if ("dev-full".equals(runtimeMode) || "external-full".equals(runtimeMode)) {
+        if ("dev-lite".equals(runtimeMode)
+                || "dev-full".equals(runtimeMode)
+                || "external-full".equals(runtimeMode)) {
             if (!flags.isUseJudgeOutbox() || !flags.isUseGenerationFence() || !judgeQueue.isUsePort()) {
                 throw new IllegalStateException(
                         "Runtime mode " + runtimeMode
@@ -71,8 +66,15 @@ public class FlagCombinationValidator {
             }
             return;
         }
+        if ("legacy-rollback".equals(runtimeMode)) {
+            if (flags.isUseJudgeOutbox() || flags.isUseGenerationFence() || judgeQueue.isUsePort()) {
+                throw new IllegalStateException(
+                        "Runtime mode legacy-rollback requires all Judge Streams flags to be false.");
+            }
+            return;
+        }
         throw new IllegalStateException(
                 "Invalid app.runtime.mode='" + runtimeMode
-                        + "'; expected dev-lite, dev-full or external-full.");
+                        + "'; expected dev-lite, dev-full, external-full or legacy-rollback.");
     }
 }

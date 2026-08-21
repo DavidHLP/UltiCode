@@ -317,7 +317,8 @@ recommend() {
 
   if [[ "$pm2_has_apps" == false && "$ports_busy" -eq 0 ]]; then
     printf '  %s nothing is running. Pick a mode:\n' "$(color yellow '??')"
-    printf '      %s\n' 'A) pm2 start ecosystem.config.cjs     # long-running dev'
+    printf '      %s\n' 'A) ./scripts/dev/up.sh --mode dev-lite  # canonical long-running dev'
+    printf '      %s\n' '   ./scripts/dev/up.sh --mode dev-full  # explicit Search/cutover mode'
     printf '      %s\n' 'B) preview_start ulticode-9002-console  # ephemeral UI session'
     return
   fi

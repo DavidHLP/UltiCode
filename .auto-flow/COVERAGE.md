@@ -1,5 +1,21 @@
 # Coverage
 
+## Architecture review 2026-08-21-163916 full implementation
+
+| Requirement / report item | Task | Required evidence | Status |
+|---|---|---|---|
+| Owner data responsibility is default and fail-closed | ARCHREV-20260821-001 | owner-specific datasource contract, migration/runtime identity separation, owner isolation and config tests | PASS |
+| dev-lite is minimal, reproducible and independently diagnosable | ARCHREV-20260821-002 | manifest/PM2/YAML/.env/docs consistency, mode contract, startup checks | PASS |
+| Judge Streams contract has one source of truth | ARCHREV-20260821-003 | contract shape, producer/consumer integration, duplicate source scan | PASS |
+| migration flags become named runtime modes | ARCHREV-20260821-004 | mode matrix, illegal-combination failures, dead config audit | PASS |
+| facts enrichment becomes a stable Projection | ARCHREV-20260821-005 | batch/freshness/failure semantics, Search/Moderation/user caller regressions | PASS |
+| objective terminal audit | ARCHREV-20260821-006 | Review=0, Tier-C validation, coverage, task/evidence/status consistency | PASS |
+
+Evidence summary: full reactor verify exit 0 with 843 reports / 2827 tests / 0
+failures / 0 errors / 29 skips; real Redis Judge 4/4; Search E2E 4/4;
+owner migration safety and preflight both exit 0; manifest/Compose/YAML/diff
+checks pass. All evidence is development/TEST-TARGET only.
+
 ## Services architecture hardening (2026-08-19)
 
 | Requirement / finding | Task | Required evidence |
@@ -98,3 +114,25 @@ Historical task IDs above remain `done` in TASKS.yaml and are not superseded.
   UltiCode-current coverage and `git diff --check` all pass.
 - Authority: development/TEST-TARGET only. No production acceptance,
   commit, push, publish, deploy, cutover, grant or applied migration edit.
+
+## 2026-08-21-221346 architecture transformation coverage
+
+| User objective / report candidate | Task | Required evidence |
+| --- | --- | --- |
+| DevStack mode is the exclusive development contract | ARCHX-20260821-001 | manifest/default matrix, fail-closed mode tests, PM2/YAML consistency, shell/config checks |
+| Submission read projection eliminates cross-Owner fan-out | ARCHX-20260821-003 | additive batch contract, App/Submission batch implementations, Contest no-N+1 regression, owner IT |
+| Judge Streams is the standard development path; legacy is rollback-only | ARCHX-20260821-002 | mode flags, explicit rollback condition, worker/compatibility tests, disposable Redis Streams evidence |
+| UserFactsProjection interface is narrow and backward-compatible | ARCHX-20260821-004 | split seam callers, composition implementation, Search/Moderation/user tests, call-site scan |
+| Architecture documentation and domain vocabulary are executable | ARCHX-20260821-005 | CONTEXT/docs correction, architecture contract script, onboarding assertions, wiki/diff checks |
+| All five objectives reach terminal state | ARCHX-20260821-006 | Review=0, Tier-C validation, full caller/config/docs coverage, protected worktree and authority audit |
+
+Final evidence:
+
+- `bash scripts/dev/architecture-contract-test.sh`, DevStack manifest contract,
+  shell syntax, Compose dev/prod config, YAML parsing, graph update and
+  `git diff --check` all passed.
+- App affected reactor: 1425 tests, 0 failures, 0 errors, 13 skips.
+- Services `./mvnw verify -B`: 801 Surefire reports, 2705 tests, 0 failures,
+  0 errors, 20 skips; `SubmissionReadProviderIT`: 4 tests, 0 failures, 0 errors.
+- Evidence authority is development/TEST-TARGET only; production cutover,
+  deployment, grants and applied migrations remain out of scope.

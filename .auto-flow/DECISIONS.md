@@ -297,3 +297,88 @@ precedence; mode defaults and cutover gates; Admin analytics hidden callers;
 Auth batch missing/unavailable semantics; Search exact totals, stale index,
 strict indexed failure and explicit fallback; test-only worker dependency and
 production Compose behavior.
+## 2026-08-21 current report architecture convergence decision
+
+### Context
+
+The current report `/tmp/architecture-review-20260821-163916.html` identifies five
+remaining convergence gaps that are different from the already-closed
+`ARCH-20260821-001..006` ledger: implicit Owner datasource fallback, multiple
+development-mode authorities, duplicated Judge Streams contract source, a
+boolean migration flag cross-product, and request-time cross-Owner facts
+enrichment.
+
+### Decision
+
+Execute the five gaps as `ARCHREV-20260821-001..006` in dependency order. Keep one
+MySQL instance for development, make Owner-specific runtime configuration
+fail-closed, use the existing DevStack manifest as the single supported mode
+policy, centralize only the stable Judge transport contract, remove dead config,
+and extract a bounded User Facts Projection seam. Do not add a process, broker,
+Kubernetes, Service Mesh, Seata, or production migration.
+
+### Invariants
+
+- Auth owns account/credential/status/authz; App owns `user_profiles` writes.
+- Each Owner has one runtime writer and a separate migration identity.
+- Submission local/remote routing and Judge legacy/Streams rollback remain explicit and fail-closed.
+- Judge wire JSON, Redis keys, ack/nack, dedup and version compatibility do not change.
+- Search cursor ordering/count semantics remain separate from generic User Facts Projection semantics.
+- Applied Flyway migrations, production routes/grants and external delivery are out of scope.
+
+### Rejected alternatives
+
+- Do not solve contributor friction by removing Submission before proving Admin/worker callers do not require it.
+- Do not put Redis adapter, business persistence or sandbox execution into `backend-submission-api`.
+- Do not replace the flag matrix with a generic configuration framework or add infrastructure.
+
+### Affected tasks
+
+`ARCHREV-20260821-001..006`; development/TEST-TARGET evidence only.
+
+### Validation-gate repair
+
+## 2026-08-21-221346 architecture transformation
+
+### Context
+
+The new user objective reopens the five strategic candidates in
+/tmp/architecture-review-20260821-221346.html. The prior ARCHREV terminal
+ledger remains historical evidence and does not prove this report's narrower
+DevStack, Submission batch-read, Judge normal-path, UserFacts interface, or
+documentation-executable requirements.
+
+### Decision
+
+Implement one reversible development transformation:
+
+1. DevStack manifest remains the sole mode policy; direct runtime defaults and
+   PM2/YAML consumers must agree with it and fail closed on drift.
+2. Judge Streams becomes the normal local transport in both development modes;
+   legacy RQueue remains only behind an explicit rollback mode.
+3. Submission exposes an additive bounded batch read seam; App and Submission
+   implementations batch user/problem facts and Contest uses one call.
+4. User Facts composition remains one implementation, while directory summary
+   and User Facts consumers receive separate narrow interfaces.
+5. Source/config facts feed executable architecture checks; CONTEXT.md records
+   only stable domain concepts and current ownership.
+
+### Invariants
+
+- No new broker, process, schema, migration, production route or grant change.
+- Existing public response envelopes and VO shapes remain compatible.
+- Owner writers, hidden-case filtering, missing-profile semantics and
+  fail-closed unavailable-owner behavior remain unchanged.
+- Legacy rollback code/data is preserved and reversible.
+- .auto-flow/* remains control-plane bookkeeping and is not delivery scope.
+
+### Affected tasks
+
+ARCHX-20260821-001..006; development/TEST-TARGET evidence only.
+
+The full reactor exposed a race in the existing Admin bounded-query cancellation
+test: interrupting the task before cancelling its public future could turn a
+cancelled query into an exceptional completion. Reordering the two operations
+in `CancellableQueryExecutor.cancel` is in scope as a required validation-gate
+repair for the bounded Owner read seam; it changes no public contract or data
+behavior and is covered by its focused test plus the final reactor verify.

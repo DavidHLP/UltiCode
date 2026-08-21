@@ -3,12 +3,18 @@ package com.ulticode.submission.dubbo.provider;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.submission.api.service.SubmissionReadPort;
-import com.ulticode.app.api.service.SubmissionUserReadPort;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
+
+import java.util.Collection;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Dubbo provider for {@link SubmissionReadPort} exported by
@@ -18,7 +24,7 @@ import org.apache.dubbo.config.annotation.DubboService;
  * <p>SPLIT-004 slice-6: user-visible projection runs locally
  * ({@link SubmissionProjection}, P0-1 hidden-case filter), then user and
  * problem summaries are enriched through the App/Auth-owned seams
- * ({@link SubmissionUserReadPort}, {@link ProblemFactsPort}) — never
+ * ({@link ProblemFactsPort}) — never
  * reading user or problem tables (DEC-011). The App provider
  * (group=backend-app) remains the active route until the read-routing
  * cutover slice; this provider is the capability, not the switch.
@@ -27,39 +33,52 @@ import org.apache.dubbo.config.annotation.DubboService;
 @RequiredArgsConstructor
 public class SubmissionReadProvider implements SubmissionReadPort {
 
+    private static final int BATCH_SIZE = 100;
+
     private final SubmissionMapper submissionMapper;
     private final SubmissionProjection submissionProjection;
-    private final SubmissionUserReadPort userReadPort;
     private final ProblemFactsPort problemFactsPort;
 
     @Override
     public SubmissionVO toVO(String submissionId) {
-        Submission submission = submissionMapper.selectById(submissionId);
-        if (submission == null) {
+        if (submissionId == null || submissionId.isBlank()) {
             return null;
         }
-        SubmissionVO vo = submissionProjection.toVO(submission);
+        return toVOs(List.of(submissionId)).stream().findFirst().orElse(null);
+    }
 
-        SubmissionUserReadPort.UserSummary user = userReadPort.findById(submission.getUserId());
-        if (user != null) {
-            SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
-            userInfo.setId(user.id());
-            userInfo.setUsername(user.username());
-            userInfo.setName(user.name());
-            userInfo.setAvatar(user.avatar());
-            vo.setUser(userInfo);
+    @Override
+    public List<SubmissionVO> toVOs(Collection<String> submissionIds) {
+        if (submissionIds == null || submissionIds.isEmpty()) {
+            return List.of();
         }
-
-        ProblemFactsPort.ProblemDisplayFacts facts =
-                problemFactsPort.findDisplayFacts(submission.getProblemId());
-        if (facts != null) {
-            SubmissionVO.ProblemInfo problemInfo = new SubmissionVO.ProblemInfo();
-            problemInfo.setId(facts.id());
-            problemInfo.setTitle(facts.title());
-            problemInfo.setSlug(facts.slug());
-            vo.setProblem(problemInfo);
+        List<String> requested = submissionIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+        if (requested.isEmpty()) {
+            return List.of();
         }
-
-        return vo;
+        List<SubmissionVO> result = new ArrayList<>();
+        for (int start = 0; start < requested.size(); start += BATCH_SIZE) {
+            List<String> batch = requested.subList(start, Math.min(start + BATCH_SIZE, requested.size()));
+            Map<String, Submission> rows = new LinkedHashMap<>();
+            for (Submission row : submissionMapper.selectBatchIds(batch)) {
+                if (row != null) {
+                    rows.put(row.getId(), row);
+                }
+            }
+            List<Submission> ordered = batch.stream()
+                    .map(rows::get)
+                    .filter(Objects::nonNull)
+                    .toList();
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts =
+                    problemFactsPort.findDisplayFactsBatch(ordered.stream()
+                            .map(Submission::getProblemId)
+                            .filter(Objects::nonNull)
+                            .collect(java.util.stream.Collectors.toSet()));
+            result.addAll(submissionProjection.toVO(ordered, facts));
+        }
+        return result;
     }
 }

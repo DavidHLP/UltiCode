@@ -36,10 +36,10 @@ app:
   runtime:
     mode: ${APP_RUNTIME_MODE:dev-lite}
   features:
-    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
-    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:true}
+    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
     judge-queue:
-      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
+      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
 
 management:
   endpoints:

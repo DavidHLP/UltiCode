@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
  * whether the M3a outbox shadow write and the M3b generation fence / lease path
  * are active for this deployment (see ADR-003 §3.3 and ADR-005 §3.3).
  *
- * <p>Both flags default to {@code false}; the production judging path is the
- * legacy RQueue + selectById/updateById flow until an operator explicitly opts in.
+ * <p>Normal development modes use the Streams + generation-fence path. The
+ * legacy RQueue path is an explicit {@code legacy-rollback} mode only.
  */
 @Slf4j
 @Component

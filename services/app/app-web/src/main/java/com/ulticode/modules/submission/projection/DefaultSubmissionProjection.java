@@ -78,7 +78,23 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats) {
-        SubmissionVO baseVo = toVO(submission);
+        return toDetailVO(submission, stats, null);
+    }
+
+    @Override
+    public SubmissionDetailVO toDetailVO(
+            Submission submission,
+            PerformanceStats stats,
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> batchFacts) {
+        SubmissionVO baseVo;
+        if (batchFacts == null) {
+            baseVo = toVO(submission);
+        } else {
+            List<String> userIds = submission.getUserId() == null
+                    ? List.of()
+                    : List.of(submission.getUserId());
+            baseVo = toVO(submission, findUsers(userIds), batchFacts);
+        }
 
         SubmissionDetailVO vo = new SubmissionDetailVO();
         BeanUtils.copyProperties(baseVo, vo);
@@ -129,8 +145,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionVO toVO(Submission submission) {
-        return toVO(submission, findSingleUser(submission.getUserId()),
-                findSingleFact(submission.getProblemId()));
+        return toVOs(List.of(submission)).get(0);
     }
 
     private SubmissionVO toVO(
@@ -264,6 +279,26 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         return submissions.stream().map(row -> toVO(row, users)).toList();
     }
 
+    @Override
+    public List<SubmissionVO> toVOs(List<Submission> submissions) {
+        if (submissions == null || submissions.isEmpty()) {
+            return List.of();
+        }
+        Set<String> userIds = submissions.stream()
+                .map(Submission::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, SubmissionUserReadPort.UserSummary> users = findUsers(userIds);
+        Set<Long> problemIds = submissions.stream()
+                .map(Submission::getProblemId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts = problemFacts == null
+                ? Map.of()
+                : problemFacts.findDisplayFactsBatch(problemIds);
+        return submissions.stream().map(submission -> toVO(submission, users, facts)).toList();
+    }
+
     private SubmissionVO toVO(
             SubmissionMapper.SubmissionWithProblem submission,
             Map<String, SubmissionUserReadPort.UserSummary> users) {
@@ -310,22 +345,6 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         }
         Map<String, SubmissionUserReadPort.UserSummary> users = userReadPort.findAllById(userIds);
         return users == null ? Map.of() : users;
-    }
-
-    private Map<String, SubmissionUserReadPort.UserSummary> findSingleUser(String userId) {
-        if (userReadPort == null || userId == null) {
-            return Map.of();
-        }
-        SubmissionUserReadPort.UserSummary user = userReadPort.findById(userId);
-        return user == null ? Map.of() : Map.of(userId, user);
-    }
-
-    private Map<Long, ProblemFactsPort.ProblemDisplayFacts> findSingleFact(Long problemId) {
-        if (problemFacts == null || problemId == null) {
-            return Map.of();
-        }
-        ProblemFactsPort.ProblemDisplayFacts fact = problemFacts.findDisplayFacts(problemId);
-        return fact == null ? Map.of() : Map.of(problemId, fact);
     }
 
     @Override

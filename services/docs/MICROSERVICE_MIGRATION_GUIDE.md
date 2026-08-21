@@ -76,7 +76,7 @@
 
 ### 2.2 当前运行拓扑
 
-> **2026-08-18 当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程骨架和主要 Owner/Worker topology，但仍处于收敛阶段，不是最终形态。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界，HTTP/Dubbo 暴露 Auth、Admin、App、Submission、Notification；Judge/Search 以后台 Worker 运行。Submission 写入已通过 `SubmissionFactsSnapshot` 消除 Owner 写事务内对 App/Auth 的同步回访，但 Submission 读侧的 facts enrichment、数据库物理隔离、App 双轨兼容、Admin Seam 聚合和运维文档仍需后续任务完成。生产 Compose 定义七个后端运行时；本地 PM2 默认仍排除 Search，使用 `--only search` 显式启动。当前项目没有生产环境，因此本地证据不等于生产切流证据。
+> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。当前项目没有 production environment，因此本地证据不等于生产切流证据。
 
 ```mermaid
 flowchart LR
@@ -151,7 +151,7 @@ flowchart LR
 | 能力 | 现状 | 拆分约束 |
 |---|---|---|
 | WebSocket | STOMP + SockJS + JVM 内 SimpleBroker；端点 `/ws/contest`、`/ws/notifications`、`/ws` | App 初期单实例或粘性会话；多实例前需外部广播/relay |
-| 判题队列 | Legacy Redisson `RQueue`；已有可切换的 Redis Streams `JudgeQueue`、generation fence、lease/reaper、`judge_outbox` | 先完成已有 outbox/fence/stream cutover，不立即换 MQ |
+| 判题队列 | Normal dev-lite/dev-full 使用 Redis Streams `JudgeQueue`、generation fence、lease/reaper、`judge_outbox`；legacy Redisson `RQueue` 仅作显式 rollback seam | 保留 wire/ACK/NACK/回滚兼容；不引入新 MQ |
 | 文件 | 头像写硬编码相对路径 `uploads/avatars/`；备份写本地目录 | App 水平扩展前引入 `FileStoragePort` 与对象存储；备份由 Admin/Ops 管理 |
 | Async | 成就、关注、备份使用 `@Async`，未见显式业务线程池 | 跨服务改 durable event；服务内配置有界线程池 |
 | Scheduled | Contest、judge worker/outbox/reaper、backup、notification ledger、WS flush 等共用调度池 | 每个任务归 Owner；多副本使用 CAS/lease/Redisson lock 防重复 |

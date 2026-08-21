@@ -21,6 +21,7 @@ import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -84,7 +85,11 @@ public class SubmissionUserQueryProvider implements SubmissionUserQueryPort {
                     submission.getRuntime() != null ? submission.getRuntime() : 0,
                     submission.getMemory());
         }
-        return submissionProjection.toDetailVO(submission, stats);
+        Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts =
+                problemFactsPort.findDisplayFactsBatch(submission.getProblemId() == null
+                        ? Set.of()
+                        : Set.of(submission.getProblemId()));
+        return submissionProjection.toDetailVO(submission, stats, facts);
     }
 
     @Override
@@ -113,7 +118,9 @@ public class SubmissionUserQueryProvider implements SubmissionUserQueryPort {
             return null;
         }
         return submissionMapper.findBestByProblemIdAndUserId(problemId, userId)
-                .map(submissionProjection::toVO)
+                .map(submission -> submissionProjection.toVO(
+                        submission,
+                        problemFactsPort.findDisplayFactsBatch(Set.of(problemId))))
                 .orElse(null);
     }
 }

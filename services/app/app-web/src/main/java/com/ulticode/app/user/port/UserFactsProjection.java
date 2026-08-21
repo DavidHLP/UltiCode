@@ -1,7 +1,6 @@
 package com.ulticode.app.user.port;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -10,20 +9,6 @@ import java.util.Map;
  * account handling, freshness fields and unavailable-owner policy.
  */
 public interface UserFactsProjection {
-
-    UserSummaryView selectById(String id);
-
-    UserSummaryView selectByUsername(String username);
-
-    UserSummaryView selectByEmail(String email);
-
-    Map<String, UserSummaryView> selectByIds(Collection<String> ids);
-
-    List<UserSummaryView> selectActiveUsers(int limit, int offset);
-
-    long countActiveUsers();
-
-    int countById(String id);
 
     UserFactView findById(String id);
 

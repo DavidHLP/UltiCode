@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 
@@ -101,6 +102,18 @@ class DefaultUserFactsReadProjectionTest {
         assertThatThrownBy(() -> projection.findById("u-1"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Auth account query unavailable");
+    }
+
+    @Test
+    void publicReadSeamsRemainNarrow() {
+        assertThat(List.of(UserFactsProjection.class.getDeclaredMethods()))
+                .extracting(Method::getName)
+                .containsExactlyInAnyOrder("findById", "findByIds", "compose");
+        assertThat(List.of(UserDirectoryProjection.class.getDeclaredMethods()))
+                .extracting(Method::getName)
+                .containsExactlyInAnyOrder(
+                        "selectById", "selectByUsername", "selectByEmail",
+                        "selectByIds", "selectActiveUsers", "countActiveUsers", "countById");
     }
 
     private AuthAccountDTO account(String id, String username) {

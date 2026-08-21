@@ -1,21 +1,21 @@
 outcome: complete
 outputs:
-  - 'Context Packet: current HEAD d09b3651b77fed598eb2a7695b5282056d6e0b65 (reviewed commit), prior 32e6b78c reconciled, protected user changes identified'
-  - 'Execution Packet: ordered implementation path, invariants, risk and rollback recorded in DECISIONS.md'
-  - 'ARCH-20260821-001..005 implementation, Review and focused checks passed'
-  - 'ARCH-20260821-006 Completion Audit passed; five-item architecture objective is terminal'
+  - 'Recovery Packet: current HEAD 30d6fa6d1, protected existing .auto-flow modifications, graph/source evidence reconciled'
+  - 'Execution Packet: ARCHX-20260821-001..006 ordered DAG, Coverage, Decisions, Resume and rollback persisted'
+  - 'ARCHX-20260821-001 done: manifest contract exit 0, bash syntax exit 0, diff check exit 0, Review Confirmed Findings=0'
+  - 'ARCHX-20260821-002 done: Streams defaults/rollback isolation implemented; Judge-config 5/0/0, Judge 2/0/0, App reactor 1425/0/0/13; Review Confirmed Findings=0'
+  - 'ARCHX-20260821-003 done: additive bounded batch read contract, Contest one-call path, Submission reactor 25/0/0 and SubmissionReadProviderIT 4/0/0; Review Confirmed Findings=0'
+  - 'ARCHX-20260821-004 done: UserFactsProjection narrowed to facts-only, UserDirectoryProjection added, composition implementation retained; Review Confirmed Findings=0'
+  - 'ARCHX-20260821-005 done: architecture-contract-test PASS, docs/CONTEXT/doctor/README synchronized, Review Confirmed Findings=0'
+  - 'ARCHX-20260821-006 done: contextual Review fixed five findings; services verify 801 reports / 2705 tests / 0 failures / 0 errors / 20 skips'
 evidence:
-  - 'git status: scoped business implementation plus protected pre-existing .auto-flow history; no unrelated generated/runtime state'
-  - 'Hindsight pages, current source/POM/config/tests, fresh UltiCode-current graph and /tmp architecture report reread'
-  - 'Existing owner/schema, rollback, Search worker, Admin Dashboard and devstack evidence preserved as historical context'
-  - 'Final services verify: exit 0, 834 Surefire reports, 2805 tests, 0 failures, 0 errors, 29 skipped'
-  - 'Admin bounded executor focus 9/0/0/0; App/Search semantic focus 25/0/0/0; App context 6/0/0/0; Judge wiring 2/0/0/0'
-  - 'Disposable Redis 7 + Meili v1.8 SearchEventToQueryE2EIT: 3/0/0/0; Compose dev/prod config, manifest, wiki manifest, console type-check and diff-check PASS'
-  - 'Standards and Spec Review final: Confirmed Findings=0; graph generation 2026-08-21T05:25:15Z with changed Java paths metadata_match/no_recorded_issue'
-  - 'A later forced MCP reindex hit the 300s tool timeout after a non-behavioral javadoc/ledger update; latest successful generation and final graphify/direct-source checks remain recorded, timeout not claimed as pass'
-next_goal: null
+  - 'Existing terminal ARCHREV evidence is historical and explicitly not used as current objective completion proof'
+  - 'Source evidence confirms DevStack-only startup aliases, normal Judge Streams, bounded Submission owner reads, facts-only UserFacts seam and executable vocabulary checks'
+  - 'Architecture contract, manifest contract, Compose dev/prod config, YAML parse, graph update and git diff --check all PASS'
+  - 'Development/TEST-TARGET authority only; no production action or applied migration edit'
+next_goal: none
 next_skill: none
-reason: 'All five candidates implemented, all review findings closed, Tier C validation and Completion Audit passed in development/TEST-TARGET'
+reason: 'All five objectives reached the development-only terminal state with review and validation evidence.'
 alternatives: []
 blockers: []
 authority:

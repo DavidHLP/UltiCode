@@ -1,7 +1,7 @@
 package com.ulticode.modules.user.projection;
 
 import com.ulticode.app.error.UserErrorCode;
-import com.ulticode.app.user.port.UserFactsProjection;
+import com.ulticode.app.user.port.UserDirectoryProjection;
 import com.ulticode.app.user.port.UserSummaryView;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  * read-side join for the user domain — see the interface javadoc for why
  * this is a deep module.
  *
- * <p>The simple find-by-* reads delegate straight to {@code UserFactsProjection}.
+ * <p>The simple find-by-* reads delegate straight to {@code UserDirectoryProjection}.
  * The user-stats read owns the cross-table join across
  * {@code submissions} + {@code problems} + the global-ranking table, plus
  * the heatmap-level bucketing that the deleted {@code UserService} facade
@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultUserReadProjection implements UserReadProjection {
 
-    private final UserFactsProjection userReadMapper;
+    private final UserDirectoryProjection userReadMapper;
     private final SubmissionUserStatsPort submissionUserStats;
     private final SubmissionStreakPort submissionStreakCalculator;
     private final ProblemDifficultyReadPort problemDifficultyReadPort;

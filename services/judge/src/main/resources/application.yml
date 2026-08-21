@@ -37,12 +37,12 @@ app:
     role: judge
     mode: ${APP_RUNTIME_MODE:dev-lite}
   features:
-    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
-    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
+    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:true}
     judge-source:
       use-test-cases: ${JUDGE_USE_TEST_CASES:false}
     judge-queue:
-      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
+      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
 
 queue:
   judge:

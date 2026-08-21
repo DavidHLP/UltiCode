@@ -1,5 +1,6 @@
 version: 1
-objective: 实施 /tmp/architecture-review-20260821112953.html 的 1-5 项架构收敛并完成终态闭环
+prior_terminal_objective: 实施 /tmp/architecture-review-20260821-163916.html 的 1-5 项架构收敛并完成终态闭环
+objective: 实施 /tmp/architecture-review-20260821-221346.html 的五项战略架构转型并完成终态闭环
 updated_at: '2026-08-21'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
@@ -328,4 +329,294 @@ tasks:
       - 'fresh graphify update and UltiCode-current graph generation 2026-08-21T05:25:15Z; changed Java paths metadata_match/no_recorded_issue'
     commits: []
     notes: Terminal objective gate.
+    updated_at: '2026-08-21'
+
+  - id: ARCHREV-20260821-001
+    title: 将 Owner 数据责任收敛为默认 fail-closed 的运行边界
+    source: [/tmp/architecture-review-20260821-163916.html#candidate-01]
+    status: done
+    depends_on: []
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - auth/admin/notification/submission runtime datasource configuration requires owner-specific connection variables and no longer silently falls back to generic DB_* variables
+      - supported dev launcher still provisions one MySQL instance with owner-specific schemas/accounts and migration identity separated from runtime identity
+      - owner configuration boundary tests fail when a runtime config reintroduces implicit shared DB fallback
+      - existing App profile writer and Auth account/status ownership remain unchanged; no applied migration is edited
+    validation: [owner config contract test, shell syntax, owner migration preflight/safety rehearsal, affected owner tests, Compose config, diff check]
+    rollback: [revert owner datasource placeholder changes and boundary tests; retain existing owner schemas, migrations and cutover scripts]
+    evidence:
+      - 'OwnerDatasourceConfigurationTest via services/mvnw -pl admin -am -Dtest=OwnerDatasourceConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -B: exit 0, 1 test, 0 failures, 0 errors, 0 skipped'
+      - 'owner runtime YAML scan: generic DB_HOST/PORT/NAME/USER fallback count 0; all five Owner-specific variable groups are required'
+      - 'git diff --check: exit 0; no applied Flyway migration or data action performed'
+    commits: []
+    notes: Development/TEST-TARGET only; one MySQL instance remains in scope. Review scope is config/test and found no caller or ownership drift.
+    updated_at: '2026-08-21'
+
+  - id: ARCHREV-20260821-002
+    title: 将 dev-lite 收敛为唯一、最小且可复现的开发策略来源
+    source: [/tmp/architecture-review-20260821-163916.html#candidate-02]
+    status: done
+    depends_on: [ARCHREV-20260821-001]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - devstack-manifest.sh is the sole supported dev-lite/dev-full policy source for route, search, judge and owner capability exports
+      - application YAML defaults, ecosystem PM2 defaults, .env.example and migration documentation agree with dev-lite; dev-full remains explicit and cutover-gated
+      - dev-lite does not require MeiliSearch or Search worker and each started backend is justified by a tested caller/readiness dependency
+      - mode contract tests cover the complete capability matrix and fail on drift between manifest, launcher and PM2
+    validation: [devstack manifest tests, bash -n, up.sh help/mode checks, YAML consistency audit, Compose dev/prod config, focused startup failure checks]
+    rollback: [revert mode/default/documentation changes; keep existing dev-full and cutover entrypoints]
+    evidence:
+      - 'scripts/dev/devstack-manifest-test.sh exit 0; dev-lite/dev-full APP_RUNTIME_MODE and capability matrix assertions pass'
+      - 'bash -n scripts/dev/up.sh scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh scripts/dev/init-env.sh exit 0; up.sh --help exit 0'
+      - 'node --check ecosystem.config.cjs exit 0; git diff --check exit 0'
+      - 'direct local defaults now match dev-lite (local Submission, database Search, no Search worker); production Compose explicitly preserves indexed Search + DB fallback'
+      - 'Submission owner retained after caller scan: Admin dashboard/submission projections and App Submission owner reads require its readiness in the supported six-backend dev-lite path'
+    notes: Development/TEST-TARGET only; mode policy is manifest-backed and documentation no longer claims Phase 7 production retirement is already complete.
+    commits: []
+    notes: Do not remove Submission owner blindly; prove whether Admin/worker reads require it before changing the process set.
+    updated_at: '2026-08-21'
+
+  - id: ARCHREV-20260821-003
+    title: 收敛 Judge Streams 的重复 transport contract source
+    source: [/tmp/architecture-review-20260821-163916.html#candidate-03]
+    status: done
+    depends_on: [ARCHREV-20260821-002]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - JudgeJobEnvelope, JudgeJobHandle, JudgeQueue and stream key contract have one source of truth consumed by Submission and Judge
+      - concrete role-specific wiring remains storage-free and does not introduce a new runtime process or business-table dependency
+      - contract shape, JSON compatibility, ack/nack/dedup and Redis Streams integration tests pass from both producer and consumer sides
+      - duplicate contract FQCN/source scan is zero; compatibility envelope version remains backward compatible
+    validation: [submission-api/transport contract tests, affected Submission/Judge unit tests, Redis Streams integration, reactor compile/test, duplicate source scan]
+    rollback: [restore local contract copies from the same pre-change source without changing Redis keys or persisted data]
+    evidence:
+      - 'JudgeQueueContractShapeTest + SubmissionApiContractShapeTest: 8/0/0/0 PASS; versioned JSON round-trip and stable Redis key assertions pass'
+      - 'affected Judge/Submission reactor compile: exit 0; focused Judge/Queue/SubmissionOutbox tests: 9 executed, 0 failures, 0 errors, 4 environment-gated Redis skips'
+      - 'old queue contract references: 0 Java files; duplicate contract paths between judge-runtime and submission: 0'
+      - 'backend-judge-config is the single runtime flag/validator source; FeatureFlagsProperties main-source count is 1'
+      - 'wire JSON, Redis stream keys, ack/nack/dedup behavior remain unchanged; only contract ownership/package source moved'
+    commits: []
+    notes: Extract only the real transport contract; do not put business persistence or sandbox implementation into a contract module.
+    updated_at: '2026-08-21'
+
+  - id: ARCHREV-20260821-004
+    title: 将迁移 flag 矩阵收敛为命名运行形态并删除 dead config
+    source: [/tmp/architecture-review-20260821-163916.html#candidate-04]
+    status: done
+    depends_on: [ARCHREV-20260821-003]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - supported dev modes are named and exported as coherent capability states rather than independently authored boolean defaults
+      - illegal combinations fail before accepting work; existing local/remote Submission routing and Judge legacy/Streams rollback semantics remain explicit
+      - dead envelope-version configuration is removed or made executable; no stale flag remains silently ignored by dispatchers
+      - tests cover dev-lite, dev-full, unavailable worker and cutover-negative states
+    validation: [flag binding/validator tests, manifest mode tests, App/Judge context tests, affected reactor tests, config grep audit]
+    rollback: [restore previous flag properties and validator behavior while retaining single-writer and queue contract fixes]
+    evidence:
+      - 'devstack manifest named dev-lite/dev-full capability assertions pass with APP_RUNTIME_MODE and complete flag matrix'
+      - 'FlagCombinationValidatorTest + FeatureFlagsPropertiesBindingTest: 11/0/0/0 PASS after removing ignored envelope-version config'
+      - 'obsolete envelope-version configuration scan: 0 active runtime/config/test references outside explanatory contract naming'
+      - 'shared backend-judge-config validator enforces dev-lite/dev-full/external-full in App, Submission and Judge runtime classpaths'
+      - 'bash syntax, Node ecosystem syntax and git diff check pass; external-full Compose behavior remains explicit'
+    commits: []
+    notes: No production cutover; external runtime modes must remain fail-closed and explicitly documented.
+    updated_at: '2026-08-21'
+
+  - id: ARCHREV-20260821-005
+    title: 将跨 Owner facts enrichment 收敛为稳定 User Facts Projection
+    source: [/tmp/architecture-review-20260821-163916.html#candidate-05]
+    status: done
+    depends_on: [ARCHREV-20260821-001, ARCHREV-20260821-004]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - Auth account plus App profile facts are composed behind one named Projection seam with bounded batch and explicit missing/unavailable/freshness semantics
+      - Search and existing user/moderation callers use the Projection seam without per-account synchronous fan-out regressions
+      - Search-specific cursor ordering/count semantics remain intact and are not forced into the generic Projection
+      - focused tests prove one Auth batch plus one profile batch, failure-closed behavior, input ordering and freshness metadata
+    validation: [User Facts Projection tests, Search adapter tests, moderation N+1 regression, App context test, affected reactor test/verify, call-site scan]
+    rollback: [restore the prior UserFactsReadPort/OwnerUserReadAdapter source seam and caller wiring without data changes]
+    evidence:
+      - 'DefaultUserFactsReadProjectionTest: 5/0/0/0 PASS; Auth account + App profile facts stay behind one bounded batch Projection seam'
+      - 'Search/Owner/Moderation/user focused suite: 25/0/0/0 PASS; Search cursor-specific ordering/count behavior remains unchanged'
+      - 'BackendAppApplicationTest: 6/0/0/0 PASS; only DefaultUserFactsReadProjection implements the shared UserFactsProjection production seam'
+      - 'Projection failure-closed, missing-profile nullable, input order and freshness metadata regressions are covered'
+      - 'single-ID and batch Auth/profile owner outages both normalize to BusinessException; Search test double is constructor-injected without concrete Projection casts'
+    commits: []
+    notes: Projection is a read seam only; no new event bus or production infrastructure.
+    updated_at: '2026-08-21'
+
+  - id: ARCHREV-20260821-006
+    title: 完成当前五项架构收敛的 Review、Tier-C Validation 与 Completion Audit
+    source: [/tmp/architecture-review-20260821-163916.html#top-recommendation]
+    status: done
+    depends_on: [ARCHREV-20260821-001, ARCHREV-20260821-002, ARCHREV-20260821-003, ARCHREV-20260821-004, ARCHREV-20260821-005]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - all five current report candidates are implemented with synchronized callers/contracts/config/tests/docs or have current source evidence proving the exact item already holds
+      - contextual Review has Confirmed Findings=0 and all findings are re-reviewed after fixes
+      - Tier-C validation passes with real development/TEST-TARGET evidence; skips, timeouts and unavailable external gates remain disclosed
+      - Coverage maps every report candidate to Task/Acceptance/Evidence; user worktree and prior .auto-flow history remain protected
+      - no commit, push, merge, publish, deploy, production cutover, grant revoke or applied migration edit occurs without separate authorization
+    validation: [full applicable services verify, focused real-service gates, startup/config/migration/rollback checks, graph refresh, YAML/Compose/wiki/diff checks, final review]
+    rollback: [revert only scoped implementation files; never revert applied migrations or prior user work]
+    evidence:
+      - 'Standards review final: APPROVE, Confirmed Findings=0; only raw-string mode Primitive Obsession/Repeated Switches retained as non-blocking judgement note'
+      - 'Spec review final: APPROVE, no remaining findings'
+      - 'services/./mvnw verify -B: exit 0, BUILD SUCCESS, 843 Surefire reports, 2827 tests, 0 failures, 0 errors, 29 skips'
+      - 'JudgeStreamRedisIntegrationTest with disposable Redis 7: 4/0/0/0 PASS'
+      - 'SearchWorkerEndToEndIT with Testcontainers Redis 7 + Meili REST stub: 4/0/0/0 PASS'
+      - 'owner-migration-safety-integration-test: exit 0 PASS; migrate-owner-preflight-test: exit 0 PASS'
+      - 'DevStack manifest, bash -n, Node config check, Compose dev/prod with disposable in-memory Meili key, and git diff --check: all exit 0'
+      - 'graphify update . completed; graph rebuilt with 28228 nodes and 82691 edges; label refresh warning is non-behavioral'
+      - 'CancellableQueryExecutor cancellation ordering repaired after full-verify race; focused test 2/0/0/0 and subsequent full verify pass'
+    notes: Objective terminal gate passed in development/TEST-TARGET only; no commit/push/publish/deploy/production cutover/grant revoke/applied migration edit.
+    commits: []
+    notes: Objective terminal gate; development/TEST-TARGET only.
+    updated_at: '2026-08-21'
+
+  - id: ARCHX-20260821-001
+    title: 将 DevStack mode 收敛为唯一开发契约
+    source: [/tmp/architecture-review-20260821-221346.html#candidate-1]
+    status: done
+    depends_on: []
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - dev-lite remains the first-class minimal local interface and dev-full remains explicit opt-in
+      - all App/Submission/Judge mode defaults and exported flags agree with devstack-manifest.sh
+      - direct PM2/config boot cannot silently select a different mode policy
+      - illegal mode/flag combinations fail closed with actionable errors
+      - existing rollback and owner migration behavior remains unchanged
+    validation: [devstack-manifest-test, bash -n, per-runtime mode binding tests, PM2/config consistency scan, focused reactor tests]
+    rollback: [revert scoped launcher/config/test changes; keep current local/remote and legacy rollback paths]
+    evidence:
+      - 'bash scripts/dev/devstack-manifest-test.sh: exit 0, DevStack manifest contract PASS'
+      - 'bash -n scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh scripts/dev/up.sh: exit 0'
+      - 'git diff --check: exit 0'
+      - 'README, doctor and legacy start.sh/start.bat/pitstop-start-backend.ps1 entrypoints route through up.sh; bypass assertions pass'
+    notes: Review PASS with Confirmed Findings=0. Development/TEST-TARGET only; no production route, grant or deployment action.
+    updated_at: '2026-08-21'
+
+  - id: ARCHX-20260821-002
+    title: 将 Judge Streams 设为正常开发路径并隔离 legacy rollback seam
+    source: [/tmp/architecture-review-20260821-221346.html#candidate-3]
+    status: done
+    depends_on: [ARCHX-20260821-001]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - normal dev-lite/dev-full judging uses the provider-owned JudgeQueue Streams path
+      - legacy RQueue polling/compatibility assembly is impossible in normal modes and requires an explicit rollback mode
+      - Judge wire envelope, Redis keys, ACK/NACK, deduplication and fence semantics remain compatible
+      - rollback mode is source-reversible and covered by focused tests
+    validation: [Judge config/worker tests, App compatibility condition test, disposable Redis Streams integration, affected reactor tests]
+    rollback: [restore prior flag values and compatibility condition without deleting legacy code or data]
+    evidence:
+      - 'DevStack manifest contract exit 0; dev-lite/dev-full export outbox, generation fence and JudgeQueue port=true'
+      - 'platform/judge-config isolated test exit 0: 5 tests, 0 failures, 0 errors'
+      - 'judge -am test exit 0: JudgeRuntimeConfigurationTest 2 tests, 0 failures, 0 errors'
+      - 'submission -am test exit 0: 25 tests, 0 failures, 0 errors'
+      - 'App compatibility source condition requires app.runtime.mode=legacy-rollback; normal dev mode source check passes'
+      - 'App app-web -am test exit 0: 1425 tests, 0 failures, 0 errors, 13 skips'
+    notes: Review PASS with Confirmed Findings=0. Keep the legacy adapter; do not add a broker or new runtime.
+    updated_at: '2026-08-21'
+
+  - id: ARCHX-20260821-003
+    title: 为 Submission read projection 增加批量 owner read contract
+    source: [/tmp/architecture-review-20260821-221346.html#candidate-2]
+    status: done
+    depends_on: []
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - contest and external submission reads use one bounded batch call instead of per-submission cross-owner fan-out
+      - App and Submission implementations batch entity reads, user facts and problem facts
+      - missing owner facts preserve existing null/safe-degrade semantics
+      - public Result/PageResult/VO shapes remain compatible
+      - hidden test-case filtering and ownership boundaries remain unchanged
+    validation: [submission API contract shape, contest projection no-N+1 regression, App/Submission focused tests, Submission owner IT]
+    rollback: [remove additive batch method and restore single-row adapter call; no schema change]
+    evidence:
+      - 'submission-api -am test exit 0: 19 tests, 0 failures, 0 errors'
+      - 'submission -am test exit 0: 25 tests, 0 failures, 0 errors'
+      - 'SubmissionReadProviderIT exit 0: 4 tests, 0 failures, 0 errors with disposable MySQL 8'
+      - 'Contest source now calls SubmissionReadPort.toVOs once; App/Submission implementations preserve input order and batch facts'
+      - 'App app-web -am test exit 0: 1425 tests, 0 failures, 0 errors, 13 skips'
+    notes: Review PASS with Confirmed Findings=0; no schema/event-store change.
+    updated_at: '2026-08-21'
+
+  - id: ARCHX-20260821-004
+    title: 收窄 UserFactsProjection interface 并保持 owner composition implementation
+    source: [/tmp/architecture-review-20260821-221346.html#candidate-4]
+    status: done
+    depends_on: []
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - directory summary callers and User Facts/Search/Moderation callers depend on separate narrow interfaces
+      - DefaultUserFactsReadProjection remains the single bounded account/profile composition implementation
+      - no caller loses missing-profile or unavailable-owner semantics
+      - no cross-service public contract changes
+      - all affected mocks, constructor fixtures and architecture scans are synchronized
+    validation: [User Facts focused tests, Search/Moderation caller tests, App context/mapper scan, affected reactor tests]
+    rollback: [restore composite interface type references; keep implementation and data ownership unchanged]
+    evidence:
+      - 'UserFactsProjection now exposes only findById/findByIds/compose'
+      - 'UserDirectoryProjection owns UserSummaryView lookup and directory paging methods'
+      - 'DefaultUserFactsReadProjection implements both interfaces; Search/Moderation stay on facts and user/account reads use directory'
+      - 'source call-site scan finds no summary method usage through UserFactsProjection'
+      - 'git diff --check exit 0; App affected reactor passes with 1425 tests, 0 failures, 0 errors, 13 skips'
+    notes: Review PASS with Confirmed Findings=0; one composition implementation retained and public cross-service contracts unchanged.
+    updated_at: '2026-08-21'
+
+  - id: ARCHX-20260821-005
+    title: 将架构文档和领域词汇转为 executable consistency checks
+    source: [/tmp/architecture-review-20260821-221346.html#candidate-5]
+    status: done
+    depends_on: [ARCHX-20260821-001, ARCHX-20260821-002, ARCHX-20260821-003, ARCHX-20260821-004]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - CONTEXT.md describes current Owner/Worker and Notification ownership without stale implementation claims
+      - architecture status and migration docs agree with source/POM/config/PM2/Compose facts
+      - executable checks fail when known topology or terminology drift returns
+      - onboarding points to one supported DevStack entry point
+      - no volatile test counts or temporary review notes are added to durable docs
+    validation: [architecture contract script, docs grep assertions, wiki manifest, git diff --check]
+    rollback: [revert only docs/check script; no runtime behavior depends on documentation]
+    evidence:
+      - 'scripts/dev/architecture-contract-test.sh exit 0: manifest, seam, owner, startup and docs assertions PASS'
+      - 'README, doctor, services architecture status and migration current-state docs now point to up.sh and current Streams/owner semantics'
+      - 'CONTEXT.md now distinguishes User Directory View, User Facts View and Notification Owner worker ownership'
+      - 'bash -n and git diff --check exit 0'
+    notes: Review PASS with Confirmed Findings=0. Documentation remains downstream of source/config; no second architecture truth is created.
+    updated_at: '2026-08-21'
+
+  - id: ARCHX-20260821-006
+    title: 完成五项目标的 Review、Tier-C Validation 与 Completion Audit
+    source: [/tmp/architecture-review-20260821-221346.html#top-recommendation]
+    status: done
+    depends_on: [ARCHX-20260821-001, ARCHX-20260821-002, ARCHX-20260821-003, ARCHX-20260821-004, ARCHX-20260821-005]
+    owner: Codex
+    target_window: '2026-08-21 当前执行轮'
+    acceptance_criteria:
+      - all five user objectives map to implemented behavior and evidence
+      - contextual Review has Confirmed Findings=0 after all fixes
+      - selected Tier-C validation passes with development/TEST-TARGET limitations explicit
+      - Task/Coverage/Resume/Handoff/Evidence/Git status are consistent
+      - no commit, push, merge, publish, deploy, production cutover, grant revoke or applied migration edit occurs
+    validation: [focused and affected reactor tests, full services verify, disposable Redis/Judge checks, config/docs/graph/diff audits]
+    rollback: [revert only scoped source/config/docs; preserve prior user changes and applied migrations]
+    evidence:
+      - 'Final contextual review fixed five findings and ended with Confirmed Findings=0'
+      - 'App affected reactor: 1425 tests, 0 failures, 0 errors, 13 skips'
+      - 'services ./mvnw verify -B: 801 Surefire reports, 2705 tests, 0 failures, 0 errors, 20 skips'
+      - 'SubmissionReadProviderIT: 4 tests, 0 failures, 0 errors; architecture contract, Compose, YAML, graph and diff checks PASS'
+    notes: Objective terminal gate complete; development/TEST-TARGET only.
     updated_at: '2026-08-21'

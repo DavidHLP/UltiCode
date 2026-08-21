@@ -54,10 +54,11 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionVO toVO(Submission submission) {
-        return project(
-                submission,
-                findUsers(List.of(submission.getUserId())),
-                findSingleFact(submission.getProblemId()));
+        Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts =
+                problemFacts == null || submission.getProblemId() == null
+                        ? Map.of()
+                        : problemFacts.findDisplayFactsBatch(Set.of(submission.getProblemId()));
+        return toVO(submission, facts);
     }
 
     @Override
@@ -187,14 +188,6 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         return users == null ? Map.of() : users;
     }
 
-    private Map<Long, ProblemFactsPort.ProblemDisplayFacts> findSingleFact(Long problemId) {
-        if (problemFacts == null || problemId == null) {
-            return Map.of();
-        }
-        ProblemFactsPort.ProblemDisplayFacts fact = problemFacts.findDisplayFacts(problemId);
-        return fact == null ? Map.of() : Map.of(problemId, fact);
-    }
-
     private void applyProblemSummary(SubmissionVO vo, ProblemFactsPort.ProblemDisplayFacts facts) {
         if (facts == null) {
             return;
@@ -208,7 +201,15 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
 
     @Override
     public SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats) {
-        SubmissionVO baseVo = toVO(submission);
+        return toDetailVO(submission, stats, null);
+    }
+
+    @Override
+    public SubmissionDetailVO toDetailVO(
+            Submission submission,
+            PerformanceStats stats,
+            Map<Long, ProblemFactsPort.ProblemDisplayFacts> batchFacts) {
+        SubmissionVO baseVo = batchFacts == null ? toVO(submission) : toVO(submission, batchFacts);
 
         SubmissionDetailVO vo = new SubmissionDetailVO();
         BeanUtils.copyProperties(baseVo, vo);

@@ -1,8 +1,8 @@
 # Auto-pilot Evidence
 
-Objective: ARCH-20260821 five-candidate architecture convergence (current terminal). Historical objective archived below.
+Objective: ARCHX-20260821 five-objective architecture transformation (current terminal). Historical objectives archived below.
 
-## 2026-08-21 architecture review terminal packet (current)
+## 2026-08-21 architecture review terminal packet (historical)
 
 - `ARCH-20260821-001..006`: all `done`; all five report candidates are
   mapped to implementation, rollback, review and validation evidence.
@@ -26,6 +26,30 @@ Objective: ARCH-20260821 five-candidate architecture convergence (current termin
   a pass.
 - Authority: development/TEST-TARGET only. No production acceptance,
   commit, push, publish, deploy, cutover, grant, or applied migration edit.
+
+## 2026-08-21-221346 architecture transformation terminal packet
+
+- `ARCHX-20260821-001..006`: all `done`; all five user objectives have
+  implementation, rollback, review, validation and Coverage evidence.
+- DevStack contract: manifest, legacy startup aliases, README, doctor and
+  architecture contract all route development through `scripts/dev/up.sh`.
+- Judge contract: dev-lite/dev-full enable provider-owned Streams; App
+  compatibility is conditionally available only with `legacy-rollback`.
+- Submission contract: Contest uses one bounded batch read; App and Submission
+  owner adapters batch user/problem facts, preserve input order, omit missing
+  rows and chunk requests at 100 IDs.
+- User contract: `UserFactsProjection` has only `findById`, `findByIds` and
+  `compose`; directory summaries use `UserDirectoryProjection`.
+- Documentation contract: CONTEXT, migration/status docs, README and startup
+  guidance are checked by `scripts/dev/architecture-contract-test.sh`.
+- App affected reactor: 1425 tests, 0 failures, 0 errors, 13 skips.
+- Full services `./mvnw verify -B`: BUILD SUCCESS; 801 Surefire reports,
+  2705 tests, 0 failures, 0 errors, 20 skips. `SubmissionReadProviderIT`:
+  4 tests, 0 failures, 0 errors.
+- Final contract, shell syntax, Compose dev/prod, YAML, graph update and
+  `git diff --check` gates passed. Authority is development/TEST-TARGET only;
+  no production acceptance, commit, push, publish, deploy, cutover, grant or
+  applied migration edit occurred.
 
 ## 2026-08-20 Final evidence (historical — reviewer CR remediation, superseded)
 
@@ -90,3 +114,34 @@ Development/TEST-TARGET only. No commit, push, publish, deploy, production actio
 - Moved `backend-search` before `app` in the Maven reactor so the test-only Search E2E dependency compiles in a fresh reactor.
 - Fresh `services/./mvnw verify -B`: `MAVEN_EXIT=0`, BUILD SUCCESS; Surefire XML 829 reports / 2792 tests / 0 failures / 0 errors / 29 skips.
 - Broad `*IT,*IntegrationTest` selector was attempted after fixes but the host tool timed out at 300 seconds before an exit code; this is recorded as unavailable, not pass evidence. Target-specific owner/MySQL/Redis/Meili gates passed.
+
+## ARCHREV-20260821-001..006 terminal validation packet
+
+- Owner runtime datasource configurations now use Spring-native unresolved
+  owner variables (`${OWNER_DB_*}`) with no generic `DB_*` fallback. The
+  configuration contract test passed 1/0/0/0; owner migration preflight and
+  MySQL 9.1 owner safety rehearsal both exited 0.
+- DevStack manifest, mode/default consistency assertions, `bash -n`, Node
+  config check, Compose dev/prod config with a disposable in-memory Meili key,
+  and `git diff --check` all exited 0. dev-lite remains the six-backend local
+  path because Admin/Submission read callers require Submission readiness;
+  Search is explicit dev-full only.
+- Judge transport contract shape tests passed 8/0/0/0; old contract references
+  and duplicate contract paths are zero. Disposable Redis 7
+  `JudgeStreamRedisIntegrationTest` passed 4/0/0/0.
+- `backend-judge-config` is the only main-source `FeatureFlagsProperties` and
+  `FlagCombinationValidator` definition; envelope-version dead config was
+  removed from CI, runtime YAML, Compose and launcher policy.
+- User Facts Projection covers full user/profile reads, Search, Moderation and
+  related App readers. Facts/profile batch, single-ID owner failure, Search and
+  Moderation regressions passed; final focused Projection total was 25/0/0/0.
+- Search `SearchWorkerEndToEndIT` passed 4/0/0/0 with Testcontainers Redis 7
+  and a Meili REST stub. Full services `./mvnw verify -B` passed with exit 0,
+  843 reports / 2827 tests / 0 failures / 0 errors / 29 skips.
+- Contextual Standards Review and Spec Review both APPROVE with Confirmed
+  Findings=0. The only retained note is a non-blocking raw-string runtime-mode
+  smell. `CancellableQueryExecutor` cancellation ordering was a required
+  validation-gate race repair and its focused test passed 2/0/0/0.
+- `graphify update .` completed; no applied migration, production route/grant,
+  commit, push, publish or deploy was performed. Evidence is development/
+  TEST-TARGET only.

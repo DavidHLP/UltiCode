@@ -48,6 +48,9 @@
 - **User Facts View** — the cross-owner read shape that combines Auth account
   facts with App profile facts for user-facing, Search, and moderation reads.
   Missing profiles remain nullable; an unavailable account owner fails closed.
+- **User Directory View** — the account/profile summary used by ordinary user
+  reads and connection-time account checks. It is separate from the narrower
+  User Facts View used by Search and Moderation.
 - **User Facts Projection** — the deep read module behind the User Facts View.
   It owns bounded account/profile batching, input ordering, freshness fields,
   and missing/unavailable-owner semantics so callers do not assemble the two
@@ -144,16 +147,12 @@
   and `services/app/app-web/src/main/java/com/ulticode/app/config/AppClockConfig.java`,
   which cover `LocalDateTime.now()`; wall millis + monotonic nanos were the
   two remaining JVM-time primitives.
-- **Notification Delivery worker** — the App runtime role
-  (`ulticode.notification.worker.enabled`; `api` profile turns it off,
-  `worker` profile enables it) that runs the durable delivery schedulers:
-  `SubmissionJudgedInboxBridge` (Redis stream → `consumer_inbox` staging →
-  handler fan-out) and `NotificationLedgerReaper` (stale ledger-claim
-  recovery). It shares the App-owned `ConsumerInboxMapper` /
-  `NotificationDeliveryLedgerMapper` storage seam and never writes through a
-  second writer; multi-replica safety comes from inbox/outbox/ledger
-  lease-CAS and Redis consumer groups. NOTIFY-004 delivers this role without
-  creating a fourth logical service.
+- **Notification Delivery worker** — the worker role of the Notification
+  Owner that consumes durable notification/integration events, stages them in
+  an inbox, and reclaims delivery-ledger leases. App keeps only its own
+  achievement, contest, moderation and realtime event bindings; Notification
+  remains the sole owner of notification delivery state. This role does not
+  create another logical service.
 
 ## Design invariants
 

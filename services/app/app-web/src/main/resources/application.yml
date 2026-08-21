@@ -85,10 +85,10 @@ app:
   features:
     # Explicit rollback-only seam. Normal App/API boot never owns Judge polling.
     judge-compatibility-enabled: ${APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED:false}
-    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:false}
-    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:false}
+    use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
+    use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:true}
     judge-queue:
-      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:false}
+      use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
     judge-source:
       # Use legacy problem_examples as test cases (test_cases table has no data yet).
       # Switch to true after seeding test_cases for all problems.

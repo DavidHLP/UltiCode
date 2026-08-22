@@ -22,9 +22,9 @@ extract_per_schema() {
   local file="$1"
   local out="$2"
   awk '
-    /^CREATE DATABASE/ { gsub(/.*`([^`]+)`.*/, "\\1", $0); db=$0; next }
-    /^USE / { gsub(/.*`([^`]+)`.*/, "\\1", $0); db=$0; next }
-    /^CREATE TABLE/ { gsub(/.*`([^`]+)`.*/, "\\1", $0); tbl=$0; print db"."tbl }
+    /^CREATE DATABASE/ { if (match($0, /`[^`]+`/)) { db = substr($0, RSTART+1, RLENGTH-2) } next }
+    /^USE / { if (match($0, /`[^`]+`/)) { db = substr($0, RSTART+1, RLENGTH-2) } next }
+    /^CREATE TABLE/ { if (match($0, /`[^`]+`/)) { tbl = substr($0, RSTART+1, RLENGTH-2); print db"."tbl } }
   ' "$file" | sort > "$out"
 }
 extract_per_schema "$BASELINE" "$TMP_BASELINE_PER_SCHEMA"

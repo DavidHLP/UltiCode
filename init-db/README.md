@@ -120,6 +120,17 @@ Rules:
 Run `./scripts/dev/migrate.sh validate` after adding a migration and validate the
 complete chain against a fresh MySQL database before release.
 
+## Convergence — Fresh-install Baseline & Seed Isolation (2026-08-22)
+
+All 89 migrations remain immutable per `AGENTS.md §Database changes`. New tooling
+provides **fresh-install** convergence without rewriting history:
+
+- **Baseline**: `init-db/baseline/baseline.sql` (generated, not Flyway source) + `init-db/scripts/generate-baseline.sh` / `validate-baseline.sh`. See `init-db/baseline/README.md`.
+- **Seed isolation**: New seeds go to `init-db/migrations/seed/` (dev/test only). Existing `V20260603*` seeds stay in place for backward compatibility. See `init-db/migrations/seed/README.md`.
+- **Owner ownership**: `init-db/scripts/owner-migrate.sh` consolidates the 5× `flyway-*.conf` seam into a single deep module interface `migrate(owner)` / `validate(owner)`, delegating to `scripts/dev/migrate.sh` with `MIGRATION_SCHEMA`.
+
+For AI: read `baseline.sql` for the converged final schema; consult `migrations/` only for historical intent.
+
 ## Migration Operational Checklist
 
 > Added by R10.8 (2026-06-17) to close F-SEC-10 (Flyway 迁移期间 admin / 用户操作无锁). See

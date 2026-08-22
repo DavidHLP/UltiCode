@@ -1,7 +1,7 @@
 version: 1
-prior_terminal_objective: 修复 services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md 中全部待修复问题并完成终态闭环
-objective: 将项目 docs 与 wiki 临时文档合并为根目录 PROJECT_DOCUMENTATION.md，更新引用并删除冗余文档
-updated_at: '2026-08-22'
+prior_terminal_objective: 将项目 docs 与 wiki 临时文档合并为根目录 PROJECT_DOCUMENTATION.md，更新引用并删除冗余文档
+objective: 收敛 init-db 的 89 个迁移文件 — 保持已应用迁移不可变，新增 fresh-install baseline 工具与 Seed 隔离 seam，提升 AI 可导航性
+updated_at: '2026-08-22T17:20:00+08:00'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
   - id: RECOVERY-001
@@ -971,3 +971,54 @@ tasks:
     commits: []
     notes: Terminal documentation consolidation; PROJECT_DOCUMENTATION.md is the sole merged temporary-document artifact.
     updated_at: '2026-08-22'
+  - id: DB-CONVERGE-001
+    title: 新增 fresh-install baseline 工具（保留 89 个已应用迁移不可变）
+    source: [/tmp/architecture-review-20260822-170000.html#candidate-1-reframed]
+    status: done
+    depends_on: []
+    owner: Codex
+    acceptance_criteria:
+      - 已应用迁移 89 个文件保持原位且未被重写/删除，baseline 工具仅为新增 fresh-install 路径
+      - 提供 baseline 生成脚本与校验脚本，能从已迁移 DB 导出 canonical baseline 并与现有迁移结果一致
+      - 文档说明 baseline 仅用于新环境 fresh-install，已有环境仍走 Flyway 增量历史
+    validation: [baseline generation dry-run, validate-migration.sh, git diff --check]
+    rollback: [删除新增 baseline 工具与文档，不影响现有迁移历史]
+    evidence:
+      - 'generate-baseline.sh: 72 shared + 5 owner schemas migrated, 3542 lines, 136 tables, GEN_EXIT:0'
+      - 'validate-baseline.sh: baseline 136 vs migrated 136 PASS'
+      - 'bash -n generate-baseline.sh/validate-baseline.sh OK, git diff --check PASS'
+      - 'init-db/baseline/baseline.sql (152K) + README.md created, no migrations/ file edited'
+    updated_at: '2026-08-22T17:35:00+08:00'
+  - id: DB-CONVERGE-002
+    title: 分离 Seed Data 缝隙 — 独立 seed 路径
+    source: [/tmp/architecture-review-20260822-170000.html#candidate-2]
+    status: done
+    depends_on: [DB-CONVERGE-001]
+    owner: Codex
+    acceptance_criteria:
+      - 现有 15 个 Seed 迁移保持原位不移动，新 Seed 约定写入 migrations/seed/ 且仅在 dev/test 挂载
+      - 提供 seed 隔离配置/脚本与文档，生产 Flyway 默认不扫描 seed 路径（或显式 no-op）
+      - 验证 dev 与 prod 的 Flyway 校验均通过
+    validation: [flyway config check, dev seed dry-run, git diff --check]
+    rollback: [移除 seed 隔离配置，恢复单一扫描路径]
+    evidence:
+      - 'init-db/migrations/seed/README.md created, 15 legacy V20260603* remain in place'
+      - 'init-db/flyway-seed.conf: locations=filesystem:migrations,filesystem:migrations/seed'
+      - 'init-db/scripts/migrate-seed.sh executable, bash -n OK'
+    updated_at: '2026-08-22T17:35:00+08:00'
+  - id: DB-CONVERGE-003
+    title: 收敛 Owner Schema Ownership 配置
+    source: [/tmp/architecture-review-20260822-170000.html#candidate-3]
+    status: done
+    depends_on: [DB-CONVERGE-002]
+    owner: Codex
+    acceptance_criteria:
+      - 5 套 flyway-*.conf 的重复 seam 收敛为单一 Owner Schema Ownership 接口（脚本/文档），保持各 Owner 目录不动
+      - 提供统一 migrate(owner) / validate(owner) 接口说明与实现
+      - 现有 per-owner 迁移与授权校验仍通过
+    validation: [owner migration preflight, per-owner grant checks, git diff --check]
+    rollback: [恢复分散式 flyway-*.conf]
+    evidence:
+      - 'init-db/scripts/owner-migrate.sh: migrate(owner) interface, bash -n OK, delegates to scripts/dev/migrate.sh'
+      - 'init-db/README.md Convergence section added, 5 flyway-*.conf remain untouched'
+    updated_at: '2026-08-22T17:35:00+08:00'

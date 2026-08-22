@@ -43,7 +43,7 @@ jobs:
               - 'services/auth/**'
               - 'services/admin/**'
               - 'services/app/**'
-              - 'init-db/migrations/**'
+              - 'init-db/**'
               - '.github/workflows/ci.yml'
             console:
               - 'apps/console/**'
@@ -265,7 +265,7 @@ jobs:
         image: mysql:9.1
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ulticode_test
+          MYSQL_DATABASE: ulticode
           MYSQL_USER: ulticode
           MYSQL_PASSWORD: ulticode
         ports:
@@ -280,7 +280,7 @@ jobs:
       DB_PORT: 23306
       DB_USER: ulticode
       DB_PASSWORD: ulticode
-      DB_NAME: ulticode_test
+      DB_NAME: ulticode
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -302,13 +302,35 @@ jobs:
             -v "$PWD/init-db/migrations:/flyway/sql:ro" \
             flyway/flyway:10.17.0 \
             -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user=ulticode -password=ulticode -connectRetries=10 migrate
+            -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" -connectRetries=10 migrate
           docker run --rm --network host \
             -v "$PWD/init-db/migrations:/flyway/sql:ro" \
             flyway/flyway:10.17.0 \
             -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user=ulticode -password=ulticode validate
+            -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" validate
 
+  # --- Backend: Baseline Parity (init-db deep module) ---
+  # Candidate 4 — CI gate for派生制品：baseline.sql 必须与增量迁移 per-schema 130 vs 130 一致
+  # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh
+  # 触发条件与 migrate-validate 一致（init-db/** 变更），不移动已应用历史，保持 deferred 物理归档约束
+  baseline-parity:
+    name: Baseline Parity (130 vs 130)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Validate baseline parity (per-schema 130)
+        run: |
+          set -euo pipefail
+          echo "[ci] validate-baseline.sh"
+          ./init-db/scripts/validate-baseline.sh 2>&1 | tee /tmp/validate-baseline.log
+          echo "[ci] baseline-adopt.sh disposable"
+          ./init-db/scripts/baseline-adopt.sh 2>&1 | tee /tmp/baseline-adopt.log
+          grep -q "PASS" /tmp/validate-baseline.log
+          grep -q "PASS" /tmp/baseline-adopt.log
+          echo "[ci] baseline parity PASS (scripts exit 0 + PASS found)"
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest

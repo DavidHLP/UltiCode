@@ -273,3 +273,19 @@ source files and the obsolete wiki manifest tool are removed. Active references,
 links, contract scripts, affected test, YAML, diff and graph checks passed.
 Worktree remains uncommitted; protected rules, `.auto-flow`, source code and
 unrelated prior changes were preserved.
+
+## 2026-08-23 init-db 架构收敛闭环（执行 /tmp/architecture-review-20260823-005833.html）
+
+**Objective**：执行 20260823-005833.html 的 4 个候选 — baseline external seam / seed 隔离 / owner 深模块 / CI 门禁的非破坏性收敛，保持已应用迁移不可变，partial/deferred 按 advisory 保留。
+
+**执行**：
+- C1 baseline external seam：per-schema 票据验证 PASS，bash/yaml/diff PASS，历史 disposable 票据保留，archive/README deferred 保持。
+- C2 seed seam：seed/README + flyway-seed.conf 审计通过，legacy 保留在 shared chain（增量仍扫描但已应用），新 seed 只进 seed/，baseline-optimized fresh-install 经 baseline 零扫描（标准仍经 incremental，见 baseline/README 24-35）；partial 状态按 advisory 保留。
+- C3 owner-migrate：owner-migrate.sh 深模块验证通过，up.sh 经 owner-migrate 编排 owners，5 owner flyway-*.conf 为 adapters。
+- C4 CI gate：新增 baseline-parity job，backend 触发拓至 init-db/**，grep 改为稳定 PASS 断言，yaml OK。
+
+**Review**：Confirmed Findings=0；**Validation**：per-schema 轻量验证 / bash / yaml / lint / diff 全 PASS，历史 disposable 票据保留。
+
+**限制**：DB-CONVERGE-002 partial（增量仍扫描 legacy seed）与 DB-CONVERGE-004 deferred（历史文件不移动）为不可消除约束，需 ADR 方可物理归档，不在本轮硬改。
+
+Authority：development/TEST-TARGET only，无 commit/push/prod 操作。

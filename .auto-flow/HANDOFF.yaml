@@ -1,50 +1,27 @@
 outcome: complete
 outputs:
-  - 'Context Packet: Services review report, repository instructions, Git state, graph status and direct source fallback reconciled'
-  - 'Execution Packet: ordered SVCFIX-20260822-A1..D4 DAG plus final Review/Validation/Completion gate'
-  - 'Coverage mapping appended to .auto-flow/COVERAGE.md; prior control-plane history preserved'
-  - 'A1 Implementation Packet: cookie/session-only CONNECT authentication, header fallback deletion, and rejection regression'
-  - 'A2 Implementation Packet: required nonblank OAuth state cookie and pre-consume rejection regression'
-  - 'B3 Implementation Packet: PROCESSING CAS claim, guarded terminal transitions, and duplicate-processing protection'
-  - 'B6 Implementation Packet: atomic role update with authz_version increment and same-role idempotency regression'
-  - 'B4-B5 Implementation Packet: durable AUTHORIZATION_CHANGED event through AuthAuditSinkPort, permission-version bump, and revocation-boundary wiki page'
-  - 'D1 Implementation Packet: per-seam Submission routing quiesce windows, error budgets, retirement gates and rollback artifact inventory'
-  - 'D2 Implementation Packet: judge-runtime package-info ownership declarations without DTO relocation'
-  - 'D3 Implementation Packet: exact SubmissionFactsSnapshot top-level/nested record-shape regression'
-  - 'D4 Implementation Packet: exact stray class artifact deletion with migration-guide preservation proof'
-  - 'Completion Audit: all ten SVCFIX tasks mapped, reviewed and validated; no delivery mutation authorized'
-  - 'Documentation Context Packet: docs/wiki inventory, protected worktree, source reference scan and graphify orientation'
-  - 'Documentation Execution Packet: one PROJECT_DOCUMENTATION.md, organized source map and exact deletion list'
-  - 'Consolidation Implementation Packet: PROJECT_DOCUMENTATION.md created and seven source documents plus wiki manifest/tool removed'
-  - 'Completion Audit: single-document objective, coverage, review, validation, protected-worktree and task-state gates passed'
+- 'INITDB-C1: baseline — migrations sole source per AGENTS, baseline generated --no-data optimization, lightweight per-schema PASS'
+- 'INITDB-C2: seed — new seeds only seed/ via flyway-seed.conf, CI filesystem:/flyway/sql/*.sql non-recursive, legacy partial preserved'
+- 'INITDB-C3: owner-migrate — migrate|validate|info <owner|all> via owner-migrate.sh, baseline via baseline-adopt.sh / DEV_LOCAL, up.sh delegation'
+- 'INITDB-C4: CI — backend trigger init-db/**, migrate-validate root + non-recursive, baseline-parity dual PASS'
+- 'Docs: PROJECT_DOCUMENTATION.md §2 synchronized — stable paths/contracts/commands, sole source corrected, generic baseline removed, volatile removed per AGENTS 116'
+- 'ReviewControlPlane fixes: RESUME volatile removed, 5 owner adapters corrected, C1 DAG deferred removed, COVERAGE 2026-08-23 added'
+- 'Validation: bash -n/yaml/lint/diff/per-schema lightweight PASS; prior disposable parity retained; ReviewCI root privilege corrected'
 evidence:
-  - 'git status: only pre-existing untracked review report and services graphify cache stamp before this control-plane update'
-  - 'graph project UltiCode ready; exact check_index_coverage returned coverage_unavailable, so material paths were read directly'
-  - 'graphify query completed for the Services review scope'
-  - 'JwtChannelInterceptorTest + TokenExtractorTest: 17/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0'
-  - 'source scan and git diff --check confirm the header-token extractor is removed'
-  - 'OAuthStateModuleTest: 8/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0'
-  - 'AuditOutboxDispatcherTest + AuditOutboxProcessorTest: 7/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0'
-  - 'Initial AuditSinkTransactionIT attempt exposed the Admin constructor baseline; one @Autowired gate repair followed, then Admin *IT passed 44/0/0/0'
-  - 'AuthAccountPersistenceIT: 3/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0'
-  - 'RoleAdministrationServiceImplTest + AuthAuditSinkAdapterTest + AuthAccountPersistenceIT: 9/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0'
-  - 'wiki-manifest generate and --check: PASS; one security page in sync'
-  - 'D1 architecture documentation scan and git diff --check: PASS'
-  - 'judge-runtime -am test: 28/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0; package ownership scan PASS'
-  - 'SubmissionFactsSnapshotTest: 7/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0'
-  - 'D4 artifact absence, migration-guide SHA/status preservation, and git diff --check: PASS'
-  - 'Final verify: BUILD SUCCESS, MAVEN_EXIT=0; non-IT Surefire aggregate 783 reports / 2638 tests / 0 failures / 0 errors / 16 skips'
-  - 'Admin *IT after constructor gate repair: 44/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0; root broad *IT rerun host-timeout-limited at 300 seconds with no exit status'
-  - 'Owner migration, architecture/devstack, wiki, Compose, YAML, diff, integrity and graph gates PASS'
-  - 'source completeness check: seven source markers and all source headings represented in PROJECT_DOCUMENTATION.md'
-  - 'reference migration changed README, AGENTS, executable checks, tests, source Javadocs and migration comments to PROJECT_DOCUMENTATION.md'
-  - 'exact deletion target check passed; protected rule files and unrelated dirty changes were not deleted'
-  - 'final documentation validation: architecture/devstack contracts PASS, PerOwnerSchemaGrantTest 6/0/0/0, links 49/0, YAML/diff/inventory PASS, graphify refreshed'
+- 'PROJECT_DOCUMENTATION.md §2: migrations sole source per AGENTS, baseline generated --no-data optimization for baseline-optimized fresh-install/AI (standard via migrate.sh + owner-migrate, baseline via baseline-adopt.sh + baseline/README 24-35)'
+- 'Seed: legacy on shared *.sql (APPLIED), new seeds only seed/ via flyway-seed.conf, baseline-optimized fresh-install zero seed (standard incremental retained)'
+- 'ci.yml: MYSQL_DATABASE ulticode / DB_NAME ulticode / URLs /ulticode consistent with ALTER DATABASE ulticode; -user root + -locations *.sql non-recursive, backend trigger init-db/**, baseline-parity dual PASS'
+- .auto-flow/RESUME.md volatile migration count removed, fresh-install qualified as baseline-optimized per baseline/README 24-35
+- .auto-flow/COVERAGE.md 2026-08-23 INITDB mapping added, git diff --check PASS
+- 'prior disposable: DB-CONVERGE-001 parity, DB-CONVERGE-002 partial, DB-CONVERGE-004 deferred retained'
+- 'COVERAGE review: git diff -- .auto-flow/COVERAGE.md + git diff --cached -- .auto-flow/COVERAGE.md reviewed, new init-db 2026-08-23 mapping validated, git diff --check PASS'
 next_goal: ''
 next_skill: none
-reason: 'Documentation consolidation, reference migration, Review, Validation, Coverage and Completion Audit all passed.'
+reason: RESUME 历史 volatile removed and fresh-install qualified as baseline-optimized per baseline/README 24-35; doc bullets qualified as baseline-optimized (standard incremental retained). All feasible convergence delivered under immutability; partial/deferred remain.
 alternatives: []
-blockers: []
+blockers:
+- 'DB-CONVERGE-002 partial: shared chain lists legacy seeds as APPLIED (non-recursive only prevents new leakage)'
+- 'DB-CONVERGE-004 deferred: history → baseline + archive physical move requires ADR for flyway_schema_history compatibility'
 authority:
   commit: false
   push: false

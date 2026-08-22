@@ -169,3 +169,15 @@ host-timeout-limited after affected Admin `*IT` passed 44/0/0/0 and final
 | Update active references and executable checks | DOCMERGE-20260822-REFERENCES | README/AGENTS/scripts/tests/source reference scan | PASS |
 | Review links/content/deletion scope | DOCMERGE-20260822-REVIEW | zero active deleted-path references, protected-worktree review | PASS |
 | Validate and close | DOCMERGE-20260822-VALIDATE / DOCMERGE-20260822-CLOSE | contract scripts, YAML, diff and final audit | PASS |
+
+## init-db 收敛 2026-08-23
+
+| Requirement / report candidate | Task | Required evidence | Status |
+| --- | --- | --- | --- |
+| Baseline external seam — migrations 为唯一源，baseline 为生成优化 | INITDB-20260823-C1 | baseline per-schema 票据，bash/yaml/lint/diff，历史 disposable 票据保留 | PASS |
+| Seed 隔离 — 新 seed 仅 seed/，CI 非递归 | INITDB-20260823-C2 | seed/README + flyway-seed 审计，CI filesystem:/flyway/sql/*.sql 非递归 | PASS |
+| Owner 深模块 — owner-migrate 编排入口 | INITDB-20260823-C3 | owner-migrate.sh + up.sh delegation，flyway owner adapters | PASS |
+| CI 门禁 — baseline-parity + migrate-validate | INITDB-20260823-C4 | ci.yml backend trigger init-db/**，validate-baseline + baseline-adopt 双 PASS，yaml OK | PASS |
+| 文档同步与 Review/Validation 闭环 | INITDB-20260823-REVIEW-VALIDATE-CLOSE | Review 0，per-schema 轻量验证，affected documentation current | PASS |
+
+Partial `DB-CONVERGE-002`（增量仍列 legacy seed）与 `deferred DB-CONVERGE-004`（物理归档需 ADR）按 `AGENTS.md` 保留为不可消除。

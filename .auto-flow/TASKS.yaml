@@ -1,1044 +1,1522 @@
 version: 1
 prior_terminal_objective: 将项目 docs 与 wiki 临时文档合并为根目录 PROJECT_DOCUMENTATION.md，更新引用并删除冗余文档
-objective: 收敛 init-db 的 89 个迁移文件 — 保持已应用迁移不可变，新增 fresh-install baseline 工具与 Seed 隔离 seam，提升 AI 可导航性
-updated_at: '2026-08-22T17:20:00+08:00'
+objective: 执行 /tmp/architecture-review-20260823-005833.html 的 4 个候选 — baseline external seam/seed隔离/owner深模块/CI门禁的非破坏性收敛（保持已应用迁移不可变，partial/deferred 保留）
+updated_at: '2026-08-23T01:10:00+08:00'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
-  - id: RECOVERY-001
-    title: 对账现有控制面与工作区修改
-    status: done
-    depends_on: []
-    evidence: [control-plane YAML loaded, git status reconciled, graphify query]
-  - id: RECOVERY-002
-    title: 定位 Submission 测试 API 漂移
-    status: done
-    depends_on: [RECOVERY-001]
-    evidence: [exact test/source API comparison, stale local API artifact confirmed]
-  - id: COMPAT-001
-    title: 修复 app-web Search contract 测试漂移
-    status: done
-    depends_on: [RECOVERY-002]
-    evidence: [fresh backend-auth-api/backend-app-api install, app-web test-compile BUILD SUCCESS]
-  - id: COMPAT-002
-    title: 恢复 Submission Projection 专项测试
-    status: done
-    depends_on: [COMPAT-001]
-    evidence: [DefaultSubmissionProjectionTest 11/0/0/0 PASS]
-  - id: FINAL-001
-    title: 执行全量相关 reactor 验证
-    status: done
-    depends_on: [COMPAT-002]
-    evidence: [app/app-web -am test BUILD SUCCESS, Search worker 11/0/0/0, Admin summary 6/0/0/0]
-  - id: FINAL-002
-    title: 完成 Review 与控制面终态收口
-    status: done
-    depends_on: [FINAL-001]
-    evidence: [graphify update, YAML parse, git diff --check, HANDOFF complete, no blockers]
-  - id: CRFIX-REVIEW-001
-    title: 修复 Auth dashboard contract import and Hessian serialization
-    status: done
-    depends_on: [FINAL-002]
-    evidence: [auth-api contract 16/0/0/0, auth compile, AccountStatsSummary Serializable]
-  - id: CRFIX-REVIEW-002
-    title: 修复 Submission page-level user/problem batching
-    status: done
-    depends_on: [CRFIX-REVIEW-001]
-    evidence: [App projection multi-row batch regression, Submission MySQL IT 8/0/0/0]
-  - id: CRFIX-REVIEW-003
-    title: 恢复 Auth dashboard role counts
-    status: done
-    depends_on: [CRFIX-REVIEW-001]
-    evidence: [real MySQL mapper role-count IT 2/0/0/0, adapter unit test]
-  - id: CRFIX-REVIEW-004
-    title: 保留 Search DLQ full integration envelope
-    status: done
-    depends_on: [CRFIX-REVIEW-002]
-    evidence: [Search worker unit 11/0/0/0, Redis+Meili E2E 4/0/0/0]
-  - id: CRFIX-REVIEW-005
-    title: 完成 CR re-review 与风险验证
-    status: done
-    depends_on: [CRFIX-REVIEW-003, CRFIX-REVIEW-004]
-    evidence: [affected reactor BUILD SUCCESS, services verify BUILD SUCCESS, fresh IT XML 68 reports 225 tests 0 failures 0 errors 17 skips, graphify update, diff check]
-    notes: >-
-      Development-only authority. No commit, push, publish, deploy or production action.
-      Existing business changes and control-plane history remain in the working tree.
-
-  - id: AR20260820-001
-    title: 收敛 DevStack dev-lite Owner migration readiness
-    source: [/tmp/architecture-review-20260820.html#candidate-1]
-    status: done
-    depends_on: []
-    acceptance_criteria: [deterministic Owner migration order, explicit dev-lite readiness, explicit dev-full seam]
-    validation: [up.sh smoke, config checks, diff check]
-    rollback: [revert startup changes, retain cutover entrypoints]
-    evidence:
-      - 'bash -n scripts/dev/up.sh scripts/dev/migrate.sh PASS'
-      - 'scripts/dev/up.sh --help contract PASS'
-      - 'scripts/dev/devstack-manifest-test.sh PASS'
-      - 'scripts/dev/migrate-owner-preflight-test.sh PASS'
-      - 'scripts/dev/owner-migration-safety-integration-test.sh PASS'
-      - 'fresh disposable MySQL 9.1 up.sh migration-only smoke PASS for all five Owner chains, provisioning, and readiness'
-      - 'Compose dev/prod config, default local profile assertions, dev-full cutover-negative check, graphify update, and git diff --check PASS'
-    commits: []
-    notes: Development-only.
-    updated_at: '2026-08-20'
-  - id: AR20260820-002
-    title: 隔离 Admin Dashboard 外部表读取 seam
-    source: [/tmp/architecture-review-20260820.html#candidate-2]
-    status: done
-    depends_on: [AR20260820-001]
-    acceptance_criteria: [no foreign-table selects, one bounded coarse read seam, unavailable semantics]
-    validation: [Admin tests, reactor, bounded-call assertions]
-    rollback: [restore through source seam]
-    evidence:
-      - 'affected Admin/App/Submission reactor compile BUILD SUCCESS'
-      - 'focused seam/projection tests: 37 tests, 0 failures, 0 errors; full affected reactor unit suite BUILD SUCCESS'
-      - 'App DashboardAdminReadProviderIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
-      - 'canonical app-schema DashboardAdminReadProviderIT plus typed DashboardBucketCount mapper: 2/0/0/0'
-      - 'SubmissionAdminReadProviderIT: 4 tests, 0 failures, 0 errors, real MySQL 8.0'
-      - 'affected reactor verify: 1399 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
-      - 'Admin foreign-table SQL boundary and MapperScan boundary PASS'
-      - 'Admin dashboard authorization focused tests: 26 tests, 0 failures, 0 errors'
-      - 'graphify update ., control-plane YAML parse, and git diff --check PASS'
-    commits: []
-    notes: Admin owns read shape only.
-    updated_at: '2026-08-20'
-  - id: AR20260820-003
-    title: 隔离 App Submission 兼容矩阵
-    source: [/tmp/architecture-review-20260820.html#candidate-3]
-    status: done
-    depends_on: [AR20260820-002]
-    acceptance_criteria: [one stable intake, explicit migration seam, rollback preserved]
-    validation: [routing tests, compile, integration]
-    rollback: [retain adapters and authority]
-    evidence:
-      - 'SubmissionRoutingProperties central selection helper implemented for write/fence/user-read wrappers'
-      - 'SubmissionRoutingPortTest: 9 tests, 0 failures, 0 errors'
-      - 'SubmissionRoutingPropertiesTest: 3 tests, 0 failures, 0 errors; FlagCombinationValidatorTest: 9 tests, 0 failures, 0 errors'
-      - 'SubmissionPortWiringTest and affected App compile/test BUILD SUCCESS'
-      - 'affected App verify: 1401 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
-      - 'routing seam/config assertions, graphify update, YAML parse, and git diff --check PASS'
-      - 'Remote/local adapters and legacy dispatcher retained; no production cutover or rollback path deletion'
-    commits: []
-    notes: No production retirement.
-    updated_at: '2026-08-20'
-  - id: AR20260820-004
-    title: 对齐 Auth Account 与 App Profile schema ownership
-    source: [/tmp/architecture-review-20260820.html#candidate-4]
-    status: done
-    depends_on: [AR20260820-003]
-    acceptance_criteria: [later migration removes unused columns, App sole profile writer, expand-verify-contract]
-    validation: [migration and schema-contract tests]
-    rollback: [never edit applied migrations]
-    evidence:
-      - 'AuthProfileSchemaOwnershipIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
-      - 'SearchBackfillReadPortIT shared Flyway regression: 5 tests, 0 failures, 0 errors; contract migration no-op on already narrowed schema'
-      - 'Auth reactor verify: BUILD SUCCESS, 217 tests, 0 failures, 0 errors, 0 skipped'
-      - 'App profile writer/provider focus: 19 tests, 0 failures, 0 errors, real MySQL 8.0 provider included'
-      - 'owner-migration-safety-integration-test: MySQL 9.1 Auth/App migrations, account/profile backfill, soft-deleted preservation and grant isolation PASS'
-      - 'migrate-owner-preflight-test, bash -n, graphify update, and git diff --check PASS'
-    commits: []
-    notes: Owner/schema drift fix only.
-    updated_at: '2026-08-20'
-  - id: AR20260820-005
-    title: 补齐 Search 写入读取 disposable 验证 seam
-    source: [/tmp/architecture-review-20260820.html#candidate-5]
-    status: done
-    depends_on: [AR20260820-004]
-    acceptance_criteria: [event-to-query harness, idempotent writes, DLQ and fallback observable]
-    validation: [Search tests, Redis+Meili E2E, reactor]
-    rollback: [disable harness only]
-    evidence:
-      - 'SearchEventToQueryE2EIT: 3 tests, 0 failures, 0 errors, real Redis 7 + real getmeili/meilisearch:v1.8'
-      - 'Search worker focus: SearchDocumentIndexWorkerTest 11/0/0 and SearchWorkerEndToEndIT 4/0/0'
-      - 'App Search focus: SearchEventToQueryE2EIT, DefaultSearchReadProjectionTest, SearchSourceContractTest and SearchDocumentChangedPublisherTest 32/0/0'
-      - 'Affected App verify: BUILD SUCCESS, 1401 tests, 0 failures, 0 errors, 13 skipped; backend-search reactor package SUCCESS'
-      - 'services reactor order places backend-search before app; SearchEventToQueryE2EIT test-only dependency compiles in a fresh reactor'
-      - 'Compose dev/prod config with disposable MEILI_MASTER_KEY, control-plane YAML, graphify update, and git diff --check PASS'
-    commits: []
-    notes: No runtime service added.
-    updated_at: '2026-08-20'
-  - id: AR20260820-006
-    title: 完成架构评审终态审计与开发交付收口
-    source: [/tmp/architecture-review-20260820.html#top-recommendation, /tmp/architecture-review-20260820.html#do-not-split]
-    status: done
-    depends_on: [AR20260820-001, AR20260820-002, AR20260820-003, AR20260820-004, AR20260820-005]
-    acceptance_criteria:
-      - all report requirements are evidence-backed
-      - no new modules are added to force convergence
-      - judge-runtime remains the existing storage-free implementation and is not physically split again
-      - rollback paths are retained and local rehearsal is not production acceptance
-      - focused/module/integration/security/formal review has zero unresolved findings
-    validation: [full reactor, integration evidence, graphify update, YAML parse, diff check, final review]
-    rollback: [no unauthorized history or deployment operation]
-    evidence:
-      - 'AR20260820-001..005 are done; each acceptance, rollback, review, validation and Coverage mapping is recorded above'
-      - 'Fresh services ./mvnw verify -B: BUILD SUCCESS, MAVEN_EXIT=0; Surefire XML 829 reports, 2792 tests, 0 failures, 0 errors, 29 skips'
-      - 'Current target integration gates: 12 focused owner/MySQL tests plus SearchBackfillReadPortIT 5/0/0/0, SearchEventToQueryE2EIT 3/0/0/0, owner migration safety PASS; broad *IT selector timed out at host 300s without exit and is not counted as pass'
-      - 'JudgeRuntimeConfiguration/source/POM audit proves storage-free explicit import; no new runtime module or physical judge split was added'
-      - 'Rollback inventory, development-only authority, control-plane YAML, graphify update and git diff --check PASS'
-    commits: []
-    notes: Terminal gate; development-only authority.
-    updated_at: '2026-08-20'
-  - id: CRFIX-REVIEW-006
-    title: 修复 Auth Flyway 与 Dashboard 聚合 CR
-    source: [review output 2026-08-21]
-    status: done
-    depends_on: [AR20260820-006]
-    acceptance_criteria:
-      - applied V20260820180000 remains byte-for-byte unchanged and a later guarded migration handles already-narrowed Auth schemas
-      - problem charts retain published_at semantics and exclude drafts from publication buckets
-      - derived problem status buckets aggregate deleted active/inactive rows into one DELETED result
-    validation:
-      - focused Dashboard provider/projection tests
-      - real MySQL SearchBackfillReadPortIT and AuthProfileSchemaOwnershipIT
-      - services verify, owner migration preflight/safety rehearsal, Compose config, graphify update and diff check
-    rollback: [remove the new follow-up migration and revert only the scoped Dashboard/config/test changes]
-    evidence:
-      - 'applied migration unchanged check: exit 0'
-      - 'Dashboard focused: 11 tests, 0 failures, 0 errors, 0 skipped'
-      - 'SearchBackfillReadPortIT: 5 tests, 0 failures, 0 errors, 0 skipped; AuthProfileSchemaOwnershipIT: 2 tests, 0 failures, 0 errors, 0 skipped'
-      - 'services verify: BUILD SUCCESS, fresh 757 Surefire reports, 2557 tests, 0 failures, 0 errors, 20 skips'
-      - 'owner migration preflight and MySQL 9.1 safety rehearsal PASS; Compose dev/prod config PASS; graphify update and diff check PASS'
-    notes: Development/TEST-TARGET only; no commit, push, publish, deploy, cutover, grant or production action.
-    updated_at: '2026-08-21'
-
-  - id: ARCH-20260821-001
-    title: 将 dev-lite 收敛为唯一第一类开发 interface
-    source: [/tmp/architecture-review-20260821112953.html#dev-contract]
-    status: done
-    depends_on: []
-    acceptance_criteria:
-      - DevStack manifest owns dev-lite/dev-full route, role, search and judge mode exports
-      - dev-lite is local Submission + database Search + no Search worker, with explicit Admin route defaults
-      - dev-full is explicit remote/indexed rehearsal, starts the Search worker and remains cutover-gated
-      - up.sh, ecosystem.config.cjs, Compose, README and shell contract tests describe the same modes
-      - manifest owns infrastructure/service readiness attempts, intervals, bootstrap timeout and per-app readiness banner rules
-    validation: [manifest contract, bash -n, up.sh help/mode assertions, Compose config, focused startup checks]
-    rollback: [revert manifest/launcher/config/docs only; retain existing cutover and rollback entrypoints]
-    evidence:
-      - 'bash -n scripts/dev/up.sh scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh exit 0'
-      - 'scripts/dev/devstack-manifest-test.sh exit 0: deterministic lite/full app sets and mode exports'
-      - 'manifest timing/banner contract assertions pass; up.sh consumes all declared readiness and bootstrap values'
-      - 'up.sh --help exit 0 documents local DB search versus explicit indexed Search worker'
-      - 'ecosystem.config.cjs mode-default assertion exit 0'
-      - 'README and services architecture status updated to match manifest behavior'
-    commits: []
-    notes: Development/TEST-TARGET only; no production route or grant action.
-    updated_at: '2026-08-21'
-  - id: ARCH-20260821-002
-    title: 将 Judge execution wiring 从 App 自动扫描中收深
-    source: [/tmp/architecture-review-20260821112953.html#judge-seam]
-    status: done
-    depends_on: [ARCH-20260821-001]
-    acceptance_criteria:
-      - Judge-only worker, attempt executor and stream migration/reaper wiring are explicit in JudgeRuntimeConfiguration
-      - App compatibility runtime does not auto-register Judge-only scheduled processors
-      - App retains only a default-off, explicitly configured legacy RQueue compatibility adapter for rollback
-      - Judge boot wiring and App absence are covered by focused architecture/context tests
-      - storage-free judge-runtime, existing queue contracts and rollback compatibility remain intact
-    validation: [Judge focused tests, App context/wiring test, affected reactor compile/test]
-    rollback: [restore stereotypes/import wiring without changing queue data or contracts]
-    evidence:
-      - 'JudgeRuntimeConfigurationTest 2/0/0/0 PASS after explicit import wiring'
-      - 'BackendAppApplicationTest 6/0/0/0 PASS; App context has no Judge-only worker/reaper beans'
-      - 'judge POM Surefire argLine baseline fixed after first focused run exposed literal @{argLine}'
-      - 'source scan confirms no Judge-only stereotype remains and all four classes are explicitly imported by JudgeRuntimeConfiguration'
-      - 'AppJudgeCompatibilityConfiguration is default-off, imports only DefaultJudgeAttemptExecutor when explicitly enabled, and AppJudgeCompatibilityConfigurationTest passes'
-      - 'focused review: no hidden caller, Owner, queue, rollback or public contract change found'
-    updated_at: '2026-08-21'
-  - id: ARCH-20260821-003
-    title: 将 AdminReadModel seam 收敛为查询垂直切片
-    source: [/tmp/architecture-review-20260821112953.html#admin-query]
-    status: done
-    depends_on: [ARCH-20260821-002]
-    acceptance_criteria:
-      - Admin analytics read interface exposes coarse contest, revenue and overview slices
-      - Dashboard and existing user-detail projection expose coarse page/detail query slices; owner fan-out and VO shaping stay behind their deep modules
-      - existing reporters and adapter retain entity-free owner reads and bounded batch behavior
-      - removed per-metric interface methods have no hidden callers or test-only implementors
-      - Admin projection/read tests cover slice outputs and owner-unavailable semantics
-    validation: [Admin focused tests, affected reactor test/verify, contract/source boundary scan]
-    rollback: [restore the old AdminAnalyticsPort methods and adapter delegation without data changes]
-    evidence:
-      - 'AdminAnalyticsPort reduced to contest, revenue and overview query slices; metric-level methods are implementation-private'
-      - 'Dashboard adapter/projection, analytics slice and bounded executor focus: 14/0/0/0 PASS'
-      - 'Existing AdminUserProjection list/detail vertical slice: 3/0/0/0 PASS; no controller contract changed'
-      - 'No remaining Admin caller or alternate implementor references removed methods'
-      - 'Admin adapter retains entity-free owner contracts and batch contest read'
-    updated_at: '2026-08-21'
-  - id: ARCH-20260821-004
-    title: 将 owner-composed user facts 收成可批量读取的 deep module
-    source: [/tmp/architecture-review-20260821112953.html#user-facts]
-    status: done
-    depends_on: [ARCH-20260821-003]
-    acceptance_criteria:
-      - UserReadMapper exposes one bounded batch composition path for Auth account plus App profile
-      - OwnerUserReadAdapter composes account/profile facts in one Auth batch plus one profile batch
-      - ModerationUserReadAdapter no longer loops selectById for a page of IDs
-      - missing-account and Auth-unavailable semantics remain explicit and regression-tested
-    validation: [user facts unit tests, moderation batch regression, affected App tests, source call-site scan]
-    rollback: [retain the existing single-row path and revert only batch contract/callers]
-    evidence:
-      - 'UserReadMapper now exposes selectByIds(Collection) with Auth account batch + App profile batch composition'
-      - 'OwnerUserReadAdapterTest 6/0/0/0 PASS, including one Auth/profile batch regression and typed facts batch'
-      - 'ModerationUserReadAdapterTest 1/0/0/0 PASS; selectByIds is called once and selectById is never called'
-      - 'Affected App reactor compile/test BUILD SUCCESS; first strict-stubbing mismatch fixed by ordered de-duplicated IDs'
-      - 'Search-specific cursor seam intentionally retained because ordering/count semantics differ'
-    updated_at: '2026-08-21'
-  - id: ARCH-20260821-005
-    title: 统一 Search 的实时读与索引读语义
-    source: [/tmp/architecture-review-20260821112953.html#search-semantics]
-    status: done
-    depends_on: [ARCH-20260821-001, ARCH-20260821-004]
-    acceptance_criteria:
-      - Search read mode is explicit: dev-lite deterministic database, indexed mode event-backed Meili
-      - fallback-to-database is an explicit policy and is covered independently from indexed reads
-      - indexed mode requires an explicitly enabled Search worker and returns source/freshness/order/total/fallback semantics
-      - App unit and disposable Redis/Meili tests cover both modes, unavailable indexed backend and exact totals
-      - production Compose preserves current indexed-plus-explicit-fallback behavior without new runtime infrastructure
-    validation: [Search focused tests, disposable Redis/Meili E2E, affected App/Search reactor verify, Compose config]
-    rollback: [default to database mode and retain existing Meili/worker/fallback adapter paths]
-    evidence:
-      - 'SearchReadProperties binds explicit DATABASE/INDEXED mode and fallback policy'
-      - 'DefaultSearchReadProjectionTest + SearchReadPropertiesTest: 25/0/0/0 PASS'
-      - 'SearchReadSemantics is returned for database, indexed and fallback responses; indexed mode fails closed when worker-enabled is not true'
-      - 'database mode ignores configured Meili client; indexed mode fails closed without fallback'
-      - 'SearchEventToQueryE2EIT real Redis 7 + Meili v1.8: 3/0/0/0 PASS, including indexed event-to-query, DLQ and explicit fallback'
-      - 'App/Search affected reactor BUILD SUCCESS; Search worker remains sole Meili writer'
-      - 'production Compose passes the existing SEARCH_WORKER_ENABLED gate to App; application defaults preserve indexed + DB fallback without new infrastructure'
-    updated_at: '2026-08-21'
-  - id: ARCH-20260821-006
-    title: 完成五项架构收敛的 Review、Validation 与 Completion Audit
-    source: [/tmp/architecture-review-20260821112953.html#top-recommendation]
-    status: done
-    depends_on: [ARCH-20260821-001, ARCH-20260821-002, ARCH-20260821-003, ARCH-20260821-004, ARCH-20260821-005]
-    acceptance_criteria:
-      - all five candidates are implemented or source-proven already addressed with current evidence
-      - all callers/contracts/config/tests/docs are synchronized and Confirmed Findings equals zero
-      - development-only validation is reported without production acceptance claims
-      - user .auto-flow history and unrelated changes remain protected; no commit/push/deploy occurs
-    validation: [full applicable reactor verify, focused real-service gates, integration/E2E, graph refresh, YAML/Compose/diff checks, final review]
-    rollback: [revert scoped code/config/test/docs changes; do not revert user work or applied migrations]
-    evidence:
-      - 'Standards and Spec review re-run after fixes: Confirmed Findings=0; both former timeout/readiness HIGH findings closed'
-      - 'services verify exit 0: 834 Surefire reports, 2805 tests, 0 failures, 0 errors, 29 skipped'
-      - 'real SearchEventToQueryE2EIT with disposable Redis 7 + Meili v1.8: 3/0/0/0 PASS'
-      - 'Admin bounded executor focus 9/0/0/0; App/Search semantic focus 25/0/0/0; App context 6/0/0/0; Judge wiring 2/0/0/0'
-      - 'DevStack manifest contract, bash syntax, Compose dev/prod config, wiki manifest, console type-check and git diff --check exit 0'
-      - 'fresh graphify update and UltiCode-current graph generation 2026-08-21T05:25:15Z; changed Java paths metadata_match/no_recorded_issue'
-    commits: []
-    notes: Terminal objective gate.
-    updated_at: '2026-08-21'
-
-  - id: ARCHREV-20260821-001
-    title: 将 Owner 数据责任收敛为默认 fail-closed 的运行边界
-    source: [/tmp/architecture-review-20260821-163916.html#candidate-01]
-    status: done
-    depends_on: []
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - auth/admin/notification/submission runtime datasource configuration requires owner-specific connection variables and no longer silently falls back to generic DB_* variables
-      - supported dev launcher still provisions one MySQL instance with owner-specific schemas/accounts and migration identity separated from runtime identity
-      - owner configuration boundary tests fail when a runtime config reintroduces implicit shared DB fallback
-      - existing App profile writer and Auth account/status ownership remain unchanged; no applied migration is edited
-    validation: [owner config contract test, shell syntax, owner migration preflight/safety rehearsal, affected owner tests, Compose config, diff check]
-    rollback: [revert owner datasource placeholder changes and boundary tests; retain existing owner schemas, migrations and cutover scripts]
-    evidence:
-      - 'OwnerDatasourceConfigurationTest via services/mvnw -pl admin -am -Dtest=OwnerDatasourceConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -B: exit 0, 1 test, 0 failures, 0 errors, 0 skipped'
-      - 'owner runtime YAML scan: generic DB_HOST/PORT/NAME/USER fallback count 0; all five Owner-specific variable groups are required'
-      - 'git diff --check: exit 0; no applied Flyway migration or data action performed'
-    commits: []
-    notes: Development/TEST-TARGET only; one MySQL instance remains in scope. Review scope is config/test and found no caller or ownership drift.
-    updated_at: '2026-08-21'
-
-  - id: ARCHREV-20260821-002
-    title: 将 dev-lite 收敛为唯一、最小且可复现的开发策略来源
-    source: [/tmp/architecture-review-20260821-163916.html#candidate-02]
-    status: done
-    depends_on: [ARCHREV-20260821-001]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - devstack-manifest.sh is the sole supported dev-lite/dev-full policy source for route, search, judge and owner capability exports
-      - application YAML defaults, ecosystem PM2 defaults, .env.example and migration documentation agree with dev-lite; dev-full remains explicit and cutover-gated
-      - dev-lite does not require MeiliSearch or Search worker and each started backend is justified by a tested caller/readiness dependency
-      - mode contract tests cover the complete capability matrix and fail on drift between manifest, launcher and PM2
-    validation: [devstack manifest tests, bash -n, up.sh help/mode checks, YAML consistency audit, Compose dev/prod config, focused startup failure checks]
-    rollback: [revert mode/default/documentation changes; keep existing dev-full and cutover entrypoints]
-    evidence:
-      - 'scripts/dev/devstack-manifest-test.sh exit 0; dev-lite/dev-full APP_RUNTIME_MODE and capability matrix assertions pass'
-      - 'bash -n scripts/dev/up.sh scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh scripts/dev/init-env.sh exit 0; up.sh --help exit 0'
-      - 'node --check ecosystem.config.cjs exit 0; git diff --check exit 0'
-      - 'direct local defaults now match dev-lite (local Submission, database Search, no Search worker); production Compose explicitly preserves indexed Search + DB fallback'
-      - 'Submission owner retained after caller scan: Admin dashboard/submission projections and App Submission owner reads require its readiness in the supported six-backend dev-lite path'
-    notes: Development/TEST-TARGET only; mode policy is manifest-backed and documentation no longer claims Phase 7 production retirement is already complete. Do not remove Submission owner blindly; prove whether Admin/worker reads require it before changing the process set.
-    commits: []
-    updated_at: '2026-08-21'
-
-  - id: ARCHREV-20260821-003
-    title: 收敛 Judge Streams 的重复 transport contract source
-    source: [/tmp/architecture-review-20260821-163916.html#candidate-03]
-    status: done
-    depends_on: [ARCHREV-20260821-002]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - JudgeJobEnvelope, JudgeJobHandle, JudgeQueue and stream key contract have one source of truth consumed by Submission and Judge
-      - concrete role-specific wiring remains storage-free and does not introduce a new runtime process or business-table dependency
-      - contract shape, JSON compatibility, ack/nack/dedup and Redis Streams integration tests pass from both producer and consumer sides
-      - duplicate contract FQCN/source scan is zero; compatibility envelope version remains backward compatible
-    validation: [submission-api/transport contract tests, affected Submission/Judge unit tests, Redis Streams integration, reactor compile/test, duplicate source scan]
-    rollback: [restore local contract copies from the same pre-change source without changing Redis keys or persisted data]
-    evidence:
-      - 'JudgeQueueContractShapeTest + SubmissionApiContractShapeTest: 8/0/0/0 PASS; versioned JSON round-trip and stable Redis key assertions pass'
-      - 'affected Judge/Submission reactor compile: exit 0; focused Judge/Queue/SubmissionOutbox tests: 9 executed, 0 failures, 0 errors, 4 environment-gated Redis skips'
-      - 'old queue contract references: 0 Java files; duplicate contract paths between judge-runtime and submission: 0'
-      - 'backend-judge-config is the single runtime flag/validator source; FeatureFlagsProperties main-source count is 1'
-      - 'wire JSON, Redis stream keys, ack/nack/dedup behavior remain unchanged; only contract ownership/package source moved'
-    commits: []
-    notes: Extract only the real transport contract; do not put business persistence or sandbox implementation into a contract module.
-    updated_at: '2026-08-21'
-
-  - id: ARCHREV-20260821-004
-    title: 将迁移 flag 矩阵收敛为命名运行形态并删除 dead config
-    source: [/tmp/architecture-review-20260821-163916.html#candidate-04]
-    status: done
-    depends_on: [ARCHREV-20260821-003]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - supported dev modes are named and exported as coherent capability states rather than independently authored boolean defaults
-      - illegal combinations fail before accepting work; existing local/remote Submission routing and Judge legacy/Streams rollback semantics remain explicit
-      - dead envelope-version configuration is removed or made executable; no stale flag remains silently ignored by dispatchers
-      - tests cover dev-lite, dev-full, unavailable worker and cutover-negative states
-    validation: [flag binding/validator tests, manifest mode tests, App/Judge context tests, affected reactor tests, config grep audit]
-    rollback: [restore previous flag properties and validator behavior while retaining single-writer and queue contract fixes]
-    evidence:
-      - 'devstack manifest named dev-lite/dev-full capability assertions pass with APP_RUNTIME_MODE and complete flag matrix'
-      - 'FlagCombinationValidatorTest + FeatureFlagsPropertiesBindingTest: 11/0/0/0 PASS after removing ignored envelope-version config'
-      - 'obsolete envelope-version configuration scan: 0 active runtime/config/test references outside explanatory contract naming'
-      - 'shared backend-judge-config validator enforces dev-lite/dev-full/external-full in App, Submission and Judge runtime classpaths'
-      - 'bash syntax, Node ecosystem syntax and git diff check pass; external-full Compose behavior remains explicit'
-    commits: []
-    notes: No production cutover; external runtime modes must remain fail-closed and explicitly documented.
-    updated_at: '2026-08-21'
-
-  - id: ARCHREV-20260821-005
-    title: 将跨 Owner facts enrichment 收敛为稳定 User Facts Projection
-    source: [/tmp/architecture-review-20260821-163916.html#candidate-05]
-    status: done
-    depends_on: [ARCHREV-20260821-001, ARCHREV-20260821-004]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - Auth account plus App profile facts are composed behind one named Projection seam with bounded batch and explicit missing/unavailable/freshness semantics
-      - Search and existing user/moderation callers use the Projection seam without per-account synchronous fan-out regressions
-      - Search-specific cursor ordering/count semantics remain intact and are not forced into the generic Projection
-      - focused tests prove one Auth batch plus one profile batch, failure-closed behavior, input ordering and freshness metadata
-    validation: [User Facts Projection tests, Search adapter tests, moderation N+1 regression, App context test, affected reactor test/verify, call-site scan]
-    rollback: [restore the prior UserFactsReadPort/OwnerUserReadAdapter source seam and caller wiring without data changes]
-    evidence:
-      - 'DefaultUserFactsReadProjectionTest: 5/0/0/0 PASS; Auth account + App profile facts stay behind one bounded batch Projection seam'
-      - 'Search/Owner/Moderation/user focused suite: 25/0/0/0 PASS; Search cursor-specific ordering/count behavior remains unchanged'
-      - 'BackendAppApplicationTest: 6/0/0/0 PASS; only DefaultUserFactsReadProjection implements the shared UserFactsProjection production seam'
-      - 'Projection failure-closed, missing-profile nullable, input order and freshness metadata regressions are covered'
-      - 'single-ID and batch Auth/profile owner outages both normalize to BusinessException; Search test double is constructor-injected without concrete Projection casts'
-    commits: []
-    notes: Projection is a read seam only; no new event bus or production infrastructure.
-    updated_at: '2026-08-21'
-
-  - id: ARCHREV-20260821-006
-    title: 完成当前五项架构收敛的 Review、Tier-C Validation 与 Completion Audit
-    source: [/tmp/architecture-review-20260821-163916.html#top-recommendation]
-    status: done
-    depends_on: [ARCHREV-20260821-001, ARCHREV-20260821-002, ARCHREV-20260821-003, ARCHREV-20260821-004, ARCHREV-20260821-005]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - all five current report candidates are implemented with synchronized callers/contracts/config/tests/docs or have current source evidence proving the exact item already holds
-      - contextual Review has Confirmed Findings=0 and all findings are re-reviewed after fixes
-      - Tier-C validation passes with real development/TEST-TARGET evidence; skips, timeouts and unavailable external gates remain disclosed
-      - Coverage maps every report candidate to Task/Acceptance/Evidence; user worktree and prior .auto-flow history remain protected
-      - no commit, push, merge, publish, deploy, production cutover, grant revoke or applied migration edit occurs without separate authorization
-    validation: [full applicable services verify, focused real-service gates, startup/config/migration/rollback checks, graph refresh, YAML/Compose/wiki/diff checks, final review]
-    rollback: [revert only scoped implementation files; never revert applied migrations or prior user work]
-    evidence:
-      - 'Standards review final: APPROVE, Confirmed Findings=0; only raw-string mode Primitive Obsession/Repeated Switches retained as non-blocking judgement note'
-      - 'Spec review final: APPROVE, no remaining findings'
-      - 'services/./mvnw verify -B: exit 0, BUILD SUCCESS, 843 Surefire reports, 2827 tests, 0 failures, 0 errors, 29 skips'
-      - 'JudgeStreamRedisIntegrationTest with disposable Redis 7: 4/0/0/0 PASS'
-      - 'SearchWorkerEndToEndIT with Testcontainers Redis 7 + Meili REST stub: 4/0/0/0 PASS'
-      - 'owner-migration-safety-integration-test: exit 0 PASS; migrate-owner-preflight-test: exit 0 PASS'
-      - 'DevStack manifest, bash -n, Node config check, Compose dev/prod with disposable in-memory Meili key, and git diff --check: all exit 0'
-      - 'graphify update . completed; graph rebuilt with 28228 nodes and 82691 edges; label refresh warning is non-behavioral'
-      - 'CancellableQueryExecutor cancellation ordering repaired after full-verify race; focused test 2/0/0/0 and subsequent full verify pass'
-    notes: Objective terminal gate passed in development/TEST-TARGET only; no commit/push/publish/deploy/production cutover/grant revoke/applied migration edit. Objective terminal gate; development/TEST-TARGET only.
-    commits: []
-    updated_at: '2026-08-21'
-
-  - id: ARCHX-20260821-001
-    title: 将 DevStack mode 收敛为唯一开发契约
-    source: [/tmp/architecture-review-20260821-221346.html#candidate-1]
-    status: done
-    depends_on: []
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - dev-lite remains the first-class minimal local interface and dev-full remains explicit opt-in
-      - all App/Submission/Judge mode defaults and exported flags agree with devstack-manifest.sh
-      - direct PM2/config boot cannot silently select a different mode policy
-      - illegal mode/flag combinations fail closed with actionable errors
-      - existing rollback and owner migration behavior remains unchanged
-    validation: [devstack-manifest-test, bash -n, per-runtime mode binding tests, PM2/config consistency scan, focused reactor tests]
-    rollback: [revert scoped launcher/config/test changes; keep current local/remote and legacy rollback paths]
-    evidence:
-      - 'bash scripts/dev/devstack-manifest-test.sh: exit 0, DevStack manifest contract PASS'
-      - 'bash -n scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh scripts/dev/up.sh: exit 0'
-      - 'git diff --check: exit 0'
-      - 'README, doctor and legacy start.sh/start.bat/pitstop-start-backend.ps1 entrypoints route through up.sh; bypass assertions pass'
-    notes: Review PASS with Confirmed Findings=0. Development/TEST-TARGET only; no production route, grant or deployment action.
-    updated_at: '2026-08-21'
-
-  - id: ARCHX-20260821-002
-    title: 将 Judge Streams 设为正常开发路径并隔离 legacy rollback seam
-    source: [/tmp/architecture-review-20260821-221346.html#candidate-3]
-    status: done
-    depends_on: [ARCHX-20260821-001]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - normal dev-lite/dev-full judging uses the provider-owned JudgeQueue Streams path
-      - legacy RQueue polling/compatibility assembly is impossible in normal modes and requires an explicit rollback mode
-      - Judge wire envelope, Redis keys, ACK/NACK, deduplication and fence semantics remain compatible
-      - rollback mode is source-reversible and covered by focused tests
-    validation: [Judge config/worker tests, App compatibility condition test, disposable Redis Streams integration, affected reactor tests]
-    rollback: [restore prior flag values and compatibility condition without deleting legacy code or data]
-    evidence:
-      - 'DevStack manifest contract exit 0; dev-lite/dev-full export outbox, generation fence and JudgeQueue port=true'
-      - 'platform/judge-config isolated test exit 0: 5 tests, 0 failures, 0 errors'
-      - 'judge -am test exit 0: JudgeRuntimeConfigurationTest 2 tests, 0 failures, 0 errors'
-      - 'submission -am test exit 0: 25 tests, 0 failures, 0 errors'
-      - 'App compatibility source condition requires app.runtime.mode=legacy-rollback; normal dev mode source check passes'
-      - 'App app-web -am test exit 0: 1425 tests, 0 failures, 0 errors, 13 skips'
-    notes: Review PASS with Confirmed Findings=0. Keep the legacy adapter; do not add a broker or new runtime.
-    updated_at: '2026-08-21'
-
-  - id: ARCHX-20260821-003
-    title: 为 Submission read projection 增加批量 owner read contract
-    source: [/tmp/architecture-review-20260821-221346.html#candidate-2]
-    status: done
-    depends_on: []
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - contest and external submission reads use one bounded batch call instead of per-submission cross-owner fan-out
-      - App and Submission implementations batch entity reads, user facts and problem facts
-      - missing owner facts preserve existing null/safe-degrade semantics
-      - public Result/PageResult/VO shapes remain compatible
-      - hidden test-case filtering and ownership boundaries remain unchanged
-    validation: [submission API contract shape, contest projection no-N+1 regression, App/Submission focused tests, Submission owner IT]
-    rollback: [remove additive batch method and restore single-row adapter call; no schema change]
-    evidence:
-      - 'submission-api -am test exit 0: 19 tests, 0 failures, 0 errors'
-      - 'submission -am test exit 0: 25 tests, 0 failures, 0 errors'
-      - 'SubmissionReadProviderIT exit 0: 4 tests, 0 failures, 0 errors with disposable MySQL 8'
-      - 'Contest source now calls SubmissionReadPort.toVOs once; App/Submission implementations preserve input order and batch facts'
-      - 'App app-web -am test exit 0: 1425 tests, 0 failures, 0 errors, 13 skips'
-    notes: Review PASS with Confirmed Findings=0; no schema/event-store change.
-    updated_at: '2026-08-21'
-
-  - id: ARCHX-20260821-004
-    title: 收窄 UserFactsProjection interface 并保持 owner composition implementation
-    source: [/tmp/architecture-review-20260821-221346.html#candidate-4]
-    status: done
-    depends_on: []
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - directory summary callers and User Facts/Search/Moderation callers depend on separate narrow interfaces
-      - DefaultUserFactsReadProjection remains the single bounded account/profile composition implementation
-      - no caller loses missing-profile or unavailable-owner semantics
-      - no cross-service public contract changes
-      - all affected mocks, constructor fixtures and architecture scans are synchronized
-    validation: [User Facts focused tests, Search/Moderation caller tests, App context/mapper scan, affected reactor tests]
-    rollback: [restore composite interface type references; keep implementation and data ownership unchanged]
-    evidence:
-      - 'UserFactsProjection now exposes only findById/findByIds/compose'
-      - 'UserDirectoryProjection owns UserSummaryView lookup and directory paging methods'
-      - 'DefaultUserFactsReadProjection implements both interfaces; Search/Moderation stay on facts and user/account reads use directory'
-      - 'source call-site scan finds no summary method usage through UserFactsProjection'
-      - 'git diff --check exit 0; App affected reactor passes with 1425 tests, 0 failures, 0 errors, 13 skips'
-    notes: Review PASS with Confirmed Findings=0; one composition implementation retained and public cross-service contracts unchanged.
-    updated_at: '2026-08-21'
-
-  - id: ARCHX-20260821-005
-    title: 将架构文档和领域词汇转为 executable consistency checks
-    source: [/tmp/architecture-review-20260821-221346.html#candidate-5]
-    status: done
-    depends_on: [ARCHX-20260821-001, ARCHX-20260821-002, ARCHX-20260821-003, ARCHX-20260821-004]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - CONTEXT.md describes current Owner/Worker and Notification ownership without stale implementation claims
-      - architecture status and migration docs agree with source/POM/config/PM2/Compose facts
-      - executable checks fail when known topology or terminology drift returns
-      - onboarding points to one supported DevStack entry point
-      - no volatile test counts or temporary review notes are added to durable docs
-    validation: [architecture contract script, docs grep assertions, wiki manifest, git diff --check]
-    rollback: [revert only docs/check script; no runtime behavior depends on documentation]
-    evidence:
-      - 'scripts/dev/architecture-contract-test.sh exit 0: manifest, seam, owner, startup and docs assertions PASS'
-      - 'README, doctor, services architecture status and migration current-state docs now point to up.sh and current Streams/owner semantics'
-      - 'CONTEXT.md now distinguishes User Directory View, User Facts View and Notification Owner worker ownership'
-      - 'bash -n and git diff --check exit 0'
-    notes: Review PASS with Confirmed Findings=0. Documentation remains downstream of source/config; no second architecture truth is created.
-    updated_at: '2026-08-21'
-
-  - id: ARCHX-20260821-006
-    title: 完成五项目标的 Review、Tier-C Validation 与 Completion Audit
-    source: [/tmp/architecture-review-20260821-221346.html#top-recommendation]
-    status: done
-    depends_on: [ARCHX-20260821-001, ARCHX-20260821-002, ARCHX-20260821-003, ARCHX-20260821-004, ARCHX-20260821-005]
-    owner: Codex
-    target_window: '2026-08-21 当前执行轮'
-    acceptance_criteria:
-      - all five user objectives map to implemented behavior and evidence
-      - contextual Review has Confirmed Findings=0 after all fixes
-      - selected Tier-C validation passes with development/TEST-TARGET limitations explicit
-      - Task/Coverage/Resume/Handoff/Evidence/Git status are consistent
-      - no commit, push, merge, publish, deploy, production cutover, grant revoke or applied migration edit occurs
-    validation: [focused and affected reactor tests, full services verify, disposable Redis/Judge checks, config/docs/graph/diff audits]
-    rollback: [revert only scoped source/config/docs; preserve prior user changes and applied migrations]
-    evidence:
-      - 'Final contextual review fixed five findings and ended with Confirmed Findings=0'
-      - 'App affected reactor: 1425 tests, 0 failures, 0 errors, 13 skips'
-      - 'services ./mvnw verify -B: 801 Surefire reports, 2705 tests, 0 failures, 0 errors, 20 skips'
-      - 'SubmissionReadProviderIT: 4 tests, 0 failures, 0 errors; architecture contract, Compose, YAML, graph and diff checks PASS'
-    notes: Objective terminal gate complete; development/TEST-TARGET only.
-    updated_at: '2026-08-21'
-
-  - id: SVCFIX-20260822-A1
-    title: 删除 WebSocket CONNECT 的 STOMP token 回退
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#A1]
-    status: done
-    depends_on: []
-    owner: Codex
-    acceptance_criteria:
-      - CONNECT authenticates only from the handshake session cookie attribute
-      - a client-controlled STOMP header cannot authenticate a connection
-      - TokenExtractor no longer exposes header-token extraction
-      - regression tests cover header-token rejection and remove obsolete success mocks
-    validation: [app-web focused WebSocket tests, affected app-web test, diff check]
-    rollback: [restore the removed fallback and tests without changing token cookie behavior]
-    evidence:
-      - 'JwtChannelInterceptorTest + TokenExtractorTest: 17 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'source scan confirms JwtChannelInterceptor has no extractTokenFromHeaders call and TokenExtractor has no header-token method'
-      - 'git diff --check: exit 0'
-    commits: []
-    notes: Development/TEST-TARGET only; security boundary fix.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-A2
-    title: OAuth callback 缺 state cookie 时 fail closed
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#A2]
-    status: done
-    depends_on: [SVCFIX-20260822-A1]
-    owner: Codex
-    acceptance_criteria:
-      - null or blank cookieState raises UNAUTHORIZED before Redis consumption
-      - existing mismatch, atomic consume and Redis failure semantics remain intact
-      - regression test proves missing cookie is rejected
-    validation: [Auth OAuthStateModuleTest, affected Auth module test, diff check]
-    rollback: [revert the cookie presence guard and its regression test]
-    evidence:
-      - 'OAuthStateModuleTest: 8 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'null and blank cookieState both fail UNAUTHORIZED before Redis getAndDelete'
-      - 'git diff --check: exit 0'
-    commits: []
-    notes: Development/TEST-TARGET only; security boundary fix.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-B3
-    title: AuditOutbox 使用抢占式 PROCESSING CAS
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B3]
-    status: done
-    depends_on: [SVCFIX-20260822-A2]
-    owner: Codex
-    acceptance_criteria:
-      - only one dispatcher can transition a PENDING row to PROCESSING
-      - processed and failed transitions are guarded by PROCESSING state
-      - duplicate or late processing cannot create a second audit log
-      - concurrent/duplicate regression coverage exists
-    validation: [Admin outbox unit tests, Admin outbox MySQL/integration test if available, affected Admin tests]
-    rollback: [restore the prior claim query and state guards without altering audit rows]
-    evidence:
-      - 'AuditOutboxDispatcherTest + AuditOutboxProcessorTest: 7 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'CAS regression simulates another dispatcher winning (claim=0) and duplicate processor CAS loss without inserting an AuditLog'
-      - 'AuditOutboxMapper SQL now uses PENDING→PROCESSING claim and PROCESSING guards for terminal states'
-      - 'Initial AuditSinkTransactionIT attempt was blocked by the Admin ApplicationContext constructor baseline; the minimal @Autowired validation-gate repair later enabled Admin *IT 44/0/0/0'
-    commits: []
-    notes: Use CAS instead of extending the existing per-record REQUIRES_NEW transaction design.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-B6
-    title: Role 更新同步 bump authz_version
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B6]
-    status: done
-    depends_on: [SVCFIX-20260822-B3]
-    owner: Codex
-    acceptance_criteria:
-      - a real role change increments authz_version atomically
-      - same-role updates do not increment authz_version
-      - missing users retain the existing not-found behavior
-      - regression test proves version increment after updateRole
-    validation: [Auth role mapper unit/integration test, affected Auth tests]
-    rollback: [restore role-only update SQL and remove the version assertion]
-    evidence:
-      - 'AuthAccountPersistenceIT: 3 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'real role change updates role and authz_version from 5 to 6; same-role update returns 0 and leaves version at 6'
-      - 'UserRoleMapper uses one atomic UPDATE with role change guard and authz_version increment; no schema change'
-    commits: []
-    notes: No schema change; reuse the Auth-owned atomic version-update boundary.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-B4-B5
-    title: Durable RBAC outbox event and token revocation decision
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B4, services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B5]
-    status: done
-    depends_on: [SVCFIX-20260822-B6]
-    owner: Codex
-    acceptance_criteria:
-      - role and permission changes emit a durable authorization-change outbox record in the existing owner seam
-      - event payload carries subject, action, actor, and current authorization version
-      - synchronous authz_version bump remains the immediate invalidation signal; no blacklist writer is added
-      - wiki records the 15-minute TTL and multi-layer real-time checks decision
-      - wiki manifest is regenerated and passes its check
-    validation: [Auth outbox publisher tests, Auth context/affected tests, wiki-manifest generate/check]
-    rollback: [remove only the new event emission and wiki page; preserve existing audit/outbox tables and version semantics]
-    evidence:
-      - 'RoleAdministrationServiceImplTest + AuthAuditSinkAdapterTest + AuthAccountPersistenceIT: 9 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'role grant/revoke paths bump authz_version and emit AUTHORIZATION_CHANGED payloads with subject, actor, change and version through AuthAuditSinkPort'
-      - 'AuthAuditSinkAdapterTest proves the existing sink writes PENDING rows to admin.audit_outbox; no blacklist writer or new process added'
-      - 'wiki/SECURITY_TOKEN_REVOCATION.md records the 15-minute TTL/multi-layer-check trade-off; wiki-manifest generate and --check both pass'
-    commits: []
-    notes: Reuse AuthAuditOutbox insert-only cross-owner seam; no new process or applied migration edit.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-D1
-    title: 为 Submission 双轨 routing seam 记录 kill criteria
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D1]
-    status: done
-    depends_on: [SVCFIX-20260822-B4-B5]
-    owner: Codex
-    acceptance_criteria:
-      - write, fence and user-read routing seams each have quiesce window, error budget and rollback artifact criteria
-      - App residual submission copies have explicit retirement evidence requirements
-      - Search database/indexed mode remains an explicit manifest decision and is not rewritten
-    validation: [architecture docs consistency scan, wiki-manifest if wiki content changes, diff check]
-    rollback: [revert only the added exit-criteria documentation]
-    evidence:
-      - 'SERVICES_ARCHITECTURE_STATUS_2026-08-18.md now records per-seam 14-day quiesce windows, route-specific zero-error budgets, residual-copy retirement gates and rollback artifact lists'
-      - 'Search database/indexed mode is explicitly preserved as a DevStack manifest decision'
-      - 'targeted documentation scan and git diff --check: exit 0'
-    commits: []
-    notes: Documentation/architecture gate only; no process split or production cutover.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-D2
-    title: 声明 judge-runtime 共享归属词汇
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D2]
-    status: done
-    depends_on: [SVCFIX-20260822-D1]
-    owner: Codex
-    acceptance_criteria:
-      - sandbox and queue port packages declare judge-runtime shared-library ownership
-      - documentation no longer describes these packages as App-private business ownership
-      - app-api trial DTO relocation is not attempted in this bounded fix
-    validation: [judge-runtime compile/test, package ownership scan, diff check]
-    rollback: [remove package-info declarations and wording-only documentation changes]
-    evidence:
-      - 'Added judge-runtime package-info declarations for sandbox and queue.port; docs now call them shared Judge execution library packages'
-      - 'judge-runtime -am test: 28 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'ownership/package scan and git diff --check: exit 0; app-api trial DTO relocation was not attempted'
-    commits: []
-    notes: Low-cost vocabulary correction; no public contract move.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-D3
-    title: 锁定 SubmissionFactsSnapshot 最小 contract shape
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D3]
-    status: done
-    depends_on: [SVCFIX-20260822-D2]
-    owner: Codex
-    acceptance_criteria:
-      - contract shape test asserts the exact minimal top-level and nested snapshot fields
-      - unsupported/additional fields cannot silently enter the wire shape without a failing test
-      - existing fail-closed admission and schema-version behavior remain unchanged
-    validation: [submission-api/submission focused contract tests, affected Submission tests]
-    rollback: [remove only the shape assertion test]
-    evidence:
-      - 'SubmissionFactsSnapshotTest: 7 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'reflection contract asserts exact top-level and nested record component names/types/order; existing fail-closed admission tests remain green'
-    commits: []
-    notes: Test-only contract gate; no snapshot field addition.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-D4
-    title: 清理游离编译产物并保持迁移指南现状
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D4]
-    status: done
-    depends_on: [SVCFIX-20260822-D3]
-    owner: Codex
-    acceptance_criteria:
-      - exact stray services/com/.../ProblemAdministrationDomainServiceImpl.class is removed
-      - docs/MICROSERVICE_MIGRATION_GUIDE.md remains unchanged
-      - no source or generated historical file is rewritten
-    validation: [artifact absence check, migration-guide checksum/diff check, diff check]
-    rollback: [restore only the exact untracked compiled artifact if needed; no source rollback required]
-    evidence:
-      - 'exact services/com/ulticode/modules/problem/service/impl/ProblemAdministrationDomainServiceImpl.class was untracked and removed'
-      - 'artifact absence check: PASS; docs/MICROSERVICE_MIGRATION_GUIDE.md SHA-256 unchanged before/after'
-      - 'migration-guide git diff/status unchanged and git diff --check: exit 0'
-    commits: []
-    notes: Requested hygiene deletion only; no broad cleanup.
-    updated_at: '2026-08-22'
-
-  - id: SVCFIX-20260822-REVIEW-VALIDATE-CLOSE
-    title: 完成本次 Services 评审修复的 Review、Tier-C Validation 与终态审计
-    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md]
-    status: done
-    depends_on: [SVCFIX-20260822-A1, SVCFIX-20260822-A2, SVCFIX-20260822-B3, SVCFIX-20260822-B6, SVCFIX-20260822-B4-B5, SVCFIX-20260822-D1, SVCFIX-20260822-D2, SVCFIX-20260822-D3, SVCFIX-20260822-D4]
-    owner: Codex
-    acceptance_criteria:
-      - every A/B/D report item is mapped to implementation, test or documented decision evidence
-      - contextual Review has zero Confirmed Findings after re-review
-      - required focused, affected-module, integration/concurrency/security and full reactor validation pass or are explicitly unavailable with evidence
-      - graphify update, wiki manifest, YAML/control-plane, diff and protected-worktree audits agree
-      - no commit, push, merge, publish, deploy, production action or applied migration edit occurs
-    validation: [focused checks, services mvnw compile/test/*IT/verify, graphify update, wiki manifest check, YAML parse, git diff/check]
-    rollback: [revert only scoped implementation/docs changes; preserve prior user changes and control-plane history]
-    evidence:
-      - 'Review re-check: Confirmed Findings=0 after removing the unused JwtChannelInterceptor TokenExtractor dependency, updating stale WebSocketAuthenticator docs, and checking AuditOutbox insert success'
-      - 'services/./mvnw compile -B: BUILD SUCCESS, MAVEN_EXIT=0'
-      - 'services/./mvnw test -B: BUILD SUCCESS, MAVEN_EXIT=0'
-      - 'services/./mvnw verify -B after all repairs: BUILD SUCCESS, MAVEN_EXIT=0; current non-IT Surefire aggregate 783 reports / 2638 tests / 0 failures / 0 errors / 16 skips'
-      - 'final focused suite: WebSocket 17/0/0/0, OAuth 8/0/0/0, Admin outbox 7/0/0/0, Auth RBAC/sink/version 9/0/0/0, Submission snapshot 7/0/0/0; BUILD SUCCESS, MAVEN_EXIT=0'
-      - 'Admin -Dtest="*IT" after minimal @Autowired validation-gate repair: 44 tests, 0 failures, 0 errors, 0 skips; BUILD SUCCESS, MAVEN_EXIT=0'
-      - 'root -Dtest="*IT" first run failed 44/0/7/0 on the pre-existing Admin constructor baseline; after repair the root rerun exceeded the host 300-second wait with no exit status and is not reported as pass'
-      - 'owner migration preflight/safety PASS; architecture-contract and devstack-manifest PASS; wiki-manifest PASS; Compose dev/prod config PASS with disposable in-memory Meili key; YAML/diff/integrity PASS; graphify update completed'
-      - 'user review report and graphify cache stamp remained protected; no commit, push, merge, publish, deploy, production action or applied migration edit'
-    commits: []
-    notes: Terminal in development/TEST-TARGET only; root broad IT selector remains host-timeout-limited, while affected Admin IT and all required alternative gates pass. No local commit authorized by the user.
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-RECOVERY
-    title: 对账 docs/wiki 范围与脏工作区
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: []
-    owner: Codex
-    acceptance_criteria:
-      - identify every docs/wiki content file and protected non-documentation rule file
-      - preserve existing implementation, control-plane and unrelated user changes
-      - define exact deletion targets before destructive removal
-    validation: [git status, docs/wiki inventory, link/reference scan]
-    rollback: [no deletion during recovery]
-    evidence:
-      - 'docs directories found: services/docs (5), apps/management/docs (1), wiki content (1 plus manifest); root docs absent'
-      - 'AGENTS/.claude rules/README and .auto-flow classified as protected'
-    commits: []
-    notes: Recovery complete; source review report and prior implementation worktree preserved until explicit merge deletion.
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-PLAN
-    title: 规划统一文档结构与引用迁移
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: [DOCMERGE-20260822-RECOVERY]
-    owner: Codex
-    acceptance_criteria:
-      - one root PROJECT_DOCUMENTATION.md is the sole temporary documentation target
-      - source content is organized by architecture, ownership/migration, security, release, frontend and review history
-      - all current executable/source references to deleted paths have an update path
-    validation: [source heading inventory, merged-source completeness check, reference map]
-    rollback: [retain source files until merged content is verified]
-    evidence:
-      - 'seven Markdown sources mapped into PROJECT_DOCUMENTATION.md with source markers and navigation'
-      - 'all source headings present in the consolidated file: 7/7 source markers'
-    commits: []
-    notes: Rules and implementation docs remain outside the temporary-document merge.
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-CONSOLIDATE
-    title: 创建统一 Markdown 并删除原始 docs/wiki 文档
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: [DOCMERGE-20260822-PLAN]
-    owner: Codex
-    acceptance_criteria:
-      - PROJECT_DOCUMENTATION.md preserves all seven source contents in organized sections
-      - exact original content files and wiki manifest are removed after completeness proof
-      - no broad recursive cleanup or source/config deletion occurs
-    validation: [source marker/headings check, exact deletion target check, git status]
-    rollback: [restore tracked deleted files from Git; recover merged untracked review content from PROJECT_DOCUMENTATION.md]
-    evidence:
-      - 'PROJECT_DOCUMENTATION.md: 1764 lines / 144573 bytes; all seven source markers and headings verified'
-      - 'removed exactly apps/management/docs/i18n-design.md, five services/docs Markdown files, wiki page/manifest, and obsolete wiki-manifest tool'
-    commits: []
-    notes: Deletion is user-authorized; Git-tracked removals remain recoverable, and the untracked review document was preserved in the merge before removal.
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-REFERENCES
-    title: 更新项目入口、脚本、测试与源码文档引用
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: [DOCMERGE-20260822-CONSOLIDATE]
-    owner: Codex
-    acceptance_criteria:
-      - README, AGENTS, docs workflow and executable contract scripts point to PROJECT_DOCUMENTATION.md
-      - runtime tests and source Javadocs do not reference deleted documentation paths
-      - historical auto-flow records and external URLs are not rewritten as current source references
-    validation: [reference scan, architecture-contract-test, devstack-manifest-test, affected documentation test]
-    rollback: [restore only path-reference edits; keep the consolidated file and source deletion separate]
-    evidence:
-      - 'active reference scan has no services/docs, deleted MICRO guide, wiki-manifest, or deleted root docs path references outside historical control-plane text/external URLs'
-      - 'README, AGENTS, documentation workflow, architecture-contract-test, devstack-manifest-test, test comments, owner schema test, migration comments and source Javadocs now use PROJECT_DOCUMENTATION.md'
-      - 'architecture-contract-test: PASS; devstack-manifest-test: PASS; PerOwnerSchemaGrantTest: 6/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0; git diff --check: PASS'
-    commits: []
-    notes: Mechanical reference migration is the current active task.
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-REVIEW
-    title: Review 统一文档内容、链接和删除范围
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: [DOCMERGE-20260822-REFERENCES]
-    owner: Codex
-    acceptance_criteria:
-      - no duplicated current policy contradicts source/configuration
-      - no deleted-path links remain in active docs/scripts/tests
-      - protected AGENTS/.auto-flow/user changes remain intact
-    validation: [full diff review, markdown/link scan, protected-worktree audit]
-    rollback: [restore only incorrect consolidation/reference changes]
-    evidence:
-      - 'consolidated structure review: one H1, balanced 44 code-fence markers, 7 source provenance markers, explicit historical/current status notes'
-      - 'active local-link scan: 49 checked, 0 broken'
-      - 'active deleted-path scan: no services/docs, deleted root docs, wiki-manifest or wiki paths; only protected .codex config/history/external URL text remains'
-      - 'protected-worktree audit passed; previous implementation changes and .auto-flow history remain present'
-    commits: []
-    notes: []
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-VALIDATE
-    title: 验证统一文档与项目入口
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: [DOCMERGE-20260822-REVIEW]
-    owner: Codex
-    acceptance_criteria:
-      - documentation contract scripts and relevant tests pass
-      - Markdown source inventory contains only PROJECT_DOCUMENTATION.md outside protected rule docs
-      - git diff/check and control-plane YAML are valid
-    validation: [architecture-contract-test, devstack-manifest-test, documentation scan, YAML parse, git diff --check]
-    rollback: [revert validation-only reference changes if gates fail]
-    evidence:
-      - 'architecture-contract-test: PASS; devstack-manifest-test: PASS'
-      - 'PerOwnerSchemaGrantTest: 6 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
-      - 'active local-link scan: 49 checked, 0 broken; docs/wiki directory check leaves only protected .claude/rules/docs'
-      - 'PROJECT_DOCUMENTATION.md source markers/headings, YAML parse, git diff --check and final graphify update: PASS'
-    commits: []
-    notes: []
-    updated_at: '2026-08-22'
-
-  - id: DOCMERGE-20260822-CLOSE
-    title: 文档合并终态审计与交付收口
-    source: [user request 2026-08-22]
-    status: done
-    depends_on: [DOCMERGE-20260822-REFERENCES, DOCMERGE-20260822-REVIEW, DOCMERGE-20260822-VALIDATE]
-    owner: Codex
-    acceptance_criteria:
-      - single-document objective, coverage, review, validation and Git/task consistency all pass
-      - no commit/push/publish/deploy without separate authorization
-      - final report lists removed files, preserved rules/user changes and recovery path
-    validation: [completion audit, final status, final diff/check]
-    rollback: [restore tracked docs from Git; preserve consolidated file until user accepts delivery]
-    evidence:
-      - 'all seven source documents are represented in PROJECT_DOCUMENTATION.md and exact original content files are removed'
-      - 'active references, local links, architecture/devstack contracts, affected test, YAML, diff and graph checks are consistent'
-      - 'protected AGENTS/.claude rules/.auto-flow/source/unrelated dirty files preserved; no commit, push, publish or deploy performed'
-    commits: []
-    notes: Terminal documentation consolidation; PROJECT_DOCUMENTATION.md is the sole merged temporary-document artifact.
-    updated_at: '2026-08-22'
-  - id: DB-CONVERGE-001
-    title: 新增 fresh-install baseline 工具（保留 89 个已应用迁移不可变）
-    source: [/tmp/architecture-review-20260822-170000.html#candidate-1-reframed]
-    status: done
-    depends_on: []
-    owner: Codex
-    acceptance_criteria:
-      - 已应用迁移 89 个文件保持原位且未被重写/删除，baseline 工具仅为新增 fresh-install 路径
-      - 提供 baseline 生成脚本与校验脚本，能从已迁移 DB 导出 canonical baseline 并与现有迁移结果一致
-      - 提供 per-schema adoption 流程（shared + 5 owners 明确版本与迁移账号契约）并验证 parity
-    validation: [baseline generation, per-schema baseline adoption disposable, per-schema validate with pipefail, git diff --check]
-    rollback: [删除新增 baseline 工具与文档，不影响现有迁移历史]
-    evidence:
-      - 'generate-baseline.sh: 72 shared + 5 owner schemas migrated, 3511 lines, 130 tables, 6 CREATE DATABASE/USE boundaries, 0 flyway_history, GEN_EXIT:0'
-      - 'validate-baseline.sh disposable: per-schema schema.table 130 vs 130 PASS (pipefail tee /tmp/validate.log VALIDATE_EXIT:0)'
-      - 'baseline-adopt.sh disposable: shared 20260822120000 auth 20260821100000 admin 20260822120001 app 20260811180000 notification 20260815100200 submission 20260817000000, 6 schemas baselined + validate 130 vs 130 PASS (pipefail tee /tmp/adopt.log ADOPT_EXIT:0), underscore V20260602_120000 normalization, empty-dir fail-closed'
-      - 'baseline-adopt.sh real preflight: MIGRATION_DB_* privileged contract, empty-schema/no-history fail-closed, MIGRATION_DB_USER != DB_USER enforced, bash -n OK'
-      - 'init-db/baseline/baseline.sql (149K, per-schema) + README.md + baseline-adopt.sh created, no migrations/ file edited'
-    updated_at: '2026-08-22T18:15:00+08:00'
-  - id: DB-CONVERGE-002
-    title: 分离 Seed Data 缝隙 — 独立 seed 路径（新 seed 隔离、旧 seed 保留）— 部分完成
-    source: [/tmp/architecture-review-20260822-170000.html#candidate-2]
-    status: partial
-    depends_on: [DB-CONVERGE-001]
-    owner: Codex
-    acceptance_criteria:
-      - 原始报告验收“生产零 Seed 扫描”未完全达成：旧 14+ Seed 仍在 flyway.conf filesystem:migrations/*.sql 上，增量 `migrate`/`validate` 仍扫描（已应用不重执行）；受 AGENTS.md 已应用迁移不可变约束，无法移走旧 Seed
-      - 新 Seed 约定写入 migrations/seed/ 且仅在 dev/test 挂载，已实现并纠正文档误导；fresh-install 初始路径可通过 baseline.sql + baseline-adopt.sh 避免扫描/执行 legacy Seed，未覆盖增量零扫描目标
-      - 验证 dev 与 prod 的 Flyway 校验均通过（flyway-seed 仅新增 seed 路径）
-    validation: [flyway config check, validate-baseline 130 vs 130, baseline-adopt 130 vs 130, git diff --check]
-    rollback: [移除 seed 隔离配置，恢复单一扫描路径]
-    evidence:
-      - 'init-db/migrations/seed/README.md corrected: legacy V20260603* etc remain on flyway.conf filesystem:migrations/*.sql (incremental still scans), new seeds only in seed/; fresh-install 初始路径零 Seed via baseline.sql + baseline-adopt.sh，未覆盖增量零扫描目标'
-      - 'init-db/flyway-seed.conf corrected comment: legacy seeds remain, incremental still scans, true zero-scan仅限 fresh-install baseline 初始路径'
-      - 'init-db/README.md Convergence updated for seed seam table, validate VALIDATE_EXIT:0 adopt ADOPT_EXIT:0 both 130 vs 130'
-      - '结论: 候选 2 为兼容性下的部分完成（新 seed 隔离 + 文档纠偏 + fresh-install 初始路径零 Seed），原始增量“生产零扫描”未实现'
-    updated_at: '2026-08-22T18:45:00+08:00'
-  - id: DB-CONVERGE-003
-    title: 收敛 Owner Schema Ownership 配置 — 主链路接入
-    source: [/tmp/architecture-review-20260822-170000.html#candidate-3]
-    status: done
-    depends_on: [DB-CONVERGE-002]
-    owner: Codex
-    acceptance_criteria:
-      - 5 套 flyway-*.conf 的重复 seam 收敛为单一 Owner Schema Ownership 接口，支持 orchestration 委托
-      - 提供统一 migrate(owner)/validate(owner)/info(owner)/baseline(owner) 接口并接入主流程
-      - 现有 per-owner 迁移与授权校验仍通过，submission 特权与 DEV_LOCAL_OWNER_BASELINE 透传不回归
-    validation: [owner migration preflight, per-owner grant checks, up.sh delegation check, bash -n, disposable baseline-adopt]
-    rollback: [恢复分散式 flyway-*.conf, revert up.sh delegation]
-    evidence:
-      - 'init-db/scripts/owner-migrate.sh enhanced: supports migrate/validate/info/baseline, env forwarding for MIGRATION_DB_* / SUBMISSION_* / DEV_LOCAL_*, bash -n OK'
-      - 'scripts/dev/up.sh:371-390 wired through init-db/scripts/owner-migrate.sh migrate owner (was direct migrate.sh), preserves DEVSTACK_OWNER_MIGRATION_ORDER auth admin app notification submission, submission provisioning + baseline env forwarding verified, bash -n OK, git diff --check PASS'
-      - 'init-db/README.md Convergence updated to state up.sh delegates through owner-migrate seam (now true)'
-    updated_at: '2026-08-22T18:15:00+08:00'
-  - id: DB-CONVERGE-004
-    title: Squashing & Archive — 89 历史迁移归档/压缩（延期）
-    source: [/tmp/architecture-review-20260822-170000.html#candidate-4]
-    status: deferred
-    depends_on: [DB-CONVERGE-001]
-    owner: Codex
-    acceptance_criteria:
-      - 报告期望 89 个历史迁移压缩为单一 baseline 并移入 archive/ 不再参与 Flyway 扫描（AI 扫描 89→~10）
-      - 受 AGENTS.md 已应用迁移不可变约束，89 文件保持原位未归档/压缩
-    validation: [baseline parity validation as proxy, archive existence check]
-    rollback: [如实施则需恢复被归档文件并重建 history 映射]
-    evidence:
-      - '当前 72 shared + 5×2-5 owner 共 89 文件全部保留，未做 archive/ 移动或 squash 删除'
-      - 'baseline.sql + validate-baseline.sh + baseline-adopt.sh 提供可导航的单一真实来源（per-schema 130 vs 130 PASS），满足 depth/locality 目标但不减少 Flyway 扫描文件数'
-      - '新增 init-db/migrations/archive/README.md 作为归档候选占位，明确破坏性归档步骤与 ADR 前置条件，未加入任何 flyway*.conf locations，git diff --check PASS'
-      - '候选 4 明确延期：需独立 ADR 评估已部署 flyway_schema_history 的兼容风险后，方可实施物理归档/压缩；本轮不宣称闭环'
-    updated_at: '2026-08-22T18:30:00+08:00'
+- id: RECOVERY-001
+  title: 对账现有控制面与工作区修改
+  status: done
+  depends_on: []
+  evidence:
+  - control-plane YAML loaded
+  - git status reconciled
+  - graphify query
+- id: RECOVERY-002
+  title: 定位 Submission 测试 API 漂移
+  status: done
+  depends_on:
+  - RECOVERY-001
+  evidence:
+  - exact test/source API comparison
+  - stale local API artifact confirmed
+- id: COMPAT-001
+  title: 修复 app-web Search contract 测试漂移
+  status: done
+  depends_on:
+  - RECOVERY-002
+  evidence:
+  - fresh backend-auth-api/backend-app-api install
+  - app-web test-compile BUILD SUCCESS
+- id: COMPAT-002
+  title: 恢复 Submission Projection 专项测试
+  status: done
+  depends_on:
+  - COMPAT-001
+  evidence:
+  - DefaultSubmissionProjectionTest 11/0/0/0 PASS
+- id: FINAL-001
+  title: 执行全量相关 reactor 验证
+  status: done
+  depends_on:
+  - COMPAT-002
+  evidence:
+  - app/app-web -am test BUILD SUCCESS
+  - Search worker 11/0/0/0
+  - Admin summary 6/0/0/0
+- id: FINAL-002
+  title: 完成 Review 与控制面终态收口
+  status: done
+  depends_on:
+  - FINAL-001
+  evidence:
+  - graphify update
+  - YAML parse
+  - git diff --check
+  - HANDOFF complete
+  - no blockers
+- id: CRFIX-REVIEW-001
+  title: 修复 Auth dashboard contract import and Hessian serialization
+  status: done
+  depends_on:
+  - FINAL-002
+  evidence:
+  - auth-api contract 16/0/0/0
+  - auth compile
+  - AccountStatsSummary Serializable
+- id: CRFIX-REVIEW-002
+  title: 修复 Submission page-level user/problem batching
+  status: done
+  depends_on:
+  - CRFIX-REVIEW-001
+  evidence:
+  - App projection multi-row batch regression
+  - Submission MySQL IT 8/0/0/0
+- id: CRFIX-REVIEW-003
+  title: 恢复 Auth dashboard role counts
+  status: done
+  depends_on:
+  - CRFIX-REVIEW-001
+  evidence:
+  - real MySQL mapper role-count IT 2/0/0/0
+  - adapter unit test
+- id: CRFIX-REVIEW-004
+  title: 保留 Search DLQ full integration envelope
+  status: done
+  depends_on:
+  - CRFIX-REVIEW-002
+  evidence:
+  - Search worker unit 11/0/0/0
+  - Redis+Meili E2E 4/0/0/0
+- id: CRFIX-REVIEW-005
+  title: 完成 CR re-review 与风险验证
+  status: done
+  depends_on:
+  - CRFIX-REVIEW-003
+  - CRFIX-REVIEW-004
+  evidence:
+  - affected reactor BUILD SUCCESS
+  - services verify BUILD SUCCESS
+  - fresh IT XML 68 reports 225 tests 0 failures 0 errors 17 skips
+  - graphify update
+  - diff check
+  notes: Development-only authority. No commit, push, publish, deploy or production action. Existing business changes and control-plane history remain in the working tree.
+- id: AR20260820-001
+  title: 收敛 DevStack dev-lite Owner migration readiness
+  source:
+  - /tmp/architecture-review-20260820.html#candidate-1
+  status: done
+  depends_on: []
+  acceptance_criteria:
+  - deterministic Owner migration order
+  - explicit dev-lite readiness
+  - explicit dev-full seam
+  validation:
+  - up.sh smoke
+  - config checks
+  - diff check
+  rollback:
+  - revert startup changes
+  - retain cutover entrypoints
+  evidence:
+  - bash -n scripts/dev/up.sh scripts/dev/migrate.sh PASS
+  - scripts/dev/up.sh --help contract PASS
+  - scripts/dev/devstack-manifest-test.sh PASS
+  - scripts/dev/migrate-owner-preflight-test.sh PASS
+  - scripts/dev/owner-migration-safety-integration-test.sh PASS
+  - fresh disposable MySQL 9.1 up.sh migration-only smoke PASS for all five Owner chains, provisioning, and readiness
+  - Compose dev/prod config, default local profile assertions, dev-full cutover-negative check, graphify update, and git diff --check PASS
+  commits: []
+  notes: Development-only.
+  updated_at: '2026-08-20'
+- id: AR20260820-002
+  title: 隔离 Admin Dashboard 外部表读取 seam
+  source:
+  - /tmp/architecture-review-20260820.html#candidate-2
+  status: done
+  depends_on:
+  - AR20260820-001
+  acceptance_criteria:
+  - no foreign-table selects
+  - one bounded coarse read seam
+  - unavailable semantics
+  validation:
+  - Admin tests
+  - reactor
+  - bounded-call assertions
+  rollback:
+  - restore through source seam
+  evidence:
+  - affected Admin/App/Submission reactor compile BUILD SUCCESS
+  - 'focused seam/projection tests: 37 tests, 0 failures, 0 errors; full affected reactor unit suite BUILD SUCCESS'
+  - 'App DashboardAdminReadProviderIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
+  - 'canonical app-schema DashboardAdminReadProviderIT plus typed DashboardBucketCount mapper: 2/0/0/0'
+  - 'SubmissionAdminReadProviderIT: 4 tests, 0 failures, 0 errors, real MySQL 8.0'
+  - 'affected reactor verify: 1399 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
+  - Admin foreign-table SQL boundary and MapperScan boundary PASS
+  - 'Admin dashboard authorization focused tests: 26 tests, 0 failures, 0 errors'
+  - graphify update ., control-plane YAML parse, and git diff --check PASS
+  commits: []
+  notes: Admin owns read shape only.
+  updated_at: '2026-08-20'
+- id: AR20260820-003
+  title: 隔离 App Submission 兼容矩阵
+  source:
+  - /tmp/architecture-review-20260820.html#candidate-3
+  status: done
+  depends_on:
+  - AR20260820-002
+  acceptance_criteria:
+  - one stable intake
+  - explicit migration seam
+  - rollback preserved
+  validation:
+  - routing tests
+  - compile
+  - integration
+  rollback:
+  - retain adapters and authority
+  evidence:
+  - SubmissionRoutingProperties central selection helper implemented for write/fence/user-read wrappers
+  - 'SubmissionRoutingPortTest: 9 tests, 0 failures, 0 errors'
+  - 'SubmissionRoutingPropertiesTest: 3 tests, 0 failures, 0 errors; FlagCombinationValidatorTest: 9 tests, 0 failures, 0 errors'
+  - SubmissionPortWiringTest and affected App compile/test BUILD SUCCESS
+  - 'affected App verify: 1401 tests, 0 failures, 0 errors, 13 skips; BUILD SUCCESS'
+  - routing seam/config assertions, graphify update, YAML parse, and git diff --check PASS
+  - Remote/local adapters and legacy dispatcher retained; no production cutover or rollback path deletion
+  commits: []
+  notes: No production retirement.
+  updated_at: '2026-08-20'
+- id: AR20260820-004
+  title: 对齐 Auth Account 与 App Profile schema ownership
+  source:
+  - /tmp/architecture-review-20260820.html#candidate-4
+  status: done
+  depends_on:
+  - AR20260820-003
+  acceptance_criteria:
+  - later migration removes unused columns
+  - App sole profile writer
+  - expand-verify-contract
+  validation:
+  - migration and schema-contract tests
+  rollback:
+  - never edit applied migrations
+  evidence:
+  - 'AuthProfileSchemaOwnershipIT: 2 tests, 0 failures, 0 errors, real MySQL 8.0'
+  - 'SearchBackfillReadPortIT shared Flyway regression: 5 tests, 0 failures, 0 errors; contract migration no-op on already narrowed schema'
+  - 'Auth reactor verify: BUILD SUCCESS, 217 tests, 0 failures, 0 errors, 0 skipped'
+  - 'App profile writer/provider focus: 19 tests, 0 failures, 0 errors, real MySQL 8.0 provider included'
+  - 'owner-migration-safety-integration-test: MySQL 9.1 Auth/App migrations, account/profile backfill, soft-deleted preservation and grant isolation PASS'
+  - migrate-owner-preflight-test, bash -n, graphify update, and git diff --check PASS
+  commits: []
+  notes: Owner/schema drift fix only.
+  updated_at: '2026-08-20'
+- id: AR20260820-005
+  title: 补齐 Search 写入读取 disposable 验证 seam
+  source:
+  - /tmp/architecture-review-20260820.html#candidate-5
+  status: done
+  depends_on:
+  - AR20260820-004
+  acceptance_criteria:
+  - event-to-query harness
+  - idempotent writes
+  - DLQ and fallback observable
+  validation:
+  - Search tests
+  - Redis+Meili E2E
+  - reactor
+  rollback:
+  - disable harness only
+  evidence:
+  - 'SearchEventToQueryE2EIT: 3 tests, 0 failures, 0 errors, real Redis 7 + real getmeili/meilisearch:v1.8'
+  - 'Search worker focus: SearchDocumentIndexWorkerTest 11/0/0 and SearchWorkerEndToEndIT 4/0/0'
+  - 'App Search focus: SearchEventToQueryE2EIT, DefaultSearchReadProjectionTest, SearchSourceContractTest and SearchDocumentChangedPublisherTest 32/0/0'
+  - 'Affected App verify: BUILD SUCCESS, 1401 tests, 0 failures, 0 errors, 13 skipped; backend-search reactor package SUCCESS'
+  - services reactor order places backend-search before app; SearchEventToQueryE2EIT test-only dependency compiles in a fresh reactor
+  - Compose dev/prod config with disposable MEILI_MASTER_KEY, control-plane YAML, graphify update, and git diff --check PASS
+  commits: []
+  notes: No runtime service added.
+  updated_at: '2026-08-20'
+- id: AR20260820-006
+  title: 完成架构评审终态审计与开发交付收口
+  source:
+  - /tmp/architecture-review-20260820.html#top-recommendation
+  - /tmp/architecture-review-20260820.html#do-not-split
+  status: done
+  depends_on:
+  - AR20260820-001
+  - AR20260820-002
+  - AR20260820-003
+  - AR20260820-004
+  - AR20260820-005
+  acceptance_criteria:
+  - all report requirements are evidence-backed
+  - no new modules are added to force convergence
+  - judge-runtime remains the existing storage-free implementation and is not physically split again
+  - rollback paths are retained and local rehearsal is not production acceptance
+  - focused/module/integration/security/formal review has zero unresolved findings
+  validation:
+  - full reactor
+  - integration evidence
+  - graphify update
+  - YAML parse
+  - diff check
+  - final review
+  rollback:
+  - no unauthorized history or deployment operation
+  evidence:
+  - AR20260820-001..005 are done; each acceptance, rollback, review, validation and Coverage mapping is recorded above
+  - 'Fresh services ./mvnw verify -B: BUILD SUCCESS, MAVEN_EXIT=0; Surefire XML 829 reports, 2792 tests, 0 failures, 0 errors, 29 skips'
+  - 'Current target integration gates: 12 focused owner/MySQL tests plus SearchBackfillReadPortIT 5/0/0/0, SearchEventToQueryE2EIT 3/0/0/0, owner migration safety PASS; broad *IT selector timed out at host 300s without exit and is not counted as pass'
+  - JudgeRuntimeConfiguration/source/POM audit proves storage-free explicit import; no new runtime module or physical judge split was added
+  - Rollback inventory, development-only authority, control-plane YAML, graphify update and git diff --check PASS
+  commits: []
+  notes: Terminal gate; development-only authority.
+  updated_at: '2026-08-20'
+- id: CRFIX-REVIEW-006
+  title: 修复 Auth Flyway 与 Dashboard 聚合 CR
+  source:
+  - review output 2026-08-21
+  status: done
+  depends_on:
+  - AR20260820-006
+  acceptance_criteria:
+  - applied V20260820180000 remains byte-for-byte unchanged and a later guarded migration handles already-narrowed Auth schemas
+  - problem charts retain published_at semantics and exclude drafts from publication buckets
+  - derived problem status buckets aggregate deleted active/inactive rows into one DELETED result
+  validation:
+  - focused Dashboard provider/projection tests
+  - real MySQL SearchBackfillReadPortIT and AuthProfileSchemaOwnershipIT
+  - services verify, owner migration preflight/safety rehearsal, Compose config, graphify update and diff check
+  rollback:
+  - remove the new follow-up migration and revert only the scoped Dashboard/config/test changes
+  evidence:
+  - 'applied migration unchanged check: exit 0'
+  - 'Dashboard focused: 11 tests, 0 failures, 0 errors, 0 skipped'
+  - 'SearchBackfillReadPortIT: 5 tests, 0 failures, 0 errors, 0 skipped; AuthProfileSchemaOwnershipIT: 2 tests, 0 failures, 0 errors, 0 skipped'
+  - 'services verify: BUILD SUCCESS, fresh 757 Surefire reports, 2557 tests, 0 failures, 0 errors, 20 skips'
+  - owner migration preflight and MySQL 9.1 safety rehearsal PASS; Compose dev/prod config PASS; graphify update and diff check PASS
+  notes: Development/TEST-TARGET only; no commit, push, publish, deploy, cutover, grant or production action.
+  updated_at: '2026-08-21'
+- id: ARCH-20260821-001
+  title: 将 dev-lite 收敛为唯一第一类开发 interface
+  source:
+  - /tmp/architecture-review-20260821112953.html#dev-contract
+  status: done
+  depends_on: []
+  acceptance_criteria:
+  - DevStack manifest owns dev-lite/dev-full route, role, search and judge mode exports
+  - dev-lite is local Submission + database Search + no Search worker, with explicit Admin route defaults
+  - dev-full is explicit remote/indexed rehearsal, starts the Search worker and remains cutover-gated
+  - up.sh, ecosystem.config.cjs, Compose, README and shell contract tests describe the same modes
+  - manifest owns infrastructure/service readiness attempts, intervals, bootstrap timeout and per-app readiness banner rules
+  validation:
+  - manifest contract
+  - bash -n
+  - up.sh help/mode assertions
+  - Compose config
+  - focused startup checks
+  rollback:
+  - revert manifest/launcher/config/docs only; retain existing cutover and rollback entrypoints
+  evidence:
+  - bash -n scripts/dev/up.sh scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh exit 0
+  - 'scripts/dev/devstack-manifest-test.sh exit 0: deterministic lite/full app sets and mode exports'
+  - manifest timing/banner contract assertions pass; up.sh consumes all declared readiness and bootstrap values
+  - up.sh --help exit 0 documents local DB search versus explicit indexed Search worker
+  - ecosystem.config.cjs mode-default assertion exit 0
+  - README and services architecture status updated to match manifest behavior
+  commits: []
+  notes: Development/TEST-TARGET only; no production route or grant action.
+  updated_at: '2026-08-21'
+- id: ARCH-20260821-002
+  title: 将 Judge execution wiring 从 App 自动扫描中收深
+  source:
+  - /tmp/architecture-review-20260821112953.html#judge-seam
+  status: done
+  depends_on:
+  - ARCH-20260821-001
+  acceptance_criteria:
+  - Judge-only worker, attempt executor and stream migration/reaper wiring are explicit in JudgeRuntimeConfiguration
+  - App compatibility runtime does not auto-register Judge-only scheduled processors
+  - App retains only a default-off, explicitly configured legacy RQueue compatibility adapter for rollback
+  - Judge boot wiring and App absence are covered by focused architecture/context tests
+  - storage-free judge-runtime, existing queue contracts and rollback compatibility remain intact
+  validation:
+  - Judge focused tests
+  - App context/wiring test
+  - affected reactor compile/test
+  rollback:
+  - restore stereotypes/import wiring without changing queue data or contracts
+  evidence:
+  - JudgeRuntimeConfigurationTest 2/0/0/0 PASS after explicit import wiring
+  - BackendAppApplicationTest 6/0/0/0 PASS; App context has no Judge-only worker/reaper beans
+  - judge POM Surefire argLine baseline fixed after first focused run exposed literal @{argLine}
+  - source scan confirms no Judge-only stereotype remains and all four classes are explicitly imported by JudgeRuntimeConfiguration
+  - AppJudgeCompatibilityConfiguration is default-off, imports only DefaultJudgeAttemptExecutor when explicitly enabled, and AppJudgeCompatibilityConfigurationTest passes
+  - 'focused review: no hidden caller, Owner, queue, rollback or public contract change found'
+  updated_at: '2026-08-21'
+- id: ARCH-20260821-003
+  title: 将 AdminReadModel seam 收敛为查询垂直切片
+  source:
+  - /tmp/architecture-review-20260821112953.html#admin-query
+  status: done
+  depends_on:
+  - ARCH-20260821-002
+  acceptance_criteria:
+  - Admin analytics read interface exposes coarse contest, revenue and overview slices
+  - Dashboard and existing user-detail projection expose coarse page/detail query slices; owner fan-out and VO shaping stay behind their deep modules
+  - existing reporters and adapter retain entity-free owner reads and bounded batch behavior
+  - removed per-metric interface methods have no hidden callers or test-only implementors
+  - Admin projection/read tests cover slice outputs and owner-unavailable semantics
+  validation:
+  - Admin focused tests
+  - affected reactor test/verify
+  - contract/source boundary scan
+  rollback:
+  - restore the old AdminAnalyticsPort methods and adapter delegation without data changes
+  evidence:
+  - AdminAnalyticsPort reduced to contest, revenue and overview query slices; metric-level methods are implementation-private
+  - 'Dashboard adapter/projection, analytics slice and bounded executor focus: 14/0/0/0 PASS'
+  - 'Existing AdminUserProjection list/detail vertical slice: 3/0/0/0 PASS; no controller contract changed'
+  - No remaining Admin caller or alternate implementor references removed methods
+  - Admin adapter retains entity-free owner contracts and batch contest read
+  updated_at: '2026-08-21'
+- id: ARCH-20260821-004
+  title: 将 owner-composed user facts 收成可批量读取的 deep module
+  source:
+  - /tmp/architecture-review-20260821112953.html#user-facts
+  status: done
+  depends_on:
+  - ARCH-20260821-003
+  acceptance_criteria:
+  - UserReadMapper exposes one bounded batch composition path for Auth account plus App profile
+  - OwnerUserReadAdapter composes account/profile facts in one Auth batch plus one profile batch
+  - ModerationUserReadAdapter no longer loops selectById for a page of IDs
+  - missing-account and Auth-unavailable semantics remain explicit and regression-tested
+  validation:
+  - user facts unit tests
+  - moderation batch regression
+  - affected App tests
+  - source call-site scan
+  rollback:
+  - retain the existing single-row path and revert only batch contract/callers
+  evidence:
+  - UserReadMapper now exposes selectByIds(Collection) with Auth account batch + App profile batch composition
+  - OwnerUserReadAdapterTest 6/0/0/0 PASS, including one Auth/profile batch regression and typed facts batch
+  - ModerationUserReadAdapterTest 1/0/0/0 PASS; selectByIds is called once and selectById is never called
+  - Affected App reactor compile/test BUILD SUCCESS; first strict-stubbing mismatch fixed by ordered de-duplicated IDs
+  - Search-specific cursor seam intentionally retained because ordering/count semantics differ
+  updated_at: '2026-08-21'
+- id: ARCH-20260821-005
+  title: 统一 Search 的实时读与索引读语义
+  source:
+  - /tmp/architecture-review-20260821112953.html#search-semantics
+  status: done
+  depends_on:
+  - ARCH-20260821-001
+  - ARCH-20260821-004
+  acceptance_criteria:
+  - Search read mode is explicit: dev-lite deterministic database, indexed mode event-backed Meili
+  - fallback-to-database is an explicit policy and is covered independently from indexed reads
+  - indexed mode requires an explicitly enabled Search worker and returns source/freshness/order/total/fallback semantics
+  - App unit and disposable Redis/Meili tests cover both modes, unavailable indexed backend and exact totals
+  - production Compose preserves current indexed-plus-explicit-fallback behavior without new runtime infrastructure
+  validation:
+  - Search focused tests
+  - disposable Redis/Meili E2E
+  - affected App/Search reactor verify
+  - Compose config
+  rollback:
+  - default to database mode and retain existing Meili/worker/fallback adapter paths
+  evidence:
+  - SearchReadProperties binds explicit DATABASE/INDEXED mode and fallback policy
+  - 'DefaultSearchReadProjectionTest + SearchReadPropertiesTest: 25/0/0/0 PASS'
+  - SearchReadSemantics is returned for database, indexed and fallback responses; indexed mode fails closed when worker-enabled is not true
+  - database mode ignores configured Meili client; indexed mode fails closed without fallback
+  - 'SearchEventToQueryE2EIT real Redis 7 + Meili v1.8: 3/0/0/0 PASS, including indexed event-to-query, DLQ and explicit fallback'
+  - App/Search affected reactor BUILD SUCCESS; Search worker remains sole Meili writer
+  - production Compose passes the existing SEARCH_WORKER_ENABLED gate to App; application defaults preserve indexed + DB fallback without new infrastructure
+  updated_at: '2026-08-21'
+- id: ARCH-20260821-006
+  title: 完成五项架构收敛的 Review、Validation 与 Completion Audit
+  source:
+  - /tmp/architecture-review-20260821112953.html#top-recommendation
+  status: done
+  depends_on:
+  - ARCH-20260821-001
+  - ARCH-20260821-002
+  - ARCH-20260821-003
+  - ARCH-20260821-004
+  - ARCH-20260821-005
+  acceptance_criteria:
+  - all five candidates are implemented or source-proven already addressed with current evidence
+  - all callers/contracts/config/tests/docs are synchronized and Confirmed Findings equals zero
+  - development-only validation is reported without production acceptance claims
+  - user .auto-flow history and unrelated changes remain protected; no commit/push/deploy occurs
+  validation:
+  - full applicable reactor verify
+  - focused real-service gates
+  - integration/E2E
+  - graph refresh
+  - YAML/Compose/diff checks
+  - final review
+  rollback:
+  - revert scoped code/config/test/docs changes; do not revert user work or applied migrations
+  evidence:
+  - 'Standards and Spec review re-run after fixes: Confirmed Findings=0; both former timeout/readiness HIGH findings closed'
+  - 'services verify exit 0: 834 Surefire reports, 2805 tests, 0 failures, 0 errors, 29 skipped'
+  - 'real SearchEventToQueryE2EIT with disposable Redis 7 + Meili v1.8: 3/0/0/0 PASS'
+  - Admin bounded executor focus 9/0/0/0; App/Search semantic focus 25/0/0/0; App context 6/0/0/0; Judge wiring 2/0/0/0
+  - DevStack manifest contract, bash syntax, Compose dev/prod config, wiki manifest, console type-check and git diff --check exit 0
+  - fresh graphify update and UltiCode-current graph generation 2026-08-21T05:25:15Z; changed Java paths metadata_match/no_recorded_issue
+  commits: []
+  notes: Terminal objective gate.
+  updated_at: '2026-08-21'
+- id: ARCHREV-20260821-001
+  title: 将 Owner 数据责任收敛为默认 fail-closed 的运行边界
+  source:
+  - /tmp/architecture-review-20260821-163916.html#candidate-01
+  status: done
+  depends_on: []
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - auth/admin/notification/submission runtime datasource configuration requires owner-specific connection variables and no longer silently falls back to generic DB_* variables
+  - supported dev launcher still provisions one MySQL instance with owner-specific schemas/accounts and migration identity separated from runtime identity
+  - owner configuration boundary tests fail when a runtime config reintroduces implicit shared DB fallback
+  - existing App profile writer and Auth account/status ownership remain unchanged; no applied migration is edited
+  validation:
+  - owner config contract test
+  - shell syntax
+  - owner migration preflight/safety rehearsal
+  - affected owner tests
+  - Compose config
+  - diff check
+  rollback:
+  - revert owner datasource placeholder changes and boundary tests; retain existing owner schemas
+  - migrations and cutover scripts
+  evidence:
+  - 'OwnerDatasourceConfigurationTest via services/mvnw -pl admin -am -Dtest=OwnerDatasourceConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -B: exit 0, 1 test, 0 failures, 0 errors, 0 skipped'
+  - 'owner runtime YAML scan: generic DB_HOST/PORT/NAME/USER fallback count 0; all five Owner-specific variable groups are required'
+  - 'git diff --check: exit 0; no applied Flyway migration or data action performed'
+  commits: []
+  notes: Development/TEST-TARGET only; one MySQL instance remains in scope. Review scope is config/test and found no caller or ownership drift.
+  updated_at: '2026-08-21'
+- id: ARCHREV-20260821-002
+  title: 将 dev-lite 收敛为唯一、最小且可复现的开发策略来源
+  source:
+  - /tmp/architecture-review-20260821-163916.html#candidate-02
+  status: done
+  depends_on:
+  - ARCHREV-20260821-001
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - devstack-manifest.sh is the sole supported dev-lite/dev-full policy source for route, search, judge and owner capability exports
+  - application YAML defaults, ecosystem PM2 defaults, .env.example and migration documentation agree with dev-lite; dev-full remains explicit and cutover-gated
+  - dev-lite does not require MeiliSearch or Search worker and each started backend is justified by a tested caller/readiness dependency
+  - mode contract tests cover the complete capability matrix and fail on drift between manifest, launcher and PM2
+  validation:
+  - devstack manifest tests
+  - bash -n
+  - up.sh help/mode checks
+  - YAML consistency audit
+  - Compose dev/prod config
+  - focused startup failure checks
+  rollback:
+  - revert mode/default/documentation changes; keep existing dev-full and cutover entrypoints
+  evidence:
+  - scripts/dev/devstack-manifest-test.sh exit 0; dev-lite/dev-full APP_RUNTIME_MODE and capability matrix assertions pass
+  - bash -n scripts/dev/up.sh scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh scripts/dev/init-env.sh exit 0; up.sh --help exit 0
+  - node --check ecosystem.config.cjs exit 0; git diff --check exit 0
+  - direct local defaults now match dev-lite (local Submission, database Search, no Search worker); production Compose explicitly preserves indexed Search + DB fallback
+  - 'Submission owner retained after caller scan: Admin dashboard/submission projections and App Submission owner reads require its readiness in the supported six-backend dev-lite path'
+  notes: Development/TEST-TARGET only; mode policy is manifest-backed and documentation no longer claims Phase 7 production retirement is already complete. Do not remove Submission owner blindly; prove whether Admin/worker reads require it before changing the process set.
+  commits: []
+  updated_at: '2026-08-21'
+- id: ARCHREV-20260821-003
+  title: 收敛 Judge Streams 的重复 transport contract source
+  source:
+  - /tmp/architecture-review-20260821-163916.html#candidate-03
+  status: done
+  depends_on:
+  - ARCHREV-20260821-002
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - JudgeJobEnvelope, JudgeJobHandle, JudgeQueue and stream key contract have one source of truth consumed by Submission and Judge
+  - concrete role-specific wiring remains storage-free and does not introduce a new runtime process or business-table dependency
+  - contract shape, JSON compatibility, ack/nack/dedup and Redis Streams integration tests pass from both producer and consumer sides
+  - duplicate contract FQCN/source scan is zero; compatibility envelope version remains backward compatible
+  validation:
+  - submission-api/transport contract tests
+  - affected Submission/Judge unit tests
+  - Redis Streams integration
+  - reactor compile/test
+  - duplicate source scan
+  rollback:
+  - restore local contract copies from the same pre-change source without changing Redis keys or persisted data
+  evidence:
+  - 'JudgeQueueContractShapeTest + SubmissionApiContractShapeTest: 8/0/0/0 PASS; versioned JSON round-trip and stable Redis key assertions pass'
+  - 'affected Judge/Submission reactor compile: exit 0; focused Judge/Queue/SubmissionOutbox tests: 9 executed, 0 failures, 0 errors, 4 environment-gated Redis skips'
+  - 'old queue contract references: 0 Java files; duplicate contract paths between judge-runtime and submission: 0'
+  - backend-judge-config is the single runtime flag/validator source; FeatureFlagsProperties main-source count is 1
+  - wire JSON, Redis stream keys, ack/nack/dedup behavior remain unchanged; only contract ownership/package source moved
+  commits: []
+  notes: Extract only the real transport contract; do not put business persistence or sandbox implementation into a contract module.
+  updated_at: '2026-08-21'
+- id: ARCHREV-20260821-004
+  title: 将迁移 flag 矩阵收敛为命名运行形态并删除 dead config
+  source:
+  - /tmp/architecture-review-20260821-163916.html#candidate-04
+  status: done
+  depends_on:
+  - ARCHREV-20260821-003
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - supported dev modes are named and exported as coherent capability states rather than independently authored boolean defaults
+  - illegal combinations fail before accepting work; existing local/remote Submission routing and Judge legacy/Streams rollback semantics remain explicit
+  - dead envelope-version configuration is removed or made executable; no stale flag remains silently ignored by dispatchers
+  - tests cover dev-lite, dev-full, unavailable worker and cutover-negative states
+  validation:
+  - flag binding/validator tests
+  - manifest mode tests
+  - App/Judge context tests
+  - affected reactor tests
+  - config grep audit
+  rollback:
+  - restore previous flag properties and validator behavior while retaining single-writer and queue contract fixes
+  evidence:
+  - devstack manifest named dev-lite/dev-full capability assertions pass with APP_RUNTIME_MODE and complete flag matrix
+  - 'FlagCombinationValidatorTest + FeatureFlagsPropertiesBindingTest: 11/0/0/0 PASS after removing ignored envelope-version config'
+  - 'obsolete envelope-version configuration scan: 0 active runtime/config/test references outside explanatory contract naming'
+  - shared backend-judge-config validator enforces dev-lite/dev-full/external-full in App, Submission and Judge runtime classpaths
+  - bash syntax, Node ecosystem syntax and git diff check pass; external-full Compose behavior remains explicit
+  commits: []
+  notes: No production cutover; external runtime modes must remain fail-closed and explicitly documented.
+  updated_at: '2026-08-21'
+- id: ARCHREV-20260821-005
+  title: 将跨 Owner facts enrichment 收敛为稳定 User Facts Projection
+  source:
+  - /tmp/architecture-review-20260821-163916.html#candidate-05
+  status: done
+  depends_on:
+  - ARCHREV-20260821-001
+  - ARCHREV-20260821-004
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - Auth account plus App profile facts are composed behind one named Projection seam with bounded batch and explicit missing/unavailable/freshness semantics
+  - Search and existing user/moderation callers use the Projection seam without per-account synchronous fan-out regressions
+  - Search-specific cursor ordering/count semantics remain intact and are not forced into the generic Projection
+  - focused tests prove one Auth batch plus one profile batch, failure-closed behavior, input ordering and freshness metadata
+  validation:
+  - User Facts Projection tests
+  - Search adapter tests
+  - moderation N+1 regression
+  - App context test
+  - affected reactor test/verify
+  - call-site scan
+  rollback:
+  - restore the prior UserFactsReadPort/OwnerUserReadAdapter source seam and caller wiring without data changes
+  evidence:
+  - 'DefaultUserFactsReadProjectionTest: 5/0/0/0 PASS; Auth account + App profile facts stay behind one bounded batch Projection seam'
+  - 'Search/Owner/Moderation/user focused suite: 25/0/0/0 PASS; Search cursor-specific ordering/count behavior remains unchanged'
+  - 'BackendAppApplicationTest: 6/0/0/0 PASS; only DefaultUserFactsReadProjection implements the shared UserFactsProjection production seam'
+  - Projection failure-closed, missing-profile nullable, input order and freshness metadata regressions are covered
+  - single-ID and batch Auth/profile owner outages both normalize to BusinessException; Search test double is constructor-injected without concrete Projection casts
+  commits: []
+  notes: Projection is a read seam only; no new event bus or production infrastructure.
+  updated_at: '2026-08-21'
+- id: ARCHREV-20260821-006
+  title: 完成当前五项架构收敛的 Review、Tier-C Validation 与 Completion Audit
+  source:
+  - /tmp/architecture-review-20260821-163916.html#top-recommendation
+  status: done
+  depends_on:
+  - ARCHREV-20260821-001
+  - ARCHREV-20260821-002
+  - ARCHREV-20260821-003
+  - ARCHREV-20260821-004
+  - ARCHREV-20260821-005
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - all five current report candidates are implemented with synchronized callers/contracts/config/tests/docs or have current source evidence proving the exact item already holds
+  - contextual Review has Confirmed Findings=0 and all findings are re-reviewed after fixes
+  - Tier-C validation passes with real development/TEST-TARGET evidence; skips, timeouts and unavailable external gates remain disclosed
+  - Coverage maps every report candidate to Task/Acceptance/Evidence; user worktree and prior .auto-flow history remain protected
+  - no commit, push, merge, publish, deploy, production cutover, grant revoke or applied migration edit occurs without separate authorization
+  validation:
+  - full applicable services verify
+  - focused real-service gates
+  - startup/config/migration/rollback checks
+  - graph refresh
+  - YAML/Compose/wiki/diff checks
+  - final review
+  rollback:
+  - revert only scoped implementation files; never revert applied migrations or prior user work
+  evidence:
+  - 'Standards review final: APPROVE, Confirmed Findings=0; only raw-string mode Primitive Obsession/Repeated Switches retained as non-blocking judgement note'
+  - 'Spec review final: APPROVE, no remaining findings'
+  - 'services/./mvnw verify -B: exit 0, BUILD SUCCESS, 843 Surefire reports, 2827 tests, 0 failures, 0 errors, 29 skips'
+  - 'JudgeStreamRedisIntegrationTest with disposable Redis 7: 4/0/0/0 PASS'
+  - 'SearchWorkerEndToEndIT with Testcontainers Redis 7 + Meili REST stub: 4/0/0/0 PASS'
+  - 'owner-migration-safety-integration-test: exit 0 PASS; migrate-owner-preflight-test: exit 0 PASS'
+  - 'DevStack manifest, bash -n, Node config check, Compose dev/prod with disposable in-memory Meili key, and git diff --check: all exit 0'
+  - graphify update . completed; graph rebuilt with 28228 nodes and 82691 edges; label refresh warning is non-behavioral
+  - CancellableQueryExecutor cancellation ordering repaired after full-verify race; focused test 2/0/0/0 and subsequent full verify pass
+  notes: Objective terminal gate passed in development/TEST-TARGET only; no commit/push/publish/deploy/production cutover/grant revoke/applied migration edit. Objective terminal gate; development/TEST-TARGET only.
+  commits: []
+  updated_at: '2026-08-21'
+- id: ARCHX-20260821-001
+  title: 将 DevStack mode 收敛为唯一开发契约
+  source:
+  - /tmp/architecture-review-20260821-221346.html#candidate-1
+  status: done
+  depends_on: []
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - dev-lite remains the first-class minimal local interface and dev-full remains explicit opt-in
+  - all App/Submission/Judge mode defaults and exported flags agree with devstack-manifest.sh
+  - direct PM2/config boot cannot silently select a different mode policy
+  - illegal mode/flag combinations fail closed with actionable errors
+  - existing rollback and owner migration behavior remains unchanged
+  validation:
+  - devstack-manifest-test
+  - bash -n
+  - per-runtime mode binding tests
+  - PM2/config consistency scan
+  - focused reactor tests
+  rollback:
+  - revert scoped launcher/config/test changes; keep current local/remote and legacy rollback paths
+  evidence:
+  - 'bash scripts/dev/devstack-manifest-test.sh: exit 0, DevStack manifest contract PASS'
+  - 'bash -n scripts/dev/devstack-manifest.sh scripts/dev/devstack-manifest-test.sh scripts/dev/up.sh: exit 0'
+  - 'git diff --check: exit 0'
+  - README, doctor and legacy start.sh/start.bat/pitstop-start-backend.ps1 entrypoints route through up.sh; bypass assertions pass
+  notes: Review PASS with Confirmed Findings=0. Development/TEST-TARGET only; no production route, grant or deployment action.
+  updated_at: '2026-08-21'
+- id: ARCHX-20260821-002
+  title: 将 Judge Streams 设为正常开发路径并隔离 legacy rollback seam
+  source:
+  - /tmp/architecture-review-20260821-221346.html#candidate-3
+  status: done
+  depends_on:
+  - ARCHX-20260821-001
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - normal dev-lite/dev-full judging uses the provider-owned JudgeQueue Streams path
+  - legacy RQueue polling/compatibility assembly is impossible in normal modes and requires an explicit rollback mode
+  - Judge wire envelope, Redis keys, ACK/NACK, deduplication and fence semantics remain compatible
+  - rollback mode is source-reversible and covered by focused tests
+  validation:
+  - Judge config/worker tests
+  - App compatibility condition test
+  - disposable Redis Streams integration
+  - affected reactor tests
+  rollback:
+  - restore prior flag values and compatibility condition without deleting legacy code or data
+  evidence:
+  - DevStack manifest contract exit 0; dev-lite/dev-full export outbox, generation fence and JudgeQueue port=true
+  - 'platform/judge-config isolated test exit 0: 5 tests, 0 failures, 0 errors'
+  - 'judge -am test exit 0: JudgeRuntimeConfigurationTest 2 tests, 0 failures, 0 errors'
+  - 'submission -am test exit 0: 25 tests, 0 failures, 0 errors'
+  - App compatibility source condition requires app.runtime.mode=legacy-rollback; normal dev mode source check passes
+  - 'App app-web -am test exit 0: 1425 tests, 0 failures, 0 errors, 13 skips'
+  notes: Review PASS with Confirmed Findings=0. Keep the legacy adapter; do not add a broker or new runtime.
+  updated_at: '2026-08-21'
+- id: ARCHX-20260821-003
+  title: 为 Submission read projection 增加批量 owner read contract
+  source:
+  - /tmp/architecture-review-20260821-221346.html#candidate-2
+  status: done
+  depends_on: []
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - contest and external submission reads use one bounded batch call instead of per-submission cross-owner fan-out
+  - App and Submission implementations batch entity reads, user facts and problem facts
+  - missing owner facts preserve existing null/safe-degrade semantics
+  - public Result/PageResult/VO shapes remain compatible
+  - hidden test-case filtering and ownership boundaries remain unchanged
+  validation:
+  - submission API contract shape
+  - contest projection no-N+1 regression
+  - App/Submission focused tests
+  - Submission owner IT
+  rollback:
+  - remove additive batch method and restore single-row adapter call; no schema change
+  evidence:
+  - 'submission-api -am test exit 0: 19 tests, 0 failures, 0 errors'
+  - 'submission -am test exit 0: 25 tests, 0 failures, 0 errors'
+  - 'SubmissionReadProviderIT exit 0: 4 tests, 0 failures, 0 errors with disposable MySQL 8'
+  - Contest source now calls SubmissionReadPort.toVOs once; App/Submission implementations preserve input order and batch facts
+  - 'App app-web -am test exit 0: 1425 tests, 0 failures, 0 errors, 13 skips'
+  notes: Review PASS with Confirmed Findings=0; no schema/event-store change.
+  updated_at: '2026-08-21'
+- id: ARCHX-20260821-004
+  title: 收窄 UserFactsProjection interface 并保持 owner composition implementation
+  source:
+  - /tmp/architecture-review-20260821-221346.html#candidate-4
+  status: done
+  depends_on: []
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - directory summary callers and User Facts/Search/Moderation callers depend on separate narrow interfaces
+  - DefaultUserFactsReadProjection remains the single bounded account/profile composition implementation
+  - no caller loses missing-profile or unavailable-owner semantics
+  - no cross-service public contract changes
+  - all affected mocks, constructor fixtures and architecture scans are synchronized
+  validation:
+  - User Facts focused tests
+  - Search/Moderation caller tests
+  - App context/mapper scan
+  - affected reactor tests
+  rollback:
+  - restore composite interface type references; keep implementation and data ownership unchanged
+  evidence:
+  - UserFactsProjection now exposes only findById/findByIds/compose
+  - UserDirectoryProjection owns UserSummaryView lookup and directory paging methods
+  - DefaultUserFactsReadProjection implements both interfaces; Search/Moderation stay on facts and user/account reads use directory
+  - source call-site scan finds no summary method usage through UserFactsProjection
+  - git diff --check exit 0; App affected reactor passes with 1425 tests, 0 failures, 0 errors, 13 skips
+  notes: Review PASS with Confirmed Findings=0; one composition implementation retained and public cross-service contracts unchanged.
+  updated_at: '2026-08-21'
+- id: ARCHX-20260821-005
+  title: 将架构文档和领域词汇转为 executable consistency checks
+  source:
+  - /tmp/architecture-review-20260821-221346.html#candidate-5
+  status: done
+  depends_on:
+  - ARCHX-20260821-001
+  - ARCHX-20260821-002
+  - ARCHX-20260821-003
+  - ARCHX-20260821-004
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - CONTEXT.md describes current Owner/Worker and Notification ownership without stale implementation claims
+  - architecture status and migration docs agree with source/POM/config/PM2/Compose facts
+  - executable checks fail when known topology or terminology drift returns
+  - onboarding points to one supported DevStack entry point
+  - no volatile test counts or temporary review notes are added to durable docs
+  validation:
+  - architecture contract script
+  - docs grep assertions
+  - wiki manifest
+  - git diff --check
+  rollback:
+  - revert only docs/check script; no runtime behavior depends on documentation
+  evidence:
+  - 'scripts/dev/architecture-contract-test.sh exit 0: manifest, seam, owner, startup and docs assertions PASS'
+  - README, doctor, services architecture status and migration current-state docs now point to up.sh and current Streams/owner semantics
+  - CONTEXT.md now distinguishes User Directory View, User Facts View and Notification Owner worker ownership
+  - bash -n and git diff --check exit 0
+  notes: Review PASS with Confirmed Findings=0. Documentation remains downstream of source/config; no second architecture truth is created.
+  updated_at: '2026-08-21'
+- id: ARCHX-20260821-006
+  title: 完成五项目标的 Review、Tier-C Validation 与 Completion Audit
+  source:
+  - /tmp/architecture-review-20260821-221346.html#top-recommendation
+  status: done
+  depends_on:
+  - ARCHX-20260821-001
+  - ARCHX-20260821-002
+  - ARCHX-20260821-003
+  - ARCHX-20260821-004
+  - ARCHX-20260821-005
+  owner: Codex
+  target_window: 2026-08-21 当前执行轮
+  acceptance_criteria:
+  - all five user objectives map to implemented behavior and evidence
+  - contextual Review has Confirmed Findings=0 after all fixes
+  - selected Tier-C validation passes with development/TEST-TARGET limitations explicit
+  - Task/Coverage/Resume/Handoff/Evidence/Git status are consistent
+  - no commit, push, merge, publish, deploy, production cutover, grant revoke or applied migration edit occurs
+  validation:
+  - focused and affected reactor tests
+  - full services verify
+  - disposable Redis/Judge checks
+  - config/docs/graph/diff audits
+  rollback:
+  - revert only scoped source/config/docs; preserve prior user changes and applied migrations
+  evidence:
+  - Final contextual review fixed five findings and ended with Confirmed Findings=0
+  - 'App affected reactor: 1425 tests, 0 failures, 0 errors, 13 skips'
+  - 'services ./mvnw verify -B: 801 Surefire reports, 2705 tests, 0 failures, 0 errors, 20 skips'
+  - 'SubmissionReadProviderIT: 4 tests, 0 failures, 0 errors; architecture contract, Compose, YAML, graph and diff checks PASS'
+  notes: Objective terminal gate complete; development/TEST-TARGET only.
+  updated_at: '2026-08-21'
+- id: SVCFIX-20260822-A1
+  title: 删除 WebSocket CONNECT 的 STOMP token 回退
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#A1
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - CONNECT authenticates only from the handshake session cookie attribute
+  - a client-controlled STOMP header cannot authenticate a connection
+  - TokenExtractor no longer exposes header-token extraction
+  - regression tests cover header-token rejection and remove obsolete success mocks
+  validation:
+  - app-web focused WebSocket tests
+  - affected app-web test
+  - diff check
+  rollback:
+  - restore the removed fallback and tests without changing token cookie behavior
+  evidence:
+  - 'JwtChannelInterceptorTest + TokenExtractorTest: 17 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - source scan confirms JwtChannelInterceptor has no extractTokenFromHeaders call and TokenExtractor has no header-token method
+  - 'git diff --check: exit 0'
+  commits: []
+  notes: Development/TEST-TARGET only; security boundary fix.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-A2
+  title: OAuth callback 缺 state cookie 时 fail closed
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#A2
+  status: done
+  depends_on:
+  - SVCFIX-20260822-A1
+  owner: Codex
+  acceptance_criteria:
+  - null or blank cookieState raises UNAUTHORIZED before Redis consumption
+  - existing mismatch, atomic consume and Redis failure semantics remain intact
+  - regression test proves missing cookie is rejected
+  validation:
+  - Auth OAuthStateModuleTest
+  - affected Auth module test
+  - diff check
+  rollback:
+  - revert the cookie presence guard and its regression test
+  evidence:
+  - 'OAuthStateModuleTest: 8 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - null and blank cookieState both fail UNAUTHORIZED before Redis getAndDelete
+  - 'git diff --check: exit 0'
+  commits: []
+  notes: Development/TEST-TARGET only; security boundary fix.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-B3
+  title: AuditOutbox 使用抢占式 PROCESSING CAS
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B3
+  status: done
+  depends_on:
+  - SVCFIX-20260822-A2
+  owner: Codex
+  acceptance_criteria:
+  - only one dispatcher can transition a PENDING row to PROCESSING
+  - processed and failed transitions are guarded by PROCESSING state
+  - duplicate or late processing cannot create a second audit log
+  - concurrent/duplicate regression coverage exists
+  validation:
+  - Admin outbox unit tests
+  - Admin outbox MySQL/integration test if available
+  - affected Admin tests
+  rollback:
+  - restore the prior claim query and state guards without altering audit rows
+  evidence:
+  - 'AuditOutboxDispatcherTest + AuditOutboxProcessorTest: 7 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - CAS regression simulates another dispatcher winning (claim=0) and duplicate processor CAS loss without inserting an AuditLog
+  - AuditOutboxMapper SQL now uses PENDING→PROCESSING claim and PROCESSING guards for terminal states
+  - Initial AuditSinkTransactionIT attempt was blocked by the Admin ApplicationContext constructor baseline; the minimal @Autowired validation-gate repair later enabled Admin *IT 44/0/0/0
+  commits: []
+  notes: Use CAS instead of extending the existing per-record REQUIRES_NEW transaction design.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-B6
+  title: Role 更新同步 bump authz_version
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B6
+  status: done
+  depends_on:
+  - SVCFIX-20260822-B3
+  owner: Codex
+  acceptance_criteria:
+  - a real role change increments authz_version atomically
+  - same-role updates do not increment authz_version
+  - missing users retain the existing not-found behavior
+  - regression test proves version increment after updateRole
+  validation:
+  - Auth role mapper unit/integration test
+  - affected Auth tests
+  rollback:
+  - restore role-only update SQL and remove the version assertion
+  evidence:
+  - 'AuthAccountPersistenceIT: 3 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - real role change updates role and authz_version from 5 to 6; same-role update returns 0 and leaves version at 6
+  - UserRoleMapper uses one atomic UPDATE with role change guard and authz_version increment; no schema change
+  commits: []
+  notes: No schema change; reuse the Auth-owned atomic version-update boundary.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-B4-B5
+  title: Durable RBAC outbox event and token revocation decision
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B4
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B5
+  status: done
+  depends_on:
+  - SVCFIX-20260822-B6
+  owner: Codex
+  acceptance_criteria:
+  - role and permission changes emit a durable authorization-change outbox record in the existing owner seam
+  - event payload carries subject, action, actor, and current authorization version
+  - synchronous authz_version bump remains the immediate invalidation signal; no blacklist writer is added
+  - wiki records the 15-minute TTL and multi-layer real-time checks decision
+  - wiki manifest is regenerated and passes its check
+  validation:
+  - Auth outbox publisher tests
+  - Auth context/affected tests
+  - wiki-manifest generate/check
+  rollback:
+  - remove only the new event emission and wiki page; preserve existing audit/outbox tables and version semantics
+  evidence:
+  - 'RoleAdministrationServiceImplTest + AuthAuditSinkAdapterTest + AuthAccountPersistenceIT: 9 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - role grant/revoke paths bump authz_version and emit AUTHORIZATION_CHANGED payloads with subject, actor, change and version through AuthAuditSinkPort
+  - AuthAuditSinkAdapterTest proves the existing sink writes PENDING rows to admin.audit_outbox; no blacklist writer or new process added
+  - wiki/SECURITY_TOKEN_REVOCATION.md records the 15-minute TTL/multi-layer-check trade-off; wiki-manifest generate and --check both pass
+  commits: []
+  notes: Reuse AuthAuditOutbox insert-only cross-owner seam; no new process or applied migration edit.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-D1
+  title: 为 Submission 双轨 routing seam 记录 kill criteria
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D1
+  status: done
+  depends_on:
+  - SVCFIX-20260822-B4-B5
+  owner: Codex
+  acceptance_criteria:
+  - write, fence and user-read routing seams each have quiesce window, error budget and rollback artifact criteria
+  - App residual submission copies have explicit retirement evidence requirements
+  - Search database/indexed mode remains an explicit manifest decision and is not rewritten
+  validation:
+  - architecture docs consistency scan
+  - wiki-manifest if wiki content changes
+  - diff check
+  rollback:
+  - revert only the added exit-criteria documentation
+  evidence:
+  - SERVICES_ARCHITECTURE_STATUS_2026-08-18.md now records per-seam 14-day quiesce windows, route-specific zero-error budgets, residual-copy retirement gates and rollback artifact lists
+  - Search database/indexed mode is explicitly preserved as a DevStack manifest decision
+  - 'targeted documentation scan and git diff --check: exit 0'
+  commits: []
+  notes: Documentation/architecture gate only; no process split or production cutover.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-D2
+  title: 声明 judge-runtime 共享归属词汇
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D2
+  status: done
+  depends_on:
+  - SVCFIX-20260822-D1
+  owner: Codex
+  acceptance_criteria:
+  - sandbox and queue port packages declare judge-runtime shared-library ownership
+  - documentation no longer describes these packages as App-private business ownership
+  - app-api trial DTO relocation is not attempted in this bounded fix
+  validation:
+  - judge-runtime compile/test
+  - package ownership scan
+  - diff check
+  rollback:
+  - remove package-info declarations and wording-only documentation changes
+  evidence:
+  - Added judge-runtime package-info declarations for sandbox and queue.port; docs now call them shared Judge execution library packages
+  - 'judge-runtime -am test: 28 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - 'ownership/package scan and git diff --check: exit 0; app-api trial DTO relocation was not attempted'
+  commits: []
+  notes: Low-cost vocabulary correction; no public contract move.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-D3
+  title: 锁定 SubmissionFactsSnapshot 最小 contract shape
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D3
+  status: done
+  depends_on:
+  - SVCFIX-20260822-D2
+  owner: Codex
+  acceptance_criteria:
+  - contract shape test asserts the exact minimal top-level and nested snapshot fields
+  - unsupported/additional fields cannot silently enter the wire shape without a failing test
+  - existing fail-closed admission and schema-version behavior remain unchanged
+  validation:
+  - submission-api/submission focused contract tests
+  - affected Submission tests
+  rollback:
+  - remove only the shape assertion test
+  evidence:
+  - 'SubmissionFactsSnapshotTest: 7 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - reflection contract asserts exact top-level and nested record component names/types/order; existing fail-closed admission tests remain green
+  commits: []
+  notes: Test-only contract gate; no snapshot field addition.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-D4
+  title: 清理游离编译产物并保持迁移指南现状
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D4
+  status: done
+  depends_on:
+  - SVCFIX-20260822-D3
+  owner: Codex
+  acceptance_criteria:
+  - exact stray services/com/.../ProblemAdministrationDomainServiceImpl.class is removed
+  - docs/MICROSERVICE_MIGRATION_GUIDE.md remains unchanged
+  - no source or generated historical file is rewritten
+  validation:
+  - artifact absence check
+  - migration-guide checksum/diff check
+  - diff check
+  rollback:
+  - restore only the exact untracked compiled artifact if needed; no source rollback required
+  evidence:
+  - exact services/com/ulticode/modules/problem/service/impl/ProblemAdministrationDomainServiceImpl.class was untracked and removed
+  - 'artifact absence check: PASS; docs/MICROSERVICE_MIGRATION_GUIDE.md SHA-256 unchanged before/after'
+  - 'migration-guide git diff/status unchanged and git diff --check: exit 0'
+  commits: []
+  notes: Requested hygiene deletion only; no broad cleanup.
+  updated_at: '2026-08-22'
+- id: SVCFIX-20260822-REVIEW-VALIDATE-CLOSE
+  title: 完成本次 Services 评审修复的 Review、Tier-C Validation 与终态审计
+  source:
+  - services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md
+  status: done
+  depends_on:
+  - SVCFIX-20260822-A1
+  - SVCFIX-20260822-A2
+  - SVCFIX-20260822-B3
+  - SVCFIX-20260822-B6
+  - SVCFIX-20260822-B4-B5
+  - SVCFIX-20260822-D1
+  - SVCFIX-20260822-D2
+  - SVCFIX-20260822-D3
+  - SVCFIX-20260822-D4
+  owner: Codex
+  acceptance_criteria:
+  - every A/B/D report item is mapped to implementation, test or documented decision evidence
+  - contextual Review has zero Confirmed Findings after re-review
+  - required focused, affected-module, integration/concurrency/security and full reactor validation pass or are explicitly unavailable with evidence
+  - graphify update, wiki manifest, YAML/control-plane, diff and protected-worktree audits agree
+  - no commit, push, merge, publish, deploy, production action or applied migration edit occurs
+  validation:
+  - focused checks
+  - services mvnw compile/test/*IT/verify
+  - graphify update
+  - wiki manifest check
+  - YAML parse
+  - git diff/check
+  rollback:
+  - revert only scoped implementation/docs changes; preserve prior user changes and control-plane history
+  evidence:
+  - 'Review re-check: Confirmed Findings=0 after removing the unused JwtChannelInterceptor TokenExtractor dependency, updating stale WebSocketAuthenticator docs, and checking AuditOutbox insert success'
+  - 'services/./mvnw compile -B: BUILD SUCCESS, MAVEN_EXIT=0'
+  - 'services/./mvnw test -B: BUILD SUCCESS, MAVEN_EXIT=0'
+  - 'services/./mvnw verify -B after all repairs: BUILD SUCCESS, MAVEN_EXIT=0; current non-IT Surefire aggregate 783 reports / 2638 tests / 0 failures / 0 errors / 16 skips'
+  - 'final focused suite: WebSocket 17/0/0/0, OAuth 8/0/0/0, Admin outbox 7/0/0/0, Auth RBAC/sink/version 9/0/0/0, Submission snapshot 7/0/0/0; BUILD SUCCESS, MAVEN_EXIT=0'
+  - 'Admin -Dtest="*IT" after minimal @Autowired validation-gate repair: 44 tests, 0 failures, 0 errors, 0 skips; BUILD SUCCESS, MAVEN_EXIT=0'
+  - root -Dtest="*IT" first run failed 44/0/7/0 on the pre-existing Admin constructor baseline; after repair the root rerun exceeded the host 300-second wait with no exit status and is not reported as pass
+  - owner migration preflight/safety PASS; architecture-contract and devstack-manifest PASS; wiki-manifest PASS; Compose dev/prod config PASS with disposable in-memory Meili key; YAML/diff/integrity PASS; graphify update completed
+  - user review report and graphify cache stamp remained protected; no commit, push, merge, publish, deploy, production action or applied migration edit
+  commits: []
+  notes: Terminal in development/TEST-TARGET only; root broad IT selector remains host-timeout-limited, while affected Admin IT and all required alternative gates pass. No local commit authorized by the user.
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-RECOVERY
+  title: 对账 docs/wiki 范围与脏工作区
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - identify every docs/wiki content file and protected non-documentation rule file
+  - preserve existing implementation, control-plane and unrelated user changes
+  - define exact deletion targets before destructive removal
+  validation:
+  - git status
+  - docs/wiki inventory
+  - link/reference scan
+  rollback:
+  - no deletion during recovery
+  evidence:
+  - 'docs directories found: services/docs (5), apps/management/docs (1), wiki content (1 plus manifest); root docs absent'
+  - AGENTS/.claude rules/README and .auto-flow classified as protected
+  commits: []
+  notes: Recovery complete; source review report and prior implementation worktree preserved until explicit merge deletion.
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-PLAN
+  title: 规划统一文档结构与引用迁移
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on:
+  - DOCMERGE-20260822-RECOVERY
+  owner: Codex
+  acceptance_criteria:
+  - one root PROJECT_DOCUMENTATION.md is the sole temporary documentation target
+  - source content is organized by architecture, ownership/migration, security, release, frontend and review history
+  - all current executable/source references to deleted paths have an update path
+  validation:
+  - source heading inventory
+  - merged-source completeness check
+  - reference map
+  rollback:
+  - retain source files until merged content is verified
+  evidence:
+  - seven Markdown sources mapped into PROJECT_DOCUMENTATION.md with source markers and navigation
+  - 'all source headings present in the consolidated file: 7/7 source markers'
+  commits: []
+  notes: Rules and implementation docs remain outside the temporary-document merge.
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-CONSOLIDATE
+  title: 创建统一 Markdown 并删除原始 docs/wiki 文档
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on:
+  - DOCMERGE-20260822-PLAN
+  owner: Codex
+  acceptance_criteria:
+  - PROJECT_DOCUMENTATION.md preserves all seven source contents in organized sections
+  - exact original content files and wiki manifest are removed after completeness proof
+  - no broad recursive cleanup or source/config deletion occurs
+  validation:
+  - source marker/headings check
+  - exact deletion target check
+  - git status
+  rollback:
+  - restore tracked deleted files from Git; recover merged untracked review content from PROJECT_DOCUMENTATION.md
+  evidence:
+  - 'PROJECT_DOCUMENTATION.md: 1764 lines / 144573 bytes; all seven source markers and headings verified'
+  - removed exactly apps/management/docs/i18n-design.md, five services/docs Markdown files, wiki page/manifest, and obsolete wiki-manifest tool
+  commits: []
+  notes: Deletion is user-authorized; Git-tracked removals remain recoverable, and the untracked review document was preserved in the merge before removal.
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-REFERENCES
+  title: 更新项目入口、脚本、测试与源码文档引用
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on:
+  - DOCMERGE-20260822-CONSOLIDATE
+  owner: Codex
+  acceptance_criteria:
+  - README, AGENTS, docs workflow and executable contract scripts point to PROJECT_DOCUMENTATION.md
+  - runtime tests and source Javadocs do not reference deleted documentation paths
+  - historical auto-flow records and external URLs are not rewritten as current source references
+  validation:
+  - reference scan
+  - architecture-contract-test
+  - devstack-manifest-test
+  - affected documentation test
+  rollback:
+  - restore only path-reference edits; keep the consolidated file and source deletion separate
+  evidence:
+  - active reference scan has no services/docs, deleted MICRO guide, wiki-manifest, or deleted root docs path references outside historical control-plane text/external URLs
+  - README, AGENTS, documentation workflow, architecture-contract-test, devstack-manifest-test, test comments, owner schema test, migration comments and source Javadocs now use PROJECT_DOCUMENTATION.md
+  - 'architecture-contract-test: PASS; devstack-manifest-test: PASS; PerOwnerSchemaGrantTest: 6/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0; git diff --check: PASS'
+  commits: []
+  notes: Mechanical reference migration is the current active task.
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-REVIEW
+  title: Review 统一文档内容、链接和删除范围
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on:
+  - DOCMERGE-20260822-REFERENCES
+  owner: Codex
+  acceptance_criteria:
+  - no duplicated current policy contradicts source/configuration
+  - no deleted-path links remain in active docs/scripts/tests
+  - protected AGENTS/.auto-flow/user changes remain intact
+  validation:
+  - full diff review
+  - markdown/link scan
+  - protected-worktree audit
+  rollback:
+  - restore only incorrect consolidation/reference changes
+  evidence:
+  - 'consolidated structure review: one H1, balanced 44 code-fence markers, 7 source provenance markers, explicit historical/current status notes'
+  - 'active local-link scan: 49 checked, 0 broken'
+  - 'active deleted-path scan: no services/docs, deleted root docs, wiki-manifest or wiki paths; only protected .codex config/history/external URL text remains'
+  - protected-worktree audit passed; previous implementation changes and .auto-flow history remain present
+  commits: []
+  notes: []
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-VALIDATE
+  title: 验证统一文档与项目入口
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on:
+  - DOCMERGE-20260822-REVIEW
+  owner: Codex
+  acceptance_criteria:
+  - documentation contract scripts and relevant tests pass
+  - Markdown source inventory contains only PROJECT_DOCUMENTATION.md outside protected rule docs
+  - git diff/check and control-plane YAML are valid
+  validation:
+  - architecture-contract-test
+  - devstack-manifest-test
+  - documentation scan
+  - YAML parse
+  - git diff --check
+  rollback:
+  - revert validation-only reference changes if gates fail
+  evidence:
+  - 'architecture-contract-test: PASS; devstack-manifest-test: PASS'
+  - 'PerOwnerSchemaGrantTest: 6 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+  - 'active local-link scan: 49 checked, 0 broken; docs/wiki directory check leaves only protected .claude/rules/docs'
+  - 'PROJECT_DOCUMENTATION.md source markers/headings, YAML parse, git diff --check and final graphify update: PASS'
+  commits: []
+  notes: []
+  updated_at: '2026-08-22'
+- id: DOCMERGE-20260822-CLOSE
+  title: 文档合并终态审计与交付收口
+  source:
+  - user request 2026-08-22
+  status: done
+  depends_on:
+  - DOCMERGE-20260822-REFERENCES
+  - DOCMERGE-20260822-REVIEW
+  - DOCMERGE-20260822-VALIDATE
+  owner: Codex
+  acceptance_criteria:
+  - single-document objective, coverage, review, validation and Git/task consistency all pass
+  - no commit/push/publish/deploy without separate authorization
+  - final report lists removed files, preserved rules/user changes and recovery path
+  validation:
+  - completion audit
+  - final status
+  - final diff/check
+  rollback:
+  - restore tracked docs from Git; preserve consolidated file until user accepts delivery
+  evidence:
+  - all seven source documents are represented in PROJECT_DOCUMENTATION.md and exact original content files are removed
+  - active references, local links, architecture/devstack contracts, affected test, YAML, diff and graph checks are consistent
+  - protected AGENTS/.claude rules/.auto-flow/source/unrelated dirty files preserved; no commit, push, publish or deploy performed
+  commits: []
+  notes: Terminal documentation consolidation; PROJECT_DOCUMENTATION.md is the sole merged temporary-document artifact.
+  updated_at: '2026-08-22'
+- id: DB-CONVERGE-001
+  title: 新增 fresh-install baseline 工具（保留 89 个已应用迁移不可变）
+  source:
+  - /tmp/architecture-review-20260822-170000.html#candidate-1-reframed
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - 已应用迁移 89 个文件保持原位且未被重写/删除，baseline 工具仅为新增 fresh-install 路径
+  - 提供 baseline 生成脚本与校验脚本，能从已迁移 DB 导出 canonical baseline 并与现有迁移结果一致
+  - 提供 per-schema adoption 流程（shared + 5 owners 明确版本与迁移账号契约）并验证 parity
+  validation:
+  - baseline generation
+  - per-schema baseline adoption disposable
+  - per-schema validate with pipefail
+  - git diff --check
+  rollback:
+  - 删除新增 baseline 工具与文档，不影响现有迁移历史
+  evidence:
+  - 'generate-baseline.sh: 72 shared + 5 owner schemas migrated, 3511 lines, 130 tables, 6 CREATE DATABASE/USE boundaries, 0 flyway_history, GEN_EXIT:0'
+  - 'validate-baseline.sh disposable: per-schema schema.table 130 vs 130 PASS (pipefail tee /tmp/validate.log VALIDATE_EXIT:0)'
+  - 'baseline-adopt.sh disposable: shared 20260822120000 auth 20260821100000 admin 20260822120001 app 20260811180000 notification 20260815100200 submission 20260817000000, 6 schemas baselined + validate 130 vs 130 PASS (pipefail tee /tmp/adopt.log ADOPT_EXIT:0), underscore V20260602_120000 normalization, empty-dir fail-closed'
+  - 'baseline-adopt.sh real preflight: MIGRATION_DB_* privileged contract, empty-schema/no-history fail-closed, MIGRATION_DB_USER != DB_USER enforced, bash -n OK'
+  - init-db/baseline/baseline.sql (149K, per-schema) + README.md + baseline-adopt.sh created, no migrations/ file edited
+  updated_at: '2026-08-22T18:15:00+08:00'
+- id: DB-CONVERGE-002
+  title: 分离 Seed Data 缝隙 — 独立 seed 路径（新 seed 隔离、旧 seed 保留）— 部分完成
+  source:
+  - /tmp/architecture-review-20260822-170000.html#candidate-2
+  status: partial
+  depends_on:
+  - DB-CONVERGE-001
+  owner: Codex
+  acceptance_criteria:
+  - 原始报告验收“生产零 Seed 扫描”未完全达成：旧 14+ Seed 仍在 flyway.conf filesystem:migrations/*.sql 上，增量 `migrate`/`validate` 仍扫描（已应用不重执行）；受 AGENTS.md 已应用迁移不可变约束，无法移走旧 Seed
+  - 新 Seed 约定写入 migrations/seed/ 且仅在 dev/test 挂载，已实现并纠正文档误导；fresh-install 初始路径可通过 baseline.sql + baseline-adopt.sh 避免扫描/执行 legacy Seed，未覆盖增量零扫描目标
+  - 验证 dev 与 prod 的 Flyway 校验均通过（flyway-seed 仅新增 seed 路径）
+  validation:
+  - flyway config check
+  - validate-baseline 130 vs 130
+  - baseline-adopt 130 vs 130
+  - git diff --check
+  rollback:
+  - 移除 seed 隔离配置，恢复单一扫描路径
+  evidence:
+  - 'init-db/migrations/seed/README.md corrected: legacy V20260603* etc remain on flyway.conf filesystem:migrations/*.sql (incremental still scans), new seeds only in seed/; fresh-install 初始路径零 Seed via baseline.sql + baseline-adopt.sh，未覆盖增量零扫描目标'
+  - 'init-db/flyway-seed.conf corrected comment: legacy seeds remain, incremental still scans, true zero-scan仅限 fresh-install baseline 初始路径'
+  - init-db/README.md Convergence updated for seed seam table, validate VALIDATE_EXIT:0 adopt ADOPT_EXIT:0 both 130 vs 130
+  - '结论: 候选 2 为兼容性下的部分完成（新 seed 隔离 + 文档纠偏 + fresh-install 初始路径零 Seed），原始增量“生产零扫描”未实现'
+  updated_at: '2026-08-22T18:45:00+08:00'
+- id: DB-CONVERGE-003
+  title: 收敛 Owner Schema Ownership 配置 — 主链路接入
+  source:
+  - /tmp/architecture-review-20260822-170000.html#candidate-3
+  status: done
+  depends_on:
+  - DB-CONVERGE-002
+  owner: Codex
+  acceptance_criteria:
+  - 5 套 flyway-*.conf 的重复 seam 收敛为单一 Owner Schema Ownership 接口，支持 orchestration 委托
+  - 提供统一 migrate(owner)/validate(owner)/info(owner)/baseline(owner) 接口并接入主流程
+  - 现有 per-owner 迁移与授权校验仍通过，submission 特权与 DEV_LOCAL_OWNER_BASELINE 透传不回归
+  validation:
+  - owner migration preflight
+  - per-owner grant checks
+  - up.sh delegation check
+  - bash -n
+  - disposable baseline-adopt
+  rollback:
+  - 恢复分散式 flyway-*.conf
+  - revert up.sh delegation
+  evidence:
+  - 'init-db/scripts/owner-migrate.sh enhanced: supports migrate/validate/info/baseline, env forwarding for MIGRATION_DB_* / SUBMISSION_* / DEV_LOCAL_*, bash -n OK'
+  - scripts/dev/up.sh:371-390 wired through init-db/scripts/owner-migrate.sh migrate owner (was direct migrate.sh), preserves DEVSTACK_OWNER_MIGRATION_ORDER auth admin app notification submission, submission provisioning + baseline env forwarding verified, bash -n OK, git diff --check PASS
+  - init-db/README.md Convergence updated to state up.sh delegates through owner-migrate seam (now true)
+  updated_at: '2026-08-22T18:15:00+08:00'
+- id: DB-CONVERGE-004
+  title: Squashing & Archive — 89 历史迁移归档/压缩（延期）
+  source:
+  - /tmp/architecture-review-20260822-170000.html#candidate-4
+  status: deferred
+  depends_on:
+  - DB-CONVERGE-001
+  owner: Codex
+  acceptance_criteria:
+  - 报告期望 89 个历史迁移压缩为单一 baseline 并移入 archive/ 不再参与 Flyway 扫描（AI 扫描 89→~10）
+  - 受 AGENTS.md 已应用迁移不可变约束，89 文件保持原位未归档/压缩
+  validation:
+  - baseline parity validation as proxy
+  - archive existence check
+  rollback:
+  - 如实施则需恢复被归档文件并重建 history 映射
+  evidence:
+  - 当前 72 shared + 5×2-5 owner 共 89 文件全部保留，未做 archive/ 移动或 squash 删除
+  - baseline.sql + validate-baseline.sh + baseline-adopt.sh 提供可导航的单一真实来源（per-schema 130 vs 130 PASS），满足 depth/locality 目标但不减少 Flyway 扫描文件数
+  - 新增 init-db/migrations/archive/README.md 作为归档候选占位，明确破坏性归档步骤与 ADR 前置条件，未加入任何 flyway*.conf locations，git diff --check PASS
+  - 候选 4 明确延期：需独立 ADR 评估已部署 flyway_schema_history 的兼容风险后，方可实施物理归档/压缩；本轮不宣称闭环
+  updated_at: '2026-08-22T18:30:00+08:00'
+- id: INITDB-20260823-C1
+  title: 巩固 baseline external seam — 单文件外缝，历史为内部缝（非破坏性）
+  source:
+  - /tmp/architecture-review-20260823-005833.html#candidate-1
+  status: done
+  depends_on:
+  - DB-CONVERGE-001
+  owner: Codex
+  acceptance_criteria:
+  - migrations 仍是唯一 Flyway 源；baseline.sql 为生成 --no-data 优化（baseline-optimized fresh-install / AI 经 external seam，标准仍经 incremental；shared 保持原位）
+  - generate/validate/adopt 三脚本协同 per-schema 票据，存量 flyway_schema_history 不受影响
+  - docs 与 archive/README 明确 delegation：baseline 为派生制品，物理归档需 ADR
+  validation:
+  - validate-baseline.sh per-schema
+  - baseline-adopt.sh disposable per-schema
+  - bash -n
+  - git diff --check
+  rollback:
+  - 删除新增门禁/文档，不动迁移历史
+  evidence:
+  - baseline.sql 生成优化 via lightweight extract, bash -n PASS, yaml PASS, git diff --check PASS; prior per-schema 票据保留, archive/README deferred unchanged
+  updated_at: '2026-08-23T01:10:00+08:00'
+- id: INITDB-20260823-C2
+  title: 巩固 seed seam — 新 seed 只进 migrations/seed/，legacy 保留原位（partial 保持）
+  source:
+  - /tmp/architecture-review-20260823-005833.html#candidate-2
+  status: done
+  depends_on:
+  - INITDB-20260823-C1
+  owner: Codex
+  acceptance_criteria:
+  - legacy seed 保留在 flyway.conf 上（增量仍扫描但已应用不重执行），受 AGENTS.md 不可变约束不可移动
+  - 新 seed 约束写入 seed/ 且仅经 flyway-seed.conf 挂载，baseline-optimized fresh-install 零 seed 扫描已验证
+  - flyway-seed.conf 与 seed/README 文档无误导，per-schema 票据通过
+  validation:
+  - flyway-seed.conf comment audit
+  - seed/README audit
+  - validate-baseline per-schema
+  - git diff --check
+  rollback:
+  - 移除 seed 隔离约束，恢复单一扫描
+  evidence:
+  - 'seed/README + flyway-seed.conf: legacy on shared *.sql, new seeds only seed/; CI migrate-validate now filesystem:/flyway/sql/*.sql non-recursive, lightweight parity PASS, doc stable, diff PASS'
+  updated_at: '2026-08-23T01:25:00+08:00'
+- id: INITDB-20260823-C3
+  title: 巩固 owner-migrate 深模块 — 多套 conf 退为 adapters，统一 seam 收口
+  source:
+  - /tmp/architecture-review-20260823-005833.html#candidate-3
+  status: done
+  depends_on:
+  - INITDB-20260823-C2
+  owner: Codex
+  acceptance_criteria:
+  - 多套 flyway-*.conf 为内部 adapters，唯一 external seam 为 owner-migrate.sh migrate/validate/info
+  - up.sh 通过 owner-migrate.sh 编排 owners，维持 DEVSTACK 顺序与 SUBMISSION 透传，MIGRATION_SCHEMA 直调路径被约束
+  - per-owner 授权/校验与 submission 特权不回归
+  validation:
+  - owner-migrate.sh bash -n
+  - up.sh delegation grep
+  - owner migration safety
+  - git diff --check
+  rollback:
+  - 恢复分散式直接 migrate.sh 调用
+  evidence:
+  - owner-migrate.sh bash -n PASS, up.sh delegation via owner-migrate.sh migrate verified, 多套 flyway-*.conf 为内部 adapters, diff PASS
+  updated_at: '2026-08-23T01:10:00+08:00'
+- id: INITDB-20260823-C4
+  title: 新增 CI baseline parity 门禁 — 派生制品不漂移（Speculative 落地）
+  source:
+  - /tmp/architecture-review-20260823-005833.html#candidate-4
+  status: done
+  depends_on:
+  - INITDB-20260823-C1
+  owner: Codex
+  acceptance_criteria:
+  - CI 在 init-db 变更时校验 baseline 派生一致性：增量迁移结果与 baseline.sql 的 per-schema 票据一致
+  - 门禁为 PR 级失败，非推后漂移；历史文件不被移动
+  - 本地同等脚本可复现 CI 校验
+  validation:
+  - CI workflow lint
+  - baseline gate script exists
+  - validate-baseline + adopt parity
+  - git diff --check
+  rollback:
+  - 移除 CI 门禁 job，保留脚本
+  evidence:
+  - CI baseline-parity + migrate-validate both non-recursive *.sql, backend trigger init-db/**, corrected PASS grep, yaml OK; PROJECT_DOCUMENTATION.md stable paths synchronized, bash -n PASS
+  updated_at: '2026-08-23T01:25:00+08:00'
+- id: INITDB-20260823-REVIEW-VALIDATE-CLOSE
+  title: 完成本轮 init-db 收敛的 Review、Validation 与终态审计
+  source:
+  - /tmp/architecture-review-20260823-005833.html#top-recommendation
+  status: done
+  depends_on:
+  - INITDB-20260823-C1
+  - INITDB-20260823-C2
+  - INITDB-20260823-C3
+  - INITDB-20260823-C4
+  owner: Codex
+  acceptance_criteria:
+  - C1-C4 分别映射报告候选，partial/deferred 按 advisory 保留不可消除限制
+  - Review Confirmed Findings=0，Risk-based Validation（含 per-schema 票据与受影响验证）通过
+  - Coverage、Handoff、Git/Task/Evidence一致性通过，无未授权 commit/push
+  validation:
+  - review
+  - verify
+  - coverage audit
+  - Handoff
+  rollback:
+  - revert scoped docs/workflow
+  - preserve migrations
+  evidence:
+  - 'Review: Confirmed Findings=0 after location+wording fix — owner-migrate 是支持的编排入口；direct migrate.sh 是受约束低层原语'
+  - 'Validation: migrate-validate non-recursive *.sql + baseline lightweight + bash/yaml/lint/diff PASS'
+  - 'Docs: PROJECT_DOCUMENTATION.md §2 stable paths/contracts/commands (volatile removed, wording corrected per README), affected documentation current'
+  - 'Coverage: C2/C4 reopened for seed-leak+doc Gate, re-closed, partial/deferred preserved'
+  updated_at: '2026-08-23T01:25:00+08:00'

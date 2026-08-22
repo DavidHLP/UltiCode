@@ -258,6 +258,14 @@ Auth owner。
 - ARCH-002 当前 blocked，直到真实目标账号/权限、责任切换、回填/回滚与最终外部 Review/Validation 证据齐全。
 - ARCH-003 的 remote stability、deployment authority、all-writer quiesce、observation/rollback 和 compatibility retirement 仍是外部 blocker。
 
+#### init-db 收敛 — baseline / seed / owner 深模块与 CI 门禁（2026-08-23）
+
+> 非破坏性收敛，不移动已应用迁移（`AGENTS.md §Database changes`），物理归档需 ADR。
+
+- **Baseline external seam**：`init-db/migrations/` 仍是唯一 Flyway 源（`AGENTS.md §Database changes`）；`init-db/baseline/baseline.sql` 为生成的 `--no-data` 优化（供 `baseline-optimized fresh-install` / `AI` 导航，标准仍为 `migrate.sh migrate` + `owner-migrate` 串行，`baseline` 路径需经 `baseline-adopt.sh` 建历史。详见 `init-db/baseline/README.md:24-35`）。
+- **Seed 隔离**：legacy seed 保留在 `flyway.conf: filesystem:migrations/*.sql`（增量仍扫描但已 APPLIED）；新 seed 只进 `migrations/seed/` 经 `flyway-seed.conf: filesystem:migrations/*.sql,filesystem:migrations/seed`，`baseline-optimized fresh-install` 经 `baseline.sql` 零 seed（标准仍经 incremental）。详见 `init-db/migrations/seed/README.md` 与 `init-db/baseline/README.md:24-35`。
+- **Owner 深模块**：`flyway-{auth,admin,app,notification,submission}.conf` 退为 adapters，`owner-migrate` 是支持的编排入口（`init-db/scripts/owner-migrate.sh migrate|validate|info <owner|all>`，`scripts/dev/up.sh` 经它串行 owners）；`baseline` 采用走 `baseline-adopt.sh`（标准）与受约束的 `DEV_LOCAL` 路径（见 `init-db/README.md:130` 与 `init-db/baseline/README.md`）；`direct migrate.sh` + `MIGRATION_SCHEMA` 是受约束低层原语。
+- **CI 门禁**：`.github/workflows/ci.yml` `backend` 触发拓至 `init-db/**`；`migrate-validate` 以 `-locations="filesystem:/flyway/sql/*.sql"` 非递归限 `migrations/*.sql`（`seed/` 仅经 `flyway-seed.conf`）；新增 `baseline-parity` job 执行 `validate-baseline.sh` + `baseline-adopt.sh` 双 `PASS` 票据，防派生漂移。
 ## 3. Microservice migration guide and historical architecture
 
 > 原文来源：`services/docs/MICROSERVICE_MIGRATION_GUIDE.md`

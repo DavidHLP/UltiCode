@@ -151,24 +151,9 @@ docker/sandbox/harness-staging/
 # =====================================================================
 # 13. AI 工具配置（团队共享，纳入版本控制）
 # =====================================================================
-!.claude/**
-.claude/memory/
-.claude/reviews/
-.claude/PRPs/
-.claude/.arthas/
-.claude/settings.local.json
-.claude/worktrees/
-
-# Pi coding agent rules (mirror of .claude/rules/ for Pi's pi-rules extension)
-!.pi/rules/**
-# Pi extension runtime state (queue, locks, logs) — never tracked
-.pi/.pi-rules/
-
+# 仅保留 codex（.codex）相关目录；omp 为全局 ~/.omp，无项目级目录；其他 AI agent 目录已清理
 !.codex/**
-!.cursor/**
 !.github/**
-!.rtk/**
-!.serena/**
 
 # =====================================================================
 # 14. 环境变量与密钥

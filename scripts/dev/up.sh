@@ -387,7 +387,7 @@ if [[ "$SKIP_MIGRATE" != true ]]; then
       MIGRATION_DB_PASSWORD="$owner_migration_password" \
       DEV_LOCAL_OWNER_BASELINE="${DEV_LOCAL_OWNER_BASELINE:-true}" \
       DEV_LOCAL_OWNER_BASELINE_CONFIRM="${DEV_LOCAL_OWNER_BASELINE_CONFIRM:-I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE}" \
-      "$ROOT_DIR/scripts/dev/migrate.sh" migrate
+      "$ROOT_DIR/init-db/scripts/owner-migrate.sh" migrate "$owner"
   done
   echo "Provisioning local Owner accounts and checking schema readiness..."
   provision_owner_accounts

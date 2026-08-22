@@ -125,9 +125,9 @@ complete chain against a fresh MySQL database before release.
 All 89 migrations remain immutable per `AGENTS.md §Database changes`. New tooling
 provides **fresh-install** convergence without rewriting history:
 
-- **Baseline**: `init-db/baseline/baseline.sql` (generated, not Flyway source) + `init-db/scripts/generate-baseline.sh` / `validate-baseline.sh`. See `init-db/baseline/README.md`.
-- **Seed isolation**: New seeds go to `init-db/migrations/seed/` (dev/test only). Existing `V20260603*` seeds stay in place for backward compatibility. See `init-db/migrations/seed/README.md`.
-- **Owner ownership**: `init-db/scripts/owner-migrate.sh` consolidates the 5× `flyway-*.conf` seam into a single deep module interface `migrate(owner)` / `validate(owner)`, delegating to `scripts/dev/migrate.sh` with `MIGRATION_SCHEMA`.
+- **Baseline**: `init-db/baseline/baseline.sql` (generated, not Flyway source) + `init-db/scripts/generate-baseline.sh` / `validate-baseline.sh`. See `init-db/baseline/README.md`. Fresh-install via baseline avoids re-running legacy seed migrations on new databases.
+- **Seed isolation (new seeds only)**: New seeds go to `init-db/migrations/seed/` (dev/test only). Legacy `V20260603*` etc. remain on the shared chain (`flyway.conf`) for backward compatibility — incremental `migrate` still scans them (already applied). See `init-db/migrations/seed/README.md` for the seam table and for the correct per-schema baseline constraints (`MIGRATION_SCHEMA` required).
+- **Owner ownership**: `init-db/scripts/owner-migrate.sh` is the deep module interface `migrate(owner)` / `validate(owner)` / `info(owner)`. The supported orchestration `scripts/dev/up.sh` delegates owner migrations through this seam. Direct `scripts/dev/migrate.sh` with `MIGRATION_SCHEMA` remains the low-level primitive.
 
 For AI: read `baseline.sql` for the converged final schema; consult `migrations/` only for historical intent.
 

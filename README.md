@@ -618,13 +618,13 @@ UltiCode 维护一份统一的临时工程文档，按主题查阅：
 | 第一次提 PR | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的验证与贡献章节 |
 | On-call 工程师 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的基础设施与风险章节 |
 | 架构师 / 规划者 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的当前架构与迁移章节 |
-| 后端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/springboot-rules.md](.claude/rules/springboot-rules.md) |
-| 前端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
-| 数据库 / Flyway | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/database/01-flyway-migrations.md](.claude/rules/database/01-flyway-migrations.md) |
+| 后端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [AGENTS.md](AGENTS.md) + [services/AGENTS.md](services/AGENTS.md) |
+| 前端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [AGENTS.md](AGENTS.md) + [packages/AGENTS.md](packages/AGENTS.md) |
+| 数据库 / Flyway | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [AGENTS.md](AGENTS.md) |
 | 沙箱 / 评测 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [services/AGENTS.md](services/AGENTS.md) |
 | 运维 / 部署 / 密钥 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 与 [.env.example](.env.example) |
-| 安全审查 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/agents/security-reviewer.md](.claude/agents/security-reviewer.md) |
-| 主题 / 样式 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
+| 安全审查 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.codex/agents/security-reviewer.toml](.codex/agents/security-reviewer.toml) |
+| 主题 / 样式 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [packages/AGENTS.md](packages/AGENTS.md) |
 | 决策记录（ADR） | 已退役；稳定规则沉淀在 `AGENTS.md`、`CLAUDE.md`、源码 Javadoc 和迁移注释中 |
 
 ---
@@ -635,7 +635,7 @@ UltiCode 维护一份统一的临时工程文档，按主题查阅：
 
 - **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)** — 统一工程文档、迁移说明、运行与评审记录
 - **[AGENTS.md](AGENTS.md)** — 仓库级权威指南（结构、工具链、启动流程、运维命令）
-- **[CLAUDE.md](CLAUDE.md)** — Claude Code 协作约定、字符集陷阱、Arthas / PM2 速查
+- **[CLAUDE.md](CLAUDE.md)** — Claude Code 兼容入口（指向 AGENTS.md，含 MySQL 容器化操作说明）
 
 ### 提 PR 前的硬清单
 

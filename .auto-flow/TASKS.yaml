@@ -980,45 +980,65 @@ tasks:
     acceptance_criteria:
       - 已应用迁移 89 个文件保持原位且未被重写/删除，baseline 工具仅为新增 fresh-install 路径
       - 提供 baseline 生成脚本与校验脚本，能从已迁移 DB 导出 canonical baseline 并与现有迁移结果一致
-      - 文档说明 baseline 仅用于新环境 fresh-install，已有环境仍走 Flyway 增量历史
-    validation: [baseline generation dry-run, validate-migration.sh, git diff --check]
+      - 提供 per-schema adoption 流程（shared + 5 owners 明确版本与迁移账号契约）并验证 parity
+    validation: [baseline generation, per-schema baseline adoption disposable, per-schema validate with pipefail, git diff --check]
     rollback: [删除新增 baseline 工具与文档，不影响现有迁移历史]
     evidence:
       - 'generate-baseline.sh: 72 shared + 5 owner schemas migrated, 3511 lines, 130 tables, 6 CREATE DATABASE/USE boundaries, 0 flyway_history, GEN_EXIT:0'
-      - 'validate-baseline.sh: per-schema schema.table 130 vs 130 PASS (no duplicate-insensitive), no history leaked'
-      - 'bash -n generate-baseline.sh/validate-baseline.sh OK, git diff --check PASS'
-      - 'init-db/baseline/baseline.sql (149K, per-schema) + README.md created, no migrations/ file edited'
-    updated_at: '2026-08-22T17:35:00+08:00'
+      - 'validate-baseline.sh disposable: per-schema schema.table 130 vs 130 PASS (pipefail tee /tmp/validate.log VALIDATE_EXIT:0)'
+      - 'baseline-adopt.sh disposable: shared 20260822120000 auth 20260821100000 admin 20260822120001 app 20260811180000 notification 20260815100200 submission 20260817000000, 6 schemas baselined + validate 130 vs 130 PASS (pipefail tee /tmp/adopt.log ADOPT_EXIT:0), underscore V20260602_120000 normalization, empty-dir fail-closed'
+      - 'baseline-adopt.sh real preflight: MIGRATION_DB_* privileged contract, empty-schema/no-history fail-closed, MIGRATION_DB_USER != DB_USER enforced, bash -n OK'
+      - 'init-db/baseline/baseline.sql (149K, per-schema) + README.md + baseline-adopt.sh created, no migrations/ file edited'
+    updated_at: '2026-08-22T18:15:00+08:00'
   - id: DB-CONVERGE-002
-    title: 分离 Seed Data 缝隙 — 独立 seed 路径
+    title: 分离 Seed Data 缝隙 — 独立 seed 路径（新 seed 隔离、旧 seed 保留）— 部分完成
     source: [/tmp/architecture-review-20260822-170000.html#candidate-2]
-    status: done
+    status: partial
     depends_on: [DB-CONVERGE-001]
     owner: Codex
     acceptance_criteria:
-      - 现有 15 个 Seed 迁移保持原位不移动，新 Seed 约定写入 migrations/seed/ 且仅在 dev/test 挂载
-      - 提供 seed 隔离配置/脚本与文档，生产 Flyway 默认不扫描 seed 路径（或显式 no-op）
-      - 验证 dev 与 prod 的 Flyway 校验均通过
-    validation: [flyway config check, dev seed dry-run, git diff --check]
+      - 原始报告验收“生产零 Seed 扫描”未完全达成：旧 14+ Seed 仍在 flyway.conf filesystem:migrations/*.sql 上，增量 `migrate`/`validate` 仍扫描（已应用不重执行）；受 AGENTS.md 已应用迁移不可变约束，无法移走旧 Seed
+      - 新 Seed 约定写入 migrations/seed/ 且仅在 dev/test 挂载，已实现并纠正文档误导；fresh-install 初始路径可通过 baseline.sql + baseline-adopt.sh 避免扫描/执行 legacy Seed，未覆盖增量零扫描目标
+      - 验证 dev 与 prod 的 Flyway 校验均通过（flyway-seed 仅新增 seed 路径）
+    validation: [flyway config check, validate-baseline 130 vs 130, baseline-adopt 130 vs 130, git diff --check]
     rollback: [移除 seed 隔离配置，恢复单一扫描路径]
     evidence:
-      - 'init-db/migrations/seed/README.md created, 15 legacy V20260603* remain in place'
-      - 'init-db/flyway-seed.conf: locations=filesystem:migrations,filesystem:migrations/seed'
-      - 'init-db/scripts/migrate-seed.sh executable, bash -n OK'
-    updated_at: '2026-08-22T17:35:00+08:00'
+      - 'init-db/migrations/seed/README.md corrected: legacy V20260603* etc remain on flyway.conf filesystem:migrations/*.sql (incremental still scans), new seeds only in seed/; fresh-install 初始路径零 Seed via baseline.sql + baseline-adopt.sh，未覆盖增量零扫描目标'
+      - 'init-db/flyway-seed.conf corrected comment: legacy seeds remain, incremental still scans, true zero-scan仅限 fresh-install baseline 初始路径'
+      - 'init-db/README.md Convergence updated for seed seam table, validate VALIDATE_EXIT:0 adopt ADOPT_EXIT:0 both 130 vs 130'
+      - '结论: 候选 2 为兼容性下的部分完成（新 seed 隔离 + 文档纠偏 + fresh-install 初始路径零 Seed），原始增量“生产零扫描”未实现'
+    updated_at: '2026-08-22T18:45:00+08:00'
   - id: DB-CONVERGE-003
-    title: 收敛 Owner Schema Ownership 配置
+    title: 收敛 Owner Schema Ownership 配置 — 主链路接入
     source: [/tmp/architecture-review-20260822-170000.html#candidate-3]
     status: done
     depends_on: [DB-CONVERGE-002]
     owner: Codex
     acceptance_criteria:
-      - 5 套 flyway-*.conf 的重复 seam 收敛为单一 Owner Schema Ownership 接口（脚本/文档），保持各 Owner 目录不动
-      - 提供统一 migrate(owner) / validate(owner) 接口说明与实现
-      - 现有 per-owner 迁移与授权校验仍通过
-    validation: [owner migration preflight, per-owner grant checks, git diff --check]
-    rollback: [恢复分散式 flyway-*.conf]
+      - 5 套 flyway-*.conf 的重复 seam 收敛为单一 Owner Schema Ownership 接口，支持 orchestration 委托
+      - 提供统一 migrate(owner)/validate(owner)/info(owner)/baseline(owner) 接口并接入主流程
+      - 现有 per-owner 迁移与授权校验仍通过，submission 特权与 DEV_LOCAL_OWNER_BASELINE 透传不回归
+    validation: [owner migration preflight, per-owner grant checks, up.sh delegation check, bash -n, disposable baseline-adopt]
+    rollback: [恢复分散式 flyway-*.conf, revert up.sh delegation]
     evidence:
-      - 'init-db/scripts/owner-migrate.sh: migrate(owner) interface, bash -n OK, delegates to scripts/dev/migrate.sh'
-      - 'init-db/README.md Convergence section added, 5 flyway-*.conf remain untouched'
-    updated_at: '2026-08-22T17:35:00+08:00'
+      - 'init-db/scripts/owner-migrate.sh enhanced: supports migrate/validate/info/baseline, env forwarding for MIGRATION_DB_* / SUBMISSION_* / DEV_LOCAL_*, bash -n OK'
+      - 'scripts/dev/up.sh:371-390 wired through init-db/scripts/owner-migrate.sh migrate owner (was direct migrate.sh), preserves DEVSTACK_OWNER_MIGRATION_ORDER auth admin app notification submission, submission provisioning + baseline env forwarding verified, bash -n OK, git diff --check PASS'
+      - 'init-db/README.md Convergence updated to state up.sh delegates through owner-migrate seam (now true)'
+    updated_at: '2026-08-22T18:15:00+08:00'
+  - id: DB-CONVERGE-004
+    title: Squashing & Archive — 89 历史迁移归档/压缩（延期）
+    source: [/tmp/architecture-review-20260822-170000.html#candidate-4]
+    status: deferred
+    depends_on: [DB-CONVERGE-001]
+    owner: Codex
+    acceptance_criteria:
+      - 报告期望 89 个历史迁移压缩为单一 baseline 并移入 archive/ 不再参与 Flyway 扫描（AI 扫描 89→~10）
+      - 受 AGENTS.md 已应用迁移不可变约束，89 文件保持原位未归档/压缩
+    validation: [baseline parity validation as proxy, archive existence check]
+    rollback: [如实施则需恢复被归档文件并重建 history 映射]
+    evidence:
+      - '当前 72 shared + 5×2-5 owner 共 89 文件全部保留，未做 archive/ 移动或 squash 删除'
+      - 'baseline.sql + validate-baseline.sh + baseline-adopt.sh 提供可导航的单一真实来源（per-schema 130 vs 130 PASS），满足 depth/locality 目标但不减少 Flyway 扫描文件数'
+      - '新增 init-db/migrations/archive/README.md 作为归档候选占位，明确破坏性归档步骤与 ADR 前置条件，未加入任何 flyway*.conf locations，git diff --check PASS'
+      - '候选 4 明确延期：需独立 ADR 评估已部署 flyway_schema_history 的兼容风险后，方可实施物理归档/压缩；本轮不宣称闭环'
+    updated_at: '2026-08-22T18:30:00+08:00'

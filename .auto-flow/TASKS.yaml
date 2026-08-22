@@ -984,10 +984,10 @@ tasks:
     validation: [baseline generation dry-run, validate-migration.sh, git diff --check]
     rollback: [删除新增 baseline 工具与文档，不影响现有迁移历史]
     evidence:
-      - 'generate-baseline.sh: 72 shared + 5 owner schemas migrated, 3542 lines, 136 tables, GEN_EXIT:0'
-      - 'validate-baseline.sh: baseline 136 vs migrated 136 PASS'
+      - 'generate-baseline.sh: 72 shared + 5 owner schemas migrated, 3511 lines, 130 tables, 6 CREATE DATABASE/USE boundaries, 0 flyway_history, GEN_EXIT:0'
+      - 'validate-baseline.sh: per-schema schema.table 130 vs 130 PASS (no duplicate-insensitive), no history leaked'
       - 'bash -n generate-baseline.sh/validate-baseline.sh OK, git diff --check PASS'
-      - 'init-db/baseline/baseline.sql (152K) + README.md created, no migrations/ file edited'
+      - 'init-db/baseline/baseline.sql (149K, per-schema) + README.md created, no migrations/ file edited'
     updated_at: '2026-08-22T17:35:00+08:00'
   - id: DB-CONVERGE-002
     title: 分离 Seed Data 缝隙 — 独立 seed 路径

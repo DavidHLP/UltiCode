@@ -24,7 +24,13 @@ for CONF in flyway-auth.conf flyway-admin.conf flyway-app.conf flyway-notificati
   docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
     flyway/flyway:10.17.0 -url="jdbc:mysql://127.0.0.1:3306/$SCHEMA?$JDBC_PARAMS" -user=root -password=root -locations="filesystem:/flyway/init-db/$OWNER_DIR" -defaultSchema="$SCHEMA" -baselineOnMigrate=true -connectRetries=10 migrate
 done
-echo "[baseline] dumping --no-data schema to $OUTPUT..."
-docker exec "$CID" mysqldump -uroot -proot --no-data --skip-add-drop-table --routines --events ulticode > "$OUTPUT"
-for SCHEMA in auth admin app notification submission; do echo "-- Owner schema: $SCHEMA" >> "$OUTPUT"; docker exec "$CID" mysqldump -uroot -proot --no-data --skip-add-drop-table "$SCHEMA" >> "$OUTPUT"; done
-echo "[baseline] generated $OUTPUT ($(wc -l < "$OUTPUT") lines, $(grep -c "CREATE TABLE" "$OUTPUT") tables)"
+echo "[baseline] dumping --no-data schema to $OUTPUT (per-schema, no flyway history)..."
+# Use --databases to emit CREATE DATABASE / USE boundaries and omit Flyway history
+: > "$OUTPUT"
+for SCHEMA in ulticode auth admin app notification submission; do
+  echo "--" >> "$OUTPUT"
+  echo "-- Dumping schema: $SCHEMA" >> "$OUTPUT"
+  echo "--" >> "$OUTPUT"
+  docker exec "$CID" mysqldump -uroot -proot --no-data --skip-add-drop-table --routines --events --databases "$SCHEMA" --ignore-table="$SCHEMA.flyway_schema_history" >> "$OUTPUT"
+done
+echo "[baseline] generated $OUTPUT ($(wc -l < "$OUTPUT") lines, $(grep -c "CREATE TABLE" "$OUTPUT") tables, $(grep -c "CREATE DATABASE" "$OUTPUT") schemas)"

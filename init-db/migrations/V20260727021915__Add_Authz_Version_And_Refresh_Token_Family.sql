@@ -2,7 +2,7 @@
 -- columns to `refresh_tokens`. P2-AUTH-003 (Phase 2 / RBAC data and
 -- change propagation).
 -- ------------------------------------------------------------
--- Background: MICROSERVICE_MIGRATION_GUIDE.md §7.5 (Phase 2 RBAC data
+-- Background: PROJECT_DOCUMENTATION.md §7.5 (Phase 2 RBAC data
 -- and change propagation), §8.2 (refresh rotation CAS), §8.3
 -- (migration-time consistency mechanism), and the Phase 2 Database
 -- Changes paragraph ("new provider identity / session family / authz

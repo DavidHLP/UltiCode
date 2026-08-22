@@ -1,6 +1,6 @@
 -- Converge `problem_notes` baseline schema with code expectations.
 -- ------------------------------------------------------------
--- Background: MICROSERVICE_MIGRATION_GUIDE.md §5.1 documents the drift
+-- Background: PROJECT_DOCUMENTATION.md §5.1 documents the drift
 -- between:
 --   * Baseline (V20260602_120000__Create_All_Tables.sql:721-730):
 --       id varchar(40) PK

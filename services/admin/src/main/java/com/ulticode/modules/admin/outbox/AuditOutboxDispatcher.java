@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * In-JVM consumer that polls the `audit_outbox` table and fans out records
@@ -27,6 +28,8 @@ public class AuditOutboxDispatcher {
 
     @Scheduled(fixedDelayString = "${audit.outbox.dispatcher.interval-ms:2000}", initialDelayString = "5000")
     public int dispatch() {
+        // Recover rows where JVM/DB died after claim() but before processor completed.
+        auditOutboxMapper.reclaimStaleClaimed();
         List<AuditOutboxRecord> pendingRecords = auditOutboxMapper.claimPending(BATCH_SIZE);
         if (pendingRecords == null || pendingRecords.isEmpty()) {
             return 0;
@@ -34,16 +37,19 @@ public class AuditOutboxDispatcher {
 
         int processedCount = 0;
         for (AuditOutboxRecord record : pendingRecords) {
-            if (auditOutboxMapper.claim(record.getId()) == 0) {
+            String rowOwner = "audit-outbox-" + UUID.randomUUID();
+            if (auditOutboxMapper.claim(record.getId(), rowOwner) == 0) {
                 continue;
             }
+            // Carry owner through record so terminal updates can fence late workers.
+            record.setClaimOwner(rowOwner);
             try {
                 auditOutboxProcessor.processRecordInNewTx(record);
                 processedCount++;
             } catch (Exception e) {
                 log.error("Failed to dispatch audit outbox record {}: {}", record.getId(), e.getMessage(), e);
                 try {
-                    auditOutboxProcessor.markFailedInNewTx(record.getId());
+                    auditOutboxProcessor.markFailedInNewTx(record.getId(), rowOwner);
                 } catch (Exception ex) {
                     log.error("Failed to mark audit outbox record {} as failed: {}", record.getId(), ex.getMessage(), ex);
                 }

@@ -1,6 +1,6 @@
 -- P5-SCHEMA-001: Per-Owner schema definitions and cross-owner grant restriction policy
 --
--- Phase 5 / MICROSERVICE_MIGRATION_GUIDE.md §5.2 & §9 Phase 5:
+-- Phase 5 / PROJECT_DOCUMENTATION.md §5.2 & §9 Phase 5:
 -- Establishes the target per-owner schemas (`auth`, `admin`, `app`)
 -- and enforces DB user boundary isolation for `auth_rw`, `admin_rw`, `app_rw`.
 --

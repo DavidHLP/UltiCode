@@ -1,6 +1,6 @@
 -- Create additive `oauth_provider_identities` table.
 -- ------------------------------------------------------------
--- Background: MICROSERVICE_MIGRATION_GUIDE.md §7.1 (P0-SEC-002):
+-- Background: PROJECT_DOCUMENTATION.md §7.1 (P0-SEC-002):
 -- "Provider identity table or columns capture (provider, provider_user_id)
 -- separately from users.email." Currently the OAuth auto-link path uses
 -- `findByOAuthEmail`, which conflates identity with email and is the

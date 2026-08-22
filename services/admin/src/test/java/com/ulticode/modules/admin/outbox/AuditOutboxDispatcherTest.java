@@ -15,6 +15,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,12 +54,13 @@ class AuditOutboxDispatcherTest {
         record.setId("outbox-1");
 
         when(auditOutboxMapper.claimPending(anyInt())).thenReturn(List.of(record));
-        when(auditOutboxMapper.claim("outbox-1")).thenReturn(1);
+        when(auditOutboxMapper.claim(eq("outbox-1"), anyString())).thenReturn(1);
 
         int count = dispatcher.dispatch();
 
         assertThat(count).isEqualTo(1);
         verify(auditOutboxProcessor).processRecordInNewTx(record);
+        assertThat(record.getClaimOwner()).isNotNull();
     }
 
     @Test
@@ -67,13 +70,13 @@ class AuditOutboxDispatcherTest {
         record.setId("outbox-err");
 
         when(auditOutboxMapper.claimPending(anyInt())).thenReturn(List.of(record));
-        when(auditOutboxMapper.claim("outbox-err")).thenReturn(1);
+        when(auditOutboxMapper.claim(eq("outbox-err"), anyString())).thenReturn(1);
         doThrow(new RuntimeException("DB error")).when(auditOutboxProcessor).processRecordInNewTx(record);
 
         int count = dispatcher.dispatch();
 
         assertThat(count).isEqualTo(0);
-        verify(auditOutboxProcessor).markFailedInNewTx("outbox-err");
+        verify(auditOutboxProcessor).markFailedInNewTx(eq("outbox-err"), anyString());
     }
 
     @Test
@@ -83,12 +86,12 @@ class AuditOutboxDispatcherTest {
         record.setId("outbox-race");
 
         when(auditOutboxMapper.claimPending(anyInt())).thenReturn(List.of(record));
-        when(auditOutboxMapper.claim("outbox-race")).thenReturn(0);
+        when(auditOutboxMapper.claim(eq("outbox-race"), anyString())).thenReturn(0);
 
         int count = dispatcher.dispatch();
 
         assertThat(count).isZero();
         verify(auditOutboxProcessor, never()).processRecordInNewTx(any());
-        verify(auditOutboxProcessor, never()).markFailedInNewTx(anyString());
+        verify(auditOutboxProcessor, never()).markFailedInNewTx(anyString(), anyString());
     }
 }

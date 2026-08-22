@@ -11,7 +11,7 @@
 -- `backups` table. It is intentionally NOT a `CREATE TABLE IF NOT EXISTS`:
 -- the table never existed in any prior migration, so any pre-existing
 -- database that does not have this table is in the drift described in
--- MICROSERVICE_MIGRATION_GUIDE.md §5.1 and gets a fresh, well-typed table
+-- PROJECT_DOCUMENTATION.md §5.1 and gets a fresh, well-typed table
 -- here.
 --
 -- Column set mirrors the Backup entity field-by-field:

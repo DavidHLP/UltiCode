@@ -26,6 +26,7 @@ public class AuditOutboxProcessor {
 
     /**
      * Process a single audit outbox record in a new, isolated transaction.
+     * Fences on claimOwner so a reclaimed late worker cannot insert duplicate logs.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processRecordInNewTx(AuditOutboxRecord record) {
@@ -40,8 +41,8 @@ public class AuditOutboxProcessor {
         auditLog.setIpAddress(record.getIpAddress());
         auditLog.setUserAgent(record.getUserAgent());
 
-        if (auditOutboxMapper.markProcessed(record.getId()) != 1) {
-            throw new IllegalStateException("Audit outbox record is no longer PROCESSING: " + record.getId());
+        if (auditOutboxMapper.markProcessed(record.getId(), record.getClaimOwner()) != 1) {
+            throw new IllegalStateException("Audit outbox record is no longer PROCESSING for owner " + record.getClaimOwner() + ": " + record.getId());
         }
         if (auditLogMapper.insert(auditLog) != 1) {
             throw new IllegalStateException("Audit log insert did not affect one row: " + record.getId());
@@ -52,7 +53,7 @@ public class AuditOutboxProcessor {
      * Mark an outbox record as failed in a new, isolated transaction.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markFailedInNewTx(String recordId) {
-        auditOutboxMapper.markFailed(recordId);
+    public void markFailedInNewTx(String recordId, String claimOwner) {
+        auditOutboxMapper.markFailed(recordId, claimOwner);
     }
 }

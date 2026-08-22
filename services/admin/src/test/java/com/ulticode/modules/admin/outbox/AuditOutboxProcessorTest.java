@@ -16,6 +16,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,7 @@ class AuditOutboxProcessorTest {
     void processRecordInNewTx_insertsLogAndMarksProcessed() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("rec-100");
+        record.setClaimOwner("owner-1");
         record.setPerformerId("perf-1");
         record.setUserId("user-1");
         record.setAction("TEST_ACTION");
@@ -50,7 +52,7 @@ class AuditOutboxProcessorTest {
         record.setNewValues(Map.of("k2", "v2"));
         record.setIpAddress("127.0.0.1");
         record.setUserAgent("Mozilla");
-        when(auditOutboxMapper.markProcessed("rec-100")).thenReturn(1);
+        when(auditOutboxMapper.markProcessed(eq("rec-100"), eq("owner-1"))).thenReturn(1);
         when(auditLogMapper.insert(any(AuditLog.class))).thenReturn(1);
 
         processor.processRecordInNewTx(record);
@@ -63,16 +65,16 @@ class AuditOutboxProcessorTest {
         assertThat(auditLog.getAction()).isEqualTo("TEST_ACTION");
         assertThat(auditLog.getEntityId()).isEqualTo("ent-1");
 
-        verify(auditOutboxMapper).markProcessed("rec-100");
+        verify(auditOutboxMapper).markProcessed("rec-100", "owner-1");
         verify(auditLogMapper).insert(logCaptor.getValue());
     }
 
     @Test
     @DisplayName("markFailedInNewTx delegates to mapper")
     void markFailedInNewTx_delegatesToMapper() {
-        processor.markFailedInNewTx("rec-200");
+        processor.markFailedInNewTx("rec-200", "owner-2");
 
-        verify(auditOutboxMapper).markFailed("rec-200");
+        verify(auditOutboxMapper).markFailed("rec-200", "owner-2");
     }
 
     @Test
@@ -80,7 +82,8 @@ class AuditOutboxProcessorTest {
     void processRecordInNewTx_skipsDuplicateAfterClaimLoss() {
         AuditOutboxRecord record = new AuditOutboxRecord();
         record.setId("rec-race");
-        when(auditOutboxMapper.markProcessed("rec-race")).thenReturn(0);
+        record.setClaimOwner("owner-race");
+        when(auditOutboxMapper.markProcessed(eq("rec-race"), eq("owner-race"))).thenReturn(0);
 
         assertThatThrownBy(() -> processor.processRecordInNewTx(record))
                 .isInstanceOf(IllegalStateException.class);

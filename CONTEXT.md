@@ -3,7 +3,7 @@
 > Domain language for the UltiCode online-judge platform. Used by
 > architecture reviews (see `AGENTS.md` and `.codex/skills/`)
 > and by `/grill-with-docs` so discussions name concepts, not implementation
->
+> artifacts ("the Submission intake module", not "the FooBarHandler").
 > Append-only. When a term is sharpened during a design conversation, update
 > it in place. Cross-link related terms with `[[Term]]`.
 

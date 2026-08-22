@@ -316,7 +316,8 @@ worker。需要远程 Submission/cutover seam 或 MeiliSearch indexed read 时�
 policy、worker role、readiness 和 failure gates 由
 `scripts/dev/devstack-manifest.sh` 统一声明；`up.sh` 只消费这份 manifest。
 App 的 `APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED` 默认关闭；legacy RQueue
-rollback seam 还必须配合 `APP_RUNTIME_MODE=legacy-rollback`，正常 dev-lite/dev-full
+rollback seam 只能通过 `./scripts/dev/up.sh --mode legacy-rollback` 启动（App
+本地写并自行消费旧 RQueue，不启动 Judge worker），正常 dev-lite/dev-full
 进程统一走 Judge Streams，不由 App/API 轮询 Judge。
 
 ### 🔑 首次登录

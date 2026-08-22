@@ -10,12 +10,14 @@ fail() {
 
 contains() {
   local file="$1" text="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
   grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
     || fail "$file does not contain: $text"
 }
 
 not_contains() {
   local file="$1" text="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
   ! grep -F -- "$text" "$ROOT_DIR/$file" >/dev/null \
     || fail "$file contains stale or bypass text: $text"
 }
@@ -60,12 +62,16 @@ not_contains scripts/dev/doctor.sh 'pm2 start ecosystem.config.cjs'
 contains scripts/start.sh 'dev/up.sh'
 contains scripts/start.bat 'dev\up.sh'
 contains scripts/pitstop-start-backend.ps1 'scripts/dev/up.sh'
+contains scripts/stop.sh 'dev/stop.sh'
+contains scripts/stop.bat 'dev\stop.sh'
+contains scripts/dev/stop.sh 'pm2 delete'
 not_contains scripts/start.sh 'mvn spring-boot:run'
 not_contains scripts/start.bat 'mvn spring-boot:run'
 not_contains scripts/pitstop-start-backend.ps1 'mvn spring-boot:run'
 not_contains services/admin/src/main/java/com/ulticode/admin/security/jwt/AccountReadAdapter.java 'UserFactsProjection'
 contains README.md './scripts/dev/up.sh --mode dev-lite'
 contains README.md './scripts/dev/up.sh --mode dev-full'
+contains README.md './scripts/dev/up.sh --mode legacy-rollback'
 
 not_contains services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md \
   'Admin 的查询 Seam 仍过细'

@@ -46,7 +46,8 @@
   the [[AdminReadModel seam]] ports: ports are for cross-module reads,
   projections are for admin's own VO shape. See ADR-0011.
 - **User Facts View** — the cross-owner read shape that combines Auth account
-  facts with App profile facts for user-facing, Search, and moderation reads.
+  facts with App profile facts for Search and moderation reads only; ordinary
+  user-facing reads go through the User Directory View below.
   Missing profiles remain nullable; an unavailable account owner fails closed.
 - **User Directory View** — the account/profile summary used by ordinary user
   reads and connection-time account checks. It is separate from the narrower

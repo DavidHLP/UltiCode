@@ -373,9 +373,8 @@ tasks:
       - 'node --check ecosystem.config.cjs exit 0; git diff --check exit 0'
       - 'direct local defaults now match dev-lite (local Submission, database Search, no Search worker); production Compose explicitly preserves indexed Search + DB fallback'
       - 'Submission owner retained after caller scan: Admin dashboard/submission projections and App Submission owner reads require its readiness in the supported six-backend dev-lite path'
-    notes: Development/TEST-TARGET only; mode policy is manifest-backed and documentation no longer claims Phase 7 production retirement is already complete.
+    notes: Development/TEST-TARGET only; mode policy is manifest-backed and documentation no longer claims Phase 7 production retirement is already complete. Do not remove Submission owner blindly; prove whether Admin/worker reads require it before changing the process set.
     commits: []
-    notes: Do not remove Submission owner blindly; prove whether Admin/worker reads require it before changing the process set.
     updated_at: '2026-08-21'
 
   - id: ARCHREV-20260821-003
@@ -475,9 +474,8 @@ tasks:
       - 'DevStack manifest, bash -n, Node config check, Compose dev/prod with disposable in-memory Meili key, and git diff --check: all exit 0'
       - 'graphify update . completed; graph rebuilt with 28228 nodes and 82691 edges; label refresh warning is non-behavioral'
       - 'CancellableQueryExecutor cancellation ordering repaired after full-verify race; focused test 2/0/0/0 and subsequent full verify pass'
-    notes: Objective terminal gate passed in development/TEST-TARGET only; no commit/push/publish/deploy/production cutover/grant revoke/applied migration edit.
+    notes: Objective terminal gate passed in development/TEST-TARGET only; no commit/push/publish/deploy/production cutover/grant revoke/applied migration edit. Objective terminal gate; development/TEST-TARGET only.
     commits: []
-    notes: Objective terminal gate; development/TEST-TARGET only.
     updated_at: '2026-08-21'
 
   - id: ARCHX-20260821-001

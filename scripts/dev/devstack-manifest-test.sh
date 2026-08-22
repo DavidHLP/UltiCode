@@ -7,11 +7,13 @@ source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
 assert_file_contains() {
   local file="$1" expected="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || { echo "missing guarded file: $file" >&2; return 1; }
   grep -F -- "$expected" "$ROOT_DIR/$file" >/dev/null
 }
 
 assert_file_not_contains() {
   local file="$1" unexpected="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || { echo "missing guarded file: $file" >&2; return 1; }
   ! grep -F -- "$unexpected" "$ROOT_DIR/$file" >/dev/null
 }
 
@@ -100,6 +102,20 @@ fi
   [[ "$MEILISEARCH_ENABLED" == true ]]
   [[ "$APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED" == false ]]
   [[ "$SEARCH_WORKER_ENABLED" == true ]]
+)
+
+(
+  unset SUBMISSION_CUTOVER_COMPLETE APP_SEARCH_BACKFILL_ENABLED
+  devstack_apply_mode legacy-rollback
+  [[ "$APP_RUNTIME_MODE" == legacy-rollback ]]
+  [[ "$APP_SUBMISSION_ROUTING_MODE" == local ]]
+  # Rollback topology: flag trio false (validator) + App compatibility on;
+  # Judge worker must not be in the app set or the RQueue gets two consumers.
+  [[ "$APP_FEATURES_USE_JUDGE_OUTBOX" == false ]]
+  [[ "$APP_FEATURES_USE_GENERATION_FENCE" == false ]]
+  [[ "$APP_FEATURES_JUDGE_QUEUE_USE_PORT" == false ]]
+  [[ "$APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED" == true ]]
+  [[ "$(devstack_apps_for_mode legacy-rollback)" != *ulticode-judge* ]]
 )
 
 for app in "${DEVSTACK_READINESS_APPS[@]}"; do

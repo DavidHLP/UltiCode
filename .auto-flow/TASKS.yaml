@@ -1,7 +1,7 @@
 version: 1
-prior_terminal_objective: 实施 /tmp/architecture-review-20260821-163916.html 的 1-5 项架构收敛并完成终态闭环
-objective: 实施 /tmp/architecture-review-20260821-221346.html 的五项战略架构转型并完成终态闭环
-updated_at: '2026-08-21'
+prior_terminal_objective: 修复 services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md 中全部待修复问题并完成终态闭环
+objective: 将项目 docs 与 wiki 临时文档合并为根目录 PROJECT_DOCUMENTATION.md，更新引用并删除冗余文档
+updated_at: '2026-08-22'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
   - id: RECOVERY-001
@@ -618,3 +618,356 @@ tasks:
       - 'SubmissionReadProviderIT: 4 tests, 0 failures, 0 errors; architecture contract, Compose, YAML, graph and diff checks PASS'
     notes: Objective terminal gate complete; development/TEST-TARGET only.
     updated_at: '2026-08-21'
+
+  - id: SVCFIX-20260822-A1
+    title: 删除 WebSocket CONNECT 的 STOMP token 回退
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#A1]
+    status: done
+    depends_on: []
+    owner: Codex
+    acceptance_criteria:
+      - CONNECT authenticates only from the handshake session cookie attribute
+      - a client-controlled STOMP header cannot authenticate a connection
+      - TokenExtractor no longer exposes header-token extraction
+      - regression tests cover header-token rejection and remove obsolete success mocks
+    validation: [app-web focused WebSocket tests, affected app-web test, diff check]
+    rollback: [restore the removed fallback and tests without changing token cookie behavior]
+    evidence:
+      - 'JwtChannelInterceptorTest + TokenExtractorTest: 17 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'source scan confirms JwtChannelInterceptor has no extractTokenFromHeaders call and TokenExtractor has no header-token method'
+      - 'git diff --check: exit 0'
+    commits: []
+    notes: Development/TEST-TARGET only; security boundary fix.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-A2
+    title: OAuth callback 缺 state cookie 时 fail closed
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#A2]
+    status: done
+    depends_on: [SVCFIX-20260822-A1]
+    owner: Codex
+    acceptance_criteria:
+      - null or blank cookieState raises UNAUTHORIZED before Redis consumption
+      - existing mismatch, atomic consume and Redis failure semantics remain intact
+      - regression test proves missing cookie is rejected
+    validation: [Auth OAuthStateModuleTest, affected Auth module test, diff check]
+    rollback: [revert the cookie presence guard and its regression test]
+    evidence:
+      - 'OAuthStateModuleTest: 8 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'null and blank cookieState both fail UNAUTHORIZED before Redis getAndDelete'
+      - 'git diff --check: exit 0'
+    commits: []
+    notes: Development/TEST-TARGET only; security boundary fix.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-B3
+    title: AuditOutbox 使用抢占式 PROCESSING CAS
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B3]
+    status: done
+    depends_on: [SVCFIX-20260822-A2]
+    owner: Codex
+    acceptance_criteria:
+      - only one dispatcher can transition a PENDING row to PROCESSING
+      - processed and failed transitions are guarded by PROCESSING state
+      - duplicate or late processing cannot create a second audit log
+      - concurrent/duplicate regression coverage exists
+    validation: [Admin outbox unit tests, Admin outbox MySQL/integration test if available, affected Admin tests]
+    rollback: [restore the prior claim query and state guards without altering audit rows]
+    evidence:
+      - 'AuditOutboxDispatcherTest + AuditOutboxProcessorTest: 7 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'CAS regression simulates another dispatcher winning (claim=0) and duplicate processor CAS loss without inserting an AuditLog'
+      - 'AuditOutboxMapper SQL now uses PENDING→PROCESSING claim and PROCESSING guards for terminal states'
+      - 'Initial AuditSinkTransactionIT attempt was blocked by the Admin ApplicationContext constructor baseline; the minimal @Autowired validation-gate repair later enabled Admin *IT 44/0/0/0'
+    commits: []
+    notes: Use CAS instead of extending the existing per-record REQUIRES_NEW transaction design.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-B6
+    title: Role 更新同步 bump authz_version
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B6]
+    status: done
+    depends_on: [SVCFIX-20260822-B3]
+    owner: Codex
+    acceptance_criteria:
+      - a real role change increments authz_version atomically
+      - same-role updates do not increment authz_version
+      - missing users retain the existing not-found behavior
+      - regression test proves version increment after updateRole
+    validation: [Auth role mapper unit/integration test, affected Auth tests]
+    rollback: [restore role-only update SQL and remove the version assertion]
+    evidence:
+      - 'AuthAccountPersistenceIT: 3 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'real role change updates role and authz_version from 5 to 6; same-role update returns 0 and leaves version at 6'
+      - 'UserRoleMapper uses one atomic UPDATE with role change guard and authz_version increment; no schema change'
+    commits: []
+    notes: No schema change; reuse the Auth-owned atomic version-update boundary.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-B4-B5
+    title: Durable RBAC outbox event and token revocation decision
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B4, services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#B5]
+    status: done
+    depends_on: [SVCFIX-20260822-B6]
+    owner: Codex
+    acceptance_criteria:
+      - role and permission changes emit a durable authorization-change outbox record in the existing owner seam
+      - event payload carries subject, action, actor, and current authorization version
+      - synchronous authz_version bump remains the immediate invalidation signal; no blacklist writer is added
+      - wiki records the 15-minute TTL and multi-layer real-time checks decision
+      - wiki manifest is regenerated and passes its check
+    validation: [Auth outbox publisher tests, Auth context/affected tests, wiki-manifest generate/check]
+    rollback: [remove only the new event emission and wiki page; preserve existing audit/outbox tables and version semantics]
+    evidence:
+      - 'RoleAdministrationServiceImplTest + AuthAuditSinkAdapterTest + AuthAccountPersistenceIT: 9 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'role grant/revoke paths bump authz_version and emit AUTHORIZATION_CHANGED payloads with subject, actor, change and version through AuthAuditSinkPort'
+      - 'AuthAuditSinkAdapterTest proves the existing sink writes PENDING rows to admin.audit_outbox; no blacklist writer or new process added'
+      - 'wiki/SECURITY_TOKEN_REVOCATION.md records the 15-minute TTL/multi-layer-check trade-off; wiki-manifest generate and --check both pass'
+    commits: []
+    notes: Reuse AuthAuditOutbox insert-only cross-owner seam; no new process or applied migration edit.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-D1
+    title: 为 Submission 双轨 routing seam 记录 kill criteria
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D1]
+    status: done
+    depends_on: [SVCFIX-20260822-B4-B5]
+    owner: Codex
+    acceptance_criteria:
+      - write, fence and user-read routing seams each have quiesce window, error budget and rollback artifact criteria
+      - App residual submission copies have explicit retirement evidence requirements
+      - Search database/indexed mode remains an explicit manifest decision and is not rewritten
+    validation: [architecture docs consistency scan, wiki-manifest if wiki content changes, diff check]
+    rollback: [revert only the added exit-criteria documentation]
+    evidence:
+      - 'SERVICES_ARCHITECTURE_STATUS_2026-08-18.md now records per-seam 14-day quiesce windows, route-specific zero-error budgets, residual-copy retirement gates and rollback artifact lists'
+      - 'Search database/indexed mode is explicitly preserved as a DevStack manifest decision'
+      - 'targeted documentation scan and git diff --check: exit 0'
+    commits: []
+    notes: Documentation/architecture gate only; no process split or production cutover.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-D2
+    title: 声明 judge-runtime 共享归属词汇
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D2]
+    status: done
+    depends_on: [SVCFIX-20260822-D1]
+    owner: Codex
+    acceptance_criteria:
+      - sandbox and queue port packages declare judge-runtime shared-library ownership
+      - documentation no longer describes these packages as App-private business ownership
+      - app-api trial DTO relocation is not attempted in this bounded fix
+    validation: [judge-runtime compile/test, package ownership scan, diff check]
+    rollback: [remove package-info declarations and wording-only documentation changes]
+    evidence:
+      - 'Added judge-runtime package-info declarations for sandbox and queue.port; docs now call them shared Judge execution library packages'
+      - 'judge-runtime -am test: 28 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'ownership/package scan and git diff --check: exit 0; app-api trial DTO relocation was not attempted'
+    commits: []
+    notes: Low-cost vocabulary correction; no public contract move.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-D3
+    title: 锁定 SubmissionFactsSnapshot 最小 contract shape
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D3]
+    status: done
+    depends_on: [SVCFIX-20260822-D2]
+    owner: Codex
+    acceptance_criteria:
+      - contract shape test asserts the exact minimal top-level and nested snapshot fields
+      - unsupported/additional fields cannot silently enter the wire shape without a failing test
+      - existing fail-closed admission and schema-version behavior remain unchanged
+    validation: [submission-api/submission focused contract tests, affected Submission tests]
+    rollback: [remove only the shape assertion test]
+    evidence:
+      - 'SubmissionFactsSnapshotTest: 7 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'reflection contract asserts exact top-level and nested record component names/types/order; existing fail-closed admission tests remain green'
+    commits: []
+    notes: Test-only contract gate; no snapshot field addition.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-D4
+    title: 清理游离编译产物并保持迁移指南现状
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md#D4]
+    status: done
+    depends_on: [SVCFIX-20260822-D3]
+    owner: Codex
+    acceptance_criteria:
+      - exact stray services/com/.../ProblemAdministrationDomainServiceImpl.class is removed
+      - docs/MICROSERVICE_MIGRATION_GUIDE.md remains unchanged
+      - no source or generated historical file is rewritten
+    validation: [artifact absence check, migration-guide checksum/diff check, diff check]
+    rollback: [restore only the exact untracked compiled artifact if needed; no source rollback required]
+    evidence:
+      - 'exact services/com/ulticode/modules/problem/service/impl/ProblemAdministrationDomainServiceImpl.class was untracked and removed'
+      - 'artifact absence check: PASS; docs/MICROSERVICE_MIGRATION_GUIDE.md SHA-256 unchanged before/after'
+      - 'migration-guide git diff/status unchanged and git diff --check: exit 0'
+    commits: []
+    notes: Requested hygiene deletion only; no broad cleanup.
+    updated_at: '2026-08-22'
+
+  - id: SVCFIX-20260822-REVIEW-VALIDATE-CLOSE
+    title: 完成本次 Services 评审修复的 Review、Tier-C Validation 与终态审计
+    source: [services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md]
+    status: done
+    depends_on: [SVCFIX-20260822-A1, SVCFIX-20260822-A2, SVCFIX-20260822-B3, SVCFIX-20260822-B6, SVCFIX-20260822-B4-B5, SVCFIX-20260822-D1, SVCFIX-20260822-D2, SVCFIX-20260822-D3, SVCFIX-20260822-D4]
+    owner: Codex
+    acceptance_criteria:
+      - every A/B/D report item is mapped to implementation, test or documented decision evidence
+      - contextual Review has zero Confirmed Findings after re-review
+      - required focused, affected-module, integration/concurrency/security and full reactor validation pass or are explicitly unavailable with evidence
+      - graphify update, wiki manifest, YAML/control-plane, diff and protected-worktree audits agree
+      - no commit, push, merge, publish, deploy, production action or applied migration edit occurs
+    validation: [focused checks, services mvnw compile/test/*IT/verify, graphify update, wiki manifest check, YAML parse, git diff/check]
+    rollback: [revert only scoped implementation/docs changes; preserve prior user changes and control-plane history]
+    evidence:
+      - 'Review re-check: Confirmed Findings=0 after removing the unused JwtChannelInterceptor TokenExtractor dependency, updating stale WebSocketAuthenticator docs, and checking AuditOutbox insert success'
+      - 'services/./mvnw compile -B: BUILD SUCCESS, MAVEN_EXIT=0'
+      - 'services/./mvnw test -B: BUILD SUCCESS, MAVEN_EXIT=0'
+      - 'services/./mvnw verify -B after all repairs: BUILD SUCCESS, MAVEN_EXIT=0; current non-IT Surefire aggregate 783 reports / 2638 tests / 0 failures / 0 errors / 16 skips'
+      - 'final focused suite: WebSocket 17/0/0/0, OAuth 8/0/0/0, Admin outbox 7/0/0/0, Auth RBAC/sink/version 9/0/0/0, Submission snapshot 7/0/0/0; BUILD SUCCESS, MAVEN_EXIT=0'
+      - 'Admin -Dtest="*IT" after minimal @Autowired validation-gate repair: 44 tests, 0 failures, 0 errors, 0 skips; BUILD SUCCESS, MAVEN_EXIT=0'
+      - 'root -Dtest="*IT" first run failed 44/0/7/0 on the pre-existing Admin constructor baseline; after repair the root rerun exceeded the host 300-second wait with no exit status and is not reported as pass'
+      - 'owner migration preflight/safety PASS; architecture-contract and devstack-manifest PASS; wiki-manifest PASS; Compose dev/prod config PASS with disposable in-memory Meili key; YAML/diff/integrity PASS; graphify update completed'
+      - 'user review report and graphify cache stamp remained protected; no commit, push, merge, publish, deploy, production action or applied migration edit'
+    commits: []
+    notes: Terminal in development/TEST-TARGET only; root broad IT selector remains host-timeout-limited, while affected Admin IT and all required alternative gates pass. No local commit authorized by the user.
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-RECOVERY
+    title: 对账 docs/wiki 范围与脏工作区
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: []
+    owner: Codex
+    acceptance_criteria:
+      - identify every docs/wiki content file and protected non-documentation rule file
+      - preserve existing implementation, control-plane and unrelated user changes
+      - define exact deletion targets before destructive removal
+    validation: [git status, docs/wiki inventory, link/reference scan]
+    rollback: [no deletion during recovery]
+    evidence:
+      - 'docs directories found: services/docs (5), apps/management/docs (1), wiki content (1 plus manifest); root docs absent'
+      - 'AGENTS/.claude rules/README and .auto-flow classified as protected'
+    commits: []
+    notes: Recovery complete; source review report and prior implementation worktree preserved until explicit merge deletion.
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-PLAN
+    title: 规划统一文档结构与引用迁移
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: [DOCMERGE-20260822-RECOVERY]
+    owner: Codex
+    acceptance_criteria:
+      - one root PROJECT_DOCUMENTATION.md is the sole temporary documentation target
+      - source content is organized by architecture, ownership/migration, security, release, frontend and review history
+      - all current executable/source references to deleted paths have an update path
+    validation: [source heading inventory, merged-source completeness check, reference map]
+    rollback: [retain source files until merged content is verified]
+    evidence:
+      - 'seven Markdown sources mapped into PROJECT_DOCUMENTATION.md with source markers and navigation'
+      - 'all source headings present in the consolidated file: 7/7 source markers'
+    commits: []
+    notes: Rules and implementation docs remain outside the temporary-document merge.
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-CONSOLIDATE
+    title: 创建统一 Markdown 并删除原始 docs/wiki 文档
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: [DOCMERGE-20260822-PLAN]
+    owner: Codex
+    acceptance_criteria:
+      - PROJECT_DOCUMENTATION.md preserves all seven source contents in organized sections
+      - exact original content files and wiki manifest are removed after completeness proof
+      - no broad recursive cleanup or source/config deletion occurs
+    validation: [source marker/headings check, exact deletion target check, git status]
+    rollback: [restore tracked deleted files from Git; recover merged untracked review content from PROJECT_DOCUMENTATION.md]
+    evidence:
+      - 'PROJECT_DOCUMENTATION.md: 1764 lines / 144573 bytes; all seven source markers and headings verified'
+      - 'removed exactly apps/management/docs/i18n-design.md, five services/docs Markdown files, wiki page/manifest, and obsolete wiki-manifest tool'
+    commits: []
+    notes: Deletion is user-authorized; Git-tracked removals remain recoverable, and the untracked review document was preserved in the merge before removal.
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-REFERENCES
+    title: 更新项目入口、脚本、测试与源码文档引用
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: [DOCMERGE-20260822-CONSOLIDATE]
+    owner: Codex
+    acceptance_criteria:
+      - README, AGENTS, docs workflow and executable contract scripts point to PROJECT_DOCUMENTATION.md
+      - runtime tests and source Javadocs do not reference deleted documentation paths
+      - historical auto-flow records and external URLs are not rewritten as current source references
+    validation: [reference scan, architecture-contract-test, devstack-manifest-test, affected documentation test]
+    rollback: [restore only path-reference edits; keep the consolidated file and source deletion separate]
+    evidence:
+      - 'active reference scan has no services/docs, deleted MICRO guide, wiki-manifest, or deleted root docs path references outside historical control-plane text/external URLs'
+      - 'README, AGENTS, documentation workflow, architecture-contract-test, devstack-manifest-test, test comments, owner schema test, migration comments and source Javadocs now use PROJECT_DOCUMENTATION.md'
+      - 'architecture-contract-test: PASS; devstack-manifest-test: PASS; PerOwnerSchemaGrantTest: 6/0/0/0, BUILD SUCCESS, MAVEN_EXIT=0; git diff --check: PASS'
+    commits: []
+    notes: Mechanical reference migration is the current active task.
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-REVIEW
+    title: Review 统一文档内容、链接和删除范围
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: [DOCMERGE-20260822-REFERENCES]
+    owner: Codex
+    acceptance_criteria:
+      - no duplicated current policy contradicts source/configuration
+      - no deleted-path links remain in active docs/scripts/tests
+      - protected AGENTS/.auto-flow/user changes remain intact
+    validation: [full diff review, markdown/link scan, protected-worktree audit]
+    rollback: [restore only incorrect consolidation/reference changes]
+    evidence:
+      - 'consolidated structure review: one H1, balanced 44 code-fence markers, 7 source provenance markers, explicit historical/current status notes'
+      - 'active local-link scan: 49 checked, 0 broken'
+      - 'active deleted-path scan: no services/docs, deleted root docs, wiki-manifest or wiki paths; only protected .codex config/history/external URL text remains'
+      - 'protected-worktree audit passed; previous implementation changes and .auto-flow history remain present'
+    commits: []
+    notes: []
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-VALIDATE
+    title: 验证统一文档与项目入口
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: [DOCMERGE-20260822-REVIEW]
+    owner: Codex
+    acceptance_criteria:
+      - documentation contract scripts and relevant tests pass
+      - Markdown source inventory contains only PROJECT_DOCUMENTATION.md outside protected rule docs
+      - git diff/check and control-plane YAML are valid
+    validation: [architecture-contract-test, devstack-manifest-test, documentation scan, YAML parse, git diff --check]
+    rollback: [revert validation-only reference changes if gates fail]
+    evidence:
+      - 'architecture-contract-test: PASS; devstack-manifest-test: PASS'
+      - 'PerOwnerSchemaGrantTest: 6 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS; MAVEN_EXIT=0'
+      - 'active local-link scan: 49 checked, 0 broken; docs/wiki directory check leaves only protected .claude/rules/docs'
+      - 'PROJECT_DOCUMENTATION.md source markers/headings, YAML parse, git diff --check and final graphify update: PASS'
+    commits: []
+    notes: []
+    updated_at: '2026-08-22'
+
+  - id: DOCMERGE-20260822-CLOSE
+    title: 文档合并终态审计与交付收口
+    source: [user request 2026-08-22]
+    status: done
+    depends_on: [DOCMERGE-20260822-REFERENCES, DOCMERGE-20260822-REVIEW, DOCMERGE-20260822-VALIDATE]
+    owner: Codex
+    acceptance_criteria:
+      - single-document objective, coverage, review, validation and Git/task consistency all pass
+      - no commit/push/publish/deploy without separate authorization
+      - final report lists removed files, preserved rules/user changes and recovery path
+    validation: [completion audit, final status, final diff/check]
+    rollback: [restore tracked docs from Git; preserve consolidated file until user accepts delivery]
+    evidence:
+      - 'all seven source documents are represented in PROJECT_DOCUMENTATION.md and exact original content files are removed'
+      - 'active references, local links, architecture/devstack contracts, affected test, YAML, diff and graph checks are consistent'
+      - 'protected AGENTS/.claude rules/.auto-flow/source/unrelated dirty files preserved; no commit, push, publish or deploy performed'
+    commits: []
+    notes: Terminal documentation consolidation; PROJECT_DOCUMENTATION.md is the sole merged temporary-document artifact.
+    updated_at: '2026-08-22'

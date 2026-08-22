@@ -1,5 +1,7 @@
 package com.ulticode.auth.permission.service.impl;
 
+import com.ulticode.auth.account.entity.AuthAccountEntity;
+import com.ulticode.auth.account.mapper.AuthAccountMapper;
 import com.ulticode.auth.error.AuthBusinessException;
 import com.ulticode.auth.error.AuthErrorCode;
 import com.ulticode.auth.permission.entity.UserPermission;
@@ -7,12 +9,15 @@ import com.ulticode.auth.permission.mapper.UserRoleMapper;
 import com.ulticode.auth.permission.port.UserRoleWritePort;
 import com.ulticode.auth.permission.service.PermissionService;
 import com.ulticode.auth.permission.service.RoleAdministrationService;
+import com.ulticode.common.audit.AuditSinkPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 
@@ -34,6 +39,8 @@ public class RoleAdministrationServiceImpl implements RoleAdministrationService 
     private final UserRoleWritePort userRoleWritePort;
     private final UserRoleMapper userRoleMapper;
     private final PermissionService permissionService;
+    private final AuthAccountMapper authAccountMapper;
+    private final AuditSinkPort auditSinkPort;
 
     @Override
     @Transactional
@@ -53,10 +60,15 @@ public class RoleAdministrationServiceImpl implements RoleAdministrationService 
         if (userRoleMapper.existsById(userId) == null) {
             throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
         }
+        AuthAccountEntity before = requireAccount(userId);
         final String applied = userRoleWritePort.changeRole(userId, role);
-        // P6-OUTBOX-001 will replace this structured log with a durable outbox event.
-        log.info("RBAC event=RoleChanged subject={} newRole={} actor={} ts={}",
-                userId, applied, actorId, LocalDateTime.now());
+        AuthAccountEntity after = requireAccount(userId);
+        if (authorizationVersion(after) != authorizationVersion(before)) {
+            Map<String, Object> change = new LinkedHashMap<>();
+            change.put("change", "ROLE");
+            change.put("role", applied);
+            emitAuthorizationChange(userId, actorId, change, after);
+        }
         return applied;
     }
 
@@ -71,8 +83,15 @@ public class RoleAdministrationServiceImpl implements RoleAdministrationService 
             throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
         }
         final UserPermission granted = permissionService.assignPermission(userId, action, resource, expiresAt);
-        log.info("RBAC event=PermissionChanged action=GRANT subject={} action={} resource={} actor={} ts={}",
-                userId, action, resource, actorId, LocalDateTime.now());
+        if (authAccountMapper.bumpAuthzVersion(userId) != 1) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
+        }
+        Map<String, Object> change = new LinkedHashMap<>();
+        change.put("change", "PERMISSION_GRANTED");
+        change.put("action", action);
+        change.put("resource", resource);
+        change.put("permissionId", granted.getId());
+        emitAuthorizationChange(userId, actorId, change, requireAccount(userId));
         return new PermissionGrant(
                 granted.getId(),
                 granted.getUserId(),
@@ -93,8 +112,48 @@ public class RoleAdministrationServiceImpl implements RoleAdministrationService 
             throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
         }
         final boolean removed = permissionService.revokePermission(userId, action, resource);
-        log.info("RBAC event=PermissionChanged action=REVOKE subject={} action={} resource={} removed={} actor={} ts={}",
-                userId, action, resource, removed, actorId, LocalDateTime.now());
+        if (removed) {
+            if (authAccountMapper.bumpAuthzVersion(userId) != 1) {
+                throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
+            }
+            Map<String, Object> change = new LinkedHashMap<>();
+            change.put("change", "PERMISSION_REVOKED");
+            change.put("action", action);
+            change.put("resource", resource);
+            emitAuthorizationChange(userId, actorId, change, requireAccount(userId));
+        }
         return removed;
+    }
+
+    private AuthAccountEntity requireAccount(String userId) {
+        AuthAccountEntity account = authAccountMapper.findById(userId);
+        if (account == null) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
+        }
+        return account;
+    }
+
+    private void emitAuthorizationChange(String userId, String actorId,
+                                          Map<String, Object> change,
+                                          AuthAccountEntity account) {
+        Map<String, Object> payload = new LinkedHashMap<>(change);
+        payload.put("authzVersion", authorizationVersion(account));
+        String performerId = actorId == null || actorId.isBlank() ? "system" : actorId;
+        auditSinkPort.log(
+                performerId,
+                userId,
+                "AUTHORIZATION_CHANGED",
+                "USER_AUTHORIZATION",
+                userId,
+                null,
+                payload,
+                "unknown",
+                null);
+        log.info("Durable RBAC authorization event recorded: subject={}, actor={}, version={}",
+                userId, performerId, authorizationVersion(account));
+    }
+
+    private static long authorizationVersion(AuthAccountEntity account) {
+        return account.getAuthzVersion() == null ? 0L : account.getAuthzVersion();
     }
 }

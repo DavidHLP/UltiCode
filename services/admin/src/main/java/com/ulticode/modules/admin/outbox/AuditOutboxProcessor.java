@@ -40,8 +40,12 @@ public class AuditOutboxProcessor {
         auditLog.setIpAddress(record.getIpAddress());
         auditLog.setUserAgent(record.getUserAgent());
 
-        auditLogMapper.insert(auditLog);
-        auditOutboxMapper.markProcessed(record.getId());
+        if (auditOutboxMapper.markProcessed(record.getId()) != 1) {
+            throw new IllegalStateException("Audit outbox record is no longer PROCESSING: " + record.getId());
+        }
+        if (auditLogMapper.insert(auditLog) != 1) {
+            throw new IllegalStateException("Audit log insert did not affect one row: " + record.getId());
+        }
     }
 
     /**

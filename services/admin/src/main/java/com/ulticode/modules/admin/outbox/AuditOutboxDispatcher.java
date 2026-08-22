@@ -34,6 +34,9 @@ public class AuditOutboxDispatcher {
 
         int processedCount = 0;
         for (AuditOutboxRecord record : pendingRecords) {
+            if (auditOutboxMapper.claim(record.getId()) == 0) {
+                continue;
+            }
             try {
                 auditOutboxProcessor.processRecordInNewTx(record);
                 processedCount++;

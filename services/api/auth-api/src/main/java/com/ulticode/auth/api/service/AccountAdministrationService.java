@@ -9,7 +9,7 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * Auth-owned administrative write provider.
  *
- * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.1
+ * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.1
  * as one of {@code backend-auth}'s three Dubbo providers; per &sect;6.2
  * the interface signature mirrors the migration guide example
  * exactly. Both methods are mutations that go through the auth

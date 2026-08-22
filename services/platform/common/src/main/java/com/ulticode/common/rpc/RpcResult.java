@@ -11,7 +11,7 @@ import java.util.Objects;
  * Stable, transport-agnostic envelope for inter-service (RPC) responses.
  *
  * <p>Distinct from {@code com.ulticode.common.response.Result} on three axes, by
- * design (see {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} §2.6 line ~158,
+ * design (see {@code PROJECT_DOCUMENTATION.md} §2.6 line ~158,
  * "RPC 则使用独立稳定的 RpcResult，不能直接序列化异常"):
  * <ul>
  *   <li><b>No static trace coupling.</b> {@code Result} auto-stamps

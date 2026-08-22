@@ -25,6 +25,7 @@
 !/.gitlab-ci.yml
 !/.gitleaks.toml
 !/.mcp.json
+!/PROJECT_DOCUMENTATION.md
 !/AGENTS.md
 !/CLAUDE.md
 !/CONTEXT.md
@@ -134,9 +135,8 @@ docker/sandbox/harness-staging/
 !scripts/**
 
 # =====================================================================
-# 10. 文档 / Wiki (Obsidian 知识库)
+# 10. Consolidated project documentation
 # =====================================================================
-!wiki/**
 
 # =====================================================================
 # 11. 静态资源（截图等）
@@ -238,14 +238,7 @@ worktrees/
 .worktrees/
 
 # =====================================================================
-# 19c. Obsidian vault volatile state（防止多开发者工作区布局冲突）
-# =====================================================================
-wiki/.obsidian/workspace.json
-wiki/.obsidian/workspace-mobile.json
-wiki/.obsidian/cache/
-
-# =====================================================================
-# 19d. 运行时临时状态（与 AGENTS.md 的 .scratch 约定对齐）
+# 19c. 运行时临时状态（与 AGENTS.md 的 .scratch 约定对齐）
 # =====================================================================
 **/.scratch/
 **/*.heapsnapshot

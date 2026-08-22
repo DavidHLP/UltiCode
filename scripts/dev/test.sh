@@ -159,7 +159,7 @@ export SPRINGDOC_ENABLED=false
 # The shadow-user migrations issue CREATE USER and cross-schema GRANTs that the
 # runtime app account (DB_USER) cannot perform. Run the test migration as the
 # privileged root account, matching the Phase 5-6 model in
-# services/docs/MICROSERVICE_MIGRATION_GUIDE.md. Runtime app connections still use
+# PROJECT_DOCUMENTATION.md. Runtime app connections still use
 # DB_USER; only the migration step elevates.
 export MIGRATION_DB_USER=root
 export MIGRATION_DB_PASSWORD="$MYSQL_ROOT_PASSWORD"

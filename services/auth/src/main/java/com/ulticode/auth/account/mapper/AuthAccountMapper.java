@@ -42,6 +42,10 @@ public interface AuthAccountMapper {
     @Update("UPDATE users SET last_login_at = CURRENT_TIMESTAMP(3) WHERE id = #{id} AND is_deleted = 0")
     int updateLastLoginAt(String id);
 
+    /** Atomically advance the authorization version after a direct permission change. */
+    @Update("UPDATE users SET authz_version = authz_version + 1 WHERE id = #{id} AND is_deleted = 0")
+    int bumpAuthzVersion(@Param("id") String id);
+
     @Update("UPDATE users SET password = #{password} WHERE id = #{id} AND is_deleted = 0")
     int updatePassword(@Param("id") String id, @Param("password") String password);
 

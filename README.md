@@ -412,7 +412,7 @@ pnpm --dir packages/auth-core test
 pnpm --dir packages/auth-core type-check
 ```
 
-> 修改 `packages/auth-core` 必须在 apps/console / apps/management 双端验证。详见 [docs/CONTRIBUTING.md §6](docs/CONTRIBUTING.md)。
+> 修改 `packages/auth-core` 必须在 apps/console / apps/management 双端验证。详见 [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)。
 
 ### 数据库迁移 (`init-db/`)
 
@@ -569,7 +569,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 ## 环境变量
 
 `.env` 是**唯一**真实来源（gitignored），由 `init-env.sh` 生成。
-完整字段与说明见 [docs/ENV.md](docs/ENV.md) 与 [.env.example](.env.example)。
+完整字段与说明见 [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 与 [.env.example](.env.example)。
 
 | 变量 | 用途 | 备注 |
 |------|------|------|
@@ -605,27 +605,27 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 | 分支策略 | 默认在 `main` 直接提交（多文件 / 多 commit / 跨模块亦可） |
 | 危险操作 | `git push` / `merge` / `publish` / 改写历史 / 改第三方资源 **必须显式批准** |
 
-> 完整规范：[AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) · [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+> 完整规范：[AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) · [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)
 
 ---
 
 ## 文档导航
 
-UltiCode 维护一份分层的工程知识库，按需查阅：
+UltiCode 维护一份统一的临时工程文档，按主题查阅：
 
 | 你是… | 从这里开始 |
 |-------|------------|
-| 第一次提 PR | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
-| On-call 工程师 | [docs/RUNBOOK.md](docs/RUNBOOK.md) §0 速查 + §4 常见问题 |
-| 架构师 / 规划者 | [wiki/](../wiki/) (`entities/` + `overview/`,无 ADR/概念层) |
-| 后端开发 | [docs/CODEMAPS/backend.md](docs/CODEMAPS/backend.md) + [.claude/rules/springboot-rules.md](.claude/rules/springboot-rules.md) |
-| 前端开发 | [docs/CODEMAPS/frontend.md](docs/CODEMAPS/frontend.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
-| 数据库 / Flyway | [docs/CODEMAPS/data.md](docs/CODEMAPS/data.md) + [.claude/rules/database/01-flyway-migrations.md](.claude/rules/database/01-flyway-migrations.md) |
-| 沙箱 / 评测 | [docs/CODEMAPS/sandbox.md](docs/CODEMAPS/sandbox.md) + [docs/adr/0002-sandbox-hexagonal-dform.md](docs/adr/0002-sandbox-hexagonal-dform.md) |
-| 运维 / 部署 / 密钥 | [docs/ENV.md](docs/ENV.md) + [docs/RUNBOOK.md](docs/RUNBOOK.md) |
-| 安全审查 | [docs/SECURITY_REVIEW_2026-06-06.md](docs/) + [.claude/agents/security-reviewer.md](.claude/agents/) |
-| 主题 / 样式 | [docs/theme/README.md](docs/theme/README.md) + [docs/CODEMAPS/frontend.md §Theme](docs/CODEMAPS/frontend.md) |
-| 决策记录（ADR） | 已退役 (2026-07-09)。设计决策沉淀在 `AGENTS.md` / `CLAUDE.md` / 源码 Javadoc + 迁移注释;wiki 仅保留"是什么 / 怎么拼"层 |
+| 第一次提 PR | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的验证与贡献章节 |
+| On-call 工程师 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的基础设施与风险章节 |
+| 架构师 / 规划者 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的当前架构与迁移章节 |
+| 后端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/springboot-rules.md](.claude/rules/springboot-rules.md) |
+| 前端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
+| 数据库 / Flyway | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/database/01-flyway-migrations.md](.claude/rules/database/01-flyway-migrations.md) |
+| 沙箱 / 评测 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [services/AGENTS.md](services/AGENTS.md) |
+| 运维 / 部署 / 密钥 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 与 [.env.example](.env.example) |
+| 安全审查 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/agents/security-reviewer.md](.claude/agents/security-reviewer.md) |
+| 主题 / 样式 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
+| 决策记录（ADR） | 已退役；稳定规则沉淀在 `AGENTS.md`、`CLAUDE.md`、源码 Javadoc 和迁移注释中 |
 
 ---
 
@@ -633,7 +633,7 @@ UltiCode 维护一份分层的工程知识库，按需查阅：
 
 欢迎贡献代码、文档、Issue 与功能建议。在开始前请阅读：
 
-- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** — 开发环境、代码风格、PR 清单、评审礼仪
+- **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)** — 统一工程文档、迁移说明、运行与评审记录
 - **[AGENTS.md](AGENTS.md)** — 仓库级权威指南（结构、工具链、启动流程、运维命令）
 - **[CLAUDE.md](CLAUDE.md)** — Claude Code 协作约定、字符集陷阱、Arthas / PM2 速查
 

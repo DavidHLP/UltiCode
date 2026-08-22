@@ -7,6 +7,7 @@ import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,5 +76,28 @@ class SubmissionFactsSnapshotTest {
                 100L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
 
         assertThat(snapshot.admits("user-1", 102L)).isFalse();
+    }
+
+    @Test
+    void contractShapeRemainsTheMinimalOwnerValidationSet() {
+        assertThat(Arrays.stream(SubmissionFactsSnapshot.class.getRecordComponents())
+                .map(RecordComponent::getName)
+                .toList())
+                .containsExactly("userId", "userExists", "problem", "capturedAtEpochMillis", "schemaVersion");
+        assertThat(Arrays.stream(SubmissionFactsSnapshot.class.getRecordComponents())
+                .map(RecordComponent::getType)
+                .toList())
+                .containsExactly(String.class, boolean.class,
+                        SubmissionFactsSnapshot.ProblemFacts.class, long.class, int.class);
+
+        assertThat(Arrays.stream(SubmissionFactsSnapshot.ProblemFacts.class.getRecordComponents())
+                .map(RecordComponent::getName)
+                .toList())
+                .containsExactly("id", "title", "slug", "timeLimitSeconds", "memoryLimitMb", "starterCode");
+        assertThat(Arrays.stream(SubmissionFactsSnapshot.ProblemFacts.class.getRecordComponents())
+                .map(RecordComponent::getType)
+                .toList())
+                .containsExactly(Long.class, String.class, String.class,
+                        Integer.class, Integer.class, String.class);
     }
 }

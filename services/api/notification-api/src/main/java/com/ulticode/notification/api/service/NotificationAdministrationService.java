@@ -10,7 +10,7 @@ import com.ulticode.common.rpc.RpcResult;
  * Notification-owner administrative provider for notification/announcement
  * lifecycle operations.
  *
- * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.4
+ * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.4
  * as part of the notification owner's Dubbo providers. The Admin BFF must
  * route writes through this contract so that the notification service is the
  * sole notification-table writer.

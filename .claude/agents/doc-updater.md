@@ -1,6 +1,6 @@
 ---
 name: doc-updater
-description: Documentation and codemap specialist. Use PROACTIVELY for updating codemaps and documentation. Runs /update-codemaps and /update-docs, generates docs/CODEMAPS/*, updates READMEs and guides.
+description: Documentation and codemap specialist. Use PROACTIVELY for updating codemaps and documentation. Runs /update-codemaps and /update-docs, generates PROJECT_DOCUMENTATION.md, updates READMEs and guides.
 tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 model: haiku
 ---
@@ -40,13 +40,12 @@ For each module: extract exports, map imports, identify routes, find DB models, 
 
 Output structure:
 ```
-docs/CODEMAPS/
-├── INDEX.md          # Overview of all areas
-├── frontend.md       # Frontend structure
-├── backend.md        # Backend/API structure
-├── database.md       # Database schema
-├── integrations.md   # External services
-└── workers.md        # Background jobs
+PROJECT_DOCUMENTATION.md
+├── frontend section  # Frontend structure
+├── backend section   # Backend/API structure
+├── database section  # Database schema
+├── integrations      # External services
+└── workers           # Background jobs
 ```
 
 ### 4. Codemap Format
@@ -76,7 +75,7 @@ Links to other codemaps
 ## Documentation Update Workflow
 
 1. **Extract** — Read JSDoc/TSDoc, README sections, env vars, API endpoints
-2. **Update** — README.md, docs/GUIDES/*.md, package.json, API docs
+2. **Update** — README.md, PROJECT_DOCUMENTATION.md, package.json, API docs
 3. **Validate** — Verify files exist, links work, examples run, snippets compile
 
 ## Key Principles

@@ -7,7 +7,6 @@ import static org.mockito.Mockito.*;
 import com.ulticode.modules.websocket.auth.WebSocketAuthenticator;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
-import com.ulticode.modules.websocket.util.TokenExtractor;
 import com.ulticode.app.error.WebSocketErrorCode;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +30,7 @@ import org.springframework.messaging.support.MessageBuilder;
  * (blacklist, expiry, user existence, fail-closed) live in
  * {@code DefaultWebSocketAuthenticatorTest}.
  *
- * <p>Phase 0 (MICROSERVICE_MIGRATION_GUIDE.md §7.1) added fail-closed
+ * <p>Phase 0 (PROJECT_DOCUMENTATION.md §7.1) added fail-closed
  * behavior for SEND/SUBSCRIBE without a bound principal: pre-fix these
  * commands logged-and-returned, silently admitting frames on
  * unattributed sessions. New tests assert the WebSocketAuthentication
@@ -41,14 +40,13 @@ import org.springframework.messaging.support.MessageBuilder;
 class JwtChannelInterceptorTest {
 
   @Mock private WebSocketAuthenticator authenticator;
-  @Mock private TokenExtractor tokenExtractor;
   @Mock private MessageChannel channel;
 
   private JwtChannelInterceptor interceptor;
 
   @BeforeEach
   void setUp() {
-    interceptor = new JwtChannelInterceptor(authenticator, tokenExtractor);
+    interceptor = new JwtChannelInterceptor(authenticator);
   }
 
   @Test
@@ -89,7 +87,7 @@ class JwtChannelInterceptorTest {
     Map<String, Object> sessionAttrs = new HashMap<>();
     accessor.setSessionAttributes(sessionAttrs);
 
-    when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.of(token));
+    sessionAttrs.put("auth", token);
     when(authenticator.authenticate(Optional.of(token))).thenReturn(clientData);
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
@@ -106,9 +104,10 @@ class JwtChannelInterceptorTest {
     String token = "bad-token";
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
     accessor.setLeaveMutable(true);
-    accessor.setSessionAttributes(new HashMap<>());
+    Map<String, Object> sessionAttrs = new HashMap<>();
+    accessor.setSessionAttributes(sessionAttrs);
 
-    when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.of(token));
+    sessionAttrs.put("auth", token);
     when(authenticator.authenticate(any()))
             .thenThrow(new WebSocketAuthenticationException(
                     WebSocketErrorCode.TOKEN_BLACKLISTED, "Token has been revoked"));
@@ -127,7 +126,6 @@ class JwtChannelInterceptorTest {
     accessor.setLeaveMutable(true);
     accessor.setSessionAttributes(new HashMap<>());
 
-    when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.empty());
     when(authenticator.authenticate(Optional.empty()))
             .thenThrow(new WebSocketAuthenticationException(
                     WebSocketErrorCode.UNAUTHORIZED, "No authentication token provided"));
@@ -169,7 +167,7 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
-  void preSend_prefersSessionTokenOverHeaderToken() {
+  void preSend_usesSessionTokenFromHandshakeCookie() {
     String sessionToken = "session-token";
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
     accessor.setLeaveMutable(true);
@@ -184,7 +182,27 @@ class JwtChannelInterceptorTest {
     interceptor.preSend(message, channel);
 
     verify(authenticator).authenticate(Optional.of(sessionToken));
-    verifyNoInteractions(tokenExtractor);
+  }
+
+  @Test
+  void preSend_withHeaderTokenAndNoSessionToken_rejectsHeaderAuthentication() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setLeaveMutable(true);
+    accessor.setNativeHeader("auth", "header-token");
+    accessor.setSessionAttributes(new HashMap<>());
+
+    when(authenticator.authenticate(Optional.empty()))
+            .thenThrow(new WebSocketAuthenticationException(
+                    WebSocketErrorCode.UNAUTHORIZED, "No authentication token provided"));
+
+    Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
+
+    WebSocketAuthenticationException ex = assertThrows(
+            WebSocketAuthenticationException.class,
+            () -> interceptor.preSend(message, channel));
+
+    assertEquals(WebSocketErrorCode.UNAUTHORIZED, ex.getErrorCode());
+    verify(authenticator).authenticate(Optional.empty());
   }
 
   // ============ Phase 0 §7.1: SEND/SUBSCRIBE fail-closed ============

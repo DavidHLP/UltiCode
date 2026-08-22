@@ -14,7 +14,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuditOutboxProcessorTest {
@@ -46,6 +50,8 @@ class AuditOutboxProcessorTest {
         record.setNewValues(Map.of("k2", "v2"));
         record.setIpAddress("127.0.0.1");
         record.setUserAgent("Mozilla");
+        when(auditOutboxMapper.markProcessed("rec-100")).thenReturn(1);
+        when(auditLogMapper.insert(any(AuditLog.class))).thenReturn(1);
 
         processor.processRecordInNewTx(record);
 
@@ -58,6 +64,7 @@ class AuditOutboxProcessorTest {
         assertThat(auditLog.getEntityId()).isEqualTo("ent-1");
 
         verify(auditOutboxMapper).markProcessed("rec-100");
+        verify(auditLogMapper).insert(logCaptor.getValue());
     }
 
     @Test
@@ -66,5 +73,18 @@ class AuditOutboxProcessorTest {
         processor.markFailedInNewTx("rec-200");
 
         verify(auditOutboxMapper).markFailed("rec-200");
+    }
+
+    @Test
+    @DisplayName("duplicate processing does not insert an audit log after CAS loss")
+    void processRecordInNewTx_skipsDuplicateAfterClaimLoss() {
+        AuditOutboxRecord record = new AuditOutboxRecord();
+        record.setId("rec-race");
+        when(auditOutboxMapper.markProcessed("rec-race")).thenReturn(0);
+
+        assertThatThrownBy(() -> processor.processRecordInNewTx(record))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(auditLogMapper, never()).insert(org.mockito.ArgumentMatchers.any(AuditLog.class));
     }
 }

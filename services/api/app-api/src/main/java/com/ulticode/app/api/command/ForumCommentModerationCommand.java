@@ -14,7 +14,7 @@ import com.ulticode.common.tracing.TraceMetadata;
  * {@code ForumCommentAdministrationService}. Carries the full
  * {@code commandId / idempotency / actor / trace} metadata via the
  * {@link WriteCommand} base contract, matching the write-RPC boundary in
- * {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;6.2.
+ * {@code PROJECT_DOCUMENTATION.md} &sect;6.2.
  *
  * @param commentId target comment ID
  * @param action    the moderation action to apply

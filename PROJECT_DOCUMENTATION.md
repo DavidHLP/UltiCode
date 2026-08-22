@@ -1,4 +1,270 @@
-# UltiCode 后端微服务化迁移指导
+# UltiCode 项目统一文档
+
+更新时间：2026-08-22
+
+本文是项目临时工程文档的唯一汇总入口。原分散在 `services/docs/`、`apps/management/docs/` 和 `wiki/` 的内容已按主题合并；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
+
+## 导航
+
+1. 当前 Services 架构与 Owner/Worker 边界
+2. Owner 数据库隔离、迁移与回滚
+3. 微服务迁移指导、契约和基础设施参考
+4. 安全：访问令牌吊销边界
+5. CONTEST-009 开发发布审批记录
+6. Management 前端 i18n 设计
+7. Services 评审记录与历史证据
+
+## 文档边界
+
+- 本文件只承载工程说明、迁移计划、评审记录和临时运行证据。
+- `AGENTS.md`、嵌套 `AGENTS.md`、`CLAUDE.md`、`.claude/rules/` 和代码注释不属于本次临时文档合并对象。
+- 当前实现优先于历史迁移方案；历史章节保留是为了审计和回溯，不代表目标架构已经完成。
+- 生产环境、生产切流、生产数据和外部审批必须以当时的独立授权为准。
+- 第 3 节内保留原迁移指南的章节编号；源码或迁移注释中的 `§2.x`、`§4.x`、`§7.x` 等引用均指第 3 节中的原文小节，而不是本文件的顶层编号。
+
+## 原文件映射
+
+| 原位置 | 合并章节 |
+| --- | --- |
+| `services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md` | 当前 Services 架构 |
+| `services/docs/OWNER_DATABASE_ISOLATION_PLAN.md` | Owner 数据库隔离 |
+| `services/docs/MICROSERVICE_MIGRATION_GUIDE.md` | 微服务迁移指导 |
+| `wiki/SECURITY_TOKEN_REVOCATION.md` | 安全：访问令牌吊销边界 |
+| `services/docs/CONTEST-009-RELEASE-APPROVAL.md` | CONTEST-009 审批记录 |
+| `apps/management/docs/i18n-design.md` | Management i18n 设计 |
+| `services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md` | Services 评审记录 |
+
+## 1. Current services architecture status
+
+> 原文来源：`services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md`
+
+### Services 架构现状与优化状态
+
+更新时间：2026-08-22
+
+本文以源码、Maven POM、运行配置、Compose 和实际启动脚本为准；历史迁移指南只作为背景。本文的架构盘点部分是只读 inventory，不代表生产部署或生产数据变更已经执行。
+
+#### 1. 总体结论
+
+UltiCode 已经完成从单体 JVM 到多进程 Owner/Worker 拓扑的骨架迁移：Maven reactor、Contract Seam、独立服务启动入口、生产 Compose 的七个后端 runtime，以及 Outbox/Inbox/Redis Streams 等异步可靠性基础均已存在。
+
+当前仍是 Strangler migration 收敛阶段，不能称为最终微服务形态。当前需要维护的是：
+
+- 开发环境使用显式 Owner schema/account 配置；生产物理切换和外部 authority 不属于本项目；
+- Submission read 通过 bounded batch facts seam 组合，事件化 read projection 仍是未来可选能力；
+- App 保留 local/remote Submission 与显式 legacy rollback seam，但正常 dev-lite/dev-full 使用 Judge Streams；
+- Admin 查询已收敛为粗粒度 query slices，不再作为拆分更多进程的理由；
+- DevStack manifest、源码/POM/config/Compose/PM2 和文档由 executable contract checks 持续对账。
+
+#### 2. 模块与运行拓扑
+
+##### 2.1 Owner/Worker 清单
+
+| 类型 | 模块 | 数据职责 | 对外/运行方式 |
+| --- | --- | --- | --- |
+| Data Owner | `backend-auth` | 账号、认证、会话、授权事实 | HTTP/Dubbo |
+| Data Owner | `backend-admin` | 管理、治理、审计和运营查询/命令 | HTTP/Dubbo |
+| Data Owner | `backend-app` | OJ 与一般用户业务（Problem、Contest、Forum 等） | HTTP/Dubbo |
+| Data Owner | `backend-submission` | Submission、Judge/Result/Created outbox、generation/attempt fence | HTTP/Dubbo |
+| Data Owner | `backend-notification` | 通知 Inbox、投递 ledger 和重试状态 | HTTP/Dubbo |
+| Worker | `backend-judge` | 不拥有业务表；消费 Judge stream，执行 sandbox，写 verdict seam | Background Worker |
+| Worker | `backend-search` | 不拥有业务表；消费 SearchDocumentChanged，写 MeiliSearch | Background Worker |
+
+`judge-runtime` 是 Judge 执行逻辑的共享依赖，不是第八个进程。
+
+共享模块是 `platform/*`、`api/*`、`integration-inbox`、`judge-config` 和 `judge-runtime`。`judge-config` 只承载 Submission/Judge 共用的 flag binding/命名模式校验，不是运行时进程；`services/pom.xml` reactor 已登记 platform、五个 API/Contract 方向、五个 Owner、两个 Worker 和 `judge-runtime`；不存在实际模块的 `backend-api` dependency-management 条目已移除。
+
+`judge-runtime` 内的 `com.ulticode.modules.submission.sandbox` 与
+`com.ulticode.modules.queue.port` 通过 `package-info.java` 明确声明为共享
+Judge 执行库归属，而不是 App 私有业务包。`RunSubmissionDTO`、`RunResultDTO`
+和 `CodeExecutionPort` 暂保留在现有 `app-api` 试运行兼容合同中；本次不搬迁
+公共类型，也不因此新增进程或持久化依赖。
+
+生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。
+
+##### 2.2 Contract Seam
+
+Auth、Admin、App、Submission、Notification 的服务边界由各自 `api/*` 合同承载，包含接口、DTO、错误码和事件。`api/*` 不应包含 Entity、Mapper、Repository 或实现模块类型；既有 API contract/architecture tests 持续守住该边界。
+
+##### 2.3 Submission 写入回访状态
+
+原写入链是：
+
+```text
+App request -> Submission write -> App ProblemFacts / Auth UserExistence -> Submission tables
+```
+
+当前 `backend-submission-api` 增加了不可变 `SubmissionFactsSnapshot`。App 本地和远程 request boundary 组装快照，Submission Owner 只校验快照与 command 的 user/problem 是否匹配，不再在写入事务中注入或调用 `ProblemFactsPort`、`UserExistencePort` 的 Dubbo adapter。缺失、错配或非法快照 fail closed。
+
+这只关闭 Submission 写入链。Submission 读侧现在通过 bounded batch facts seam 完成标题/用户 enrichment；没有引入事件化 read database，也不把一次请求拆成逐条跨 Owner 调用。
+
+#### 3. 已建立的优势
+
+##### 3.1 Contract Module 作为主要边界
+
+Contract module 已成为发布和依赖边界：调用方依赖 provider-owned API，而不是跨 Owner 共享实现。Submission API 的 `SubmissionWritePort`、Notification contract、事件 envelope 及契约 shape tests 证明了这一方向。新 DTO 保持实现无关，避免 Entity/Mapper/Repository 泄漏。
+
+##### 3.2 Submission 是边界最清晰的 Owner
+
+Submission 已将复杂逻辑收进 Owner 内部：输入验证、事务、本地 submission/judge/result/created 多个 Outbox、generation/attempt fence、过期 verdict 丢弃、contest event 和 thin external adapters。其外部 Provider 只负责 Contract delegation，存储和并发语义留在 Owner 内，封装深度合适。
+
+##### 3.3 异步可靠性
+
+当前可靠性机制覆盖不同故障窗口：
+
+| 模块 | 机制 |
+| --- | --- |
+| Submission | 多个 Outbox、事务内落盘、generation/attempt fence、lease/retry、过期结果丢弃 |
+| Judge | Redis Streams consumer、PEL reclaim、bounded retry、DLQ、ACK-after-write |
+| Notification | Inbox、delivery ledger、lease fencing、重试与幂等投递 |
+| Search | Redis Streams、PEL 处理、版本控制、幂等 upsert/delete、DLQ、tombstone/replay 语义 |
+
+这些机制使跨进程副作用可重放、可观测，并降低 DB/Redis/SMTP/MeiliSearch 双写造成的丢失风险。
+
+#### 4. 未完成的收敛问题
+
+##### 4.1 同步回访与单跳原则
+
+长期约束应是“一次请求最多一次业务 Provider hop”。Submission 写入使用不可变 Facts Snapshot；Submission read 使用一次 bounded batch seam 取得本页所需的 User/Problem facts。事件化本地 projection 暂不作为开发环境的必需基础设施。
+
+##### 4.2 数据库物理隔离
+
+- 开发环境的 Auth/Admin/App/Notification/Submission runtime 已使用显式 Owner database/account 配置；
+- 当前边界仍是一个 MySQL instance 内的 schema/account isolation，不宣称独立物理集群；
+- users account/profile ownership 由 Auth account 与 App profile read/write seams 表达；
+- production physical cutover、external authority 和 grant retirement 不在当前开发目标内。
+
+后续必须按 expand → backfill → verify → cutover → observe → contract 推进：先建 profile/授权等新表和专用账号，再回填和校验，最后在有权限与回滚证据的窗口撤销旧访问。不要编辑已应用 migration，也不要在没有生产 authority 的情况下执行 revoke 或删除旧列。
+
+##### 4.3 App 双轨兼容
+
+App 当前保留 Submission local/remote compatibility、Search fallback 和显式 legacy rollback seams；Judge normal dev-lite/dev-full 使用 Streams，RQueue 只有 legacy-rollback mode 才能装配。不要在没有 external authority、quiesce、观察窗和 rollback artifact 的情况下删除这些 seams。
+
+###### 4.3.1 Submission 双轨 seam 的退出条件
+
+以下是三条 Submission routing seam 和 App 残留副本的共同 kill criteria。它们是
+切流前的可审计退出条件，不代表本地开发环境已经完成生产 cutover；生产观察窗和
+外部 authority 仍需单独批准。
+
+| Seam | Quiesce 观察窗 | Error budget / 必须为零的错误 | 退出前必须保留的 rollback artifacts |
+| --- | --- | --- | --- |
+| `SubmissionWriteRoutingPort` | 远程 writer 已完成一次授权切流后，连续 14 天覆盖至少一个高峰周期；无未完成的 App local submission/outbox writer、reaper 或 scheduler | 0 丢失/重复 intake、0 错误 Owner 写入、0 因路由产生的不可恢复 5xx；可用性错误预算不超过现有基线的 0.1% | `SubmissionWriteRoutingPort`、`DefaultSubmissionWritePort`、`RemoteSubmissionWritePort`、`SubmissionRoutingProperties`、`scripts/dev/devstack-manifest.sh` 的 route 快照和 routing tests |
+| `SubmissionFenceRoutingPort` | Judge、Submission 与所有 lease/reaper writer 已 drain；连续 14 天无未完成 generation/attempt lease | 0 stale generation 写入、0 split-brain lease、0 丢失 verdict；任何 fence 不一致都取消退役 | `SubmissionFenceRoutingPort`、`DefaultSubmissionFencePort`、`RemoteSubmissionFencePort`、generation/attempt contract tests、legacy rollback mode 配置 |
+| `SubmissionUserQueryRoutingPort` | 远程读路径连续 14 天完成分页/详情/最佳提交观察；无活跃 local read caller 依赖未迁移的表 | 0 跨用户泄漏、0 顺序/总数/VO 语义回归、0 因 owner 不可用而静默返回错误数据；读取错误预算不超过现有基线的 0.1% | `SubmissionUserQueryRoutingPort`、`LocalSubmissionUserQueryAdapter`、`RemoteSubmissionUserQueryAdapter`、read contract tests、`APP_SUBMISSION_ROUTING_MODE` 回滚值 |
+
+App 侧 `submission` mapper、result dispatcher、lease reaper、shadow comparator 等残留
+副本只有在对应三条 seam 的观察窗、零错误预算、数据/事件对账和 in-flight drain 均有
+证据后才能删除。每次退役前必须保存：当前 manifest/Compose/PM2 配置快照、local/
+remote adapter 版本、outbox/stream 水位与 checksum、恢复命令和一键切回
+`APP_SUBMISSION_ROUTING_MODE=local` 的配置 artifact。任何一个 artifact 缺失，都只
+能继续保留兼容路径，不能以“代码已不常用”代替退出证据。
+
+Search 的 `database` / `indexed` 读模式是 `devstack-manifest.sh` 的显式策略决策，
+不属于上述 Submission seam 的漂移信号，也不因本节的退出条件自动改写。
+
+##### 4.4 Admin Seam 已收敛为粗粒度查询切片
+
+Admin 已按可测量的查询垂直切片收敛为粗粒度 Query Seam：Contest 参与、Revenue、Overview 与 Dashboard（含用户图表）分别经 `AdminAnalyticsPort`/`AdminDashboardReadPort` 的 bounded 并行 Owner 组合暴露，Dashboard 用户图表经 `AccountQueryService` 分页扫描并在 `CancellableQueryExecutor` 的 800ms deadline 与 bounded reads 约束下收敛，`BackendAdminApplication` 的 exclusion 随之缩减。剩余细粒度遗留按需再聚合，不再作为阻塞项。
+
+##### 4.5 文档和运维入口漂移
+
+历史迁移章节可以保留为历史，但当前状态、启动和领域词汇必须与源码对账。当前权威顺序是：
+
+1. Java source and tests；
+2. Maven POM/reactor；
+3. application/config files；
+4. Compose；
+5. actual startup scripts/PM2 entries；
+6. documentation。
+
+文档只能追随前五项，不能反向定义实际拓扑；scripts/dev/architecture-contract-test.sh 负责阻止已知漂移回归。
+
+#### 5. 后续优先级
+
+优先级高于继续拆分模块：
+
+1. 继续用 bounded read contracts 收敛跨 Owner 读取，必要时再评估事件化 projection；
+2. 保持 Owner schema/account isolation 的 development evidence，不伪造 production acceptance；
+3. 只在真实稳定性和回滚门禁满足后删除 legacy compatibility；
+4. 维护 DevStack、Owner matrix、POM、PM2、Compose、CONTEXT 和 migration guide 的 executable consistency。
+
+#### 6. 评审边界
+
+架构盘点本身是只读 inventory：不以文档推断代码，不修改已应用数据库 migration，不声称生产部署或生产数据验证。后续 `ARCH-*` 任务单独记录实现、测试、回滚和外部 authority gate。
+
+## 2. Owner database isolation plan
+
+> 原文来源：`services/docs/OWNER_DATABASE_ISOLATION_PLAN.md`
+
+### Owner 数据库隔离实施说明
+
+更新时间：2026-08-19
+
+当前项目只有一个 TEST-TARGET；用户已授权在该目标完成 Owner 账号、migration、backfill、cutover、观察和 rollback。本说明记录已执行状态，不声称存在 production environment。
+
+#### 当前矩阵
+
+| Owner | 连接变量 | 当前默认 | 目标账号/数据库 | 状态 |
+| --- | --- | --- | --- | --- |
+| Auth | `AUTH_DB_HOST/PORT/NAME/USER/PASSWORD` | `DB_*` 仅兼容 fallback | `auth_rw` / `auth` | TEST-TARGET active |
+| Admin | `ADMIN_DB_HOST/PORT/NAME/USER/PASSWORD` | `DB_*` 仅兼容 fallback | `admin_rw` / `admin` | TEST-TARGET active |
+| App | `APP_DB_HOST/PORT/NAME/USER/PASSWORD` | `DB_*` 仅兼容 fallback | `app_rw` / `app` | TEST-TARGET active |
+| Submission | `SUBMISSION_DB_HOST/PORT/NAME/USER/PASSWORD` | 独立 `submission` 配置 | `submission_rw` / `submission` | TEST-TARGET active |
+| Notification | `NOTIFICATION_DB_HOST/PORT/NAME/USER/PASSWORD` | `DB_*` 仅兼容 fallback | `notification_rw` / `notification` | TEST-TARGET active |
+
+当前 `.env` 为唯一部署密管输入；Owner runtime 与 direct-grant migration principal 已分离。独立 instance 不是本项目目标，schema/account/permission isolation 是当前物理边界。
+
+运行时迁移边界：`backend-auth` 的 `spring.flyway.enabled` 继续由
+`AUTH_FLYWAY_ENABLED` 控制且默认关闭，runtime 账号不执行 canonical migration。
+Owner schema migration 由独立 direct-grant migration principal 串行执行；
+TEST-TARGET 的 Auth/Admin/App/Notification/Submission Flyway validate 均通过。
+
+#### `users` 职责拆分
+
+目标职责已经区分：Auth 持有 account/credential、authorization/status（id、
+username、email、password、refresh/reset、role、permission、active、ban），App
+持有 `user_profiles(account_id, ...)` 的 profile 字段。canonical shared history 已执行
+`V20260729150000__Create_User_Profiles_Table.sql` 的回填，并由后续
+`V20260806120000__Drop_Profile_Columns_From_Users.sql` 完成 shared `users` profile
+列的 contract；这两份 applied migration 不得编辑。
+
+Auth owner bootstrap 的兼容 profile 列由后续 Auth-owner contract migration
+`V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` 收窄；该 migration
+不得回写或编辑早期 expand migration。运行时职责已经切开：Auth account/status
+写入只进入 `auth.users`，App profile 写入只进入 `app.user_profiles`。App 用户投影
+通过 Auth RPC 与 App profile mapper 组合，不再由 App datasource join `users`；
+moderation ban 命令携带 actor、trace、idempotency 和 expected authz version 调用
+Auth owner。
+
+对尚未完成的 owner schema/runtime 切换，仍按以下顺序执行：
+
+1. **Expand**：为 Auth account/status 与 App profile 建立明确 owner tables、索引和 version/updated-at 字段；在对应 owner history 中保留旧列和旧读路径。
+2. **Backfill**：以 `users.id` 为稳定 account id，幂等回填；记录行数、主键 checksum、空值/孤儿引用和重复冲突。
+3. **Verify**：Auth、Admin、App、Search、Notification reader/writer 矩阵已转换为 Owner RPC + local profile read，并由 focused tests/静态扫描复核。
+4. **Cut over**：TEST-TARGET backfill 在 PM2 writers=0 时执行 idempotent no-op → manifest-scoped rollback → re-backfill；12/12 account/profile rows 和完整 checksums 匹配。
+5. **Observe**：登录/account、profile 写读、ban/permission、搜索用户文档、通知收件人和管理查询由后续 ARCH Gate 继续验证。
+6. **Contract**：对既有 owner schema 先以 quiesce confirmation 执行
+   `owner-user-profile-backfill.sh contract-preflight`，确认 manifest、完整
+   account/profile checksum（含 soft-deleted accounts）和 App profile writer，
+   再执行 Auth-owner contract migration；禁止编辑 applied migration。
+
+#### 权限与回滚
+
+- migration job 使用独立 direct-grant 高权限账号；runtime 使用 owner 专用账号；
+- runtime 账号不得拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式角色继承或未登记的其他 Owner 表 DML；唯一登记例外是 `auth_rw`/`app_rw` 对 `admin.audit_outbox` 的 append-only `INSERT`；
+- 每次切换前后保存 rows/checksum/privilege snapshot；
+- 失败时先回滚 route/consumer 到上一 artifact，再按 manifest/copy/reconcile runbook 回写；不得 `DROP`、`TRUNCATE` 或重置共享 source；
+- 本地 TEST-TARGET/DEV-LOCAL 证据只能证明 rehearsal 与脚本契约；不得替代外部目标 authority、users/profile responsibility sign-off、physical cutover 或 production acceptance。
+- ARCH-002 当前 blocked，直到真实目标账号/权限、责任切换、回填/回滚与最终外部 Review/Validation 证据齐全。
+- ARCH-003 的 remote stability、deployment authority、all-writer quiesce、observation/rollback 和 compatibility retirement 仍是外部 blocker。
+
+## 3. Microservice migration guide and historical architecture
+
+> 原文来源：`services/docs/MICROSERVICE_MIGRATION_GUIDE.md`
+
+> 状态：历史迁移与目标架构参考。当前运行事实以本文件第 1、2 节以及源码、POM、配置和启动脚本为准；本节不代表生产切流已完成。
+
+### UltiCode 后端微服务化迁移指导
 
 > 本文保留迁移调查与决策依据；代码、`init-db/migrations/`、运行配置、Compose 和实际启动脚本是现状真源。当前已落地五个 data Owner 与两个 Worker，但数据库权限、读模型和兼容路径仍在收敛。文内行号用于调查快照定位，后续维护应以文件路径和符号名为准。
 > 历史快照说明：第 1 节和第 2.1–2.3 节保留迁移启动时的单体架构快照；
@@ -6,9 +272,9 @@
 > Appendix A 及其他明确标注的 source link 按当前 repository-root owner
 > 目录维护。
 
-## 1. Executive Summary
+#### 1. Executive Summary
 
-### 1.1 为什么拆
+##### 1.1 为什么拆
 
 当前 `backend-spring` 是一个 Spring Boot 单体。按包划分的模块已经有 Service、Projection、consumer-owned Port 等边界，但所有模块仍共享一个 JVM、一个 MySQL 数据源和一套 Redis；管理端模块还会直接调用 Problem/Contest/User/Submission 等模块的 Mapper 或 Service。该结构适合当前单体开发，却不能直接等价替换成远程调用：若机械“目录搬家 + Dubbo”，会得到共享数据库、双向 RPC、同步 fan-out 和跨网络事务并存的分布式单体。
 
@@ -20,7 +286,7 @@
 - 让判题、通知、WebSocket、搜索等失败不再扩大为整个后端失败；
 - 为独立扩缩容和发布建立边界，而不是追求“微服务组件齐全”。
 
-### 1.2 推荐目标
+##### 1.2 推荐目标
 
 最终保留四个数据 Owner 服务，另设一个不拥有业务表的判题执行运行时：
 
@@ -32,7 +298,7 @@
 
 核心内部同步 RPC 使用 **Apache Dubbo 3**；注册发现使用 **Nacos**。外部 HTTP/WS 先由 **Nginx 逻辑 Gateway** 路由，暂不引入 Spring Cloud Gateway/Higress。数据先保持同一 MySQL 实例，按 Owner 收敛写入口和账号权限，再逐步分 schema/database；不一次性物理拆库。
 
-### 1.3 总体迁移策略
+##### 1.3 总体迁移策略
 
 采用 Strangler Fig：新服务先与 Legacy 并存，Gateway 以路由/开关逐组切流；数据库迁移遵循 expand → backfill → verify → cut over → contract；旧实现和旧列只在稳定观察期后删除。每一阶段必须同时满足：可编译、可启动、核心接口可用、旧路径可回滚、业务仍可并行开发。
 
@@ -45,7 +311,7 @@
 - 不默认引入 Seata、Sentinel、Kafka/RocketMQ 或 Spring Cloud 全家桶；
 - 不为当前不存在的 LMS 领域预建课程/班级/作业服务。
 
-### 1.4 最高优先级结论
+##### 1.4 最高优先级结论
 
 当前最关键的边界问题不是“缺少 Dubbo”，而是：
 
@@ -55,9 +321,9 @@
 4. canonical schema 已存在需先收敛的漂移：代码使用 `backups` 但 migration 未创建；`problem_notes` 基线与后续 `IF NOT EXISTS` 定义不一致；
 5. Auth 抽离前必须处理已发现的 OAuth state cookie 未绑定、OAuth email 自动绑定、WebSocket fail-open/校验分叉等安全阻塞项。
 
-## 2. Current Architecture
+#### 2. Current Architecture
 
-### 2.1 真实业务域，而非目录推测
+##### 2.1 真实业务域，而非目录推测
 
 现有后端的真实领域是在线判题平台：
 
@@ -74,7 +340,7 @@
 
 `users` 混合边界的字段证据如下：身份/凭证为 `id`、`username`、`email`、`password`、`password_reset_token_hash`、`password_reset_expires_at`；授权/状态为 `role`、`is_active`、`is_banned`、`banned_until`、`banned_reason`；公开 profile 为 `name`、`avatar`、`bio`、`company`、`github`、`location`、`twitter`、`website`、`preferred_language`；生命周期/审计为 `joined_at`、`last_login_at`、`created_by`、`updated_by`、`is_deleted`、`deleted_at`、`deleted_by`。这正是 Auth account 与 App profile 需要渐进垂直拆分的原因。
 
-### 2.2 当前运行拓扑
+##### 2.2 当前运行拓扑
 
 > **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。当前项目没有 production environment，因此本地证据不等于生产切流证据。
 
@@ -113,7 +379,7 @@ flowchart LR
 - Compose 启动 MySQL、Redis、Nacos、MeiliSearch 和七个后端 runtime；Dubbo/Nacos 依赖与 provider/consumer 已进入各服务模块；
 - 根 POM 不再保留不存在的 `backend-api` reactor dependency-management 条目。
 
-### 2.3 真实请求/调用链样本
+##### 2.3 真实请求/调用链样本
 
 | 场景 | 当前链路 | 拆分含义 |
 |---|---|---|
@@ -128,7 +394,7 @@ flowchart LR
 
 代表源码：`services/auth/src/main/java/com/ulticode/auth/service/DefaultAuthenticationWorkflow.java`、`services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java:110-214`、`services/app/app-web/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java:141-185,412-498`、`services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java:278-314`、`services/app/app-web/src/main/java/com/ulticode/modules/websocket/auth/DefaultWebSocketAuthenticator.java:46-86`。
 
-### 2.4 当前耦合与循环性质
+##### 2.4 当前耦合与循环性质
 
 已确认的 package/module 双向依赖包括：
 
@@ -146,7 +412,7 @@ flowchart LR
 - Audit Aspect 在请求线程同步写 `audit_logs`，并依赖 SecurityContext 与 `AuditContext` ThreadLocal；
 - Search、Dashboard 和多种 Projection 通过跨表 join/mapper fan-out 组装读模型。
 
-### 2.5 特殊能力现状
+##### 2.5 特殊能力现状
 
 | 能力 | 现状 | 拆分约束 |
 |---|---|---|
@@ -160,7 +426,7 @@ flowchart LR
 | AI | 当前未发现 AI/LLM/向量能力 | 不为不存在的能力引入服务或组件 |
 | 监控 | Actuator/Micrometer/Prometheus registry，自定义 DB/Redis/Queue inspector | 每服务保留指标；首次 RPC 切流前接分布式 tracing |
 
-### 2.6 配置、Filter、异常与数据库访问横切面
+##### 2.6 配置、Filter、异常与数据库访问横切面
 
 - 四个 owner 分别由各自的安全配置组装无状态安全链，并在各自入口注册 JWT/CSRF filter；Auth、Admin、App 的现有配置为 `AuthSecurityConfig`、`AdminSecurityConfig`、`AppSecurityConfig`，Notification 复用同等入口安全约束。
 - 异常映射由 owner-scoped `*WebExceptionHandler` 维护；共享 `Result<T>` / `RpcResult` 仍定义在 `services/platform/common/src/main/java/com/ulticode/common/response/Result.java` 与 `services/platform/common/src/main/java/com/ulticode/common/rpc/RpcResult.java`，当前示例为 `services/auth/src/main/java/com/ulticode/auth/error/AuthWebExceptionHandler.java`、`services/admin/src/main/java/com/ulticode/admin/error/AdminWebExceptionHandler.java`、`services/app/app-web/src/main/java/com/ulticode/app/error/ProblemWebExceptionHandler.java`。
@@ -168,9 +434,9 @@ flowchart LR
 - MyBatis 使用 annotation mapper，源码不存在 XML Mapper；各 owner 的 `application.yml` 分别位于 `services/auth/src/main/resources/application.yml`、`services/admin/src/main/resources/application.yml`、`services/app/app-web/src/main/resources/application.yml`，mapper/type-alias 等配置不得迁入共享 Contract。
 - 当前 traceId 主要由 `services/platform/common/src/main/java/com/ulticode/common/util/TraceIdUtil.java` / `Result` 在进程内生成，不是完整分布式上下文；Phase 1 需用 W3C trace context/OTel 统一 HTTP、Dubbo 和 event，而不是继续跨进程依赖静态工具。
 
-## 3. Target Architecture
+#### 3. Target Architecture
 
-### 3.1 目标拓扑
+##### 3.1 目标拓扑
 
 ```mermaid
 flowchart TB
@@ -227,7 +493,7 @@ flowchart TB
 
 物理拆库是后期状态。迁移早期四个服务可以连接同一 MySQL 实例和旧 schema，但只能作为有期限的兼容阶段；先由代码/API 和数据库账号权限形成唯一写 Owner，再搬表。
 
-### 3.2 服务依赖方向
+##### 3.2 服务依赖方向
 
 推荐同步方向：
 
@@ -250,15 +516,15 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 - Gateway 只做路由、TLS、header 清理、基础限流和 trace，不是唯一安全边界；四个服务都验证自己的 JWT/服务身份；
 - Auth 下线时，未过期 access token 仍可被 App/Admin 本地验证；登录、刷新和高风险 fresh-auth 操作 fail closed。
 
-### 3.3 关键架构决策
+##### 3.3 关键架构决策
 
 主决策是：**按数据聚合 Owner 拆，而不是按“谁有 Admin 页面”拆。** `backend-admin` 是治理域与管理 BFF；Problem、Contest、Submission、Forum、Solution 等即使有 `/admin/**` Controller，数据仍由 `backend-app` 的对应聚合拥有。这样把当前大量 Admin→Mapper 写收敛为少量粗粒度 Admin→App command，并保持 App 内的本地事务。
 
 `backend-app` 初期仍较大是有意选择。Contest、WebSocket、Forum/Vote 等现有双向关系继续留在 App 内；Notification 已具备独立数据、inbox、ledger 和 worker 边界。2026-08-15 的新目标以 DEC-011 修订边界：Submission 判题生命周期与 Search 索引 worker 进入独立服务迁移，其余强实时/浅接缝域暂不拆。
 
-## 4. Service Boundaries
+#### 4. Service Boundaries
 
-### 4.1 `backend-auth`
+##### 4.1 `backend-auth`
 
 | 项 | 定义 |
 |---|---|
@@ -273,7 +539,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 **禁止演化成万能用户服务：** Auth 不保存用户简介、头像文件、关注、统计、题目/竞赛身份或通知偏好；Identity Query 只返回认证/授权所需最小字段和受控显示字段。
 
-### 4.2 `backend-admin`
+##### 4.2 `backend-admin`
 
 | 项 | 定义 |
 |---|---|
@@ -288,7 +554,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 **边界裁决：** Admin 不拥有“所有管理页面显示的表”。例如 Admin 创建题目时调用 App 的 `ProblemAdministrationService`，事务在 App；Admin 只记录操作结果、审核流程和审计投影。
 
-### 4.3 `backend-app`
+##### 4.3 `backend-app`
 
 | 项 | 定义 |
 |---|---|
@@ -301,7 +567,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 | Events | `ProfileUpdated`、`SubmissionCreated/Judged`、`ContestRated`、`FollowCreated`、`AchievementEarned`、`NotificationIntentCreated`、`SearchDocumentChanged` 等；Submission/Search event 的 Owner 与 consumer 见 DEC-011 |
 | External Dependencies | App MySQL、Redis queue/cache/lock/Streams、可选 MeiliSearch、对象存储（中期）、Nacos、Prometheus/OTel |
 
-### 4.4 `backend-notification`
+##### 4.4 `backend-notification`
 
 | 项 | 定义 |
 |---|---|
@@ -328,7 +594,7 @@ Notification 不承载 WebSocket endpoint。它将允许的 payload 发布到 Re
 Notification、恢复 App grant/路由，再执行 rollback 子命令回写新增行。整个过程不启用
 第二个通知 writer。
 
-### 4.5 `backend-judge`
+##### 4.5 `backend-judge`
 
 | 项 | 定义 |
 |---|---|
@@ -343,7 +609,7 @@ Judge 的同步依赖方向只有 Worker → App（Problem facts/test cases）�
 
 WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`backend-notification` 只发布 Redis Pub/Sub payload，不拥有 WS endpoint 或实时房间状态。
 
-### 4.5.1 `backend-submission`（SPLIT-003 过渡运行时）
+##### 4.5.1 `backend-submission`（SPLIT-003 过渡运行时）
 
 | 项 | 定义 |
 |---|---|
@@ -376,7 +642,7 @@ grant revocation 完整性已通过本地观察：remote route 下显式 contest
 
 slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submission 直接 provider 下全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + explicit contest command）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；slice-7 已完成 contest association event/inbox 验证，默认路由仍保留 local 作为可回滚保护，运行时切换由 SPLIT-005 最终 gate 决定。
 
-### 4.6 身份模型裁决
+##### 4.6 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |
 |---|---|---|---|
@@ -390,7 +656,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 
 当前服务器端授权实际上只把 JWT 的单一 `role` 转成 `ROLE_*`；`role_permissions/user_permissions` 主要用于 `/auth/permissions` 和管理 UI，并未进入 `GrantedAuthority`/`PermissionEvaluator`。迁移必须先保持现有 role 行为，再逐端点引入细粒度权限，避免无意改变权限语义。
 
-## 5. Data Ownership Matrix
+#### 5. Data Ownership Matrix
 
 缩写：**I**=Owner 内部直接 DB；**Q**=粗粒度 Query/批量 RPC 或本地物化投影；**C**=幂等 Command RPC；**E**=outbox/event；**R**=核验后退役。任何 Q/C 都不得返回 Entity、Mapper 或内部 Domain Model。
 
@@ -475,14 +741,14 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 | `email_logs` | email intake | Notification | Admin | Notification I；Admin Q |
 | **`backups`（canonical migration 已补齐）** | Backup Entity/Mapper/Service CRUD，canonical migration `V20260724162738__Create_Backups_Table.sql` 已定义 CREATE TABLE | Admin/Ops | Admin | I（owner 已迁移至 backend-admin） |
 
-### 5.1 当前 schema 风险必须先处理
+##### 5.1 当前 schema 风险必须先处理
 
 - `Backup.java:16` 映射 `backups`，Backup Service 执行 CRUD；canonical migration `V20260724162738__Create_Backups_Table.sql` 已定义 `CREATE TABLE backups`（enum 状态/类型 + JSON metadata + 索引），schema drift 已收敛。不再需要新增 migration。
 - 基线 migration 的 `problem_notes` 只有 `id/problem_id/user_id/content/updated_at`；后续 `CREATE TABLE IF NOT EXISTS` 期望 `create_time/update_time`、`varchar(36) user_id`、`MEDIUMTEXT content` 和两个 FK，但因表已存在而完全不生效。当前 `ProblemNote` Entity 映射 `create_time/update_time`。新的 ALTER migration 应保留项目通用的 `varchar(40) user_id`，从 `updated_at` 回填时间列，先扫描孤儿引用再增加 FK；`content` 只做兼容性扩宽，不能缩窄现有 ID 类型。
 - migration-only 表不能根据“源码未调用”直接 DROP；先查询生产行数、最近写入和保留要求，再归档/退役。
 - 物理 FK 很少，跨域逻辑引用很多。拆库前需以主键 checksum、孤儿引用扫描和应用级 reconciliation 替代“数据库会帮忙发现”。
 
-### 5.2 推荐数据迁移路线
+##### 5.2 推荐数据迁移路线
 
 1. **同库、唯一 Owner**：先建立 owner manifest、consumer-owned port 和 ArchUnit 规则；每表只有一个写模块。
 2. **同实例、不同 DB user**：`auth_rw`、`admin_rw`、`app_rw` 只获自己表权限；兼容账号单独命名并设置删除日期。
@@ -501,13 +767,13 @@ schema 和锁定的 shadow user。`notification_rw` 不带可用默认密码，�
 凭据并在窗口内解锁。`notification-schema-cutover.sh` 默认只做 preflight，任何写入都需要
 `--execute` 与一次性确认 token；rollback 先把目标数据回写源表，再恢复 App 表级权限。
 
-## 6. Dubbo Design
+#### 6. Dubbo Design
 
-### 6.1 当前基线与使用原则
+##### 6.1 当前基线与使用原则
 
 Dubbo 已用于 Auth、Admin、App、Submission、Notification 的内部 Contract seam；当前重点不是继续拆分，而是收敛同步回访、数据权限、兼容路径和过细 Seam。外部客户端仍使用 HTTP/WS，Judge/Search 不作为业务 Dubbo 服务暴露。
 
-### 6.2 Contract module
+##### 6.2 Contract module
 
 推荐 provider-owned API modules：
 
@@ -571,7 +837,7 @@ public interface ContentModerationService {
 
 每个写 Command 必须有 `commandId/idempotencyKey`、expected version（适用时）、明确 actor delegation 和 trace metadata。Provider 只在自己的数据库开启事务。
 
-### 6.3 场景分类
+##### 6.3 场景分类
 
 | 分类 | 场景 |
 |---|---|
@@ -580,7 +846,7 @@ public interface ContentModerationService {
 | 不应该 RPC | 每请求 token 验证；Gateway→服务内部转发；文件字节；逐行用户/题目 enrichment；指标、日志、审计；Search 四路串行远程查询；WebSocket 每条消息验身份 |
 | 应该事件化 | Account/Profile/Role 变化；Audit；SubmissionCreated/Judged；Contest scoring/ranking projection；Achievement/Notification；Search index；系统设置和公告 cache invalidation |
 
-### 6.4 版本、协议和容错
+##### 6.4 版本、协议和容错
 
 - **Protocol**：Dubbo Triple，首期 Java POJO/record Contract；只允许经过验证的安全 serialization 与 class allowlist，禁止 JDK native serialization。跨语言需求出现后再评估 Protobuf IDL。
 - **Group/version**：按 Owner 使用 `auth`、`app` group；接口 version 从 `1.0.0` 开始；环境隔离使用 Nacos namespace，不把环境混进接口版本。
@@ -591,16 +857,16 @@ public interface ContentModerationService {
 - **Degradation**：Auth 登录/刷新和高风险管理命令 fail closed；普通 identity 展示可用有 TTL 的旧投影；Admin 写不做“假成功”；公共 App 读不能因 Admin/Auth 短时不可用级联失败。
 - **Observability**：HTTP traceId → Dubbo attachment → outbox/event envelope；记录 service/interface/method/version/timeout/result，不记录 token、Cookie、密码或敏感 DTO。
 
-### 6.5 防止链式 RPC
+##### 6.5 防止链式 RPC
 
 - Admin Controller/应用服务可调用一个 App 或 Auth Provider；Provider 不再调用另一个 Provider完成同一命令。
 - App Provider 验证转发的用户断言或 service principal，不同步回 Auth 读取普通身份。
 - Composite Dashboard 用 Admin 本地 read model；临时实时聚合只能并行批量调用 Owner read seam，并设置总 deadline 与明确的部分结果语义。当前 Dashboard 的完整 VO 选择 fail closed，不返回半成品统计。
 - 在 ArchUnit/架构测试中禁止 `backend-auth` 依赖 app/admin API，禁止 App 依赖 admin API，并为运行时 trace 设置“同步服务跳数 > 1”告警。
 
-## 7. Authentication Architecture
+#### 7. Authentication Architecture
 
-### 7.1 当前链路与迁移阻塞项
+##### 7.1 当前链路与迁移阻塞项
 
 现有 access token 使用 HMAC，claims 只有 `sub`、`username`、`role`、`iat`、`exp`；refresh token 为 JWT，但 DB 只存 SHA-256 hash，并以条件更新实现单次旋转（`JwtTokenProvider.java:49-81`、`RefreshTokenService.java:41-103`）。HTTP 过滤器本地验证 token，不查 DB；这是应保留的热路径特性。
 
@@ -614,7 +880,7 @@ Auth 抽离前必须单独修复并测试：
 
 这些问题不是“微服务才能修”的理由，但若原样复制到独立 Auth/Realtime，会固化并扩大风险，因此列为 Phase 0/2 门禁。
 
-### 7.2 Login、Token Issue、Refresh
+##### 7.2 Login、Token Issue、Refresh
 
 ```mermaid
 sequenceDiagram
@@ -642,7 +908,7 @@ sequenceDiagram
 - 保留 hash-only、条件旋转和 revoke-all；中期补 session family、parent/replacedBy 和 reuse detection；
 - DB 提交与 HTTP Set-Cookie 无法成为一个事务。失败语义要明确：cookie 写入失败时允许重新登录/恢复 session，而不是引入分布式事务。
 
-### 7.3 JWT 签发和本地验证
+##### 7.3 JWT 签发和本地验证
 
 **过渡期：** 为降低第一次 Auth 切流风险，可在 Legacy 与新 Auth 并存的短窗口保留现有 HMAC。App/Admin 若要离线验签就必须持有同一 secret，也因此在密码学上同样具备签发能力；这是明确接受且有删除日期的临时风险。该 secret 必须使用最小分发范围，且在 App/Admin 正式独立切流前完成非对称迁移。
 
@@ -655,7 +921,7 @@ sid, roles/authorities, authz_version
 
 每个接收方固定 algorithm allowlist，并校验 `iss/aud/typ/kid/exp/nbf`。Access TTL 保持短；Auth key rotation 使用 `kid` 和公钥重叠窗口。
 
-### 7.4 Gateway Authentication 与 Service Authorization
+##### 7.4 Gateway Authentication 与 Service Authorization
 
 - Gateway 可做 token 形态/签名的快速拒绝和 `/admin/**` 粗路由，但不是信任根；
 - Gateway 必须删除客户端提交的 `X-User-*`、`X-Role-*`、`X-Service-*` 等内部 header；
@@ -663,7 +929,7 @@ sid, roles/authorities, authz_version
 - `/admin/**` 在 Gateway 路由后，Admin 服务默认仍要求 `ADMIN|SUPER_ADMIN`，Moderation 显式允许 `MODERATOR`；敏感方法继续 `@PreAuthorize` defense-in-depth；
 - App 将角色仅用于授权，不把 `USER` 等同于“Student”。未来 TEACHER/STUDENT 权限归 Auth，业务 profile 分别归 Admin/App。
 
-### 7.5 RBAC 数据与变更传播
+##### 7.5 RBAC 数据与变更传播
 
 Auth 是 `users.role`、`role_permissions`、`user_permissions` 的唯一 Owner。迁移先保持当前 role-only 服务端授权；随后：
 
@@ -674,7 +940,7 @@ Auth 是 `users.role`、`role_permissions`、`user_permissions` 的唯一 Owner�
 5. 高风险管理写遇到版本过旧时调用 Auth fresh snapshot，普通请求不 RPC；
 6. access token 到期后自然获得新快照。
 
-### 7.6 Dubbo identity propagation 与服务信任
+##### 7.6 Dubbo identity propagation 与服务信任
 
 区分两种身份：
 
@@ -683,7 +949,7 @@ Auth 是 `users.role`、`role_permissions`、`user_permissions` 的唯一 Owner�
 
 Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 attachment；业务 request 中的 `userId/role` 只能是目标数据，不能作为审计 actor。审计记录 `subjectUserId`、`actorServiceId`、delegationId、traceId；身份传播丢失必须 fail closed，不能静默记成 `system`。
 
-### 7.7 CSRF、WebSocket 与 Auth 可用性
+##### 7.7 CSRF、WebSocket 与 Auth 可用性
 
 - Access/refresh 继续放 HttpOnly cookie。浏览器 mutation 继续要求 CSRF；service-to-service bearer/mTLS ingress 必须与浏览器 CSRF filter 分离。
 - 兼容期可共用专用 Redis CSRF namespace；目标可评估签名 double-submit token，避免跨服务同步 Auth，但必须独立安全评审。
@@ -691,9 +957,9 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - CONNECT 优先本地 JWT + account-state cache；cache 缺失/高风险时才查询 Auth。Auth 状态事件让 App 主动断开被禁用账号会话。
 - Auth 不可用时，已有且未撤销的短期 access token仍可访问普通 App；登录/refresh/fresh authorization 和缺少可信状态的 WebSocket CONNECT fail closed。
 
-## 8. Transaction Analysis
+#### 8. Transaction Analysis
 
-### 8.1 事务裁决原则
+##### 8.1 事务裁决原则
 
 1. 业务 invariant 通过重新划分 Owner 收敛为本地 MySQL 事务；
 2. DB 与 Redis/SMTP/WebSocket/对象存储不能靠 `@Transactional` 原子化；使用 outbox、inbox、lease、fence、补偿；
@@ -701,7 +967,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 4. 批量管理操作返回逐项结果并使用幂等 command，不开启跨服务长事务；
 5. Seata 不引入：当前跨界资源大多不是关系型 RM，且已有 CAS/outbox/lease 的正确演进方向。
 
-### 8.2 关键事务矩阵
+##### 8.2 关键事务矩阵
 
 | Transaction | Current Boundary | Target Boundary | Strategy |
 |---|---|---|---|
@@ -727,7 +993,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 | Subscription | find-then-insert，缺 active unique；状态更新非 CAS | App Subscription | 增加唯一约束/状态 CAS，本地 L/S |
 | Backup | Admin DB row + mysqldump/文件 | Admin/Ops | Job row/lease L；外部进程/对象存储 E/补偿 |
 
-### 8.3 迁移前必须补齐的一致性机制
+##### 8.3 迁移前必须补齐的一致性机制
 
 - Judge 已完成 `judge_outbox + generation fence + JudgeQueue port` 的受控切换；目标态由 Submission owner 写入 Streams v2，独立 `backend-judge` 消费者负责执行。回滚开关仍必须保留 legacy RQueue 重放保护，不能把未投递的 non-shadow row 直接标记为 SENT；
 - `judge_outbox` 只覆盖“送去判题”，不覆盖“verdict 已落库”。新增 result outbox，避免 commit 后 JVM 崩溃丢失 Contest/Notification/Achievement；
@@ -737,7 +1003,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - Subscription 增加 active natural uniqueness 与 status CAS；
 - Audit 由“同步 sink + ThreadLocal”改为业务事务内 outbox，Admin 幂等消费。
 
-### 8.4 强一致与最终一致边界
+##### 8.4 强一致与最终一致边界
 
 必须强一致但必须保持在单 Owner 内：refresh 单用旋转、permission grant/revoke、账号 ban/password、Contest participant+count、Problem aggregate satellites、Submission+judge outbox、verdict fence+result outbox、Moderation queue claim/decision、Vote ledger invariant。
 
@@ -745,11 +1011,11 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 
 确需同步权威结果但不做跨库事务：比赛提交资格；高风险 ban/permission/fresh authorization。同步验证成功后，各 Owner 只提交自己的本地事务。
 
-## 9. Migration Phases
+#### 9. Migration Phases
 
 所有 Phase 的共同门禁：Maven reactor 可编译；相关 `verify` 和 `*IT` 通过；Gateway 默认仍可路由 Legacy；只做 additive migration；监控/日志可区分新旧路径；每次切流有负责人、指标、观察期和回退命令。
 
-### Phase 0 — 架构与安全基线
+##### Phase 0 — 架构与安全基线
 
 - **Goal**：冻结事实基线、修复阻塞拆分的 schema/security/inconsistency 风险，不改变服务拓扑。
 - **Code Changes**：建立 table owner manifest、跨模块依赖/ArchUnit 规则；让 OAuth callback 校验 cookie state 后原子消费 Redis state，并建立 provider identity；统一 HTTP/WS validator，CONNECT 校验 active/ban，SEND/SUBSCRIBE 在 principal/session 缺失时 fail closed；补有效 permission expiry；完成 judge outbox/fence/stream 切换计划。
@@ -759,7 +1025,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：应用回退但保留 additive schema；judge flag 回旧路径；安全修复不以降低安全为回退方式。
 - **Completion Criteria**：schema truth 一致；每表有 Owner；Critical Auth/WS 风险关闭；Legacy judge 双写有明确退出门禁。
 
-### Phase 1 — Maven 多模块骨架、Gateway、Nacos 与可观测
+##### Phase 1 — Maven 多模块骨架、Gateway、Nacos 与可观测
 
 - **Goal**：建立五个 Owner 服务、两个 Worker、共享依赖与 provider-owned contracts，不迁业务表。
 - **Code Changes**：`services` parent、`platform/*`、`api/*`、五个 Owner module、`backend-judge`、`backend-search` 与 `judge-runtime`；接入 Dubbo starter/Triple/Nacos registry；Nginx Gateway 保留外部 HTTP/WS 入口；统一 trace/filter。
@@ -769,7 +1035,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：Gateway 全路由 Legacy；停止三个新容器；不回滚 additive module/schema。
 - **Completion Criteria**：独立构建/镜像/健康探针；Nacos namespace/ACL；OpenTelemetry trace 可串起一次 RPC；没有业务切流。
 
-### Phase 2 — 抽离 Auth
+##### Phase 2 — 抽离 Auth
 
 - **Goal**：由 `backend-auth` 接管认证、token、账号安全与 RBAC，App/Admin 离线验 access JWT。
 - **Code Changes**：搬迁 Auth/refresh/permission/security issuer；建立 Auth API；Gateway 切 `/auth/**`；资源服务 verifier；Admin 用户安全操作改 Auth command；Auth 发布 account/authz events。
@@ -779,7 +1045,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：Gateway `/auth/**` 切回 Legacy；旧 verifier 支持重叠 key；Auth 写表仍兼容 Legacy；禁止回滚到已知不安全 OAuth/WS 行为。
 - **Completion Criteria**：只有 Auth 可写凭证/role/permission/refresh；App/Admin 不持签名私钥；普通请求无 Auth RPC。
 
-### Phase 3 — 在模块化单体内收敛 Admin/App 边界
+##### Phase 3 — 在模块化单体内收敛 Admin/App 边界
 
 - **Goal**：先消除跨 Owner Mapper/Entity，后分进程，避免“一边改网络一边改业务”。
 - **Code Changes**：Problem/Contest/Submission/Forum/Solution 等建立 owner-owned application API；Admin Controller 只依赖 command/query port；拆 `user` 的 Account/Profile port；Search/Dashboard 改 batch projection；审计改 outbox seam。
@@ -789,7 +1055,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：逐模块回退本地 adapter；新接口 additive；不恢复已撤销的任意跨表写权限。
 - **Completion Criteria**：Admin 业务写均经过 Owner API；Auth/Profile seam 清晰；运行时服务图可以画成 Admin→Auth/App 单向。
 
-### Phase 4 — Admin/App Dubbo 化与逐路由切流
+##### Phase 4 — Admin/App Dubbo 化与逐路由切流
 
 - **Goal**：把 Phase 3 的同进程 port adapter 替换为 Dubbo Consumer/Provider，按领域切到独立 App/Admin。
 - **Code Changes**：实现 provider-owned Contract；先只读后写；按 Problem → ProblemList/Solution/Forum → Contest → Submission/Judge/WS 的风险顺序切；Dashboard 使用投影。
@@ -799,7 +1065,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：route/consumer feature flag 回本地 Legacy；Provider 保持旧版本；DB writer 仍唯一，避免数据反向同步。
 - **Completion Criteria**：三个服务独立部署；同步调用单跳；网络失败语义明确；没有共享 Mapper jar。
 
-### Phase 5 — 数据 Owner 收敛与渐进拆库
+##### Phase 5 — 数据 Owner 收敛与渐进拆库
 
 - **Goal**：从“服务分进程、共库”进入“独立 schema/database Owner”。
 - **Code Changes**：跨 owner join 改 batch query/事件投影；`users` 垂直拆 profile；reconciliation job；服务 migration location 分离。
@@ -809,7 +1075,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：切回旧读路径/旧 schema writer；新库写通过 outbox 可回放；只做 additive migration，不 DROP/rename 关键列。
 - **Completion Criteria**：每张活跃表只有一个 schema Owner；服务账号不能访问对方表；Legacy 兼容账号已删除。
 
-### Phase 6 — 跨服务事件化和可靠副作用
+##### Phase 6 — 跨服务事件化和可靠副作用
 
 - **Goal**：把进程内 Spring event、同步 audit/notification、DB+Redis/SMTP 双写升级为 durable integration event。
 - **Code Changes**：每 Owner outbox、dispatcher、consumer inbox；result outbox；reclaimable notification/email ledger；事件 envelope/version；人工 replay/DLQ 工具。
@@ -819,7 +1085,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：停止新 consumer并保留 outbox；旧同步通道只在明确开关下短期恢复；不删除未消费事件。
 - **Completion Criteria**：跨服务副作用可重放、幂等、可观测；JVM 崩溃不永久丢 verdict/audit/notification。
 
-### Phase 7 — 删除 Legacy 与收尾
+##### Phase 7 — 删除 Legacy 与收尾
 
 - **Goal**：这是生产稳定窗口和权限/回滚证据满足后的未来 contract 阶段；当前开发仓库仍保留显式 rollback/compatibility 路径，不能把本节当作已执行的生产收尾。
 - **Code Changes**：删除 `backend-legacy`、旧 local adapters、legacy judge queue 路径、重复 JWT util、无 Consumer Contract；更新启动/部署/开发脚本。
@@ -829,7 +1095,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - **Rollback**：只能回滚到最近一个仍支持当前 schema/Contract 的版本；删除前保留镜像、数据库备份和 event replay 水位。
 - **Completion Criteria**：无 goal-related TODO、无跨 Owner DB grant、无旧 Gateway route、文档/运行脚本/监控与真实部署一致。
 
-## 10. Package / Repository Structure
+#### 10. Package / Repository Structure
 
 > **Superseded by ADR-008 (2026-08-08):** The transitional layout below was the
 > Strangler Fig migration structure. `backend-legacy` has been removed from the
@@ -872,7 +1138,7 @@ backend-search  -> platform/common + search event contracts（Worker only）
 backend-auth    -> 不依赖 app/admin API；judge-runtime 仅由运行时复用
 ```
 
-### 10.1 共享代码政策
+##### 10.1 共享代码政策
 
 允许共享：
 
@@ -893,9 +1159,9 @@ backend-auth    -> 不依赖 app/admin API；judge-runtime 仅由运行时复用
 
 不建议首期建立单一 `backend-infrastructure` runtime jar。每个服务应拥有自己的 datasource、cache、mail、storage、Dubbo adapter。若未来确需共享，只共享无业务状态的 observability/security-verifier starter，并通过依赖测试防止它引入 Entity/Mapper。
 
-## 11. Infrastructure
+#### 11. Infrastructure
 
-### 11.1 技术决策矩阵
+##### 11.1 技术决策矩阵
 
 | 技术 | 为什么需要 | 解决什么问题 | 为什么选择它 | 是否现在引入 | 替代方案 | 迁移成本 |
 |---|---|---|---|---|---|---|
@@ -919,7 +1185,7 @@ backend-auth    -> 不依赖 app/admin API；judge-runtime 仅由运行时复用
 
 RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独立故障域/延时重试/DLQ、大规模 replay，且团队能承担 broker 运维。满足前不为“微服务完整度”引入。
 
-### 11.2 引入时序
+##### 11.2 引入时序
 
 | 时机 | 基础设施 |
 |---|---|
@@ -928,7 +1194,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 | 后期按需 | RocketMQ、Sentinel、独立 MySQL 实例、外部 STOMP broker/Realtime 服务、Kubernetes/Higress/Nacos Config |
 | 明确不引入 | Seata、为了目录齐全创建的空服务、无消费者的共享 API、默认 Spring Cloud 全家桶 |
 
-### 11.3 Registry、配置与网络
+##### 11.3 Registry、配置与网络
 
 - Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；`backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`、`backend-judge`、`backend-search` 使用不同 service name；业务配置继续 env/application，避免同时改变 discovery 和 config source；
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
@@ -936,7 +1202,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential；
 - 当前配置已暴露 `/actuator/health`，但迁移后的 readiness 不应假设该端点始终公开或把它作为唯一信号；应组合仓库允许的公共 API 探针、容器 health 与服务注册状态。
 
-### 11.4 WebSocket、调度、备份与判题
+##### 11.4 WebSocket、调度、备份与判题
 
 - App 单实例迁移期可继续 SimpleBroker；多实例前使用粘性会话 + Redis broadcast bridge，或按负载证明引入 broker relay；
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
@@ -946,7 +1212,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - 生产 Compose 必须显式提供 `SUBMISSION_DB_HOST/PORT/NAME/USER/PASSWORD`、`SUBMISSION_CUTOVER_COMPLETE=true` 与 Redis 连接变量；`backend-submission` 不再回落到 App 的 `DB_*` 或容器内 `localhost`。`SUBMISSION_DB_USER` 必须是已单独 provision/unlock 的 Submission owner 账号。cutover runbook 的 `SUBMISSION_APP_DB_USER` + `SUBMISSION_APP_DB_HOST` 必须精确标识实际 App 运行账号；该账号只能持有待迁移表的表级 DML grants，不能有其它 host、global/schema/table `ALL`、`GRANT OPTION` 或角色继承；preflight 会拒绝这些姿态，避免 REVOKE 后仍可跨 Owner 写入。`init-env.sh` 只生成凭证并将 marker 置为 false；`up.sh --prepare-submission-owner` 以 owner-first 顺序迁移/解锁且不启动 PM2，正常 `up.sh` 与 App routing properties 在 marker 未置 true 时有意停止。执行 cutover/rollback 前必须停止并 drain 所有可能写入 source 或 target 的进程：`backend-app`/App PM2（submission intake、contest/rejudge、local outbox dispatcher、lease reaper、scheduler）、`backend-submission`（owner writer、dispatcher、reaper）、`backend-judge`（legacy/remote verdict 与 lease writer）以及任何 direct admin/maintenance client；所有 in-flight judge/outbox work 必须结束。随后提供一次性 `SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS`；runbook 会复核 copy 前后 source rows/checksums，rollback `copy_back` 在单事务中执行，任何 partial revoke/restore/cleanup failure 都显式升级。
 - `backend-search` 是独立 no-HTTP/no-business-DB worker（SEARCH-002 已建，`services/search/`）；它只消费 App/Auth owner 发布的 `SearchDocumentChanged`，按 allowlisted index/document 写 MeiliSearch（幂等 upsert/delete，PEL 兜底 at-least-once，超限进 DLQ，`search.worker.enabled` 门控默认关），App 业务写路径不得直连或隐式写索引。`SearchDocumentChanged` 契约已冻结并移至 `backend-common`；四类来源 publisher 已接线（SEARCH-001：App 三源 + Auth users + App user_profiles）；worker 版本账本与 tombstone 语义见 §11.5（SEARCH-003）。worker 单测、boot 无 web/无业务表契约、compose（meilisearch 服务 + backend-search 服务，内网 expose）和 test-only `SearchEventToQueryE2EIT` disposable Redis+Meili 闭环均有独立验证；落线前消费方仍不得假定生产事件已生效。
 
-### 11.1 `SearchDocumentChanged` 发布矩阵（SEARCH-001）
+##### 11.1 `SearchDocumentChanged` 发布矩阵（SEARCH-001）
 
 | Source | Owner writer | 事件 | 依据 |
 |---|---|---|---|
@@ -967,7 +1233,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 发布语义：每个事件在 owner 本地写事务内经 `IntegrationEventPublisher` 写 integration outbox（App）；DELETE 事件 document=null（tombstone/replay 语义）；payload 经 `SearchDocumentChangedEventContract.requireSafeDocument` 递归校验（禁 code/testCases/token 等字段）。
 
-### 11.5 Search 版本语义与 backfill（SEARCH-003，DEC-016/017）
+##### 11.5 Search 版本语义与 backfill（SEARCH-003，DEC-016/017）
 
 **版本语义**：`aggregateVersion` = 事件发布时刻（live publisher）或行最后变更时间（backfill）的 epoch 毫秒（同一墙钟域）。worker 对每索引维护 Redis 版本账本 `search:doc-version:{index}`（field=documentId）：UPSERT 仅当 incoming 严格新于账本版本才写（stale 跳过计数 `search.worker.stale_skipped`，仍 ACK）；DELETE 写负值 tombstone（`-V`），非严格新于 tombstone 的 UPSERT 一律跳过（防 backfill 乱序复活已删文档）；写入文档的 `_aggregateVersion` 供 diff watermark 与可观测。多副本并发 HGET/HSET 非原子：worker 按单副本运行，账本为 best-effort 排序辅助。外部重建 Meili 索引后必须 `DEL search:doc-version:{index}` 再重跑 backfill。
 
@@ -986,7 +1252,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 **回滚**：停 worker/backfill flag 即回退；App `/search` 读路径保持 DB fallback；索引保留，事件 outbox/PEL 可重放；不删除源数据。
 - `backend-notification` 使用独立 artifact/image；`api` 角色承接 HTTP/Dubbo，`worker` 角色运行 durable inbox bridge + ledger reaper。过渡期保留 `ulticode.app.inbox.enabled` 作为 App 侧回滚开关，切换完成后关闭 App inbox bridge，Notification 成为 `notifications`、偏好、投递台账和 email 表的唯一 Owner。
 
-## 12. Risks
+#### 12. Risks
 
 | ID | 风险 | 严重度 | 触发信号 | 缓解/回滚 |
 |---|---|---|---|---|
@@ -1011,9 +1277,9 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 | R19 | 教育模板误导边界 | Medium | 创建空 Course/Teacher 服务或错误角色迁移 | 以当前 OJ 领域为准；未来需求单独建模 |
 | R20 | 细粒度 permission 被误认为当前已执法 | High | UI permission 与服务端 role 行为不一致 | 文档标明现状；先修 expiry，再逐端点显式接入和回归 |
 
-## 13. Migration Checklist
+#### 13. Migration Checklist
 
-### 13.1 调研与门禁
+##### 13.1 调研与门禁
 
 - [ ] 为每张活跃表指定唯一 Owner 和唯一 writer。
 - [ ] 记录所有跨模块 Mapper/ServiceImpl/Entity import，并按 Owner API 替换。
@@ -1025,7 +1291,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] 修复 effective permission expiry，明确 role-only 当前语义。
 - [ ] 完成 judge outbox/fence/stream cutover 和 result outbox 设计。
 
-### 13.2 工程与 Contract
+##### 13.2 工程与 Contract
 
 - [ ] 父 POM 转 Maven reactor，Legacy 可独立构建。
 - [x] 建立最小 `backend-common`，无 Entity/Mapper/业务 Bean；并集中实现-free command metadata、difficulty/count
@@ -1040,7 +1306,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] 添加 consumer contract test、serialization allowlist、N/N-1 测试。
 - [ ] 添加 ArchUnit：禁止实现依赖、跨 Owner Mapper、Auth→App/Admin。
 
-### 13.3 Gateway 与安全
+##### 13.3 Gateway 与安全
 
 - [ ] Gateway 保留外部 `:9001` 和现有 cookie/path contract。
 - [ ] 配置 `/auth/**`、`/admin/**`、`/moderation/**`、App/WS 路由。
@@ -1053,7 +1319,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] `/admin/**` route 和 method 双重授权；Moderation 角色单独测试。
 - [ ] Dubbo service principal 与 end-user delegation 分离，audit actor 不取 request DTO。
 
-### 13.4 数据与事务
+##### 13.4 数据与事务
 
 - [ ] Admin 不再直接写 App/Auth 表。
 - [ ] Moderation decision、Auth ban、App content flag 分解为 workflow + 幂等 command。
@@ -1068,7 +1334,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] Object storage 使用临时对象+DB 引用+finalize/GC，不追求 XA。
 - [ ] 不引入 Seata。
 
-### 13.5 基础设施与可观测
+##### 13.5 基础设施与可观测
 
 - [ ] Nacos 只作 registry，namespace/ACL/凭证按环境隔离。
 - [ ] Dubbo Triple Provider/Consumer 有 timeout、deadline、版本和健康指标。
@@ -1081,7 +1347,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] Compose base/prod 不公开基础设施/后端端口，dev 仅 loopback。
 - [ ] 备份使用受控 credential，完成三 schema/database 恢复演练。
 
-### 13.6 切流、验证与回滚
+##### 13.6 切流、验证与回滚
 
 - [ ] 每组路由先 shadow/canary，再全量；记录旧/新指标和负责人。
 - [ ] 每个 Phase 执行 `./mvnw verify -B`；涉及 DB/安全/队列执行 `*IT`。
@@ -1094,7 +1360,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] 删除 Legacy 前执行 full/integration、Compose dev/prod config、备份恢复和 event replay。
 - [ ] 更新启动脚本、部署工作流、运行手册和本文档。
 
-## Appendix A. 调研证据与限制
+#### Appendix A. 调研证据与限制
 
 本指导以当前源码、canonical migrations、POM/application/Compose 和代表性真实调用链为依据。结构性调查使用了 codebase graph 作为候选定位，但图谱元数据存在 HEAD/generation 不一致，且当前运行时没有 `check_index_coverage`。因此没有把图谱空结果当作“绝对不存在”的证明；表清单、教育领域缺口、Dubbo/Nacos/AI 未使用、事务注解、跨模块 import 等负面结论均通过当前源码全范围 glob/grep/read 回退。
 
@@ -1114,3 +1380,391 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - 运行拓扑：`docker-compose*.yml`、`console/nginx.conf`、`management/nginx.conf`、`scripts/dev/**`。
 
 本文没有连接生产数据库，无法确认 migration-only 表是否仍有线上数据或手工 DDL；所有 R 候选都必须在真正删除前做生产数据与保留策略核验。
+
+## 4. Access token revocation boundary
+
+> 原文来源：`wiki/SECURITY_TOKEN_REVOCATION.md`
+
+### Access Token Revocation Boundary
+
+UltiCode does not provide immediate access-token revocation. The access-token
+TTL is 15 minutes (`JwtProperties.expiration = 900000L`), so that is the
+maximum residual exposure window after an authorization downgrade when a
+previously issued access token remains otherwise valid.
+
+This is an explicit product and architecture trade-off, not an accidental
+missing writer:
+
+- Refresh tokens are hash-only, database-backed, and revoked/rotated by Auth.
+- WebSocket CONNECT validates the JWT and Auth-owned active/banned state in
+  real time; SEND/SUBSCRIBE also require an authenticated session principal.
+- HTTP privileged paths apply `@CheckBan` and the route/method authorization
+  rules.
+- `authz_version` changes and durable authorization-change events provide the
+  fresh authorization signal for downstream consumers; they do not turn an
+  already issued access token into a blacklist lookup on every request.
+- `TokenBlacklistPort` is intentionally read-only. This boundary must not grow
+  a second blacklist writer in App, Admin, or a shared utility.
+
+If the product later requires an immediate “kick all sessions” operation, add
+an Auth-owned writer and an explicit consumer/invalidation contract first. The
+new contract must define event identity, delivery/retry, existing-token
+validation, rollback behavior, and the additional request-time cost before any
+writer is introduced.
+
+## 5. CONTEST-009 development release approval
+
+> 原文来源：`services/docs/CONTEST-009-RELEASE-APPROVAL.md`
+
+> 状态：开发环境审批记录，不构成生产发布、迁移、重启或外部部署授权。
+
+### CONTEST-009 Development Release Approval
+
+- Status: `APPROVED`
+- Approved at: `2026-08-11T19:34:06+08:00` (Asia/Shanghai)
+- Approver: Project requester, explicit approval recorded in the development task conversation
+- Scope: CONTEST-009 readiness closure for this development project; there is no concrete production environment.
+- Decision: The approval is a Git project record only. It authorizes readiness closure and does not authorize a production release, database migration, service restart, or external deployment.
+- Safety condition: Keep `app.features.contest-dubbo-cutover=false`.
+- Future condition: If a real production environment is introduced, obtain a new environment-specific approval before enabling release or cutover.
+
+#### Evidence basis
+
+- `ProblemApiContractShapeTest` AssertJ generic compilation baseline fixed without removing or weakening assertions.
+- `backend-app-api` module tests, focused contest/Admin verification, full services reactor verification, JaCoCo checks, and the required integration matrix passed.
+- Final readiness evidence and the approval state are also recorded in the local `.auto-flow/` control-plane files.
+
+## 6. Management app i18n design
+
+> 原文来源：`apps/management/docs/i18n-design.md`
+
+### i18n 国际化设计文档
+
+#### 目录结构
+
+```
+src/i18n/
+├── index.ts                 # 主入口，创建 i18n 实例
+├── types.ts                 # 类型定义和常量
+├── utils.ts                 # 工具函数
+├── check.ts                 # 翻译完整性检查脚本
+└── locales/
+    ├── zh-CN/               # 简体中文
+    │   ├── index.ts         # 模块聚合
+    │   └── modules/
+    │       ├── common.ts    # 通用翻译
+    │       ├── nav.ts       # 导航翻译
+    │       ├── users.ts     # 用户管理
+    │       ├── problems.ts  # 题目管理
+    │       ├── contests.ts  # 比赛管理
+    │       ├── dashboard.ts # 仪表板
+    │       ├── auth.ts      # 认证
+    │       ├── errors.ts    # 错误消息
+    │       ├── moderation.ts# 审核管理
+    │       └── settings.ts  # 系统设置
+    └── en-US/               # 英文
+        ├── index.ts
+        └── modules/
+            └── ... (同上)
+```
+
+#### 使用方式
+
+##### 1. 基础使用
+
+```vue
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+</script>
+
+<template>
+  <h1>{{ t('users.title') }}</h1>
+  <p>{{ t('users.searchPlaceholder') }}</p>
+</template>
+```
+
+##### 2. 使用 composable（推荐）
+
+```vue
+<script setup lang="ts">
+import { useLocale } from '@/composables/useLocale'
+
+const { t, currentLocale, switchLocale, isRtl } = useLocale()
+
+// 切换语言
+const toggleLocale = () => {
+  switchLocale(currentLocale.value === 'zh-CN' ? 'en-US' : 'zh-CN')
+}
+</script>
+```
+
+##### 3. 命名空间翻译
+
+```vue
+<script setup lang="ts">
+import { useNamespacedTranslations } from '@/composables/useLocale'
+
+// 创建命名空间翻译函数
+const { t } = useNamespacedTranslations('users')
+
+// t('title') 等同于 t('users.title')
+</script>
+```
+
+##### 4. 工具函数
+
+```ts
+import {
+  formatDateByLocale,
+  formatNumberByLocale,
+  formatRelativeTime,
+  hasTranslation,
+  tWithFallback
+} from '@/i18n/utils'
+
+// 格式化日期
+formatDateByLocale(new Date()) // "2026年3月18日" 或 "Mar 18, 2026"
+
+// 格式化相对时间
+formatRelativeTime(new Date(Date.now() - 3600000)) // "1小时前" 或 "1 hour ago"
+
+// 带回退的翻译
+tWithFallback('some.key', '默认文本')
+```
+
+#### 命名规范
+
+##### 1. 键名命名
+
+- **小驼峰**: `searchPlaceholder`, `deleteConfirm`
+- **模块化**: `users.title`, `problems.actions.edit`
+- **语义化**: 使用完整词汇而非缩写
+
+##### 2. 模块划分
+
+| 模块 | 说明 |
+|------|------|
+| `common` | 通用操作、状态、标签 |
+| `nav` | 导航菜单 |
+| `users` | 用户管理 |
+| `problems` | 题目管理 |
+| `contests` | 比赛管理 |
+| `dashboard` | 仪表板 |
+| `auth` | 认证相关 |
+| `errors` | 错误消息 |
+| `moderation` | 内容审核 |
+| `settings` | 系统设置 |
+
+##### 3. 常见模式
+
+```ts
+// CRUD 操作
+actions: {
+  view: '查看',
+  edit: '编辑',
+  delete: '删除',
+}
+
+// 表单字段
+form: {
+  title: '标题',
+  titlePlaceholder: '请输入标题',
+}
+
+// Toast 消息
+toast: {
+  createSuccess: '创建成功',
+  createFailed: '创建失败',
+}
+
+// 对话框
+dialogs: {
+  deleteTitle: '确认删除',
+  deleteDescription: '确定要删除吗？',
+}
+
+// 列定义
+columns: {
+  id: 'ID',
+  title: '标题',
+}
+```
+
+#### 类型安全
+
+##### 1. MessageSchema 类型
+
+```ts
+// types.ts
+import type zhCN from './locales/zh-CN'
+export type MessageSchema = typeof zhCN
+```
+
+##### 2. SupportedLocale 类型
+
+```ts
+export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
+```
+
+#### 翻译完整性检查
+
+运行以下命令检查翻译完整性：
+
+```bash
+cd management
+npx tsx src/i18n/check.ts
+```
+
+输出示例：
+```
+=== i18n Translation Completeness Check ===
+
+Total keys in zh-CN: 245
+Total keys in en-US: 245
+
+✅ All translations are complete!
+```
+
+#### 添加新翻译
+
+1. 在 `locales/zh-CN/modules/` 中添加键值对
+2. 在 `locales/en-US/modules/` 中添加对应翻译
+3. 运行 `pnpm type-check` 验证类型
+4. 运行 `npx tsx src/i18n/check.ts` 检查完整性
+
+#### 最佳实践
+
+1. **避免硬编码**: 所有用户可见文本都应通过 i18n
+2. **保持同步**: 修改翻译时同步更新所有语言
+3. **使用命名空间**: 相关翻译组织在同一命名空间下
+4. **参数化翻译**: 使用插值而非字符串拼接
+   ```ts
+   // ✅ 好
+   t('users.deleteConfirm', { count: 5 })
+
+   // ❌ 坏
+   `确定要删除 ${count} 个用户吗？`
+   ```
+5. **复数处理**: 使用 vue-i18n 的复数功能
+   ```ts
+   // zh-CN
+   "users.count": "无用户 | 1 个用户 | {count} 个用户"
+
+   // 使用
+   t('users.count', count)
+   ```
+
+## 7. Services review findings 2026-08-22
+
+> 原文来源：`services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md`
+
+> 状态：历史评审输入。修复结果以当前源码、测试和本文件前置章节为准。
+
+### Services 微服务架构评审结论(2026-08-22)
+
+评审方法:graphify 图谱定位 + 源码逐文件核实(所有缺陷均在当前工作区源码中确认,非文档推断)。评审视角为 deep module 设计(seam/interface/depth)+ 安全不变量 + 跨 Owner 一致性。
+
+总体判断:**骨架健康**(Contract Seam、Owner schema/account isolation、Outbox/Inbox/PEL/DLQ、七进程拓扑、executable contract checks 均已落地且相互对账),但存在 **2 个安全契约违规、3 个一致性缺陷**,应先于架构收敛项处理。
+
+---
+
+#### A. 安全缺陷(违反仓库安全不变量)
+
+##### A1. WebSocket CONNECT 认证含 client-controlled 消息头回退分支
+
+- **位置**:`app/app-web/src/main/java/com/ulticode/modules/websocket/interceptor/JwtChannelInterceptor.java`(`authenticateConnection()`)+ `websocket/util/TokenExtractor.java:64-66`
+- **事实**:session 属性提取失败后,回退调用 `tokenExtractor.extractTokenFromHeaders(messageHeaders)`,读取 STOMP CONNECT **消息头 `"auth"`**。测试 `JwtChannelInterceptorTest.java:92,111` 将该回退 mock 为成功路径,固化了违规行为。
+- **定性**:直接违反仓库不变量 "WebSocket authentication accepts only the `access_token` cookie, never query, URL, or client-controlled STOMP tokens"。这是**契约违规/潜在旁路**:全仓未发现将客户端 `NATIVE_HEADERS` 提升为顶层消息头的代码,标准 Spring STOMP 客户端自定义头落在 `nativeHeaders` 内,生产可达性未经真实解码消息证实。
+- **修法**:无论可达与否,删除回退分支(session 无 token 即拒绝 CONNECT);新增"消息头携带 token 必须拒"的拒绝回归测试;同步移除 `TokenExtractor.extractTokenFromHeaders` 及对应测试。
+
+##### A2. OAuth callback 缺 state cookie 时放行
+
+- **位置**:`auth/src/main/java/com/ulticode/auth/security/oauth/OAuthStateModule.java`(`validateAndConsume()` ~L50-55)
+- **事实**:`cookieState != null && !cookieState.isBlank()` 才执行比较——cookie 缺失或空白时跳过绑定校验,callback `state` 与 Redis 匹配即通过。发 cookie 时有绑定,**收时不强制**。测试 `OAuthStateModuleTest` 覆盖 mismatch / missing-state / Redis-down,唯独没有缺 cookie 必拒用例。
+- **定性**:违反不变量 "OAuth state remains bound to an HttpOnly cookie";登录 CSRF / code 注入不再需要受害者浏览器携带正确 cookie。
+- **修法**:cookie 空白 → 抛 `UNAUTHORIZED`(一行收紧)+ 补缺失分支回归测试。
+
+---
+
+#### B. 一致性 / 并发缺陷
+
+##### B3. AuditOutbox 的 claim 无事务保护,FOR UPDATE SKIP LOCKED 实际失效
+
+- **位置**:`admin/src/main/java/com/ulticode/modules/admin/outbox/mapper/AuditOutboxMapper.java:22-35`、`AuditOutboxDispatcher.dispatch()`
+- **事实**:`claimPending(...)` 用 `FOR UPDATE SKIP LOCKED`,但调度入口无事务边界——SELECT 在自动提交下执行,行锁即刻释放,multi-instance 并发时 claim 退化为普通轮询;`markProcessed` / `markFailed` 均无 `AND state='PENDING'` CAS 守卫,同一记录可被重复处理并落重复审计行。
+- **修法**:claim+处理收进同一事务边界,或改抢占式 CAS claim(`UPDATE ... SET state='PROCESSING' WHERE state='PENDING'`),两个 mark 方法补 state 守卫。
+
+##### B4. RBAC 变更缺 durable invalidation 事件(已知 TODO)
+
+- **位置**:`auth/src/main/java/com/ulticode/auth/permission/service/impl/RoleAdministrationServiceImpl.java:57`
+- **事实**:角色/权限变更只发结构化日志,代码注释明确 "P6-OUTBOX-001 will replace this structured log with a durable outbox event"。Auth 内未发现身份缓存——缺口是**事件扇出缺失**,不是缓存陈旧。降权/撤销的生效窗口 = access token 剩余 TTL(15 分钟),当前依赖该窗口兜底。
+- **修法**:与 B5/B6 合并为一个切片:auth 出 durable 变更事件(outbox),消费方据此失效通知/bump 版本。黑名单写入不在本切片内(B5 已裁决 read-only 为成立决策)。
+
+##### B5. 访问令牌即时吊销:read-only 黑名单是成立的设计决策(残留文档动作)
+
+吊销责任链分层完整:
+
+1. RefreshTokenService DB-backed hash-only 流承担吊销主责;
+2. WS CONNECT 每次实时校验 JWT 签名/过期 + Auth 侧 active/banned(`DefaultWebSocketAuthenticator`);
+3. HTTP 侧 `@CheckBan`;
+4. access token TTL = 15 分钟(`JwtProperties.expiration=900000L`)封顶最坏暴露窗口。
+
+`TokenBlacklistPort` 刻意只读,javadoc 完整记录了删除投机写方法的审计过程。**不列为缺陷**。仅当产品提出"即时踢下线"需求时,才升级为缺口并按其 javadoc 建议新建 writer-owned 吊销端口。**残留动作**:把"TTL 内不可即时吊销、依赖 15 分钟窗口 + 多层实时检查"的取舍写进 wiki 安全文档。
+
+##### B6. `UserRoleMapper.updateRole` 不 bump `authz_version`,使版本化失效机制出现旁路
+
+- **位置**:`auth/src/main/java/com/ulticode/auth/permission/mapper/UserRoleMapper.java:35`
+- **事实**:SQL 为 `UPDATE users SET role = #{newRole} WHERE id = #{userId} AND role <> #{newRole}`——角色变更后行的 `authz_version` 保持不变。而 Auth 已建有版本基础设施:`AuthAccountMapper` 提供 `authz_version = authz_version + 1 WHERE ... AND authz_version = #{expectedVersion}` 的原子 bump/CAS 语句,`AccountManagementEngine` 已消费 `authzVersion()`。任何依赖版本比对来失效缓存/会话/授权状态的路径,**经 RoleAdministration 变更的角色提升不会被感知**——与 B4 叠加后,降权/提权在 TTL 窗口内既无事件也无版本信号。
+- **修法**:角色实际变更时同步 bump 该用户 `authz_version`(可复用 `AuthAccountMapper` 的原子 bump);补回归测试断言 updateRole 后 version 递增。
+
+---
+
+#### C. 已裁决项(后续评审不必重报)
+
+| 检查项 | 结论 |
+| --- | --- |
+| WS SEND/SUBSCRIBE 无 principal | 已 fail-closed(`validateUserSession` 含 Phase-0 修复注释) |
+| WS 连接的 active/ban 检查 | 存在(`DefaultWebSocketAuthenticator.isBannedOrInactive`:isActive=false 或 isBanned=true 即拒)。注:javadoc 声称的 `banned_until` 检查已被移除(代码注释明确 "bannedUntil check removed"),当前语义是 ban 生效即拒、由 Admin 操作解除;文档措辞应与实现对齐,不算缺陷 |
+| Admin→App 授权链同步查 Auth(`DubboIdentityActorAuthorizer`) | fail-closed 正确、授权新鲜;作为单跳原则的性能偏离保留观察,不算缺陷 |
+| Submission 写链跨 Owner hop | 已由不可变 `SubmissionFactsSnapshot` + fail-closed 校验关闭 |
+
+---
+
+#### D. 架构问题(排在安全/一致性之后)
+
+##### D1. 双轨兼容只有入口、没有出口条件(最大结构性负债)
+
+- Submission 三条 RoutingPort(`SubmissionWriteRoutingPort` / `SubmissionFenceRoutingPort` / `SubmissionUserQueryRoutingPort`)各配 local/remote adapter;App 侧仍保留完整的 submission 域副本(mapper/reaper/result dispatcher/shadow comparator 等),与 Owner 内实现长期并存。
+- Search 读模式是**显式配置决策而非漂移**:`devstack-manifest.sh:162` 为 dev-lite 设 `APP_SEARCH_READ_MODE=database`,dev-full(:178)设 indexed,`application.yml:70` 默认 database 与 manifest 一致。真正的风险不是配置错误,而是 dev-lite 的日常默认路径持续强化 DATABASE 分支。
+- seam 本身设计正确(每条都有真实双 adapter),问题在于**仓库没有任何一处记录 kill criteria**(quiesce 观察窗、错误预算、回滚 artifact 清单)。没有退出条件的 strangler 会永久维护两份实现。
+
+##### D2. `judge-runtime` 归属词汇与实际拓扑相反
+
+被独立 Judge Worker 与 App boot 共同依赖的执行库(reactor 模块 `judge-runtime`,App 经 app-web 引入以复用 sandbox/试运行逻辑),其类却住在 App 私有域包名空间(`com.ulticode.modules.submission.sandbox`、`com.ulticode.modules.queue.port`),并依赖 app-api 合同(`RunSubmissionDTO` / `RunResultDTO` / `CodeExecutionPort`)。模块图上 Judge 已收深为独立 Worker,词汇仍宣称 judge ⊂ app。低成本修法:包改名或在模块内以 package-info 声明归属;进一步把试运行合同从 app-api 挪至 judge-config 或 submission-api。
+
+##### D3. `SubmissionFactsSnapshot` 需守最小字段闸
+
+快照字段会随需求逐个膨胀,最终退化为第二个隐式 facts 接口(接口悄悄变大 = 模块变浅)。规则:snapshot 字段 = Owner 校验所需最小集,加字段必须过现有 contract shape test。
+
+##### D4. 卫生债
+
+- 删除游离编译产物 `services/com/ulticode/modules/problem/service/impl/ProblemAdministrationDomainServiceImpl.class`(整个 `services/com/` 不属于任何 source root,污染 grep 与代码图谱)。
+- `PROJECT_DOCUMENTATION.md`(大体量历史文档)与 STATUS 并存——已有 `architecture-contract-test.sh` 对账兜底,保持现状。
+
+---
+
+#### 建议执行顺序
+
+1. **A1、A2**:小改动大风险收敛,各半天内含回归测试;
+2. **B3、B6**:各一个局部改动(outbox 事务/CAS;updateRole 同步 bump authz_version);
+3. **B4(+B5 文档残留)**:auth 出 durable 事件的最小闭环切片,顺带把吊销取舍写入 wiki;
+4. **D 类**:回到架构收敛,优先为每条双轨 seam 写下并执行退出条件;不要继续拆进程(7 个 runtime 对开发环境已是上限)。
+
+#### 证据与核实方式
+
+- 所有缺陷均以当前源码为准逐文件核实;行号为评审当日快照,修复后以 git 历史为准。
+- 未声称的事项:OAuth 缺 cookie 分支的真实攻击可达性未做端到端复现;A1 的生产绕过路径未用真实 STOMP 解码消息验证(按潜在旁路处理);Search 读模式差异已核实为 manifest 显式决策,不作为漂移报告。
+- 评审边界只读,未修改任何源码;migration 与运行数据不在本次范围内。

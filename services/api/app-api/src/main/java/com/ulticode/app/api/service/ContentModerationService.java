@@ -7,7 +7,7 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * App-owned content moderation provider.
  *
- * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.3
+ * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.3
  * as one of {@code backend-app}'s Dubbo providers; per &sect;6.2 the
  * interface signature mirrors the migration guide example exactly.
  * The Admin / Moderation service calls {@link #apply} to enforce a

@@ -9,7 +9,7 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * Submission-owned administrative provider for submission lifecycle operations.
  *
- * <p>Listed in {@code docs/MICROSERVICE_MIGRATION_GUIDE.md} &sect;4.3
+ * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.3
  * as one of {@code backend-submission}'s Dubbo providers. Per &sect;6.3
  * "显式 rejudge command" is an RPC-suitable scenario. Submission read
  * paths (list, detail, statistics) are <b>not</b> on this contract:

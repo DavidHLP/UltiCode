@@ -52,6 +52,7 @@ class AuditOutboxDispatcherTest {
         record.setId("outbox-1");
 
         when(auditOutboxMapper.claimPending(anyInt())).thenReturn(List.of(record));
+        when(auditOutboxMapper.claim("outbox-1")).thenReturn(1);
 
         int count = dispatcher.dispatch();
 
@@ -66,11 +67,28 @@ class AuditOutboxDispatcherTest {
         record.setId("outbox-err");
 
         when(auditOutboxMapper.claimPending(anyInt())).thenReturn(List.of(record));
+        when(auditOutboxMapper.claim("outbox-err")).thenReturn(1);
         doThrow(new RuntimeException("DB error")).when(auditOutboxProcessor).processRecordInNewTx(record);
 
         int count = dispatcher.dispatch();
 
         assertThat(count).isEqualTo(0);
         verify(auditOutboxProcessor).markFailedInNewTx("outbox-err");
+    }
+
+    @Test
+    @DisplayName("dispatch skips a row claimed by another dispatcher")
+    void dispatch_skipsAlreadyClaimedRecord() {
+        AuditOutboxRecord record = new AuditOutboxRecord();
+        record.setId("outbox-race");
+
+        when(auditOutboxMapper.claimPending(anyInt())).thenReturn(List.of(record));
+        when(auditOutboxMapper.claim("outbox-race")).thenReturn(0);
+
+        int count = dispatcher.dispatch();
+
+        assertThat(count).isZero();
+        verify(auditOutboxProcessor, never()).processRecordInNewTx(any());
+        verify(auditOutboxProcessor, never()).markFailedInNewTx(anyString());
     }
 }

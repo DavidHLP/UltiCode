@@ -259,3 +259,184 @@
   graphify update and diff checks passed. ARCHX-001..006 are terminal.
 - Authority remains development/TEST-TARGET only; no commit, push, publish,
   deploy, production cutover, grant action or applied migration edit.
+
+## 2026-08-22 Services review recovery and planning
+
+- Reconciled the new review report against the existing terminal control plane;
+  preserved all prior task history and protected the two pre-existing untracked
+  files (`services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md` and the
+  services graphify cache stamp).
+- Confirmed graph project `UltiCode` is indexed, but exact coverage metadata is
+  unavailable/stale, so every material graph claim was checked against direct
+  source. Hindsight pages and source identify current owner/outbox/testing
+  conventions; no new initiative page was captured because this is a review
+  fix, not a feature initiative.
+- Planned the ordered `SVCFIX-20260822-A1..D4` DAG plus final Review/Validation/
+  Completion task. First ready task is A1. Authority remains development/
+  TEST-TARGET only; no commit, push, publish, deploy, production action or
+  applied migration edit.
+
+## 2026-08-22 SVCFIX-A1 implementation
+
+- Removed the CONNECT fallback to client-controlled STOMP headers and deleted
+  `TokenExtractor.extractTokenFromHeaders` plus its obsolete tests. Existing
+  cookie-session extraction remains the only CONNECT token source.
+- Added a regression that puts a token in a native STOMP header but proves the
+  authenticator receives `Optional.empty()` and the connection is rejected.
+- Focused `app-web -am` test passed: JwtChannelInterceptorTest 11/0/0/0 and
+  TokenExtractorTest 6/0/0/0; reactor BUILD SUCCESS, exit 0. A2 is promoted to
+  ready.
+
+## 2026-08-22 SVCFIX-A2 implementation
+
+- Made the OAuth callback cookie binding mandatory while preserving atomic
+  Redis `getAndDelete`, mismatch rejection and Redis-unavailable fail-closed
+  behavior.
+- Added null and blank cookie-state regression assertions; Auth focused test
+  passed 8/0/0/0 with BUILD SUCCESS and exit 0. B3 is promoted to ready.
+
+## 2026-08-22 SVCFIX-B3 implementation
+
+- Replaced the ineffective `FOR UPDATE SKIP LOCKED` candidate claim with a
+  single-row `PENDING -> PROCESSING` CAS. `markProcessed` and `markFailed`
+  require `PROCESSING`; the processor refuses a lost CAS before inserting an
+  audit log.
+- Dispatcher/processor regressions passed 7/0/0/0 with BUILD SUCCESS and exit
+  0. The attempted real `AuditSinkTransactionIT` was blocked by the unrelated
+  Admin context baseline (`DefaultAdminDashboardReadAdapter` has no default
+  constructor), so it is not counted as pass. B6 is promoted to ready.
+
+## 2026-08-22 SVCFIX-B6 implementation
+
+- Updated the Auth role writer to increment `authz_version` in the same atomic
+  SQL statement as the guarded role change. Same-role updates remain no-ops.
+- `AuthAccountPersistenceIT` passed 3/0/0/0 with BUILD SUCCESS and exit 0,
+  proving version 5 -> 6 on a real role change and no second bump on an
+  idempotent update. B4-B5 is promoted to ready.
+
+## 2026-08-22 SVCFIX-B4-B5 implementation
+
+- Replaced the RBAC-only structured log with a durable `AUTHORIZATION_CHANGED`
+  event through the existing Auth insert-only `admin.audit_outbox` seam. Role
+  events carry the B6 version; direct permission grant/revoke paths atomically
+  advance `authz_version` before emitting the event, while no-op revokes emit
+  nothing.
+- Focused Auth event/sink/version suite passed 9/0/0/0 with BUILD SUCCESS and
+  exit 0. Added `wiki/SECURITY_TOKEN_REVOCATION.md`; wiki manifest generation
+  and lint both passed. D1 is promoted to ready.
+
+## 2026-08-22 SVCFIX-D1 implementation
+
+- Added per-seam kill criteria to the current Services architecture status:
+  14-day quiesce/peak observation, route-specific zero-correctness-error
+  budgets, residual App-copy retirement gates, and concrete local/remote/
+  manifest/outbox rollback artifacts.
+- Explicitly preserved Search `database`/`indexed` as a manifest decision.
+  Documentation scan and `git diff --check` passed. D2 is promoted to ready.
+
+## 2026-08-22 SVCFIX-D2 implementation
+
+- Added `package-info.java` ownership declarations for the shared
+  `judge-runtime` sandbox and queue-port packages, and aligned the Services
+  architecture status wording. Trial DTOs remain in `app-api`; no public
+  contract move or process split was introduced.
+- `judge-runtime -am test` passed 28/0/0/0 with BUILD SUCCESS and exit 0;
+  package ownership scan passed. D3 is promoted to ready.
+
+## 2026-08-22 SVCFIX-D3 implementation
+
+- Extended the existing `SubmissionFactsSnapshotTest` with an exact reflection
+  shape gate for the five top-level fields and six nested `ProblemFacts`
+  fields. No production snapshot field or public contract changed.
+- Focused Submission owner/API test passed 7/0/0/0 with BUILD SUCCESS and exit
+  0. D4 is promoted to ready.
+
+## 2026-08-22 SVCFIX-D4 implementation
+
+- Removed only the named untracked compiled artifact under `services/com/`.
+  Verified exact absence and proved `docs/MICROSERVICE_MIGRATION_GUIDE.md`
+  was unchanged by SHA-256, Git status and diff checks.
+- D4 focused hygiene gate passed. All implementation tasks are now ready for
+  contextual Review, Tier-C validation and Completion Audit.
+
+## 2026-08-22 Services review re-review
+
+- First contextual pass found two confirmed local quality gaps and repaired
+  both: removed the now-unused `TokenExtractor` constructor dependency from
+  `JwtChannelInterceptor`, and made `AuditOutboxProcessor` fail/roll back when
+  the audit-log insert does not affect exactly one row.
+- Re-ran the combined WebSocket/Admin focused gate: WebSocket 17/0/0/0 and
+  Admin outbox 7/0/0/0, BUILD SUCCESS, exit 0. Re-review is now proceeding
+  against the repaired diff; the initial Admin `AuditSinkTransactionIT`
+  ApplicationContext baseline was repaired with one constructor annotation.
+
+## 2026-08-22 Services review terminal closure
+
+- Review re-check ended with Confirmed Findings=0. The minimal Spring
+  constructor annotation used to unblock the Admin integration context was
+  validated separately; it does not alter dashboard behavior.
+- Tier-C evidence passed: final compile/test/verify, focused security/OAuth/
+  AuditOutbox/RBAC/snapshot gates, Admin `*IT` 44/0/0/0, owner migration
+  preflight/safety, architecture/devstack contracts, wiki manifest, Compose
+  dev/prod with a disposable in-memory Meili key, YAML/diff/integrity and
+  graph refresh. Final verify exited 0; non-IT Surefire XML aggregate is
+  783 reports / 2638 tests / 0 failures / 0 errors / 16 skips.
+- Root broad `-Dtest='*IT'` rerun exceeded the host 300-second wait without an
+  exit status, so it remains explicitly unavailable rather than pass evidence.
+- Completion Audit passed for all ten `SVCFIX-20260822` tasks. Worktree stays
+  uncommitted; no push, deploy, production action, grant change or applied
+  migration edit occurred.
+
+## 2026-08-22 documentation/wiki consolidation recovery and planning
+
+- Inventoried the selected documentation scope: `services/docs/` five files,
+  `apps/management/docs/` one file, and `wiki/` one content page plus manifest;
+  root `docs/` is absent. Protected `.claude/rules/docs/`, AGENTS, README,
+  `.auto-flow` and unrelated dirty-worktree files.
+- Planned one root `PROJECT_DOCUMENTATION.md` organized by current architecture,
+  Owner/migration, security, release, i18n and review history. Source markers
+  and complete source sections are retained for lossless auditability.
+
+## 2026-08-22 documentation/wiki consolidation implementation
+
+- Created `PROJECT_DOCUMENTATION.md` (1764 lines / 144573 bytes); all seven
+  source markers and source headings are present.
+- Removed exactly the seven content files plus wiki manifest and obsolete
+  `scripts/dev/wiki-manifest.sh`; no broad recursive deletion was used.
+- Updated AGENTS/README/documentation workflow, executable architecture and
+  DevStack checks, migration comments, Javadocs and the owner schema test to
+  reference the consolidated file. Architecture/devstack contracts, the
+  affected owner schema test, local-link scan and diff check passed. Review,
+  Validation and Close remain open.
+
+## 2026-08-22 documentation/wiki review
+
+- Consolidated content review confirms the file has a single navigation layer,
+  source provenance for all seven inputs, explicit historical/current status
+  boundaries, no broken local links in active entry points, and no active
+  references to deleted documentation paths.
+- Protected `.claude/rules/docs/`, `.codex` configuration, AGENTS, README,
+  `.auto-flow`, source/configuration and unrelated dirty-worktree files remain
+  outside deletion scope. Review is now checking final diff and validation.
+
+## 2026-08-22 documentation/wiki review closure
+
+- Review passed: consolidated Markdown has one top-level heading, balanced
+  fences, seven source markers, explicit current/historical boundaries, 49/0
+  active local links, no active deleted-path references, and protected-worktree
+  scope intact. Validation is now the last open gate.
+
+## 2026-08-22 documentation/wiki validation
+
+- Architecture contract and DevStack manifest tests passed; the affected owner
+  schema test passed 6/0/0/0. Final local-link scan passed 49/0, selected docs/
+  wiki directories are absent, YAML and diff checks passed, and graphify was
+  refreshed after the final document/reference changes.
+
+## 2026-08-22 documentation/wiki completion audit
+
+- Completion Audit passed: one consolidated Markdown remains, all selected
+  source content is preserved with provenance, active references are migrated,
+  deletion scope is exact, and all required documentation gates pass.
+- No commit, push, publish, deploy or external resource mutation was performed;
+  final delivery is an uncommitted worktree with a recoverable Git diff.

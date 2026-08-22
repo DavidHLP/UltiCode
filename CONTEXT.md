@@ -171,8 +171,8 @@
 
 ## Decisions
 
-- 2026-07-09: the `wiki/concepts/` ADR + concept-page layer was retired
-  (see `wiki/log.md` 2026-07-09 entry). The "why" behind the in-progress
+- 2026-07-09: the former `wiki/concepts/` ADR + concept-page layer was retired
+  and its historical note is now preserved in `PROJECT_DOCUMENTATION.md`. The "why" behind the in-progress
   refactor lives in commit messages, source Javadoc on the affected classes
   (`services/auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java`,
   `services/platform/web-security/src/main/java/com/ulticode/websecurity/ratelimiter/RateLimiter.java`,

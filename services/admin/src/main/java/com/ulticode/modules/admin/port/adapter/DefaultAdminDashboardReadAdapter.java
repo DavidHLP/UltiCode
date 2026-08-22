@@ -57,6 +57,7 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
+    @Autowired
     public DefaultAdminDashboardReadAdapter(SubmissionAdminReadPort submissionAdminReadPort) {
         this(submissionAdminReadPort, new CancellableQueryExecutor("admin-dashboard-query", 4));
     }

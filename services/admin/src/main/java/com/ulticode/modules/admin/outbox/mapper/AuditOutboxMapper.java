@@ -17,20 +17,26 @@ import java.util.List;
 public interface AuditOutboxMapper extends BaseMapper<AuditOutboxRecord> {
 
     /**
-     * Claim pending outbox records using FOR UPDATE SKIP LOCKED for safe concurrent worker execution.
+     * Select pending candidates. The state transition below is the concurrency claim.
      */
-    @Select("SELECT * FROM audit_outbox WHERE state = 'PENDING' ORDER BY created_at LIMIT #{batchSize} FOR UPDATE SKIP LOCKED")
+    @Select("SELECT * FROM audit_outbox WHERE state = 'PENDING' ORDER BY created_at LIMIT #{batchSize}")
     List<AuditOutboxRecord> claimPending(@Param("batchSize") int batchSize);
 
     /**
-     * Mark an outbox row as processed.
+     * Atomically claim one candidate so only one dispatcher processes it.
      */
-    @Update("UPDATE audit_outbox SET state = 'PROCESSED', processed_at = NOW() WHERE id = #{id}")
+    @Update("UPDATE audit_outbox SET state = 'PROCESSING' WHERE id = #{id} AND state = 'PENDING'")
+    int claim(@Param("id") String id);
+
+    /**
+     * Mark an outbox row as processed only by the dispatcher that claimed it.
+     */
+    @Update("UPDATE audit_outbox SET state = 'PROCESSED', processed_at = NOW() WHERE id = #{id} AND state = 'PROCESSING'")
     int markProcessed(@Param("id") String id);
 
     /**
-     * Mark an outbox row as failed.
+     * Mark an outbox row as failed only while it is being processed.
      */
-    @Update("UPDATE audit_outbox SET state = 'FAILED', processed_at = NOW() WHERE id = #{id}")
+    @Update("UPDATE audit_outbox SET state = 'FAILED', processed_at = NOW() WHERE id = #{id} AND state = 'PROCESSING'")
     int markFailed(@Param("id") String id);
 }

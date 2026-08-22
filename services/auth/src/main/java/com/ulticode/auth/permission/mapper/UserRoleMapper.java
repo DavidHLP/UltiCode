@@ -24,14 +24,16 @@ public interface UserRoleMapper {
 
     /**
      * Update a single user's role. Idempotent: if the new role equals
-     * the current role, the row's {@code updated_at} is not bumped.
+     * the current role, neither the row nor {@code authz_version} is bumped;
+     * a real role change increments {@code authz_version} atomically.
      *
      * @return 1 if the row existed and the role changed; 0 if the row
      *     did not exist (caller should treat as
      *     {@code AUTH_USER_NOT_FOUND}); the no-op same-role case is
      *     also reported as 0
      */
-    @Update("UPDATE users SET role = #{newRole} WHERE id = #{userId} AND role <> #{newRole}")
+    @Update("UPDATE users SET role = #{newRole}, authz_version = authz_version + 1 "
+            + "WHERE id = #{userId} AND role <> #{newRole}")
     int updateRole(@Param("userId") String userId, @Param("newRole") String newRole);
 
     /**

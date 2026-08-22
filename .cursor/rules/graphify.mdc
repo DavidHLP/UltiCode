@@ -16,6 +16,6 @@ Only use Read/Grep/Glob directly when:
 1. graphify has already oriented you and you need to modify or debug specific lines
 2. `graphify-out/graph.json` does not exist yet
 
-- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files
+- Use `PROJECT_DOCUMENTATION.md` for broad documentation navigation when the question concerns project docs
 - Read `graphify-out/GRAPH_REPORT.md` only for broad architecture review when query/path/explain do not surface enough context
 - After modifying code files, run `graphify update .` to keep the graph current (AST-only, no API cost)

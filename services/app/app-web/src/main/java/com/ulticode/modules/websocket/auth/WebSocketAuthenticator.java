@@ -39,8 +39,8 @@ public interface WebSocketAuthenticator {
     /**
      * Authenticate a STOMP CONNECT. Returns the principal data on success.
      *
-     * @param tokenOpt the token candidate (may come from session attributes
-     *                 or STOMP headers; empty if neither path produced one)
+     * @param tokenOpt the token candidate copied from the handshake session
+     *                 attribute; empty when the cookie was absent
      * @return the populated {@link SocketClientData}
      * @throws com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException
      *         when the policy rejects the connection

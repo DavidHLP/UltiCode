@@ -136,3 +136,36 @@ Final evidence:
   0 errors, 20 skips; `SubmissionReadProviderIT`: 4 tests, 0 failures, 0 errors.
 - Evidence authority is development/TEST-TARGET only; production cutover,
   deployment, grants and applied migrations remain out of scope.
+
+## Services review findings 2026-08-22
+
+| Requirement / report item | Task | Required evidence | Status |
+| --- | --- | --- | --- |
+| A1 WebSocket CONNECT accepts cookie/session token only | SVCFIX-20260822-A1 | header-token rejection regression, app-web focused tests | PASS |
+| A2 OAuth callback requires state cookie | SVCFIX-20260822-A2 | missing-cookie UNAUTHORIZED regression, Auth tests | PASS |
+| B3 AuditOutbox has single-winner processing | SVCFIX-20260822-B3 | PROCESSING CAS, guarded terminal updates, duplicate/concurrency proof | PASS |
+| B6 role changes advance authorization version | SVCFIX-20260822-B6 | atomic SQL and version-increment regression | PASS |
+| B4 durable RBAC event plus B5 revocation decision | SVCFIX-20260822-B4-B5 | Auth outbox event payload/transaction proof, wiki page and manifest | PASS |
+| D1 routing seam exit criteria | SVCFIX-20260822-D1 | per-seam quiesce/error-budget/rollback artifact matrix | PASS |
+| D2 judge-runtime ownership vocabulary | SVCFIX-20260822-D2 | package-info and source/docs ownership scan | PASS |
+| D3 minimal SubmissionFactsSnapshot shape | SVCFIX-20260822-D3 | exact record-component contract test | PASS |
+| D4 hygiene artifact and migration-guide boundary | SVCFIX-20260822-D4 | exact artifact absence and unchanged guide check | PASS |
+| Objective Review/Validation/Completion | SVCFIX-20260822-REVIEW-VALIDATE-CLOSE | Confirmed Findings=0, Tier-C evidence, graph/wiki/YAML/diff audit | PASS |
+
+Authority: development/TEST-TARGET only. No commit, push, deployment,
+production action or applied migration edit is authorized by this request.
+
+Final Gate: PASS with the root broad `*IT` selector explicitly recorded as
+host-timeout-limited after affected Admin `*IT` passed 44/0/0/0 and final
+`verify` passed. This limitation is not converted into a pass claim.
+
+## Documentation/wiki consolidation 2026-08-22
+
+| Requirement | Task | Required evidence | Status |
+| --- | --- | --- | --- |
+| Inventory and protect rules/user changes | DOCMERGE-20260822-RECOVERY | exact docs/wiki inventory, Git status, protected scope | PASS |
+| Plan one consolidated Markdown structure | DOCMERGE-20260822-PLAN | source map, heading/source completeness | PASS |
+| Merge contents and delete redundant originals | DOCMERGE-20260822-CONSOLIDATE | consolidated file, exact deletion list, recovery path | PASS |
+| Update active references and executable checks | DOCMERGE-20260822-REFERENCES | README/AGENTS/scripts/tests/source reference scan | PASS |
+| Review links/content/deletion scope | DOCMERGE-20260822-REVIEW | zero active deleted-path references, protected-worktree review | PASS |
+| Validate and close | DOCMERGE-20260822-VALIDATE / DOCMERGE-20260822-CLOSE | contract scripts, YAML, diff and final audit | PASS |

@@ -57,7 +57,7 @@ assert_file_contains ecosystem.config.cjs "APP_FEATURES_USE_GENERATION_FENCE: pr
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_JUDGE_QUEUE_USE_PORT: process.env.APP_FEATURES_JUDGE_QUEUE_USE_PORT || 'true'"
 assert_file_contains docker-compose.prod.yml 'APP_SEARCH_READ_MODE=indexed'
 assert_file_contains docker-compose.prod.yml 'APP_SEARCH_FALLBACK_TO_DATABASE=true'
-assert_file_contains services/docs/MICROSERVICE_MIGRATION_GUIDE.md 'Phase 7'
+assert_file_contains PROJECT_DOCUMENTATION.md 'Phase 7'
 assert_file_contains README.md './scripts/dev/up.sh --mode dev-lite'
 assert_file_contains README.md './scripts/dev/up.sh --mode dev-full'
 assert_file_not_contains README.md 'pm2 restart ulticode-auth ulticode-admin'

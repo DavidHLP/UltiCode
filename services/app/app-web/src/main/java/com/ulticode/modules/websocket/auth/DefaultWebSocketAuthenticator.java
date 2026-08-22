@@ -28,7 +28,7 @@ import java.util.Optional;
  *   <li>signature + expiry must validate</li>
  *   <li>payload must carry a non-empty subject</li>
  *   <li>the referenced user must still exist</li>
- *   <li><strong>Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1:</strong>
+ *   <li><strong>Phase 0 / PROJECT_DOCUMENTATION.md §7.1:</strong>
  *       the user account must be {@code active=true}, not banned
  *       ({@code is_banned=false}), and not within a {@code banned_until}
  *       window. Banned/inactive CONNECT attempts are rejected with

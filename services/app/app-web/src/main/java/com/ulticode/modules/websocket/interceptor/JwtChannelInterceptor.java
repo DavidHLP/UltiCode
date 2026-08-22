@@ -4,7 +4,6 @@ import com.ulticode.app.error.WebSocketErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.modules.websocket.auth.WebSocketAuthenticator;
 import com.ulticode.modules.websocket.dto.SocketClientData;
-import com.ulticode.modules.websocket.util.TokenExtractor;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Component;
  * STOMP adapter for WebSocket connection authentication.
  *
  * <p>This class owns the transport only: it speaks STOMP, extracts the token
- * candidate from session attributes or message headers, calls the deep
+ * candidate from handshake-populated session attributes, calls the deep
  * {@link WebSocketAuthenticator}, and attaches the resulting principal to
  * the session. The authentication policy (blacklist, signature, expiry,
  * payload sanity, user existence) lives in the authenticator.
@@ -38,13 +37,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private static final Logger log = LoggerFactory.getLogger(JwtChannelInterceptor.class);
 
   private final WebSocketAuthenticator authenticator;
-  private final TokenExtractor tokenExtractor;
 
-  public JwtChannelInterceptor(
-      WebSocketAuthenticator authenticator,
-      TokenExtractor tokenExtractor) {
+  public JwtChannelInterceptor(WebSocketAuthenticator authenticator) {
     this.authenticator = authenticator;
-    this.tokenExtractor = tokenExtractor;
   }
 
   @Override
@@ -110,7 +105,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private void validateUserSession(StompHeaderAccessor accessor, StompCommand command) {
     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
     if (sessionAttributes == null) {
-      // Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1: SEND/SUBSCRIBE
+      // Phase 0 / PROJECT_DOCUMENTATION.md §7.1: SEND/SUBSCRIBE
       // must fail closed when the session has no attributes at all. The
       // pre-fix behaviour was log-and-return, which silently admitted
       // frames on unattributed sessions — that is a fail-open bug.
@@ -145,12 +140,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     log.debug("Authenticating WebSocket CONNECT, sessionId: {}, sessionAttributes: {}",
         accessor.getSessionId(), accessor.getSessionAttributes());
 
-    // First try session attributes (set by HandshakeInterceptor from cookie)
+    // The handshake interceptor is the only token source; client-controlled
+    // STOMP headers must never authenticate a connection.
     Optional<String> tokenOpt = extractTokenFromSession(accessor);
-    // Fall back to STOMP CONNECT message headers
-    if (tokenOpt.isEmpty()) {
-      tokenOpt = tokenExtractor.extractTokenFromHeaders(accessor.getMessageHeaders());
-    }
 
     SocketClientData clientData = authenticator.authenticate(tokenOpt);
 

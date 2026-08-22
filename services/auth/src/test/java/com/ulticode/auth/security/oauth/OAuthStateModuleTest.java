@@ -88,6 +88,18 @@ class OAuthStateModuleTest {
     }
 
     @Test
+    void nullOrBlankCookieStateFailsBeforeRedisConsume() {
+        for (String cookieState : new String[]{null, "  "}) {
+            assertThatThrownBy(() -> stateModule.validateAndConsume("github", "state-1", cookieState))
+                    .isInstanceOf(AuthBusinessException.class)
+                    .satisfies(ex -> assertThat(((AuthBusinessException) ex).getErrorCode())
+                            .isEqualTo(BaseErrorCode.UNAUTHORIZED));
+        }
+
+        verify(valueOperations, never()).getAndDelete("oauth:state:github:state-1");
+    }
+
+    @Test
     void missingRedisStateIsRejected() {
         when(valueOperations.getAndDelete("oauth:state:github:state-1")).thenReturn(null);
 

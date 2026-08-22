@@ -47,12 +47,13 @@ public class OAuthStateModule implements OAuthStatePort {
             throw new AuthBusinessException(BaseErrorCode.BAD_REQUEST, "OAuth state is required");
         }
 
-        if (cookieState != null && !cookieState.isBlank()) {
-            if (!constantTimeEquals(state, cookieState)) {
-                log.warn("OAuth state cookie mismatch: provider={}, callbackState={}, cookieState={}",
-                        provider, state, cookieState);
-                throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "OAuth state cookie mismatch");
-            }
+        if (cookieState == null || cookieState.isBlank()) {
+            throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "OAuth state cookie is required");
+        }
+        if (!constantTimeEquals(state, cookieState)) {
+            log.warn("OAuth state cookie mismatch: provider={}, callbackState={}, cookieState={}",
+                    provider, state, cookieState);
+            throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "OAuth state cookie mismatch");
         }
 
         String key = stateKey(provider, state);

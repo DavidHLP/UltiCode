@@ -1,6 +1,5 @@
 package com.ulticode.modules.websocket.util;
 
-import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -54,20 +53,4 @@ public class TokenExtractor {
     return null;
   }
 
-  /**
-   * Extract token from STOMP connect message headers.
-   *
-   * @param headers the STOMP message headers
-   * @return Optional containing the token if found
-   */
-  @SuppressWarnings("unchecked")
-  public Optional<String> extractTokenFromHeaders(Map<String, Object> headers) {
-    // The handshake interceptor sets this attribute from the HttpOnly cookie.
-    Object auth = headers.get("auth");
-    if (auth instanceof String token && StringUtils.hasText(token)) {
-      return Optional.of(token);
-    }
-
-    return Optional.empty();
-  }
 }

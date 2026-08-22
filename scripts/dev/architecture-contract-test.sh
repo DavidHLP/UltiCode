@@ -73,13 +73,13 @@ contains README.md './scripts/dev/up.sh --mode dev-lite'
 contains README.md './scripts/dev/up.sh --mode dev-full'
 contains README.md './scripts/dev/up.sh --mode legacy-rollback'
 
-not_contains services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md \
+not_contains PROJECT_DOCUMENTATION.md \
   'Admin 的查询 Seam 仍过细'
-contains services/docs/SERVICES_ARCHITECTURE_STATUS_2026-08-18.md \
+contains PROJECT_DOCUMENTATION.md \
   'Admin 查询已收敛为粗粒度 query slices'
-not_contains services/docs/MICROSERVICE_MIGRATION_GUIDE.md \
+not_contains PROJECT_DOCUMENTATION.md \
   'Submission 读侧的 facts enrichment、数据库物理隔离、App 双轨兼容、Admin Seam 聚合和运维文档仍需后续任务完成'
-contains services/docs/MICROSERVICE_MIGRATION_GUIDE.md \
+contains PROJECT_DOCUMENTATION.md \
   'Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams'
 not_contains CONTEXT.md 'the App runtime role'
 contains CONTEXT.md 'User Directory View'

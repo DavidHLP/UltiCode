@@ -382,3 +382,80 @@ cancelled query into an exceptional completion. Reordering the two operations
 in `CancellableQueryExecutor.cancel` is in scope as a required validation-gate
 repair for the bounded Owner read seam; it changes no public contract or data
 behavior and is covered by its focused test plus the final reactor verify.
+
+## Services review findings 2026-08-22 execution packet
+
+### Context
+
+The current Services review report identifies two authentication contract
+violations, two state/concurrency defects, a durable RBAC event gap, a token
+revocation documentation decision, and four bounded architecture/hygiene
+items. Existing owner seams and rollback adapters are already in place.
+
+### Decision
+
+Execute `SVCFIX-20260822-A1..D4` in strict report order using the smallest
+existing seams: remove the WebSocket header fallback; require the OAuth state
+cookie; use PROCESSING CAS for Admin audit outbox claiming; increment
+`authz_version` in the role update SQL; emit RBAC changes through the existing
+Auth insert-only audit outbox seam while retaining synchronous version
+invalidation; document the revocation window; add routing exit criteria and
+judge-runtime package ownership declarations; lock the snapshot shape with a
+contract test; and delete only the named stray class artifact.
+
+### Invariants
+
+- WebSocket authentication accepts only the `access_token` cookie-derived session attribute.
+- OAuth state is atomically consumed from Redis and must match a nonblank HttpOnly cookie.
+- Auth owns account/authz writes; App owns profile writes; no blacklist writer is added.
+- Audit outbox state transitions are single-winner and terminal updates are guarded.
+- Existing public envelopes, routing modes, rollback adapters, schema migrations and seven-runtime topology remain unchanged.
+- Evidence is development/TEST-TARGET only; `.auto-flow/*` is bookkeeping and not delivery scope.
+
+### Rejected alternatives
+
+- Do not hold the existing Admin `FOR UPDATE` lock across per-record `REQUIRES_NEW` processing; use the smaller CAS state machine.
+- Do not move the trial DTOs or physically split `judge-runtime` in this bounded review fix; package ownership documentation is sufficient.
+- Do not add a blacklist writer, new broker/process, or edit an applied migration.
+
+### Affected tasks
+
+`SVCFIX-20260822-A1..D4` and `SVCFIX-20260822-REVIEW-VALIDATE-CLOSE`.
+
+## Services review findings 2026-08-22 terminal validation decision
+
+### Validation-gate repair
+
+The required Admin integration selector initially failed before exercising the
+outbox tests because `DefaultAdminDashboardReadAdapter` has two constructors
+without an explicit Spring constructor selection. A single `@Autowired` on the
+public production constructor repaired only that wiring baseline; no dashboard
+behavior or contract changed. Admin `*IT` then passed 44/0/0/0.
+
+### Terminal evidence boundary
+
+The root `./mvnw -Dtest='*IT' test -B` was run again after the repair but the host
+waited 300 seconds without returning an exit status. It remains unavailable,
+not passed. Affected Admin `*IT`, focused security/concurrency/RBAC/snapshot
+tests, owner migration safety, final `verify`, architecture/manifest/wiki/
+Compose/YAML/diff checks, and graph refresh provide the recorded development
+evidence. No production acceptance is inferred.
+
+## Documentation/wiki consolidation 2026-08-22 execution packet
+
+### Decision
+
+Consolidate all current content files under `services/docs/`,
+`apps/management/docs/`, and `wiki/` into the root `PROJECT_DOCUMENTATION.md`.
+Organize the file by current architecture, Owner/migration, security, release,
+frontend i18n, and review history; retain source provenance markers and the full
+source sections so the deletion is lossless.
+
+### Protected scope
+
+Do not delete `AGENTS.md`, nested `AGENTS.md`, `CLAUDE.md`,
+`.claude/rules/`, `.auto-flow/`, README files outside the selected docs/wiki
+directories, source/configuration, or unrelated dirty-worktree changes.
+Update active references and executable checks to the new root path. The
+obsolete wiki manifest generator is removed because there is no longer a
+separate wiki page set to manifest.

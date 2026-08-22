@@ -36,7 +36,7 @@ public class AuditOutboxRecord {
     private String ipAddress;
     private String userAgent;
 
-    private String state; // PENDING, PROCESSED, FAILED
+    private String state; // PENDING, PROCESSING, PROCESSED, FAILED
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

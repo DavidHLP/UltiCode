@@ -222,3 +222,54 @@ Final evidence: App affected reactor 1425/0/0/13; services `./mvnw verify -B`
 801 reports / 2705 tests / 0 failures / 0 errors / 20 skips; Submission
 ReadProviderIT 4/0/0; architecture contract, Compose, YAML, graph and diff
 checks PASS. Development/TEST-TARGET only; no production acceptance claim.
+
+## 2026-08-22 Services review findings
+
+Objective: repair all pending items in
+`services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md`.
+
+Initial active task at recovery was `SVCFIX-20260822-A1` (ready); the ordered
+DAG is terminal in the section below. Existing user changes remain protected.
+No commit/push/deploy/production action is allowed.
+
+Initial recovery facts (all addressed): WebSocket fell back to `auth` STOMP
+headers; OAuth skipped cookie binding when cookieState was blank; AuditOutbox
+used an unprotected FOR UPDATE select plus per-record REQUIRES_NEW; role SQL
+did not bump authz_version; RBAC emitted only logs; Submission routing seams
+lacked exit criteria; judge-runtime packages lacked ownership declarations;
+the snapshot test did not assert exact shape; and the named `services/com`
+class artifact existed. Graph coverage metadata was unavailable, so source
+reads were the authoritative fallback.
+
+## 2026-08-22 terminal state
+
+Active task: none. `SVCFIX-20260822-A1`, A2, B3, B6, B4-B5, D1, D2, D3, D4
+and Review/Validation/Completion are done.
+
+Final evidence: compile/test/verify exit 0; final non-IT Surefire aggregate
+783 reports / 2638 tests / 0 failures / 0 errors / 16 skips; Admin `*IT`
+44/0/0/0; owner migration safety/preflight, architecture/devstack contracts,
+wiki, Compose, YAML, diff and graph checks PASS. Root broad `*IT` remained
+host-timeout-limited at 300 seconds with no exit status and is not claimed as
+pass. Worktree remains uncommitted and development/TEST-TARGET only.
+
+## 2026-08-22 documentation/wiki consolidation
+
+Objective: merge temporary docs/wiki content into root
+`PROJECT_DOCUMENTATION.md`, update active references and remove redundant
+source documents.
+
+Current active task: `DOCMERGE-20260822-CLOSE` (ready). The
+consolidated file is created and source completeness was verified; exact
+original docs/wiki content files and the obsolete wiki manifest tool were
+removed. Protected rules, `.auto-flow`, source code and unrelated dirty files
+remain intact. Reference migration, Review and Validation passed; next: Completion Audit and close.
+
+## 2026-08-22 documentation/wiki terminal state
+
+Active task: none. All `DOCMERGE-20260822-*` tasks are done. The sole merged
+temporary documentation file is `PROJECT_DOCUMENTATION.md`; selected docs/wiki
+source files and the obsolete wiki manifest tool are removed. Active references,
+links, contract scripts, affected test, YAML, diff and graph checks passed.
+Worktree remains uncommitted; protected rules, `.auto-flow`, source code and
+unrelated prior changes were preserved.

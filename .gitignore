@@ -292,3 +292,6 @@ venv/
 .env/
 .venv/
 disposable-verify/
+
+# graphify query cache
+services/graphify-out/cache/last_query_stamp

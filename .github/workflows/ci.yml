@@ -1,3 +1,18 @@
+# CI orchestrator (structured like a pipeline graph, not a monolith):
+#
+#   changes ─┬─ security  (_security.yml)   always on
+#            ├─ backend   (_backend.yml)    gated by path filter
+#            ├─ frontend  (_frontend.yml)   gated by path filter
+#            └─ docker    (_docker.yml)     gated by path filter
+#                    └────── ci-ok ── single stable required context
+#
+# Extension rules:
+# - A new gate is a new `_name.yml` reusable workflow plus one calling job
+#   here and one entry in `ci-ok.needs`. Branch protection never changes:
+#   it only ever requires `ci-ok`.
+# - Path filters live only in this file; reusable workflows stay unconditioned.
+# - Skipped stages count as green in `ci-ok` (docs/CI-only PRs must not wedge
+#   merges), but the `changes` job itself must succeed outright.
 name: CI
 
 on:
@@ -11,19 +26,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  JAVA_VERSION: '17'
-  NODE_VERSION: '22.x'
-  PNPM_VERSION: '11'
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
-  # --- Changes detection ---
+  # --- Which areas changed? Each heavier gate keys off these outputs. ---
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
+    timeout-minutes: 5
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       console: ${{ steps.filter.outputs.console }}
@@ -40,24 +52,24 @@ jobs:
           filters: |
             backend:
               - 'services/**'
-              - 'services/auth/**'
-              - 'services/admin/**'
-              - 'services/app/**'
               - 'init-db/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/_backend.yml'
+              - '.github/services-matrix.json'
             console:
               - 'apps/console/**'
               - 'packages/**'
+              - 'shared/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/_frontend.yml'
             management:
               - 'apps/management/**'
               - 'packages/**'
+              - 'shared/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/_frontend.yml'
             docker:
               - 'services/**'
-              - 'services/auth/**'
-              - 'services/admin/**'
-              - 'services/app/**'
               - 'apps/console/Dockerfile'
               - 'apps/management/Dockerfile'
               - 'docker-compose*.yml'
@@ -65,590 +77,60 @@ jobs:
               - 'apps/console/nginx.conf'
               - 'apps/management/nginx.conf'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/_docker.yml'
+              - '.github/services-matrix.json'
 
-  # --- Backend: Build ---
-  backend-build:
-    name: Backend Build
+  # --- Security: runs on every change set, independent of area gates. ---
+  security:
+    name: Security Gate
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: ${{ !cancelled() && needs.changes.result == 'success' }}
+    uses: ./.github/workflows/_security.yml
+    secrets: inherit
+
+  # --- Backend gates ---
+  backend:
+    name: Backend
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.backend == 'true' }}
+    uses: ./.github/workflows/_backend.yml
+    secrets: inherit
+
+  # --- Frontend gates (either app or shared packages) ---
+  frontend:
+    name: Frontend
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true') }}
+    uses: ./.github/workflows/_frontend.yml
+    with:
+      console_changed: ${{ needs.changes.outputs.console == 'true' }}
+      management_changed: ${{ needs.changes.outputs.management == 'true' }}
+    secrets: inherit
+
+  # --- Docker build verification ---
+  docker:
+    name: Docker Verify
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.docker == 'true' }}
+    uses: ./.github/workflows/_docker.yml
+    secrets: inherit
+
+  # --- The one summary context for branch protection. Fails unless every
+  #     stage succeeded; `skipped` is fine because stages are path-gated. ---
+  ci-ok:
+    name: ci-ok
+    needs: [changes, security, backend, frontend, docker]
+    if: ${{ always() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: 'maven'
-
-      - name: Grant Maven wrapper execute permission
-        run: chmod +x services/mvnw
-
-      - name: Build with Maven
-        run: cd services && ./mvnw compile -B
-
-  # --- Backend: Test ---
-  backend-test:
-    name: Backend Test
-    needs: [changes, backend-build]
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:9.1
+      - name: All CI stages must have succeeded (or been skipped)
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ulticode
-          MYSQL_USER: ulticode
-          MYSQL_PASSWORD: ulticode
-        ports:
-          - 23306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 26379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    env:
-      DB_HOST: localhost
-      DB_PORT: 23306
-      DB_USER: ulticode
-      DB_PASSWORD: ulticode
-      DB_NAME: ulticode
-      REDIS_HOST: localhost
-      REDIS_PORT: 26379
-      JWT_SECRET: test-jwt-secret-key-for-ci-minimum-32-characters-long
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: 'maven'
-
-      - name: Grant Maven wrapper execute permission
-        run: chmod +x services/mvnw
-
-      - name: Run tests with CI profile
-        run: cd services && ./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B
-
-      - name: Upload test results on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results-backend
-          path: |
-            services/**/target/surefire-reports/
-          retention-days: 7
-
-  # --- Backend: Test under feature flag matrix (ADR-005 §4 #4) ---
-  # 与 backend-test 同结构, 改 matrix 化: features=[off,on] 两个变体覆盖
-  # "全关" 与 "产品全开" 路径, 防 "默认 flag 路径 vs 全开/全关路径" 行为漂移.
-  # cutover flag 在所有变体都保持 false (走 cutover 守门, 不在 CI 强开).
-  # 第三个 default 路径由原 backend-test job 覆盖 (避免动 PR status check).
-  # R-R1 修复: 原 backend-test-features-{off,on} 2 job 复制 162 行 services+steps,
-  # 现 matrix 化只 1 job 90 行, 改 backend-test 模板不再漏改.
-  backend-test-features:
-    name: Backend Test (features ${{ matrix.features }})
-    needs: [changes, backend-build]
-    if: needs.changes.outputs.backend == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        features: [off, on]
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:9.1
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ulticode
-          MYSQL_USER: ulticode
-          MYSQL_PASSWORD: ulticode
-        ports:
-          - 23306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 26379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    env:
-      DB_HOST: localhost
-      DB_PORT: 23306
-      DB_USER: ulticode
-      DB_PASSWORD: ulticode
-      DB_NAME: ulticode
-      REDIS_HOST: localhost
-      REDIS_PORT: 26379
-      JWT_SECRET: test-jwt-secret-key-for-ci-minimum-32-characters-long
-      # 5 cutover flag 全 false (matrix 无关, 走 cutover 守门)
-      USE_JUDGE_OUTBOX: 'false'
-      USE_GENERATION_FENCE: 'false'
-      JUDGE_QUEUE_USE_PORT: 'false'
-      JUDGE_QUEUE_CUTOVER_AT: '1970-01-01T00:00:00'
-      USE_NOTIFICATION_INTENT: 'false'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: 'maven'
-
-      - name: Grant Maven wrapper execute permission
-        run: chmod +x services/mvnw
-
-      # 5 个产品 flag 由 matrix.features 决定 on/off, 通过 env 注入到 step.
-      # Spring profile 同时追加 features-${{ matrix.features }}, 与 yml profile
-      # 形成双保险 (yml 提供默认值, env 覆盖兜底).
-      - name: Inject feature flag env vars from matrix
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          if [[ "${{ matrix.features }}" == "on" ]]; then
-            echo "USE_NEW_CONTEST_SYSTEM=true" >> "$GITHUB_ENV"
-            echo "REALTIME_RANKING_ENABLED=true" >> "$GITHUB_ENV"
-            echo "FIRST_SOLVE_NOTIFICATIONS_ENABLED=true" >> "$GITHUB_ENV"
-            echo "ANTICHEAT_ENABLED=true" >> "$GITHUB_ENV"
-            echo "CONTEST_ANALYTICS_ENABLED=true" >> "$GITHUB_ENV"
-          else
-            echo "USE_NEW_CONTEST_SYSTEM=false" >> "$GITHUB_ENV"
-            echo "REALTIME_RANKING_ENABLED=false" >> "$GITHUB_ENV"
-            echo "FIRST_SOLVE_NOTIFICATIONS_ENABLED=false" >> "$GITHUB_ENV"
-            echo "ANTICHEAT_ENABLED=false" >> "$GITHUB_ENV"
-            echo "CONTEST_ANALYTICS_ENABLED=false" >> "$GITHUB_ENV"
-          fi
-
-      - name: Run tests with features-${{ matrix.features }} profile
-        run: cd services && ./mvnw test -Dspring.profiles.active=ci,features-${{ matrix.features }} -Dtest='!*IT' -B
-
-      - name: Upload test results on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results-backend-features-${{ matrix.features }}
-          path: |
-            services/**/target/surefire-reports/
-          retention-days: 7
-
-  # --- Backend: Validate Migrations ---
-  migrate-validate:
-    name: Validate Migrations
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:9.1
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ulticode
-          MYSQL_USER: ulticode
-          MYSQL_PASSWORD: ulticode
-        ports:
-          - 23306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    env:
-      DB_HOST: localhost
-      DB_PORT: 23306
-      DB_USER: ulticode
-      DB_PASSWORD: ulticode
-      DB_NAME: ulticode
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Wait for MySQL
-        run: |
-          for i in $(seq 1 30); do
-            if mysqladmin ping -h localhost -P 23306 -u ulticode -pulticode 2>/dev/null; then
-              echo "MySQL is ready"
-              break
-            fi
-            echo "Waiting for MySQL... ($i/30)"
-            sleep 2
-          done
-
-      - name: Run and validate migrations
-        run: |
-          docker run --rm --network host \
-            -v "$PWD/init-db/migrations:/flyway/sql:ro" \
-            flyway/flyway:10.17.0 \
-            -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" -connectRetries=10 migrate
-          docker run --rm --network host \
-            -v "$PWD/init-db/migrations:/flyway/sql:ro" \
-            flyway/flyway:10.17.0 \
-            -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
-            -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" validate
-
-  # --- Backend: Baseline Parity (init-db deep module) ---
-  # Candidate 4 — CI gate for派生制品：baseline.sql 必须与增量迁移 per-schema 130 vs 130 一致
-  # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh
-  # 触发条件与 migrate-validate 一致（init-db/** 变更），不移动已应用历史，保持 deferred 物理归档约束
-  baseline-parity:
-    name: Baseline Parity (130 vs 130)
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Validate baseline parity (per-schema 130)
-        run: |
-          set -euo pipefail
-          echo "[ci] validate-baseline.sh"
-          ./init-db/scripts/validate-baseline.sh 2>&1 | tee /tmp/validate-baseline.log
-          echo "[ci] baseline-adopt.sh disposable"
-          ./init-db/scripts/baseline-adopt.sh 2>&1 | tee /tmp/baseline-adopt.log
-          grep -q "PASS" /tmp/validate-baseline.log
-          grep -q "PASS" /tmp/baseline-adopt.log
-          echo "[ci] baseline parity PASS (scripts exit 0 + PASS found)"
-  secret-scan:
-    name: Secret Scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Run Gitleaks
-        run: |
-          docker run --rm \
-            -v "$PWD:/repo:ro" \
-            zricethezav/gitleaks:v8.24.2 \
-            dir /repo --config=/repo/.gitleaks.toml --redact --no-banner
-
-  # --- Backend: Flyway Filename Lint ---
-  # ADR-005 §4 #5: DB 迁移文件名遵守 V{ts}__{description}.sql (CLAUDE.md 约定)
-  # 正则 ^V[0-9]{8}_?[0-9_]*__[A-Za-z0-9_]+\.sql$ 兼容两种时间戳写法
-  # (V20260604_110000 与 V20260604110000), 与现有 28 个文件全部合规.
-  flyway-filename-lint:
-    name: Flyway Filename Lint
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Lint migration filenames
-        run: |
-          set -e
-          PATTERN='^V[0-9]{8}_?[0-9_]*__[A-Za-z0-9_]+\.sql$'
-          cd init-db/migrations
-          fails=0
-          total=0
-          for f in V*.sql; do
-            [[ -e "$f" ]] || continue
-            total=$((total+1))
-            if [[ ! "$f" =~ $PATTERN ]]; then
-              echo "::error file=$f::must match $PATTERN (V<14-digit-ts>__<desc>.sql)"
-              fails=$((fails+1))
-            fi
-          done
-          if [[ $fails -gt 0 ]]; then
-            echo "::error::$fails of $total migration file(s) violate naming convention"
-            exit 1
-          fi
-          echo "✅ all $total migration filenames conform to V<14-digit-ts>__<desc>.sql"
-
-  # --- Frontend: Lint ---
-  frontend-lint:
-    name: Lint (${{ matrix.app }})
-    needs: changes
-    if: needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [console, management]
-    steps:
-      - name: Check if app changed
-        id: should-run
-        if: (matrix.app == 'console' && needs.changes.outputs.console == 'true') || (matrix.app == 'management' && needs.changes.outputs.management == 'true')
-        run: echo "run=true" >> $GITHUB_OUTPUT
-
-      - name: Checkout repository
-        if: steps.should-run.outputs.run == 'true'
-        uses: actions/checkout@v6
-
-      - name: Enable pnpm via corepack
-        if: steps.should-run.outputs.run == 'true'
-        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Setup Node.js
-        if: steps.should-run.outputs.run == 'true'
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: ${{ matrix.app }}/pnpm-lock.yaml
-
-      - name: Install dependencies
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        env:
-          CI: "false"
-          GITHUB_ACTIONS: "false"
-        run: pnpm install
-
-      - name: Run lint
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        run: pnpm lint
-
-  # --- Frontend: Type Check ---
-  frontend-type-check:
-    name: Type Check (${{ matrix.app }})
-    needs: changes
-    if: needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [console, management]
-    steps:
-      - name: Check if app changed
-        id: should-run
-        if: (matrix.app == 'console' && needs.changes.outputs.console == 'true') || (matrix.app == 'management' && needs.changes.outputs.management == 'true')
-        run: echo "run=true" >> $GITHUB_OUTPUT
-
-      - name: Checkout repository
-        if: steps.should-run.outputs.run == 'true'
-        uses: actions/checkout@v6
-
-      - name: Enable pnpm via corepack
-        if: steps.should-run.outputs.run == 'true'
-        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Setup Node.js
-        if: steps.should-run.outputs.run == 'true'
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: ${{ matrix.app }}/pnpm-lock.yaml
-
-      - name: Install dependencies
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        env:
-          CI: "false"
-          GITHUB_ACTIONS: "false"
-        run: pnpm install
-
-      - name: Run type-check
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        run: pnpm type-check
-
-  # --- Frontend: Test ---
-  frontend-test:
-    name: Test (${{ matrix.app }})
-    needs: changes
-    if: needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [console, management]
-    steps:
-      - name: Check if app changed
-        id: should-run
-        if: (matrix.app == 'console' && needs.changes.outputs.console == 'true') || (matrix.app == 'management' && needs.changes.outputs.management == 'true')
-        run: echo "run=true" >> $GITHUB_OUTPUT
-
-      - name: Checkout repository
-        if: steps.should-run.outputs.run == 'true'
-        uses: actions/checkout@v6
-
-      - name: Enable pnpm via corepack
-        if: steps.should-run.outputs.run == 'true'
-        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Setup Node.js
-        if: steps.should-run.outputs.run == 'true'
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: ${{ matrix.app }}/pnpm-lock.yaml
-
-      - name: Install dependencies
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        env:
-          CI: "false"
-          GITHUB_ACTIONS: "false"
-        run: pnpm install
-
-      - name: Run tests
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        run: pnpm test
-
-      - name: Audit production dependencies
-        if: steps.should-run.outputs.run == 'true'
-        working-directory: ${{ matrix.app }}
-        run: pnpm audit --prod --audit-level high
-
-  shared-auth-test:
-    name: Test shared auth core
-    needs: changes
-    if: needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Enable pnpm via corepack
-        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: shared/auth-core/pnpm-lock.yaml
-      - name: Install dependencies
-        working-directory: packages/auth-core
-        run: pnpm install --frozen-lockfile
-      - name: Test and type-check
-        working-directory: packages/auth-core
-        run: pnpm test && pnpm type-check
-
-  # --- Frontend: i18n Check (management only) ---
-  frontend-i18n-check:
-    name: i18n Check (management)
-    needs: changes
-    if: needs.changes.outputs.management == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Enable pnpm via corepack
-        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: management/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: management
-        env:
-          CI: "false"
-          GITHUB_ACTIONS: "false"
-        run: pnpm install
-
-      - name: Run i18n completeness check
-        working-directory: management
-        run: pnpm check:i18n --json
-
-      - name: Run i18n tests
-        working-directory: management
-        run: pnpm vitest run -- src/i18n/__tests__/
-
-  # --- Docker Build Verification ---
-  docker-verify:
-    name: Docker Build (${{ matrix.service.name }})
-    needs: changes
-    if: needs.changes.outputs.docker == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - name: backend-auth
-            dockerfile: ./services/Dockerfile
-            module: auth
-            artifact: app.jar
-            port: 9101
-            health_path: /api/v1/auth/health
-          - name: backend-admin
-            dockerfile: ./services/Dockerfile
-            module: admin
-            artifact: app-exec.jar
-            port: 9102
-            health_path: /api/v1/admin/health
-          - name: backend-app
-            dockerfile: ./services/Dockerfile
-            module: app/app-web
-            artifact: app-exec.jar
-            port: 9103
-            health_path: /api/v1/app/health
-          - name: backend-submission
-            dockerfile: ./services/Dockerfile
-            module: submission
-            artifact: submission-exec.jar
-            port: 9106
-            health_path: /disabled
-            healthcheck: 'false'
-          - name: backend-notification
-            dockerfile: ./services/Dockerfile
-            module: notification
-            artifact: notification-exec.jar
-            port: 9105
-            health_path: /api/v1/notification/health
-          - name: backend-judge
-            dockerfile: ./services/Dockerfile
-            module: judge
-            artifact: judge-exec.jar
-            port: 9104
-            health_path: /disabled
-            install_docker_cli: 'true'
-            healthcheck: 'false'
-          - name: console
-            dockerfile: ./console/Dockerfile
-          - name: management
-            dockerfile: ./management/Dockerfile
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build Docker image (no push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ${{ matrix.service.dockerfile }}
-          push: false
-          build-args: |
-            SERVICE_MODULE=${{ matrix.service.module }}
-            SERVICE_ARTIFACT=${{ matrix.service.artifact }}
-            SERVICE_PORT=${{ matrix.service.port }}
-            SERVICE_HEALTH_PATH=${{ matrix.service.health_path }}
-            INSTALL_DOCKER_CLI=${{ matrix.service.install_docker_cli || false }}
-            SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          echo "$RESULTS" | jq .
+          jq -e '
+            .changes.result == "success"
+            and ([to_entries[] | select(.key != "changes") | .value.result]
+                 | all(. == "success" or . == "skipped"))
+          ' <<< "$RESULTS" > /dev/null

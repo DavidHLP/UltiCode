@@ -1,0 +1,60 @@
+[
+  {
+    "name": "backend-auth",
+    "dockerfile": "./services/Dockerfile",
+    "module": "auth",
+    "artifact": "app.jar",
+    "port": "9101",
+    "health_path": "/api/v1/auth/health"
+  },
+  {
+    "name": "backend-admin",
+    "dockerfile": "./services/Dockerfile",
+    "module": "admin",
+    "artifact": "app-exec.jar",
+    "port": "9102",
+    "health_path": "/api/v1/admin/health"
+  },
+  {
+    "name": "backend-app",
+    "dockerfile": "./services/Dockerfile",
+    "module": "app/app-web",
+    "artifact": "app-exec.jar",
+    "port": "9103",
+    "health_path": "/api/v1/app/health"
+  },
+  {
+    "name": "backend-submission",
+    "dockerfile": "./services/Dockerfile",
+    "module": "submission",
+    "artifact": "submission-exec.jar",
+    "port": "9106",
+    "health_path": "/disabled"
+  },
+  {
+    "name": "backend-notification",
+    "dockerfile": "./services/Dockerfile",
+    "module": "notification",
+    "artifact": "notification-exec.jar",
+    "port": "9105",
+    "health_path": "/api/v1/notification/health"
+  },
+  {
+    "name": "backend-judge",
+    "dockerfile": "./services/Dockerfile",
+    "module": "judge",
+    "artifact": "judge-exec.jar",
+    "port": "9104",
+    "health_path": "/disabled",
+    "install_docker_cli": "true",
+    "healthcheck": "false"
+  },
+  {
+    "name": "console",
+    "dockerfile": "./apps/console/Dockerfile"
+  },
+  {
+    "name": "management",
+    "dockerfile": "./apps/management/Dockerfile"
+  }
+]

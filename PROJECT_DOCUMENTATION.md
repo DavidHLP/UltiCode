@@ -266,6 +266,17 @@ Auth owner。
 - **Seed 隔离**：legacy seed 保留在 `flyway.conf: filesystem:migrations/*.sql`（增量仍扫描但已 APPLIED）；新 seed 只进 `migrations/seed/` 经 `flyway-seed.conf: filesystem:migrations/*.sql,filesystem:migrations/seed`，`baseline-optimized fresh-install` 经 `baseline.sql` 零 seed（标准仍经 incremental）。详见 `init-db/migrations/seed/README.md` 与 `init-db/baseline/README.md:24-35`。
 - **Owner 深模块**：`flyway-{auth,admin,app,notification,submission}.conf` 退为 adapters，`owner-migrate` 是支持的编排入口（`init-db/scripts/owner-migrate.sh migrate|validate|info <owner|all>`，`scripts/dev/up.sh` 经它串行 owners）；`baseline` 采用走 `baseline-adopt.sh`（标准）与受约束的 `DEV_LOCAL` 路径（见 `init-db/README.md:130` 与 `init-db/baseline/README.md`）；`direct migrate.sh` + `MIGRATION_SCHEMA` 是受约束低层原语。
 - **CI 门禁**：`.github/workflows/ci.yml` `backend` 触发拓至 `init-db/**`；`migrate-validate` 以 `-locations="filesystem:/flyway/sql/*.sql"` 非递归限 `migrations/*.sql`（`seed/` 仅经 `flyway-seed.conf`）；新增 `baseline-parity` job 执行 `validate-baseline.sh` + `baseline-adopt.sh` 双 `PASS` 票据，防派生漂移。
+
+#### CI/CD 结构化 — 编排器 + 可复用子 workflow + 单一汇总门禁（2026-08-23）
+
+> 参考 codebase-memory-mcp 的 pipeline 图结构（编排器 + `_` 前缀 reusable workflows + `ci-ok` 汇总上下文）。
+
+- **CI（`.github/workflows/ci.yml`）**：只做三件事——`dorny/paths-filter` 变更探测、按路径门禁调用可复用 workflow、`ci-ok` 汇总。分支保护只需依赖 `ci-ok` 一个稳定 context；矩阵/job 改名不再影响 required checks。被 path 过滤跳过的 stage 在 `ci-ok` 中视为通过；`changes` job 本身失败则硬失败。
+- **可复用子 workflow**：`_security.yml`（gitleaks，全量触发）、`_backend.yml`（build/test/features matrix/migrate-validate/baseline-parity/flyway-filename-lint）、`_frontend.yml`（lint/type-check/test/i18n/shared auth-core；per-app 门禁经显式 boolean inputs 传入）、`_docker.yml`（镜像构建验证）。新增门禁 = 新增一个 `_*.yml` + 编排器一个调用 job + 加入 `ci-ok.needs`。
+- **服务矩阵单一来源**：`.github/services-matrix.json` 同时驱动 `_docker.yml` 验证与 `docker-publish.yml` 发布；新增服务 = 新增一条 JSON 记录，两个 workflow 经 `load-matrix` job 读取。
+- **CD 复合动作**：`.github/actions/host-deploy/`（SSH 密钥、Flyway 迁移、judge 沙箱预置、compose 拉起）与 `.github/actions/host-health/`（统一健康检查，spec 行格式 `<container> <mode: curl-container|curl-host|inspect> <port> <path>`）由 `cd-deploy.yml` 与 `cd-rollback.yml` 共享；回滚 = 同一动作 + `skip_migrations: true`。
+- **顺带修复**：`_docker`/publish 使用规范 Dockerfile 路径 `apps/{console,management}/Dockerfile`（原 ci.yml 内为失效的 `./console/Dockerfile`）；i18n job 工作目录修正为 `apps/management`；auth-core 缓存路径修正为 `packages/auth-core/pnpm-lock.yaml`。
+- **迁移注意**：原单体内各 check 名现以 `Backend / ...`、`Frontend / ...` 等 stage 前缀出现；分支保护应切换为仅要求 `ci-ok`。
 ## 3. Microservice migration guide and historical architecture
 
 > 原文来源：`services/docs/MICROSERVICE_MIGRATION_GUIDE.md`

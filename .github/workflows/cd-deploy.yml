@@ -1,3 +1,6 @@
+# Manual deployment pipeline. Mechanics (SSH, migrations, sandbox prereqs,
+# compose rollout) live in the shared .github/actions/host-deploy composite;
+# health checking lives in .github/actions/host-health. Rollback reuses both.
 name: CD Deploy
 
 on:
@@ -10,6 +13,8 @@ on:
         options:
           - staging
           - production
+      # Reserved for per-service rollout; the current compose flow always
+      # reconciles the full stack. Keep for dispatch compatibility.
       services:
         description: 'Services to deploy'
         required: true
@@ -39,143 +44,43 @@ concurrency:
   group: deploy-${{ github.event.inputs.environment }}
   cancel-in-progress: false
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
-
 jobs:
   deploy:
     name: Deploy to ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+      - name: Deploy to host
+        id: deploy
+        uses: ./.github/actions/host-deploy
+        with:
+          ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          user: ${{ secrets.DEPLOY_USER }}
+          path: ${{ secrets.DEPLOY_PATH }}
+          image_tag: ${{ github.event.inputs.image_tag || 'latest' }}
+          skip_migrations: ${{ github.event.inputs.skip_migrations }}
+          registry: ghcr.io
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          actor: ${{ github.actor }}
+          db_host: ${{ secrets.DB_HOST }}
+          db_port: ${{ secrets.DB_PORT }}
+          db_name: ${{ secrets.DB_NAME }}
+          db_user: ${{ secrets.DB_USER }}
+          db_password: ${{ secrets.DB_PASSWORD }}
 
-      - name: Run database migrations
-        if: ${{ !github.event.inputs.skip_migrations }}
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }} \
-            "cd ${{ secrets.DEPLOY_PATH }} && \
-             docker run --rm --network host \
-               -e FLYWAY_URL='jdbc:mysql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}?allowPublicKeyRetrieval=true&useSSL=true' \
-               -e FLYWAY_USER='${{ secrets.DB_USER }}' \
-               -e FLYWAY_PASSWORD='${{ secrets.DB_PASSWORD }}' \
-               -v \$(pwd)/init-db/migrations:/flyway/sql:ro \
-               flyway/flyway:10.17.0 -connectRetries=10 migrate"
-
-      - name: Provision sandbox prerequisites on host
-        # The judge worker healthcheck requires the sandbox image and seccomp
-        # profile to exist on the host; without this step a fresh host would
-        # fail the whole deploy (and unrelated rollbacks) with no hint.
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
-                    export SANDBOX_HOST_DIR=\"\${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}\" && \
-                    sudo -n install -d -o 1000 -g 1000 \"\$SANDBOX_HOST_DIR/workspace\" && \
-                    sudo -n install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && \
-                    docker/sandbox/harness/build.sh && \
-                    echo 'sandbox prerequisites ready'"
-
-      - name: Pull and deploy services
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
-
-          # Login to GHCR on remote
-          $SSH_CMD "echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin"
-
-          # Pull and deploy with IMAGE_TAG exported in the same shell session
-          $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
-                    export IMAGE_TAG=${{ github.event.inputs.image_tag || 'latest' }} && \
-                    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
-                    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"
-
-      - name: Health check - backend owners (fail fast)
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          SERVICES=(
-            "backend-auth:9101:/api/v1/auth/health"
-            "backend-admin:9102:/api/v1/admin/health"
-            "backend-app:9103:/api/v1/app/health"
-            "backend-notification:9105:/api/v1/notification/health"
-          )
-          for svc in "${SERVICES[@]}"; do
-            NAME="${svc%%:*}"
-            REST="${svc#*:}"
-            PORT="${REST%%:*}"
-            HEALTH_PATH="${REST#*:}"
-            echo "Checking $NAME..."
-            for i in $(seq 1 15); do
-              if $SSH_CMD "docker exec ulticode-$NAME curl -sf 'http://localhost:$PORT$HEALTH_PATH' > /dev/null 2>&1"; then
-                echo "  $NAME is healthy"
-                break
-              fi
-              if [ "$i" -eq 15 ]; then
-                echo "::error::$NAME failed health check after 75 seconds"
-                exit 1
-              fi
-              echo "  Waiting for $NAME... ($i/15)"
-              sleep 5
-            done
-          done
-
-          echo "Checking backend-submission container health..."
-          for i in $(seq 1 15); do
-            if $SSH_CMD "test \"\$(docker inspect -f '{{.State.Health.Status}}' ulticode-backend-submission 2>/dev/null)\" = healthy"; then
-              echo "  backend-submission is healthy"
-              break
-            fi
-            if [ "$i" -eq 15 ]; then
-              echo "::error::backend-submission failed health check after 75 seconds"
-              exit 1
-            fi
-            echo "  Waiting for backend-submission... ($i/15)"
-            sleep 5
-          done
-
-          echo "Checking backend-judge container health..."
-          for i in $(seq 1 15); do
-            if $SSH_CMD "test \"\$(docker inspect -f '{{.State.Health.Status}}' ulticode-backend-judge 2>/dev/null)\" = healthy"; then
-              echo "  backend-judge is healthy"
-              break
-            fi
-            if [ "$i" -eq 15 ]; then
-              echo "::error::backend-judge failed health check after 75 seconds"
-              exit 1
-            fi
-            echo "  Waiting for backend-judge... ($i/15)"
-            sleep 5
-          done
-
-      - name: Health check - frontends
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          SERVICES=("console:9002" "management:9003")
-          for svc in "${SERVICES[@]}"; do
-            NAME="${svc%%:*}"
-            PORT="${svc#*:}"
-            echo "Checking $NAME..."
-            for i in $(seq 1 15); do
-              if $SSH_CMD "curl -sf http://localhost:$PORT > /dev/null 2>&1"; then
-                echo "  $NAME is healthy"
-                break
-              fi
-              if [ "$i" -eq 15 ]; then
-                echo "::error::$NAME failed health check after 75 seconds"
-                exit 1
-              fi
-              echo "  Waiting for $NAME... ($i/15)"
-              sleep 5
-            done
-          done
+      - name: Health check all services
+        uses: ./.github/actions/host-health
+        with:
+          ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          user: ${{ secrets.DEPLOY_USER }}
 
       - name: Notify failure
         if: failure()

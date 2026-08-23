@@ -1,24 +1,13 @@
-# Publishes one image per deployable service on every main push.
-# The service list lives in .github/services-matrix.json, shared with the
-# _docker.yml CI verification so a service can never be publishable but
-# unverifiable (or vice versa). Adding a service means adding one JSON entry.
-name: Docker Publish
+# Reusable: docker build verification for every deployable service.
+# The service list lives in .github/services-matrix.json — one file shared
+# with docker-publish.yml. Adding a service means adding one JSON entry.
+name: Docker Verify
 
 on:
-  push:
-    branches: [main]
-
-concurrency:
-  group: docker-publish
-  cancel-in-progress: true
+  workflow_call: {}
 
 permissions:
   contents: read
-  packages: write
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   load-matrix:
@@ -38,8 +27,8 @@ jobs:
             || { echo "::error::.github/services-matrix.json must be a non-empty array"; exit 1; }
           echo "matrix=$(jq -c . .github/services-matrix.json)" >> "$GITHUB_OUTPUT"
 
-  build-and-push:
-    name: Build & Push (${{ matrix.service.name }})
+  docker-verify:
+    name: Docker Build (${{ matrix.service.name }})
     needs: load-matrix
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -54,30 +43,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}
-          tags: |
-            type=sha
-            type=raw,value=latest
-
-      - name: Build and push Docker image
+      - name: Build Docker image (no push)
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: false
           build-args: |
             SERVICE_MODULE=${{ matrix.service.module }}
             SERVICE_ARTIFACT=${{ matrix.service.artifact }}

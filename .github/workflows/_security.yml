@@ -1,0 +1,25 @@
+# Reusable: security-static gate (secret scan).
+# Runs on every change set, independent from lint/test/build.
+name: Security Gate
+
+on:
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run Gitleaks
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo:ro" \
+            zricethezav/gitleaks:v8.24.2 \
+            dir /repo --config=/repo/.gitleaks.toml --redact --no-banner

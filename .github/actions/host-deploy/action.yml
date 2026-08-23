@@ -1,0 +1,100 @@
+name: 'Host deploy (SSH + compose)'
+description: >-
+  Shared deploy mechanics for cd-deploy/cd-rollback: install the SSH key,
+  optionally run Flyway migrations, provision judge-sandbox prerequisites,
+  then pull and `docker compose up` with the given image tag on the host.
+inputs:
+  ssh_key:
+    description: 'Private SSH key for the deploy host'
+    required: true
+  host:
+    required: true
+  port:
+    required: false
+    default: '22'
+  user:
+    required: true
+  path:
+    description: 'Deploy directory on the host'
+    required: true
+  image_tag:
+    required: true
+  skip_migrations:
+    description: '"true" skips the Flyway migrate step'
+    required: false
+    default: 'false'
+  registry:
+    required: false
+    default: ghcr.io
+  github_token:
+    description: 'Token used to docker login to GHCR on the host'
+    required: true
+  actor:
+    required: true
+  db_host:
+    required: false
+    default: ''
+  db_port:
+    required: false
+    default: ''
+  db_name:
+    required: false
+    default: ''
+  db_user:
+    required: false
+    default: ''
+  db_password:
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - name: Install SSH key
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ inputs.ssh_key }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ inputs.host }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+    - name: Run database migrations
+      if: ${{ inputs.skip_migrations != 'true' }}
+      shell: bash
+      run: |
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+        $SSH_CMD "cd ${{ inputs.path }} && \
+                  docker run --rm --network host \
+                    -e FLYWAY_URL='jdbc:mysql://${{ inputs.db_host }}:${{ inputs.db_port }}/${{ inputs.db_name }}?allowPublicKeyRetrieval=true&useSSL=true' \
+                    -e FLYWAY_USER='${{ inputs.db_user }}' \
+                    -e FLYWAY_PASSWORD='${{ inputs.db_password }}' \
+                    -v \$(pwd)/init-db/migrations:/flyway/sql:ro \
+                    flyway/flyway:10.17.0 -connectRetries=10 migrate"
+
+    - name: Provision sandbox prerequisites on host
+      # The judge worker healthcheck requires the sandbox image and seccomp
+      # profile to exist on the host; without this step a fresh host would
+      # fail the whole deploy (and unrelated rollbacks) with no hint.
+      # Idempotent, so rollback can safely reuse it.
+      shell: bash
+      run: |
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+        $SSH_CMD "cd ${{ inputs.path }} && \
+                  export SANDBOX_HOST_DIR=\"\${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}\" && \
+                  sudo -n install -d -o 1000 -g 1000 \"\$SANDBOX_HOST_DIR/workspace\" && \
+                  sudo -n install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && \
+                  docker/sandbox/harness/build.sh && \
+                  echo 'sandbox prerequisites ready'"
+
+    - name: Pull and deploy services
+      shell: bash
+      run: |
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+
+        # Login to GHCR on remote
+        $SSH_CMD "echo ${{ inputs.github_token }} | docker login ${{ inputs.registry }} -u ${{ inputs.actor }} --password-stdin"
+
+        # Pull and deploy with IMAGE_TAG exported in the same shell session
+        $SSH_CMD "cd ${{ inputs.path }} && \
+                  export IMAGE_TAG=${{ inputs.image_tag }} && \
+                  docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
+                  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"

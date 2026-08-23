@@ -1,0 +1,221 @@
+# Reusable: frontend gates — lint, type-check, tests for both apps,
+# shared auth-core package tests, and management i18n completeness.
+#
+# Path filtering happens in the caller (ci.yml); which app changed is passed
+# in as explicit inputs so matrix legs can self-gate (a console-only PR does
+# not pay for management jobs).
+name: Frontend
+
+on:
+  workflow_call:
+    inputs:
+      console_changed:
+        description: 'console app or shared packages changed'
+        required: true
+        type: boolean
+      management_changed:
+        description: 'management app or shared packages changed'
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22.x'
+  PNPM_VERSION: '11'
+
+jobs:
+  frontend-lint:
+    name: Lint (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [console, management]
+    steps:
+      - name: Check if app changed
+        id: should-run
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) }}
+        run: echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/checkout@v6
+
+      - name: Enable pnpm via corepack
+        if: steps.should-run.outputs.run == 'true'
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+
+      - name: Setup Node.js
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: apps/${{ matrix.app }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        env:
+          CI: "false"
+          GITHUB_ACTIONS: "false"
+        run: pnpm install
+
+      - name: Run lint
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm lint
+
+  frontend-type-check:
+    name: Type Check (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [console, management]
+    steps:
+      - name: Check if app changed
+        id: should-run
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) }}
+        run: echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/checkout@v6
+
+      - name: Enable pnpm via corepack
+        if: steps.should-run.outputs.run == 'true'
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+
+      - name: Setup Node.js
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: apps/${{ matrix.app }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        env:
+          CI: "false"
+          GITHUB_ACTIONS: "false"
+        run: pnpm install
+
+      - name: Run type-check
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm type-check
+
+  frontend-test:
+    name: Test (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [console, management]
+    steps:
+      - name: Check if app changed
+        id: should-run
+        if: ${{ (matrix.app == 'console' && inputs.console_changed) || (matrix.app == 'management' && inputs.management_changed) }}
+        run: echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/checkout@v6
+
+      - name: Enable pnpm via corepack
+        if: steps.should-run.outputs.run == 'true'
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+
+      - name: Setup Node.js
+        if: steps.should-run.outputs.run == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: apps/${{ matrix.app }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        env:
+          CI: "false"
+          GITHUB_ACTIONS: "false"
+        run: pnpm install
+
+      - name: Run tests
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm test
+
+      - name: Audit production dependencies
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: pnpm audit --prod --audit-level high
+
+  shared-auth-test:
+    name: Test shared auth core
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Enable pnpm via corepack
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: packages/auth-core/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: packages/auth-core
+        run: pnpm install --frozen-lockfile
+
+      - name: Test and type-check
+        working-directory: packages/auth-core
+        run: pnpm test && pnpm type-check
+
+  # --- i18n Check (management only) ---
+  frontend-i18n-check:
+    name: i18n Check (management)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Enable pnpm via corepack
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: apps/management/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: apps/management
+        env:
+          CI: "false"
+          GITHUB_ACTIONS: "false"
+        run: pnpm install
+
+      - name: Run i18n completeness check
+        working-directory: apps/management
+        run: pnpm check:i18n --json
+
+      - name: Run i18n tests
+        working-directory: apps/management
+        run: pnpm vitest run -- src/i18n/__tests__/

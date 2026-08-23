@@ -1,0 +1,303 @@
+# Reusable: backend gates — build, unit tests (default + feature-flag matrix),
+# Flyway migration validation, baseline parity, migration filename lint.
+# Path filtering happens in the caller (ci.yml); all jobs here run when called.
+name: Backend
+
+on:
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  backend-build:
+    name: Backend Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+
+      - name: Grant Maven wrapper execute permission
+        run: chmod +x services/mvnw
+
+      - name: Build with Maven
+        run: cd services && ./mvnw compile -B
+
+  backend-test:
+    name: Backend Test
+    needs: backend-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      mysql:
+        image: mysql:9.1
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ulticode
+          MYSQL_USER: ulticode
+          MYSQL_PASSWORD: ulticode
+        ports:
+          - 23306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 26379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 23306
+      DB_USER: ulticode
+      DB_PASSWORD: ulticode
+      DB_NAME: ulticode
+      REDIS_HOST: localhost
+      REDIS_PORT: 26379
+      JWT_SECRET: test-jwt-secret-key-for-ci-minimum-32-characters-long
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+
+      - name: Grant Maven wrapper execute permission
+        run: chmod +x services/mvnw
+
+      - name: Run tests with CI profile
+        run: cd services && ./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-backend
+          path: |
+            services/**/target/surefire-reports/
+          retention-days: 7
+
+  # --- Backend: Test under feature flag matrix (ADR-005 §4 #4) ---
+  # matrix 化: features=[off,on] 覆盖 "全关" 与 "产品全开" 路径, 防
+  # "默认 flag 路径 vs 全开/全关路径" 行为漂移. cutover flag 在所有变体保持
+  # false (走 cutover 守门, 不在 CI 强开). 第三个 default 路径由上面的
+  # backend-test job 覆盖.
+  backend-test-features:
+    name: Backend Test (features ${{ matrix.features }})
+    needs: backend-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [off, on]
+    services:
+      mysql:
+        image: mysql:9.1
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ulticode
+          MYSQL_USER: ulticode
+          MYSQL_PASSWORD: ulticode
+        ports:
+          - 23306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 26379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 23306
+      DB_USER: ulticode
+      DB_PASSWORD: ulticode
+      DB_NAME: ulticode
+      REDIS_HOST: localhost
+      REDIS_PORT: 26379
+      JWT_SECRET: test-jwt-secret-key-for-ci-minimum-32-characters-long
+      # 5 cutover flag 全 false (matrix 无关, 走 cutover 守门)
+      USE_JUDGE_OUTBOX: 'false'
+      USE_GENERATION_FENCE: 'false'
+      JUDGE_QUEUE_USE_PORT: 'false'
+      JUDGE_QUEUE_CUTOVER_AT: '1970-01-01T00:00:00'
+      USE_NOTIFICATION_INTENT: 'false'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+
+      - name: Grant Maven wrapper execute permission
+        run: chmod +x services/mvnw
+
+      # 5 个产品 flag 由 matrix.features 决定 on/off, 通过 env 注入到 step.
+      # Spring profile 同时追加 features-${{ matrix.features }}, 与 yml profile
+      # 形成双保险 (yml 提供默认值, env 覆盖兜底).
+      - name: Inject feature flag env vars from matrix
+        run: |
+          if [[ "${{ matrix.features }}" == "on" ]]; then
+            echo "USE_NEW_CONTEST_SYSTEM=true" >> "$GITHUB_ENV"
+            echo "REALTIME_RANKING_ENABLED=true" >> "$GITHUB_ENV"
+            echo "FIRST_SOLVE_NOTIFICATIONS_ENABLED=true" >> "$GITHUB_ENV"
+            echo "ANTICHEAT_ENABLED=true" >> "$GITHUB_ENV"
+            echo "CONTEST_ANALYTICS_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "USE_NEW_CONTEST_SYSTEM=false" >> "$GITHUB_ENV"
+            echo "REALTIME_RANKING_ENABLED=false" >> "$GITHUB_ENV"
+            echo "FIRST_SOLVE_NOTIFICATIONS_ENABLED=false" >> "$GITHUB_ENV"
+            echo "ANTICHEAT_ENABLED=false" >> "$GITHUB_ENV"
+            echo "CONTEST_ANALYTICS_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run tests with features-${{ matrix.features }} profile
+        run: cd services && ./mvnw test -Dspring.profiles.active=ci,features-${{ matrix.features }} -Dtest='!*IT' -B
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-backend-features-${{ matrix.features }}
+          path: |
+            services/**/target/surefire-reports/
+          retention-days: 7
+
+  migrate-validate:
+    name: Validate Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:9.1
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ulticode
+          MYSQL_USER: ulticode
+          MYSQL_PASSWORD: ulticode
+        ports:
+          - 23306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 23306
+      DB_USER: ulticode
+      DB_PASSWORD: ulticode
+      DB_NAME: ulticode
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h localhost -P 23306 -u ulticode -pulticode 2>/dev/null; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run and validate migrations
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/init-db/migrations:/flyway/sql:ro" \
+            flyway/flyway:10.17.0 \
+            -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" -connectRetries=10 migrate
+          docker run --rm --network host \
+            -v "$PWD/init-db/migrations:/flyway/sql:ro" \
+            flyway/flyway:10.17.0 \
+            -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" validate
+
+  # --- Baseline Parity (init-db deep module) ---
+  # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.
+  # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh
+  baseline-parity:
+    name: Baseline Parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate baseline parity
+        run: |
+          set -euo pipefail
+          echo "[ci] validate-baseline.sh"
+          ./init-db/scripts/validate-baseline.sh 2>&1 | tee /tmp/validate-baseline.log
+          echo "[ci] baseline-adopt.sh disposable"
+          ./init-db/scripts/baseline-adopt.sh 2>&1 | tee /tmp/baseline-adopt.log
+          grep -q "PASS" /tmp/validate-baseline.log
+          grep -q "PASS" /tmp/baseline-adopt.log
+          echo "[ci] baseline parity PASS (scripts exit 0 + PASS found)"
+
+  flyway-filename-lint:
+    name: Flyway Filename Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # ADR-005 §4 #5: 迁移文件名遵守 V{ts}__{description}.sql.
+      # 正则兼容两种时间戳写法 (V20260604_110000 与 V20260604110000).
+      - name: Lint migration filenames
+        run: |
+          set -e
+          PATTERN='^V[0-9]{8}_?[0-9_]*__[A-Za-z0-9_]+\.sql$'
+          cd init-db/migrations
+          fails=0
+          total=0
+          for f in V*.sql; do
+            [[ -e "$f" ]] || continue
+            total=$((total+1))
+            if [[ ! "$f" =~ $PATTERN ]]; then
+              echo "::error file=$f::must match $PATTERN (V<14-digit-ts>__<desc>.sql)"
+              fails=$((fails+1))
+            fi
+          done
+          if [[ $fails -gt 0 ]]; then
+            echo "::error::$fails of $total migration file(s) violate naming convention"
+            exit 1
+          fi
+          echo "✅ all $total migration filenames conform to V<14-digit-ts>__<desc>.sql"

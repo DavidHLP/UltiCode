@@ -15,7 +15,7 @@ public interface AuthAccountQueryMapper {
             + "is_banned AS banned, banned_reason AS bannedReason, banned_until, "
             + "joined_at, last_login_at, authz_version, "
             + "password_reset_token_hash, password_reset_expires_at, "
-            + "updated_at AS updatedAt, deleted_at AS deletedAt";
+            + "deleted_at AS deletedAt";
 
     @Select("SELECT " + COLUMNS + " FROM users WHERE id = #{accountId} AND is_deleted = 0 LIMIT 1")
     AuthAccountEntity findById(@Param("accountId") String accountId);

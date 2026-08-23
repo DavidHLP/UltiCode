@@ -146,6 +146,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:9102',
         rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
       },
+      '/api/notifications': {
+        target: 'http://127.0.0.1:9105',
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
       '/api/moderation': {
         target: 'http://127.0.0.1:9103',
         rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),

@@ -12,7 +12,8 @@ import { type Ref, ref, onMounted, computed } from "vue";
 import { Trophy, ChevronDown, ChevronUp } from "lucide-vue-next";
 import { fetchDailyActivity } from "@/api/submission";
 import { useI18n } from "vue-i18n";
-import { fetchProblemById } from "@/api/problem";
+import { RouterLink } from "vue-router";
+import { fetchRandomProblem } from "@/api/problem";
 import type { Problem } from "@/types/problem";
 
 const date = ref(today(getLocalTimeZone())) as Ref<DateValue>;
@@ -64,25 +65,17 @@ const weeklyDays = computed(() => {
 const { t } = useI18n();
 onMounted(async () => {
   try {
-    dailyProblem.value = await fetchProblemById(7);
-  } catch (e) {
-    console.error("Failed to fetch daily problem", e);
-    dailyProblem.value = {
-      id: 7,
-      title: "合并K个升序链表",
-      difficulty: "HARD",
-      slug: "merge-k-sorted-lists",
-      acceptance_rate: 28.4,
-      tags: [],
-    } as unknown as Problem;
+    dailyProblem.value = await fetchRandomProblem();
+  } catch {
+    dailyProblem.value = null;
   }
 
   if (useAuthStore().isAuthenticated) {
     try {
       const year = new Date().getFullYear();
       completedDates.value = await fetchDailyActivity(year);
-    } catch (e) {
-      console.error("Failed to fetch daily activity", e);
+    } catch {
+      // Ignore background activity fetch failure on initial load
     }
   }
 });
@@ -140,7 +133,7 @@ onMounted(async () => {
           <span class="text-[var(--foreground-strong)] font-bold">></span>
           <span>今日：{{ dailyProblem.id }}.</span>
           <RouterLink
-            :to="`/problems/${dailyProblem.slug || 'merge-k-sorted-lists'}`"
+            :to="`/problems/${dailyProblem.slug || dailyProblem.id}`"
             class="text-primary hover:underline font-bold"
           >
             {{ dailyProblem.title }}

@@ -19,7 +19,6 @@ public class AuthAccountEntity {
     private LocalDateTime joinedAt;
     private LocalDateTime lastLoginAt;
     private Long authzVersion;
-    private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
     private String passwordResetTokenHash;
     private LocalDateTime passwordResetExpiresAt;

@@ -131,7 +131,7 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
                 entity.getJoinedAt(),
                 entity.getLastLoginAt(),
                 entity.getAuthzVersion() != null ? entity.getAuthzVersion() : 0L,
-                entity.getUpdatedAt() != null ? entity.getUpdatedAt() : entity.getJoinedAt(),
+                entity.getJoinedAt(),
                 entity.getDeletedAt());
     }
 }

@@ -192,3 +192,9 @@ Partial `DB-CONVERGE-002`（增量仍列 legacy seed）与 `deferred DB-CONVERGE
 | C02/C04 独立 seam 文档化 — 不按文件大小物理合并 | SCRIPT-20260823-C02C04-DOC | `PROJECT_DOCUMENTATION.md` slice-4/2.2 保留独立 runbook/verify 语义，本地开发拓扑来源 qualified，文档同步 | PASS |
 | Terminal — Review/Validation/Coverage 闭环与交付 | SCRIPT-20260823-REVIEW-VALIDATE-CLOSE | `architecture-contract`、`devstack-manifest`、`bash -n`、`yaml`、`diff` 等门禁覆盖；`HANDOFF` complete 且新任务 done | PASS |
 | App Owner DEV-LOCAL problemset 数据可用 | APP-SEED-20260823 | `app-owner-seed.sh` transaction/idempotence/partial guard、Owner migration ordering、problem/list/random/category API runtime checks | PASS |
+| App Owner Forum runtime schema contract | FORUM-SCHEMA-20260823 | additive migration, entity/mapper field parity, App DROP/routine preflight, fresh Owner safety, all Forum sort API checks | PASS |
+| DEV-LOCAL Forum canonical seed data | FORUM-SEED-20260823 | unified seed adapter, local admin mapping, transaction/idempotence/partial guard, full startup and populated Forum API | PASS |
+| DEV-LOCAL Contest and global-ranking seed data | CONTEST-SEED-20260823 | canonical contest/ranking sources, App Owner transaction/idempotence/partial guard, full startup, Contest API and browser evidence | PASS |
+| Console personal/sidebar concrete avatar fallback | AVATAR-FALLBACK-20260823 | App profile read evidence, shared local avatar seam, browser visual check, unit/full tests, type/build/lint | PASS |
+| Ranking avatars use real App profile data | RANKING-AVATAR-20260823 | mapper profile projection, placeholder cleanup, API no-random proof, real-avatar/initials UI tests, App/Console validation | PASS |
+| DEV-LOCAL Solution content data | SOLUTION-SEED-20260823 | canonical solution seed, transaction/idempotence/partial guard, feed/detail API and browser evidence | PASS |

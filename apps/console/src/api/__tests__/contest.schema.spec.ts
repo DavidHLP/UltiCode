@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { contestDetailSchema } from "@/api/contest.schema";
+import {
+  contestDetailSchema,
+  globalRankingEntrySchema,
+} from "@/api/contest.schema";
 
 const baseContestDetail = {
   id: "contest-finished-002",
@@ -37,5 +40,27 @@ describe("contestDetailSchema", () => {
         }),
       ).not.toThrow();
     }
+  });
+});
+
+describe("globalRankingEntrySchema", () => {
+  it("normalizes the backend ContestRankingVO score to rating", () => {
+    const parsed = globalRankingEntrySchema.parse({
+      rank: 1,
+      userId: "user-carol-003",
+      username: "carol_wu",
+      name: null,
+      avatar: null,
+      country: "CN",
+      score: 1620,
+      maxRating: 1620,
+      ratingTitle: "SPECIALIST",
+      maxRatingTitle: "SPECIALIST",
+      contestsAttended: 2,
+      badge: "🏆",
+    });
+
+    expect(parsed.rating).toBe(1620);
+    expect("score" in parsed).toBe(false);
   });
 });

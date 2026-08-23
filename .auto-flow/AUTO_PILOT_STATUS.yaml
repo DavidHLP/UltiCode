@@ -70,6 +70,30 @@ current_nodes:
     goal: Restore DEV-LOCAL App Owner problemset seed data
     status: done
     evidence: seed/idempotence/runtime API/quick/verify/contract/graph gates PASS
+  - id: FORUM-SCHEMA-20260823
+    goal: Align App Owner forum_posts with Forum runtime contract
+    status: done
+    evidence: additive migration, App tests, fresh Owner safety and all Forum sort APIs PASS
+  - id: FORUM-SEED-20260823
+    goal: Populate DEV-LOCAL App Owner Forum seed data through the standard Adapter
+    status: done
+    evidence: 12 posts/3 communities/6 tags/12 users, idempotence and full startup/API PASS
+  - id: CONTEST-SEED-20260823
+    goal: Populate DEV-LOCAL App Owner Contest and global-ranking data through the standard Adapter
+    status: done
+    evidence: 5 contests/22 problems/22 participants/11 rankings/51 results/7 announcements/10 global rankings, idempotence/full startup/browser/API PASS
+  - id: AVATAR-FALLBACK-20260823
+    goal: Render concrete local avatars when App profile avatar is absent
+    status: done
+    evidence: shared local SVG seam, browser visual proof, 581 Console tests/typecheck/lint/build PASS
+  - id: RANKING-AVATAR-20260823
+    goal: Read ranking avatars from App user_profiles rather than ranking seed placeholders
+    status: done
+    evidence: mapper profile projection, placeholder cleanup, API null/no-DiceBear proof, App 1420/0/0/13 and Console 582/582 PASS
+  - id: SOLUTION-SEED-20260823
+    goal: Populate DEV-LOCAL App Owner solution Markdown data through the standard Adapter
+    status: done
+    evidence: 12 seeded solutions, idempotence, feed/detail API and browser DOM PASS
 authority:
   commit: false
   push: false

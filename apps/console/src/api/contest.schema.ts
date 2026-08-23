@@ -119,12 +119,18 @@ export const globalRankingEntrySchema = z.object({
   avatar: z.string().nullable().default(null),
   country: z.string().nullable().default(null),
   rating: z.number().int().nullable().default(null),
+  // ContestRankingVO exposes the global rating as `score`; normalize the wire
+  // alias at this seam so ranking components consume one stable field.
+  score: z.number().int().optional(),
   maxRating: z.number().int().nullable().default(null),
   ratingTitle: ratingTitleSchema.default("NEWBIE"),
   maxRatingTitle: ratingTitleSchema.default("NEWBIE"),
   contestsAttended: z.number().int().default(0),
   badge: z.string().nullable().default(null),
-});
+}).transform(({ score, ...entry }) => ({
+  ...entry,
+  rating: entry.rating ?? score ?? null,
+}));
 
 export type GlobalRankingEntryInput = z.infer<typeof globalRankingEntrySchema>;
 

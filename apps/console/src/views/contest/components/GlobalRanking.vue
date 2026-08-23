@@ -10,6 +10,19 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+
+const rankingInitials = (ranking: GlobalRankingEntry): string => {
+  const source = ranking.name?.trim() || ranking.username;
+  return (
+    source
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "?"
+  );
+};
 </script>
 
 <template>
@@ -45,12 +58,17 @@ const { t } = useI18n();
               class="relative transition-transform duration-300 group-hover:-translate-y-1"
             >
               <img
-                :src="
-                  rankings[1].avatar ||
-                  'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
-                "
+                v-if="rankings[1].avatar"
+                :src="rankings[1].avatar"
+                :alt="rankings[1].username"
                 class="w-14 h-14 rounded-none border-2 border-[var(--border)] shadow-[2px_2px_0px_0px_var(--border)]"
               />
+              <div
+                v-else
+                class="flex w-14 h-14 items-center justify-center rounded-none border-2 border-[var(--border)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--border)]"
+              >
+                {{ rankingInitials(rankings[1]) }}
+              </div>
               <div class="absolute -bottom-2 w-full text-center">
                 <span
                   class="bg-muted text-foreground border border-border text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
@@ -99,12 +117,17 @@ const { t } = useI18n();
                 👑
               </div>
               <img
-                :src="
-                  rankings[0].avatar ||
-                  'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
-                "
+                v-if="rankings[0].avatar"
+                :src="rankings[0].avatar"
+                :alt="rankings[0].username"
                 class="w-16 h-16 rounded-none border-2 border-[var(--status-warning-mark)] shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
               />
+              <div
+                v-else
+                class="flex w-16 h-16 items-center justify-center rounded-none border-2 border-[var(--status-warning-mark)] bg-muted text-base font-black text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)]"
+              >
+                {{ rankingInitials(rankings[0]) }}
+              </div>
               <div class="absolute -bottom-2.5 w-full text-center">
                 <span
                   class="bg-surface-highlight text-foreground-strong border border-[var(--rank-first)] text-xxs px-2 py-0.5 rounded-none font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
@@ -148,12 +171,17 @@ const { t } = useI18n();
               class="relative transition-transform duration-300 group-hover:-translate-y-1"
             >
               <img
-                :src="
-                  rankings[2].avatar ||
-                  'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
-                "
+                v-if="rankings[2].avatar"
+                :src="rankings[2].avatar"
+                :alt="rankings[2].username"
                 class="w-14 h-14 rounded-none border-2 border-[var(--rank-third)] shadow-[2px_2px_0px_0px_var(--rank-third)]"
               />
+              <div
+                v-else
+                class="flex w-14 h-14 items-center justify-center rounded-none border-2 border-[var(--rank-third)] bg-muted text-sm font-black text-foreground shadow-[2px_2px_0px_0px_var(--rank-third)]"
+              >
+                {{ rankingInitials(rankings[2]) }}
+              </div>
               <div class="absolute -bottom-2 w-full text-center">
                 <span
                   class="bg-muted text-[var(--rank-third)] border border-[var(--rank-third)] text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
@@ -215,13 +243,17 @@ const { t } = useI18n();
               >{{ index + 4 }}</span
             >
             <div class="flex-1 flex items-center gap-2 min-w-0 text-left">
-              <img
-                :src="
-                  user.avatar ||
-                  'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
-                "
-                class="h-7 w-7 rounded-none bg-muted border border-border shrink-0"
-              />
+              <div
+                class="h-7 w-7 rounded-none bg-muted border border-border shrink-0 flex items-center justify-center text-2xs font-black text-foreground"
+              >
+                <img
+                  v-if="user.avatar"
+                  :src="user.avatar"
+                  :alt="user.username"
+                  class="h-full w-full rounded-none object-cover"
+                />
+                <span v-else>{{ rankingInitials(user) }}</span>
+              </div>
               <span
                 class="truncate text-sm font-medium group-hover:text-primary transition-colors"
               >

@@ -454,3 +454,88 @@
 - Completion: full startup exit 0; quick exit 0; services verify real
   `VERIFY_EXIT=0`; category filter returned 6/6; Compose dev/prod, graph refresh,
   documentation and migration contract checks passed. No commit/push/deploy.
+
+## 2026-08-23 Forum 500 schema repair
+
+- Reproduced Console proxy and direct App `GET /forum/posts?sortBy=hot` as
+  HTTP 500. App log identified `Unknown column 'is_deleted'`; direct schema
+  inspection showed legacy `forum_posts` had only six columns.
+- Added `V20260823170000__Align_Forum_Posts_With_Runtime_Contracts.sql` and
+  App migration preflight/fixture coverage for DROP and transient routine DDL.
+- First Owner safety attempt exposed the pre-existing App DROP privilege gap;
+  after updating the explicit migration contract, the disposable rehearsal
+  passed all Auth/App/grant isolation gates.
+- App migration, idempotent rerun, App tests, quick gate and all five Forum
+  sort modes passed; no applied migration was edited.
+
+## 2026-08-23 Forum DEV-LOCAL seed completion
+
+- Confirmed the empty page was a successful `200 code=0 total=0` response with
+  `app.forum_posts=0`, not a frontend failure.
+- Extended the unified App Owner seed Adapter with the canonical forum seed;
+  mapped the legacy admin subquery locally to avoid cross-Owner `users` reads.
+- Seeded 12 posts / 3 communities / 6 tags / 12 users; rerun preserved data.
+  Official full startup exit 0 retained the data, and all Forum sort modes
+  returned 200 with total 12.
+
+## 2026-08-23 Contest DEV-LOCAL seed completion
+
+- Reproduced Contest catalog, upcoming, running and past endpoints as HTTP 200
+  with `total=0`; App `contests` and `global_rankings` tables were empty.
+- Confirmed the App Contest schema matches the immutable contest and global
+  ranking seed columns. Extended the unified App Owner Adapter with one
+  transaction for both sources, complete/partial guards, fixture-only IDs and
+  a `+08:00` session clock alignment for the App `Asia/Shanghai` lifecycle.
+- First run populated 5 contests / 22 contest problems / 22 participants /
+  11 rankings / 51 problem results / 7 announcements / 10 global rankings;
+  second run preserved the complete fixture set.
+- Full `up.sh` startup completed with `Development stack is ready`; proxied
+  Contest catalog/upcoming/past/global-ranking APIs returned HTTP 200 and
+  non-empty totals. Browser DOM showed 2 upcoming contests, 10 rankings and 3
+  past contests.
+- Normalized backend `ContestRankingVO.score` to frontend `rating`; console
+  schema test 3/3, full console test 579/579, type-check, build, lint and
+  architecture/documentation/migration contract checks passed. No commit,
+  push, deploy or production action.
+- Context review found no confirmed correctness, ownership, transaction,
+  security, compatibility or test-quality findings; the stale graph coverage
+  probe was qualified and exact source was read directly.
+
+## 2026-08-23 Avatar fallback completion
+
+- Reproduced the personal avatar issue: `app.user_profiles` had zero rows and
+  `/users/by-username/admin/profile` returned no avatar field, so the Console
+  rendered initials.
+- Reused the existing `useAvatar` seam, preserving custom App profile URLs and
+  generating a deterministic local SVG data URL when the profile is empty.
+  Personal profile and sidebar user surfaces now share the same behavior.
+- Browser verification showed two visible `data:image/svg+xml` avatar images;
+  avatar tests 2/2, affected tests 14/14, full Console tests 581/581,
+  type-check, lint and production build passed. No Auth write, migration,
+  commit, push, deploy or production action.
+
+## 2026-08-23 Ranking avatar ownership completion
+
+- Confirmed the ranking fixture stored DiceBear URLs in `global_rankings.avatar`,
+  while App `user_profiles` was empty and is the canonical profile owner.
+- Changed public `GlobalRankingMapper` display projections to select `p.name`
+  and `p.avatar` by `account_id`; the legacy ranking avatar column is no longer
+  used for public display.
+- Kept the applied legacy seed immutable. The DEV-LOCAL seed Adapter strips the
+  known placeholder URLs and clears existing fixture placeholders. The Console
+  ranking shows a real profile avatar when present and initials when absent.
+- App module tests passed 1420/0/0/13; ranking/avatar tests 4/4; full Console
+  tests 582/582; type-check, lint, build, startup/API, docs, graph and diff
+  checks passed.
+
+## 2026-08-23 Solution seed completion
+
+- Reproduced the solution page empty state: `/api/api/problems/7/solutions`
+  returned HTTP 200 code 0 total=0, while App `solutions` had zero rows.
+- Extended the unified App Owner Adapter with the immutable solution seed in a
+  separate guarded transaction and mapped the legacy admin subquery locally.
+- First run populated 12 solutions; rerun preserved complete data. The feed
+  now returns 2 solutions for problem 7 and the detail endpoint returns 879
+  characters of Markdown content.
+- Browser DOM now shows both seeded solution cards; App/Console tests,
+  type-check, lint, build, startup, docs, graph, YAML and diff checks passed.

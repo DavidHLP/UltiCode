@@ -1678,3 +1678,190 @@ tasks:
   commits: []
   notes: Closes the App Owner portion of DB-CONVERGE-002 without claiming the broader legacy seed scan is removable.
   updated_at: '2026-08-23T18:45:00+08:00'
+- id: FORUM-SCHEMA-20260823
+  title: 对齐 App Owner forum_posts 运行时 schema contract
+  source:
+  - user request 2026-08-23: Forum posts API returns 500
+  - runtime log: forum_posts query references missing is_deleted
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - GET /api/forum/posts returns 200 through Console proxy and direct App endpoint
+  - App forum_posts schema matches ForumPost entity/mapper sort, soft-delete and write fields
+  - repair is additive and baseline-compatible; existing content and rows are preserved
+  - App migration preflight explicitly covers DROP and transient routine DDL requirements
+  validation:
+  - App Owner migration fresh disposable safety rehearsal
+  - App module tests
+  - current App migration idempotent rerun
+  - direct/proxy Forum API runtime checks
+  - contract, docs, graph and diff checks
+  rollback:
+  - application rollback keeps additive columns; no destructive rollback is required
+  - do not edit applied migrations; use a later corrective migration if needed
+  evidence:
+  - 'Logs reproduced Unknown column is_deleted in forum_posts; app table was the legacy six-column shape while ForumPost entity/mapper required the full contract'
+  - 'Added V20260823170000 additive baseline-compatible repair; existing content is preserved and excerpt is backfilled when present'
+  - 'App migration first run exit 0 at v20260823170000; idempotent rerun exit 0 with no migration necessary'
+  - 'Owner migration safety rehearsal exit 0: Auth/App migrations, grant isolation, and routine/table/global/role rejection all PASS'
+  - 'App module tests exit 0; quick gate exit 0; Forum hot/new/top/controversial/explore all return HTTP 200 code 0'
+  - 'Architecture, DevStack, Documentation, migration preflight, graph and diff checks PASS'
+  commits: []
+  notes: Root cause is the legacy V20260729140300 six-column forum_posts table surviving later CREATE IF NOT EXISTS repairs.
+  updated_at: '2026-08-23T19:35:00+08:00'
+- id: FORUM-SEED-20260823
+  title: 接入 DEV-LOCAL Forum canonical seed 数据
+  source:
+  - user request 2026-08-23: Forum page has no data and use new standard
+  - runtime proof: app.forum_posts=0, API 200 total=0
+  status: done
+  depends_on:
+  - FORUM-SCHEMA-20260823
+  owner: Codex
+  acceptance_criteria:
+  - unified App Owner seed entry hydrates forum posts, communities, tags and users in DEV-LOCAL
+  - legacy admin lookup is mapped locally without cross-Owner users reads
+  - forum seed is transactional, idempotent, preserves complete data and rejects partial data
+  - official up.sh startup retains forum seed and Forum API returns populated results
+  validation:
+  - seed first run and idempotent rerun
+  - full up.sh startup integration
+  - all Forum sort API runtime checks
+  - shell, documentation, graph and diff checks
+  rollback:
+  - run up.sh --skip-seed-data; no production seed or migration path is changed
+  evidence:
+  - 'Forum seed first run exit 0: forum_posts=12, forum_communities=3, forum_tags=6, forum_users=12'
+  - 'Forum seed rerun exit 0: existing forum data preserved'
+  - 'Full up.sh exit 0: seed adapter preserved forum data and stack ready'
+  - 'Forum hot/new/top/controversial/explore all HTTP 200 code 0 total=12'
+  - 'No cross-Owner users query remains in the DEV-LOCAL execution path; legacy admin fixture maps to forum_users'
+  commits: []
+  notes: Reuses immutable V20260603_120700 seed source; no applied migration edited.
+  updated_at: '2026-08-23T19:50:00+08:00'
+- id: CONTEST-SEED-20260823
+  title: 接入 DEV-LOCAL Contest canonical seed 数据
+  source:
+  - user request 2026-08-23: Contest page has no data and use new standard
+  - runtime proof: App contest catalog/upcoming/running/past APIs return HTTP 200 with total=0
+  - storage proof: App contests and global_rankings domains are empty
+  status: done
+  depends_on:
+  - APP-SEED-20260823
+  owner: Codex
+  acceptance_criteria:
+  - unified App Owner seed entry hydrates Contest tables and global rankings in DEV-LOCAL
+  - canonical sources execute only through the App Owner seed adapter without cross-Owner user reads
+  - contest seed is transactional, idempotent, preserves complete data and rejects partial data
+  - official up.sh startup retains contest data and Contest home APIs return populated results
+  - user-facing documentation and control-plane evidence describe the DEV-LOCAL-only seam
+  validation:
+  - seed first run and idempotent rerun
+  - full up.sh startup integration
+  - Contest catalog/upcoming/running/past/global ranking runtime checks
+  - full caller/contract/storage/transaction/security/diff review with Confirmed Findings=0
+  - shell, documentation, graph and diff checks
+  rollback:
+  - run up.sh --skip-seed-data; no production seed or migration path is changed
+  - do not edit applied migrations; remove only the DEV-LOCAL adapter extension if rollback is required
+  evidence:
+  - 'Contest catalog/upcoming/running/past APIs reproduced HTTP 200 code 0 total=0 before the fix; App contest and global-ranking tables were empty'
+  - 'Contest seed first run exit 0: contests=5, contest_problems=22, contest_participants=22, contest_rankings=11, contest_problem_results=51, contest_announcements=7, global_rankings=10'
+  - 'Contest seed rerun exit 0: complete existing data preserved'
+  - 'Official full up.sh reached Development stack is ready and retained Contest seed data'
+  - 'Contest catalog total=5, upcoming total=2, past total=3, global rankings total=10; browser DOM showed 2 upcoming, 10 rankings and 3 past contests'
+  - 'Contest schema regression 3/3; full Console regression 579/579; type-check, production build and targeted lint PASS'
+  - 'Architecture, DevStack, Documentation, migration preflight, shell/diff, timezone-session and graphify checks PASS'
+  commits: []
+  notes: Reuses immutable V20260604120000 and V20260604_130000 seed sources; no applied migration edited.
+  updated_at: '2026-08-23T20:30:00+08:00'
+- id: AVATAR-FALLBACK-20260823
+  title: 修复 Console 个人资料头像缺失 fallback
+  source:
+  - user request 2026-08-23: personal page shows initials instead of a concrete avatar
+  - runtime proof: App user_profiles is empty and profile avatar field is absent
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - custom App profile avatar remains the first-choice image
+  - missing profile avatar renders a deterministic local image without third-party network dependency
+  - Personal profile and authenticated sidebar surfaces use the same avatar seam
+  - Auth account ownership and App profile ownership remain unchanged
+  validation:
+  - read-only Auth/App profile endpoint and App user_profiles inspection
+  - browser DOM and visual evidence for personal profile avatar
+  - avatar unit test, full Console tests, type-check, lint and production build
+  - documentation, syntax, diff and control-plane checks
+  rollback:
+  - revert only the local avatar fallback integration; custom avatar/profile storage remains unchanged
+  evidence:
+  - 'App user_profiles row count was 0; /users/by-username/admin/profile returned no avatar field'
+  - 'useAvatar now preserves custom URLs and generates deterministic local SVG data URLs'
+  - 'Browser personal page rendered two concrete data:image/svg+xml avatars; no external avatar request is required'
+  - 'Avatar unit tests 2/2, affected tests 14/14, full Console tests 581/581, type-check/lint/build PASS'
+  commits: []
+  notes: Reuses the existing frontend avatar seam; no Auth table write, App migration or cross-Owner query added.
+  updated_at: '2026-08-23T22:00:00+08:00'
+- id: RANKING-AVATAR-20260823
+  title: 将排行榜头像切换为真实 App 用户资料来源
+  source:
+  - user request 2026-08-23: ranking avatars must come from real user data, not random values
+  - runtime proof: global_rankings.avatar contained DiceBear placeholders while App user_profiles was empty
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - public global-ranking projection reads avatar/name from App user_profiles by account_id
+  - immutable legacy ranking seed is not edited; DEV-LOCAL adapter strips known placeholder URLs
+  - frontend renders real profile avatar when present and honest initials when absent
+  - no Auth table write, runtime cross-Owner SQL read or random external avatar fallback remains
+  validation:
+  - App mapper SQL guard and affected App module tests
+  - DEV-LOCAL placeholder cleanup and API response verification
+  - ranking frontend tests, full Console tests, type-check, lint and production build
+  - full startup readiness, documentation, graph and diff checks
+  rollback:
+  - revert public projection and DEV-LOCAL normalization only; do not edit applied seed migration
+  evidence:
+  - 'GlobalRankingMapper public display queries now explicitly project p.name and p.avatar from App user_profiles; SQL guard and App module tests pass 1420/0/0/13'
+  - 'DEV-LOCAL App global_rankings placeholder avatars normalized to NULL; current API returns avatar=null and no DiceBear URL'
+  - 'GlobalRanking frontend uses profile avatar when supplied and initials when profile avatar is absent; no external ranking avatar URL remains'
+  - 'Frontend ranking/avatar tests 4/4, full Console tests 582/582, type-check/lint/build PASS'
+  - 'Official up.sh reached Development stack is ready; graph, docs, YAML and diff checks PASS'
+  commits: []
+  notes: Real avatars become visible after the corresponding App user profile is populated; missing profile data is not replaced with fabricated remote imagery.
+  updated_at: '2026-08-23T22:30:00+08:00'
+- id: SOLUTION-SEED-20260823
+  title: 接入 DEV-LOCAL Solution canonical seed 数据
+  source:
+  - user request 2026-08-23: solution page data is not displayed
+  - runtime proof: solution feed API returned HTTP 200 code 0 total=0
+  status: done
+  depends_on:
+  - APP-SEED-20260823
+  owner: Codex
+  acceptance_criteria:
+  - unified App Owner seed entry hydrates canonical solution content after App migrations
+  - solution seed is transactional, idempotent, preserves complete data and rejects partial data
+  - legacy admin lookup is locally mapped without runtime cross-Owner users reads
+  - solution list/detail API and browser page display real seeded Markdown content
+  - user-facing seed documentation and control-plane evidence are current
+  validation:
+  - seed first run and idempotent rerun
+  - solution feed/detail API checks
+  - browser DOM solution-card evidence
+  - shell, documentation, graph, YAML and diff checks
+  rollback:
+  - run up.sh --skip-seed-data; no production seed or migration path is changed
+  - do not edit applied migrations; remove only the DEV-LOCAL adapter extension if rollback is required
+  evidence:
+  - 'Before fix: /api/api/problems/7/solutions returned HTTP 200 code 0 total=0 and UI showed fallback System Note/提示'
+  - 'Solution seed first run exit 0: solutions=12; rerun preserved complete data'
+  - 'After fix: solution feed total=2/items=2 for problem 7; solution detail content length=879 with Markdown body'
+  - 'Browser DOM showed two solution cards: 分治法合并K个升序链表 and 最小堆合并K个升序链表'
+  - 'App/Console tests, type-check/lint/build, startup, docs, graph and diff checks PASS'
+  commits: []
+  notes: Reuses immutable V20260603_120400__Seed_Solutions_Test_Data.sql; no applied migration edited.
+  updated_at: '2026-08-23T23:00:00+08:00'

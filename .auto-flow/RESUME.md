@@ -328,3 +328,63 @@ DEV-LOCAL-only, transaction-backed, idempotent App Owner seed Adapter. Full
 startup, quick checks, backend verify, migration/contracts, runtime APIs and
 graph refresh passed. Worktree is uncommitted; no commit/push/deploy/production
 action is authorized.
+
+## 2026-08-23 Forum schema repair — terminal
+
+Active task: none. `FORUM-SCHEMA-20260823` is done.
+
+The App Owner `forum_posts` contract is repaired additively by
+`V20260823170000__Align_Forum_Posts_With_Runtime_Contracts.sql`; the migration
+principal preflight now declares the required App-only DROP/routine privileges.
+Fresh Owner safety, App tests, quick gate, idempotent migration rerun and direct
+and proxied Forum sort APIs pass. No applied migration was edited and no
+commit/push/deploy/production action is authorized.
+
+## 2026-08-23 Forum seed completion — terminal
+
+Active task: none. `FORUM-SEED-20260823` is done.
+
+The unified DEV-LOCAL App Owner seed now hydrates both problemset and Forum
+domains in separate guarded transactions. Forum seed data is present after the
+official full startup path; the Console Forum API returns 12 posts. No
+production path, applied migration or cross-Owner runtime read was added.
+
+## 2026-08-23 Contest seed completion — terminal
+
+Active task: none. `CONTEST-SEED-20260823` is done.
+
+The unified DEV-LOCAL App Owner seed now hydrates Contest and global-ranking
+fixtures in one guarded transaction. The full startup path populated 5 contests
+and 10 global rankings; proxied Contest APIs and the browser Contest home page
+show non-empty upcoming, ranking and past data. The frontend ranking seam maps
+the backend `score` field to `rating`. No production path, applied migration or
+cross-Owner runtime read was added; worktree remains uncommitted.
+
+## 2026-08-23 Avatar fallback completion — terminal
+
+Active task: none. `AVATAR-FALLBACK-20260823` is done.
+
+The Console now preserves custom App profile avatars and uses a deterministic
+local SVG fallback for missing profiles. Personal profile and sidebar surfaces
+render concrete images without third-party avatar requests. Browser, unit/full
+Console tests, type-check, lint and build passed; no Auth/App schema mutation or
+production action was performed.
+
+## 2026-08-23 Ranking avatar ownership — terminal
+
+Active task: none. `RANKING-AVATAR-20260823` is done.
+
+Public ranking display now reads avatar/name from App `user_profiles`; legacy
+DiceBear ranking placeholders are stripped in DEV-LOCAL and the applied source
+remains untouched. Console uses real profile avatars when available and honest
+initials when no App profile exists. App/Console tests, build, startup/API and
+contract checks passed; no Auth data or production state changed.
+
+## 2026-08-23 Solution seed completion — terminal
+
+Active task: none. `SOLUTION-SEED-20260823` is done.
+
+The DEV-LOCAL App Owner seed now hydrates canonical solution Markdown after
+Owner migrations. Problem 7 exposes two solution cards and detail content;
+seed execution is transactional, idempotent and fail-closed on partial data.
+No applied migration, production path or runtime cross-Owner query changed.

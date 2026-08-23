@@ -59,6 +59,11 @@ direct grants so the preflight and Flyway use the same effective privileges.
 This avoids depending on session default-role activation or `mysql.role_edges`
 visibility; role-based migration identities need a separately scoped task.
 
+The current App Owner compatibility repairs also require direct `DROP`,
+`CREATE ROUTINE` and `ALTER ROUTINE` on `app.*` for table rebuilds and the
+transient guarded DDL helper. The preflight checks these privileges only for
+`MIGRATION_SCHEMA=app`; they are not granted to the App runtime account.
+
 When the development host does not have the `mysql` CLI, set
 `MIGRATION_MYSQL_CONTAINER` to the explicit local MySQL container name and
 optionally `MIGRATION_MYSQL_CONTAINER_PORT` (default `3306`). The read-only
@@ -127,7 +132,8 @@ provides **fresh-install** convergence without rewriting history:
 
 - **Baseline**: `init-db/baseline/baseline.sql` (generated, not Flyway source) + `init-db/scripts/generate-baseline.sh` / `validate-baseline.sh`. See `init-db/baseline/README.md`. Fresh-install via baseline avoids re-running legacy seed migrations on new databases.
 - **Seed isolation (new seeds only)**: New seeds go to `init-db/migrations/seed/` (dev/test only). Legacy `V20260603*` etc. remain on the shared chain (`flyway.conf`) for backward compatibility — incremental `migrate` still scans them (already applied). See `init-db/migrations/seed/README.md` for the seam table and for the correct per-schema baseline constraints (`MIGRATION_SCHEMA` required).
-- **App Owner DEV-LOCAL seed**: `init-db/scripts/app-owner-seed.sh` reuses the immutable problemset seed sources after App Owner migrations, guarded by `DEV_LOCAL_SEED_DATA_ENABLED=true`; it preserves non-empty/partial `app` data and is never called by production Compose.
+- **App Owner DEV-LOCAL seed**: `init-db/scripts/app-owner-seed.sh` reuses immutable problemset, forum, contest, global-ranking and solution seed sources after App Owner migrations, guarded by `DEV_LOCAL_SEED_DATA_ENABLED=true`; it preserves complete `app` data, maps legacy admin fixtures locally, uses fixture IDs without runtime cross-Owner reads, fails closed on partial data, and is never called by production Compose.
+- **App Forum schema repair**: `app/V20260823170000__Align_Forum_Posts_With_Runtime_Contracts.sql` is an additive, baseline-compatible repair for the legacy six-column `forum_posts` table; it preserves `content`/existing rows and aligns soft-delete, sort, JSON and excerpt fields used by the runtime.
 - **Owner ownership**: `init-db/scripts/owner-migrate.sh` is the deep module interface `migrate(owner)` / `validate(owner)` / `info(owner)`. The supported orchestration `scripts/dev/up.sh` delegates owner migrations through this seam. Direct `scripts/dev/migrate.sh` with `MIGRATION_SCHEMA` remains the low-level primitive.
 
 For AI: read `baseline.sql` for the converged final schema; consult `migrations/` only for historical intent.

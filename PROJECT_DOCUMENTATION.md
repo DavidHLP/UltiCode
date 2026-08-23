@@ -80,7 +80,7 @@ Judge 执行库归属，而不是 App 私有业务包。`RunSubmissionDTO`、`Ru
 和 `CodeExecutionPort` 暂保留在现有 `app-api` 试运行兼容合同中；本次不搬迁
 公共类型，也不因此新增进程或持久化依赖。
 
-生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。完整 DEV-LOCAL 启动在 Owner migration 后通过 `init-db/scripts/app-owner-seed.sh` 幂等导入 App problemset seed；该 Adapter 只写空的 App Owner schema，遇到非空或部分数据 fail-closed，不进入生产 Compose/Owner Flyway 主链。
+生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。完整 DEV-LOCAL 启动在 Owner migration 后通过 `init-db/scripts/app-owner-seed.sh` 分域、幂等导入 App problemset/forum/contest/solution 与 global-ranking seed；该 Adapter 按领域组分别处理空/完整/部分状态，不进入生产 Compose/Owner Flyway 主链。Contest 事务同时导入竞赛和全球排名 canonical fixtures，只使用 App Owner 表与 fixture ID，不通过运行时跨 Owner 查询用户。
 
 ##### 2.2 Contract Seam
 
@@ -443,7 +443,7 @@ flowchart LR
 |---|---|---|
 | WebSocket | STOMP + SockJS + JVM 内 SimpleBroker；端点 `/ws/contest`、`/ws/notifications`、`/ws` | App 初期单实例或粘性会话；多实例前需外部广播/relay |
 | 判题队列 | Normal dev-lite/dev-full 使用 Redis Streams `JudgeQueue`、generation fence、lease/reaper、`judge_outbox`；legacy Redisson `RQueue` 仅作显式 rollback seam | 保留 wire/ACK/NACK/回滚兼容；不引入新 MQ |
-| 文件 | 头像写硬编码相对路径 `uploads/avatars/`；备份写本地目录 | App 水平扩展前引入 `FileStoragePort` 与对象存储；备份由 Admin/Ops 管理 |
+| 文件 | 头像写硬编码相对路径 `uploads/avatars/`；未设置自定义头像时 Console 使用确定性的本地 SVG fallback；备份写本地目录 | App 水平扩展前引入 `FileStoragePort` 与对象存储；备份由 Admin/Ops 管理 |
 | Async | 成就、关注、备份使用 `@Async`，未见显式业务线程池 | 跨服务改 durable event；服务内配置有界线程池 |
 | Scheduled | Contest、judge worker/outbox/reaper、backup、notification ledger、WS flush 等共用调度池 | 每个任务归 Owner；多副本使用 CAS/lease/Redisson lock 防重复 |
 | 邮件 | SMTP 管道，默认关闭；写 email log 后同步发 SMTP | 改 intent/outbox + worker；Auth 的密码重置邮件不依赖 App RPC |
@@ -715,7 +715,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 | `forum_posts` | forum；admin/moderation 直接写，search 读 | App | Admin/Search | App I；Admin C/Q；Search E |
 | `forum_tags` | forum；admin tag 管理 | App | Admin | App I；Admin C/Q |
 | `forum_users` | forum 的身份投影 | App | Forum | Auth Account event → App I |
-| `global_rankings` | contest rating/ranking；SQL join users | App | Admin/App | I；身份显示用 profile 投影 |
+| `global_rankings` | contest rating/ranking facts；display name/avatar read from App `user_profiles` | App | Admin/App | I；身份显示只走 App profile projection |
 | `judge_outbox` | Submission 写，queue dispatcher/reaper 更新 | Submission | Submission/Judge worker | 与 submission 同 Owner DB I；不跨服务 SQL |
 | `moderation_actions` | moderation | Admin | Admin | I |
 | `moderation_queue` | moderation，引用多种 App 内容 | Admin | App 内容 Owner | Admin I；App C/Q/E |
@@ -768,6 +768,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 ##### 5.1 当前 schema 风险必须先处理
 
 - `Backup.java:16` 映射 `backups`，Backup Service 执行 CRUD；canonical migration `V20260724162738__Create_Backups_Table.sql` 已定义 `CREATE TABLE backups`（enum 状态/类型 + JSON metadata + 索引），schema drift 已收敛。不再需要新增 migration。
+- App Owner 的旧 `forum_posts` 六列 bootstrap shape 已由后置 `V20260823170000__Align_Forum_Posts_With_Runtime_Contracts.sql` additive 对齐到 ForumPost entity/mapper contract；保留旧 `content` 兼容列并回填 `excerpt`，不删除既有行。
 - 基线 migration 的 `problem_notes` 只有 `id/problem_id/user_id/content/updated_at`；后续 `CREATE TABLE IF NOT EXISTS` 期望 `create_time/update_time`、`varchar(36) user_id`、`MEDIUMTEXT content` 和两个 FK，但因表已存在而完全不生效。当前 `ProblemNote` Entity 映射 `create_time/update_time`。新的 ALTER migration 应保留项目通用的 `varchar(40) user_id`，从 `updated_at` 回填时间列，先扫描孤儿引用再增加 FK；`content` 只做兼容性扩宽，不能缩窄现有 ID 类型。
 - migration-only 表不能根据“源码未调用”直接 DROP；先查询生产行数、最近写入和保留要求，再归档/退役。
 - 物理 FK 很少，跨域逻辑引用很多。拆库前需以主键 checksum、孤儿引用扫描和应用级 reconciliation 替代“数据库会帮忙发现”。

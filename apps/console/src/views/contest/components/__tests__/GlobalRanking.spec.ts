@@ -34,4 +34,23 @@ describe("GlobalRanking", () => {
       true,
     );
   });
+
+  it("uses the real profile avatar when supplied", () => {
+    const withAvatars = rankings.map((ranking) => ({
+      ...ranking,
+      avatar: `/avatars/${ranking.username}.png`,
+    }));
+    const wrapper = mount(GlobalRanking, { props: { rankings } });
+    const realAvatarWrapper = mount(GlobalRanking, {
+      props: { rankings: withAvatars },
+    });
+
+    expect(wrapper.findAll("img")).toHaveLength(0);
+    expect(wrapper.text()).toContain("U1");
+    expect(realAvatarWrapper.findAll("img").map((node) => node.attributes("src"))).toEqual([
+      "/avatars/user-2.png",
+      "/avatars/user-1.png",
+      "/avatars/user-3.png",
+    ]);
+  });
 });

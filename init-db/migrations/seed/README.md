@@ -24,13 +24,24 @@ This seam is **executable** but only covers new seeds:
 
 Place new seeds as `V{timestamp}__*.sql` or `R__*.sql` in this directory; they will be picked up only via the seed config. Legacy seeds cannot be moved without breaking `flyway_schema_history` on deployed databases.
 
-## App Owner DEV-LOCAL problemset seed
+## App Owner DEV-LOCAL domain seed
 
 The supported local startup path also runs
 `init-db/scripts/app-owner-seed.sh` after the App Owner migration. It executes
-the immutable historical problemset seed sources against the `app` schema only,
-inside one transaction, and only when both `problems` and `problem_lists` are
-empty. Existing or partial data is never overwritten automatically.
+the immutable historical problemset, forum, contest and solution seed sources against the
+`app` schema only, in separate transactions per domain. The contest transaction
+also hydrates `global_rankings`, because the Contest home page reads both the
+contest catalog and the global leaderboard. Each domain seeds only when its
+tables are empty. Existing complete data is preserved, while partial data
+causes a fail-closed abort. The legacy forum seed's one `users.admin` lookup is
+mapped to the stable `forum_users` fixture locally, and the contest sources use
+fixture IDs directly. The Contest transaction pins only its MySQL session to
+`+08:00` so `NOW()`-relative windows match the App's `Asia/Shanghai` clock; it
+does not change the database-global timezone or production configuration. The
+legacy ranking seed's DiceBear placeholders are stripped by the DEV-LOCAL
+adapter, and public ranking reads take avatars from App `user_profiles`; when
+no real profile avatar exists, Console shows initials rather than inventing a
+remote image. The new App Owner path performs no cross-Owner read.
 
 This adapter is guarded by `DEV_LOCAL_SEED_DATA_ENABLED=true` and is invoked by
 `scripts/dev/up.sh`; it is not part of the production Compose or Owner Flyway

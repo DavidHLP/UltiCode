@@ -14,13 +14,19 @@ import {
 } from "lucide-vue-next";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { computed } from "vue";
 import type { ProfileData } from "@/api/user";
+import { useAvatar } from "@/composables/useAvatar";
 
-defineProps<{
+const props = defineProps<{
   user: ProfileData;
 }>();
 
 const { t } = useI18n();
+const { normalizedAvatar } = useAvatar(
+  computed(() => props.user.username),
+  computed(() => props.user.avatar),
+);
 </script>
 
 <template>
@@ -43,7 +49,7 @@ const { t } = useI18n();
           <Avatar
             class="h-24 w-24 border-4 border-background shadow-[var(--shadow-float)] relative rounded-none"
           >
-            <AvatarImage :src="user.avatar" :alt="user.name" />
+            <AvatarImage :src="normalizedAvatar" :alt="user.name" />
             <AvatarFallback class="text-xl font-bold bg-muted rounded-none">{{
               user.username.substring(0, 2).toUpperCase()
             }}</AvatarFallback>

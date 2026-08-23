@@ -29,6 +29,7 @@ import { RouterLink } from "vue-router";
 import { ProblemEdgeOperations } from "@/components/edge-operations";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
+import { useAvatar } from "@/composables/useAvatar";
 import ContestProblemDock from "../components/ContestProblemDock.vue";
 
 interface Props {
@@ -77,15 +78,13 @@ const selectedLayout = computed({
 });
 
 // --- Current user avatar (for the top-right user entry) ---
-// We deliberately do not fall back to a third-party avatar service: the
-// signed-in user is the source of truth for their own photo, and an external
-// network dependency would be brittle and visually inconsistent with the
-// terminal theme. The initials fallback below is the universal "no avatar"
-// state, matching the other signed-in surfaces in the app.
-const currentUserAvatarUrl = computed<string>(() => {
-  const url = authStore.user?.avatar;
-  return url && url.trim().length > 0 ? url : "";
-});
+// Custom App profile avatars win; useAvatar supplies a local deterministic
+// SVG when the profile has no photo, so the header never depends on a remote
+// avatar service and stays consistent with the personal profile surface.
+const { normalizedAvatar: currentUserAvatarUrl } = useAvatar(
+  computed(() => authStore.userName),
+  computed(() => authStore.user?.avatar),
+);
 const currentUserInitial = computed(() =>
   (authStore.userName || "?").charAt(0).toUpperCase(),
 );

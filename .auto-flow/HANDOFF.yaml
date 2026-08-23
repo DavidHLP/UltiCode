@@ -1,22 +1,29 @@
 outcome: complete
 outputs:
-- 'APP-SEED-20260823 Completion/Coverage Audit: acceptance, review, validation and rollback gates passed'
-- 'DEV-LOCAL App Owner seed Adapter: init-db/scripts/app-owner-seed.sh'
-- 'DevStack integration: scripts/dev/up.sh --skip-seed-data contract and default seed path documented'
-- 'Docs synchronized: README.md, init-db/README.md, init-db/migrations/seed/README.md, PROJECT_DOCUMENTATION.md'
-- 'Control plane persisted: TASKS.yaml, COVERAGE.md, DECISIONS.md, RESUME.md, WORKLOG.md'
+- 'CONTEST-SEED-20260823 Completion/Coverage Audit: acceptance, review, validation and rollback gates passed'
+- 'Unified App Owner seed Adapter now hydrates problemset, Forum, Contest and global-ranking domains'
+- 'Contest and global-ranking canonical sources execute in one App Owner transaction with local fixture IDs'
+- 'Backend ContestRankingVO.score is normalized to frontend rating at the schema seam'
+- 'AVATAR-FALLBACK-20260823: shared local SVG avatar fallback integrated into Personal and sidebar surfaces'
+- 'RANKING-AVATAR-20260823: public ranking display now reads App profile avatars and strips legacy placeholders'
+- 'SOLUTION-SEED-20260823: canonical App Owner solution Markdown seed integrated'
+- 'Docs and control plane synchronized; no applied migration or production path changed'
 evidence:
-- 'Seed first run exit 0: 6 problems, 6 published, 9 problem lists, 7 featured lists'
-- 'Seed second run exit 0: existing data preserved; disabled guard exit 2'
-- 'Full DevStack explicit Owner/Judge/frontend startup exit 0'
-- 'Quick gate exit 0: backend, auth-core 70/0/0, console 578/0/0, management 423/0/0 and type checks'
-- 'Services verify captured real VERIFY_EXIT=0 and BUILD SUCCESS'
-- 'App APIs: list total 6, overview featured 7, random 200, algorithms category total 6'
-- 'DevStack, Architecture, Documentation and migration preflight contracts PASS; Compose dev/prod config exit 0'
-- 'graphify update completed; git diff --check PASS'
+- 'Contest catalog/upcoming/running/past APIs reproduced HTTP 200 code 0 total=0 before the fix; App contest and global-ranking tables were empty'
+- 'Contest seed first run exit 0: contests=5, contest_problems=22, contest_participants=22, contest_rankings=11, contest_problem_results=51, contest_announcements=7, global_rankings=10'
+- 'Contest seed rerun exit 0: complete existing data preserved'
+- 'Official full up.sh reached Development stack is ready and retained Contest seed data'
+- 'Contest catalog total=5, upcoming total=2, past total=3, global rankings total=10; browser DOM showed 2 upcoming, 10 rankings and 3 past contests'
+- 'Contest schema regression 3/3; full Console regression 579/579; type-check, production build and targeted lint PASS'
+- 'Context review: Confirmed Findings=0 across correctness, ownership, transaction, security, compatibility and test quality'
+- 'App user_profiles was empty; browser rendered two concrete data:image/svg+xml avatars after the fallback change'
+- 'Avatar tests 2/2, affected tests 14/14, full Console tests 581/581, type-check, lint and build PASS'
+- 'App module tests 1420/0/0/13; ranking/avatar tests 4/4; full Console tests 582/582; API returns no DiceBear avatar URL'
+- 'Solution feed total=2/items=2 for problem 7; detail content length=879; browser DOM shows two solution cards'
+- 'Architecture, DevStack, Documentation, migration preflight, shell/diff, timezone-session and graphify checks PASS'
 next_goal: ''
 next_skill: none
-reason: App Owner schema now receives DEV-LOCAL problemset seed data through a guarded, idempotent adapter without changing production migrations or frontend contracts.
+reason: The requested local UI issues are resolved through the existing App Owner and frontend seams; ranking avatars follow real App profile data and solution pages now load canonical Markdown content without changing production ownership or runtime cross-Owner reads.
 alternatives: []
 blockers: []
 authority:

@@ -40,6 +40,7 @@ import { useRouter } from "vue-router";
 import { toast } from "vue-sonner";
 import { useNotificationStore } from "@/stores/notification";
 import { useAuthStore } from "@/stores/auth";
+import { useAvatar } from "@/composables/useAvatar";
 
 const { user, isAuthenticated } = defineProps<{
   user: {
@@ -56,6 +57,10 @@ const { isMobile } = useSidebar();
 const router = useRouter();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
+const { normalizedAvatar } = useAvatar(
+  computed(() => user.name),
+  computed(() => user.avatar),
+);
 const unreadCount = computed(() => notificationStore.unreadCount);
 const unreadLabel = computed(() =>
   unreadCount.value > 99 ? "99+" : `${unreadCount.value}`,
@@ -171,7 +176,7 @@ async function handleLogout() {
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="h-8 w-8 rounded-none">
-              <AvatarImage :src="user.avatar" :alt="user.name" />
+              <AvatarImage :src="normalizedAvatar" :alt="user.name" />
               <AvatarFallback class="rounded-none">
                 {{ user.name.substring(0, 2).toUpperCase() }}
               </AvatarFallback>
@@ -192,7 +197,7 @@ async function handleLogout() {
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-none">
-                <AvatarImage :src="user.avatar" :alt="user.name" />
+                <AvatarImage :src="normalizedAvatar" :alt="user.name" />
                 <AvatarFallback class="rounded-none">
                   {{ user.name.substring(0, 2).toUpperCase() }}
                 </AvatarFallback>

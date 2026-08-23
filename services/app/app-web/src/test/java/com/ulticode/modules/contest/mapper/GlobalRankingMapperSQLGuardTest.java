@@ -19,7 +19,7 @@ class GlobalRankingMapperSQLGuardTest {
     void displayQueriesUseUserProfiles() {
         List<Method> displayQueries = Arrays.stream(GlobalRankingMapper.class.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Select.class))
-                .filter(method -> joinedSql(method).contains("g.*"))
+                .filter(method -> joinedSql(method).contains("user_profiles"))
                 .filter(method -> !joinedSql(method).contains("for update"))
                 .toList();
 
@@ -30,6 +30,7 @@ class GlobalRankingMapperSQLGuardTest {
                     .as("%s must read profile display data from user_profiles", method.getName())
                     .contains("left join user_profiles p on g.user_id = p.account_id")
                     .contains("p.name")
+                    .contains("p.avatar")
                     .doesNotContain("u.name");
         }
     }

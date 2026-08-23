@@ -54,7 +54,7 @@ Options:
   --skip-migrate       跳过 Flyway 迁移
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
-  --skip-seed-data     跳过 DEV-LOCAL App Owner 题目/题单种子数据
+  --skip-seed-data     跳过 DEV-LOCAL App Owner 题目/题单/论坛/竞赛/题解种子数据
   --only <apps>        只起指定 PM2 app, 逗号分隔
                        (如 auth,admin,app,submission,notification,judge,search 或 9101,9102; 前端仍可用 9002/9003)
   --no-frontend        不起前端 (dev-lite 等同六个后端；dev-full 另含 Search)
@@ -374,7 +374,7 @@ fi
 # ===== 步骤 3.5: DEV-LOCAL App Owner seed data =====
 # The seed adapter reuses immutable historical test-data SQL, but is never
 # part of the production Owner Flyway chain. It only runs for a full start
-# that includes backend-app and refuses partial/non-empty data states.
+# that includes backend-app and refuses partial/incomplete data states.
 if [[ "$FRONTEND_ONLY" != true \
   && "$SKIP_MIGRATE" != true \
   && "$SKIP_SEED_DATA" != true \
@@ -388,6 +388,8 @@ if [[ "$FRONTEND_ONLY" != true \
     MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
     MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
     MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" \
+    DEV_LOCAL_SEED_ALLOW_REMOTE="${DEV_LOCAL_SEED_ALLOW_REMOTE:-false}" \
+    APP_DB_USER="${APP_DB_USER:-app_rw}" \
     "$ROOT_DIR/init-db/scripts/app-owner-seed.sh" migrate
 else
   echo "Skipping DEV-LOCAL App Owner seed data (--skip-seed-data / --skip-migrate / --quick / --frontend-only / disabled / App not selected)."

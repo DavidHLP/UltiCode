@@ -197,6 +197,15 @@ owner_preflight() {
     has_grant_privilege "$effective_grants" "$required_privilege" \
       || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': $required_privilege"
   done
+  if [[ "$MIGRATION_SCHEMA" == "app" ]]; then
+    # The App forum compatibility repair uses a transient stored procedure to
+    # build guarded ALTER statements. Keep this capability explicit and
+    # owner-scoped instead of silently relying on a global superuser grant.
+    for required_privilege in DROP "CREATE ROUTINE" "ALTER ROUTINE"; do
+      has_grant_privilege "$effective_grants" "$required_privilege" \
+        || fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': $required_privilege"
+    done
+  fi
   if ! has_grant_option "$schema_grants"; then
     if ! has_global_owner_superset "$current_user_name" "$global_grants"; then
       fail_preflight "required migration privilege missing on '$MIGRATION_SCHEMA': GRANT OPTION"

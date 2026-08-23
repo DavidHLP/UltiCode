@@ -474,8 +474,8 @@ random-problem reads return no data / 404.
 Add `init-db/scripts/app-owner-seed.sh` as a DEV-LOCAL seed Adapter invoked by
 `scripts/dev/up.sh` after Owner migrations. Reuse the immutable historical
 problemset seed sources, execute them in one transaction against `app`, and
-only seed when both `problems` and `problem_lists` are empty. Existing or
-partial data is preserved or rejected fail-closed.
+only seed when the problemset tables are empty. Existing complete data is
+preserved, while partial/incomplete data is rejected fail-closed.
 
 ### Alternatives rejected
 
@@ -491,3 +491,153 @@ partial data is preserved or rejected fail-closed.
 `--skip-seed-data` disables the local step; no schema migration, production
 Compose path, grant, cutover, commit or deploy is changed. Evidence is
 development/TEST-TARGET only.
+
+## 2026-08-23 App Owner Forum schema repair
+
+### Context
+
+`app.forum_posts` was created by the old six-column App bootstrap migration.
+The current Forum entity, mapper and projection use soft-delete, sort counters,
+JSON payloads, excerpt, update and moderation fields, so the public read path
+failed with `Unknown column 'is_deleted'` before it could return an empty page.
+
+### Decision
+
+Add the later `app/V20260823170000__Align_Forum_Posts_With_Runtime_Contracts.sql`
+as an additive, baseline-compatible repair. It preserves the legacy `content`
+column and rows, backfills `excerpt`, adds the missing runtime columns/indexes,
+and uses guarded dynamic DDL so both stale and already-expanded schemas pass.
+The App migration preflight explicitly requires `DROP`, `CREATE ROUTINE` and
+`ALTER ROUTINE` because existing App repair migrations rebuild stale tables and
+the new migration uses a transient DDL procedure; the App runtime account does
+not receive these privileges.
+
+### Rejected alternatives
+
+- Do not edit the applied six-column migration or rebuild/drop `forum_posts`.
+- Do not remove `is_deleted` predicates from Forum code; they are part of the
+  soft-delete interface and are used by multiple callers.
+- Do not broaden runtime App grants; migration-only capabilities stay on the
+  explicit migration principal and are covered by fresh safety rehearsal.
+
+## 2026-08-23 DEV-LOCAL Forum seed
+
+### Decision
+
+Extend the existing `app-owner-seed.sh` Adapter with a separate Forum seed
+group using immutable `V20260603_120700__Seed_Forum_Posts_Per_User.sql`. The
+problemset and Forum domains seed in separate transactions; each requires an
+empty domain and skips only a complete domain, while partial data fails closed.
+
+The legacy seed's single `users.admin` lookup is transformed at the DEV-LOCAL
+Adapter seam to the stable `forum_users` admin fixture. This preserves Owner
+database isolation and avoids restoring an App-to-Auth SQL dependency.
+
+### Consequences
+
+The standard `up.sh` path now supplies 12 forum posts, 3 communities, 6 tags
+and 12 forum users in a fresh DEV-LOCAL App schema. Production Compose and
+Owner Flyway paths remain unchanged; `--skip-seed-data` remains the rollback/
+opt-out seam.
+
+## 2026-08-23 DEV-LOCAL Contest seed
+
+### Context
+
+The App Owner contest schema was migrated but its `contests`, related contest
+tables and `global_rankings` were empty. The public Contest endpoints correctly
+returned HTTP 200 with empty pages, so the missing data was a bootstrap seam
+gap rather than a frontend or route failure. The Contest home page consumes
+both the catalog and global ranking projection.
+
+### Decision
+
+Extend the existing `app-owner-seed.sh` Adapter with one atomic Contest domain
+transaction that executes the immutable contest and global-ranking sources
+against the `app` schema. The group seeds only when all required data tables are
+empty, skips only a complete fixture set, and fails closed on partial or
+incomplete data. The canonical fixture IDs are retained; no Auth `users` table
+read is introduced. Set the MySQL session timezone to `+08:00` inside this
+DEV-LOCAL transaction so `NOW()`-relative contest windows match the App's
+`Asia/Shanghai` clock without changing global DB or production configuration.
+
+The frontend schema normalizes the backend `ContestRankingVO.score` wire field
+to the stable `rating` field consumed by ranking components.
+
+### Consequences and rollback
+
+The supported full `up.sh` path populates the Contest home page while preserving
+existing complete App data. `--skip-seed-data` remains the opt-out/rollback
+seam; no applied migration, production Compose path or runtime cross-Owner
+query changes.
+
+## 2026-08-23 Console avatar fallback
+
+### Context
+
+The App-owned `user_profiles` table was empty for the local administrator, so
+the profile read returned no avatar and the personal page fell back to plain
+initials. Auth correctly owns account identity only; adding avatar columns or
+reading Auth profile fields would violate the current ownership split.
+
+### Decision
+
+Reuse the existing frontend `useAvatar` seam. A stored App profile avatar stays
+authoritative; when absent, the seam creates a deterministic local SVG data URL
+from the username. Personal profile and sidebar surfaces consume the same
+fallback, so the UI has a concrete image without a third-party network request,
+new storage, or cross-Owner read.
+
+### Consequences and rollback
+
+Custom uploads remain unchanged and continue to override the fallback. The
+change is frontend-only and reversible by removing the fallback integration;
+no migration or Auth data mutation is required.
+
+## 2026-08-23 Ranking avatar ownership
+
+### Context
+
+The immutable global-ranking fixture stored DiceBear URLs directly in
+`global_rankings.avatar`, while the real profile source is App
+`user_profiles(account_id, avatar)`. This made ranking display data diverge from
+the profile ownership contract.
+
+### Decision
+
+Keep ranking rows focused on rating facts and make all public ranking display
+queries explicitly project `name` and `avatar` from App `user_profiles`. The
+legacy applied seed remains unchanged; the DEV-LOCAL Adapter strips its known
+DiceBear placeholders and clears existing local fixture placeholders. Console
+uses a stored profile avatar when present and initials when absent, never a
+fabricated remote ranking image.
+
+### Consequences and rollback
+
+A real App profile avatar becomes visible automatically in all global-ranking
+surfaces. If no profile exists, initials accurately represent missing data.
+Rollback is limited to the projection/DEV-LOCAL adapter changes; no Auth table,
+applied migration or runtime cross-Owner query is introduced.
+
+## 2026-08-23 DEV-LOCAL Solution seed
+
+### Context
+
+The App solution schema existed but contained no rows. The public solution feed
+returned a successful empty page, so the Console rendered its editorial
+fallback instead of Markdown solution content.
+
+### Decision
+
+Extend the existing App Owner seed Adapter with a separate Solution transaction
+using immutable `V20260603_120400__Seed_Solutions_Test_Data.sql`. Seed only an
+empty `solutions` table, preserve a complete set of 12 rows, and fail closed on
+partial data. Transform the legacy admin lookup to the stable local fixture
+identity at the Adapter seam; do not restore a runtime or App-to-Auth SQL
+lookup.
+
+### Consequences and rollback
+
+The supported DEV-LOCAL startup path now exposes real seeded Markdown solution
+cards and detail content. `--skip-seed-data` remains the opt-out seam; no
+applied migration or production path changes.

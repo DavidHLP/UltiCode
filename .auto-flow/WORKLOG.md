@@ -440,3 +440,17 @@
   deletion scope is exact, and all required documentation gates pass.
 - No commit, push, publish, deploy or external resource mutation was performed;
   final delivery is an uncommitted worktree with a recoverable Git diff.
+
+## 2026-08-23 App Owner problemset seed repair
+
+- Reproduced `app.problems=0` and `app.problem_lists=0`; legacy `ulticode`
+  contained 6 problems and 9 lists. App Owner Flyway locations intentionally
+  exclude the historical shared seed files.
+- Added a DEV-LOCAL-only App Owner seed Adapter and wired it after Owner
+  migrations in `up.sh`; no applied migration or production path changed.
+- Real seed run passed with 6 problems / 6 published / 9 lists / 7 featured;
+  second run skipped and preserved existing data. API recheck returned 200 for
+  list, overview and random endpoints.
+- Completion: full startup exit 0; quick exit 0; services verify real
+  `VERIFY_EXIT=0`; category filter returned 6/6; Compose dev/prod, graph refresh,
+  documentation and migration contract checks passed. No commit/push/deploy.

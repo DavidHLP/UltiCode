@@ -199,6 +199,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=
 
 # Fixed credentials for the disposable local development database only.
 DEV_SEED_USERS_ENABLED=true
+DEV_SEED_DATA_ENABLED=true
 DEV_SEED_ADMIN_USERNAME=admin
 DEV_SEED_ADMIN_EMAIL=admin@localhost.test
 DEV_SEED_ADMIN_PASSWORD=admin123

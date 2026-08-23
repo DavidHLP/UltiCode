@@ -127,6 +127,7 @@ provides **fresh-install** convergence without rewriting history:
 
 - **Baseline**: `init-db/baseline/baseline.sql` (generated, not Flyway source) + `init-db/scripts/generate-baseline.sh` / `validate-baseline.sh`. See `init-db/baseline/README.md`. Fresh-install via baseline avoids re-running legacy seed migrations on new databases.
 - **Seed isolation (new seeds only)**: New seeds go to `init-db/migrations/seed/` (dev/test only). Legacy `V20260603*` etc. remain on the shared chain (`flyway.conf`) for backward compatibility — incremental `migrate` still scans them (already applied). See `init-db/migrations/seed/README.md` for the seam table and for the correct per-schema baseline constraints (`MIGRATION_SCHEMA` required).
+- **App Owner DEV-LOCAL seed**: `init-db/scripts/app-owner-seed.sh` reuses the immutable problemset seed sources after App Owner migrations, guarded by `DEV_LOCAL_SEED_DATA_ENABLED=true`; it preserves non-empty/partial `app` data and is never called by production Compose.
 - **Owner ownership**: `init-db/scripts/owner-migrate.sh` is the deep module interface `migrate(owner)` / `validate(owner)` / `info(owner)`. The supported orchestration `scripts/dev/up.sh` delegates owner migrations through this seam. Direct `scripts/dev/migrate.sh` with `MIGRATION_SCHEMA` remains the low-level primitive.
 
 For AI: read `baseline.sql` for the converged final schema; consult `migrations/` only for historical intent.

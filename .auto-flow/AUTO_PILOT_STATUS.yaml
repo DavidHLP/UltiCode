@@ -66,6 +66,10 @@ current_nodes:
   - id: ARCHX-20260821-006
     goal: Final review, Tier-C validation and completion audit
     status: done
+  - id: APP-SEED-20260823
+    goal: Restore DEV-LOCAL App Owner problemset seed data
+    status: done
+    evidence: seed/idempotence/runtime API/quick/verify/contract/graph gates PASS
 authority:
   commit: false
   push: false

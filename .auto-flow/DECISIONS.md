@@ -459,3 +459,35 @@ directories, source/configuration, or unrelated dirty-worktree changes.
 Update active references and executable checks to the new root path. The
 obsolete wiki manifest generator is removed because there is no longer a
 separate wiki page set to manifest.
+
+## 2026-08-23 App Owner DEV-LOCAL problemset seed
+
+### Context
+
+The App Owner migrations create the problemset tables, while the immutable
+legacy problemset seed SQL remains on the shared migration chain. The local App
+Owner schema therefore starts structurally complete but empty; public list and
+random-problem reads return no data / 404.
+
+### Decision
+
+Add `init-db/scripts/app-owner-seed.sh` as a DEV-LOCAL seed Adapter invoked by
+`scripts/dev/up.sh` after Owner migrations. Reuse the immutable historical
+problemset seed sources, execute them in one transaction against `app`, and
+only seed when both `problems` and `problem_lists` are empty. Existing or
+partial data is preserved or rejected fail-closed.
+
+### Alternatives rejected
+
+- Do not edit applied migrations or add demo rows to the production Owner
+  Flyway chain.
+- Do not make the frontend hide a missing-data contract or change the public
+  random endpoint to mask an empty database.
+- Do not copy data across Owner schemas at runtime; the Adapter executes the
+  canonical seed SQL directly against the DEV-LOCAL App schema.
+
+### Rollback and authority
+
+`--skip-seed-data` disables the local step; no schema migration, production
+Compose path, grant, cutover, commit or deploy is changed. Evidence is
+development/TEST-TARGET only.

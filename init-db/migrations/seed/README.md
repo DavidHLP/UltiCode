@@ -23,3 +23,16 @@ This seam is **executable** but only covers new seeds:
 ```
 
 Place new seeds as `V{timestamp}__*.sql` or `R__*.sql` in this directory; they will be picked up only via the seed config. Legacy seeds cannot be moved without breaking `flyway_schema_history` on deployed databases.
+
+## App Owner DEV-LOCAL problemset seed
+
+The supported local startup path also runs
+`init-db/scripts/app-owner-seed.sh` after the App Owner migration. It executes
+the immutable historical problemset seed sources against the `app` schema only,
+inside one transaction, and only when both `problems` and `problem_lists` are
+empty. Existing or partial data is never overwritten automatically.
+
+This adapter is guarded by `DEV_LOCAL_SEED_DATA_ENABLED=true` and is invoked by
+`scripts/dev/up.sh`; it is not part of the production Compose or Owner Flyway
+chain. Use `./scripts/dev/up.sh --skip-seed-data` when a disposable local
+database must remain empty.

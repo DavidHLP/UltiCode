@@ -30,6 +30,7 @@ SKIP_INSTALL=false
 SKIP_INFRA=false
 SKIP_MIGRATE=false
 SKIP_BOOTSTRAP=false
+SKIP_SEED_DATA=false
 QUICK=false
 NO_FRONTEND=false
 FRONTEND_ONLY=false
@@ -53,6 +54,7 @@ Options:
   --skip-migrate       跳过 Flyway 迁移
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
+  --skip-seed-data     跳过 DEV-LOCAL App Owner 题目/题单种子数据
   --only <apps>        只起指定 PM2 app, 逗号分隔
                        (如 auth,admin,app,submission,notification,judge,search 或 9101,9102; 前端仍可用 9002/9003)
   --no-frontend        不起前端 (dev-lite 等同六个后端；dev-full 另含 Search)
@@ -84,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --skip-infra)     SKIP_INFRA=true; shift ;;
     --skip-migrate)   SKIP_MIGRATE=true; shift ;;
     --skip-bootstrap) SKIP_BOOTSTRAP=true; shift ;;
+    --skip-seed-data) SKIP_SEED_DATA=true; shift ;;
     --quick)          QUICK=true; shift ;;
     --no-frontend)    NO_FRONTEND=true; shift ;;
     --frontend-only)  FRONTEND_ONLY=true; shift ;;
@@ -208,6 +211,7 @@ devstack_apply_mode "$DEV_MODE"
 : "${SUBMISSION_MIGRATION_DB_USER:=${DEV_MIGRATION_SUBMISSION_USER:-}}"
 : "${SUBMISSION_MIGRATION_DB_PASSWORD:=${DEV_MIGRATION_SUBMISSION_PASSWORD:-}}"
 : "${DEV_SEED_USERS_ENABLED:=true}"
+: "${DEV_SEED_DATA_ENABLED:=true}"
 : "${DEV_SEED_ADMIN_USERNAME:=admin}"
 : "${DEV_SEED_ADMIN_EMAIL:=admin@localhost.test}"
 : "${DEV_SEED_ADMIN_PASSWORD:=admin123}"
@@ -365,6 +369,28 @@ if [[ "$PREPARE_SUBMISSION_OWNER" == true ]]; then
 fi
 else
   echo "Skipping database migrations (--skip-migrate / --quick / --frontend-only)."
+fi
+
+# ===== 步骤 3.5: DEV-LOCAL App Owner seed data =====
+# The seed adapter reuses immutable historical test-data SQL, but is never
+# part of the production Owner Flyway chain. It only runs for a full start
+# that includes backend-app and refuses partial/non-empty data states.
+if [[ "$FRONTEND_ONLY" != true \
+  && "$SKIP_MIGRATE" != true \
+  && "$SKIP_SEED_DATA" != true \
+  && "$DEV_SEED_DATA_ENABLED" == "true" \
+  && ( -z "$ONLY" || ",$PM2_APPS," == *,ulticode-app,* ) ]]; then
+  echo "Applying DEV-LOCAL App Owner seed data..."
+  DEV_LOCAL_SEED_DATA_ENABLED=true \
+    MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
+    MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
+    MIGRATION_DB_USER="$MIGRATION_DB_USER" \
+    MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
+    MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
+    MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" \
+    "$ROOT_DIR/init-db/scripts/app-owner-seed.sh" migrate
+else
+  echo "Skipping DEV-LOCAL App Owner seed data (--skip-seed-data / --skip-migrate / --quick / --frontend-only / disabled / App not selected)."
 fi
 
 # ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====

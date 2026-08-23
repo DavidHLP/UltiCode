@@ -1644,3 +1644,37 @@ tasks:
   - All consumers use immutable helper path, pinned ENV, and shared validator calls
   - Coverage maps durable requirements to tasks
   updated_at: '2026-08-23T09:15:00+08:00'
+- id: APP-SEED-20260823
+  title: 恢复 App Owner DEV-LOCAL problemset seed 数据链
+  source:
+  - user request 2026-08-23: solve empty problemset data
+  - root cause: App Owner migrations create tables but do not apply legacy problemset seeds
+  status: done
+  depends_on: []
+  owner: Codex
+  acceptance_criteria:
+  - DEV-LOCAL up path hydrates App problemset data without changing production Owner Flyway or Compose paths
+  - seed is transaction-backed, idempotent, preserves non-empty data and rejects partial data
+  - problems, published random problem, featured lists and categories return data after startup
+  - user-facing documentation and seed seam documentation are current
+  validation:
+  - bash -n and up.sh help contract
+  - seed disabled guard
+  - real DEV-LOCAL seed first-run and idempotent second-run
+  - App API problem/list/random runtime checks
+  - affected startup, migration, review and diff checks
+  rollback:
+  - run up.sh --skip-seed-data
+  - remove only the DEV-LOCAL seed adapter invocation; no applied migration is edited
+  evidence:
+  - 'bash -n scripts/dev/up.sh scripts/dev/init-env.sh init-db/scripts/app-owner-seed.sh and git diff --check: PASS'
+  - 'devstack-manifest-test, architecture-contract-test, docs-contract-test via bash and migrate-owner-preflight-test: PASS'
+  - 'DEV_LOCAL seed first run: exit 0, problems=6, published=6, problem_lists=9, featured=7'
+  - 'DEV_LOCAL seed second run: exit 0, existing data preserved; disabled guard exit 2'
+  - 'full up.sh explicit App/Judge/frontend stack: exit 0; API list total=6, overview featured=7, random=200, category algorithms total=6'
+  - 'scripts/dev/test.sh quick: exit 0; services tests, auth-core 70/0/0, console 578/0/0, management 423/0/0 and type checks PASS'
+  - 'services ./mvnw verify captured real VERIFY_EXIT=0 and BUILD SUCCESS'
+  - 'Compose dev/prod config: exit 0; graphify update: completed'
+  commits: []
+  notes: Closes the App Owner portion of DB-CONVERGE-002 without claiming the broader legacy seed scan is removable.
+  updated_at: '2026-08-23T18:45:00+08:00'

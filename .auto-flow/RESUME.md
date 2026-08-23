@@ -318,3 +318,13 @@ Authority：development/TEST-TARGET only，无 commit/push/prod 操作。
 - `lib/common` 在 `ENV_FILE` 之后 via immutable 路径 source，`ROOT_DIR` 覆盖且 `ENV_FILE` pin，防止 shadowing 与重定向
 - 排版 guard fallback 校验非空列表并与 `mjs` 一致
 - `COVERAGE` 重写为 durable 映射，`PROJECT_DOCUMENTATION` 拓扑 qualified 为本地开发
+
+## 2026-08-23 App Owner seed repair — terminal
+
+Active task: none. `APP-SEED-20260823` is done.
+
+`init-db/scripts/app-owner-seed.sh` is wired through `scripts/dev/up.sh` as a
+DEV-LOCAL-only, transaction-backed, idempotent App Owner seed Adapter. Full
+startup, quick checks, backend verify, migration/contracts, runtime APIs and
+graph refresh passed. Worktree is uncommitted; no commit/push/deploy/production
+action is authorized.

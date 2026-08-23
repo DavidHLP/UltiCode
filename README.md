@@ -311,6 +311,8 @@ cd UltiCode
 
 默认 `dev-lite` 会先按 `auth → admin → app → notification → submission`
 顺序应用五条 Owner migration 链，设置并探测本地 Owner 账号，再启动最小后端运行集；
+随后仅在 DEV-LOCAL 中为 App Owner 幂等导入题目、题单和分类种子数据；已有或部分数据
+不会被自动覆盖，部分状态会 fail-closed。可用 `--skip-seed-data` 跳过该步骤。
 它强制 Submission 使用本地兼容路径、Search 使用确定性的数据库读，并不启动 Search
 worker。需要远程 Submission/cutover seam 或 MeiliSearch indexed read 时必须显式运行
 `./scripts/dev/up.sh --mode dev-full`；该模式会启动 Search worker，并先满足

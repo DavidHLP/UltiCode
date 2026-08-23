@@ -55,7 +55,7 @@ app:
       # remote is the cutover mode: reads go through SubmissionUserQueryRoutingPort
       # to backend-submission and writes through SubmissionWriteRoutingPort, both
       # enabled only after the SPLIT-004 read-path migration + schema cutover
-      # (scripts/dev/submission-schema-cutover.sh). Contest intake uses the
+      # (scripts/runbooks/submission-schema-cutover.sh). Contest intake uses the
       # explicit submitContest command; the App-Contest association remains an
       # event/inbox projection rather than a Submission-schema write.
       mode: ${APP_SUBMISSION_ROUTING_MODE:local}

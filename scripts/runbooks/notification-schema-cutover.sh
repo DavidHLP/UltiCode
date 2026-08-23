@@ -5,8 +5,8 @@ set -euo pipefail
 # A cutover/rollback requires both --execute and an explicit confirmation token.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-preflight}"
 EXECUTE="${2:-}"
@@ -19,15 +19,7 @@ case "$ACTION" in
     ;;
 esac
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Missing $ENV_FILE. Run ./scripts/dev/init-env.sh first." >&2
-  exit 1
-fi
-
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+load_env_file
 
 : "${DB_HOST:?DB_HOST is required}"
 : "${DB_PORT:?DB_PORT is required}"
@@ -44,13 +36,13 @@ MYSQL_CONTAINER="${MYSQL_CONTAINER:-}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
 
 for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_USER"; do
-  if [[ -n "$identifier" && ! "$identifier" =~ ^[A-Za-z0-9_]+$ ]]; then
+  if [[ -n "$identifier" ]] && ! valid_identifier "$identifier"; then
     echo "Invalid schema/user identifier: $identifier" >&2
     exit 1
   fi
 done
 if [[ -n "$MYSQL_CONTAINER" ]]; then
-  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+  container_running "$MYSQL_CONTAINER" \
     || { echo "MySQL container is not running: $MYSQL_CONTAINER" >&2; exit 1; }
   mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" "$DB_HOST" "$DB_PORT" \
     || { echo "Configured database target $DB_HOST:$DB_PORT is not a published endpoint of $MYSQL_CONTAINER:$MYSQL_CONTAINER_PORT" >&2; exit 1; }
@@ -173,7 +165,7 @@ assert_ready() {
 
 require_execute() {
   local expected="$1"
-  if [[ "$EXECUTE" != "--execute" || "${NOTIFICATION_CUTOVER_CONFIRM:-}" != "$expected" ]]; then
+  if ! require_write_confirmation "$EXECUTE" NOTIFICATION_CUTOVER_CONFIRM "$expected"; then
     echo "Refusing write action. Pass --execute and NOTIFICATION_CUTOVER_CONFIRM=$expected." >&2
     exit 1
   fi

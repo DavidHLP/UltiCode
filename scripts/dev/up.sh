@@ -17,25 +17,13 @@ export ENV_FILE
 # shellcheck source=scripts/dev/devstack-manifest.sh
 source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 
-# Preserve explicit caller-provided migration values while loading .env.
-MIGRATION_DB_HOST_WAS_SET="${MIGRATION_DB_HOST+x}"
-MIGRATION_DB_PORT_WAS_SET="${MIGRATION_DB_PORT+x}"
-MIGRATION_DB_NAME_WAS_SET="${MIGRATION_DB_NAME+x}"
-MIGRATION_DB_USER_WAS_SET="${MIGRATION_DB_USER+x}"
-MIGRATION_DB_PASSWORD_WAS_SET="${MIGRATION_DB_PASSWORD+x}"
-MIGRATION_MYSQL_CONTAINER_WAS_SET="${MIGRATION_MYSQL_CONTAINER+x}"
-MIGRATION_MYSQL_CONTAINER_PORT_WAS_SET="${MIGRATION_MYSQL_CONTAINER_PORT+x}"
-SUBMISSION_MIGRATION_DB_USER_WAS_SET="${SUBMISSION_MIGRATION_DB_USER+x}"
-SUBMISSION_MIGRATION_DB_PASSWORD_WAS_SET="${SUBMISSION_MIGRATION_DB_PASSWORD+x}"
-MIGRATION_DB_HOST_OVERRIDE="${MIGRATION_DB_HOST-}"
-MIGRATION_DB_PORT_OVERRIDE="${MIGRATION_DB_PORT-}"
-MIGRATION_DB_NAME_OVERRIDE="${MIGRATION_DB_NAME-}"
-MIGRATION_DB_USER_OVERRIDE="${MIGRATION_DB_USER-}"
-MIGRATION_DB_PASSWORD_OVERRIDE="${MIGRATION_DB_PASSWORD-}"
-MIGRATION_MYSQL_CONTAINER_OVERRIDE="${MIGRATION_MYSQL_CONTAINER-}"
-MIGRATION_MYSQL_CONTAINER_PORT_OVERRIDE="${MIGRATION_MYSQL_CONTAINER_PORT-3306}"
-SUBMISSION_MIGRATION_DB_USER_OVERRIDE="${SUBMISSION_MIGRATION_DB_USER-}"
-SUBMISSION_MIGRATION_DB_PASSWORD_OVERRIDE="${SUBMISSION_MIGRATION_DB_PASSWORD-}"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
+
+# Preserve explicit caller-provided migration values while loading .env below.
+capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER \
+  MIGRATION_DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
+  SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
 
 # ===== 参数解析 =====
 SKIP_INSTALL=false
@@ -203,10 +191,7 @@ done
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
 fi
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+load_env_file
 
 # Older generated env files may not contain a Meili key. Compose still
 # interpolates that service during dev startup, so provide a disposable
@@ -216,15 +201,7 @@ if [[ -z "${MEILI_MASTER_KEY:-}" ]]; then
   export MEILI_MASTER_KEY
 fi
 
-[[ -n "$MIGRATION_DB_HOST_WAS_SET" ]] && MIGRATION_DB_HOST="$MIGRATION_DB_HOST_OVERRIDE"
-[[ -n "$MIGRATION_DB_PORT_WAS_SET" ]] && MIGRATION_DB_PORT="$MIGRATION_DB_PORT_OVERRIDE"
-[[ -n "$MIGRATION_DB_NAME_WAS_SET" ]] && MIGRATION_DB_NAME="$MIGRATION_DB_NAME_OVERRIDE"
-[[ -n "$MIGRATION_DB_USER_WAS_SET" ]] && MIGRATION_DB_USER="$MIGRATION_DB_USER_OVERRIDE"
-[[ -n "$MIGRATION_DB_PASSWORD_WAS_SET" ]] && MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD_OVERRIDE"
-[[ -n "$MIGRATION_MYSQL_CONTAINER_WAS_SET" ]] && MIGRATION_MYSQL_CONTAINER="$MIGRATION_MYSQL_CONTAINER_OVERRIDE"
-[[ -n "$MIGRATION_MYSQL_CONTAINER_PORT_WAS_SET" ]] && MIGRATION_MYSQL_CONTAINER_PORT="$MIGRATION_MYSQL_CONTAINER_PORT_OVERRIDE"
-[[ -n "$SUBMISSION_MIGRATION_DB_USER_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_USER="$SUBMISSION_MIGRATION_DB_USER_OVERRIDE"
-[[ -n "$SUBMISSION_MIGRATION_DB_PASSWORD_WAS_SET" ]] && SUBMISSION_MIGRATION_DB_PASSWORD="$SUBMISSION_MIGRATION_DB_PASSWORD_OVERRIDE"
+apply_env_overrides
 
 devstack_apply_mode "$DEV_MODE"
 
@@ -324,18 +301,7 @@ verify_owner_accounts() {
 }
 
 wait_for_health() {
-  local container="$1"
-  local attempts="${2:-$DEVSTACK_INFRA_READINESS_ATTEMPTS}"
-  for ((i = 1; i <= attempts; i++)); do
-    status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
-    if [[ "$status" == "healthy" || "$status" == "running" ]]; then
-      return 0
-    fi
-    sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
-  done
-  echo "Container did not become healthy: $container" >&2
-  docker logs --tail 100 "$container" >&2 || true
-  return 1
+  await_container_health "$1" "$DEVSTACK_INFRA_READINESS_ATTEMPTS" "$DEVSTACK_READINESS_INTERVAL_SECONDS"
 }
 
 # ===== 步骤 1: Docker 基础设施 =====

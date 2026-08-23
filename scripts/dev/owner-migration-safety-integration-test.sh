@@ -101,7 +101,7 @@ VALUES ('active-1','Active User','en-US'),('deleted-1','Deleted User','zh-CN');"
 env ENV_FILE="$TEST_ENV" OWNER_BACKFILL_MANIFEST="$TEST_DIR/backfill.manifest" \
   DEV_LOCAL_OWNER_BACKFILL_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL \
   DEV_LOCAL_OWNER_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_OWNER_PROFILE_QUIESCE \
-  bash "$ROOT_DIR/scripts/dev/owner-user-profile-backfill.sh" backfill > "$TEST_DIR/backfill.log" 2>&1
+  bash "$ROOT_DIR/scripts/runbooks/owner-user-profile-backfill.sh" backfill > "$TEST_DIR/backfill.log" 2>&1
 BACKFILL_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM auth.users),(SELECT COUNT(*) FROM auth.users WHERE is_deleted=1),(SELECT COUNT(*) FROM app.user_profiles),(SELECT COUNT(*) FROM app.user_profiles p JOIN auth.users u ON u.id=p.account_id WHERE u.is_deleted=1);")"
 [[ "$BACKFILL_COUNTS" == $'2\t1\t2\t1' ]]
 printf 'soft-deleted account/profile preservation: PASS\n'
@@ -126,14 +126,14 @@ printf 'grant isolation fixture setup: PASS\n'
 env ENV_FILE="$TEST_ENV" \
   SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
   SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
-  bash "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover.log" 2>&1
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover.log" 2>&1
 CUTOVER_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM submission.submissions),(SELECT COUNT(*) FROM submission.judge_outbox),(SELECT COUNT(*) FROM submission.submission_result_outbox),(SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode' AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE')); ")"
 [[ "$CUTOVER_COUNTS" == $'1\t1\t1\t0' ]]
 
 env ENV_FILE="$TEST_ENV" \
   SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_ROLLBACK \
   SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
-  bash "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" rollback --execute > "$TEST_DIR/submission-rollback.log" 2>&1
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" rollback --execute > "$TEST_DIR/submission-rollback.log" 2>&1
 ROLLBACK_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM ulticode.submissions),(SELECT COUNT(*) FROM ulticode.judge_outbox),(SELECT COUNT(*) FROM ulticode.submission_result_outbox),(SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode' AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE')); ")"
 [[ "$ROLLBACK_COUNTS" == $'1\t1\t1\t12' ]]
 printf 'submission cutover/rollback: PASS\n'
@@ -146,7 +146,7 @@ expect_rehearsal_grant_failure() {
     MONITORING_DB_USER=root MONITORING_DB_PASSWORD="$ROOT_PASSWORD" \
     MIGRATION_MYSQL_CONTAINER="$MYSQL_TEST_CONTAINER" MIGRATION_MYSQL_CONTAINER_PORT=3306 \
     DEV_LOCAL_OBSERVATION_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OBSERVATION_REHEARSAL \
-    bash "$ROOT_DIR/scripts/dev/dev-local-observation-rehearsal.sh" --skip-tests > "$TEST_DIR/rehearsal-$label.log" 2>&1 || status=$?
+    bash "$ROOT_DIR/scripts/runbooks/dev-local-observation-rehearsal.sh" --skip-tests > "$TEST_DIR/rehearsal-$label.log" 2>&1 || status=$?
   if [[ "$status" -eq 0 ]] || ! grep -q 'retains .* direct or role-derived privilege' "$TEST_DIR/rehearsal-$label.log"; then
     printf 'grant rejection fixture failed: scope=%s exit=%s\n' "$label" "$status"
     tail -40 "$TEST_DIR/rehearsal-$label.log" || true
@@ -171,7 +171,7 @@ env ENV_FILE="$TEST_ENV" REDIS_CONTAINER="$REDIS_TEST_CONTAINER" REDIS_PASSWORD=
   MONITORING_DB_USER=root MONITORING_DB_PASSWORD="$ROOT_PASSWORD" \
   MIGRATION_MYSQL_CONTAINER="$MYSQL_TEST_CONTAINER" MIGRATION_MYSQL_CONTAINER_PORT=3306 \
   DEV_LOCAL_OBSERVATION_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OBSERVATION_REHEARSAL \
-  bash "$ROOT_DIR/scripts/dev/dev-local-observation-rehearsal.sh" --skip-tests > "$TEST_DIR/rehearsal-zero.log" 2>&1
+  bash "$ROOT_DIR/scripts/runbooks/dev-local-observation-rehearsal.sh" --skip-tests > "$TEST_DIR/rehearsal-zero.log" 2>&1
 grep -q 'effective grants reaching .*ASSERTION PASS: 0' "$TEST_DIR/rehearsal-zero.log"
 printf 'table/global/role/routine grant isolation: PASS\n'
 

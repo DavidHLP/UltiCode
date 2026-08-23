@@ -350,7 +350,7 @@ Auth owner。
 
 ##### 2.2 当前运行拓扑
 
-> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。根级兼容别名（`scripts/start.sh`、`scripts/stop.sh`、`scripts/start.bat`、`scripts/stop.bat`、`scripts/pitstop-start-backend.ps1`）均为 deprecated thin adapter，委托到 `scripts/dev/up.sh`/`stop.sh`，受 `scripts/dev/architecture-contract-test.sh:59-73` 覆盖；`*.bat`/`*.ps1` 为 Windows 入口，删除/迁移需同步门禁与跨平台文档。本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖）；生产/PM2 拓扑另由 `docker-compose.*.yml`/`ecosystem.config.cjs` 定义。当前项目没有 production environment，因此本地证据不等于生产切流证据。
+> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。根级兼容别名已收敛：`scripts/start.sh`、`scripts/stop.sh`、`scripts/start.bat`、`scripts/stop.bat` 已删除（`scripts/dev/architecture-contract-test.sh` 断言其不存在）；唯一保留的根级 adapter 是 `scripts/pitstop-start-backend.ps1`，因 `pitstop.yaml` 仍消费它（委托 `bash scripts/dev/up.sh --no-frontend`）。一次性数据迁移 runbook 位于 `scripts/runbooks/`（cutover/backfill/rehearsal），独立冒烟位于 `scripts/test/`；共享 shell 原语（env 加载、显式值保全、容器探测、健康等待、写确认谓词）统一由 `scripts/dev/lib/common.sh` 提供。本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖）；生产/PM2 拓扑另由 `docker-compose.*.yml`/`ecosystem.config.cjs` 定义。当前项目没有 production environment，因此本地证据不等于生产切流证据。
 
 ```mermaid
 flowchart LR
@@ -597,7 +597,7 @@ Notification 不承载 WebSocket endpoint。它将允许的 payload 发布到 Re
 `NOTIFICATION_DB_NAME/USER/PASSWORD` 指定（当前 Flyway owner schema/database 名称固定为
 `notification`）；先执行
 `MIGRATION_SCHEMA=notification ./scripts/dev/migrate.sh migrate`，再用
-`scripts/dev/notification-schema-cutover.sh preflight` 做行数、checksum、列形状和
+`scripts/runbooks/notification-schema-cutover.sh preflight` 做行数、checksum、列形状和
 目标空表核对。只有在停止旧 writer、核对通过且显式确认后才执行 cutover；失败时先停
 Notification、恢复 App grant/路由，再执行 rollback 子命令回写新增行。整个过程不启用
 第二个通知 writer。
@@ -628,11 +628,11 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | Dubbo Consumer | ProblemFacts（backend-app）、UserExistence（backend-auth IdentityQueryService）；write/fence regular path 不再回访 App |
 | Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 四张 owner 表（submission/judge/created/result outbox）；contest `submitContest` 在同一 intake 事务内写 `submission_created_outbox`，judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox` |
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
-| Rollback | 本 direct-provider artifact 只接受 `APP_SUBMISSION_ROUTING_MODE=remote`；回滚先部署上一已验证 compatibility artifact，再切回 `local`，数据回写使用 `scripts/dev/submission-schema-cutover.sh rollback`，不通过当前 artifact 做 route-only rollback |
+| Rollback | 本 direct-provider artifact 只接受 `APP_SUBMISSION_ROUTING_MODE=remote`；回滚先部署上一已验证 compatibility artifact，再切回 `local`，数据回写使用 `scripts/runbooks/submission-schema-cutover.sh rollback`，不通过当前 artifact 做 route-only rollback |
 
 slice-3 历史边界：outbox 消费者已迁移到 backend-submission（读取 `submission` schema 的 outbox 行；`JudgeOutboxDispatcher` 仅 real dispatch，无 legacy shadow/replay）。App 侧 dispatcher 仍仅在 `app.submission.routing.mode=local` 装配，因此 `APP_SUBMISSION_ROUTING_MODE=remote` 下 regular outbox 不会被 App 消费。
 
-slice-4 历史边界：`scripts/dev/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对 + target-only `submission_created_outbox` 存在且为空核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant）。**不得**在 SPLIT-004 之前启用 remote：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口；切流完成后 direct owner provider 取代过渡 provider。按 advisory 保独立语义：`submission-schema-cutover.sh`、`notification-schema-cutover.sh`、`owner-user-profile-backfill.sh` 各自保持独立 runbook 与 REVOKE/drain 实现，不按文件大小物理合并；公共前言仅通过 `scripts/dev/lib/common.sh` 收敛，本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖），`scripts/dev/architecture-contract-test.sh:59-73` 覆盖根级兼容别名委托。
+slice-4 历史边界：`scripts/runbooks/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对 + target-only `submission_created_outbox` 存在且为空核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant）。**不得**在 SPLIT-004 之前启用 remote：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口；切流完成后 direct owner provider 取代过渡 provider。按 advisory 保独立语义：`submission-schema-cutover.sh`、`notification-schema-cutover.sh`、`owner-user-profile-backfill.sh` 各自保持独立 runbook 与 REVOKE/drain 实现，不按文件大小物理合并；公共前言与通用原语（env 加载、显式值保全、容器探测、健康等待、写确认谓词）仅通过 `scripts/dev/lib/common.sh` 收敛；各 runbook 的 REVOKE/drain 语义保持独立，本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖），根级兼容别名已收敛（仅 `pitstop-start-backend.ps1` 保留），由 `scripts/dev/architecture-contract-test.sh` 断言。
 slice-7 边界（contest association 事件化）：切流后 contest 提交经 `submitContest` → `submission_created_outbox` → App-Contest 幂等消费写 `contest_submissions`。**历史 contest 提交无 created-outbox 行**：cutover 前已存在的 contest 提交，其 verdict 仍由 App 本地 dispatcher（contest 兼容路径）处理，contestId 从 App 自身 `contest_submissions` 解析，不受影响；若未来 contest 路径整体迁移到 backend-submission 处理历史 verdict，需先从 App `contest_submissions` 回填 `submission_created_outbox`（当前 runbook 未做回填，属已知边界）。
 
 slice-9 边界（SPLIT-004 read-routing 切换 + AC4 退役证据）：数据 cutover 已在可丢弃 MySQL 8.0 环境全链路执行（preflight→cutover 三表 72/2/2 行 checksum 一致→App 表级 grant 撤销→App 用户读写被拒（本环境 1044；表级 grant 姿态下为 1142）、`submission_rw` 解锁后读写正常）。运行时切换组合 = App `APP_SUBMISSION_ROUTING_MODE=remote`（读经 `SubmissionUserQueryRoutingPort` 委托 backend-submission）+ Admin `app.submission.admin.read-group=backend-submission`；Submission provider 已收敛为 direct owner provider。**AC4 退役证据**：以下 App 组件在切流状态仅剩 local contest rollback 与回滚路径职责。Dispatcher/Listener 已由 route 条件装配保护：
@@ -760,7 +760,7 @@ slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submiss
 1. **同库、唯一 Owner**：先建立 owner manifest、consumer-owned port 和 ArchUnit 规则；每表只有一个写模块。
 2. **同实例、不同 DB user**：`auth_rw`、`admin_rw`、`app_rw` 只获自己表权限；兼容账号单独命名并设置删除日期。
 3. **同实例、分 schema/database**：优先搬 Auth 的 refresh/RBAC 和 Admin 治理表；App 业务聚合整组搬，避免拆开本地事务。
-4. **垂直拆 `users`**：新增 App `user_profiles(account_id PK, ...)`，回填和校验；Auth 独占 `users`/account 字段；App 切读写 profile；对既有 owner schema 先运行 `scripts/dev/owner-user-profile-backfill.sh contract-preflight`，再执行 Auth contract migration 删除兼容 profile 列。
+4. **垂直拆 `users`**：新增 App `user_profiles(account_id PK, ...)`，回填和校验；Auth 独占 `users`/account 字段；App 切读写 profile；对既有 owner schema 先运行 `scripts/runbooks/owner-user-profile-backfill.sh contract-preflight`，再执行 Auth contract migration 删除兼容 profile 列。
 5. **独立实例按需**：只有资源隔离、SLA、备份或伸缩需要时再把逻辑 database 搬到独立 MySQL 实例，不作为完成微服务化的前置条件。
 
 生产迁移不可让四个服务同时执行同一份全局 Flyway history。过渡期由单独 migration job 串行执行；分 schema 后把 migration 仍保留在 canonical `init-db/migrations/` 下按 Owner 分目录，并使用各自 schema history。

@@ -278,6 +278,65 @@ stale_override_output="$(run_expect_failure env \
   "$ROOT_DIR/scripts/dev/migrate.sh" validate)"
 assert_contains "$stale_override_output" "MIGRATION_DB_HOST is required"
 
+# A hostile .env must not be able to replace trusted lib helpers: they are
+# frozen readonly -f before any .env is sourced, so redefinition fails closed.
+rm -f "$MAVEN_MARKER"
+cat >"$TMP_DIR/hostile-injection.env" <<'HOSTILE_ENV'
+DB_HOST=runtime-host
+DB_PORT=3306
+DB_USER=ulticode
+DB_PASSWORD=runtime-password
+DB_NAME=ulticode
+AUTH_DB_USER=auth_rw
+apply_env_overrides() { :; }
+HOSTILE_ENV
+
+hostile_injection_status=0
+env PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/hostile-injection.env" \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate >/dev/null 2>&1 || hostile_injection_status=$?
+[[ "$hostile_injection_status" -ne 0 ]] || {
+  echo 'Hostile .env helper injection must fail closed.' >&2
+  exit 1
+}
+[[ ! -f "$MAVEN_MARKER" ]] || {
+  echo 'Maven must not run when .env tampers with trusted helpers.' >&2
+  exit 1
+}
+
+# .env must not be able to redirect ENV_FILE or ROOT_DIR for later execution:
+# load_env_file re-pins both, so migration still runs against the real target.
+cat >"$TMP_DIR/env-redirect.env" <<'REDIRECT_ENV'
+DB_HOST=runtime-host
+DB_PORT=3306
+DB_USER=ulticode
+DB_PASSWORD=runtime-password
+DB_NAME=ulticode
+AUTH_DB_USER=auth_rw
+ENV_FILE=/tmp/nonexistent-env-redirect
+ROOT_DIR=/tmp/nonexistent-root-redirect
+REDIRECT_ENV
+
+env_redirect_output="$(env \
+  PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/env-redirect.env" \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  MIGRATION_RUN_ID=redirect-run \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate 2>&1)"
+assert_contains "$env_redirect_output" "Migration preflight passed: run_id=redirect-run schema=auth"
+rm -f "$MAVEN_MARKER"
+
 same_account_output="$(run_expect_failure env \
   PATH="$FAKE_BIN:$PATH" \
   ENV_FILE="$ENV_FILE" \
@@ -672,7 +731,7 @@ backfill_conflict_output="$(run_expect_failure env \
   MIGRATION_DB_PASSWORD=secret \
   MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
-  "$ROOT_DIR/scripts/dev/owner-user-profile-backfill.sh" preflight)"
+  "$ROOT_DIR/scripts/runbooks/owner-user-profile-backfill.sh" preflight)"
 assert_contains "$backfill_conflict_output" "Configured migration target external-host:23306 is not a published endpoint"
 
 cutover_conflict_output="$(run_expect_failure env \
@@ -680,7 +739,7 @@ cutover_conflict_output="$(run_expect_failure env \
   ENV_FILE="$TMP_DIR/external.env" \
   MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
-  "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" preflight)"
+  "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" preflight)"
 assert_contains "$cutover_conflict_output" "Configured database target external-host:23306 is not a published endpoint"
 
 rehearsal_conflict_output="$(run_expect_failure env \
@@ -689,7 +748,7 @@ rehearsal_conflict_output="$(run_expect_failure env \
   DEV_LOCAL_OBSERVATION_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OBSERVATION_REHEARSAL \
   MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
-  "$ROOT_DIR/scripts/dev/dev-local-observation-rehearsal.sh" --skip-tests)"
+  "$ROOT_DIR/scripts/runbooks/dev-local-observation-rehearsal.sh" --skip-tests)"
 assert_contains "$rehearsal_conflict_output" "Configured monitoring target external-host:23306 is not a published endpoint"
 
 monitoring_conflict_output="$(run_expect_failure env \
@@ -702,7 +761,7 @@ monitoring_conflict_output="$(run_expect_failure env \
   MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
   REDIS_PASSWORD=secret \
-  "$ROOT_DIR/scripts/dev/dev-local-monitoring-baseline.sh" baseline)"
+  "$ROOT_DIR/scripts/runbooks/dev-local-monitoring-baseline.sh" baseline)"
 assert_contains "$monitoring_conflict_output" "Configured monitoring target external-host:23306 is not a published endpoint"
 
 notification_conflict_output="$(run_expect_failure env \
@@ -710,7 +769,7 @@ notification_conflict_output="$(run_expect_failure env \
   ENV_FILE="$TMP_DIR/external.env" \
   MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
-  "$ROOT_DIR/scripts/dev/notification-schema-cutover.sh" preflight)"
+  "$ROOT_DIR/scripts/runbooks/notification-schema-cutover.sh" preflight)"
 assert_contains "$notification_conflict_output" "Configured database target external-host:23306 is not a published endpoint"
 
 contract_gate_output="$(run_expect_failure env \

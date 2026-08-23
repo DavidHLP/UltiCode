@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 MODE="${1:-quick}"
 TEST_DB_NAME="${TEST_DB_NAME:-ulticode_test}"
 TEST_MYSQL_IMAGE="${TEST_MYSQL_IMAGE:-mysql:8.0}"
@@ -20,6 +22,11 @@ case "$MODE" in
 esac
 
 "$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
+
+# Fast static guardrails first: theme/FOUC sync and typography tokens are pure
+# node checks and must not wait behind dependency installation or test suites.
+node "$ROOT_DIR/scripts/verify-theme-sync.mjs"
+node "$ROOT_DIR/scripts/verify-typography-tokens.mjs"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
@@ -64,19 +71,7 @@ echo "Starting test dependencies..."
 "${compose[@]}" up -d mysql redis
 
 for container in ulticode-mysql ulticode-redis; do
-  ready=false
-  for _ in $(seq 1 60); do
-    status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
-    if [[ "$status" == "healthy" || "$status" == "running" ]]; then
-      ready=true
-      break
-    fi
-    sleep 2
-  done
-  if [[ "$ready" != true ]]; then
-    echo "Test dependency did not become healthy: $container" >&2
-    exit 1
-  fi
+  await_container_health "$container" 60 2 || exit 1
 done
 
 MYSQL_ADMIN_CONTAINER="ulticode-mysql"
@@ -176,6 +171,7 @@ echo "Running console tests..."
 
 echo "Running management tests..."
 (cd "$ROOT_DIR/apps/management" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+
 
 if [[ "$MODE" == "full" ]]; then
   echo "Running production builds and dependency audits..."

@@ -6,7 +6,7 @@
 // The copies at apps/console/public/theme-bootstrap.js and
 // apps/management/public/theme-bootstrap.js are GENERATED artifacts — edit the
 // source, then run this script (or `pnpm sync:theme-bootstrap`).
-// `verify:theme-sync` guards the equality in CI.
+// `verify:theme-sync` (wired into scripts/dev/test.sh) guards the equality.
 //
 // Usage: node scripts/sync-theme-bootstrap.mjs
 // ---------------------------------------------------------------------------

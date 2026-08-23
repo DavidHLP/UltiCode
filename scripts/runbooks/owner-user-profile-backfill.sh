@@ -5,19 +5,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-preflight}"
 MANIFEST_FILE="${OWNER_BACKFILL_MANIFEST:-$ROOT_DIR/.local/owner-user-profile-backfill.manifest}"
-MIGRATION_DB_HOST_WAS_SET="${MIGRATION_DB_HOST+x}"
-MIGRATION_DB_PORT_WAS_SET="${MIGRATION_DB_PORT+x}"
-MIGRATION_DB_USER_WAS_SET="${MIGRATION_DB_USER+x}"
-MIGRATION_DB_PASSWORD_WAS_SET="${MIGRATION_DB_PASSWORD+x}"
-MIGRATION_MYSQL_CONTAINER_WAS_SET="${MIGRATION_MYSQL_CONTAINER+x}"
-MIGRATION_MYSQL_CONTAINER_PORT_WAS_SET="${MIGRATION_MYSQL_CONTAINER_PORT+x}"
-MIGRATION_DB_HOST_OVERRIDE="${MIGRATION_DB_HOST-}"
-MIGRATION_DB_PORT_OVERRIDE="${MIGRATION_DB_PORT-}"
-MIGRATION_DB_USER_OVERRIDE="${MIGRATION_DB_USER-}"
-MIGRATION_DB_PASSWORD_OVERRIDE="${MIGRATION_DB_PASSWORD-}"
-MIGRATION_MYSQL_CONTAINER_OVERRIDE="${MIGRATION_MYSQL_CONTAINER-}"
-MIGRATION_MYSQL_CONTAINER_PORT_OVERRIDE="${MIGRATION_MYSQL_CONTAINER_PORT-3306}"
-
 case "$ACTION" in
   preflight|contract-preflight|backfill|rollback)
     ;;
@@ -27,33 +14,15 @@ case "$ACTION" in
     ;;
 esac
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Missing $ENV_FILE. Run ./scripts/dev/init-env.sh first." >&2
-  exit 1
-fi
-
-readonly __ULTICODE_ENV_FILE_PIN="${ENV_FILE:-}"
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
-if [[ -n "${__ULTICODE_ENV_FILE_PIN:-}" ]]; then
-  ENV_FILE="$__ULTICODE_ENV_FILE_PIN"
-  export ENV_FILE
-fi
-unset -f valid_identifier owner_schema valid_port valid_container_ref mysql_container_targets_configured_host 2>/dev/null || true
-unset __ULTICODE_COMMON_SOURCED 2>/dev/null || true
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mysql-container-target.sh"
 # shellcheck source=scripts/dev/lib/common.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
-[[ -n "$MIGRATION_DB_HOST_WAS_SET" ]] && MIGRATION_DB_HOST="$MIGRATION_DB_HOST_OVERRIDE"
-[[ -n "$MIGRATION_DB_PORT_WAS_SET" ]] && MIGRATION_DB_PORT="$MIGRATION_DB_PORT_OVERRIDE"
-[[ -n "$MIGRATION_DB_USER_WAS_SET" ]] && MIGRATION_DB_USER="$MIGRATION_DB_USER_OVERRIDE"
-[[ -n "$MIGRATION_DB_PASSWORD_WAS_SET" ]] && MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD_OVERRIDE"
-[[ -n "$MIGRATION_MYSQL_CONTAINER_WAS_SET" ]] && MIGRATION_MYSQL_CONTAINER="$MIGRATION_MYSQL_CONTAINER_OVERRIDE"
-[[ -n "$MIGRATION_MYSQL_CONTAINER_PORT_WAS_SET" ]] && MIGRATION_MYSQL_CONTAINER_PORT="$MIGRATION_MYSQL_CONTAINER_PORT_OVERRIDE"
+capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_USER \
+  MIGRATION_DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT
+
+load_env_file
+
+apply_env_overrides
 
 for variable in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_USER MIGRATION_DB_PASSWORD; do
   [[ -n "${!variable:-}" ]] || {
@@ -92,7 +61,7 @@ if [[ -n "$MYSQL_CONTAINER" ]]; then
     echo "Invalid migration MySQL container port: $MYSQL_CONTAINER_PORT" >&2
     exit 1
   }
-  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] || {
+  container_running "$MYSQL_CONTAINER" || {
     echo "Migration MySQL container is not running: $MYSQL_CONTAINER" >&2
     exit 1
   }

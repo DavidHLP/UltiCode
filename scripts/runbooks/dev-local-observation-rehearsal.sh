@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 SKIP_TESTS=false
 
@@ -35,11 +35,7 @@ EOF
   exit 1
 fi
 
-[[ -f "$ENV_FILE" ]] || { echo "Missing $ENV_FILE." >&2; exit 1; }
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+load_env_file
 
 MONITORING_DB_HOST="${MONITORING_DB_HOST:-${MIGRATION_DB_HOST:-${DB_HOST:-127.0.0.1}}}"
 MONITORING_DB_PORT="${MONITORING_DB_PORT:-${MIGRATION_DB_PORT:-${DB_PORT:-3306}}}"

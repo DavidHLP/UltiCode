@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# scripts/dev/dubbo-nacos-smoke.sh
+# scripts/test/dubbo-nacos-smoke.sh
 # P1-INFRA-003: Real-Dubbo registration smoke.
 #
 # Spins up the dev infrastructure (MySQL + Redis + Nacos) via docker compose,
@@ -16,7 +16,7 @@
 # this script proves the registration actually happens at runtime.
 #
 # Usage:
-#   ./scripts/dev/dubbo-nacos-smoke.sh
+#   ./scripts/test/dubbo-nacos-smoke.sh
 #
 # Exit codes:
 #   0  Nacos registry contains the backend-auth instance
@@ -29,16 +29,11 @@ ENV_FILE="$ROOT_DIR/.env"
 LOG_DIR="$ROOT_DIR/.dubbo-smoke"
 mkdir -p "$LOG_DIR"
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo ".env not found at $ENV_FILE. Run scripts/dev/init-env.sh first." >&2
-  exit 1
-fi
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
-# shellcheck disable=SC1090
 set +u
-set -a
-source "$ENV_FILE"
-set +a
+load_env_file
 set -u
 
 # Defensive: explicit exports keep the variables visible to child processes.
@@ -86,19 +81,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 wait_for_container_health() {
-  local container="$1"
-  local attempts="${2:-60}"
-  for ((i = 1; i <= attempts; i++)); do
-    status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
-    if [[ "$status" == "healthy" || "$status" == "running" ]]; then
-      echo "  $container: $status (after ${i} probes)"
-      return 0
-    fi
-    sleep 2
-  done
-  echo "Container $container did not become healthy after $((attempts * 2))s." >&2
-  docker logs --tail 100 "$container" 2>&1 || true
-  return 1
+  await_container_health "$1" "${2:-60}" "${3:-2}"
 }
 
 echo "--- 1. Starting MySQL + Redis + Nacos ---"

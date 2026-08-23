@@ -39,7 +39,7 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale()
         <div class="flex items-center gap-3">
           <span
             aria-hidden="true"
-            class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-border-control bg-surface-sunken font-data text-[10px] font-semibold tracking-wide text-foreground-muted"
+            class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-border-control bg-surface-sunken font-data text-2xs font-semibold tracking-wide text-foreground-muted"
           >
             {{ localeConfig.code.split('-')[0].toUpperCase() }}
           </span>

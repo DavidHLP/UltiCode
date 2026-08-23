@@ -36,26 +36,10 @@ case "$ACTION" in
     ;;
 esac
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Missing $ENV_FILE. Run ./scripts/dev/init-env.sh first." >&2
-  exit 1
-fi
-
-readonly __ULTICODE_ENV_FILE_PIN="${ENV_FILE:-}"
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
-if [[ -n "${__ULTICODE_ENV_FILE_PIN:-}" ]]; then
-  ENV_FILE="$__ULTICODE_ENV_FILE_PIN"
-  export ENV_FILE
-fi
-unset -f valid_identifier owner_schema valid_port valid_container_ref mysql_container_targets_configured_host 2>/dev/null || true
-unset __ULTICODE_COMMON_SOURCED 2>/dev/null || true
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mysql-container-target.sh"
 # shellcheck source=scripts/dev/lib/common.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
+
+load_env_file
 
 : "${DB_HOST:?DB_HOST is required}"
 : "${DB_PORT:?DB_PORT is required}"
@@ -85,7 +69,7 @@ if [[ -n "$APP_DB_HOST" && ! "$APP_DB_HOST" =~ ^[A-Za-z0-9%._:-]+$ ]]; then
 fi
 if [[ -n "$MYSQL_CONTAINER" ]]; then
   command -v docker >/dev/null 2>&1 || { echo "docker CLI is required when MYSQL_CONTAINER is set." >&2; exit 1; }
-  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+  container_running "$MYSQL_CONTAINER" \
     || { echo "MySQL container is not running: $MYSQL_CONTAINER" >&2; exit 1; }
   mysql_container_targets_configured_host "$MYSQL_CONTAINER" "${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" "$DB_HOST" "$DB_PORT" \
     || { echo "Configured database target $DB_HOST:$DB_PORT is not a published endpoint of $MYSQL_CONTAINER:${MIGRATION_MYSQL_CONTAINER_PORT:-3306}" >&2; exit 1; }
@@ -209,7 +193,7 @@ assert_ready() {
 
 require_execute() {
   local expected="$1"
-  if [[ "$EXECUTE" != "--execute" || "${SUBMISSION_CUTOVER_CONFIRM:-}" != "$expected" ]]; then
+  if ! require_write_confirmation "$EXECUTE" SUBMISSION_CUTOVER_CONFIRM "$expected"; then
     echo "Refusing write action. Pass --execute and SUBMISSION_CUTOVER_CONFIRM=$expected." >&2
     exit 1
   fi

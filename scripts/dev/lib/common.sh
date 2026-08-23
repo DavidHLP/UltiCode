@@ -1,41 +1,160 @@
 #!/usr/bin/env bash
-# scripts/dev/lib/common.sh — shared shell preamble helpers (non-semantic)
-# Keep this file free of business logic (no REVOKE/drain/cutover, no migration-
-# specific preflight wording); it only provides pure validators that many scripts
-# duplicate: ROOT_DIR resolution, identifier/port/container and owner schema
-# checks. Migration-specific fail_preflight stays in migrate.sh.
-# Sourced idempotently: `source "$ROOT_DIR/scripts/dev/lib/common.sh"`.
+# scripts/dev/lib/common.sh — shared shell helpers for owner migration tooling
+#
+# Deep helper library sourced by scripts under scripts/dev/, scripts/runbooks/
+# and scripts/test/: trusted validators, .env loading with pinning,
+# explicit-env preservation across the .env load, Docker container probes, and
+# write-action confirmation predicates. Keep runbook-specific business logic
+# (REVOKE/drain/cutover preflight wording) in the runbooks themselves; only
+# generic, reused primitives belong here (see PROJECT_DOCUMENTATION.md
+# slice-4 note and AGENTS.md).
+#
+# Sourcing contract:
+#   ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+#   ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
+#   # shellcheck source=scripts/dev/lib/common.sh
+#   source "$ROOT_DIR/scripts/dev/lib/common.sh"
+#
+# Injection posture: every helper below is defined once per process and then
+# frozen with `readonly -f`, BEFORE any .env is sourced. A hostile or careless
+# .env therefore cannot redefine, unset, or shadow them — such attempts fail
+# closed with a bash "readonly function" error instead of silently replacing
+# trusted behaviour. load_env_file additionally re-pins ENV_FILE and ROOT_DIR
+# after sourcing, so .env cannot redirect subsequent helper or script paths.
 
-# Always define validators — do not skip based on prior function existence, so a .env-injected helper cannot suppress the trusted definitions.
-# Idempotence is via unconditional redefinition (overwrites any prior injected function).
-# Private sentinel for external idempotence checks (set once, readonly thereafter)
 if ! [[ -v __ULTICODE_COMMON_SOURCED ]]; then
-  declare -g __ULTICODE_COMMON_SOURCED=1
-  readonly __ULTICODE_COMMON_SOURCED
+  declare -gr __ULTICODE_COMMON_SOURCED=1
+
+  # Resolve repository root immutably from this file's location (scripts/dev/lib → repo root).
+  # Do not allow .env to redirect helper and later $ROOT_DIR paths: always derive from BASH_SOURCE.
+  ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+  export ROOT_DIR
+
+  if [[ -z "${ENV_FILE:-}" ]]; then
+    ENV_FILE="$ROOT_DIR/.env"
+    export ENV_FILE
+  fi
+
+  owner_schema() {
+    case "$1" in
+      auth|admin|app|notification|submission) return 0 ;;
+      *) return 1 ;;
+    esac
+  }
+
+  valid_identifier() {
+    [[ "$1" =~ ^[A-Za-z0-9_]+$ ]]
+  }
+
+  valid_port() {
+    [[ "$1" =~ ^[0-9]+$ ]] && ((1 <= 10#$1 && 10#$1 <= 65535))
+  }
+
+  valid_container_ref() {
+    [[ "$1" =~ ^[A-Za-z0-9_.-]+$ ]]
+  }
+
+  mysql_container_targets_configured_host() {
+    local container="$1" container_port="$2" host="$3" port="$4"
+    local endpoint published_host published_port
+    while IFS= read -r endpoint; do
+      published_port="${endpoint##*:}"
+      [[ "$published_port" == "$port" ]] || continue
+      published_host="${endpoint%:*}"
+      published_host="${published_host#[}"
+      published_host="${published_host%]}"
+      case "$host" in
+        localhost)
+          [[ "$published_host" == "127.0.0.1" || "$published_host" == "0.0.0.0" \
+            || "$published_host" == "::1" || "$published_host" == "::" ]] && return 0
+          ;;
+        127.0.0.1)
+          [[ "$published_host" == "127.0.0.1" || "$published_host" == "0.0.0.0" ]] && return 0
+          ;;
+        ::1)
+          [[ "$published_host" == "::1" || "$published_host" == "::" ]] && return 0
+          ;;
+      esac
+    done < <(docker port "$container" "$container_port/tcp" 2>/dev/null)
+    return 1
+  }
+
+  load_env_file() {
+    if [[ ! -f "$ENV_FILE" ]]; then
+      echo "Missing $ENV_FILE. Run ./scripts/dev/init-env.sh first." >&2
+      exit 1
+    fi
+    local pinned_env_file="$ENV_FILE"
+    local pinned_root_dir="$ROOT_DIR"
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+    # .env must not be able to redirect ENV_FILE/ROOT_DIR or replace the
+    # frozen helpers defined above (readonly -f makes that fail closed).
+    ENV_FILE="$pinned_env_file"
+    export ENV_FILE
+    ROOT_DIR="$pinned_root_dir"
+    export ROOT_DIR
+  }
+
+  capture_env_vars() {
+    # capture_env_vars NAME... — remember which variables the caller set
+    # explicitly (in the environment) together with their values, so they can
+    # be restored after load_env_file. Must run BEFORE load_env_file.
+    ULTICODE_CAPTURED_KEYS=("$@")
+    ULTICODE_CAPTURED_WAS_SET=()
+    ULTICODE_CAPTURED_OVERRIDE=()
+    local name
+    for name in "$@"; do
+      ULTICODE_CAPTURED_WAS_SET+=("${!name+x}")
+      ULTICODE_CAPTURED_OVERRIDE+=("${!name-}")
+    done
+  }
+
+  apply_env_overrides() {
+    # apply_env_overrides — restore the values captured by capture_env_vars so
+    # explicit caller-provided values win over values sourced from .env.
+    local i name
+    for i in "${!ULTICODE_CAPTURED_KEYS[@]}"; do
+      name="${ULTICODE_CAPTURED_KEYS[$i]}"
+      if [[ -n "${ULTICODE_CAPTURED_WAS_SET[$i]}" ]]; then
+        printf -v "$name" '%s' "${ULTICODE_CAPTURED_OVERRIDE[$i]}"
+      fi
+    done
+    return 0
+  }
+
+  container_running() {
+    [[ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null || true)" == "true" ]]
+  }
+
+  await_container_health() {
+    local container="$1"
+    local attempts="${2:-60}"
+    local interval_seconds="${3:-2}"
+    local i status
+    for ((i = 1; i <= attempts; i++)); do
+      status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || true)"
+      if [[ "$status" == "healthy" || "$status" == "running" ]]; then
+        return 0
+      fi
+      sleep "$interval_seconds"
+    done
+    echo "Container did not become healthy: $container" >&2
+    docker logs --tail 100 "$container" >&2 || true
+    return 1
+  }
+
+  require_write_confirmation() {
+    # require_write_confirmation <EXECUTE_VALUE> <CONFIRM_VAR_NAME> <EXPECTED_TOKEN>
+    # True when a write action carries both --execute and its confirmation token.
+    [[ "$1" == "--execute" && "${!2:-}" == "$3" ]]
+  }
+
+  # Freeze the trusted helpers before any .env can be sourced (see header).
+  readonly -f owner_schema valid_identifier valid_port valid_container_ref \
+    mysql_container_targets_configured_host load_env_file capture_env_vars \
+    apply_env_overrides container_running await_container_health \
+    require_write_confirmation
 fi
-# Resolve repository root immutably from this file's location (scripts/dev/lib → repo root).
-# Do not allow .env to redirect helper and later $ROOT_DIR paths: always derive from BASH_SOURCE.
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-export ROOT_DIR
-if [[ -z "${ENV_FILE:-}" ]]; then
-  ENV_FILE="$ROOT_DIR/.env"
-  export ENV_FILE
-fi
-owner_schema() {
-  case "$1" in
-    auth|admin|app|notification|submission) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-valid_identifier() {
-  [[ "$1" =~ ^[A-Za-z0-9_]+$ ]]
-}
-
-valid_port() {
-  [[ "$1" =~ ^[0-9]+$ ]] && ((1 <= 10#$1 && 10#$1 <= 65535))
-}
-
-valid_container_ref() {
-  [[ "$1" =~ ^[A-Za-z0-9_.-]+$ ]]
-}

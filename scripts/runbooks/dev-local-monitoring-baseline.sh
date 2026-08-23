@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$ROOT_DIR/scripts/dev/lib/common.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-baseline}"
 
@@ -16,11 +16,7 @@ case "$ACTION" in
     ;;
 esac
 
-[[ -f "$ENV_FILE" ]] || { echo "Missing $ENV_FILE." >&2; exit 1; }
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+load_env_file
 
 MONITORING_DB_HOST="${MONITORING_DB_HOST:-${MIGRATION_DB_HOST:-}}"
 MONITORING_DB_PORT="${MONITORING_DB_PORT:-${MIGRATION_DB_PORT:-}}"
@@ -36,7 +32,7 @@ MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
 
 if [[ -n "$MYSQL_CONTAINER" ]]; then
-  [[ "$(docker inspect -f '{{.State.Running}}' "$MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+  container_running "$MYSQL_CONTAINER" \
     || { echo "MySQL container is not running: $MYSQL_CONTAINER" >&2; exit 1; }
   mysql_container_targets_configured_host "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
     "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" || {
@@ -137,7 +133,7 @@ print_quiesce_preflight() {
   set +e
   output="$(SUBMISSION_APP_DB_USER="${SUBMISSION_APP_DB_USER:-$DB_USER}" \
     SUBMISSION_APP_DB_HOST="${SUBMISSION_APP_DB_HOST:-%}" \
-    ENV_FILE="$ENV_FILE" "$ROOT_DIR/scripts/dev/submission-schema-cutover.sh" preflight 2>&1)"
+    ENV_FILE="$ENV_FILE" "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" preflight 2>&1)"
   status=$?
   set -e
   if [[ "$status" == "0" ]]; then

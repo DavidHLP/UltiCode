@@ -184,7 +184,9 @@ UltiCode/
 ├── init-db/          # Flyway 数据库迁移
 ├── docker/           # Docker 初始化脚本 (Nacos SQL · Sandbox harness)
 ├── assets/           # README 截图等二进制资源
-├── scripts/dev/      # 开发运维脚本 (init-env · up · migrate · test)
+├── scripts/dev/      # 受支持的开发入口 (init-env · up · migrate · test)
+├── scripts/runbooks/ # 一次性数据迁移 runbook (cutover · backfill · 演练)
+├── scripts/test/     # 独立冒烟测试 (gateway · moderation · dubbo/nacos)
 ├── infrastructure/   # Arthas 项目级配置
 └── ecosystem.config.cjs  # PM2 进程编排
 ```
@@ -426,13 +428,13 @@ pnpm --dir packages/auth-core type-check
 MIGRATION_SCHEMA=notification ./scripts/dev/migrate.sh migrate
 
 # 物理搬表前只读核对；写入动作必须显式确认
-./scripts/dev/notification-schema-cutover.sh preflight
+./scripts/runbooks/notification-schema-cutover.sh preflight
 # NOTIFICATION_SOURCE_SCHEMA=app NOTIFICATION_APP_DB_USER=app_rw \
 #   NOTIFICATION_CUTOVER_CONFIRM=I_UNDERSTAND_NOTIFICATION_CUTOVER \
-#   ./scripts/dev/notification-schema-cutover.sh cutover --execute
+#   ./scripts/runbooks/notification-schema-cutover.sh cutover --execute
 # NOTIFICATION_SOURCE_SCHEMA=app NOTIFICATION_APP_DB_USER=app_rw \
 #   NOTIFICATION_CUTOVER_CONFIRM=I_UNDERSTAND_NOTIFICATION_ROLLBACK \
-#   ./scripts/dev/notification-schema-cutover.sh rollback --execute
+#   ./scripts/runbooks/notification-schema-cutover.sh rollback --execute
 ```
 
 迁移文件命名：`V{N}__{description}.sql`，**唯一真源**在 `init-db/migrations/`。

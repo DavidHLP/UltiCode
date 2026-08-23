@@ -4,23 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 COMMAND="${1:-migrate}"
-MIGRATION_SCHEMA_WAS_SET="${MIGRATION_SCHEMA+x}"
-MIGRATION_DB_HOST_WAS_SET="${MIGRATION_DB_HOST+x}"
-MIGRATION_DB_PORT_WAS_SET="${MIGRATION_DB_PORT+x}"
-MIGRATION_DB_NAME_WAS_SET="${MIGRATION_DB_NAME+x}"
-MIGRATION_DB_USER_WAS_SET="${MIGRATION_DB_USER+x}"
-MIGRATION_DB_PASSWORD_WAS_SET="${MIGRATION_DB_PASSWORD+x}"
-MIGRATION_MYSQL_CONTAINER_WAS_SET="${MIGRATION_MYSQL_CONTAINER+x}"
-MIGRATION_MYSQL_CONTAINER_PORT_WAS_SET="${MIGRATION_MYSQL_CONTAINER_PORT+x}"
-MIGRATION_SCHEMA_OVERRIDE="${MIGRATION_SCHEMA-}"
-MIGRATION_DB_HOST_OVERRIDE="${MIGRATION_DB_HOST-}"
-MIGRATION_DB_PORT_OVERRIDE="${MIGRATION_DB_PORT-}"
-MIGRATION_DB_NAME_OVERRIDE="${MIGRATION_DB_NAME-}"
-MIGRATION_DB_USER_OVERRIDE="${MIGRATION_DB_USER-}"
-MIGRATION_DB_PASSWORD_OVERRIDE="${MIGRATION_DB_PASSWORD-}"
-MIGRATION_MYSQL_CONTAINER_OVERRIDE="${MIGRATION_MYSQL_CONTAINER-}"
-MIGRATION_MYSQL_CONTAINER_PORT_OVERRIDE="${MIGRATION_MYSQL_CONTAINER_PORT-3306}"
-
 case "$COMMAND" in
   migrate|validate|info|repair|baseline)
     ;;
@@ -30,38 +13,20 @@ case "$COMMAND" in
     ;;
 esac
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Missing $ENV_FILE. Run ./scripts/dev/init-env.sh first." >&2
-  exit 1
-fi
-
-readonly __ULTICODE_ENV_FILE_PIN="${ENV_FILE:-}"
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
-if [[ -n "${__ULTICODE_ENV_FILE_PIN:-}" ]]; then
-  ENV_FILE="$__ULTICODE_ENV_FILE_PIN"
-  export ENV_FILE
-fi
-unset -f valid_identifier owner_schema valid_port valid_container_ref mysql_container_targets_configured_host 2>/dev/null || true
-unset __ULTICODE_COMMON_SOURCED 2>/dev/null || true
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mysql-container-target.sh"
 # shellcheck source=scripts/dev/lib/common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+# Preserve explicit caller-provided migration values while loading .env.
+capture_env_vars MIGRATION_SCHEMA MIGRATION_DB_HOST MIGRATION_DB_PORT \
+  MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
+  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT
+
+load_env_file
 
 # Explicit environment values win over values sourced from .env. Owner
 # migrations must never silently turn a runtime DB_* value into a migration
 # connection.
-[[ -n "$MIGRATION_SCHEMA_WAS_SET" ]] && MIGRATION_SCHEMA="$MIGRATION_SCHEMA_OVERRIDE"
-[[ -n "$MIGRATION_DB_HOST_WAS_SET" ]] && MIGRATION_DB_HOST="$MIGRATION_DB_HOST_OVERRIDE"
-[[ -n "$MIGRATION_DB_PORT_WAS_SET" ]] && MIGRATION_DB_PORT="$MIGRATION_DB_PORT_OVERRIDE"
-[[ -n "$MIGRATION_DB_NAME_WAS_SET" ]] && MIGRATION_DB_NAME="$MIGRATION_DB_NAME_OVERRIDE"
-[[ -n "$MIGRATION_DB_USER_WAS_SET" ]] && MIGRATION_DB_USER="$MIGRATION_DB_USER_OVERRIDE"
-[[ -n "$MIGRATION_DB_PASSWORD_WAS_SET" ]] && MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD_OVERRIDE"
-[[ -n "$MIGRATION_MYSQL_CONTAINER_WAS_SET" ]] && MIGRATION_MYSQL_CONTAINER="$MIGRATION_MYSQL_CONTAINER_OVERRIDE"
-[[ -n "$MIGRATION_MYSQL_CONTAINER_PORT_WAS_SET" ]] && MIGRATION_MYSQL_CONTAINER_PORT="$MIGRATION_MYSQL_CONTAINER_PORT_OVERRIDE"
+apply_env_overrides
 MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
 fail_preflight() {
   echo "Migration preflight failed: $*" >&2
@@ -358,7 +323,7 @@ auth_contract_preflight() {
     MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
     MIGRATION_MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-}" \
     MIGRATION_MYSQL_CONTAINER_PORT="$MIGRATION_MYSQL_CONTAINER_PORT" \
-    "$ROOT_DIR/scripts/dev/owner-user-profile-backfill.sh" contract-preflight
+    "$ROOT_DIR/scripts/runbooks/owner-user-profile-backfill.sh" contract-preflight
 }
 
 if [[ -n "${MIGRATION_SCHEMA:-}" ]]; then

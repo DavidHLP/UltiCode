@@ -181,3 +181,13 @@ host-timeout-limited after affected Admin `*IT` passed 44/0/0/0 and final
 | 文档同步与 Review/Validation 闭环 | INITDB-20260823-REVIEW-VALIDATE-CLOSE | Review 0，per-schema 轻量验证，affected documentation current | PASS |
 
 Partial `DB-CONVERGE-002`（增量仍列 legacy seed）与 `deferred DB-CONVERGE-004`（物理归档需 ADR）按 `AGENTS.md` 保留为不可消除。
+
+## 2026-08-23 scripts/ 保守收敛 — advisory 约束 (C01/C05/C03/C02C04)
+
+| Requirement / report candidate | Task | Required evidence | Status |
+|---|---|---|---|
+| C01 根级入口 — 兼容别名保留为 deprecated adapter，本地开发拓扑来源明确 | SCRIPT-20260823-C01 | `architecture-contract-test` 覆盖别名委托至 `dev/up|stop`，`devstack-manifest-test` 覆盖本地拓扑来源 `up.sh+manifest`，文档同步别名路径与门禁 | PASS |
+| C05 公共前言 — pure validators 收敛，无业务逻辑合并 | SCRIPT-20260823-C05 | `scripts/dev/lib/common.sh` 仅含 pure validators（`owner_schema/valid_identifier/valid_port/valid_container_ref`），消费者 `migrate.sh`/`owner-user-profile-backfill.sh`/`submission-schema-cutover.sh` 调用共享校验，`fail_preflight` 保留 migration-specific | PASS |
+| C03 排版 guard — 单源 allowlist | SCRIPT-20260823-C03 | `packages/theme/typography-allowlist.json` 单源，`verify-typography-tokens.mjs` 与 `typography-guard.sh` 同源加载（含 fallback 与空串校验），allowlist 加载一致 | PASS |
+| C02/C04 独立 seam 文档化 — 不按文件大小物理合并 | SCRIPT-20260823-C02C04-DOC | `PROJECT_DOCUMENTATION.md` slice-4/2.2 保留独立 runbook/verify 语义，本地开发拓扑来源 qualified，文档同步 | PASS |
+| Terminal — Review/Validation/Coverage 闭环与交付 | SCRIPT-20260823-REVIEW-VALIDATE-CLOSE | `architecture-contract`、`devstack-manifest`、`bash -n`、`yaml`、`diff` 等门禁覆盖；`HANDOFF` complete 且新任务 done | PASS |

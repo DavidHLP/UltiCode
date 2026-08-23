@@ -2,8 +2,6 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 COMMAND="${1:-migrate}"
 MIGRATION_SCHEMA_WAS_SET="${MIGRATION_SCHEMA+x}"
@@ -37,10 +35,21 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+readonly __ULTICODE_ENV_FILE_PIN="${ENV_FILE:-}"
 set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 set +a
+if [[ -n "${__ULTICODE_ENV_FILE_PIN:-}" ]]; then
+  ENV_FILE="$__ULTICODE_ENV_FILE_PIN"
+  export ENV_FILE
+fi
+unset -f valid_identifier owner_schema valid_port valid_container_ref mysql_container_targets_configured_host 2>/dev/null || true
+unset __ULTICODE_COMMON_SOURCED 2>/dev/null || true
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mysql-container-target.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 # Explicit environment values win over values sourced from .env. Owner
 # migrations must never silently turn a runtime DB_* value into a migration
@@ -59,13 +68,6 @@ fail_preflight() {
   exit 1
 }
 
-owner_schema() {
-  case "$1" in
-    auth|admin|app|notification|submission) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
 runtime_user_for_schema() {
   case "$1" in
     auth) printf '%s' "${AUTH_DB_USER:-}" ;;
@@ -75,18 +77,6 @@ runtime_user_for_schema() {
     submission) printf '%s' "${SUBMISSION_DB_USER:-}" ;;
     *) printf '' ;;
   esac
-}
-
-valid_identifier() {
-  [[ "$1" =~ ^[A-Za-z0-9_]+$ ]]
-}
-
-valid_port() {
-  [[ "$1" =~ ^[0-9]+$ ]] && ((1 <= 10#$1 && 10#$1 <= 65535))
-}
-
-valid_container_ref() {
-  [[ "$1" =~ ^[A-Za-z0-9_.-]+$ ]]
 }
 
 mysql_query() {

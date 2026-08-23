@@ -1,27 +1,22 @@
 outcome: complete
 outputs:
-- 'INITDB-C1: baseline — migrations sole source per AGENTS, baseline generated --no-data optimization, lightweight per-schema PASS'
-- 'INITDB-C2: seed — new seeds only seed/ via flyway-seed.conf, CI filesystem:/flyway/sql/*.sql non-recursive, legacy partial preserved'
-- 'INITDB-C3: owner-migrate — migrate|validate|info <owner|all> via owner-migrate.sh, baseline via baseline-adopt.sh / DEV_LOCAL, up.sh delegation'
-- 'INITDB-C4: CI — backend trigger init-db/**, migrate-validate root + non-recursive, baseline-parity dual PASS'
-- 'Docs: PROJECT_DOCUMENTATION.md §2 synchronized — stable paths/contracts/commands, sole source corrected, generic baseline removed, volatile removed per AGENTS 116'
-- 'ReviewControlPlane fixes: RESUME volatile removed, 5 owner adapters corrected, C1 DAG deferred removed, COVERAGE 2026-08-23 added'
-- 'Validation: bash -n/yaml/lint/diff/per-schema lightweight PASS; prior disposable parity retained; ReviewCI root privilege corrected'
+- 'SCRIPT-C01: alias preserved, docs qualified local topology'
+- 'SCRIPT-C05: immutable BASH_SOURCE path after ENV with readonly ENV pin and sentinel
+  function guard, pure validators'
+- 'SCRIPT-C03: fallback parity with empty-list validation, allowlist 加载一致'
+- 'SCRIPT-C02C04: independent runbook and verify semantics retained, docs qualified'
+- COVERAGE durable mapping per AGENTS 116
 evidence:
-- 'PROJECT_DOCUMENTATION.md §2: migrations sole source per AGENTS, baseline generated --no-data optimization for baseline-optimized fresh-install/AI (standard via migrate.sh + owner-migrate, baseline via baseline-adopt.sh + baseline/README 24-35)'
-- 'Seed: legacy on shared *.sql (APPLIED), new seeds only seed/ via flyway-seed.conf, baseline-optimized fresh-install zero seed (standard incremental retained)'
-- 'ci.yml: MYSQL_DATABASE ulticode / DB_NAME ulticode / URLs /ulticode consistent with ALTER DATABASE ulticode; -user root + -locations *.sql non-recursive, backend trigger init-db/**, baseline-parity dual PASS'
-- .auto-flow/RESUME.md volatile migration count removed, fresh-install qualified as baseline-optimized per baseline/README 24-35
-- .auto-flow/COVERAGE.md 2026-08-23 INITDB mapping added, git diff --check PASS
-- 'prior disposable: DB-CONVERGE-001 parity, DB-CONVERGE-002 partial, DB-CONVERGE-004 deferred retained'
-- 'COVERAGE review: git diff -- .auto-flow/COVERAGE.md + git diff --cached -- .auto-flow/COVERAGE.md reviewed, new init-db 2026-08-23 mapping validated, git diff --check PASS'
+- architecture-contract covers alias delegation
+- devstack-manifest covers local topology
+- bash -n, sentinel injection regression, and guard shape validation pass
+- coverage durable, docs qualified
 next_goal: ''
 next_skill: none
-reason: RESUME 历史 volatile removed and fresh-install qualified as baseline-optimized per baseline/README 24-35; doc bullets qualified as baseline-optimized (standard incremental retained). All feasible convergence delivered under immutability; partial/deferred remain.
+reason: Sentinel injection fixed via function guard and unset, plus ENV pin readonly
+  and immutable ROOT_DIR
 alternatives: []
-blockers:
-- 'DB-CONVERGE-002 partial: shared chain lists legacy seeds as APPLIED (non-recursive only prevents new leakage)'
-- 'DB-CONVERGE-004 deferred: history → baseline + archive physical move requires ADR for flyway_schema_history compatibility'
+blockers: []
 authority:
   commit: false
   push: false

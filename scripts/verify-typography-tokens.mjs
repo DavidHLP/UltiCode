@@ -15,9 +15,10 @@
 //
 // The script is strict: a deliberate, documented exception is the
 // ONLY way to keep a raw override. To whitelist a file, add it to
-// the `ALLOWED_PATH_PATTERNS` list below with a comment explaining
-// why the exception exists.
-//
+// `packages/theme/typography-allowlist.json` with a comment explaining
+// why the exception exists (see its `_comment` field and
+// docs/SHARED_TYPOGRAPHY_DESIGN.md).
+
 // Usage:
 //   node scripts/verify-typography-tokens.mjs
 //   pnpm verify:typography-tokens
@@ -39,37 +40,28 @@ const SCAN_ROOTS = ['apps/console/src', 'apps/management/src']
 // project; .json/.lock are excluded by the type filter below.
 const FILE_EXTENSIONS = new Set(['.vue', '.ts', '.tsx', '.js', '.mjs', '.cjs', '.css'])
 
-// Paths that are EXPLICITLY allowed to declare raw typography. Each
-// entry must come with a comment explaining why it cannot consume the
-// shared tokens. The shared foundation is the natural home for any new
-// raw declaration; do NOT add app files here without a written reason.
-const ALLOWED_PATH_PATTERNS = [
-  // The shared source of truth owns the canonical declarations.
-  'packages/theme/src/typography.css',
-  // packages/design-system/style.css imports the shared typography
-  // module and is the one place outside packages/theme that can
-  // re-anchor the Tailwind aliases. The script's regex matches
-  // `--text-sm` only when it is preceded by a raw rem value, so the
-  // shared aliases are safe.
-  'packages/design-system/style.css',
-  // The app-level style.css files are allowed to import the shared
-  // foundation and define app-wide layout adjustments (e.g. terminal
-  // table padding, header button height). They MUST NOT introduce new
-  // raw font-size/font-family values — if you need a new typography
-  // token, add it to packages/theme/src/typography.css instead.
-  'apps/console/src/style.css',
-  'apps/management/src/style.css',
-  // The console chart / markdown asset CSS files ship with renderer-specific
-  // typography that cannot consume Tailwind utility classes.
-  'apps/console/src/assets/charts.css',
-  'apps/console/src/assets/markdown.css',
-  // The landing bundle contains third-party Bootstrap typography plus the
-  // owned Solarized override tail; do not rewrite the vendor payload.
-  'apps/console/src/views/landing/styles/bundle.css',
-  // Markdown inline code intentionally uses a relative scale and blockquotes
-  // inherit the surrounding content size.
-  'apps/console/src/views/problems/description/DescriptionMarkdown.vue',
-]
+// Paths that are EXPLICITLY allowed to declare raw typography. Single source
+// is packages/theme/typography-allowlist.json — do NOT add app files here
+// without a written reason. The inline list is a fallback when the JSON is
+// unavailable (e.g. during isolated CI checkout).
+function loadAllowedPaths() {
+  try {
+    const raw = readFileSync(join(ROOT, 'packages/theme/typography-allowlist.json'), 'utf8')
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed.allowedPaths) && parsed.allowedPaths.length > 0 && parsed.allowedPaths.every((p) => typeof p === 'string' && p.length > 0)) return parsed.allowedPaths
+  } catch {}
+  return [
+    'packages/theme/src/typography.css',
+    'packages/design-system/style.css',
+    'apps/console/src/style.css',
+    'apps/management/src/style.css',
+    'apps/console/src/assets/charts.css',
+    'apps/console/src/assets/markdown.css',
+    'apps/console/src/views/landing/styles/bundle.css',
+    'apps/console/src/views/problems/description/DescriptionMarkdown.vue',
+  ]
+}
+const ALLOWED_PATH_PATTERNS = loadAllowedPaths()
 
 // Patterns that count as raw typography declarations. The intent is
 // to catch the common Tailwind arbitrary-value escapes AND any
@@ -214,12 +206,10 @@ for (const scanRoot of SCAN_ROOTS) {
     }
   }
 }
-
 if (violations.length > 0) {
   console.error('Raw typography overrides detected. Apps must consume shared tokens.')
-  console.error('Allowed declaration sites are listed in scripts/verify-typography-tokens.mjs')
-  console.error('(ALLOWED_PATH_PATTERNS). Add new typography tokens to')
-  console.error('packages/theme/src/typography.css instead of redeclaring them locally.')
+  console.error('Allowed declaration sites are listed in packages/theme/typography-allowlist.json')
+  console.error('Add new typography tokens to packages/theme/src/typography.css instead of redeclaring them locally.')
   console.error('')
   // Group by file for compact output
   const byFile = new Map()

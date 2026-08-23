@@ -47,7 +47,7 @@
   `done` and AR20260820-003 is now `in_progress`.
 
 ## Active objective
-实施 `/tmp/architecture-review-20260821112953.html` 的全部 1-5 候选并完成
+实施 `/tmp/architecture-review-20260821112953.html` 的全部候选并完成
 run-development-loop 终态审计；当前只接受 development/TEST-TARGET 证据。
 
 ## Active task
@@ -289,3 +289,32 @@ unrelated prior changes were preserved.
 **限制**：DB-CONVERGE-002 partial（增量仍扫描 legacy seed）与 DB-CONVERGE-004 deferred（历史文件不移动）为不可消除约束，需 ADR 方可物理归档，不在本轮硬改。
 
 Authority：development/TEST-TARGET only，无 commit/push/prod 操作。
+
+
+## 2026-08-23 scripts/ 收敛 — advisory 约束的保守执行
+
+**Objective**：执行 `scripts/` 下的入口与排版收敛，按 advisory 保迁移/割接/安全独立语义，仅收敛受支持入口并同步 contract/README/CI；入口别名按门禁校正，割接/排版按独立 seam 保语义。
+**Advisory 处理**：
+- 入口别名报告计数与门禁不一致 — 以 `architecture-contract-test` 覆盖的委托路径为准，受测别名（`start.sh/stop.sh/start.bat/stop.bat/pitstop-start-backend.ps1`）保留为 deprecated thin adapter，`.bat/.ps1` 为 Windows 入口，删除/迁移需同步门禁与跨平台文档。
+- `devstack-manifest-test` 覆盖本地拓扑来源 `up.sh+manifest`；割接与排版保持独立 seam，不按文件大小物理合并。
+**Execution order**：入口门禁与文档 → 公共前言 lib（无业务）与排版单源 + 独立 seam 文档化 → Review/Validation/Close。
+**Authority**：development/TEST-TARGET only；无 commit/push/prod。
+
+> 历史快照（plan 时刻）：Active task 曾为入口收敛 pending；随入口→前言/排版/文档完成已收口，下段为终态。
+
+## 2026-08-23 scripts/ 保守收敛 terminal
+
+**C01**: 兼容别名保留为 deprecated adapter，`PROJECT_DOCUMENTATION` 明确委托与门禁，报告与门禁一致 via ERRATA。
+**C05**: `lib/common.sh` 仅含 pure validators，消费者在 `ENV` 之后 source 并调用共享校验，割接保持独立业务语义。
+**C03**: `typography-allowlist.json` 单源，`mjs` 与 `sh` 同源加载（含 fallback 与空串校验，letter-spacing 已补齐），allowlist 加载一致。
+**C02/C04**: 割接与验证保持独立，仅文档化统一索引，拓扑来源 qualified。
+**Gate**: Review and validation cover contracts, syntax, and docs; authority development/TEST-TARGET only
+
+## 2026-08-23 advisory fix — pure helpers & real consumers
+- `common.sh` 仅留 pure validators，`fail_preflight` 保留 migration-specific
+- `submission-schema-cutover.sh` 调用共享校验，消费者均真实调用，shadow 消除
+
+## 2026-08-23 review fix — sourcing order & coverage durable
+- `lib/common` 在 `ENV_FILE` 之后 via immutable 路径 source，`ROOT_DIR` 覆盖且 `ENV_FILE` pin，防止 shadowing 与重定向
+- 排版 guard fallback 校验非空列表并与 `mjs` 一致
+- `COVERAGE` 重写为 durable 映射，`PROJECT_DOCUMENTATION` 拓扑 qualified 为本地开发

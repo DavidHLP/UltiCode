@@ -1,0 +1,13 @@
+{
+  "_comment": "Shared allowlist for typography guards. Both scripts/verify-typography-tokens.mjs and scripts/dev/typography-guard.sh read this file as single source. Add new entries only with written reason per docs/SHARED_TYPOGRAPHY_DESIGN.md §13.",
+  "allowedPaths": [
+    "packages/theme/src/typography.css",
+    "packages/design-system/style.css",
+    "apps/console/src/style.css",
+    "apps/management/src/style.css",
+    "apps/console/src/assets/charts.css",
+    "apps/console/src/assets/markdown.css",
+    "apps/console/src/views/landing/styles/bundle.css",
+    "apps/console/src/views/problems/description/DescriptionMarkdown.vue"
+  ]
+}

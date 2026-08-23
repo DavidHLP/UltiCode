@@ -63,6 +63,7 @@ font-size\s*:\s*[0-9]+(?:\.[0-9]+)?(?:px|rem|em|pt)\b
 font-family\s*:\s*['"][^'"]+['"]
 font-weight\s*:\s*(?:normal|bold|[1-9]00)\b
 line-height\s*:\s*[0-9]+(?:\.[0-9]+)?(?:px|rem|em|pt)\b
+letter-spacing\s*:\s*-\s*[0-9]+(?:\.[0-9]+)?(?:em|px|rem)\b
 text-\[\s*[0-9.]+(?:px|rem|em)\b
 tracking-\[\s*[0-9.]+(?:px|rem|em)\b
 leading-\[\s*[0-9.]+(?:px|rem|em)\b
@@ -99,22 +100,34 @@ for scan_path in "${SCAN_PATHS[@]}"; do
   done <<< "$PATTERN_BLOB"
 done
 
-# --- post-filter ------------------------------------------------------------
 # Use python to:
-#   1. Drop the canonical shared surface (packages/theme/typography.css,
-#      packages/design-system/style.css) — those legitimately own these patterns.
+#   1. Drop the shared allowlist (packages/theme/typography-allowlist.json — single source).
 #   2. Drop lines that are pure var(--uc-*) or var(--font-*) / var(--text-*) etc.
 #      references — they ARE shared tokens, not custom font state.
 #   3. Drop highlight.js third-party output inside .hljs-* rule blocks.
 #   4. De-duplicate (a single line can match multiple patterns).
 final_file="$(mktemp)"
 python3 - "$violations_file" "$final_file" <<'PY'
-import re, sys
+import json, re, sys, pathlib
 
-CANONICAL_PREFIXES = (
-    'packages/theme/src/typography.css:',
-    'packages/design-system/style.css:',
-)
+_allow = pathlib.Path("packages/theme/typography-allowlist.json")
+try:
+    _data = json.loads(_allow.read_text(encoding="utf-8"))
+    _paths = _data.get("allowedPaths", [])
+    if not isinstance(_paths, list) or not _paths or not all(isinstance(p, str) and p for p in _paths):
+        raise ValueError("invalid allowlist")
+except Exception:
+    _paths = [
+        "packages/theme/src/typography.css",
+        "packages/design-system/style.css",
+        "apps/console/src/style.css",
+        "apps/management/src/style.css",
+        "apps/console/src/assets/charts.css",
+        "apps/console/src/assets/markdown.css",
+        "apps/console/src/views/landing/styles/bundle.css",
+        "apps/console/src/views/problems/description/DescriptionMarkdown.vue",
+    ]
+CANONICAL_PREFIXES = tuple(f"{p}:" for p in _paths)
 # var(--token-name) references count as compliant — they consume the shared
 # token system. We also allow arbitrary CSS values inside var() like
 # var(--font-sans, monospace) but those still trace back to a uc-* token.
@@ -159,6 +172,9 @@ with open(src) as f, open(dst, 'w') as out:
             continue
 
         # Drop pure var() references (line is a single declaration using a token).
+        # Regression: letter-spacing with var() elsewhere on same line must not be dropped.
+        # e.g. `letter-spacing: -0.02em; content: var(--x)` is a real negative-letter-spacing violation (MJS reports it),
+        # so letter-spacing negative must be in the exclusion regex; otherwise the var check would incorrectly drop it.
         # We detect by stripping path:line: prefix and checking the remainder.
         parts = line.split(':', 2)
         if len(parts) >= 3:
@@ -166,7 +182,7 @@ with open(src) as f, open(dst, 'w') as out:
         else:
             content = line
         if VAR_REF_RE.search(content) and not re.search(
-            r'(text-\[\d|tracking-\[\d|leading-\[\d|font-\[\d|font-size:\s*\d|font-weight:\s*(?:bold|normal|[1-9]00)\b)', content
+            r'(text-\[\d|tracking-\[\d|leading-\[\d|font-\[\d|font-size:\s*\d|font-weight:\s*(?:bold|normal|[1-9]00)\b|letter-spacing\s*:\s*-)', content
         ):
             # Line uses var() and has no other typography violation — compliant.
             continue

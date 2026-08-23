@@ -24,8 +24,6 @@ set -euo pipefail
 # enabled after the SPLIT-004 read-path migration. See the migration guide §8.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=scripts/dev/mysql-container-target.sh
-source "$ROOT_DIR/scripts/dev/mysql-container-target.sh"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 ACTION="${1:-preflight}"
 EXECUTE="${2:-}"
@@ -43,10 +41,21 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+readonly __ULTICODE_ENV_FILE_PIN="${ENV_FILE:-}"
 set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 set +a
+if [[ -n "${__ULTICODE_ENV_FILE_PIN:-}" ]]; then
+  ENV_FILE="$__ULTICODE_ENV_FILE_PIN"
+  export ENV_FILE
+fi
+unset -f valid_identifier owner_schema valid_port valid_container_ref mysql_container_targets_configured_host 2>/dev/null || true
+unset __ULTICODE_COMMON_SOURCED 2>/dev/null || true
+# shellcheck source=scripts/dev/mysql-container-target.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/mysql-container-target.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 : "${DB_HOST:?DB_HOST is required}"
 : "${DB_PORT:?DB_PORT is required}"
@@ -65,7 +74,7 @@ APP_DB_HOST="${SUBMISSION_APP_DB_HOST:-%}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-${MIGRATION_MYSQL_CONTAINER:-}}"
 
 for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_USER"; do
-  if [[ -n "$identifier" && ! "$identifier" =~ ^[A-Za-z0-9_]+$ ]]; then
+  if [[ -n "$identifier" ]] && ! valid_identifier "$identifier"; then
     echo "Invalid schema/user identifier: $identifier" >&2
     exit 1
   fi

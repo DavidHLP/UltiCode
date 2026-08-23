@@ -1,7 +1,7 @@
 version: 1
 prior_terminal_objective: 将项目 docs 与 wiki 临时文档合并为根目录 PROJECT_DOCUMENTATION.md，更新引用并删除冗余文档
-objective: 执行 /tmp/architecture-review-20260823-005833.html 的 4 个候选 — baseline external seam/seed隔离/owner深模块/CI门禁的非破坏性收敛（保持已应用迁移不可变，partial/deferred 保留）
-updated_at: '2026-08-23T01:10:00+08:00'
+objective: 执行 /tmp/architecture-review-20260823-scripts.html 的 scripts/ 收敛 — 按 advisory 保 migration/cutover/security 独立语义，仅收敛受支持入口并同步 contract 与文档
+updated_at: '2026-08-23T09:10:00+08:00'
 historical_ledger: .auto-flow/TASKS.history.yaml
 tasks:
 - id: RECOVERY-001
@@ -1520,3 +1520,127 @@ tasks:
   - 'Docs: PROJECT_DOCUMENTATION.md §2 stable paths/contracts/commands (volatile removed, wording corrected per README), affected documentation current'
   - 'Coverage: C2/C4 reopened for seed-leak+doc Gate, re-closed, partial/deferred preserved'
   updated_at: '2026-08-23T01:25:00+08:00'
+- id: SCRIPT-20260823-C01
+  title: 校正根级入口收敛 — 别名门禁一致性与受支持入口文档化
+  source:
+  - /tmp/architecture-review-20260823-scripts.html#candidate-1
+  - advisory:alias + up.sh/manifest topology source
+  status: done
+  depends_on: []
+  acceptance_criteria:
+  - 兼容别名 delegation 断言保持，计数与门禁一致校正
+  - 删除/迁移任一别名需同步 architecture-contract 与跨平台文档，否则保留为 deprecated adapter
+  - README/AGENTS/PROJECT_DOCUMENTATION 明确受支持入口与本地拓扑来源
+  validation:
+  - architecture-contract-test
+  - devstack-manifest-test
+  - bash -n
+  - grep supported entry
+  - git diff --check
+  rollback:
+  - 恢复别名文件与contract断言
+  - 回滚文档指向
+  evidence:
+  - architecture-contract covers alias delegation (59-73)
+  - devstack-manifest covers local topology (37-52)
+  - PROJECT_DOCUMENTATION documents alias paths and gate sync, errata aligns report with gate
+  - aliases retained as deprecated adapters per advisory
+  updated_at: '2026-08-23T09:10:00+08:00'
+- id: SCRIPT-20260823-C05
+  title: 抽公共前言 lib — ROOT_DIR/ENV/校验收敛但不合并cutover业务
+  source:
+  - /tmp/architecture-review-20260823-scripts.html#candidate-5
+  status: done
+  depends_on:
+  - SCRIPT-20260823-C01
+  acceptance_criteria:
+  - 新增 scripts/dev/lib/common.sh 提供 pure validators
+  - cutover 保持独立语义与实现，不物理合并
+  - 既有调用方与层已同步， contract 与语法检查覆盖
+  validation:
+  - bash -n lib + consumers
+  - grep sourcing
+  - contract tests
+  - git diff --check
+  rollback:
+  - 删除 lib，恢复各脚本前言
+  evidence:
+  - scripts/dev/lib/common.sh pure validators (owner_schema/valid_identifier/valid_port/valid_container_ref), fail_preflight remains migration-specific, ROOT_DIR derived immutably from BASH_SOURCE with function-existence guard and readonly sentinel
+  - consumers source via immutable BASH_SOURCE path after ENV, pin ENV_FILE via readonly __ULTICODE_ENV_FILE_PIN and unset injected helpers/sentinel before sourcing to prevent env injection
+  - consumers each call shared validators, cutover business semantics remain independent
+  - bash -n and contract gates cover lib and consumers
+  updated_at: '2026-08-23T09:15:00+08:00'
+- id: SCRIPT-20260823-C03
+  title: 收敛 typography 双 guard 为单源 allowlist
+  source:
+  - /tmp/architecture-review-20260823-scripts.html#candidate-3
+  status: done
+  depends_on:
+  - SCRIPT-20260823-C01
+  acceptance_criteria:
+  - pattern/allowlist 单源化，sh 与 mjs 均为 adapter 读取同一源
+  - sync/verify 保持配对语义，不强约束迁移
+  - allowlist/fallback 加载与校验一致
+  validation:
+  - typography guard --check
+  - verify-typography-tokens
+  - verify-theme-sync
+  - bash -n / node --check
+  - git diff --check
+  rollback:
+  - 恢复双份独立 allowlist
+  evidence:
+  - packages/theme/typography-allowlist.json single source, mjs and sh load same JSON with fallback handling
+  - both guards share same allowlist source, allowlist 加载一致 (fallback 与空串校验对齐，letter-spacing 已补齐)
+  - syntax and shape checks cover guards
+  updated_at: '2026-08-23T09:05:30+08:00'
+- id: SCRIPT-20260823-C02C04-DOC
+  title: 文档化 cutover 与 verify 的独立 seam — 不按文件大小合并
+  source:
+  - /tmp/architecture-review-20260823-scripts.html#candidate-2
+  - /tmp/architecture-review-20260823-scripts.html#candidate-4
+  status: done
+  depends_on:
+  - SCRIPT-20260823-C01
+  acceptance_criteria:
+  - cutover 独立语义保留，文档说明适用场景与 confirmation token
+  - verify 保持独立可执行，文档提供索引而非物理合并
+  - 本地拓扑来源不变
+  validation:
+  - architecture-contract-test
+  - devstack-manifest-test
+  - grep docs
+  - git diff --check
+  rollback:
+  - 回滚文档索引
+  evidence:
+  - PROJECT_DOCUMENTATION documents independent runbook and verify semantics retained
+  - topology source remains via devstack-manifest and alias delegation gate
+  - verify checks remain independently executable, docs provide index
+  updated_at: '2026-08-23T09:10:00+08:00'
+- id: SCRIPT-20260823-REVIEW-VALIDATE-CLOSE
+  title: 完成 scripts 收敛的 Review/Validation/Coverage 终态审计
+  source:
+  - /tmp/architecture-review-20260823-scripts.html#top-recommendation
+  status: done
+  depends_on:
+  - SCRIPT-20260823-C01
+  - SCRIPT-20260823-C05
+  - SCRIPT-20260823-C03
+  - SCRIPT-20260823-C02C04-DOC
+  acceptance_criteria:
+  - 所有候选按 advisory 保语义收敛
+  - Validation 覆盖 contract、语法与文档
+  - Coverage/HANDOFF/Git/Task/Evidence 一致
+  validation:
+  - review
+  - validation
+  - coverage audit
+  - HANDOFF
+  rollback:
+  - revert scoped docs/scripts
+  evidence:
+  - Review and validation gates cover contracts, syntax, and docs with immutable root, ENV pin, and sentinel fix
+  - All consumers use immutable helper path, pinned ENV, and shared validator calls
+  - Coverage maps durable requirements to tasks
+  updated_at: '2026-08-23T09:15:00+08:00'

@@ -53,10 +53,19 @@ if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2
   }
 fi
 
-# Single-sourced connection adapter (scripts/dev/lib/sql.sh). The historical
+# Single-sourced connection adapters (scripts/dev/lib/sql.sh). The historical
+# behaviour is preserved: queries go through the container while it exists and
+# fall back to the direct host transport when it does not. The historical
 # per-query signature `mysql_query <schema> <query>` is kept as a thin wrapper.
-define_mysql_query_adapter _rehearsal_mysql_query \
+define_mysql_query_adapter _rehearsal_mysql_query_container \
   "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
+  "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" \
+  "$MONITORING_DB_USER" "$MONITORING_DB_PASSWORD" \
+  "" \
+  --batch --skip-column-names
+
+define_mysql_query_adapter _rehearsal_mysql_query_host \
+  "" "" \
   "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" \
   "$MONITORING_DB_USER" "$MONITORING_DB_PASSWORD" \
   "" \
@@ -64,7 +73,11 @@ define_mysql_query_adapter _rehearsal_mysql_query \
 
 mysql_query() {
   local schema="$1" query="$2"
-  _rehearsal_mysql_query "$query" "$schema"
+  if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2>&1; then
+    _rehearsal_mysql_query_container "$query" "$schema"
+  else
+    _rehearsal_mysql_query_host "$query" "$schema"
+  fi
 }
 
 echo "=== [1/5] DEV-LOCAL Observation Baseline & Timeline ==="

@@ -16,15 +16,17 @@
 # remain accepted during the transition so existing invocations keep working.
 
 SMOKE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SMOKE_ROOT_DIR="$(cd "$SMOKE_LIB_DIR/../.." && pwd)"
+SMOKE_ROOT_DIR="$(cd "$SMOKE_LIB_DIR/../../.." && pwd)"
 
 smoke_init() {
   local name="${1:?smoke_init requires an artifact name}"
   cd "$SMOKE_ROOT_DIR"
-  SMOKE_ARTIFACT_ROOT=".tmp/$name"
+  SMOKE_ARTIFACT_ROOT="$SMOKE_ROOT_DIR/.tmp/$name"
   umask 077
   mkdir -p "$SMOKE_ARTIFACT_ROOT"
   SMOKE_ARTIFACT_DIR="$(mktemp -d "$SMOKE_ARTIFACT_ROOT/run.XXXXXX")"
+  # Legacy alias kept so smoke bodies can keep using $ARTIFACT_DIR.
+  ARTIFACT_DIR="$SMOKE_ARTIFACT_DIR"
   COOKIE_JAR="$SMOKE_ARTIFACT_DIR/cookies.txt"
   # Both variables are global so the EXIT trap can read them outside this
   # function's scope (a function-local would be unbound under set -u).
@@ -32,9 +34,20 @@ smoke_init() {
 }
 
 smoke_load_env() {
+  # smoke_load_env [--optional] — trusted .env loading via lib/common.sh.
+  # Explicitly exported values win over anything sourced from .env
+  # (capture_env_vars/apply_env_overrides), matching the migrate.sh posture.
+  # With --optional a missing repo .env is skipped instead of fatal, so
+  # args/env-only smokes keep working on bare checkouts.
+  local optional="${1:-}"
   # shellcheck source=scripts/dev/lib/common.sh
   source "$SMOKE_ROOT_DIR/scripts/dev/lib/common.sh"
+  if [[ "$optional" == "--optional" && ! -f "${ENV_FILE:-$SMOKE_ROOT_DIR/.env}" ]]; then
+    return 0
+  fi
+  capture_env_vars SMOKE_USERNAME SMOKE_PASSWORD SMOKE_BASE_URL BASE
   load_env_file
+  apply_env_overrides
 }
 
 smoke_require_credentials() {
@@ -56,7 +69,7 @@ smoke_login() {
   status="$(curl -sS -c "$cookie_jar" -o "$out_body" -w '%{http_code}' \
     -X POST "$base/auth/login" \
     -H 'Content-Type: application/json' \
-    --data-binary "$payload")" || return 1
+    --data-binary "$payload")" || status="000"
   printf '%s\n' "$status"
   [[ "$status" == "200" ]]
 }

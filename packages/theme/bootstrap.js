@@ -9,7 +9,7 @@
 // This file (packages/theme/bootstrap.js) is the CANONICAL SOURCE. The copies at
 // console/public/theme-bootstrap.js and management/public/theme-bootstrap.js
 // are regenerated from it by `pnpm sync:theme-bootstrap`
-// (scripts/sync-theme-bootstrap.mjs); `pnpm verify:theme-sync` fails CI if the
+// (packages/theme/scripts/sync-theme-bootstrap.mjs); `pnpm verify:theme-sync` fails CI if the
 // copies drift from this source. Edit here, then sync — never edit the copies.
 //
 // Logic mirrors packages/theme/src/applyThemeToDOM.ts (isDarkMode) and reads

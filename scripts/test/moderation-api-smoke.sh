@@ -12,7 +12,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/smoke-common.sh"
 smoke_init moderation-api-smoke
-smoke_load_env
+smoke_load_env --optional
 
 BASE_URL="${1:-${SMOKE_BASE_URL:-http://localhost:9003/api}}"
 USERNAME="${2:-${SMOKE_USERNAME:-${SMOKE_USER:-}}}"

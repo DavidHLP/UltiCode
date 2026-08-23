@@ -152,7 +152,7 @@ owner_preflight() {
       || fail_preflight "invalid migration MySQL container reference"
     valid_port "$MIGRATION_MYSQL_CONTAINER_PORT" \
       || fail_preflight "invalid migration MySQL container port: $MIGRATION_MYSQL_CONTAINER_PORT"
-    [[ "$(docker inspect -f '{{.State.Running}}' "$MIGRATION_MYSQL_CONTAINER" 2>/dev/null || true)" == "true" ]] \
+    container_running "$MIGRATION_MYSQL_CONTAINER" \
       || fail_preflight "migration MySQL container is not running: $MIGRATION_MYSQL_CONTAINER"
     mysql_container_targets_configured_host "$MIGRATION_MYSQL_CONTAINER" "$MIGRATION_MYSQL_CONTAINER_PORT" \
       "$MIGRATION_DB_HOST" "$MIGRATION_DB_PORT" \
@@ -251,7 +251,7 @@ owner_baseline_version() {
 owner_baseline_preflight() {
   [[ "${DEV_LOCAL_OWNER_BASELINE:-false}" == "true" ]] \
     || fail_preflight "baseline is DEV-LOCAL only; set DEV_LOCAL_OWNER_BASELINE=true"
-  [[ "${DEV_LOCAL_OWNER_BASELINE_CONFIRM:-}" == "I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE" ]] \
+  gate_confirmed DEV_LOCAL_OWNER_BASELINE_CONFIRM I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE \
     || fail_preflight "baseline requires DEV_LOCAL_OWNER_BASELINE_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE"
 
   local expected_table expected_columns expected_snapshot history_count

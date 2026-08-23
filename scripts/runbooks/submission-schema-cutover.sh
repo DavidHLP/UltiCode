@@ -101,32 +101,8 @@ mysql_query() {
   fi
 }
 
-table_exists() {
-  local schema="$1" table="$2"
-  [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$schema' AND table_name = '$table';")" == "1" ]]
-}
-
-column_signature() {
-  local schema="$1" table="$2"
-  mysql_query "SELECT COALESCE(GROUP_CONCAT(CONCAT_WS(':', ordinal_position, column_name, column_type, is_nullable, COALESCE(column_default, '<NULL>'), extra, COALESCE(character_set_name, ''), COALESCE(collation_name, '')) ORDER BY ordinal_position SEPARATOR '|'), '') FROM information_schema.columns WHERE table_schema = '$schema' AND table_name = '$table';"
-}
-
-row_count() {
-  local schema="$1" table="$2"
-  mysql_query "SELECT COUNT(*) FROM \`$schema\`.\`$table\`;"
-}
-
-checksum() {
-  local schema="$1" table="$2" result
-  if ! result="$(mysql_query "CHECKSUM TABLE \`$schema\`.\`$table\`;")"; then
-    return 1
-  fi
-  result="$(awk 'NF == 2 && $2 ~ /^[0-9]+$/ { print $2; found=1 } END { if (!found) exit 1 }' <<<"$result")" || {
-    echo "Unable to read a valid checksum for $schema.$table; refusing to continue." >&2
-    return 1
-  }
-  printf '%s\n' "$result"
-}
+# table_exists/column_signature/row_count/checksum_table come from
+# scripts/dev/lib/common.sh (shared strict primitives over mysql_query).
 
 source_snapshot() {
   local schema="$1" table rows table_checksum
@@ -134,7 +110,7 @@ source_snapshot() {
     if ! rows="$(row_count "$schema" "$table")"; then
       return 1
     fi
-    if ! table_checksum="$(checksum "$schema" "$table")"; then
+    if ! table_checksum="$(checksum_table "$schema" "$table")"; then
       return 1
     fi
     printf '%s\t%s\t%s\n' "$table" "$rows" "$table_checksum"
@@ -146,14 +122,14 @@ print_snapshot() {
   echo "[$label] schema=$schema"
   for table in "${TABLES[@]}"; do
     if table_exists "$schema" "$table"; then
-      echo "  $table rows=$(row_count "$schema" "$table") checksum=$(checksum "$schema" "$table")"
+      echo "  $table rows=$(row_count "$schema" "$table") checksum=$(checksum_table "$schema" "$table")"
     else
       echo "  $table MISSING"
     fi
   done
   for table in "${TARGET_ONLY_TABLES[@]}"; do
     if table_exists "$schema" "$table"; then
-      echo "  $table (target-only) rows=$(row_count "$schema" "$table") checksum=$(checksum "$schema" "$table")"
+      echo "  $table (target-only) rows=$(row_count "$schema" "$table") checksum=$(checksum_table "$schema" "$table")"
     else
       echo "  $table (target-only) MISSING"
     fi
@@ -201,7 +177,7 @@ require_execute() {
 
 require_quiesce() {
   local expected="$1"
-  if [[ "${SUBMISSION_CUTOVER_QUIESCE_CONFIRM:-}" != "$expected" ]]; then
+  if ! gate_confirmed SUBMISSION_CUTOVER_QUIESCE_CONFIRM "$expected"; then
     echo "Refusing write action. Stop and drain backend-app/App PM2, backend-submission, backend-judge, and every direct writer or maintenance client for both schemas; then pass SUBMISSION_CUTOVER_QUIESCE_CONFIRM=$expected." >&2
     exit 1
   fi

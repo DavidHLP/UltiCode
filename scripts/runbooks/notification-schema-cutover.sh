@@ -81,25 +81,8 @@ mysql_query() {
   fi
 }
 
-table_exists() {
-  local schema="$1" table="$2"
-  [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$schema' AND table_name = '$table';")" == "1" ]]
-}
-
-column_signature() {
-  local schema="$1" table="$2"
-  mysql_query "SELECT COALESCE(GROUP_CONCAT(CONCAT_WS(':', ordinal_position, column_name, column_type, is_nullable, COALESCE(column_default, '<NULL>'), extra, COALESCE(character_set_name, ''), COALESCE(collation_name, '')) ORDER BY ordinal_position SEPARATOR '|'), '') FROM information_schema.columns WHERE table_schema = '$schema' AND table_name = '$table';"
-}
-
-row_count() {
-  local schema="$1" table="$2" predicate="${3:-1=1}"
-  mysql_query "SELECT COUNT(*) FROM \`$schema\`.\`$table\` WHERE $predicate;"
-}
-
-checksum() {
-  local schema="$1" table="$2"
-  mysql_query "CHECKSUM TABLE \`$schema\`.\`$table\`;" | awk '{print $2}'
-}
+# table_exists/column_signature/row_count/checksum_table come from
+# scripts/dev/lib/common.sh (shared strict primitives over mysql_query).
 
 receipt_source_table() {
   if table_exists "$SOURCE_SCHEMA" notification_command_receipt; then
@@ -116,7 +99,7 @@ print_snapshot() {
   echo "[$label] schema=$schema"
   for table in "${TABLES[@]}"; do
     if table_exists "$schema" "$table"; then
-      echo "  $table rows=$(row_count "$schema" "$table") checksum=$(checksum "$schema" "$table")"
+      echo "  $table rows=$(row_count "$schema" "$table") checksum=$(checksum_table "$schema" "$table")"
     else
       echo "  $table MISSING"
     fi
@@ -124,9 +107,9 @@ print_snapshot() {
   local receipt
   receipt="$(receipt_source_table)"
   if [[ "$schema" == "$SOURCE_SCHEMA" && -n "$receipt" ]]; then
-    echo "  $receipt rows=$(row_count "$schema" "$receipt" "service = 'NotificationAdministrationService'") checksum=$(checksum "$schema" "$receipt")"
+    echo "  $receipt rows=$(row_count "$schema" "$receipt" "service = 'NotificationAdministrationService'") checksum=$(checksum_table "$schema" "$receipt")"
   elif table_exists "$schema" notification_command_receipt; then
-    echo "  notification_command_receipt rows=$(row_count "$schema" notification_command_receipt) checksum=$(checksum "$schema" notification_command_receipt)"
+    echo "  notification_command_receipt rows=$(row_count "$schema" notification_command_receipt) checksum=$(checksum_table "$schema" notification_command_receipt)"
   else
     echo "  notification_command_receipt MISSING"
   fi

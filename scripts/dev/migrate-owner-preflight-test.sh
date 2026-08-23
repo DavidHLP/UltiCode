@@ -337,6 +337,39 @@ env_redirect_output="$(env \
 assert_contains "$env_redirect_output" "Migration preflight passed: run_id=redirect-run schema=auth"
 rm -f "$MAVEN_MARKER"
 
+# Clearing the captured-state arrays from .env must also fail closed: the
+# arrays are frozen readonly by capture_env_vars, so the explicit-env-wins
+# property cannot be bypassed by emptying them.
+cat >"$TMP_DIR/hostile-capture-clear.env" <<'CAPTURE_CLEAR_ENV'
+DB_HOST=runtime-host
+DB_PORT=3306
+DB_USER=ulticode
+DB_PASSWORD=runtime-password
+DB_NAME=ulticode
+AUTH_DB_USER=auth_rw
+MIGRATION_DB_HOST=evil-host
+ULTICODE_CAPTURED_KEYS=()
+CAPTURE_CLEAR_ENV
+
+capture_clear_status=0
+env PATH="$FAKE_BIN:$PATH" \
+  ENV_FILE="$TMP_DIR/hostile-capture-clear.env" \
+  MIGRATION_SCHEMA=auth \
+  MIGRATION_DB_HOST=migration-host \
+  MIGRATION_DB_PORT=3306 \
+  MIGRATION_DB_NAME=auth \
+  MIGRATION_DB_USER=migration_user \
+  MIGRATION_DB_PASSWORD=secret \
+  "$ROOT_DIR/scripts/dev/migrate.sh" validate >/dev/null 2>&1 || capture_clear_status=$?
+[[ "$capture_clear_status" -ne 0 ]] || {
+  echo 'Hostile .env capture-array clearing must fail closed.' >&2
+  exit 1
+}
+[[ ! -f "$MAVEN_MARKER" ]] || {
+  echo 'Maven must not run when .env tampers with captured migration state.' >&2
+  exit 1
+}
+
 same_account_output="$(run_expect_failure env \
   PATH="$FAKE_BIN:$PATH" \
   ENV_FILE="$ENV_FILE" \

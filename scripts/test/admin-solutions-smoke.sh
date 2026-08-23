@@ -13,6 +13,9 @@ COOKIE_JAR="$ARTIFACT_DIR/cookies.txt"
 HEADERS_JAR="$ARTIFACT_DIR/headers.txt"
 trap 'rm -rf -- "$ARTIFACT_DIR"; rmdir "$ARTIFACT_ROOT" 2>/dev/null || true' EXIT
 BASE="${BASE:-http://localhost:9003/api}"
+# Credentials come from the environment; never hardcode a seed password here.
+: "${SMOKE_ADMIN_USERNAME:?Set SMOKE_ADMIN_USERNAME for the /auth/login step}"
+: "${SMOKE_ADMIN_PASSWORD:?Set SMOKE_ADMIN_PASSWORD for the /auth/login step}"
 
 set -a
 . "$ROOT_DIR/.env"
@@ -80,7 +83,7 @@ echo "$SEP 0. login as admin $SEP"
 curl -sS -c "$COOKIE_JAR" -o $ARTIFACT_DIR/uc-login.json -w 'HTTP=%{http_code}\n' \
   -X POST "$BASE/auth/login" \
   -H 'Content-Type: application/json' \
-  --data-binary '{"username":"admin","password":"admin123"}'
+  --data-binary "$(SMOKE_ADMIN_USERNAME="$SMOKE_ADMIN_USERNAME" SMOKE_ADMIN_PASSWORD="$SMOKE_ADMIN_PASSWORD" python3 -c 'import json, os; print(json.dumps({"username": os.environ["SMOKE_ADMIN_USERNAME"], "password": os.environ["SMOKE_ADMIN_PASSWORD"]}))')"
 
 CSRF=$(python3 -c "import json; d=json.load(open('$ARTIFACT_DIR/uc-login.json')); print(d.get('data',{}).get('csrfToken',''))" 2>/dev/null || echo "")
 log "login" "$( [ -n "$CSRF" ] && echo OK || echo FAIL )" "csrfLen=${#CSRF}"

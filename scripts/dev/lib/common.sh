@@ -110,6 +110,9 @@ if ! [[ -v __ULTICODE_COMMON_SOURCED ]]; then
       ULTICODE_CAPTURED_WAS_SET+=("${!name+x}")
       ULTICODE_CAPTURED_OVERRIDE+=("${!name-}")
     done
+    # Freeze the captured state: a hostile .env must not be able to clear or
+    # rewrite it to defeat apply_env_overrides — tampering fails closed.
+    readonly ULTICODE_CAPTURED_KEYS ULTICODE_CAPTURED_WAS_SET ULTICODE_CAPTURED_OVERRIDE
   }
 
   apply_env_overrides() {
@@ -152,9 +155,50 @@ if ! [[ -v __ULTICODE_COMMON_SOURCED ]]; then
     [[ "$1" == "--execute" && "${!2:-}" == "$3" ]]
   }
 
+  gate_confirmed() {
+    # gate_confirmed <CONFIRM_VAR_NAME> <EXPECTED_TOKEN> — true when the named
+    # confirmation variable holds exactly the expected token. Use this for
+    # gates without an --execute flag; pair bespoke refusal messages with it.
+    [[ "${!1:-}" == "$2" ]]
+  }
+
+  # Shared data-verification primitives for migration runbooks. They delegate
+  # the connection to the caller-owned `mysql_query <sql>` adapter, so each
+  # runbook keeps its own connection semantics while the verification logic
+  # stays single-source here.
+  table_exists() {
+    local schema="$1" table="$2"
+    [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$schema' AND table_name = '$table';")" == "1" ]]
+  }
+
+  column_signature() {
+    local schema="$1" table="$2"
+    mysql_query "SELECT COALESCE(GROUP_CONCAT(CONCAT_WS(':', ordinal_position, column_name, column_type, is_nullable, COALESCE(column_default, '<NULL>'), extra, COALESCE(character_set_name, ''), COALESCE(collation_name, '')) ORDER BY ordinal_position SEPARATOR '|'), '') FROM information_schema.columns WHERE table_schema = '$schema' AND table_name = '$table';"
+  }
+
+  row_count() {
+    local schema="$1" table="$2" predicate="${3:-1=1}"
+    mysql_query "SELECT COUNT(*) FROM \`$schema\`.\`$table\` WHERE $predicate;"
+  }
+
+  checksum_table() {
+    # Strict CHECKSUM TABLE reader: refuses to return a non-numeric value so a
+    # broken transport cannot silently compare empty checksums.
+    local schema="$1" table="$2" result
+    if ! result="$(mysql_query "CHECKSUM TABLE \`$schema\`.\`$table\`;")"; then
+      return 1
+    fi
+    result="$(awk 'NF == 2 && $2 ~ /^[0-9]+$/ { print $2; found=1 } END { if (!found) exit 1 }' <<<"$result")" || {
+      echo "Unable to read a valid checksum for $schema.$table; refusing to continue." >&2
+      return 1
+    }
+    printf '%s\n' "$result"
+  }
+
   # Freeze the trusted helpers before any .env can be sourced (see header).
   readonly -f owner_schema valid_identifier valid_port valid_container_ref \
     mysql_container_targets_configured_host load_env_file capture_env_vars \
     apply_env_overrides container_running await_container_health \
-    require_write_confirmation
+    require_write_confirmation gate_confirmed \
+    table_exists column_signature row_count checksum_table
 fi

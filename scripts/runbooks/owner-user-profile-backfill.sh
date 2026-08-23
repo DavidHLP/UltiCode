@@ -91,10 +91,6 @@ mysql_query() {
   fi
 }
 
-table_exists() {
-  [[ "$(mysql_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$1' AND table_name='$2';")" == "1" ]]
-}
-
 require_tables() {
   local table_spec schema table
   for table_spec in "$SOURCE_SCHEMA.users" "$SOURCE_SCHEMA.user_profiles" \
@@ -234,14 +230,14 @@ write_manifest() {
 }
 
 require_quiesce() {
-  [[ "${DEV_LOCAL_OWNER_BACKFILL_QUIESCE_CONFIRM:-}" == "I_UNDERSTAND_OWNER_PROFILE_QUIESCE" ]] || {
+  gate_confirmed DEV_LOCAL_OWNER_BACKFILL_QUIESCE_CONFIRM I_UNDERSTAND_OWNER_PROFILE_QUIESCE || {
     echo 'backfill/rollback requires DEV_LOCAL_OWNER_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_OWNER_PROFILE_QUIESCE' >&2
     exit 1
   }
 }
 
 contract_preflight() {
-  [[ "${DEV_LOCAL_OWNER_PROFILE_CONTRACT_CONFIRM:-}" == "I_UNDERSTAND_AUTH_PROFILE_CONTRACT" ]] || {
+  gate_confirmed DEV_LOCAL_OWNER_PROFILE_CONTRACT_CONFIRM I_UNDERSTAND_AUTH_PROFILE_CONTRACT || {
     echo 'contract-preflight requires DEV_LOCAL_OWNER_PROFILE_CONTRACT_CONFIRM=I_UNDERSTAND_AUTH_PROFILE_CONTRACT' >&2
     exit 1
   }
@@ -275,7 +271,7 @@ case "$ACTION" in
     contract_preflight
     ;;
   backfill)
-    [[ "${DEV_LOCAL_OWNER_BACKFILL_CONFIRM:-}" == "I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL" ]] || {
+    gate_confirmed DEV_LOCAL_OWNER_BACKFILL_CONFIRM I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL || {
       echo 'backfill requires DEV_LOCAL_OWNER_BACKFILL_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL' >&2
       exit 1
     }
@@ -315,7 +311,7 @@ COMMIT;"
     echo 'DEV-LOCAL users/profile backfill: PASS'
     ;;
   rollback)
-    [[ "${DEV_LOCAL_OWNER_BACKFILL_CONFIRM:-}" == "I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL" ]] || {
+    gate_confirmed DEV_LOCAL_OWNER_BACKFILL_CONFIRM I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL || {
       echo 'rollback requires DEV_LOCAL_OWNER_BACKFILL_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OWNER_BACKFILL' >&2
       exit 1
     }

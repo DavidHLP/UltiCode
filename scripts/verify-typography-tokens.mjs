@@ -41,25 +41,18 @@ const SCAN_ROOTS = ['apps/console/src', 'apps/management/src']
 const FILE_EXTENSIONS = new Set(['.vue', '.ts', '.tsx', '.js', '.mjs', '.cjs', '.css'])
 
 // Paths that are EXPLICITLY allowed to declare raw typography. Single source
-// is packages/theme/typography-allowlist.json — do NOT add app files here
-// without a written reason. The inline list is a fallback when the JSON is
-// unavailable (e.g. during isolated CI checkout).
+// of truth is packages/theme/typography-allowlist.json — there is no inline
+// fallback on purpose: a missing or malformed allowlist must fail loudly
+// instead of silently drifting from the shared contract.
 function loadAllowedPaths() {
-  try {
-    const raw = readFileSync(join(ROOT, 'packages/theme/typography-allowlist.json'), 'utf8')
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed.allowedPaths) && parsed.allowedPaths.length > 0 && parsed.allowedPaths.every((p) => typeof p === 'string' && p.length > 0)) return parsed.allowedPaths
-  } catch {}
-  return [
-    'packages/theme/src/typography.css',
-    'packages/design-system/style.css',
-    'apps/console/src/style.css',
-    'apps/management/src/style.css',
-    'apps/console/src/assets/charts.css',
-    'apps/console/src/assets/markdown.css',
-    'apps/console/src/views/landing/styles/bundle.css',
-    'apps/console/src/views/problems/description/DescriptionMarkdown.vue',
-  ]
+  const raw = readFileSync(join(ROOT, 'packages/theme/typography-allowlist.json'), 'utf8')
+  const parsed = JSON.parse(raw)
+  if (Array.isArray(parsed.allowedPaths) && parsed.allowedPaths.length > 0 && parsed.allowedPaths.every((p) => typeof p === 'string' && p.length > 0)) {
+    return parsed.allowedPaths
+  }
+  throw new Error(
+    'packages/theme/typography-allowlist.json must define a non-empty allowedPaths array of strings',
+  )
 }
 const ALLOWED_PATH_PATTERNS = loadAllowedPaths()
 

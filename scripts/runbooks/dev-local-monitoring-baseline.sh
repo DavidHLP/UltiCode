@@ -30,6 +30,7 @@ MONITORING_DB_PASSWORD="${MONITORING_DB_PASSWORD:-${MIGRATION_DB_PASSWORD:-}}"
 : "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
 MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+REDIS_CONTAINER="${REDIS_CONTAINER:-ulticode-redis}"
 
 if [[ -n "$MYSQL_CONTAINER" ]]; then
   container_running "$MYSQL_CONTAINER" \
@@ -99,11 +100,11 @@ NODE
 print_container_baseline() {
   docker ps --format 'CONTAINER name={{.Names}} image={{.Image}} status={{.Status}}' | sort
   local redis_ping redis_length redis_pending
-  redis_ping="$(docker exec -e REDISCLI_AUTH="$REDIS_PASSWORD" ulticode-redis redis-cli --no-auth-warning ping 2>/dev/null || printf 'unavailable')"
+  redis_ping="$(docker exec -e REDISCLI_AUTH="$REDIS_PASSWORD" "$REDIS_CONTAINER" redis-cli --no-auth-warning ping 2>/dev/null || printf 'unavailable')"
   printf 'REDIS ping=%s\n' "$redis_ping"
   for stream in integration judge-stream; do
-    redis_length="$(docker exec -e REDISCLI_AUTH="$REDIS_PASSWORD" ulticode-redis redis-cli --no-auth-warning XLEN "$stream" 2>/dev/null || printf 'unavailable')"
-    redis_pending="$(docker exec -e REDISCLI_AUTH="$REDIS_PASSWORD" ulticode-redis redis-cli --no-auth-warning XPENDING "$stream" 2>/dev/null | awk 'NR == 1 {print $1}' || printf 'unavailable')"
+    redis_length="$(docker exec -e REDISCLI_AUTH="$REDIS_PASSWORD" "$REDIS_CONTAINER" redis-cli --no-auth-warning XLEN "$stream" 2>/dev/null || printf 'unavailable')"
+    redis_pending="$(docker exec -e REDISCLI_AUTH="$REDIS_PASSWORD" "$REDIS_CONTAINER" redis-cli --no-auth-warning XPENDING "$stream" 2>/dev/null | awk 'NR == 1 {print $1}' || printf 'unavailable')"
     if [[ "$redis_pending" == ERR* ]]; then
       redis_pending=unavailable
     fi

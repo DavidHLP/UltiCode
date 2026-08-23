@@ -24,7 +24,7 @@ for arg in "$@"; do
 done
 
 REQUIRED_CONFIRM="I_UNDERSTAND_DEV_LOCAL_OBSERVATION_REHEARSAL"
-if [[ "${DEV_LOCAL_OBSERVATION_CONFIRM:-}" != "$REQUIRED_CONFIRM" ]]; then
+if ! gate_confirmed DEV_LOCAL_OBSERVATION_CONFIRM "$REQUIRED_CONFIRM"; then
   cat >&2 <<EOF
 DEV-LOCAL observation rehearsal requires explicit confirmation:
   export DEV_LOCAL_OBSERVATION_CONFIRM=$REQUIRED_CONFIRM

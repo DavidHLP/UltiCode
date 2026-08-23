@@ -18,7 +18,6 @@ import { fetchProblemById } from "@/api/problem";
 import {
   fetchBestSubmission,
   fetchSubmission,
-  resolveSubmissionProblemId,
 } from "@/api/submission";
 import type { SubmissionRecord, SubmissionStatusKey } from "@/types/submission";
 import type { SolutionFeedItem } from "@/types/solution";

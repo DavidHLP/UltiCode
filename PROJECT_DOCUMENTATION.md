@@ -277,6 +277,12 @@ Auth owner。
 - **CD 复合动作**：`.github/actions/host-deploy/`（SSH 密钥、Flyway 迁移、judge 沙箱预置、compose 拉起）与 `.github/actions/host-health/`（统一健康检查，spec 行格式 `<container> <mode: curl-container|curl-host|inspect> <port> <path>`）由 `cd-deploy.yml` 与 `cd-rollback.yml` 共享；回滚 = 同一动作 + `skip_migrations: true`。
 - **顺带修复**：`_docker`/publish 使用规范 Dockerfile 路径 `apps/{console,management}/Dockerfile`（原 ci.yml 内为失效的 `./console/Dockerfile`）；i18n job 工作目录修正为 `apps/management`；auth-core 缓存路径修正为 `packages/auth-core/pnpm-lock.yaml`。
 - **迁移注意**：原单体内各 check 名现以 `Backend / ...`、`Frontend / ...` 等 stage 前缀出现；分支保护应切换为仅要求 `ci-ok`。
+
+#### CI 门禁修复 — secret-scan 误报清零 / lint vendored 排除 / 依赖审计达标（2026-08-23）
+
+- **gitleaks**：`.gitleaks.toml` 全局 allowlist 扩至 graphify 生成缓存（`services/graphify-out/cache/` 已 `git rm --cached` 并入 `.gitignore`，生成物不再入库）、vendored `draco_decoder.js`、以及两个测试 fixture 字面量；allowlist `regexes` 匹配捕获的 Secret 而非整行。
+- **eslint**：console 忽略 `public/**`（vendored 静态资产不适用应用 lint 规则）；两个 app 统一 `_` 前缀 = 有意未用 的 no-unused-vars 约定（`argsIgnorePattern/varsIgnorePattern: '^_'`）。
+- **依赖审计**：`pnpm-workspace.yaml` overrides 增加 `linkify-it ^5.0.2`、`nanoid ^3.3.18`、`postcss ^8.5.18`；必须用 caret 限定消费方主版本线——裸 `>=` 会跨大版本（linkify-it 6 破坏 markdown-it CJS interop）。workspace overrides 是唯一生效位置，app 级 `package.json#pnpm` 在 workspace 成员中被忽略。
 ## 3. Microservice migration guide and historical architecture
 
 > 原文来源：`services/docs/MICROSERVICE_MIGRATION_GUIDE.md`

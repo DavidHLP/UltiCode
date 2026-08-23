@@ -12,7 +12,6 @@ import {
   actionBgVar,
   actionBorderVar,
   actionColorVar,
-  findAction,
 } from '../workflow/moderationWorkflow'
 
 /**

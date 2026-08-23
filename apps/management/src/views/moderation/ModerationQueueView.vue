@@ -32,7 +32,7 @@ import {
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns, type ModerationActions } from './columns'
 import { useModerationFilters } from './composables/useModerationFilters'
-import { ACTION_CATALOG, actionColorVar, isActionable, entityRoute } from './workflow/moderationWorkflow'
+import { ACTION_CATALOG, actionColorVar, entityRoute } from './workflow/moderationWorkflow'
 import BatchActionDialog from './components/BatchActionDialog.vue'
 
 const { t } = useI18n()

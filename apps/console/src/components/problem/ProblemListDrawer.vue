@@ -14,7 +14,6 @@ import {
   ChevronRight,
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
-import { cn } from "@/lib/utils";
 import { useI18n } from "vue-i18n";
 
 defineProps<{

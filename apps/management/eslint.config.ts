@@ -23,6 +23,11 @@ export default defineConfigWithVueTs(
 
   {
     rules: {
+      '@typescript-eslint/no-unused-vars': ['error', {
+        // Underscore prefix marks intentionally unused args/vars.
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
       'vue/multi-word-component-names': 'off',
     },
   },

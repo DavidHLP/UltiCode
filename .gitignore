@@ -281,5 +281,6 @@ venv/
 .venv/
 disposable-verify/
 
-# graphify query cache
-services/graphify-out/cache/last_query_stamp
+# graphify query/AST caches are pure generated artifacts — never commit them
+services/graphify-out/cache/
+graphify-out/cache/

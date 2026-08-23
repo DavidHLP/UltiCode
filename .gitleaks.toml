@@ -4,7 +4,21 @@ title = "UltiCode Gitleaks configuration"
 useDefault = true
 
 [allowlist]
-description = "Generated build and dependency directories"
+description = "Generated build/dependency directories, vendored assets, generated caches"
 paths = [
-  '''(^|/)(target|dist|node_modules|coverage)/'''
+  '''(^|/)(target|dist|node_modules|coverage)/''',
+  # Generated knowledge-graph cache (untracked since the CI secret-scan fix).
+  '''^services/graphify-out/cache/''',
+  # Vendored third-party Draco decoder bundles (landing-page assets); the
+  # flagged "secret" is the base64 alphabet constant of the decoder itself.
+  '''apps/console/public/landing(-assets)?/(static/)?draco/draco_decoder\.js''',
+]
+# Known test-only fixtures — values are explicitly non-production.
+# NOTE: allowlist regexes match the captured Secret, not the full line.
+regexes = [
+  # BackendAdminApplicationTest JWT secret (base64 of
+  # "TestSecretForBackendApplicationTestOnlyAtLeast64").
+  '''^VGVzdFNlY3JldEZvckJhY2tlbmRBZG1pbkFwcGxpY2F0aW9uVGVzdE9ubHlBdExlYXN0NjQ=$''',
+  # RsaKeyManagerTest asserts method names; "PrivateKeyB64" trips the key regex.
+  '''^(getCurrent|getPrevious)PrivateKeyB64$''',
 ]

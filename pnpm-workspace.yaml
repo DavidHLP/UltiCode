@@ -13,6 +13,13 @@ overrides:
   protocol-buffers-schema: 3.6.1
   vite: ^8.0.16
   form-data: ^4.0.6
+  # GHSA-v245-v573-v5vm / nanoid loop DoS / postcss source-map traversal —
+  # pinned above vulnerable ranges until transitive deps catch up.
+  # Caret-pinned to the patched release of each consumer-major line; a bare
+  # '>=' would jump majors (linkify-it 6 breaks markdown-it CJS interop).
+  linkify-it: ^5.0.2
+  nanoid: ^3.3.18
+  postcss: ^8.5.18
 ignoredBuiltDependencies:
   - esbuild
   - maplibre-gl

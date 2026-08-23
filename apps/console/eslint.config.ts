@@ -22,11 +22,19 @@ export default defineConfigWithVueTs(
     // extracted pre-build sources; not held to app lint rules.
     'src/views/landing/vendor/**',
     'src/views/landing/experience/**',
+    // Static public assets, including vendored third-party decoders
+    // (draco_decoder.js) — never held to app lint rules.
+    'public/**',
   ]),
 
   pluginVue.configs['flat/essential'],
   {
     rules: {
+      '@typescript-eslint/no-unused-vars': ['error', {
+        // Underscore prefix marks intentionally unused args/vars.
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
       'vue/multi-word-component-names': ['error', {
         ignores: [
           'Accordion',

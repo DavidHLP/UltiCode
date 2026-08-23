@@ -4,7 +4,7 @@
 // Verifies the public contract: token names, density profile names,
 // duplicate-free token lists, and the applyTypographyDensity DOM helper.
 // Keeping the typography metadata free of duplicates and with stable names
-// is what lets the guardrail script in scripts/verify-typography-tokens.mjs
+// is what lets the guardrail script in packages/theme/scripts/verify-typography-tokens.mjs
 // rely on the lists exported from the index barrel.
 // ---------------------------------------------------------------------------
 

@@ -1,32 +1,27 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Moderation API smoke test through the owner gateway.
 # Tests moderation API endpoints against a running Auth/Admin/App stack.
 # Requires: curl, a running gateway.
 #
 # Usage: ./moderation-api-smoke.sh [BASE_URL] [USERNAME] [PASSWORD]
-#   Credentials default to SMOKE_USER / SMOKE_PASS env vars.
-#   For dev: export SMOKE_USER=admin SMOKE_PASS=admin123
+#   Credentials come from SMOKE_USERNAME / SMOKE_PASSWORD (legacy
+#   SMOKE_USER / SMOKE_PASS are still accepted).
+#   For dev: export SMOKE_USERNAME=admin SMOKE_PASSWORD=admin123
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-cd "$PROJECT_ROOT"
-ARTIFACT_ROOT=".tmp/moderation-api-smoke"
-umask 077
-mkdir -p "$ARTIFACT_ROOT"
-ARTIFACT_DIR="$(mktemp -d "$ARTIFACT_ROOT/run.XXXXXX")"
-COOKIE_JAR="$ARTIFACT_DIR/cookies.txt"
-trap 'rm -rf -- "$ARTIFACT_DIR"; rmdir "$ARTIFACT_ROOT" 2>/dev/null || true' EXIT
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/smoke-common.sh"
+smoke_init moderation-api-smoke
+smoke_load_env
 
 BASE_URL="${1:-${SMOKE_BASE_URL:-http://localhost:9003/api}}"
-USERNAME="${2:-${SMOKE_USER:-}}"
-SMOKE_CRED="${3:-${SMOKE_PASS:-}}"
+USERNAME="${2:-${SMOKE_USERNAME:-${SMOKE_USER:-}}}"
+SMOKE_CRED="${3:-${SMOKE_PASSWORD:-${SMOKE_PASS:-}}}"
 
 if [ -z "$USERNAME" ] || [ -z "$SMOKE_CRED" ]; then
   echo "Usage: $0 [BASE_URL] [USERNAME] [PASSWORD]"
-  echo "  Or set SMOKE_USER and SMOKE_PASS environment variables."
-  echo "  Example: SMOKE_USER=admin SMOKE_PASS=admin123 $0"
+  echo "  Or set SMOKE_USERNAME and SMOKE_PASSWORD environment variables."
+  echo "  Example: SMOKE_USERNAME=admin SMOKE_PASSWORD=admin123 $0"
   exit 1
 fi
 
@@ -46,19 +41,12 @@ echo "=== Moderation API Smoke Test ==="
 echo "Backend: $BASE_URL"
 echo ""
 
-# Step 1: Login to get JWT cookie
+# Step 1: Login to get JWT cookie (shared helper; JSON-safe payload)
 echo "Logging in..."
-LOGIN_RESPONSE=$(curl -s -c "$COOKIE_JAR" -w '\n%{http_code}' \
-  -X POST "${BASE_URL}/auth/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"${USERNAME}\",\"password\":\"${SMOKE_CRED}\"}" 2>/dev/null || echo -e "\n000")
-
-LOGIN_STATUS=$(echo "$LOGIN_RESPONSE" | tail -1)
-LOGIN_BODY=$(echo "$LOGIN_RESPONSE" | sed '$d')
-
-if [ "$LOGIN_STATUS" != "200" ]; then
-  echo "Login failed (HTTP $LOGIN_STATUS). Cannot proceed."
-  echo "Response: $LOGIN_BODY"
+LOGIN_BODY="$SMOKE_ARTIFACT_DIR/login.json"
+if ! LOGIN_STATUS="$(smoke_login "$COOKIE_JAR" "$BASE_URL" "$USERNAME" "$SMOKE_CRED" "$LOGIN_BODY")"; then
+  echo "Login failed (HTTP ${LOGIN_STATUS:-000}). Cannot proceed."
+  echo "Response: $(cat "$LOGIN_BODY" 2>/dev/null || true)"
   exit 1
 fi
 

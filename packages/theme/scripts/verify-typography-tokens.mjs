@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join, relative, sep } from 'node:path'
 
 const __filename = fileURLToPath(import.meta.url)
-const ROOT = dirname(dirname(__filename))
+const ROOT = dirname(dirname(dirname(dirname(__filename))))
 
 // Apps to scan. Add new frontends here when they adopt the shared
 // typography contract.

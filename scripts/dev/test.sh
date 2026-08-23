@@ -25,8 +25,23 @@ esac
 
 # Fast static guardrails first: theme/FOUC sync and typography tokens are pure
 # node checks and must not wait behind dependency installation or test suites.
-node "$ROOT_DIR/scripts/verify-theme-sync.mjs"
-node "$ROOT_DIR/scripts/verify-typography-tokens.mjs"
+node "$ROOT_DIR/packages/theme/scripts/verify-theme-sync.mjs"
+node "$ROOT_DIR/packages/theme/scripts/verify-typography-tokens.mjs"
+
+# Static shell analysis: fail the gate when shellcheck is available; skip with
+# a notice otherwise so environments without it stay usable.
+if command -v shellcheck >/dev/null 2>&1; then
+  echo "Running shellcheck over scripts/..."
+  find "$ROOT_DIR/scripts" -name '*.sh' -type f -print0 \
+    | xargs -0 -n1 shellcheck --severity=error || exit 1
+else
+  echo "shellcheck not installed; skipping static shell analysis." >&2
+fi
+
+# Owner migration preflight suite is fast and self-contained (fake mysql/docker
+# binaries), so it belongs in every gate, not just in migration-focused runs.
+echo "Running owner migration preflight tests..."
+"$ROOT_DIR/scripts/dev/migrate-owner-preflight-test.sh"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
@@ -190,6 +205,8 @@ if [[ "$MODE" == "integration" ]]; then
   fi
   echo "Running Testcontainers and sandbox integration tests..."
   (cd "$ROOT_DIR/services" && ./mvnw -Dtest='*IT,*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false test -B)
+  echo "Running owner migration safety integration test (disposable MySQL/Redis)..."
+  "$ROOT_DIR/scripts/dev/owner-migration-safety-integration-test.sh"
 fi
 
 echo "All $MODE checks passed."

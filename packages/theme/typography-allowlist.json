@@ -1,5 +1,5 @@
 {
-  "_comment": "Single allowlist for the typography guard (scripts/verify-typography-tokens.mjs). Add new entries only with written reason per docs/SHARED_TYPOGRAPHY_DESIGN.md §13.",
+  "_comment": "Single allowlist for the typography guard (packages/theme/scripts/verify-typography-tokens.mjs). Add new entries only with written reason per docs/SHARED_TYPOGRAPHY_DESIGN.md §13.",
   "allowedPaths": [
     "packages/theme/src/typography.css",
     "packages/design-system/style.css",

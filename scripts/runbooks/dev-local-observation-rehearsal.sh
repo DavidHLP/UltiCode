@@ -53,16 +53,18 @@ if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2
   }
 fi
 
+# Single-sourced connection adapter (scripts/dev/lib/sql.sh). The historical
+# per-query signature `mysql_query <schema> <query>` is kept as a thin wrapper.
+define_mysql_query_adapter _rehearsal_mysql_query \
+  "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
+  "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" \
+  "$MONITORING_DB_USER" "$MONITORING_DB_PASSWORD" \
+  "" \
+  --batch --skip-column-names
+
 mysql_query() {
   local schema="$1" query="$2"
-  if [[ -n "$MYSQL_CONTAINER" ]] && docker inspect "$MYSQL_CONTAINER" >/dev/null 2>&1; then
-    docker exec -e MYSQL_PWD="$MONITORING_DB_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql --protocol=tcp --batch --skip-column-names \
-      -h 127.0.0.1 -P "$MYSQL_CONTAINER_PORT" -u "$MONITORING_DB_USER" "$schema" -e "$query"
-  else
-    MYSQL_PWD="$MONITORING_DB_PASSWORD" mysql --protocol=tcp --batch --skip-column-names \
-      -h "$MONITORING_DB_HOST" -P "$MONITORING_DB_PORT" -u "$MONITORING_DB_USER" "$schema" -e "$query"
-  fi
+  _rehearsal_mysql_query "$query" "$schema"
 }
 
 echo "=== [1/5] DEV-LOCAL Observation Baseline & Timeline ==="

@@ -44,30 +44,16 @@ runtime_user_for_schema() {
   esac
 }
 
-mysql_query() {
-  if [[ -n "${MIGRATION_MYSQL_CONTAINER:-}" ]]; then
-    docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$MIGRATION_MYSQL_CONTAINER" \
-      mysql \
-      --protocol=tcp \
-      --default-character-set=utf8mb4 \
-      --batch --skip-column-names \
-      -h 127.0.0.1 \
-      -P "$MIGRATION_MYSQL_CONTAINER_PORT" \
-      -u "$MIGRATION_DB_USER" \
-      "$MIGRATION_DB_NAME" \
-      -e "$1"
-  else
-    MYSQL_PWD="$MIGRATION_DB_PASSWORD" mysql \
-      --protocol=tcp \
-      --default-character-set=utf8mb4 \
-      --batch --skip-column-names \
-      -h "$MIGRATION_DB_HOST" \
-      -P "$MIGRATION_DB_PORT" \
-      -u "$MIGRATION_DB_USER" \
-      "$MIGRATION_DB_NAME" \
-      -e "$1"
-  fi
-}
+# Single-sourced connection adapter (scripts/dev/lib/sql.sh): container mode
+# forces TCP loopback inside the container; direct mode uses the configured
+# migration host/port. Connection values are baked in by value here, after the
+# explicit-env-wins resolution above.
+define_mysql_query_adapter mysql_query \
+  "${MIGRATION_MYSQL_CONTAINER:-}" "${MIGRATION_MYSQL_CONTAINER_PORT:-}" \
+  "${MIGRATION_DB_HOST:-}" "${MIGRATION_DB_PORT:-}" \
+  "${MIGRATION_DB_USER:-}" "${MIGRATION_DB_PASSWORD:-}" \
+  "${MIGRATION_DB_NAME:-}" \
+  --default-character-set=utf8mb4 --batch --skip-column-names
 
 
 has_grant_privilege() {

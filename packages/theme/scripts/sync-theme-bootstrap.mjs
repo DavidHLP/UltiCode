@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const __filename = fileURLToPath(import.meta.url)
-const ROOT = dirname(dirname(__filename))
+const ROOT = dirname(dirname(dirname(dirname(__filename))))
 
 const SOURCE = join(ROOT, 'packages/theme/bootstrap.js')
 const TARGETS = [

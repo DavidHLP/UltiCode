@@ -48,16 +48,13 @@ safe_http_code() {
   printf '%s' "${code:-000}"
 }
 
-mysql_query() {
-  if [[ -n "$MYSQL_CONTAINER" ]]; then
-    docker exec -e MYSQL_PWD="$MONITORING_DB_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql --protocol=tcp --batch --skip-column-names \
-      -h 127.0.0.1 -P "$MYSQL_CONTAINER_PORT" -u "$MONITORING_DB_USER" "$DB_NAME" -e "$1"
-  else
-    MYSQL_PWD="$MONITORING_DB_PASSWORD" mysql --protocol=tcp --batch --skip-column-names \
-      -h "$MONITORING_DB_HOST" -P "$MONITORING_DB_PORT" -u "$MONITORING_DB_USER" "$DB_NAME" -e "$1"
-  fi
-}
+# Single-sourced connection adapter (scripts/dev/lib/sql.sh).
+define_mysql_query_adapter mysql_query \
+  "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" \
+  "$MONITORING_DB_HOST" "$MONITORING_DB_PORT" \
+  "$MONITORING_DB_USER" "$MONITORING_DB_PASSWORD" \
+  "$DB_NAME" \
+  --batch --skip-column-names
 
 print_route_config() {
   printf 'ROUTE mode=%s cutover_complete=%s\n' \

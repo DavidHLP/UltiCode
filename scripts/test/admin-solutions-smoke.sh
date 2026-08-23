@@ -3,23 +3,18 @@
 # Output is structured key=value lines for the QA doc.
 set -u
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
-ARTIFACT_ROOT=".tmp/test-admin-solutions"
-umask 077
-mkdir -p "$ARTIFACT_ROOT"
-ARTIFACT_DIR="$(mktemp -d "$ARTIFACT_ROOT/run.XXXXXX")"
-COOKIE_JAR="$ARTIFACT_DIR/cookies.txt"
-HEADERS_JAR="$ARTIFACT_DIR/headers.txt"
-trap 'rm -rf -- "$ARTIFACT_DIR"; rmdir "$ARTIFACT_ROOT" 2>/dev/null || true' EXIT
-BASE="${BASE:-http://localhost:9003/api}"
-# Credentials come from the environment; never hardcode a seed password here.
-: "${SMOKE_ADMIN_USERNAME:?Set SMOKE_ADMIN_USERNAME for the /auth/login step}"
-: "${SMOKE_ADMIN_PASSWORD:?Set SMOKE_ADMIN_PASSWORD for the /auth/login step}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/smoke-common.sh"
+smoke_init test-admin-solutions
+HEADERS_JAR="$SMOKE_ARTIFACT_DIR/headers.txt"
 
-set -a
-. "$ROOT_DIR/.env"
-set +a
+# Trusted .env loading (DB credentials for the reset steps below); explicit
+# caller-provided SMOKE_* values are not present in .env, so ordering is safe.
+smoke_load_env
+
+BASE="${SMOKE_BASE_URL:-${BASE:-http://localhost:9003/api}}"
+# Credentials come from the environment; never hardcode a seed password here.
+# Canonical names are SMOKE_USERNAME/SMOKE_PASSWORD; the legacy pair still works.
+smoke_require_credentials SMOKE_ADMIN_USERNAME SMOKE_ADMIN_PASSWORD
 
 PASS=0; FAIL=0
 SEP="---"
@@ -80,10 +75,9 @@ log() {
 
 # ===== 0. Login =====
 echo "$SEP 0. login as admin $SEP"
-curl -sS -c "$COOKIE_JAR" -o $ARTIFACT_DIR/uc-login.json -w 'HTTP=%{http_code}\n' \
-  -X POST "$BASE/auth/login" \
-  -H 'Content-Type: application/json' \
-  --data-binary "$(SMOKE_ADMIN_USERNAME="$SMOKE_ADMIN_USERNAME" SMOKE_ADMIN_PASSWORD="$SMOKE_ADMIN_PASSWORD" python3 -c 'import json, os; print(json.dumps({"username": os.environ["SMOKE_ADMIN_USERNAME"], "password": os.environ["SMOKE_ADMIN_PASSWORD"]}))')"
+login_http="$(smoke_login "$COOKIE_JAR" "$BASE" "$SMOKE_USERNAME" "$SMOKE_PASSWORD" "$ARTIFACT_DIR/uc-login.json")" \
+  || { echo "login failed (HTTP $login_http)"; exit 1; }
+echo "HTTP=$login_http"
 
 CSRF=$(python3 -c "import json; d=json.load(open('$ARTIFACT_DIR/uc-login.json')); print(d.get('data',{}).get('csrfToken',''))" 2>/dev/null || echo "")
 log "login" "$( [ -n "$CSRF" ] && echo OK || echo FAIL )" "csrfLen=${#CSRF}"

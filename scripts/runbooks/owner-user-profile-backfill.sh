@@ -77,18 +77,18 @@ else
   }
 fi
 
+# Single-sourced connection adapter (scripts/dev/lib/sql.sh); the large
+# GROUP_CONCAT session budget stays a property of this runbook, not of the
+# shared primitives.
+define_mysql_query_adapter _backfill_mysql_query \
+  "${MYSQL_CONTAINER:-}" "$MYSQL_CONTAINER_PORT" \
+  "$MIGRATION_DB_HOST" "$MIGRATION_DB_PORT" \
+  "$MIGRATION_DB_USER" "$MIGRATION_DB_PASSWORD" \
+  "" \
+  --default-character-set=utf8mb4 --batch --skip-column-names
+
 mysql_query() {
-  if [[ -n "$MYSQL_CONTAINER" ]]; then
-    docker exec -e MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql --protocol=tcp --default-character-set=utf8mb4 \
-      --batch --skip-column-names -h 127.0.0.1 -P "$MYSQL_CONTAINER_PORT" \
-      -u "$MIGRATION_DB_USER" -e "SET SESSION group_concat_max_len=16777216; $1"
-  else
-    MYSQL_PWD="$MIGRATION_DB_PASSWORD" mysql --protocol=tcp \
-      --default-character-set=utf8mb4 --batch --skip-column-names \
-      -h "$MIGRATION_DB_HOST" -P "$MIGRATION_DB_PORT" \
-      -u "$MIGRATION_DB_USER" -e "SET SESSION group_concat_max_len=16777216; $1"
-  fi
+  _backfill_mysql_query "SET SESSION group_concat_max_len=16777216; $1"
 }
 
 require_tables() {

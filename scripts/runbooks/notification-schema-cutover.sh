@@ -68,18 +68,15 @@ for table in "${TABLES[@]}"; do
   fi
 done
 
-mysql_query() {
-  local query="$1"
-  if [[ -n "$MYSQL_CONTAINER" ]]; then
-    docker exec -e MYSQL_PWD="$MIGRATION_PASSWORD" "$MYSQL_CONTAINER" \
-      mysql --default-character-set=utf8mb4 -u "$MIGRATION_USER" \
-      --batch --skip-column-names -e "$query"
-  else
-    MYSQL_PWD="$MIGRATION_PASSWORD" mysql \
-      --protocol=tcp -h "$DB_HOST" -P "$DB_PORT" -u "$MIGRATION_USER" \
-      --default-character-set=utf8mb4 --batch --skip-column-names -e "$query"
-  fi
-}
+# Single-sourced connection adapter (scripts/dev/lib/sql.sh). In-container
+# queries keep the socket transport unless MIGRATION_MYSQL_CONTAINER_PORT is
+# explicitly set, matching the original runbook behaviour.
+define_mysql_query_adapter mysql_query \
+  "${MYSQL_CONTAINER:-}" "${MIGRATION_MYSQL_CONTAINER_PORT:-}" \
+  "$DB_HOST" "$DB_PORT" \
+  "$MIGRATION_USER" "$MIGRATION_PASSWORD" \
+  "" \
+  --default-character-set=utf8mb4 --batch --skip-column-names
 
 # table_exists/column_signature/row_count/checksum_table come from
 # scripts/dev/lib/common.sh (shared strict primitives over mysql_query).

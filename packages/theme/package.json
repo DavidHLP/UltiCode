@@ -15,7 +15,10 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "vitest --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sync:theme-bootstrap": "node scripts/sync-theme-bootstrap.mjs",
+    "verify:theme-sync": "node scripts/verify-theme-sync.mjs",
+    "verify:typography-tokens": "node scripts/verify-typography-tokens.mjs"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

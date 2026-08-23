@@ -36,7 +36,6 @@ for file in \
 done
 
 bash "$ROOT_DIR/scripts/dev/devstack-manifest-test.sh"
-bash -n "$ROOT_DIR/scripts/dev/architecture-contract-test.sh"
 
 contains services/app/app-web/src/main/java/com/ulticode/app/user/port/UserFactsProjection.java \
   'Map<String, UserFactView> findByIds'
@@ -59,8 +58,6 @@ contains services/app/app-web/src/test/resources/application.yml 'use-judge-outb
 contains services/app/app-web/src/test/resources/application.yml 'use-generation-fence: true'
 contains services/app/app-web/src/test/resources/application.yml 'use-port: true'
 
-not_contains README.md 'pm2 start ecosystem.config.cjs'
-not_contains README.md 'pm2 restart ulticode-auth ulticode-admin'
 not_contains scripts/dev/doctor.sh 'pm2 start ecosystem.config.cjs'
 
 # The root-level start/stop compatibility aliases are deleted; only the
@@ -72,20 +69,9 @@ contains scripts/pitstop-start-backend.ps1 'scripts/dev/up.sh'
 contains scripts/dev/stop.sh 'pm2 delete'
 not_contains scripts/pitstop-start-backend.ps1 'mvn spring-boot:run'
 not_contains services/admin/src/main/java/com/ulticode/admin/security/jwt/AccountReadAdapter.java 'UserFactsProjection'
-contains README.md './scripts/dev/up.sh --mode dev-lite'
-contains README.md './scripts/dev/up.sh --mode dev-full'
-contains README.md './scripts/dev/up.sh --mode legacy-rollback'
 
-not_contains PROJECT_DOCUMENTATION.md \
-  'Admin 的查询 Seam 仍过细'
-contains PROJECT_DOCUMENTATION.md \
-  'Admin 查询已收敛为粗粒度 query slices'
-not_contains PROJECT_DOCUMENTATION.md \
-  'Submission 读侧的 facts enrichment、数据库物理隔离、App 双轨兼容、Admin Seam 聚合和运维文档仍需后续任务完成'
-contains PROJECT_DOCUMENTATION.md \
-  'Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams'
-not_contains CONTEXT.md 'the App runtime role'
-contains CONTEXT.md 'User Directory View'
-contains CONTEXT.md 'the worker role of the Notification'
+# Documentation-drift assertions live in docs-contract-test.sh; run it here so
+# existing callers of this script keep covering both halves of the contract.
+bash "$ROOT_DIR/scripts/dev/docs-contract-test.sh"
 
 echo "Architecture contract: PASS"

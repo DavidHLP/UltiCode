@@ -35,8 +35,9 @@ public interface SolutionUserReadPort {
      * Immutable DTO holding essential user display info.
      *
      * @param id user ID
+     * @param username stable login name used by public profile routes
      * @param displayName resolved display name (prefers name, falls back to username)
      * @param avatar avatar URL
      */
-    record UserSummary(String id, String displayName, String avatar) {}
+    record UserSummary(String id, String username, String displayName, String avatar) {}
 }

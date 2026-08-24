@@ -234,8 +234,29 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * problems JOIN (DEC-011). Problem display facts are enriched through
      * the batch {@link ProblemFactsPort} seam instead.
      */
-    @Select("SELECT * FROM submissions WHERE user_id = #{userId} ORDER BY created_at DESC")
+    @Select("SELECT * FROM submissions WHERE user_id = #{userId} "
+            + "ORDER BY created_at DESC, id DESC")
     IPage<Submission> findByUserId(@Param("userId") String userId, Page<Submission> page);
+
+    /**
+     * Paginated submissions for a user and problem, newest first.
+     *
+     * <p>Selects only the summary columns {@code SubmissionListItemVO}
+     * projects: materializing {@code code}, {@code test_details}, or the
+     * distribution JSON per row would inflate DB I/O and heap on every list
+     * page for data the list never reads. Because only scalar columns are
+     * selected, no JSON type-handler result map is required.
+     *
+     * <p>{@code id} is the unique tie-breaker: {@code created_at} is
+     * {@code DATETIME(3)}, so equal timestamps would otherwise reorder tied
+     * rows between offset pages and duplicate or skip submissions.
+     */
+    @Select("SELECT id, status, language, runtime, memory, created_at, notes "
+            + "FROM submissions WHERE problem_id = #{problemId} AND user_id = #{userId} "
+            + "ORDER BY created_at DESC, id DESC")
+    IPage<Submission> findByProblemId(@Param("problemId") Long problemId,
+                                      @Param("userId") String userId,
+                                      Page<Submission> page);
 
     /**
      * Best (fastest accepted) submission for a problem+user. Pure

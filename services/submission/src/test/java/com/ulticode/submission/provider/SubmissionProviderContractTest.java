@@ -8,7 +8,9 @@ import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionUserQueryProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -33,8 +35,16 @@ class SubmissionProviderContractTest {
     @Test
     @DisplayName("publishes both owner ports under the backend-submission group")
     void publishesOwnerPorts() {
-        assertProvider(SubmissionWriteProvider.class, SubmissionWritePort.class);
-        assertProvider(SubmissionFenceProvider.class, SubmissionFencePort.class);
+        // Write contract is unchanged since 1.0.0; the fence contract bumped
+        // to 1.1.0 for the nullable-Long currentGeneration wire change.
+        assertProvider(SubmissionWriteProvider.class, SubmissionWritePort.class, "1.0.0");
+        assertProvider(SubmissionFenceProvider.class, SubmissionFencePort.class, "1.1.0");
+    }
+
+    @Test
+    @DisplayName("publishes the changed user query contract under the 1.1.0 gate")
+    void publishesVersionedUserQueryPort() {
+        assertProvider(SubmissionUserQueryProvider.class, SubmissionUserQueryPort.class, "1.1.0");
     }
 
     @Test
@@ -75,11 +85,11 @@ class SubmissionProviderContractTest {
     void fenceProviderForwardsToLocalFence() {
         DefaultSubmissionFencePort localFence = mock(DefaultSubmissionFencePort.class);
         SubmissionFenceProvider provider = new SubmissionFenceProvider(localFence);
-        when(localFence.currentGeneration("sub-1")).thenReturn(Optional.of(3L));
+        when(localFence.currentGeneration("sub-1")).thenReturn(3L);
         when(localFence.acquireLease("sub-1", "attempt-1", 3L, 300L)).thenReturn(true);
         when(localFence.renewLease("sub-1", "attempt-1", 300L)).thenReturn(false);
 
-        assertThat(provider.currentGeneration("sub-1")).contains(3L);
+        assertThat(provider.currentGeneration("sub-1")).isEqualTo(3L);
         assertThat(provider.acquireLease("sub-1", "attempt-1", 3L, 300L)).isTrue();
         assertThat(provider.renewLease("sub-1", "attempt-1", 300L)).isFalse();
 
@@ -155,12 +165,14 @@ class SubmissionProviderContractTest {
         }
     }
 
-    private void assertProvider(Class<?> provider, Class<?> contract) {
+    private void assertProvider(Class<?> provider, Class<?> contract, String version) {
         assertThat(provider.getInterfaces()).contains(contract);
         DubboService service = provider.getAnnotation(DubboService.class);
         assertThat(service).isNotNull();
         assertThat(service.group()).isEqualTo("backend-submission");
-        assertThat(service.version()).isEqualTo("1.0.0");
-        assertThat(provider.getAnnotation(Profile.class).value()).contains("!test");
+        assertThat(service.version()).isEqualTo(version);
+        if (provider.getAnnotation(Profile.class) != null) {
+            assertThat(provider.getAnnotation(Profile.class).value()).contains("!test");
+        }
     }
 }

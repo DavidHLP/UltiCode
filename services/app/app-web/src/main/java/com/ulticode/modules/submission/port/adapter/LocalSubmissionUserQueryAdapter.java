@@ -8,11 +8,11 @@ import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
 import java.util.List;
 
 /**
@@ -62,6 +62,11 @@ public class LocalSubmissionUserQueryAdapter implements SubmissionUserQueryPort 
     @Override
     public PageResult<SubmissionVO> findByUserId(String userId, SubmissionQueryDTO query) {
         return submissionService.findByUserId(userId, query);
+    }
+    @Override
+    public PageResult<SubmissionListItemVO> findByProblemId(
+            Long problemId, String userId, SubmissionQueryDTO query) {
+        return submissionService.findByProblemId(problemId, userId, query);
     }
 
     @Override

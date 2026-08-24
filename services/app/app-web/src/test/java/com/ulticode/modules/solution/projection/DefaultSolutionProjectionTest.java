@@ -83,7 +83,7 @@ class DefaultSolutionProjectionTest {
         solution.setTitle("t");
         solution.setTags("dp,array");
 
-        var author = new SolutionUserReadPort.UserSummary(USER_ID, "Alice", "a.png");
+        var author = new SolutionUserReadPort.UserSummary(USER_ID, "alice", "Alice", "a.png");
         when(userReadPort.findById(USER_ID)).thenReturn(author);
 
         when(voteReadPort.countLikes(eq(SOLUTION_ID))).thenReturn(3L);
@@ -95,6 +95,7 @@ class DefaultSolutionProjectionTest {
 
         SolutionVO vo = projection.toVO(solution);
 
+        assertEquals("alice", vo.getAuthorUsername());
         assertEquals("Alice", vo.getAuthorName());
         assertEquals(3L, vo.getLikes());
         assertEquals(1L, vo.getDislikes());
@@ -176,6 +177,21 @@ class DefaultSolutionProjectionTest {
     }
 
     @Test
+    @DisplayName("toCommentVO preserves the author's username separately from the display name")
+    void toCommentVO_usesAuthorUsername() {
+        SolutionComment comment = new SolutionComment();
+        comment.setUserId(USER_ID);
+
+        when(userReadPort.findById(USER_ID))
+                .thenReturn(new SolutionUserReadPort.UserSummary(USER_ID, "alice", "Alice", "a.png"));
+
+        SolutionCommentVO vo = projection.toCommentVO(comment);
+
+        assertEquals("alice", vo.getAuthorUsername());
+        assertEquals("a.png", vo.getAuthorAvatar());
+    }
+
+    @Test
     @DisplayName("findByProblemId returns an empty page without batch enrichment when no solutions exist")
     void findByProblemId_emptyPageShortCircuits() {
         Page<Solution> emptyPage = new Page<>(1, 20);
@@ -207,8 +223,8 @@ class DefaultSolutionProjectionTest {
         when(solutionMapper.selectPage(any(), any(Wrapper.class))).thenReturn(page);
 
         when(userReadPort.findAllById(any())).thenReturn(Map.of(
-                "u1", user("u1", "Alice"),
-                "u2", user("u2", "Bob")));
+                "u1", user("u1", "alice", "Alice"),
+                "u2", user("u2", "bob", "Bob")));
         when(voteReadPort.countLikesByTargets(any())).thenReturn(Map.of());
         when(voteReadPort.countDislikesByTargets(any())).thenReturn(Map.of());
         when(currentUserProvider.getCurrentUserId()).thenReturn(null);
@@ -217,6 +233,8 @@ class DefaultSolutionProjectionTest {
 
         verify(userReadPort).findAllById(any());
         assertEquals(2, result.getItems().size());
+        assertEquals("alice", result.getItems().get(0).getAuthor().getUsername());
+        assertEquals("bob", result.getItems().get(1).getAuthor().getUsername());
         assertEquals("Alice", result.getItems().get(0).getAuthor().getName());
         assertEquals("Bob", result.getItems().get(1).getAuthor().getName());
     }
@@ -238,7 +256,7 @@ class DefaultSolutionProjectionTest {
         assertEquals(1, vo.getUserVote());
     }
 
-    private static SolutionUserReadPort.UserSummary user(String id, String name) {
-        return new SolutionUserReadPort.UserSummary(id, name, "avatar-" + id + ".png");
+    private static SolutionUserReadPort.UserSummary user(String id, String username, String name) {
+        return new SolutionUserReadPort.UserSummary(id, username, name, "avatar-" + id + ".png");
     }
 }

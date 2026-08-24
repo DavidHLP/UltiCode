@@ -8,8 +8,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
 /** Single App generation/lease route; local and remote paths never dual-write. */
 @Component
 @Primary
@@ -25,7 +23,7 @@ public class SubmissionFenceRoutingPort implements SubmissionFencePort {
     }
 
     @Override
-    public Optional<Long> currentGeneration(String submissionId) {
+    public Long currentGeneration(String submissionId) {
         return delegate().currentGeneration(submissionId);
     }
 

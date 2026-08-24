@@ -4,8 +4,9 @@ import com.ulticode.submission.api.dto.LearningProgressDTO;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
-import com.ulticode.submission.api.dto.SubmissionStatusMeta;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcPolicy;
@@ -30,7 +31,7 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "app.submission.routing", name = "mode", havingValue = "remote")
 public class RemoteSubmissionUserQueryAdapter implements SubmissionUserQueryPort {
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.1.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionUserQueryPort submissionUserQuery;
 
@@ -62,6 +63,12 @@ public class RemoteSubmissionUserQueryAdapter implements SubmissionUserQueryPort
     @Override
     public PageResult<SubmissionVO> findByUserId(String userId, SubmissionQueryDTO query) {
         return submissionUserQuery.findByUserId(userId, query);
+    }
+
+    @Override
+    public PageResult<SubmissionListItemVO> findByProblemId(
+            Long problemId, String userId, SubmissionQueryDTO query) {
+        return submissionUserQuery.findByProblemId(problemId, userId, query);
     }
 
     @Override

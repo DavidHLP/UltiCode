@@ -98,7 +98,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
         if (comment.getUserId() != null) {
             var author = userReadPort.findById(comment.getUserId());
             if (author != null) {
-                vo.setAuthorUsername(author.displayName());
+                vo.setAuthorUsername(author.username());
                 vo.setAuthorAvatar(author.avatar());
             }
         }
@@ -205,6 +205,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
         if (author != null) {
             SolutionListItemVO.AuthorInfo authorInfo = new SolutionListItemVO.AuthorInfo();
             authorInfo.setId(author.id());
+            authorInfo.setUsername(author.username());
             authorInfo.setName(author.displayName());
             authorInfo.setAvatar(author.avatar());
             vo.setAuthor(authorInfo);
@@ -252,6 +253,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
         var author = userReadPort.findById(solution.getUserId());
         if (author != null) {
             vo.setAuthorName(author.displayName());
+            vo.setAuthorUsername(author.username());
             vo.setAuthorAvatar(author.avatar());
         }
 

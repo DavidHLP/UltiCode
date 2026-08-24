@@ -1,5 +1,6 @@
 package com.ulticode.app.api.service;
 
+import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -20,7 +21,7 @@ public interface SubmissionUserReadPort {
      * {@code ForumUserReadPort.UserSummary} (id/username/avatar) and
      * {@code SolutionUserReadPort.UserSummary} (id/displayName).
      */
-    record UserSummary(String id, String username, String name, String avatar) {}
+    record UserSummary(String id, String username, String name, String avatar) implements Serializable {}
 
     /**
      * Check whether a user exists by id.

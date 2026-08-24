@@ -98,7 +98,8 @@ public class JudgeOutboxDispatcher {
      * M3c-2 real-dispatch path: claim only {@code is_shadow = 0} rows newer
      * than the cutover watermark (F13), hand each to the
      * {@link JudgeQueue} port (envelope payload → JSON via
-     * {@link JudgeJobEnvelope}), then mark SENT. On enqueue failure the
+     * {@link JudgeJobEnvelope}), then mark SENT. Rows with unusable payloads
+     * are dead-lettered instead of being marked SENT; on enqueue failure the
      * row is rolled back to PENDING with a backoff via
      * {@link JudgeOutboxMapper#markRetry} so the next sweep retries.
      */
@@ -110,6 +111,18 @@ public class JudgeOutboxDispatcher {
         }
         for (JudgeOutboxRecord row : claimed) {
             JudgeJobEnvelope envelope = toEnvelope(row);
+            if (envelope == null) {
+                // Malformed or legacy payload: enqueueing the half-null
+                // envelope would mark the row SENT and only fail later as a
+                // judge system error. Dead-letter instead so ops can replay
+                // with a corrected payload.
+                String reason = truncate("malformed outbox payload: required fields "
+                        + "(problemId/userId/language/code) missing or undecodable");
+                judgeOutboxMapper.markDead(row.getId(), reason);
+                log.error("Dead-lettered outbox row {} (submission={} gen={}): unusable payload",
+                        row.getId(), row.getSubmissionId(), row.getGeneration());
+                continue;
+            }
             try {
                 judgeQueue.enqueue(envelope);
                 judgeOutboxMapper.markSent(row.getId());
@@ -133,9 +146,37 @@ public class JudgeOutboxDispatcher {
      * fresh {@code attemptId} here so the fence CAS targets the current
      * acquire attempt (mirroring the M3b worker contract).
      */
+    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> extractPayload(JudgeOutboxRecord row) {
+        if (row == null) {
+            return Map.of();
+        }
+        Object payloadObj = row.getPayload();
+        if (payloadObj instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        if (payloadObj instanceof String jsonStr && !jsonStr.isBlank()) {
+            try {
+                return OBJECT_MAPPER.readValue(jsonStr, Map.class);
+            } catch (Exception ignored) {
+            }
+        }
+        return Map.of();
+    }
+
     private JudgeJobEnvelope toEnvelope(JudgeOutboxRecord row) {
+        Map<String, Object> payload = extractPayload(row);
+        if (!hasText(row.getSubmissionId())
+                || !hasText(stringOrNull(payload, "problemId"))
+                || !hasText(stringOrNull(payload, "userId"))
+                || !hasText(stringOrNull(payload, "language"))
+                || !hasText(stringOrNull(payload, "code"))) {
+            return null;
+        }
         String attemptId = uuidGenerator.newId();
-        Map<String, Object> payload = row.getPayload();
         return new JudgeJobEnvelope(
                 2,
                 row.getId(),
@@ -148,6 +189,10 @@ public class JudgeOutboxDispatcher {
                 intOrDefault(payload, "memoryLimitKb", 256 * 1024),
                 row.getGeneration(),
                 attemptId);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private static String stringOrNull(Map<String, Object> map, String key) {

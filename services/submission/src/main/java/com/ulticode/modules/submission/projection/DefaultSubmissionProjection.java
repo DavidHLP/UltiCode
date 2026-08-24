@@ -5,11 +5,12 @@ import com.ulticode.submission.api.dto.LanguageStatsDTO;
 import com.ulticode.submission.api.dto.LearningProgressDTO;
 import com.ulticode.submission.api.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.submission.api.dto.PerformanceStats;
+import com.ulticode.submission.api.dto.WeeklyProgressDTO;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.dto.WeeklyProgressDTO;
 import com.ulticode.submission.api.catalog.SubmissionStatusCatalog;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.SubmissionUserReadPort;
@@ -52,6 +53,27 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
     private final ProblemFactsPort problemFacts;
     private final ObjectMapper objectMapper;
 
+    @Override
+    public SubmissionListItemVO toListItemVO(
+            Submission submission,
+            ProblemFactsPort.ProblemDisplayFacts facts) {
+        SubmissionListItemVO vo = new SubmissionListItemVO();
+        vo.setId(submission.getId());
+        vo.setStatus(submission.getStatus());
+        vo.setLanguage(submission.getLanguage());
+        vo.setRuntime(submission.getRuntime());
+        vo.setMemory(submission.getMemory());
+        vo.setCreatedAt(submission.getCreatedAt());
+        vo.setNotes(submission.getNotes());
+        if (facts != null) {
+            SubmissionListItemVO.ProblemSummary problem = new SubmissionListItemVO.ProblemSummary();
+            problem.setId(facts.id());
+            problem.setTitle(facts.title());
+            problem.setSlug(facts.slug());
+            vo.setProblem(problem);
+        }
+        return vo;
+    }
     @Override
     public SubmissionVO toVO(Submission submission) {
         Map<Long, ProblemFactsPort.ProblemDisplayFacts> facts =
@@ -168,15 +190,22 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         return vo;
     }
 
-    private void applyUserSummary(SubmissionVO vo, SubmissionUserReadPort.UserSummary user) {
-        if (user == null) {
+    private void applyUserSummary(SubmissionVO vo, Object userObj) {
+        if (userObj == null) {
             return;
         }
         SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
-        userInfo.setId(user.id());
-        userInfo.setUsername(user.username());
-        userInfo.setName(user.name());
-        userInfo.setAvatar(user.avatar());
+        if (userObj instanceof SubmissionUserReadPort.UserSummary user) {
+            userInfo.setId(user.id());
+            userInfo.setUsername(user.username());
+            userInfo.setName(user.name());
+            userInfo.setAvatar(user.avatar());
+        } else if (userObj instanceof Map<?, ?> map) {
+            userInfo.setId(map.get("id") != null ? map.get("id").toString() : null);
+            userInfo.setUsername(map.get("username") != null ? map.get("username").toString() : null);
+            userInfo.setName(map.get("name") != null ? map.get("name").toString() : null);
+            userInfo.setAvatar(map.get("avatar") != null ? map.get("avatar").toString() : null);
+        }
         vo.setUser(userInfo);
     }
 

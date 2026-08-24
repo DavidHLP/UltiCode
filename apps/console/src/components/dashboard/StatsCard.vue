@@ -37,7 +37,12 @@ const colorClasses = {
           {{ subtitle }}
         </p>
       </div>
-      <span v-if="icon" class="text-2xl">{{ icon }}</span>
+      <span
+        v-if="icon || $slots.icon"
+        class="flex h-9 w-9 items-center justify-center border border-border/50 bg-muted/30"
+      >
+        <slot name="icon">{{ icon }}</slot>
+      </span>
     </div>
 
     <div v-if="trend" class="mt-2 flex items-center gap-1">

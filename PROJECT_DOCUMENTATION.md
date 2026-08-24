@@ -827,6 +827,13 @@ services/api/
 `backend-submission`/`backend-notification`、version `1.0.0`。Contract 可依赖极小的
 `backend-common`，但不得依赖任何服务实现模块。
 
+Wire-incompatible Submission contracts 以 version 门禁发布：`SubmissionFencePort`
+（`currentGeneration` 由 `Optional<Long>` 改为可空 `Long`，避免 Dubbo 序列化 `Optional`）与新增
+`findByProblemId` 的 `SubmissionUserQueryPort` 的 provider/reference 均已升到 version `1.1.0`；
+未变更的端口（如 `SubmissionWritePort`）保持 `1.0.0`。混合滚动窗口内旧消费者只会路由到旧版本
+provider，失配在发现阶段显式失败而不是反序列化错配；因此 `backend-submission` 必须与其消费者
+（`backend-app`、`backend-judge`）同批部署。
+
 当前 `backend-common` 还提供 implementation-free 的跨 Owner 基础契约：`common.command` 下的
 `ActorDelegation`/`WriteCommand`、`common.dto.DifficultyCountDTO`、`common.auth` 下的 credential-free
 `AccountInfo`/`JwtPayload`，以及 `common.security` 下的 `AccountReadPort`、`JwtValidationPort` 和
@@ -1031,6 +1038,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 ##### 8.3 迁移前必须补齐的一致性机制
 
 - Judge 已完成 `judge_outbox + generation fence + JudgeQueue port` 的受控切换；目标态由 Submission owner 写入 Streams v2，独立 `backend-judge` 消费者负责执行。回滚开关仍必须保留 legacy RQueue 重放保护，不能把未投递的 non-shadow row 直接标记为 SENT；
+- Code-review hardening：Streams consumer group 一律从 `0-0` 创建（NOGROUP 恢复后重放既有条目，靠 generation fence 幂等）；outbox payload 不可解码或缺必需字段时 `markDead` 死信而不是标记 SENT；problem submissions 列表查询只取 summary 列并按 `created_at DESC, id DESC` 排序（配套 owner 索引迁移 `V20260824120000__Add_Submissions_Problem_User_Created_Index.sql`）；空分页跳过 facts RPC；pageSize 统一经 `PaginationRequest` 上限 100；
 - `judge_outbox` 只覆盖“送去判题”，不覆盖“verdict 已落库”。新增 result outbox，避免 commit 后 JVM 崩溃丢失 Contest/Notification/Achievement；
 - Notification ledger 支持 stale `CLAIMED` 回收和有上限的 `FAILED` 重试；`DELIVERED`、`SKIPPED` 及达到重试上限的 `FAILED` 为终态；integration outbox 的 stale lease 回收、投递确认和失败回写必须按 `claim_owner` 做 CAS fencing；
 - SMTP 从事务内发送改为 email intent/outbox worker；

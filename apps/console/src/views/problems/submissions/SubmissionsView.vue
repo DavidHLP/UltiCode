@@ -13,6 +13,7 @@ import {
   fetchSubmission,
 } from "@/api/submission";
 import { fetchContestProblemSubmissions } from "@/api/contest";
+import { ApiError } from "@/utils/request";
 import { useAuthStore } from "@/stores/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useErrorHandler } from "@/composables/useErrorHandler";
@@ -37,17 +38,44 @@ const statusMeta = ref<SubmissionStatusMeta[]>([]);
 const selectedSubmission = ref<SubmissionRecord | null>(null);
 
 watch(selectedSubmissionId, async (newId) => {
-  if (newId) {
-    try {
-      selectedSubmission.value = await fetchSubmission(newId);
-    } catch (error) {
+  if (!newId) {
+    selectedSubmission.value = null;
+    return;
+  }
+  try {
+    const detail = await fetchSubmission(newId);
+    // Stale-response guard: only apply the detail when the user has not
+    // selected another submission while this request was in flight.
+    if (selectedSubmissionId.value !== newId) return;
+    selectedSubmission.value = detail;
+  } catch (error) {
+    if (selectedSubmissionId.value !== newId) return;
+    if (error instanceof ApiError && error.code === 404) {
+      // Drop the vanished row and clear only this still-active selection;
+      // never clobber a newer selection made while the request ran.
+      submissions.value = submissions.value.filter(
+        (submission) => submission.id !== newId,
+      );
+      selectedSubmissionId.value = null;
+      if (route.query.submissionId === newId) {
+        const query = { ...route.query };
+        delete query.submissionId;
+        await router.replace({ query });
+      }
+      console.warn(
+        "[submissions] detail record disappeared from the active owner",
+        { submissionId: newId },
+      );
       handleError(error, {
-        fallbackMessage: "problem.submissions.error.loadFailed",
-        logToConsole: true,
+        fallbackMessage: "problem.submissions.error.notFound",
+        logToConsole: false,
       });
-      selectedSubmission.value = null;
+      return;
     }
-  } else {
+    handleError(error, {
+      fallbackMessage: "problem.submissions.error.loadFailed",
+      logToConsole: true,
+    });
     selectedSubmission.value = null;
   }
 });

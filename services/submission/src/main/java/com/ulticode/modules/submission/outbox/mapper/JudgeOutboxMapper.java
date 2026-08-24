@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.ResultMap;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -35,6 +36,7 @@ public interface JudgeOutboxMapper extends BaseMapper<JudgeOutboxRecord> {
      * @param batchSize upper bound on rows to return
      * @return up to {@code batchSize} pending rows, locked by this transaction
      */
+    @ResultMap("mybatis-plus_JudgeOutboxRecord")
     @Select("SELECT * FROM judge_outbox "
             + "WHERE state = 'PENDING' AND next_retry_at <= NOW() "
             + "ORDER BY next_retry_at "
@@ -114,6 +116,7 @@ public interface JudgeOutboxMapper extends BaseMapper<JudgeOutboxRecord> {
      *                    this are considered abandoned
      * @return abandoned pending rows, oldest first
      */
+    @ResultMap("mybatis-plus_JudgeOutboxRecord")
     @Select("SELECT * FROM judge_outbox "
             + "WHERE state = 'PENDING' AND next_retry_at < #{staleBefore} "
             + "ORDER BY next_retry_at")
@@ -129,6 +132,7 @@ public interface JudgeOutboxMapper extends BaseMapper<JudgeOutboxRecord> {
      * @param cutoverAt  only rows created at or after this timestamp
      * @return up to {@code batchSize} real-dispatch pending rows
      */
+    @ResultMap("mybatis-plus_JudgeOutboxRecord")
     @Select("SELECT * FROM judge_outbox "
             + "WHERE state = 'PENDING' AND next_retry_at <= NOW() "
             + "  AND is_shadow = 0 AND created_at >= #{cutoverAt} "

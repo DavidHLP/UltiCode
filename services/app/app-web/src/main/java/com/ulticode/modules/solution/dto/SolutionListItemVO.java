@@ -45,6 +45,7 @@ public class SolutionListItemVO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AuthorInfo {
         private String id;
+        private String username;
         private String name;
         private String avatar;
     }

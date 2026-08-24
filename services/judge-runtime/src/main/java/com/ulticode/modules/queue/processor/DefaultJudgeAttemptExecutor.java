@@ -128,16 +128,16 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         boolean envelopeFence = envelope != null && envelope.isFenceAware();
         String attemptId = envelopeFence ? envelope.attemptId() : uuidGenerator.newId();
 
-        Optional<Long> observed = submissionFencePort.currentGeneration(submissionId);
-        if (observed.isEmpty()) {
+        Long observed = submissionFencePort.currentGeneration(submissionId);
+        if (observed == null) {
             log.warn("Fenced judge: submission {} not found, abandoning", submissionId);
             releaseIfLeased(port, handle, true, submissionId);
             return;
         }
-        long generation = envelopeFence ? envelope.generation() : observed.get();
-        if (envelopeFence && observed.get() != generation) {
+        long generation = envelopeFence ? envelope.generation() : observed;
+        if (envelopeFence && observed.longValue() != generation) {
             log.info("Fenced judge: submission {} envelope gen {} is stale; current gen {}",
-                    submissionId, generation, observed.get());
+                    submissionId, generation, observed);
             releaseIfLeased(port, handle, true, submissionId);
             return;
         }
@@ -198,17 +198,26 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                                        JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
         String testDetailsJson = JudgeTestCaseDetailCodec.toJson(pipelineResult.testCaseDetails());
-        boolean written = submissionWritePort.updateSubmissionResultFenced(
-                submissionId, status,
-                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), testDetailsJson,
-                generation, attemptId);
+        try {
+            boolean written = submissionWritePort.updateSubmissionResultFenced(
+                    submissionId, status,
+                    pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), testDetailsJson,
+                    generation, attemptId);
 
-        if (!written) {
-            log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
-                    status.wireValue(), submissionId, generation);
+            if (!written) {
+                log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
+                        status.wireValue(), submissionId, generation);
+            }
+            // false means stale/superseded in the fenced write contract, not a
+            // transient failure. The result is therefore safe to acknowledge.
+            return true;
+        } catch (Exception e) {
+            log.error("Unable to persist fenced verdict for submission {}",
+                    submissionId, e);
+            return false;
         }
-        return true;
     }
+
 
 
     // -----------------------------------------------------------------------
@@ -293,9 +302,21 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     }
 
     private Optional<JudgeExecutionResult> runPipeline(JudgeJob job) throws Exception {
+        Long problemId = null;
+        if (job.getProblemId() != null && !job.getProblemId().isBlank()) {
+            try {
+                problemId = Long.parseLong(job.getProblemId());
+            } catch (NumberFormatException e) {
+                log.warn("Invalid problemId {} for submission {}", job.getProblemId(), job.getSubmissionId());
+            }
+        }
+        if (problemId == null || problemId <= 0) {
+            log.warn("Cannot run judge pipeline: missing or non-positive problemId for submission {}", job.getSubmissionId());
+            return Optional.empty();
+        }
         return Optional.ofNullable(executionPipeline.execute(
                 job.getLanguage(), job.getCode(),
-                Long.parseLong(job.getProblemId()), job.getUserId(), job.getSubmissionId()));
+                problemId, job.getUserId(), job.getSubmissionId()));
     }
 
 

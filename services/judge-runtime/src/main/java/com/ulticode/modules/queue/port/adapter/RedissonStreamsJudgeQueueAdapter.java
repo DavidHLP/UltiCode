@@ -108,8 +108,17 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     private final MeterRegistry meterRegistry;
 
     /**
-     * Create the consumer group on startup (idempotent; safe to call when
-     * the group already exists).
+     * Create the consumer group on startup, or recreate it after NOGROUP
+     * recovery (idempotent; safe to call when the group already exists).
+     *
+     * <p>The group is always created at {@code 0-0}
+     * ({@link StreamMessageId#ALL}), never at {@code $} (NEWEST). If the
+     * group disappears while stream entries remain (e.g. the stream key was
+     * evicted/recreated or a operator deleted the group), a NEWEST group
+     * would only see future entries and every already-enqueued job would be
+     * skipped while its outbox row is already SENT. Creating from {@code 0-0}
+     * replays pre-group entries; replay is idempotent because stale
+     * generations are dropped by the judge fence CAS.
      */
     @PostConstruct
     public void ensureGroup() {
@@ -129,7 +138,8 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
         boolean exists = groups.stream().anyMatch(g -> groupName.equals(g.getName()));
         if (!exists) {
             try {
-                stream.createGroup(StreamCreateGroupArgs.name(groupName));
+                stream.createGroup(StreamCreateGroupArgs.name(groupName)
+                        .id(StreamMessageId.ALL));
                 log.info("Created Redis Streams consumer group {} on {}", groupName, streamKey);
             } catch (Exception e) {
                 // Race: another instance created the group between the
@@ -187,11 +197,20 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
             // documented non-blocking poll(0) contract.
             readArgs.timeout(Duration.ofMillis(timeoutMillis));
         }
-        Map<StreamMessageId, Map<String, String>> entries = stream.readGroup(
-                groupName, consumerId, readArgs);
+        Map<StreamMessageId, Map<String, String>> entries;
+        try {
+            entries = stream.readGroup(groupName, consumerId, readArgs);
+        } catch (Exception e) {
+            if (!isNoGroup(e)) {
+                throw e;
+            }
+            ensureGroup();
+            entries = stream.readGroup(groupName, consumerId, readArgs);
+        }
         if (entries == null || entries.isEmpty()) {
             return Optional.empty();
         }
+
         Map.Entry<StreamMessageId, Map<String, String>> first =
                 entries.entrySet().iterator().next();
         JudgeJobEnvelope envelope = decode(first.getValue());
@@ -206,6 +225,15 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
         }
         return Optional.of(new JudgeJobHandle(envelope, first.getKey()));
     }
+    private boolean isNoGroup(Throwable throwable) {
+        for (Throwable current = throwable; current != null; current = current.getCause()) {
+            if (current.getMessage() != null && current.getMessage().contains("NOGROUP")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     @Override
     public void ack(JudgeJobHandle handle) {

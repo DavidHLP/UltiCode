@@ -6,6 +6,7 @@ import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.common.response.PageResult;
 
 import java.util.List;
@@ -56,6 +57,12 @@ public interface SubmissionUserQueryPort {
      * @return non-null page; empty records when the user has no rows
      */
     PageResult<SubmissionVO> findByUserId(String userId, SubmissionQueryDTO query);
+    /**
+     * Paginated submissions for a problem visible to {@code userId}, newest
+     * first. Problem display facts are enriched through the owner facts seam.
+     */
+    PageResult<SubmissionListItemVO> findByProblemId(
+            Long problemId, String userId, SubmissionQueryDTO query);
 
     /**
      * Best (fastest accepted) submission for {@code userId} and problem,

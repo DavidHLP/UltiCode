@@ -83,7 +83,7 @@ public class DefaultSolutionUserReadAdapter implements SolutionUserReadPort {
                         ? profile.getName()
                         : usernameMap.getOrDefault(id, id);
                 String avatar = profile != null ? profile.getAvatar() : null;
-                result.put(id, new UserSummary(id, displayName, avatar));
+                result.put(id, new UserSummary(id, usernameMap.getOrDefault(id, id), displayName, avatar));
             }
         }
         return result;

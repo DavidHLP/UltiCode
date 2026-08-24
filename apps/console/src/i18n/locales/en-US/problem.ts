@@ -384,11 +384,14 @@ export default {
     solutionDeleted: "Solution deleted",
     loginToVote: "Please log in to vote.",
     returnToList: "Return solution list",
+    viewAuthorProfile: "View {name}'s profile",
     loading: "Loading solutions...",
     loadingDetail: "Loading solution details...",
     error: {
       viewRecordFailed: "Failed to record view",
       commentVoteFailed: "Failed to vote on comment",
+      bestSubmissionLoadFailed: "Failed to load your best submission",
+      userSolutionsLoadFailed: "Failed to load your solutions",
     },
   },
 

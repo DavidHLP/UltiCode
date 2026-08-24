@@ -9,6 +9,7 @@ interface SolutionApiItem {
   id: string;
   problemId: number;
   userId: string;
+  authorUsername?: string;
   authorName?: string;
   authorAvatar?: string;
   title: string;
@@ -45,7 +46,12 @@ interface SolutionListApiItem {
   summary: string;
   language: string;
   tags: string[];
-  author?: { id: string; name: string; avatar?: string };
+  author?: {
+    id: string;
+    username?: string;
+    name: string;
+    avatar?: string;
+  };
   counts?: { views: number; comments: number; likes: number; dislikes: number };
   score: number;
   viewerVote?: 0 | 1 | -1;
@@ -66,7 +72,7 @@ function transformApiSolution(item: SolutionApiItem): SolutionFeedItem {
     authorId: item.userId,
     author: {
       id: item.userId,
-      username: item.authorName ?? item.userId,
+      username: item.authorUsername ?? "",
       name: item.authorName ?? item.userId,
       role: "",
       avatar: item.authorAvatar,
@@ -109,7 +115,7 @@ function transformListApiSolution(item: SolutionListApiItem): SolutionFeedItem {
     authorId: author?.id ?? "",
     author: {
       id: author?.id ?? "",
-      username: author?.name ?? "",
+      username: author?.username ?? "",
       name: author?.name ?? "",
       role: "",
       avatar: author?.avatar,

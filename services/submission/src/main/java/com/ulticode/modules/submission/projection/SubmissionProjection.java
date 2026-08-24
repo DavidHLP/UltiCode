@@ -4,6 +4,7 @@ import com.ulticode.submission.api.dto.LearningProgressDTO;
 import com.ulticode.submission.api.dto.PerformanceStats;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -23,6 +24,13 @@ import java.util.Map;
  * until the read-routing cutover slice.
  */
 public interface SubmissionProjection {
+
+    /**
+     * Convert a submission to the lightweight problem-list item shape.
+     */
+    SubmissionListItemVO toListItemVO(
+            Submission submission,
+            com.ulticode.app.api.service.ProblemFactsPort.ProblemDisplayFacts problemFacts);
 
     /**
      * Convert a submission entity to its user-facing VO, applying the P0-1

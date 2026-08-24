@@ -317,7 +317,7 @@ class SubmissionOwnerCutoverIT {
 
         assertThat(acquired).isTrue();
         assertThat(renewed).isTrue();
-        assertThat(provider.currentGeneration(submissionId)).isEqualTo(Optional.of(1L));
+        assertThat(provider.currentGeneration(submissionId)).isEqualTo(1L);
         Submission row = submissionMapper.selectById(submissionId);
         assertThat(row.getCurrentAttemptId()).isEqualTo(attemptId);
     }

@@ -374,11 +374,14 @@ export default {
     solutionDeleted: "题解已删除",
     loginToVote: "请登录后投票。",
     returnToList: "返回题解列表",
+    viewAuthorProfile: "查看{name}的个人资料",
     loading: "正在加载题解...",
     loadingDetail: "正在加载题解详情...",
     error: {
       viewRecordFailed: "记录浏览失败",
       commentVoteFailed: "评论投票失败",
+      bestSubmissionLoadFailed: "加载你的最佳提交失败",
+      userSolutionsLoadFailed: "加载你的题解失败",
     },
   },
 

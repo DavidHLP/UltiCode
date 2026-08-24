@@ -107,6 +107,42 @@ class RedissonStreamsJudgeQueueAdapterTest {
                 eq("max-delivery-attempts"), eq("3600"), eq(GROUP));
         verify(source, never()).ack(GROUP, id);
     }
+    @Test
+    @DisplayName("poll recreates a missing consumer group and retries once")
+    void pollRecreatesMissingGroupAndRetriesOnce() {
+        RedissonClient redisson = mock(RedissonClient.class);
+        @SuppressWarnings("unchecked")
+        RStream<String, String> source = mock(RStream.class);
+        StreamMessageId id = new StreamMessageId(13, 0);
+
+        when(redisson.<String, String>getStream(eq(STREAM_KEY), any(Codec.class))).thenReturn(source);
+        when(source.readGroup(
+                eq(GROUP), eq(CONSUMER), any(org.redisson.api.stream.StreamReadGroupArgs.class)))
+                .thenThrow(new IllegalStateException("NOGROUP No such key"))
+                .thenReturn(Map.of(id, Map.of("payload",
+                        "{\"version\":2,\"id\":\"job-1\",\"submissionId\":\"submission-1\","
+                                + "\"problemId\":\"problem-1\",\"userId\":\"user-1\","
+                                + "\"language\":\"java\",\"code\":\"class Main {}\","
+                                + "\"timeLimitMs\":2000,\"memoryLimitKb\":262144,"
+                                + "\"generation\":2,\"attemptId\":\"attempt-1\"}")));
+        when(source.listGroups()).thenReturn(List.of());
+        when(source.isExists()).thenReturn(true);
+
+        RedissonStreamsJudgeQueueAdapter adapter = adapter(redisson, 3);
+
+        Optional<JudgeJobHandle> result = adapter.poll(0);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().envelope().submissionId()).isEqualTo("submission-1");
+        // The recovered group must be created from 0-0 (ALL), never NEWEST:
+        // a NEWEST group after NOGROUP recovery would skip every
+        // already-enqueued entry whose outbox row is already SENT.
+        org.mockito.ArgumentMatcher<org.redisson.api.stream.StreamCreateGroupArgs> fromBeginning =
+                args -> ((org.redisson.api.stream.StreamCreateGroupParams) args)
+                        .getId() == org.redisson.api.stream.StreamMessageId.ALL;
+        verify(source).createGroup(org.mockito.ArgumentMatchers.argThat(fromBeginning));
+    }
+
 
     @Test
     @DisplayName("an entry within the budget is claimed and returned to the worker")

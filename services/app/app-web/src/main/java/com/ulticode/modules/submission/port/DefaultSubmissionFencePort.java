@@ -6,15 +6,13 @@ import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 /**
  * Default in-process adapter for {@link SubmissionFencePort}.
  *
  * <p>Thin wrapper over {@link SubmissionMapper} that lifts the three fence
  * operations the judge worker needs — read generation, CAS-acquire lease,
  * renew lease — out of raw-mapper + entity territory and into the typed
- * {@code Optional<Long>} / {@code boolean} shape the port promises.
+ * {@code Long} / {@code boolean} shape the port promises.
  *
  * @author ulticode
  */
@@ -25,12 +23,12 @@ public class DefaultSubmissionFencePort implements SubmissionFencePort {
     private final SubmissionMapper submissionMapper;
 
     @Override
-    public Optional<Long> currentGeneration(String submissionId) {
+    public Long currentGeneration(String submissionId) {
         Submission current = submissionMapper.selectById(submissionId);
         if (current == null) {
-            return Optional.empty();
+            return null;
         }
-        return Optional.of(current.getGeneration() != null ? current.getGeneration() : 1L);
+        return current.getGeneration() != null ? current.getGeneration() : 1L;
     }
 
     @Override

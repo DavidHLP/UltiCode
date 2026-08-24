@@ -1,7 +1,5 @@
 package com.ulticode.submission.api.service;
 
-import java.util.Optional;
-
 /**
  * Read + mutate surface for the ADR-003 judge lease fence — the half of the
  * submission state machine the judge worker drives while a verdict is in flight.
@@ -24,14 +22,14 @@ public interface SubmissionFencePort {
 
     /**
      * Current generation of the submission row this worker is about to judge.
-     * Returns {@code Optional.empty()} if the row does not exist. A null
+     * Returns {@code null} if the row does not exist. A null
      * {@code generation} column resolves to {@code 1L} so a worker never
      * observes a null fence axis.
      *
      * @param submissionId the submission id
-     * @return the generation to fence on; empty if the submission is gone
+     * @return the generation to fence on; null if the submission is gone
      */
-    Optional<Long> currentGeneration(String submissionId);
+    Long currentGeneration(String submissionId);
 
     /**
      * CAS-acquire the judge lease (ADR-003 §2.3). Succeeds iff the row is still

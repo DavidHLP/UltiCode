@@ -152,7 +152,8 @@ const handleCreateSolution = () => {
 
 onMounted(async () => {
   const problemId = props.problemId?.toString() || (route.params.id as string);
-  if (problemId) {
+  const userId = useAuthStore().fetchCurrentUserId();
+  if (problemId && userId) {
     try {
       bestSubmission.value = await fetchBestSubmission(problemId);
     } catch (e) {
@@ -165,11 +166,8 @@ onMounted(async () => {
       });
     }
     try {
-      const userId = useAuthStore().fetchCurrentUserId();
-      if (userId) {
-        const response = await fetchUserSolutions(userId, problemId);
-        userSolution.value = response.items[0] ?? null;
-      }
+      const response = await fetchUserSolutions(userId, problemId);
+      userSolution.value = response.items[0] ?? null;
     } catch (e) {
       handleError(e, {
         fallbackMessage: "problem.solutions.error.userSolutionsLoadFailed",

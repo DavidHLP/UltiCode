@@ -5,19 +5,17 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
 /** Judge-side RPC adapter for App-owned lease and generation CAS operations. */
 @Component
 @Primary
 public class RemoteSubmissionFencePort implements SubmissionFencePort {
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.1.0",
             timeout = 5000, retries = 0, check = false)
     private SubmissionFencePort submissionFencePort;
 
     @Override
-    public Optional<Long> currentGeneration(String submissionId) {
+    public Long currentGeneration(String submissionId) {
         return submissionFencePort.currentGeneration(submissionId);
     }
 

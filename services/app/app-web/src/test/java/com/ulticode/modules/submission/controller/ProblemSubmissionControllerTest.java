@@ -5,9 +5,9 @@ import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.modules.submission.service.CodeExecutionService;
-import com.ulticode.modules.submission.service.SubmissionService;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +35,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 class ProblemSubmissionControllerTest {
 
     @Mock
-    private SubmissionService submissionService;
+    private SubmissionUserQueryPort submissionUserQuery;
 
     @Mock
     private SubmissionWritePort submissionWritePort;
@@ -52,7 +52,7 @@ class ProblemSubmissionControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        controller = new ProblemSubmissionController(submissionService, submissionWritePort, codeExecutionService, validator, currentUserProvider);
+        controller = new ProblemSubmissionController(submissionUserQuery, submissionWritePort, codeExecutionService, validator, currentUserProvider);
     }
 
     @AfterEach

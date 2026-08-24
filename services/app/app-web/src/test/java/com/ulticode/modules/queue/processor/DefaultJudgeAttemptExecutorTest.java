@@ -94,7 +94,7 @@ class DefaultJudgeAttemptExecutorTest {
         // Envelope-fence runs short-circuit the flag check, so the stub is
         // unused in those tests — keep it lenient.
         lenient().when(featureFlags.isUseGenerationFence()).thenReturn(true);
-        lenient().when(submissionFencePort.currentGeneration("submission-1")).thenReturn(Optional.of(3L));
+        lenient().when(submissionFencePort.currentGeneration("submission-1")).thenReturn(3L);
         lenient().when(submissionFencePort.acquireLease("submission-1", "attempt-1", 3L, 60L))
                 .thenReturn(true);
     }
@@ -143,7 +143,7 @@ class DefaultJudgeAttemptExecutorTest {
         JudgeExecutionResult result = new JudgeExecutionResult(SubmissionStatus.ACCEPTED, 2, 1.0, List.of());
         when(executionPipeline.execute("java", "class Main {}", 100L, "user-1", "submission-1"))
                 .thenReturn(result);
-        when(submissionFencePort.currentGeneration("submission-1")).thenReturn(Optional.of(7L));
+        when(submissionFencePort.currentGeneration("submission-1")).thenReturn(7L);
         when(submissionFencePort.acquireLease("submission-1", "dispatch-attempt", 7L, 60L))
                 .thenReturn(true);
         when(submissionWritePort.updateSubmissionResultFenced(

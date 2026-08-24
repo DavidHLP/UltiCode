@@ -239,15 +239,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
             }
         }
 
-        SubmissionUserReadPort.UserSummary user = users.get(submission.getUserId());
-        if (user != null) {
-            SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
-            userInfo.setId(user.id());
-            userInfo.setUsername(user.username());
-            userInfo.setName(user.name());
-            userInfo.setAvatar(user.avatar());
-            vo.setUser(userInfo);
-        }
+        applyUserSummary(vo, users.get(submission.getUserId()));
 
         ProblemFactsPort.ProblemDisplayFacts facts = factsById.get(submission.getProblemId());
         if (facts != null) {
@@ -318,15 +310,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         vo.setMemoryPercentile(submission.memoryPercentile());
         vo.setMemoryDistBinsMb(normalizeBins(submission.memoryDistBinsMb()));
 
-        SubmissionUserReadPort.UserSummary user = users.get(submission.userId());
-        if (user != null) {
-            SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
-            userInfo.setId(user.id());
-            userInfo.setUsername(user.username());
-            userInfo.setName(user.name());
-            userInfo.setAvatar(user.avatar());
-            vo.setUser(userInfo);
-        }
+        applyUserSummary(vo, users.get(submission.userId()));
 
         if (submission.problemTitle() != null) {
             SubmissionVO.ProblemInfo problemInfo = new SubmissionVO.ProblemInfo();
@@ -337,6 +321,25 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         }
 
         return vo;
+    }
+
+    private void applyUserSummary(SubmissionVO vo, Object userObj) {
+        if (userObj == null) {
+            return;
+        }
+        SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
+        if (userObj instanceof SubmissionUserReadPort.UserSummary user) {
+            userInfo.setId(user.id());
+            userInfo.setUsername(user.username());
+            userInfo.setName(user.name());
+            userInfo.setAvatar(user.avatar());
+        } else if (userObj instanceof Map<?, ?> map) {
+            userInfo.setId(map.get("id") != null ? map.get("id").toString() : null);
+            userInfo.setUsername(map.get("username") != null ? map.get("username").toString() : null);
+            userInfo.setName(map.get("name") != null ? map.get("name").toString() : null);
+            userInfo.setAvatar(map.get("avatar") != null ? map.get("avatar").toString() : null);
+        }
+        vo.setUser(userInfo);
     }
 
     private Map<String, SubmissionUserReadPort.UserSummary> findUsers(Iterable<String> userIds) {

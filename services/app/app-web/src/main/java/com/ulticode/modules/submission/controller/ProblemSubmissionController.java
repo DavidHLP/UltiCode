@@ -4,6 +4,7 @@ import com.ulticode.websecurity.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
@@ -12,9 +13,9 @@ import com.ulticode.app.api.dto.RunSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.modules.submission.service.CodeExecutionService;
-import com.ulticode.modules.submission.service.SubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +34,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ProblemSubmissionController {
 
-    private final SubmissionService submissionService;
+    private final SubmissionUserQueryPort submissionUserQuery;
     private final SubmissionWritePort submissionWritePort;
     private final CodeExecutionService codeExecutionService;
     private final Validator validator;
@@ -63,11 +64,16 @@ public class ProblemSubmissionController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
+        // Normalize at the request boundary too: default page 1 / size 10,
+        // hard cap 100 (page-size DoS guard). The remote provider applies
+        // the same PaginationRequest rule defensively.
+        PaginationRequest pagination = PaginationRequest.of(page, pageSize, 10);
         SubmissionQueryDTO query = new SubmissionQueryDTO();
-        query.setPage(page);
-        query.setPageSize(pageSize);
+        query.setPage(pagination.page());
+        query.setPageSize(pagination.pageSize());
 
-        PageResult<SubmissionListItemVO> result = submissionService.findByProblemId(problemId, userId, query);
+        PageResult<SubmissionListItemVO> result =
+                submissionUserQuery.findByProblemId(problemId, userId, query);
         return Result.success(result);
     }
 
@@ -89,7 +95,7 @@ public class ProblemSubmissionController {
             throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
         }
 
-        SubmissionVO submission = submissionService.findBest(problemId, userId);
+        SubmissionVO submission = submissionUserQuery.findBest(problemId, userId);
         return Result.success(submission);
     }
 

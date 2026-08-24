@@ -208,6 +208,12 @@ const handleEditSolution = () => {
   }
 };
 
+const handleAuthorProfileClick = () => {
+  const username = props.item.author.username;
+  if (props.item.id === "follow-up" || !username) return;
+  router.push({ name: "public-profile", params: { username } });
+};
+
 const handleDeleteSolution = async () => {
   if (!props.item.id || props.item.id === "follow-up") return;
   const confirmed = window.confirm(t("problem.solutions.deleteConfirm"));
@@ -302,15 +308,32 @@ watch(
       >
         <!-- Header: Author & Metadata (visible on all screens, but primary on mobile) -->
         <header class="flex items-start gap-4 border-b border-border/50 pb-5">
-          <Avatar class="h-10 w-10 border border-border/50 shrink-0">
-            <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
-            <AvatarFallback
-              class="text-xs font-semibold text-foreground-strong"
-              :style="{ backgroundColor: props.item.author.avatarColor }"
-            >
-              {{ authorInitial }}
-            </AvatarFallback>
-          </Avatar>
+          <button
+            type="button"
+            class="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            :aria-label="
+              t('problem.solutions.viewAuthorProfile', {
+                name: props.item.author.name,
+              })
+            "
+            :disabled="
+              props.item.id === 'follow-up' || !props.item.author.username
+            "
+            @click="handleAuthorProfileClick"
+          >
+            <Avatar class="h-10 w-10 border border-border/50">
+              <AvatarImage
+                :src="authorAvatarUrl"
+                :alt="props.item.author.name"
+              />
+              <AvatarFallback
+                class="text-xs font-semibold text-foreground-strong"
+                :style="{ backgroundColor: props.item.author.avatarColor }"
+              >
+                {{ authorInitial }}
+              </AvatarFallback>
+            </Avatar>
+          </button>
 
           <div class="flex-1 min-w-0 flex flex-col gap-1">
             <div

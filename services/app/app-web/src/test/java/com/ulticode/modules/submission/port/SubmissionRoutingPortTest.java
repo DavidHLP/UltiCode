@@ -164,12 +164,12 @@ class SubmissionRoutingPortTest {
     void remoteModeUsesRemoteFence() {
         SubmissionRoutingProperties properties = properties("remote");
         when(remoteFenceProvider.getIfAvailable()).thenReturn(remoteFence);
-        when(remoteFence.currentGeneration("sub-1")).thenReturn(Optional.of(3L));
+        when(remoteFence.currentGeneration("sub-1")).thenReturn(3L);
 
         SubmissionFenceRoutingPort routing = new SubmissionFenceRoutingPort(
                 localFence, remoteFenceProvider, properties);
 
-        assertThat(routing.currentGeneration("sub-1")).contains(3L);
+        assertThat(routing.currentGeneration("sub-1")).isEqualTo(3L);
         verify(remoteFence).currentGeneration("sub-1");
         verifyNoInteractions(localFence);
     }

@@ -31,9 +31,14 @@ public class SolutionVO {
     private String userId;
 
     /**
-     * Author username
+     * Author display name
      */
     private String authorName;
+
+    /**
+     * Stable author username used by public profile routes
+     */
+    private String authorUsername;
 
     /**
      * Author avatar

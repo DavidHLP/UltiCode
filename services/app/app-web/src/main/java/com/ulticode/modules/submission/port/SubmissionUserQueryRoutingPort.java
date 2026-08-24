@@ -3,6 +3,7 @@ package com.ulticode.modules.submission.port;
 import com.ulticode.submission.api.dto.LearningProgressDTO;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
+import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
@@ -69,6 +70,12 @@ public class SubmissionUserQueryRoutingPort implements SubmissionUserQueryPort {
     @Override
     public PageResult<SubmissionVO> findByUserId(String userId, SubmissionQueryDTO query) {
         return delegate().findByUserId(userId, query);
+    }
+
+    @Override
+    public PageResult<SubmissionListItemVO> findByProblemId(
+            Long problemId, String userId, SubmissionQueryDTO query) {
+        return delegate().findByProblemId(problemId, userId, query);
     }
 
     @Override

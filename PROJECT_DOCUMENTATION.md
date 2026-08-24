@@ -262,6 +262,14 @@ Auth owner。
 
 > 非破坏性收敛，不移动已应用迁移（`AGENTS.md §Database changes`），物理归档需 ADR。
 
+#### 旧库 → Owner schema 全量数据迁移（legacy-to-owner backfill）
+
+- **Runbook**：`scripts/runbooks/owner-full-backfill.sh`，动作 `preflight|backfill|verify|rollback|converge|archive-retired`。以共享 `ulticode` 为 source、owner schema 为 target，幂等 `INSERT..SELECT` 回填 + 主键 checksum 门禁；`converge` 将与 legacy 种子漂移的预置 owner 表（时间戳/id 漂移）收敛为与 source 完全一致；`rollback` 仅删除已回填的 target 行，绝不写共享 source。证据（manifest、行数快照、退役表 dump）存于 `.local/migration-audit/`。
+- **App submissions 形状收敛**：`app/V20260824000000__Converge_App_Submissions_With_Owner_Contract.sql` 将 App 本地读写 seam 的 `submissions` 列形状对齐 canonical Submission owner 契约（移除 bootstrap 的 verdict/execution_time_ms/memory_used_kb，补齐 runtime/entity 所需列）；幂等 INFORMATION_SCHEMA 探针式 DDL。
+- **角色模板映射**：`auth.role_permissions` 使用粗粒度 resource 枚举；runbook 内置 legacy 细粒度 resource → 粗粒度枚举的语义映射并按 (role, action, resource) 去重（该表仅被 admin 投影消费）。
+- **退役表处置**：零引用遗留表（DailyRecommendation、system_announcements(+reads)、submission_statuses、forum_community_links/rules/tags/permissions、forum_post_tag_relations）按 ADR 占位约定 dump 归档、不迁入 owner schema；物理归档仍需 ADR。
+- **用户名冲突**：legacy 与 bootstrap admin 同名时，回填行以 `_legacy` 后缀重命名入库（email 冲突置 NULL），保证全量与引用完整性。
+
 - **Baseline external seam**：`init-db/migrations/` 仍是唯一 Flyway 源（`AGENTS.md §Database changes`）；`init-db/baseline/baseline.sql` 为生成的 `--no-data` 优化（供 `baseline-optimized fresh-install` / `AI` 导航，标准仍为 `migrate.sh migrate` + `owner-migrate` 串行，`baseline` 路径需经 `baseline-adopt.sh` 建历史。详见 `init-db/baseline/README.md:24-35`）。
 - **Seed 隔离**：legacy seed 保留在 `flyway.conf: filesystem:migrations/*.sql`（增量仍扫描但已 APPLIED）；新 seed 只进 `migrations/seed/` 经 `flyway-seed.conf: filesystem:migrations/*.sql,filesystem:migrations/seed`，`baseline-optimized fresh-install` 经 `baseline.sql` 零 seed（标准仍经 incremental）。详见 `init-db/migrations/seed/README.md` 与 `init-db/baseline/README.md:24-35`。
 - **Owner 深模块**：`flyway-{auth,admin,app,notification,submission}.conf` 退为 adapters，`owner-migrate` 是支持的编排入口（`init-db/scripts/owner-migrate.sh migrate|validate|info <owner|all>`，`scripts/dev/up.sh` 经它串行 owners）；`baseline` 采用走 `baseline-adopt.sh`（标准）与受约束的 `DEV_LOCAL` 路径（见 `init-db/README.md:130` 与 `init-db/baseline/README.md`）；`direct migrate.sh` + `MIGRATION_SCHEMA` 是受约束低层原语。

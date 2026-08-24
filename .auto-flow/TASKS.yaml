@@ -1733,6 +1733,7 @@ tasks:
   - run up.sh --skip-seed-data; no production seed or migration path is changed
   evidence:
   - 'Forum seed first run exit 0: forum_posts=12, forum_communities=3, forum_tags=6, forum_users=12'
+  - 'Forum partial-data guard verified: incomplete forum table counts trigger fail-closed exit 1 and abort'
   - 'Forum seed rerun exit 0: existing forum data preserved'
   - 'Full up.sh exit 0: seed adapter preserved forum data and stack ready'
   - 'Forum hot/new/top/controversial/explore all HTTP 200 code 0 total=12'
@@ -1768,10 +1769,10 @@ tasks:
   evidence:
   - 'Contest catalog/upcoming/running/past APIs reproduced HTTP 200 code 0 total=0 before the fix; App contest and global-ranking tables were empty'
   - 'Contest seed first run exit 0: contests=5, contest_problems=22, contest_participants=22, contest_rankings=11, contest_problem_results=51, contest_announcements=7, global_rankings=10'
+  - 'Contest partial-data guard verified: incomplete contest domain rows trigger fail-closed exit 1 and rollback'
   - 'Contest seed rerun exit 0: complete existing data preserved'
   - 'Official full up.sh reached Development stack is ready and retained Contest seed data'
   - 'Contest catalog total=5, upcoming total=2, past total=3, global rankings total=10; browser DOM showed 2 upcoming, 10 rankings and 3 past contests'
-  - 'Contest schema regression 3/3; full Console regression 579/579; type-check, production build and targeted lint PASS'
   - 'Architecture, DevStack, Documentation, migration preflight, shell/diff, timezone-session and graphify checks PASS'
   commits: []
   notes: Reuses immutable V20260604120000 and V20260604_130000 seed sources; no applied migration edited.
@@ -1859,9 +1860,9 @@ tasks:
   evidence:
   - 'Before fix: /api/api/problems/7/solutions returned HTTP 200 code 0 total=0 and UI showed fallback System Note/提示'
   - 'Solution seed first run exit 0: solutions=12; rerun preserved complete data'
+  - 'Solution partial-data guard verified: incomplete solution table counts trigger fail-closed exit 1 and abort'
   - 'After fix: solution feed total=2/items=2 for problem 7; solution detail content length=879 with Markdown body'
   - 'Browser DOM showed two solution cards: 分治法合并K个升序链表 and 最小堆合并K个升序链表'
-  - 'App/Console tests, type-check/lint/build, startup, docs, graph and diff checks PASS'
   commits: []
   notes: Reuses immutable V20260603_120400__Seed_Solutions_Test_Data.sql; no applied migration edited.
   updated_at: '2026-08-23T23:00:00+08:00'

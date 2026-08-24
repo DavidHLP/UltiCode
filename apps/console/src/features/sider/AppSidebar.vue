@@ -30,12 +30,14 @@ const isAuthenticated = computed(() => authStore.isAuthenticated);
 const user = computed(() => {
   if (isAuthenticated.value && authStore.user) {
     return {
+      username: authStore.user.username,
       name: authStore.user.name || authStore.user.username,
       email: authStore.user.email || "",
       avatar: authStore.user.avatar || "",
     };
   }
   return {
+    username: "",
     name: "",
     email: "",
     avatar: "",

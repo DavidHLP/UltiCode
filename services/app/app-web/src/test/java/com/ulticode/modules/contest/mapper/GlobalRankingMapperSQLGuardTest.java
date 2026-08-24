@@ -31,7 +31,10 @@ class GlobalRankingMapperSQLGuardTest {
                     .contains("left join user_profiles p on g.user_id = p.account_id")
                     .contains("p.name")
                     .contains("p.avatar")
-                    .doesNotContain("u.name");
+                    .doesNotContain("u.name")
+                    .doesNotContain("g.*")
+                    .contains("g.rating")
+                    .contains("g.global_rank");
         }
     }
 

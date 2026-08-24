@@ -53,4 +53,16 @@ describe("GlobalRanking", () => {
       "/avatars/user-3.png",
     ]);
   });
+
+  it("handles Unicode astral-plane initials safely", () => {
+    const astralRankings = [{
+      ...rankings[0],
+      name: "🚀 Rocket",
+      avatar: null,
+    }];
+    const wrapper = mount(GlobalRanking, {
+      props: { rankings: astralRankings },
+    });
+    expect(wrapper.text()).toContain("🚀R");
+  });
 });

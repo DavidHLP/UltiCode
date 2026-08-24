@@ -12,7 +12,7 @@ import {
   LogOut,
   LogIn,
 } from "lucide-vue-next";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,24 +82,12 @@ const selectedLayout = computed({
 // SVG when the profile has no photo, so the header never depends on a remote
 // avatar service and stays consistent with the personal profile surface.
 const { normalizedAvatar: currentUserAvatarUrl } = useAvatar(
-  computed(() => authStore.userName),
+  computed(() => authStore.user?.username || authStore.userName),
   computed(() => authStore.user?.avatar),
 );
 const currentUserInitial = computed(() =>
   (authStore.userName || "?").charAt(0).toUpperCase(),
 );
-const avatarFailed = ref(false);
-const showCurrentUserAvatarImage = computed(
-  () => currentUserAvatarUrl.value !== "" && !avatarFailed.value,
-);
-const onCurrentUserAvatarError = () => {
-  avatarFailed.value = true;
-};
-// Reset the failure flag whenever a new user (or refreshed avatar URL) shows
-// up, otherwise a previously-broken URL would stick on initials forever.
-watch(currentUserAvatarUrl, () => {
-  avatarFailed.value = false;
-});
 
 // Top-right user entry: a 40px circular trigger that reads as a real
 // identity chip rather than a generic person icon. Idle / hover / open /
@@ -297,13 +285,10 @@ const userEntryFallbackClass = [
               :class="userEntryTriggerClass"
             >
               <Avatar class="h-10 w-10 rounded-full">
-                <img
-                  v-if="showCurrentUserAvatarImage"
+                <AvatarImage
                   :src="currentUserAvatarUrl"
                   :alt="authStore.userName"
                   class="aspect-square size-full rounded-full object-cover"
-                  referrerpolicy="no-referrer"
-                  @error="onCurrentUserAvatarError"
                 />
                 <AvatarFallback :class="userEntryFallbackClass">
                   {{ currentUserInitial }}

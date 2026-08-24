@@ -44,6 +44,7 @@ import { useAvatar } from "@/composables/useAvatar";
 
 const { user, isAuthenticated } = defineProps<{
   user: {
+    username?: string;
     name: string;
     email: string;
     avatar: string;
@@ -58,7 +59,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const { normalizedAvatar } = useAvatar(
-  computed(() => user.name),
+  computed(() => user.username || user.name),
   computed(() => user.avatar),
 );
 const unreadCount = computed(() => notificationStore.unreadCount);

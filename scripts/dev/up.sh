@@ -20,10 +20,11 @@ source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 # shellcheck source=scripts/dev/lib/common.sh
 source "$ROOT_DIR/scripts/dev/lib/common.sh"
 
-# Preserve explicit caller-provided migration values while loading .env below.
+# Preserve explicit caller-provided migration and seed values while loading .env below.
 capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION_DB_USER \
   MIGRATION_DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
-  SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
+  SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD \
+  DEV_LOCAL_SEED_DATA_ENABLED DEV_LOCAL_SEED_ALLOW_REMOTE APP_DB_USER
 
 # ===== 参数解析 =====
 SKIP_INSTALL=false

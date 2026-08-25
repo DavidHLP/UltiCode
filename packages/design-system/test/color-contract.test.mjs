@@ -176,13 +176,29 @@ const ALLOWED_FILES = {
     reason: "canonical runtime bridge",
     literals: [...CANONICAL_HEX],
   },
-  "apps/console/src/views/landing/styles/bundle.css": {
-    reason: "third-party Bootstrap vendor bundle",
-    literals: "any",
-  },
   "packages/auth-ui/src/components/OAuthButton.vue": {
     reason: "external Google brand",
     literals: ["#34a853", "#4285f4", "#ea4335", "#fbbc05"],
+  },
+  "apps/console/src/composables/useAvatar.ts": {
+    reason: "deterministic local SVG avatar illustration palette",
+    literals: [
+      "#0f766e",
+      "#111827",
+      "#172554",
+      "#1f2937",
+      "#2563eb",
+      "#7c2d12",
+      "#7c3aed",
+      "#8d5524",
+      "#9f1239",
+      "#b45309",
+      "#be123c",
+      "#d99a6c",
+      "#f59e0b",
+      "#f6c7a7",
+      "#ffffff",
+    ],
   },
   "apps/console/src/types/contest.ts": {
     reason: "external Codeforces rating convention",
@@ -207,10 +223,6 @@ const ALLOWED_FILES = {
   "apps/management/src/i18n/locales/zh-CN/modules/tags.ts": {
     reason: "canonical Solarized tag-color input example",
     literals: ["#268bd2"],
-  },
-  "apps/console/src/views/landing/experience/Awards.js": {
-    reason: "alpha-0 render-target clear sentinel",
-    literals: ["0x000000"],
   },
 };
 

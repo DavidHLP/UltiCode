@@ -196,11 +196,7 @@ Explicit exceptions (they do not become theme tokens):
 - canonical bridge (`src/palette.ts`) and canonical CSS owner (`style.css`);
 - static canonical metadata/assets — canonical values always pass;
 - external brand and data: Google OAuth brand (`OAuthButton.vue`) and Codeforces
-  rating convention (`contest.ts`);
-- third-party vendor/generated files: the landing Bootstrap bundle
-  (`landing/styles/bundle.css`) and `landing/vendor/**`;
-- renderer sentinels: the alpha-0 render-target clear in
-  (`landing/experience/Awards.js`).
+  rating convention (`contest.ts`).
 
 Owned first-party runtime files have no outstanding color-literal debt. New or
 undeclared literals fail the contract test; add only a documented external

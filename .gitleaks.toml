@@ -9,9 +9,6 @@ paths = [
   '''(^|/)(target|dist|node_modules|coverage)/''',
   # Generated knowledge-graph cache (untracked since the CI secret-scan fix).
   '''^services/graphify-out/cache/''',
-  # Vendored third-party Draco decoder bundles (landing-page assets); the
-  # flagged "secret" is the base64 alphabet constant of the decoder itself.
-  '''apps/console/public/landing(-assets)?/(static/)?draco/draco_decoder\.js''',
 ]
 # Known test-only fixtures — values are explicitly non-production.
 # NOTE: allowlist regexes match the captured Secret, not the full line.

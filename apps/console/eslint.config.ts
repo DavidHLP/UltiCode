@@ -17,13 +17,6 @@ export default defineConfigWithVueTs(
     '**/dist/**',
     '**/dist-ssr/**',
     '**/coverage/**',
-    // Vendored third-party bundle and the verbatim-ported landing experience
-    // (see src/views/landing/REPLICA_CHECKLIST.md) — kept byte-faithful to the
-    // extracted pre-build sources; not held to app lint rules.
-    'src/views/landing/vendor/**',
-    'src/views/landing/experience/**',
-    // Static public assets, including vendored third-party decoders
-    // (draco_decoder.js) — never held to app lint rules.
     'public/**',
   ]),
 

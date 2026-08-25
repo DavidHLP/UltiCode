@@ -50,10 +50,6 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // The landing mirror under /landing is a self-contained static
-        // experience fetched on visit; precaching its ~7 MB of bundles and
-        // media would penalize every console user on SW install.
-        globIgnores: ['landing/**'],
         maximumFileSizeToCacheInBytes: 7 * 1024 * 1024, // 7 MB for Monaco Editor
         runtimeCaching: [
           {

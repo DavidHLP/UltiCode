@@ -7,7 +7,6 @@
     "apps/management/src/style.css",
     "apps/console/src/assets/charts.css",
     "apps/console/src/assets/markdown.css",
-    "apps/console/src/views/landing/styles/bundle.css",
     "apps/console/src/views/problems/description/DescriptionMarkdown.vue"
   ]
 }

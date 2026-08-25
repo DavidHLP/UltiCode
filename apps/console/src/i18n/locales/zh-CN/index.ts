@@ -14,7 +14,6 @@ import solution from "./solution";
 import shortcuts from "./shortcuts";
 import achievement from "./achievement";
 import notification from "./notification";
-import landing from "./landing";
 export default {
   common,
   auth,
@@ -32,5 +31,4 @@ export default {
   shortcuts,
   achievement,
   notification,
-  landing,
 } as const;

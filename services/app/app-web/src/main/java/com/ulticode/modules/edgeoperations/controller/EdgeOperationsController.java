@@ -1,6 +1,8 @@
 package com.ulticode.modules.edgeoperations.controller;
 
 import com.ulticode.websecurity.annotation.RateLimit;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
@@ -40,6 +42,9 @@ public class EdgeOperationsController {
     @PostMapping
     public Result<EdgeOperationResponseVO> performOperation(@Valid @RequestBody EdgeOperationDTO dto) {
         String userId = currentUserProvider.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(BaseErrorCode.UNAUTHORIZED);
+        }
         return Result.success(edgeOperationsService.performOperation(userId, dto));
     }
 

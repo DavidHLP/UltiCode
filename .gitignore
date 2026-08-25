@@ -281,6 +281,9 @@ venv/
 .venv/
 disposable-verify/
 
+# flatten-maven-plugin output (per-service version resolution)
+services/**/.flattened-pom.xml
+
 # graphify query/AST caches are pure generated artifacts — never commit them
 services/graphify-out/cache/
 graphify-out/cache/

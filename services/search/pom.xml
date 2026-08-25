@@ -7,10 +7,18 @@
     <parent>
         <groupId>com.ulticode</groupId>
         <artifactId>ulticode-backend</artifactId>
-        <version>1.0.0</version>
+        <!-- ${revision}: reactor-wide platform version shared by api/platform modules. -->
+        <version>${revision}</version>
     </parent>
+    <properties>
+        <!-- Authoritative release version of this owner service; bump independently
+             to release it without touching other services. Cross-service test
+             dependencies resolve the default copy in the root pom. -->
+        <service.version.search>1.0.0</service.version.search>
+    </properties>
 
     <artifactId>backend-search</artifactId>
+    <version>${service.version.search}</version>
     <name>backend-search</name>
     <description>Indexing worker: Redis Streams SearchDocumentChanged consumer + MeiliSearch writer</description>
 
@@ -36,6 +44,22 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Review 2026-08-25 P1: same OTel/Prometheus observability set as
+             auth/admin/app-web (tracing bridge + OTLP exporter). The worker
+             has no HTTP surface, so spans only cover the Dubbo/Redis Streams
+             paths, but W3C trace context and OTLP export stay consistent. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

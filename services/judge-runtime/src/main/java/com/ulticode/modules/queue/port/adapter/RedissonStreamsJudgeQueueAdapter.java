@@ -2,6 +2,7 @@ package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.metrics.WorkerSloMeters;
 import com.ulticode.submission.api.queue.JudgeStreamKeys;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
 import com.ulticode.submission.api.queue.JudgeJobHandle;
@@ -108,6 +109,19 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     private final MeterRegistry meterRegistry;
 
     /**
+     * Review 2026-08-25 P1: queue/consumer SLO meters for the Streams path.
+     * Null when no registry is present (unit tests); refreshed by the
+     * unacked-reaper sweep, success/failure marked by {@link #ack}/poll.
+     */
+    private WorkerSloMeters sloMeters;
+
+    @jakarta.annotation.PostConstruct
+    void initSloMeters() {
+        this.sloMeters = meterRegistry == null
+                ? null : WorkerSloMeters.register(meterRegistry, "judge.streams");
+    }
+
+    /**
      * Create the consumer group on startup, or recreate it after NOGROUP
      * recovery (idempotent; safe to call when the group already exists).
      *
@@ -202,6 +216,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
             entries = stream.readGroup(groupName, consumerId, readArgs);
         } catch (Exception e) {
             if (!isNoGroup(e)) {
+                markConsumeFailure();
                 throw e;
             }
             ensureGroup();
@@ -221,6 +236,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
                     first.getKey());
             stream.ack(groupName, first.getKey());
             incrementPoisonCounter();
+            markConsumeFailure();
             return Optional.empty();
         }
         return Optional.of(new JudgeJobHandle(envelope, first.getKey()));
@@ -245,7 +261,15 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
                     handle.ackToken().getClass().getName());
             return;
         }
-        redissonClient.getStream(streamKey, StringCodec.INSTANCE).ack(groupName, id);
+        try {
+            redissonClient.getStream(streamKey, StringCodec.INSTANCE).ack(groupName, id);
+            if (sloMeters != null) {
+                sloMeters.markSuccess();
+            }
+        } catch (RuntimeException e) {
+            markConsumeFailure();
+            throw e;
+        }
     }
 
     @Override
@@ -270,6 +294,71 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
         RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
         PendingResult info = stream.getPendingInfo(groupName);
         return info == null ? 0L : info.getTotal();
+    }
+
+    /** SLO meters owned by this adapter; null without a MeterRegistry (tests). */
+    public WorkerSloMeters sloMeters() {
+        return sloMeters;
+    }
+
+    /**
+     * Group lag from {@code XINFO GROUPS} via Redisson's mapped group info
+     * ({@code getLag()}, Redis >= 7); {@link WorkerSloMeters#UNKNOWN} when the
+     * broker cannot answer or the group is absent.
+     */
+    public long streamLag() {
+        try {
+            RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
+            for (org.redisson.api.stream.StreamGroup group : stream.listGroups()) {
+                if (groupName.equals(group.getName())) {
+                    return group.getLag();
+                }
+            }
+            return WorkerSloMeters.UNKNOWN;
+        } catch (RuntimeException e) {
+            log.debug("Judge stream lag unavailable: {}", e.getMessage());
+            return WorkerSloMeters.UNKNOWN;
+        }
+    }
+
+    /**
+     * Idle time of the oldest PEL entry (ms), 0 when the PEL is empty,
+     * {@link WorkerSloMeters#UNKNOWN} when it cannot be observed.
+     */
+    public long oldestPendingIdleMs() {
+        try {
+            RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
+            List<PendingEntry> oldest = stream.listPending(
+                    groupName,
+                    StreamMessageId.MIN, StreamMessageId.MAX,
+                    0L, java.util.concurrent.TimeUnit.MILLISECONDS, 1);
+            if (oldest == null || oldest.isEmpty()) {
+                return 0L;
+            }
+            Long idle = oldest.get(0).getIdleTime();
+            return idle == null ? WorkerSloMeters.UNKNOWN : Math.max(0L, idle);
+        } catch (RuntimeException e) {
+            log.debug("Judge PEL age unavailable: {}", e.getMessage());
+            return WorkerSloMeters.UNKNOWN;
+        }
+    }
+
+    /** Dead-letter stream depth (XLEN of the DLQ key). */
+    public long dlqSize() {
+        try {
+            RStream<String, String> dlq = redissonClient.getStream(
+                    JudgeStreamKeys.JUDGE_STREAM_DLQ_KEY, StringCodec.INSTANCE);
+            return dlq.isExists() ? dlq.size() : 0L;
+        } catch (RuntimeException e) {
+            log.debug("Judge DLQ size unavailable: {}", e.getMessage());
+            return WorkerSloMeters.UNKNOWN;
+        }
+    }
+
+    private void markConsumeFailure() {
+        if (sloMeters != null) {
+            sloMeters.incrementFailures();
+        }
     }
 
     @Override

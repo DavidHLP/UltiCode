@@ -159,6 +159,14 @@ docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" "$MYSQL_ADMIN_CONTAINER" \
 export SPRING_PROFILES_ACTIVE=test
 export DB_NAME="$TEST_DB_NAME"
 export REDIS_DB=15
+# The dev-stack Redis enforces per-owner ACLs with the default user disabled,
+# so tests running on the host authenticate as the full-access ops user.
+if [[ -z "${OPS_REDIS_PASSWORD:-}" ]]; then
+  echo "OPS_REDIS_PASSWORD is required in $ENV_FILE for the Redis ACL boundary." >&2
+  exit 1
+fi
+export REDIS_USERNAME=ulticode-ops
+export REDIS_PASSWORD="$OPS_REDIS_PASSWORD"
 export JWT_SECRET=test-only-jwt-signing-key-minimum-32-characters-long
 export JWT_COOKIE_SECURE=false
 export EMAIL_ENABLED=false

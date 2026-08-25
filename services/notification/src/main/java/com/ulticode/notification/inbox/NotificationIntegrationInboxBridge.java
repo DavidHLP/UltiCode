@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.notification.api.event.NotificationIntentEventContract;
+import com.ulticode.common.metrics.WorkerSloMeters;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
 import com.ulticode.modules.event.inbox.InboxConsumer;
@@ -26,6 +27,7 @@ import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -69,6 +71,8 @@ public class NotificationIntegrationInboxBridge {
     private final UuidGenerator uuidGenerator;
     private final TransactionTemplate transactionTemplate;
     private final List<Binding> bindings;
+    /** Queue/consumer SLO gauges for the App-Notification staging bridge. */
+    private final WorkerSloMeters slo;
 
     @Autowired
     public NotificationIntegrationInboxBridge(
@@ -77,6 +81,7 @@ public class NotificationIntegrationInboxBridge {
             ObjectMapper objectMapper,
             UuidGenerator uuidGenerator,
             ObjectProvider<PlatformTransactionManager> transactionManagerProvider,
+            ObjectProvider<MeterRegistry> meterRegistryProvider,
             SubmissionJudgedNotificationConsumer notificationConsumer,
             NotificationIntentEventConsumer notificationIntentConsumer) {
         PlatformTransactionManager transactionManager = transactionManagerProvider == null
@@ -99,6 +104,10 @@ public class NotificationIntegrationInboxBridge {
                 NotificationIntegrationInboxBridge::rejectPoison);
         this.bindings = List.of(new Binding("App-Notification", notificationInbox,
                 Set.of(EVENT_TYPE, NOTIFICATION_EVENT_TYPE)));
+        MeterRegistry meterRegistry = meterRegistryProvider == null
+                ? null : meterRegistryProvider.getIfAvailable();
+        this.slo = meterRegistry == null
+                ? null : WorkerSloMeters.register(meterRegistry, "notification.inbox");
     }
 
     /**
@@ -109,16 +118,105 @@ public class NotificationIntegrationInboxBridge {
     @Scheduled(fixedDelayString = "${integration.inbox.consumer.interval-ms:2000}",
                initialDelayString = "5000")
     public int consume() {
-        int staged = 0;
-        for (Binding binding : bindings) {
-            staged += stage(binding);
-        }
+        try {
+            int staged = 0;
+            for (Binding binding : bindings) {
+                staged += stage(binding);
+            }
 
-        int processed = 0;
-        for (Binding binding : bindings) {
-            processed += binding.inboxConsumer.consume();
+            int processed = 0;
+            for (Binding binding : bindings) {
+                processed += binding.inboxConsumer.consume();
+            }
+            if (slo != null) {
+                refreshSloGauges();
+                slo.markSuccess();
+            }
+            return staged + processed;
+        } catch (RuntimeException e) {
+            if (slo != null) {
+                slo.incrementFailures();
+            }
+            throw e;
         }
-        return staged + processed;
+    }
+
+    /**
+     * Review 2026-08-25 P1: queue/consumer SLO gauges for the shared
+     * integration stream as seen by the App-Notification group. Best-effort:
+     * observation failures never break staging/consumption.
+     */
+    private void refreshSloGauges() {
+        try {
+            StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
+            Long streamLength = streams.size(STREAM_KEY);
+            long pelSize = 0;
+            var groups = streams.groups(STREAM_KEY);
+            if (groups != null) {
+                for (var info : groups) {
+                    if ("App-Notification".equals(info.groupName())) {
+                        Long pending = info.pendingCount();
+                        pelSize = pending == null ? 0 : pending;
+                        break;
+                    }
+                }
+            }
+            slo.setPelSize(pelSize);
+            slo.setQueueLag(streamLag(streamLength == null ? WorkerSloMeters.UNKNOWN : streamLength));
+            long oldestAgeSeconds = oldestPendingAgeSeconds(streams);
+            if (oldestAgeSeconds >= 0) {
+                slo.setPelOldestAgeSeconds(oldestAgeSeconds);
+            }
+        } catch (RuntimeException e) {
+            log.debug("SLO gauge refresh unavailable: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Lag from {@code XINFO GROUPS lag} (Redis >= 7; Spring Data does not map
+     * the field). When the broker cannot answer, fall back to the raw stream
+     * length as an upper-bound proxy, or UNKNOWN when even that is unknown.
+     */
+    private long streamLag(long fallback) {
+        try {
+            Object reply = redisTemplate.execute((org.springframework.data.redis.core.RedisCallback<Object>)
+                    conn -> conn.execute("XINFO", "GROUPS".getBytes(), STREAM_KEY.getBytes()));
+            if (!(reply instanceof java.util.List<?> fields)) {
+                return fallback;
+            }
+            for (int i = 0; i + 1 < fields.size(); i += 2) {
+                Object rawField = fields.get(i);
+                String field = rawField instanceof byte[] b
+                        ? new String(b) : String.valueOf(rawField);
+                if (!"lag".equalsIgnoreCase(field)) {
+                    continue;
+                }
+                Object value = fields.get(i + 1);
+                String lag = value instanceof Number n ? n.toString()
+                        : value instanceof byte[] vb ? new String(vb) : String.valueOf(value);
+                return Long.parseLong(lag.trim());
+            }
+            return fallback;
+        } catch (RuntimeException e) {
+            log.debug("XINFO GROUPS lag unavailable: {}", e.getMessage());
+            return fallback;
+        }
+    }
+
+    private long oldestPendingAgeSeconds(StreamOperations<String, String, String> streams) {
+        try {
+            PendingMessages pending = streams.pending(
+                    STREAM_KEY, "App-Notification",
+                    Range.unbounded(), 1);
+            if (pending == null || pending.isEmpty()) {
+                return 0;
+            }
+            PendingMessage oldest = pending.iterator().next();
+            return Math.max(0L, oldest.getElapsedTimeSinceLastDelivery().getSeconds());
+        } catch (RuntimeException e) {
+            log.debug("PEL age unavailable: {}", e.getMessage());
+            return -1;
+        }
     }
 
     private int stage(Binding binding) {
@@ -166,6 +264,9 @@ public class NotificationIntegrationInboxBridge {
                     ids.toArray(RecordId[]::new));
             return reclaimed == null ? List.of() : reclaimed;
         } catch (RuntimeException e) {
+            if (slo != null) {
+                slo.incrementFailures();
+            }
             log.debug("Integration stream reclaim unavailable for {}: {}",
                     binding.group, e.getMessage());
             return List.of();
@@ -183,6 +284,9 @@ public class NotificationIntegrationInboxBridge {
                     StreamOffset.create(STREAM_KEY, offset));
             return records == null ? List.of() : records;
         } catch (RuntimeException e) {
+            if (slo != null) {
+                slo.incrementFailures();
+            }
             log.debug("Integration stream read unavailable for {}: {}", binding.group, e.getMessage());
             return List.of();
         }
@@ -246,6 +350,9 @@ public class NotificationIntegrationInboxBridge {
                     eventId, binding.group, e.getMessage());
             return 0;
         } catch (RuntimeException e) {
+            if (slo != null) {
+                slo.incrementFailures();
+            }
             log.warn("Failed to stage or acknowledge integration event {} for {}: {}",
                     eventId, binding.group, e.getMessage());
             return 0;

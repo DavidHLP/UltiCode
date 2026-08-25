@@ -41,6 +41,13 @@ public class PageResult<T> implements Serializable {
      */
     private Integer totalPages;
 
+    /**
+     * Explicit degradation marker for reads aggregating multiple owners or
+     * caches. {@code null} on local-only / legacy reads and must be treated
+     * as {@link DegradationStatus#OK}; never null-implies-degraded.
+     */
+    private DegradationStatus degradationStatus;
+
     private PageResult() {
     }
 
@@ -98,5 +105,24 @@ public class PageResult<T> implements Serializable {
     public static <T> PageResult<T> of(List<T> items, Long total, PaginationRequest request) {
         int totalPages = (int) Math.ceil((double) total / request.pageSize());
         return new PageResult<>(items, total, request.page(), request.pageSize(), totalPages);
+    }
+
+    /**
+     * Same as {@link #of(List, Long, PaginationRequest)} but with an explicit
+     * {@link DegradationStatus} marker for aggregated reads whose sources may
+     * be partially or fully unavailable.
+     *
+     * @param items             the list of items
+     * @param total             total number of items
+     * @param request           normalized pagination request
+     * @param degradationStatus explicit degradation marker ({@code null} treated as healthy)
+     * @param <T>               the type of items
+     * @return PageResult instance
+     */
+    public static <T> PageResult<T> of(
+            List<T> items, Long total, PaginationRequest request, DegradationStatus degradationStatus) {
+        PageResult<T> result = of(items, total, request);
+        result.setDegradationStatus(degradationStatus);
+        return result;
     }
 }

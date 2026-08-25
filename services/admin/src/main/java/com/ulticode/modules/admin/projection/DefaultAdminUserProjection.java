@@ -4,11 +4,13 @@ import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.dto.PermissionEntry;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.rpc.RpcResult;
@@ -98,12 +100,23 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         );
 
         if (accountQueryService == null) {
-            return PageResult.of(Collections.emptyList(), 0L, pageRequest);
+            // The Auth owner query seam is not wired: never disguise this as
+            // an empty user list.
+            throw ownerUnavailable("AccountQueryService is unavailable");
         }
 
-        RpcResult<AuthAccountDTO> rpcResult = accountQueryService.queryAccounts(accountQuery);
+        RpcResult<AuthAccountDTO> rpcResult;
+        try {
+            rpcResult = accountQueryService.queryAccounts(accountQuery);
+        } catch (Exception e) {
+            log.warn("AccountQueryService.queryAccounts failed: {}", e.getMessage());
+            throw ownerUnavailable("AccountQueryService.queryAccounts failed", e);
+        }
         if (rpcResult == null || !rpcResult.success() || rpcResult.page() == null) {
-            return PageResult.of(Collections.emptyList(), 0L, pageRequest);
+            // The Auth provider answers business-empty queries with a
+            // successful empty page, so any failure here is infrastructure,
+            // not an empty dataset.
+            throw ownerUnavailable("AccountQueryService.queryAccounts returned failure");
         }
 
         RpcResult.Page page = rpcResult.page();
@@ -112,20 +125,31 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         long total = page.total() != null ? page.total() : 0L;
 
         if (accountList == null || accountList.isEmpty()) {
-            return PageResult.of(Collections.emptyList(), total, pageRequest);
+            // Business-empty (Auth answered successfully with zero rows).
+            return PageResult.of(Collections.emptyList(), total, pageRequest, DegradationStatus.OK);
         }
 
         Set<String> accountIds = accountList.stream()
                 .map(AuthAccountDTO::accountId)
                 .collect(Collectors.toSet());
 
+        boolean profilesAvailable = userProfileQueryService != null;
         Map<String, UserProfileDTO> profileMap = Collections.emptyMap();
-        if (userProfileQueryService != null) {
-            RpcResult<List<UserProfileDTO>> profileRpcResult = userProfileQueryService.getProfilesByAccountIds(accountIds);
-            if (profileRpcResult != null && profileRpcResult.success() && profileRpcResult.data() != null) {
-                profileMap = profileRpcResult.data().stream()
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a));
+        if (profilesAvailable) {
+            try {
+                RpcResult<List<UserProfileDTO>> profileRpcResult =
+                        userProfileQueryService.getProfilesByAccountIds(accountIds);
+                if (profileRpcResult != null && profileRpcResult.success() && profileRpcResult.data() != null) {
+                    profileMap = profileRpcResult.data().stream()
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a));
+                } else {
+                    profilesAvailable = false;
+                }
+            } catch (Exception e) {
+                log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}",
+                        accountIds.size(), e.getMessage());
+                profilesAvailable = false;
             }
         }
 
@@ -134,34 +158,85 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
                 .map(acc -> toVO(acc, finalProfileMap.get(acc.accountId())))
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, total, pageRequest);
+        // Partial availability of the App-owned profile source is expressed
+        // on the payload instead of being silently swallowed.
+        return PageResult.of(voList, total, pageRequest,
+                profilesAvailable ? DegradationStatus.OK : DegradationStatus.PARTIAL);
     }
 
     @Override
     public AdminUserVO getUserById(String id) {
         if (accountQueryService == null) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+            // The Auth owner query seam is not wired: never disguise this as
+            // USER_NOT_FOUND.
+            throw ownerUnavailable("AccountQueryService is unavailable");
         }
 
-        RpcResult<AuthAccountDTO> rpcResult = accountQueryService.getAccountById(id);
-        if (rpcResult == null || !rpcResult.success() || rpcResult.data() == null) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+        RpcResult<AuthAccountDTO> rpcResult;
+        try {
+            rpcResult = accountQueryService.getAccountById(id);
+        } catch (Exception e) {
+            log.warn("AccountQueryService.getAccountById failed for {}: {}", id, e.getMessage());
+            throw ownerUnavailable("AccountQueryService.getAccountById failed", e);
         }
-
+        if (rpcResult == null) {
+            throw ownerUnavailable("AccountQueryService.getAccountById returned null");
+        }
+        if (!rpcResult.success()) {
+            if (isAuthAccountNotFound(rpcResult)) {
+                // The Auth provider answered authoritatively: business not-found.
+                throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+            }
+            // Any other RPC failure is infrastructure, not a missing user.
+            throw ownerUnavailable("AccountQueryService.getAccountById returned failure");
+        }
         AuthAccountDTO account = rpcResult.data();
+        if (account == null) {
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+        }
 
+        boolean profileAvailable = userProfileQueryService != null;
         UserProfileDTO profile = null;
-        if (userProfileQueryService != null) {
-            RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(id);
-            if (profileRpc != null && profileRpc.success()) {
-                profile = profileRpc.data();
+        if (profileAvailable) {
+            try {
+                RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(id);
+                if (profileRpc != null && profileRpc.success()) {
+                    profile = profileRpc.data();
+                } else {
+                    profileAvailable = false;
+                }
+            } catch (Exception e) {
+                log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", id, e.getMessage());
+                profileAvailable = false;
             }
         }
 
         AdminUserVO vo = toVO(account, profile);
         populateStats(vo, account.accountId());
         populatePermissions(vo, account.accountId(), account.role());
+        if (!profileAvailable) {
+            vo.setDegradationStatus(DegradationStatus.PARTIAL);
+        }
         return vo;
+    }
+
+    /**
+     * Distinguish an authoritative Auth "account does not exist" answer from
+     * any other provider failure: only the former may map to USER_NOT_FOUND.
+     */
+    private static boolean isAuthAccountNotFound(RpcResult<?> rpcResult) {
+        RpcResult.ErrorPayload error = rpcResult.error();
+        return error != null
+                && AuthErrorCode.NAMESPACE.equals(error.namespace())
+                && error.code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code();
+    }
+
+    private static BusinessException ownerUnavailable(String message) {
+        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, message);
+    }
+
+    private static BusinessException ownerUnavailable(String message, Throwable cause) {
+        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, message, cause);
     }
 
     private AdminUserVO toVO(AuthAccountDTO account, UserProfileDTO profile) {

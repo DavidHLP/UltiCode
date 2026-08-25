@@ -26,6 +26,7 @@ RUN --mount=type=cache,target=/root/.m2 chmod +x ./mvnw \
 
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
+ARG SERVICE_VERSION=
 ARG SERVICE_PORT
 ARG SERVICE_HEALTH_PATH
 ARG INSTALL_DOCKER_CLI
@@ -50,6 +51,8 @@ ENV SERVER_PORT=${SERVICE_PORT}
 ENV HEALTH_PATH=${SERVICE_HEALTH_PATH}
 ENV SERVICE_HEALTHCHECK=${SERVICE_HEALTHCHECK}
 EXPOSE ${SERVICE_PORT}
+
+LABEL org.opencontainers.image.version="${SERVICE_VERSION}"
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD if [ "${SERVICE_HEALTHCHECK}" != "true" ]; then exit 0; fi; \

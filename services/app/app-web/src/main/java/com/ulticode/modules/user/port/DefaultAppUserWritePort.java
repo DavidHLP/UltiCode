@@ -14,10 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ulticode.app.storage.FileStoragePort;
+
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 
 /**
  * App-side adapter for {@link AppUserWritePort}.
@@ -25,8 +25,11 @@ import java.nio.file.Paths;
  * <p>Profile mutations write exclusively to the App-owned
  * {@code user_profiles} table (canonical source).
  *
- * <p>Avatar upload preserves the legacy file-storage logic (uploads
- * directory, UUID filename, content-type + size validation).
+ * <p>Avatar upload delegates blob persistence to
+ * {@link FileStoragePort}. The default local implementation preserves the
+ * legacy behavior (uploads directory, UUID filename, content-type + size
+ * validation); {@code app.storage.type=s3} moves blobs to a shared
+ * object store so App replicas scale horizontally.
  */
 @Slf4j
 @Service
@@ -35,6 +38,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
 
     private final UserProfileMapper userProfileMapper;
     private final UuidGenerator uuidGenerator;
+    private final FileStoragePort fileStorage;
     private final com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
@@ -136,17 +140,14 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
         String filename = uuidGenerator.newId() + ext;
 
-        Path uploadDir = Paths.get("uploads/avatars");
-        try {
-            Files.createDirectories(uploadDir);
-            Path filePath = uploadDir.resolve(filename);
-            file.transferTo(filePath.toFile());
-        } catch (IOException e) {
+        String key = "avatars/" + filename;
+        String avatarUrl;
+        try (InputStream in = file.getInputStream()) {
+            avatarUrl = fileStorage.put(key, in, file.getSize());
+        } catch (IOException | RuntimeException e) {
             log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Failed to save avatar");
         }
-
-        String avatarUrl = "/uploads/avatars/" + filename;
 
         UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {

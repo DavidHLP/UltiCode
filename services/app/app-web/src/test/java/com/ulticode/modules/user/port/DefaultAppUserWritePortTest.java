@@ -4,9 +4,12 @@ import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.app.storage.LocalStorage;
+import com.ulticode.app.storage.StorageProperties;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,12 +45,19 @@ class DefaultAppUserWritePortTest {
     @Mock private UuidGenerator uuidGenerator;
     @Mock private com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+
+    @TempDir
+    java.nio.file.Path tempDir;
+
     private DefaultAppUserWritePort port;
 
     @BeforeEach
     void setUp() {
+        StorageProperties storageProperties = new StorageProperties();
+        storageProperties.getLocal().setRootDir(tempDir.toString());
+        LocalStorage localStorage = new LocalStorage(storageProperties);
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
-                userDirectoryQueryPort, searchPublisher);
+                localStorage, userDirectoryQueryPort, searchPublisher);
     }
 
     @Nested
@@ -195,7 +205,11 @@ class DefaultAppUserWritePortTest {
 
             String url = port.uploadAvatar(userId, file);
 
-            assertThat(url).startsWith("/uploads/avatars/");
+            // Legacy URL contract preserved: /uploads/avatars/<uuid>.<ext>
+            assertThat(url).isEqualTo("/uploads/avatars/uuid-1.png");
+            // Blob persisted through FileStoragePort into the local root.
+            assertThat(tempDir.resolve("avatars").resolve("uuid-1.png"))
+                    .hasBinaryContent(new byte[]{1, 2, 3, 4, 5});
             verify(userProfileMapper).insert(any(UserProfile.class));
         }
     }

@@ -451,7 +451,7 @@ flowchart LR
 |---|---|---|
 | WebSocket | STOMP + SockJS + JVM 内 SimpleBroker；端点 `/ws/contest`、`/ws/notifications`、`/ws` | App 初期单实例或粘性会话；多实例前需外部广播/relay |
 | 判题队列 | Normal dev-lite/dev-full 使用 Redis Streams `JudgeQueue`、generation fence、lease/reaper、`judge_outbox`；legacy Redisson `RQueue` 仅作显式 rollback seam | 保留 wire/ACK/NACK/回滚兼容；不引入新 MQ |
-| 文件 | 头像写硬编码相对路径 `uploads/avatars/`；未设置自定义头像时 Console 使用确定性的本地 SVG fallback；备份写本地目录 | App 水平扩展前引入 `FileStoragePort` 与对象存储；备份由 Admin/Ops 管理 |
+| 文件 | 用户上传走 App 的 `FileStoragePort`（`com.ulticode.app.storage`）：默认 `app.storage.type=local` 保持旧行为（`uploads/avatars/`、URL `/uploads/avatars/...`）；`app.storage.type=s3` 切换到 S3 兼容对象存储（路径风格 endpoint + 手写 SigV4，无新增依赖，配置见 application.yml `app.storage.*` / `APP_STORAGE_*`），使 App 副本可水平扩展。未设置自定义头像时 Console 使用确定性的本地 SVG fallback；备份仍写本地目录 | 对象存储为多副本部署的推荐模式；备份由 Admin/Ops 管理；Admin 侧头像适配器仍是本地写，待复用同一 Port |
 | Async | 成就、关注、备份使用 `@Async`，未见显式业务线程池 | 跨服务改 durable event；服务内配置有界线程池 |
 | Scheduled | Contest、judge worker/outbox/reaper、backup、notification ledger、WS flush 等共用调度池 | 每个任务归 Owner；多副本使用 CAS/lease/Redisson lock 防重复 |
 | 邮件 | SMTP 管道，默认关闭；写 email log 后同步发 SMTP | 改 intent/outbox + worker；Auth 的密码重置邮件不依赖 App RPC |
@@ -1017,7 +1017,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 | refresh rotation | 条件 revoke old + insert new | Auth | 必须强一致的本地 CAS；补 family/reuse detection |
 | OAuth/login | state/user/lastLogin/refresh/Cookie 边界不统一 | Auth | 短 DB 事务 + 明确响应失败语义；不需要分布式事务 |
 | Admin 用户管理 | Admin 直接写 `users`、permission、审计 | Auth command；Admin workflow/audit | 账号/权限在 Auth L；审计/通知 E |
-| 用户 profile/password/avatar | 同一 `users`；头像同时写本地 FS | Password Auth；profile App；object storage | 各自 L；临时对象+提交+GC/补偿 |
+| 用户 profile/password/avatar | Auth account + App `user_profiles`；头像二进制经 App `FileStoragePort` 写入（local 默认 / s3 可选） | Password Auth；profile App；object storage | 各自 L；临时对象+提交+GC/补偿 |
 | Problem 创建/更新/发布 | Problem 主表 + details/examples/languages/tags/version | App Problem Owner | 必须本地 L/S；Admin 单次 C |
 | Contest 创建/题集更新 | Admin 事务直接写 contest + contest_problems | App Contest Owner | 必须本地 L/S；Admin C |
 | Contest 报名/虚拟赛 | participant + registered_count + unique/CAS | App Contest Owner | 必须本地 L/S；成就 AFTER_COMMIT outbox |
@@ -1843,4 +1843,81 @@ Total keys in en-US: 245
 
 #### 明确保留（需生产决策，不在代码层修复）
 
-- 生产 HA 拓扑、Judge Docker Socket 强隔离节点、Redis ACL/按 Owner 凭据、分布式 tracing/SLO 补齐、Admin 管理 read model 全面事件化：评审自身要求在明确生产目标后再实施；维持现状并以此节为处置记录。
+- 生产多主机 HA 拓扑（Nacos/MySQL/Redis/MeiliSearch 真实高可用）、Judge 专用强隔离执行节点（rootless/gVisor/Kata）、Admin 管理 read model 全面事件化：评审自身要求在明确生产目标后再实施；本分支已落地可配置切换路径与远程执行接缝（见下），节点级与多主机决策仍保留。
+- Redis ACL/按 Owner 凭据、分布式 tracing 与 Worker SLO、Admin 跨 Owner 读静默降级、Worker 唯一 Consumer identity、逐服务独立发布：已在本分支修复或建立机制，见上文各小节。
+
+#### P0 生产拓扑 — 可配置化与扩容边界（2026-08-25 分支）
+
+- `docker-compose.prod.yml` 中 Nacos `MODE` 支持 `${NACOS_MODE:-standalone}` 与 `NACOS_SERVERS` 环境变量，cluster 模式配置路径就绪；单主机上禁止以副本形式伪造集群。
+- 无状态后端的水平扩容当前受两个机制约束：服务定义中的固定 `container_name`（CD 健康门禁 `host-health` 依赖 `ulticode-backend-*` 容器名）与 Compose 单机部署形态。需要多副本时通过 compose override 文件移除 `container_name` 并调整健康检查，属部署期操作，不在默认配置中启用。
+
+#### P0 Judge 沙箱执行节点隔离 — 远程 daemon 接缝（2026-08-25 分支）
+
+- 沙箱执行器通过 `docker` CLI 拉起容器，CLI 遵循标准 Docker 环境变量。`backend-judge` 现已透传 `DOCKER_HOST`（`JUDGE_DOCKER_HOST`）、`DOCKER_TLS_VERIFY`（`JUDGE_DOCKER_TLS_VERIFY`）、`DOCKER_CERT_PATH`（`JUDGE_DOCKER_CERT_PATH`），可将沙箱指向专用（建议 rootless）daemon。
+- 默认仍挂载 `/var/run/docker.sock` 以保持现有部署可用。迁移到专用节点时使用 compose override 移除该挂载并设置上述变量；注意 `seccomp-profile-path` 由 daemon 侧读取，远程 daemon 主机上必须存在同一路径（`SANDBOX_SECCOMP_PROFILE` 可覆盖）。
+
+#### P1 独立发布能力（per-service release）— 已建立机制
+
+针对同一评审“尚未证明真正的独立发布”，本仓库已具备按服务独立发版与回滚的机制。当前各服务默认版本均为 `1.0.0`，机制本身可验证，尚未积累真实的多版本发布历史。
+
+**Maven 层：per-service 版本**
+
+- 根 `services/pom.xml` 引入 CI-friendly `<revision>`（reactor 平台版本，`platform/*`、`api/*`、领域模块等共享库统一使用），并保留 `flatten-maven-plugin` 在 install/deploy 时把 `${revision}` 与 `${service.version.*}` 解析为字面量（`.flattened-pom.xml` 已加入 `.gitignore`）。reactor 构建行为不变。
+- 七个可部署 Owner 服务（auth/admin/app/submission/search/notification/judge）各自声明权威发布版本属性 `service.version.<svc>`（定义在各自模块 pom 内，根 pom 保留同名默认值供跨服务 test 依赖解析），可单独 bump 而不影响其他服务；已用 `help:evaluate` 验证单服务 bump 隔离生效。
+
+**镜像层：per-service tag**
+
+- `.github/services-matrix.json` 为后端服务新增 `maven_version_property`；`docker-publish.yml` 从 `services/pom.xml` 提取对应服务版本，在原有 `sha-*` / `latest` 之外额外推送 `v<version>` tag，并通过 `SERVICE_VERSION` build arg 写入镜像 OCI label `org.opencontainers.image.version`。
+- `docker-compose.prod.yml` 每个可部署服务的镜像 tag 解析链为 `<SERVICE>_IMAGE_TAG -> IMAGE_TAG -> latest`（如 `BACKEND_AUTH_IMAGE_TAG`、`CONSOLE_IMAGE_TAG`）。全局 `IMAGE_TAG` 用法保持向后兼容。
+- 已知缺口：`backend-search` 镜像不在 docker-publish matrix 中（评审前即如此），其独立发版需先补齐该条目。
+
+**部署层：选择性 rollout / rollback**
+
+- `.github/actions/host-deploy` 新增可选输入：`services`（逗号/空格分隔的 compose 服务子集，空或 `all` 保持整栈 pull/up）、`service_tags`（每行一个 `NAME=value` 的逐服务 tag 导出）。两个输入均在本地做白名单校验后才进入远端 shell。
+- `cd-deploy.yml` 的 `services` 输入现真实透传到 host-deploy，并新增可选 `service_tags` 文本输入；`cd-rollback.yml` 的 `services` 改为自由字符串（支持子集回滚），GHCR tag 校验只校验所选服务。
+
+**逐服务发布 / 回滚流程**
+
+1. 发布：bump 目标服务 pom 内的 `service.version.<svc>` → merge 到 main 后 docker-publish 推送新 `v<version>` 与 `sha-*` tag → 触发 cd-deploy（`services=<svc>`，`image_tag` 可留 latest 并用 `service_tags` 指定 `BACKEND_<SVC>_IMAGE_TAG=v<version>` 或直接用全局 `image_tag=sha-xxx`）→ host-deploy 仅 pull/up 该服务 → host-health 全量健康检查。
+2. 回滚：触发 cd-rollback，填入旧 `sha-<tag>` 与 `services=<svc>`（migrations 固定跳过）；host-deploy 仅对该服务 `pull/up` 到旧镜像。Flyway 迁移不随服务回滚回退，要求服务镜像对 schema 保持向后兼容（见下方契约门禁）。
+
+**混合版本契约兼容门禁（现状）**
+
+- RPC 行为策略由 `com.ulticode.common.rpc.RpcPolicy` 常量统一约束：写命令 `WRITE_TIMEOUT_MS=3000/retries=0`，查询 `QUERY_TIMEOUT_MS=800/retries=1`；五个消费方服务各有 `RpcPolicyArchTest`（ArchUnit）禁止裸 `@DubboReference` 与 timeout/retry 漂移，防止混合版本下重试语义不一致放大故障。
+- Dubbo `api/*` 契约模块与全部共享库仍由 reactor 单一 `${revision}` 版本管理：任何契约（接口签名、DTO 字段）变更必须整 reactor 同步构建发布，因此当前允许的“混合版本”仅限各 Owner 服务实现层独立升级；契约破坏性变更没有独立版本化通道，需整栈协同升级（这是刻意的保守边界，未来如需 api 独立演进须先建立契约兼容性测试矩阵）。
+- 数据库 schema 由 Flyway 单向迁移保证：服务镜像必须兼容已应用的最新 migration 才允许发布，回滚镜像同样受此约束。
+
+#### P1 Redis per-owner ACL 安全边界 — 已修复
+
+本小节落地评审"Redis 尚未形成 Owner 安全边界"的修复，取代上文"明确保留"清单中的 Redis ACL 条目。此前七个服务共享一个 `REDIS_PASSWORD` 与 DB 0，OAuth state、限流、队列与缓存仅靠 key 前缀隔离，任一 Owner 可跨域读写/删除他人 key。
+
+**ACL 模型**
+
+- `docker/redis/users.acl`（由 `docker/redis/generate-users-acl.sh` 从 `*_REDIS_PASSWORD` 环境变量渲染，密码仅以 SHA-256 哈希 `#<hex>` 形式落盘）：禁用匿名 `default` 用户；每个安全域一个命名 ACL 用户，key pattern 与代码中真实 key 清单一一对应。
+- 命令面统一为 `-@all +@connection +@read +@write +@scripting`（限流 Lua 脚本需要 EVAL）；app/notification 额外 `+@pubsub`（WebSocket 广播频道 `ulticode:ws:broadcast`，且 channel 白名单只放行该频道），app 额外 `+info`（monitoring inspector）；ops 用户 `+@all ~*` 供迁移脚本与 compose healthcheck 使用。
+
+| ACL 用户 | 服务 | Key patterns |
+| --- | --- | --- |
+| `ulticode-ops` | 运维/迁移/healthcheck | `~*` |
+| `ulticode-auth` | backend-auth | `csrf:*`、`oauth:*`、`rate-limit:*`、`stream:integration` |
+| `ulticode-admin` | backend-admin | `rate-limit:*`、`userStats:*`、`contestRanking:*`、`contest:*` |
+| `ulticode-app` | backend-app | `rate-limit:*`、`userStats:*`、`contestRanking:*`、`contest:*`、`monitoring:*`、`queue:*`、`email_queue`、`notification_queue`、channel `ulticode:ws:broadcast` |
+| `ulticode-submission` | backend-submission | `stream:integration` |
+| `ulticode-search` | backend-search | `stream:integration`、`search:*` |
+| `ulticode-notification` | backend-notification | `stream:integration`、`poison:*`、`notification:*`、channel `ulticode:ws:broadcast` |
+| `ulticode-judge` | backend-judge | `judge_queue`、`queue:*`、`judge:*` |
+
+- 跨 Owner 共享点（刻意设计，非泄漏）：集成事件流 `stream:integration` 的生产方（auth/submission）与消费方（search/notification）各自持有该单 key 权限；`userStats`/`contestRanking` 等缓存命名空间由 app 写入、admin 驱逐，双方均持权限。新增 key namespace 必须同步扩展对应 pattern，否则运行时报 `NOPERM`。
+
+**接线与凭据流转**
+
+- Compose：base `redis` 改为 `--aclfile /usr/local/etc/redis/users.acl` 挂载启动，healthcheck 以 `ulticode-ops` 凭据 PING；dev override 保持 loopback-only 暴露不变。`docker-compose.prod.yml` 七个后端服务分别注入 `REDIS_USERNAME=<ACL 用户>` 与各自的 `<DOMAIN>_REDIS_PASSWORD`（如 `AUTH_REDIS_PASSWORD`），不再共享口令。
+- Spring：各服务 `spring.data.redis.username=${REDIS_USERNAME:}`（auth 的内联 Redisson config 同步增加 `username`；judge/submission 由 redisson-spring-boot-starter 自动映射该属性）。空默认值保证本地无认证 Redis 仍可直连。
+- 脚本：`.env.example` 提供与提交版 `users.acl` 哈希配对的 DEV-ONLY 占位口令；`scripts/dev/init-env.sh` 生成随机 per-domain 口令并重渲染 `users.acl`；`scripts/dev/test.sh` 以 ops 凭据导出 `REDIS_USERNAME/REDIS_PASSWORD` 后再跑宿主机测试；`scripts/dev/devstack-manifest.sh` 必需变量清单更新为新变量组。
+
+**凭据轮换**
+
+1. 在 `.env`/密钥库设置新的 `*_REDIS_PASSWORD` 八个值；
+2. 运行 `docker/redis/generate-users-acl.sh > docker/redis/users.acl`；
+3. `docker compose up -d --force-recreate redis` 及引用旧口令的后端服务；
+4. 生产部署机同步更新部署环境变量后重新 rollout。全程不出现明文口令入库。

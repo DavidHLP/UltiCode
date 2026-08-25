@@ -6,10 +6,18 @@
     <parent>
         <groupId>com.ulticode</groupId>
         <artifactId>ulticode-backend</artifactId>
-        <version>1.0.0</version>
+        <!-- ${revision}: reactor-wide platform version shared by api/platform modules. -->
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
+    <properties>
+        <!-- Authoritative release version of this owner service; bump independently
+             to release it without touching other services. Cross-service test
+             dependencies resolve the default copy in the root pom. -->
+        <service.version.notification>1.0.0</service.version.notification>
+    </properties>
     <artifactId>backend-notification</artifactId>
+    <version>${service.version.notification}</version>
     <name>UltiCode Backend (notification service)</name>
     <description>Independent notification and email delivery owner service.</description>
 
@@ -46,6 +54,20 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Review 2026-08-25 P1: same OTel/Prometheus observability set as
+             auth/admin/app-web. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

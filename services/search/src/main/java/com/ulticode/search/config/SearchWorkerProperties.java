@@ -21,8 +21,17 @@ public class SearchWorkerProperties {
     /** Consumer group name; each replica uses the same group (competing consumers). */
     private String group = "search-worker";
 
-    /** Stable per-replica consumer name. */
-    private String consumerName = "search-worker-1";
+    /**
+     * Per-replica consumer name. When blank (the default; no
+     * {@code SEARCH_WORKER_CONSUMER_NAME} override), a deterministic value is
+     * derived once at startup from the hostname so competing replicas in one
+     * group get distinct identities and PEL ownership stays attributable.
+     * Set the env var for a stable, operator-controlled identity.
+     */
+    private String consumerName = "";
+
+    /** Resolved-once effective consumer name (see {@link #effectiveConsumerName()}). */
+    private String resolvedConsumerName;
 
     /** Max records per poll. */
     private int batchSize = 50;
@@ -38,4 +47,44 @@ public class SearchWorkerProperties {
 
     /** Poll interval in milliseconds. */
     private long intervalMs = 2000;
+
+    /**
+     * Effective consumer name used for XREADGROUP/XCLAIM. Blank configured
+     * values resolve once to {@code <group>-<hostname>} (sanitized), falling
+     * back to a random suffix when the hostname is unavailable, so multiple
+     * replicas never share one static identity while an explicit env override
+     * keeps full determinism.
+     */
+    public synchronized String effectiveConsumerName() {
+        if (resolvedConsumerName == null) {
+            String configured = consumerName == null ? "" : consumerName.trim();
+            resolvedConsumerName = configured.isEmpty()
+                    ? defaultUniqueConsumerName(group)
+                    : configured;
+        }
+        return resolvedConsumerName;
+    }
+
+    private static String defaultUniqueConsumerName(String group) {
+        String prefix = group == null || group.isBlank() ? "search-worker" : group.trim();
+        String host = hostname();
+        if (!host.isEmpty()) {
+            return prefix + "-" + host;
+        }
+        // Hostname unavailable (rare): fall back to a per-process random suffix.
+        return prefix + "-" + java.util.UUID.randomUUID();
+    }
+
+    private static String hostname() {
+        try {
+            String host = java.net.InetAddress.getLocalHost().getHostName();
+            if (host == null) {
+                return "";
+            }
+            // Consumer names must stay Redis-token friendly.
+            return host.replaceAll("[^A-Za-z0-9._-]", "-");
+        } catch (RuntimeException | java.net.UnknownHostException e) {
+            return "";
+        }
+    }
 }

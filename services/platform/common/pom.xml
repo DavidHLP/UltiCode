@@ -5,7 +5,9 @@
 	<parent>
 		<groupId>com.ulticode</groupId>
 		<artifactId>ulticode-backend</artifactId>
-		<version>1.0.0</version>
+		<!-- ${revision}: reactor-wide platform version; deployable services override
+	     their own release version below via service.version.* -->
+		<version>${revision}</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<artifactId>backend-common</artifactId>
@@ -83,6 +85,17 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+
+		<!--
+		  WorkerSloMeters: plain-Micrometer gauge/counter set shared by the
+		  Redis Streams workers (search, notification, judge). No Spring
+		  annotations and no Redis client dependency, so the backend-common
+		  architecture gate still holds.
+		-->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
 		</dependency>
 </dependencies>
 

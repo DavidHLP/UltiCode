@@ -10,7 +10,11 @@
 	</parent>
 	<groupId>com.ulticode</groupId>
 	<artifactId>ulticode-backend</artifactId>
-	<version>1.0.0</version>
+	<!-- CI-friendly reactor revision; each deployable service additionally carries its
+	     own release version (service.version.*) so images can be tagged and released
+	     per service instead of reactor-wide 1.0.0. flatten-maven-plugin resolves
+	     these properties into literal versions for install/deploy. -->
+	<version>${revision}</version>
 	<name>UltiCode Backend</name>
 	<description>UltiCode Online Programming Platform - Spring Boot Backend (reactor)</description>
 	<packaging>pom</packaging>
@@ -36,6 +40,17 @@
 	</modules>
 
 	<properties>
+		<revision>1.0.0</revision>
+		<!-- Per-service release versions: bump individually to release one owner
+		     service (its image tag) independently of the shared platform modules.
+		     Consumed by docker-publish.yml to add a v<version> GHCR tag. -->
+		<service.version.auth>1.0.0</service.version.auth>
+		<service.version.admin>1.0.0</service.version.admin>
+		<service.version.app>1.0.0</service.version.app>
+		<service.version.submission>1.0.0</service.version.submission>
+		<service.version.search>1.0.0</service.version.search>
+		<service.version.notification>1.0.0</service.version.notification>
+		<service.version.judge>1.0.0</service.version.judge>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.16</mybatis-plus.version>
@@ -53,92 +68,92 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-common</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-auth-api</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-app-api</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-admin-api</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission-api</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-notification-api</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission-domain</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-judge-runtime</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-moderation-domain</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-contest-domain</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-problem-domain</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-auth</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-admin</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-app</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-web-security</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-integration-inbox</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-judge-config</artifactId>
-				<version>${project.version}</version>
+				<version>${revision}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.testcontainers</groupId>
@@ -209,6 +224,37 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		<plugins>
+			<!--
+			  Per-service independent versioning: resolve ${revision} and the
+			  per-service ${service.version.*} references into literal versions in
+			  the installed/deployed POMs while keeping reactor resolution intact.
+			-->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>flatten-maven-plugin</artifactId>
+				<version>1.6.0</version>
+				<configuration>
+					<updatePomFile>true</updatePomFile>
+				</configuration>
+				<executions>
+					<execution>
+						<id>flatten</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>flatten</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>flatten.clean</id>
+						<phase>clean</phase>
+						<goals>
+							<goal>clean</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
 	</build>
 
 </project>

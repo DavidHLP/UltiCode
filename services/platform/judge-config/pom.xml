@@ -7,7 +7,8 @@
     <parent>
         <groupId>com.ulticode</groupId>
         <artifactId>ulticode-backend</artifactId>
-        <version>1.0.0</version>
+        <!-- ${revision}: reactor-wide platform version. -->
+        <version>${revision}</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 

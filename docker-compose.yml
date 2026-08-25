@@ -31,13 +31,19 @@ services:
     container_name: ulticode-redis
     expose:
       - "6379"
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    # Per-owner ACL security boundary (review 2026-08-25): the anonymous
+    # default user is disabled and every client authenticates as a named ACL
+    # user (see docker/redis/users.acl). Rotate credentials via
+    # docker/redis/generate-users-acl.sh.
+    command: ["redis-server", "--aclfile", "/usr/local/etc/redis/users.acl"]
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDIS_HEALTH_USER: ulticode-ops
+      REDIS_HEALTH_PASSWORD: ${OPS_REDIS_PASSWORD:?OPS_REDIS_PASSWORD is required}
     volumes:
+      - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      test: ["CMD", "sh", "-c", "redis-cli --user \"$$REDIS_HEALTH_USER\" --pass \"$$REDIS_HEALTH_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5

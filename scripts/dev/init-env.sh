@@ -60,7 +60,14 @@ random_base64() {
 
 db_password="db_$(random_hex 18)"
 mysql_root_password="root_$(random_hex 20)"
-redis_password="redis_$(random_hex 18)"
+auth_redis_password="auth_redis_$(random_hex 18)"
+admin_redis_password="admin_redis_$(random_hex 18)"
+app_redis_password="app_redis_$(random_hex 18)"
+submission_redis_password="submission_redis_$(random_hex 18)"
+search_redis_password="search_redis_$(random_hex 18)"
+notification_redis_password="notification_redis_$(random_hex 18)"
+judge_redis_password="judge_redis_$(random_hex 18)"
+ops_redis_password="ops_redis_$(random_hex 18)"
 jwt_secret="$(random_hex 48)"
 nacos_password="Nacos!$(random_hex 18)"
 nacos_auth_token="$(random_base64 48)"
@@ -139,8 +146,18 @@ DB_ROOT_PASSWORD="$mysql_root_password"
 
 REDIS_HOST=localhost
 REDIS_PORT=26379
-REDIS_PASSWORD="$redis_password"
 REDIS_DB=0
+
+# Per-owner Redis ACL credentials (review 2026-08-25). users.acl is re-rendered
+# from these values below, so the dev stack always pairs with this .env.
+AUTH_REDIS_PASSWORD="$auth_redis_password"
+ADMIN_REDIS_PASSWORD="$admin_redis_password"
+APP_REDIS_PASSWORD="$app_redis_password"
+SUBMISSION_REDIS_PASSWORD="$submission_redis_password"
+SEARCH_REDIS_PASSWORD="$search_redis_password"
+NOTIFICATION_REDIS_PASSWORD="$notification_redis_password"
+JUDGE_REDIS_PASSWORD="$judge_redis_password"
+OPS_REDIS_PASSWORD="$ops_redis_password"
 
 JWT_SECRET="$jwt_secret"
 JWT_COOKIE_SECURE=false
@@ -225,5 +242,19 @@ VITE_TEST_PASSWORD=admin123
 EOF
 
 chmod 600 "$OUTPUT_FILE"
+
+# Re-render the Redis ACL file from the freshly generated per-owner passwords so
+# the dev stack always pairs with this .env (review 2026-08-25).
+ACL_FILE="$ROOT_DIR/docker/redis/users.acl"
+if [[ -f "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
+  # shellcheck disable=SC1090
+  source "$OUTPUT_FILE"
+  "$ROOT_DIR/docker/redis/generate-users-acl.sh" > "$ACL_FILE"
+  chmod 644 "$ACL_FILE"
+  echo "Re-rendered Redis ACL file: $ACL_FILE"
+else
+  echo "WARNING: docker/redis/generate-users-acl.sh not found; docker/redis/users.acl still holds the committed dev-placeholder hashes." >&2
+fi
+
 echo "Generated private development environment: $OUTPUT_FILE"
 echo "Run ./scripts/dev/up.sh to start the project."

@@ -54,6 +54,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Resolve service release version
+        id: svcver
+        run: |
+          # Per-service Maven release version (services/pom.xml service.version.*)
+          PROP="${{ matrix.service.maven_version_property }}"
+          VERSION=""
+          if [ -n "$PROP" ]; then
+            VERSION="$(sed -n "s/.*<$PROP>\([^<]*\)</$PROP>.*/\1/p" services/pom.xml | head -1)"
+            if [ -z "$VERSION" ]; then
+              echo "::error::Property <$PROP> not found in services/pom.xml"
+              exit 1
+            fi
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Service version: ${VERSION:-<none (non-Maven image)>}"
+
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
@@ -69,6 +85,7 @@ jobs:
           tags: |
             type=sha
             type=raw,value=latest
+            type=raw,value=v${{ steps.svcver.outputs.version }},enable=${{ steps.svcver.outputs.version != '' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
@@ -85,5 +102,6 @@ jobs:
             SERVICE_HEALTH_PATH=${{ matrix.service.health_path }}
             INSTALL_DOCKER_CLI=${{ matrix.service.install_docker_cli || false }}
             SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
+            SERVICE_VERSION=${{ steps.svcver.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

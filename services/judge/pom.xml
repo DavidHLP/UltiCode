@@ -7,11 +7,19 @@
     <parent>
         <groupId>com.ulticode</groupId>
         <artifactId>ulticode-backend</artifactId>
-        <version>1.0.0</version>
+        <!-- ${revision}: reactor-wide platform version shared by api/platform modules. -->
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
+    <properties>
+        <!-- Authoritative release version of this owner service; bump independently
+             to release it without touching other services. Cross-service test
+             dependencies resolve the default copy in the root pom. -->
+        <service.version.judge>1.0.0</service.version.judge>
+    </properties>
 
     <artifactId>backend-judge</artifactId>
+    <version>${service.version.judge}</version>
     <name>UltiCode Backend (judge worker service)</name>
     <description>Independent judge execution runtime; backend-app remains the submission/problem data owner.</description>
 
@@ -67,6 +75,17 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Review 2026-08-25 P1: same OTel tracing set as auth/admin/app-web.
+             The worker has no HTTP surface (web-application-type=none); the
+             bridge + OTLP exporter cover the Dubbo/Redis Streams paths. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

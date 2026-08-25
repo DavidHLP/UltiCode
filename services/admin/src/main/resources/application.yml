@@ -20,6 +20,9 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
+      # Per-owner Redis ACL user (review 2026-08-25). Empty default keeps
+      # no-auth local dev working; compose maps it per service.
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB:0}
       timeout: 10000ms

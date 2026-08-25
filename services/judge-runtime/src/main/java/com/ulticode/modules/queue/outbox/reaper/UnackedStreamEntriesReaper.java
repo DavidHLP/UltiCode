@@ -62,6 +62,7 @@ public class UnackedStreamEntriesReaper {
     public void recoverUnackedStreamEntries() {
         long pending = streamsAdapter.pendingCount();
         registerPendingGauge(pending);
+        refreshSloGauges(pending);
         if (pending == 0) {
             return;
         }
@@ -113,5 +114,23 @@ public class UnackedStreamEntriesReaper {
         if (meterRegistry != null) {
             meterRegistry.gauge("judge.streams.pending", pending);
         }
+    }
+
+    /**
+     * Review 2026-08-25 P1: refresh the shared queue/consumer SLO gauges from
+     * this sweep. Best-effort: observation failures never break reclaim.
+     */
+    private void refreshSloGauges(long pending) {
+        com.ulticode.common.metrics.WorkerSloMeters slo = streamsAdapter.sloMeters();
+        if (slo == null) {
+            return;
+        }
+        slo.setPelSize(pending);
+        slo.setQueueLag(streamsAdapter.streamLag());
+        long oldestIdleMs = streamsAdapter.oldestPendingIdleMs();
+        if (oldestIdleMs >= 0) {
+            slo.setPelOldestAgeSeconds(oldestIdleMs / 1000L);
+        }
+        slo.setDlqSize(streamsAdapter.dlqSize());
     }
 }

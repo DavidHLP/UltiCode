@@ -5,10 +5,18 @@
 	<parent>
 		<groupId>com.ulticode</groupId>
 		<artifactId>ulticode-backend</artifactId>
-		<version>1.0.0</version>
+		<!-- ${revision}: reactor-wide platform version shared by api/platform modules. -->
+		<version>${revision}</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
+	<properties>
+		<!-- Authoritative release version of this owner service; bump independently
+		     to release it without touching other services. Cross-service test
+		     dependencies resolve the default copy in the root pom. -->
+		<service.version.auth>1.0.0</service.version.auth>
+	</properties>
 	<artifactId>backend-auth</artifactId>
+	<version>${service.version.auth}</version>
 	<name>UltiCode Backend (auth service)</name>
 	<description>Auth-owned service shell for authentication, credentials, OAuth, sessions, authorization, and JWKS.</description>
 

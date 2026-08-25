@@ -19,6 +19,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB:0}
       timeout: 10000ms
@@ -81,6 +82,30 @@ app:
     # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor
     # + /monitoring/database.slowQueries (moved from backend-legacy application.yml).
     slow-query-ms: 500
+
+  storage:
+    # Binary-storage seam (FileStoragePort) for user-uploaded state such as
+    # avatars. local (default) preserves the legacy uploads/ directory behavior;
+    # s3 pushes blobs to an S3-compatible object store shared by all App
+    # replicas, which is what unblocks horizontal scaling of the App service.
+    type: ${APP_STORAGE_TYPE:local}
+    local:
+      # Root directory for locally stored objects; relative paths resolve
+      # against the process working directory.
+      root-dir: ${APP_STORAGE_LOCAL_ROOT_DIR:uploads}
+      # URL prefix returned to clients; must stay aligned with how local files
+      # are served (legacy /uploads/avatars/... contract is unchanged).
+      public-url-prefix: ${APP_STORAGE_PUBLIC_URL_PREFIX:/uploads}
+    s3:
+      # Path-style endpoint ({endpoint}/{bucket}/{key}); MinIO and AWS S3 both work.
+      endpoint: ${APP_STORAGE_S3_ENDPOINT:}
+      region: ${APP_STORAGE_S3_REGION:us-east-1}
+      bucket: ${APP_STORAGE_S3_BUCKET:}
+      access-key: ${APP_STORAGE_S3_ACCESS_KEY:}
+      secret-key: ${APP_STORAGE_S3_SECRET_KEY:}
+      # Optional public base URL returned to clients (CDN/fronting host);
+      # defaults to {endpoint}/{bucket}.
+      public-base-url: ${APP_STORAGE_S3_PUBLIC_BASE_URL:}
 
   features:
     # Explicit rollback-only seam. Normal App/API boot never owns Judge polling.

@@ -5,7 +5,8 @@
 	<parent>
 		<groupId>com.ulticode</groupId>
 		<artifactId>backend-app</artifactId>
-		<version>1.0.0</version>
+		<!-- App-owner service release version (shared by app-web and private domains). -->
+		<version>${service.version.app}</version>
 	<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<artifactId>backend-moderation-domain</artifactId>

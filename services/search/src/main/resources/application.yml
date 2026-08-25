@@ -20,6 +20,9 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
+      # Per-owner Redis ACL user (review 2026-08-25). Empty default keeps
+      # no-auth local dev working; compose maps it per service.
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB:0}
       timeout: 10000ms
@@ -34,7 +37,10 @@ search:
     enabled: ${SEARCH_WORKER_ENABLED:false}
     stream-key: ${SEARCH_WORKER_STREAM_KEY:stream:integration}
     group: ${SEARCH_WORKER_GROUP:search-worker}
-    consumer-name: ${SEARCH_WORKER_CONSUMER_NAME:search-worker-1}
+    # Blank default resolves to an instance-unique consumer name at startup
+    # (group-hostname suffix) so multi-replica runs never share one static
+    # identity; set SEARCH_WORKER_CONSUMER_NAME for a stable override.
+    consumer-name: ${SEARCH_WORKER_CONSUMER_NAME:}
     batch-size: 50
     max-attempts: 5
     dlq-key: ${SEARCH_WORKER_DLQ_KEY:search:stream:dlq}
@@ -58,3 +64,10 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: 5s

@@ -5,7 +5,8 @@
     "module": "auth",
     "artifact": "app.jar",
     "port": "9101",
-    "health_path": "/api/v1/auth/health/ready"
+    "health_path": "/api/v1/auth/health/ready",
+    "maven_version_property": "service.version.auth"
   },
   {
     "name": "backend-admin",
@@ -13,7 +14,8 @@
     "module": "admin",
     "artifact": "app-exec.jar",
     "port": "9102",
-    "health_path": "/api/v1/admin/health/ready"
+    "health_path": "/api/v1/admin/health/ready",
+    "maven_version_property": "service.version.admin"
   },
   {
     "name": "backend-app",
@@ -21,7 +23,8 @@
     "module": "app/app-web",
     "artifact": "app-exec.jar",
     "port": "9103",
-    "health_path": "/api/v1/app/health/ready"
+    "health_path": "/api/v1/app/health/ready",
+    "maven_version_property": "service.version.app"
   },
   {
     "name": "backend-submission",
@@ -29,7 +32,8 @@
     "module": "submission",
     "artifact": "submission-exec.jar",
     "port": "9106",
-    "health_path": "/disabled"
+    "health_path": "/disabled",
+    "maven_version_property": "service.version.submission"
   },
   {
     "name": "backend-notification",
@@ -37,7 +41,18 @@
     "module": "notification",
     "artifact": "notification-exec.jar",
     "port": "9105",
-    "health_path": "/api/v1/notification/health/ready"
+    "health_path": "/api/v1/notification/health/ready",
+    "maven_version_property": "service.version.notification"
+  },
+  {
+    "name": "backend-search",
+    "dockerfile": "./services/Dockerfile",
+    "module": "search",
+    "artifact": "backend-search-exec.jar",
+    "port": "9107",
+    "health_path": "/disabled",
+    "healthcheck": "false",
+    "maven_version_property": "service.version.search"
   },
   {
     "name": "backend-judge",
@@ -47,7 +62,8 @@
     "port": "9104",
     "health_path": "/disabled",
     "install_docker_cli": "true",
-    "healthcheck": "false"
+    "healthcheck": "false",
+    "maven_version_property": "service.version.judge"
   },
   {
     "name": "console",

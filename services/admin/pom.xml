@@ -5,10 +5,18 @@
 	<parent>
 		<groupId>com.ulticode</groupId>
 		<artifactId>ulticode-backend</artifactId>
-		<version>1.0.0</version>
+		<!-- ${revision}: reactor-wide platform version shared by api/platform modules. -->
+		<version>${revision}</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
+	<properties>
+		<!-- Authoritative release version of this owner service; bump independently
+		     to release it without touching other services. Cross-service test
+		     dependencies resolve the default copy in the root pom. -->
+		<service.version.admin>1.0.0</service.version.admin>
+	</properties>
 	<artifactId>backend-admin</artifactId>
+	<version>${service.version.admin}</version>
 	<name>UltiCode Backend (admin service shell)</name>
 	<description>Phase 1 placeholder shell for the admin service. P1-INFRA-005 populates it.</description>
 

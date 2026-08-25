@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.dto;
 
+import com.ulticode.common.response.DegradationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -56,6 +57,15 @@ public class AdminUserVO {
 
     @Schema(description = "User statistics")
     private UserStatsInfo stats;
+
+    /**
+     * Explicit degradation marker for cross-owner enrichment of this detail
+     * view. {@code null} (treated as healthy) when every source answered;
+     * {@code PARTIAL} when an optional enrichment source (for example the
+     * App-owned profile) was unavailable.
+     */
+    @Schema(description = "Degradation marker when cross-owner enrichment was partial")
+    private DegradationStatus degradationStatus;
 
     @Data
     @Schema(description = "Permission information")

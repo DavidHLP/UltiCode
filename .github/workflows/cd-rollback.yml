@@ -11,19 +11,13 @@ on:
         required: true
         type: string
       services:
-        description: 'Services to roll back'
+        description: >-
+          Services to roll back: 'all', or a comma/space-separated subset of
+          backend-auth backend-admin backend-app backend-submission
+          backend-notification backend-search backend-judge console management.
         required: true
-        type: choice
-        options:
-          - all
-          - backend-auth
-          - backend-admin
-          - backend-app
-          - backend-submission
-          - backend-notification
-          - backend-judge
-          - console
-          - management
+        type: string
+        default: 'all'
 
 concurrency:
   group: deploy-production
@@ -42,10 +36,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.inputs.image_tag }}
+          SELECTED: ${{ github.event.inputs.services }}
         run: |
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.repository }}"
-          SERVICES=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-judge" "console" "management")
+          ALL=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-judge" "console" "management")
+
+          if [ -z "$SELECTED" ] || [ "$SELECTED" = "all" ]; then
+            SERVICES=("${ALL[@]}")
+          else
+            SERVICES=()
+            for SVC in $(printf '%s' "$SELECTED" | tr ',' ' ' | xargs); do
+              OK=""
+              for KNOWN in "${ALL[@]}"; do [ "$SVC" = "$KNOWN" ] && OK=1 && break; done
+              if [ -z "$OK" ]; then
+                echo "::error::Unknown service '${SVC}'. Valid: ${ALL[*]}"
+                exit 1
+              fi
+              SERVICES+=("$SVC")
+            done
+          fi
 
           for SVC in "${SERVICES[@]}"; do
             echo "Checking ${SVC}:${TAG}..."
@@ -81,6 +91,7 @@ jobs:
           user: ${{ secrets.DEPLOY_USER }}
           path: ${{ secrets.DEPLOY_PATH }}
           image_tag: ${{ github.event.inputs.image_tag }}
+          services: ${{ github.event.inputs.services }}
           skip_migrations: 'true'
           registry: ghcr.io
           github_token: ${{ secrets.GITHUB_TOKEN }}

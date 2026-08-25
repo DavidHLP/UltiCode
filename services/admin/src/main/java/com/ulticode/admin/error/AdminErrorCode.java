@@ -61,7 +61,13 @@ public enum AdminErrorCode implements NamespacedErrorCode {
     SETTING_INVALID_VALUE(200002, "Invalid setting value", HttpStatus.BAD_REQUEST),
     SETTING_PERSISTENCE_FAILED(200003, "Failed to persist setting", HttpStatus.INTERNAL_SERVER_ERROR),
     /** P7-ADMIN-BACKUP-IDENTITY-001: transport / result / payload / row-level failure from IdentityQueryService. */
-    IDENTITY_QUERY_FAILED(200004, "Identity query failed", HttpStatus.INTERNAL_SERVER_ERROR);
+    IDENTITY_QUERY_FAILED(200004, "Identity query failed", HttpStatus.INTERNAL_SERVER_ERROR),
+    /**
+     * Cross-owner read seam: the owning service's query RPC failed or was
+     * unreachable. Surfaced as 503 so infrastructure failure is never
+     * disguised as business-empty data or NOT_FOUND.
+     */
+    OWNER_QUERY_UNAVAILABLE(200005, "Owner service query unavailable", HttpStatus.SERVICE_UNAVAILABLE);
 
     public static final String NAMESPACE = "admin";
 

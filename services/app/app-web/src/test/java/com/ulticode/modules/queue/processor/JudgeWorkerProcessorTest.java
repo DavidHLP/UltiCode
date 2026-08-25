@@ -47,6 +47,9 @@ class JudgeWorkerProcessorTest {
     @Mock
     private JudgeAttemptExecutor attemptExecutor;
 
+    @Mock
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+
     private QueueConfig queueConfig;
     private JudgeWorkerProcessor processor;
 
@@ -55,7 +58,8 @@ class JudgeWorkerProcessorTest {
         queueConfig = new QueueConfig();
         queueConfig.setMaxConcurrentJobs(1);
         processor = new JudgeWorkerProcessor(
-                queueService, queueConfig, featureFlags, judgeQueueProvider, attemptExecutor);
+                queueService, queueConfig, featureFlags, judgeQueueProvider, attemptExecutor,
+                meterRegistry);
     }
 
     @Test

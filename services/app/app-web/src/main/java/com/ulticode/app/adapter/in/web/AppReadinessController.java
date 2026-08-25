@@ -28,8 +28,15 @@ public class AppReadinessController {
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
 
-    public AppReadinessController(DataSource dataSource, StringRedisTemplate redisTemplate) {
-        this.dataSource = dataSource;
+    /**
+     * The DataSource is resolved through {@link ObjectProvider} so contexts
+     * that exclude datasource autoconfiguration (unit-test profile) still
+     * boot; with no DataSource the probe reports db=false instead of failing
+     * the whole context.
+     */
+    public AppReadinessController(org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
+                                  StringRedisTemplate redisTemplate) {
+        this.dataSource = dataSourceProvider.getIfAvailable();
         this.redisTemplate = redisTemplate;
     }
 

@@ -246,6 +246,10 @@ services:
       - SUBMISSION_CUTOVER_COMPLETE=${SUBMISSION_CUTOVER_COMPLETE:?SUBMISSION_CUTOVER_COMPLETE is required after the Submission schema cutover}
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
+      # Review 2026-08-25 P2: avatar uploads persist on a named volume so
+      # multi-replica rollouts serve the same assets (FileStoragePort local
+      # mode). Switch to object storage via APP_STORAGE_TYPE=s3.
+      - APP_STORAGE_LOCAL_ROOT_DIR=${AVATAR_UPLOAD_DIR:-/data/uploads/avatars}
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - APP_SEARCH_READ_MODE=indexed
       - APP_SEARCH_FALLBACK_TO_DATABASE=true
@@ -278,6 +282,8 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+    volumes:
+      - ${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars
 
   backend-submission:
     image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-submission:${BACKEND_SUBMISSION_IMAGE_TAG:-${IMAGE_TAG:-latest}}
@@ -537,7 +543,9 @@ services:
     group_add:
       - "${DOCKER_GID:-999}"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Override JUDGE_DOCKER_SOCK for a rootless user socket; remove this
+      # mount entirely when JUDGE_DOCKER_HOST points at a remote daemon.
+      - ${JUDGE_DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       # The path is identical inside the worker and on the Docker host. The
       # sandbox executor passes child-container mounts to the host daemon.
       - ${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}:${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}
@@ -620,4 +628,7 @@ services:
 
 volumes:
   # Review 2026-08-25 P2: persistent Admin backup storage.
+  app_uploads:
+    # Review 2026-08-25 P2: shared avatar upload storage for local-mode
+    # FileStoragePort across App replicas.
   backup_data:

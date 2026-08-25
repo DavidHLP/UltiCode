@@ -21,8 +21,13 @@ public class SearchWorkerProperties {
     /** Consumer group name; each replica uses the same group (competing consumers). */
     private String group = "search-worker";
 
-    /** Stable per-replica consumer name. */
-    private String consumerName = "search-worker-1";
+    /**
+     * Per-replica consumer name. Blank by default: {@link #resolvedConsumerName()}
+     * then derives an instance-unique name ({@code <group>-<hostname>}), so
+     * horizontally scaled replicas never share one PEL identity. Set it only
+     * for a deliberately fixed single-instance deployment.
+     */
+    private String consumerName = "";
 
     /** Max records per poll. */
     private int batchSize = 50;
@@ -38,4 +43,29 @@ public class SearchWorkerProperties {
 
     /** Poll interval in milliseconds. */
     private long intervalMs = 2000;
+
+    /**
+     * Review 2026-08-25 FINAL P1 (worker scale-out contract): the effective
+     * consumer identity. An explicit {@code consumer-name} always wins;
+     * otherwise the name is derived per instance from the hostname (unique
+     * per container replica, stable across restarts of the same container).
+     */
+    public String resolvedConsumerName() {
+        if (consumerName != null && !consumerName.isBlank()) {
+            return consumerName;
+        }
+        return group + "-" + instanceSuffix();
+    }
+
+    private static String instanceSuffix() {
+        try {
+            String host = java.net.InetAddress.getLocalHost().getHostName();
+            if (host != null && !host.isBlank()) {
+                return host;
+            }
+        } catch (java.net.UnknownHostException ignored) {
+            // fall through to a random suffix
+        }
+        return java.util.UUID.randomUUID().toString().substring(0, 8);
+    }
 }

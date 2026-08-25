@@ -12,6 +12,9 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.exception.BusinessException;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +39,16 @@ import com.ulticode.common.rpc.RpcPolicy;
  * <p>Follows the same dual-source Dubbo pattern as
  * {@code DefaultAdminUserProjection}. All Dubbo references use
  * {@code check=false} and {@code required=false} so the admin context loads
- * even when providers are down; enrichment simply returns empty results.
+ * even when providers are down.
+ *
+ * <p>Failure semantics (Review 2026-08-25 FINAL P1 — no silent degradation):
+ * <ul>
+ *   <li>Identity (Auth-owned, the key display field) unavailable &rarr;
+ *       {@link com.ulticode.admin.error.AdminErrorCode#UPSTREAM_UNAVAILABLE}
+ *       (503). Anonymous rows are never fabricated.</li>
+ *   <li>Profile (App-owned display fields) unavailable &rarr; partial result:
+ *       identity fields stay populated, name/avatar are null, gap is logged.</li>
+ * </ul>
  */
 @Slf4j
 @Component
@@ -96,68 +108,83 @@ public class AdminUserEnricher {
      * <p>Uses {@code AccountQueryService} to populate email (available in
      * {@code AuthAccountDTO} but not in the minimal identity projection).
      *
-     * @return summary, or null if the account is unknown
+     * @return summary, or null if the provider answered and the account does
+     *         not exist; infrastructure failure raises
+     *         {@link com.ulticode.admin.error.AdminErrorCode#UPSTREAM_UNAVAILABLE}
      */
     public AdminUserSummary enrichOne(String accountId) {
         if (accountId == null || accountId.isBlank()) {
             return null;
         }
 
-        // Try AccountQueryService first (has email + full account data)
-        if (accountQueryService != null) {
-            try {
-                RpcResult<AuthAccountDTO> rpc = accountQueryService.getAccountById(accountId);
-                if (rpc != null && rpc.success() && rpc.data() != null) {
-                    AuthAccountDTO account = rpc.data();
-                    // Profile fields from UserProfileQueryService
-                    String name = null;
-                    String avatar = null;
-                    if (userProfileQueryService != null) {
-                        try {
-                            RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(accountId);
-                            if (profileRpc != null && profileRpc.success() && profileRpc.data() != null) {
-                                name = profileRpc.data().name();
-                                avatar = profileRpc.data().avatar();
-                            }
-                        } catch (Exception e) {
-                            log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", accountId, e.getMessage());
-                        }
-                    }
-                    return new AdminUserSummary(
-                            accountId,
-                            account.username(),
-                            account.role(),
-                            name,
-                            avatar,
-                            account.email()
-                    );
-                }
-            } catch (Exception e) {
-                log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, e.getMessage());
-            }
+        if (accountQueryService == null) {
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE,
+                    "AccountQueryService reference is not available");
         }
 
-        // Fall back to batch enrichment (no email)
-        Map<String, AdminUserSummary> result = enrich(Set.of(accountId));
-        return result.get(accountId);
+        RpcResult<AuthAccountDTO> rpc;
+        try {
+            rpc = accountQueryService.getAccountById(accountId);
+        } catch (Exception e) {
+            log.error("AccountQueryService.getAccountById unavailable for {}: {}", accountId, e.getMessage());
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE, e);
+        }
+        if (rpc == null) {
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE,
+                    "Empty response from AccountQueryService");
+        }
+        if (!rpc.success() || rpc.data() == null) {
+            // Provider answered: genuine business absence.
+            return null;
+        }
+
+        AuthAccountDTO account = rpc.data();
+        // Profile fields from UserProfileQueryService — partial degradation only
+        String name = null;
+        String avatar = null;
+        if (userProfileQueryService != null) {
+            try {
+                RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(accountId);
+                if (profileRpc != null && profileRpc.success() && profileRpc.data() != null) {
+                    name = profileRpc.data().name();
+                    avatar = profileRpc.data().avatar();
+                } else {
+                    log.warn("UserProfileQueryService.getProfileByAccountId failed for {}, returning partial summary", accountId);
+                }
+            } catch (Exception e) {
+                log.warn("UserProfileQueryService.getProfileByAccountId unavailable for {}: {}", accountId, e.getMessage());
+            }
+        }
+        return new AdminUserSummary(
+                accountId,
+                account.username(),
+                account.role(),
+                name,
+                avatar,
+                account.email()
+        );
     }
 
     private Map<String, UserIdentityDTO> batchIdentities(Set<String> accountIds) {
         if (identityQueryService == null) {
-            return Collections.emptyMap();
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE,
+                    "IdentityQueryService reference is not available");
         }
+        RpcResult<List<UserIdentityDTO>> rpc;
         try {
-            RpcResult<List<UserIdentityDTO>> rpc = identityQueryService.batchGetIdentity(accountIds);
-            if (rpc == null || !rpc.success() || rpc.data() == null) {
-                return Collections.emptyMap();
-            }
-            return rpc.data().stream()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toMap(UserIdentityDTO::accountId, Function.identity(), (a, b) -> a));
+            rpc = identityQueryService.batchGetIdentity(accountIds);
         } catch (Exception e) {
-            log.warn("IdentityQueryService.batchGetIdentity failed for {} ids: {}", accountIds.size(), e.getMessage());
-            return Collections.emptyMap();
+            log.error("IdentityQueryService.batchGetIdentity unavailable for {} ids: {}", accountIds.size(), e.getMessage());
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE, e);
         }
+        if (rpc == null || !rpc.success() || rpc.data() == null) {
+            String detail = rpc != null && rpc.error() != null ? rpc.error().message() : "empty response";
+            log.error("IdentityQueryService.batchGetIdentity failed for {} ids: {}", accountIds.size(), detail);
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE, detail);
+        }
+        return rpc.data().stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(UserIdentityDTO::accountId, Function.identity(), (a, b) -> a));
     }
 
     private Map<String, UserProfileDTO> batchProfiles(Set<String> accountIds) {

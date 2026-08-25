@@ -28,9 +28,16 @@ public class NotificationReadinessController {
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
 
-    public NotificationReadinessController(DataSource dataSource, StringRedisTemplate redisTemplate) {
-        this.dataSource = dataSource;
-        this.redisTemplate = redisTemplate;
+    /**
+     * Dependencies resolve through {@link ObjectProvider} so contexts that
+     * exclude datasource/redis autoconfiguration (unit-test profile) still
+     * boot; missing components report as not-ready instead of failing the
+     * whole context.
+     */
+    public NotificationReadinessController(org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
+                  org.springframework.beans.factory.ObjectProvider<StringRedisTemplate> redisTemplateProvider) {
+        this.dataSource = dataSourceProvider.getIfAvailable();
+        this.redisTemplate = redisTemplateProvider.getIfAvailable();
     }
 
     @GetMapping("/health/ready")

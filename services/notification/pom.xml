@@ -137,7 +137,21 @@
             <artifactId>mysql</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+		<!-- Review 2026-08-25 FINAL P1: distributed tracing across the full
+		     HTTP -> Dubbo -> Redis Streams chain. -->
+		<dependency>
+		<groupId>io.micrometer</groupId>
+		<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
+		<dependency>
+		<groupId>io.opentelemetry</groupId>
+		<artifactId>opentelemetry-exporter-otlp</artifactId>
+		</dependency>
+		<dependency>
+		<groupId>io.micrometer</groupId>
+		<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+</dependencies>
 
     <build>
         <finalName>notification</finalName>

@@ -20,6 +20,10 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
+      # Review 2026-08-25 FINAL P1: Redis ACL owner identity. Empty locally
+      # (default user auth); set per owner in Compose so every security domain
+      # authenticates with its own credential.
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB:0}
       timeout: 10000ms

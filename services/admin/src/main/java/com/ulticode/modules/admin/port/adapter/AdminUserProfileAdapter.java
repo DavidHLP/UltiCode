@@ -56,6 +56,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
 
     private final UuidGenerator uuidGenerator;
     private final CurrentUserProvider currentUserProvider;
+    private final com.ulticode.common.storage.AvatarStorage avatarStorage;
 
     @Override
     @CacheEvict(value = "userStats", allEntries = true)
@@ -106,26 +107,19 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         }
         String filename = uuidGenerator.newId() + ext;
 
-        Path uploadDir = Paths.get("uploads/avatars");
-        Path filePath = uploadDir.resolve(filename);
+        // Review 2026-08-25 FINAL P2: shared storage seam instead of a
+        // process-local uploads directory.
+        String avatarUrl;
         try {
-            Files.createDirectories(uploadDir);
-            file.transferTo(filePath.toFile());
-        } catch (IOException e) {
+            avatarUrl = avatarStorage.store(filename, file.getBytes());
+        } catch (IOException | IllegalStateException e) {
             log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
             throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, "Failed to save avatar");
         }
-
-        String avatarUrl = "/uploads/avatars/" + filename;
         try {
             updateAvatarUrl(userId, avatarUrl);
         } catch (RuntimeException e) {
-            try {
-                Files.deleteIfExists(filePath);
-            } catch (Exception cleanupException) {
-                log.warn("Failed to clean up avatar file after profile update failure: {}",
-                        filePath, cleanupException);
-            }
+            avatarStorage.delete(filename); // best-effort cleanup of the orphaned asset
             throw e;
         }
 

@@ -84,6 +84,17 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
+		<!-- Review 2026-08-25 FINAL P1: shared worker queue SLO metrics. Both
+		     libraries are already on every owner/worker classpath via their
+		     own starters; declared here so StreamSloMetrics compiles. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
 </dependencies>
 
 	<build>

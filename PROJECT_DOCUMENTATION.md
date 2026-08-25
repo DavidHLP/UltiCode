@@ -1818,7 +1818,7 @@ Total keys in en-US: 245
 
 ### 微服务架构评审(2026-08-25)修复记录
 
-来源评审：`SERVICES_MICROSERVICE_ARCHITECTURE_REVIEW_2026-08-25.md`。本节记录已落地的修复与明确保留的决策。
+来源评审：`services/docs/SERVICES_MICROSERVICE_ARCHITECTURE_FINAL_2026-08-25.md`。本节记录已落地的修复与明确保留的决策。
 
 #### P0 假健康 — 已修复
 
@@ -1841,6 +1841,19 @@ Total keys in en-US: 245
 
 - Admin `backup.dir` 本就可经 `BACKUP_DIR` 覆盖；prod compose 为 `backend-admin` 挂载持久卷 `backup_data:/var/lib/ulticode/backup`。多副本对象存储方案仍属未来基础设施升级。
 
+#### FINAL 评审(2026-08-25)剩余差距 — 第二轮修复记录
+
+针对同一文档"仍存在的企业级差距"一节的落地情况（本节取代上方"明确保留"中对下列条目的保留结论）：
+
+- **P1 Admin 静默降级 — 已修复**：新增 `AdminErrorCode.UPSTREAM_UNAVAILABLE`（503）。`DefaultAdminUserProjection.getUsers/getUserById` 与 `AdminUserEnricher.enrich/enrichOne` 在 Auth 依赖不可用（引用缺失、RPC 异常、响应不可用）时抛出 503，不再伪装成空列表 `total=0` 或"用户不存在"；App-owned 展示字段（name/avatar）失败时保持 partial 降级并显式 WARN。回归测试见 `AdminUserEnricherTest`。
+- **P1 Worker 横向扩容契约 — 已修复**：`SearchWorkerProperties.resolvedConsumerName()` 默认以 `<group>-<hostname>` 派生实例唯一 consumer 身份（`SEARCH_WORKER_CONSUMER_NAME` 显式配置仍优先）；inbox 桥（Notification/App）本就按 `group:UUID` 派生。PEL 回收（dead-letter + claim）已存在，副本宕机后其未确认条目由存活副本在 idle 超时后认领；优雅停机无需额外交接步骤。
+- **P1 分布式 tracing 与 Worker SLO — 已补齐**：submission/notification/search/judge 补充 `micrometer-tracing-bridge-otel` + `opentelemetry-exporter-otlp` + prometheus registry，并配置 W3C sampling + OTLP endpoint（`MANAGEMENT_OTLP_TRACING_ENDPOINT`）。新增 `com.ulticode.common.worker.StreamSloMetrics`，导出 `*.stream.length`、`*.group.pel`、`*.group.lag`、`*.dlq.size`、`*.last.success.age.seconds`（search/notification 前缀 `search.worker.queue`/`notification.worker.queue`）；judge 导出 `judge.queue.pending.depth` 与 `judge.worker.last.success.age.seconds`。
+- **P1 Redis Owner 安全边界 — 已落地**：基础 compose 的 redis 以启动脚本生成 ACL 文件：default 为运维用户，另建 auth/admin/app/submission/notification/search/judge 七个 owner 用户（数据面命令，无 @dangerous）。dev 环境 owner 口令缺省回落 `REDIS_PASSWORD`；生产 compose 要求七个独立变量 `REDIS_PASSWORD_{AUTH,ADMIN,APP,SUBMISSION,NOTIFICATION,SEARCH,JUDGE}`，各服务注入 `REDIS_USERNAME` + 对应口令（Spring `spring.data.redis.username`）。密钥空间级 key pattern 限制待关键清单固化后收紧。
+- **P0 Judge Docker Socket — 可配置隔离**：prod compose 新增 `DOCKER_HOST=${JUDGE_DOCKER_HOST:-unix:///var/run/docker.sock}` 与 `JUDGE_DOCKER_SOCK` 挂载覆盖；迁移专用 judge 节点或 rootless daemon 时改指 endpoint 并移除 socket 挂载即可，无需镜像变更。强隔离（Kata/gVisor）仍属基础设施决策。
+- **P1 独立发布 — 能力已具备**：全部 10 个镜像支持 `<SVC>_IMAGE_TAG` 覆盖（如 `AUTH_IMAGE_TAG`），`host-deploy` action 新增可选 `services` 输入支持按服务子集 pull/up，实现逐服务滚动发布与单服务回滚。混合版本 Contract 兼容策略：Dubbo contract 统一 `version=1.0.0` 且由 `api/` 模块集中管理，字段只增不删为兼容基线。
+- **P2 头像本地状态 — 已收敛**：新增 `com.ulticode.common.storage.AvatarStorage` seam 与 `LocalAvatarStorage` 实现（App/Admin 各自 config 装配，`app.storage.mode`/`app.storage.local.dir`）。prod compose 为 backend-app/backend-admin 挂载共享卷 `app_uploads:/data/uploads/avatars`；对象存储实现可经同一接口替换。
+
 #### 明确保留（需生产决策，不在代码层修复）
 
-- 生产 HA 拓扑、Judge Docker Socket 强隔离节点、Redis ACL/按 Owner 凭据、分布式 tracing/SLO 补齐、Admin 管理 read model 全面事件化：评审自身要求在明确生产目标后再实施；维持现状并以此节为处置记录。
+- 生产 HA 拓扑（Nacos/MySQL/Redis/MeiliSearch 多节点、故障域划分）：单机 Compose 无法提供真 HA；升级触发条件为多可用区部署或正式 SLO 承诺，届时 Nacos 转 3 节点集群、MySQL 主从+切换、Redis Sentinel/Cluster、MeiliSearch 双副本。评审自身亦不建议在仅开发环境阶段引入 K8s/Service Mesh 形式化组件。
+- Judge 强隔离执行环境（Kata/gVisor/独立节点采购）：依赖基础设施选型，endpoint 已可配置（见上）。

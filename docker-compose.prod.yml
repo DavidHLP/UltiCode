@@ -19,6 +19,19 @@
 #   env.IMAGE_TAG = github.event.inputs.image_tag || 'latest'
 
 services:
+  # Review 2026-08-25 FINAL P1: production requires a distinct Redis
+  # credential per owner/security domain. Merged into the base redis service,
+  # which generates the matching ACL users at boot.
+  redis:
+    environment:
+      REDIS_PASSWORD_AUTH: ${REDIS_PASSWORD_AUTH:?REDIS_PASSWORD_AUTH is required}
+      REDIS_PASSWORD_ADMIN: ${REDIS_PASSWORD_ADMIN:?REDIS_PASSWORD_ADMIN is required}
+      REDIS_PASSWORD_APP: ${REDIS_PASSWORD_APP:?REDIS_PASSWORD_APP is required}
+      REDIS_PASSWORD_SUBMISSION: ${REDIS_PASSWORD_SUBMISSION:?REDIS_PASSWORD_SUBMISSION is required}
+      REDIS_PASSWORD_NOTIFICATION: ${REDIS_PASSWORD_NOTIFICATION:?REDIS_PASSWORD_NOTIFICATION is required}
+      REDIS_PASSWORD_SEARCH: ${REDIS_PASSWORD_SEARCH:?REDIS_PASSWORD_SEARCH is required}
+      REDIS_PASSWORD_JUDGE: ${REDIS_PASSWORD_JUDGE:?REDIS_PASSWORD_JUDGE is required}
+
   nacos:
     image: nacos/nacos-server:v2.3.2
     container_name: ulticode-nacos
@@ -58,7 +71,7 @@ services:
         max-file: "5"
 
   backend-auth:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-auth:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-auth:${AUTH_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-auth
     restart: unless-stopped
     expose:
@@ -88,7 +101,8 @@ services:
       - NOTIFICATION_DB_NAME=${NOTIFICATION_DB_NAME:?NOTIFICATION_DB_NAME is required}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=auth
+      - REDIS_PASSWORD=${REDIS_PASSWORD_AUTH:?REDIS_PASSWORD_AUTH is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -123,7 +137,7 @@ services:
         max-size: "50m"
         max-file: "5"
   backend-admin:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-admin:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-admin:${ADMIN_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-admin
     restart: unless-stopped
     expose:
@@ -146,7 +160,9 @@ services:
       - ADMIN_DB_NAME=${ADMIN_DB_NAME:?ADMIN_DB_NAME is required}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=admin
+      - REDIS_PASSWORD=${REDIS_PASSWORD_ADMIN:?REDIS_PASSWORD_ADMIN is required}
+      - APP_STORAGE_LOCAL_DIR=${AVATAR_UPLOAD_DIR:-/data/uploads/avatars}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -167,6 +183,8 @@ services:
         condition: service_healthy
     volumes:
       - backup_data:/var/lib/ulticode/backup
+      # Review 2026-08-25 FINAL P2: shared avatar upload storage.
+      - ${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars
     networks:
       - default
       - infrastructure
@@ -183,8 +201,10 @@ services:
         max-size: "50m"
         max-file: "5"
   backend-app:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-app:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-app:${APP_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-app
+    volumes:
+      - ${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars
     restart: unless-stopped
     expose:
       - "9103"
@@ -206,7 +226,11 @@ services:
       - APP_DB_NAME=${APP_DB_NAME:?APP_DB_NAME is required}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=app
+      - REDIS_PASSWORD=${REDIS_PASSWORD_APP:?REDIS_PASSWORD_APP is required}
+      # Review 2026-08-25 FINAL P2: avatar uploads live on a shared volume so
+      # multi-replica rollouts serve the same assets.
+      - APP_STORAGE_LOCAL_DIR=${AVATAR_UPLOAD_DIR:-/data/uploads/avatars}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -255,7 +279,7 @@ services:
         max-file: "5"
 
   backend-submission:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-submission:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-submission:${SUBMISSION_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-submission
     restart: unless-stopped
     expose:
@@ -276,7 +300,8 @@ services:
       - SUBMISSION_DB_PASSWORD=${SUBMISSION_DB_PASSWORD:?SUBMISSION_DB_PASSWORD is required}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=submission
+      - REDIS_PASSWORD=${REDIS_PASSWORD_SUBMISSION:?REDIS_PASSWORD_SUBMISSION is required}
       - REDIS_DB=${REDIS_DB:-0}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -316,7 +341,7 @@ services:
         max-file: "5"
 
   backend-search:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-search:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-search:${SEARCH_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-search
     restart: unless-stopped
     expose:
@@ -329,7 +354,8 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=search
+      - REDIS_PASSWORD=${REDIS_PASSWORD_SEARCH:?REDIS_PASSWORD_SEARCH is required}
       - MEILI_HOST=http://meilisearch:7700
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
       # SEARCH-003 gate: worker is the sole MeiliSearch writer; the App
@@ -369,7 +395,7 @@ services:
         max-file: "5"
 
   backend-notification:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-notification:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-notification:${NOTIFICATION_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-notification
     restart: unless-stopped
     expose:
@@ -393,7 +419,8 @@ services:
       - NOTIFICATION_DB_NAME=${NOTIFICATION_DB_NAME:?NOTIFICATION_DB_NAME is required}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=notification
+      - REDIS_PASSWORD=${REDIS_PASSWORD_NOTIFICATION:?REDIS_PASSWORD_NOTIFICATION is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -437,7 +464,7 @@ services:
         max-file: "5"
 
   backend-judge:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-judge:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-judge:${JUDGE_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-backend-judge
     restart: unless-stopped
     expose:
@@ -450,7 +477,8 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - REDIS_USERNAME=judge
+      - REDIS_PASSWORD=${REDIS_PASSWORD_JUDGE:?REDIS_PASSWORD_JUDGE is required}
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
@@ -471,6 +499,13 @@ services:
       - SANDBOX_CPUS=${SANDBOX_CPUS:-1.0}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-10}
       - SANDBOX_PIDS_LIMIT=${SANDBOX_PIDS_LIMIT:-128}
+      # Review 2026-08-25 FINAL P0: sandbox daemon endpoint. Default keeps the
+      # mounted host socket (single-host deployments). For dedicated-node or
+      # rootless isolation, set JUDGE_DOCKER_HOST to the remote/rootless
+      # endpoint (e.g. tcp://judge-node:2375 or unix:///run/user/1000/docker.sock)
+      # and drop the socket volume below — the docker CLI in the worker image
+      # honors DOCKER_HOST, no image change needed.
+      - DOCKER_HOST=${JUDGE_DOCKER_HOST:-unix:///var/run/docker.sock}
       # Operator-set profile wins; otherwise derive from the shared host dir.
       - SANDBOX_SECCOMP_PROFILE=${SANDBOX_SECCOMP_PROFILE:-${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json}
       # Redirect the JVM temp dir into the shared workspace so per-run sandbox
@@ -499,7 +534,9 @@ services:
     group_add:
       - "${DOCKER_GID:-999}"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Override JUDGE_DOCKER_SOCK for a rootless user socket. When migrating
+      # to a remote judge-node daemon, remove this mount entirely.
+      - ${JUDGE_DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
       # The path is identical inside the worker and on the Docker host. The
       # sandbox executor passes child-container mounts to the host daemon.
       - ${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}:${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}
@@ -519,7 +556,7 @@ services:
         max-file: "5"
 
   console:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/console:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/console:${CONSOLE_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-console
     restart: unless-stopped
     ports:
@@ -550,7 +587,7 @@ services:
         max-file: "3"
 
   management:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/management:${IMAGE_TAG:-latest}
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/management:${MANAGEMENT_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: ulticode-management
     restart: unless-stopped
     ports:
@@ -583,3 +620,5 @@ services:
 volumes:
   # Review 2026-08-25 P2: persistent Admin backup storage.
   backup_data:
+  # Review 2026-08-25 FINAL P2: shared avatar upload storage (App + Admin).
+  app_uploads:

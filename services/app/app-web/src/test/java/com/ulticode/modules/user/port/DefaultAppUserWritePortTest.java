@@ -42,12 +42,13 @@ class DefaultAppUserWritePortTest {
     @Mock private UuidGenerator uuidGenerator;
     @Mock private com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    @Mock private com.ulticode.common.storage.AvatarStorage avatarStorage;
     private DefaultAppUserWritePort port;
 
     @BeforeEach
     void setUp() {
         port = new DefaultAppUserWritePort(userProfileMapper, uuidGenerator,
-                userDirectoryQueryPort, searchPublisher);
+                userDirectoryQueryPort, searchPublisher, avatarStorage);
     }
 
     @Nested
@@ -190,12 +191,15 @@ class DefaultAppUserWritePortTest {
             String userId = "u-004";
             when(uuidGenerator.newId()).thenReturn("uuid-1");
             when(userProfileMapper.selectById(userId)).thenReturn(null);
+            when(avatarStorage.store(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
+                    .thenReturn("/uploads/avatars/uuid-1.png");
             MultipartFile file = new MockMultipartFile("file", "photo.png", "image/png",
                     new byte[]{1, 2, 3, 4, 5});
 
             String url = port.uploadAvatar(userId, file);
 
-            assertThat(url).startsWith("/uploads/avatars/");
+            assertThat(url).isEqualTo("/uploads/avatars/uuid-1.png");
+            verify(avatarStorage).store(org.mockito.ArgumentMatchers.eq("uuid-1.png"), org.mockito.ArgumentMatchers.any());
             verify(userProfileMapper).insert(any(UserProfile.class));
         }
     }

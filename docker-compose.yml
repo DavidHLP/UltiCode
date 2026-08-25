@@ -31,9 +31,36 @@ services:
     container_name: ulticode-redis
     expose:
       - "6379"
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    # Review 2026-08-25 FINAL P1: Redis owner security boundary. The server
+    # boots with an ACL file defining one user per owner/security domain.
+    # In dev each owner password falls back to REDIS_PASSWORD (parity with
+    # the old shared-secret setup); production overrides require distinct
+    # values per owner. Owner users get data commands only — admin commands
+    # (@dangerous) stay exclusive to the default/operator user.
+    command:
+      - sh
+      - -c
+      - |
+        cat > /tmp/users.acl <<EOF
+        user default on >$${REDIS_PASSWORD} ~* &* +@all
+        user auth on >$${REDIS_PASSWORD_AUTH} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        user admin on >$${REDIS_PASSWORD_ADMIN} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        user app on >$${REDIS_PASSWORD_APP} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        user submission on >$${REDIS_PASSWORD_SUBMISSION} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        user notification on >$${REDIS_PASSWORD_NOTIFICATION} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        user search on >$${REDIS_PASSWORD_SEARCH} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        user judge on >$${REDIS_PASSWORD_JUDGE} ~* &* +@read +@write +@stream +@pubsub +@scripting +ping
+        EOF
+        exec redis-server --aclfile /tmp/users.acl
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      REDIS_PASSWORD_AUTH: ${REDIS_PASSWORD_AUTH:-${REDIS_PASSWORD}}
+      REDIS_PASSWORD_ADMIN: ${REDIS_PASSWORD_ADMIN:-${REDIS_PASSWORD}}
+      REDIS_PASSWORD_APP: ${REDIS_PASSWORD_APP:-${REDIS_PASSWORD}}
+      REDIS_PASSWORD_SUBMISSION: ${REDIS_PASSWORD_SUBMISSION:-${REDIS_PASSWORD}}
+      REDIS_PASSWORD_NOTIFICATION: ${REDIS_PASSWORD_NOTIFICATION:-${REDIS_PASSWORD}}
+      REDIS_PASSWORD_SEARCH: ${REDIS_PASSWORD_SEARCH:-${REDIS_PASSWORD}}
+      REDIS_PASSWORD_JUDGE: ${REDIS_PASSWORD_JUDGE:-${REDIS_PASSWORD}}
     volumes:
       - redis_data:/data
     healthcheck:

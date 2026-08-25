@@ -20,6 +20,10 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
+      # Review 2026-08-25 FINAL P1: Redis ACL owner identity. Empty locally
+      # (default user auth); set per owner in Compose so every security domain
+      # authenticates with its own credential.
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB:0}
       timeout: 10000ms
@@ -34,7 +38,11 @@ search:
     enabled: ${SEARCH_WORKER_ENABLED:false}
     stream-key: ${SEARCH_WORKER_STREAM_KEY:stream:integration}
     group: ${SEARCH_WORKER_GROUP:search-worker}
-    consumer-name: ${SEARCH_WORKER_CONSUMER_NAME:search-worker-1}
+    # Blank by default: resolved per instance to <group>-<hostname> so scaled
+    # replicas get unique consumer identities. Unclaimed PEL entries of a dead
+    # replica are reclaimed by survivors after CLAIM_MIN_IDLE (graceful
+    # shutdown simply stops polling; no explicit handoff step is needed).
+    consumer-name: ${SEARCH_WORKER_CONSUMER_NAME:}
     batch-size: 50
     max-attempts: 5
     dlq-key: ${SEARCH_WORKER_DLQ_KEY:search:stream:dlq}
@@ -58,3 +66,10 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: 5s

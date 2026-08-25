@@ -15,9 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * App-side adapter for {@link AppUserWritePort}.
@@ -37,6 +34,7 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
     private final UuidGenerator uuidGenerator;
     private final com.ulticode.modules.search.port.UserDirectoryQueryPort userDirectoryQueryPort;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    private final com.ulticode.common.storage.AvatarStorage avatarStorage;
 
     /** Publish a complete user-document UPSERT after a profile write. */
     private void publishUserDocument(String userId) {
@@ -136,17 +134,16 @@ public class DefaultAppUserWritePort implements AppUserWritePort {
         }
         String filename = uuidGenerator.newId() + ext;
 
-        Path uploadDir = Paths.get("uploads/avatars");
+        // Review 2026-08-25 FINAL P2: storage goes through the shared
+        // AvatarStorage seam so replicas can share a volume or swap in an
+        // object-storage implementation.
+        String avatarUrl;
         try {
-            Files.createDirectories(uploadDir);
-            Path filePath = uploadDir.resolve(filename);
-            file.transferTo(filePath.toFile());
-        } catch (IOException e) {
+            avatarUrl = avatarStorage.store(filename, file.getBytes());
+        } catch (IOException | IllegalStateException e) {
             log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
             throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Failed to save avatar");
         }
-
-        String avatarUrl = "/uploads/avatars/" + filename;
 
         UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {

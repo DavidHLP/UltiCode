@@ -55,9 +55,33 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final JudgeFeatureFlagsPort featureFlags;
     private final ObjectProvider<JudgeQueue> judgeQueueProvider;
     private final JudgeAttemptExecutor attemptExecutor;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
+    /** Epoch millis of the last successfully processed job; 0 = never. */
+    private final java.util.concurrent.atomic.AtomicLong lastSuccessMillis = new java.util.concurrent.atomic.AtomicLong(0);
 
+
+    @jakarta.annotation.PostConstruct
+    void registerSloGauges() {
+        // Review 2026-08-25 FINAL P1: worker consumption/queue SLO gauges.
+        // Resolved lazily so gauge reads tolerate beans not yet available and
+        // Redis hiccups (reported as NaN / -1 instead of breaking scrapes).
+        meterRegistry.gauge("judge.worker.last.success.age.seconds", lastSuccessMillis,
+                ms -> ms.get() == 0 ? -1d
+                        : (System.currentTimeMillis() - ms.get()) / 1000d);
+        meterRegistry.gauge("judge.queue.pending.depth", judgeQueueProvider, provider -> {
+            JudgeQueue queue = provider.getIfAvailable();
+            if (queue == null) {
+                return Double.NaN;
+            }
+            try {
+                return (double) queue.pendingDepth();
+            } catch (RuntimeException e) {
+                return Double.NaN;
+            }
+        });
+    }
 
     @Override
     public String getJobType() {
@@ -224,6 +248,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         job.setTimeLimitMs(envelope.timeLimitMs());
         job.setMemoryLimitKb(envelope.memoryLimitKb());
         attemptExecutor.runAttempt(job, port, handle);
+        lastSuccessMillis.set(System.currentTimeMillis());
     }
 
     /**
@@ -243,6 +268,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         // executor decides legacy vs fenced based on its own FeatureFlags
         // (consistent across all callers).
         attemptExecutor.runAttempt(job, null, null);
+        lastSuccessMillis.set(System.currentTimeMillis());
     }
 
     @Override

@@ -98,12 +98,23 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         );
 
         if (accountQueryService == null) {
-            return PageResult.of(Collections.emptyList(), 0L, pageRequest);
+            // Review 2026-08-25 FINAL P1: never disguise infrastructure failure
+            // as an empty business result.
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE,
+                    "AccountQueryService reference is not available");
         }
 
-        RpcResult<AuthAccountDTO> rpcResult = accountQueryService.queryAccounts(accountQuery);
+        RpcResult<AuthAccountDTO> rpcResult;
+        try {
+            rpcResult = accountQueryService.queryAccounts(accountQuery);
+        } catch (Exception e) {
+            log.error("AccountQueryService.queryAccounts unavailable: {}", e.getMessage());
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE, e);
+        }
         if (rpcResult == null || !rpcResult.success() || rpcResult.page() == null) {
-            return PageResult.of(Collections.emptyList(), 0L, pageRequest);
+            String detail = rpcResult != null && rpcResult.error() != null ? rpcResult.error().message() : "empty response";
+            log.error("AccountQueryService.queryAccounts failed: {}", detail);
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE, detail);
         }
 
         RpcResult.Page page = rpcResult.page();
@@ -121,11 +132,21 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
         Map<String, UserProfileDTO> profileMap = Collections.emptyMap();
         if (userProfileQueryService != null) {
-            RpcResult<List<UserProfileDTO>> profileRpcResult = userProfileQueryService.getProfilesByAccountIds(accountIds);
+            RpcResult<List<UserProfileDTO>> profileRpcResult;
+            try {
+                profileRpcResult = userProfileQueryService.getProfilesByAccountIds(accountIds);
+            } catch (Exception e) {
+                // Partial degradation: rows keep Auth-owned fields; App-owned
+                // display fields stay empty and the gap is logged explicitly.
+                log.warn("UserProfileQueryService.getProfilesByAccountIds unavailable, returning partial rows: {}", e.getMessage());
+                profileRpcResult = null;
+            }
             if (profileRpcResult != null && profileRpcResult.success() && profileRpcResult.data() != null) {
                 profileMap = profileRpcResult.data().stream()
                         .filter(Objects::nonNull)
                         .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a));
+            } else if (profileRpcResult != null) {
+                log.warn("UserProfileQueryService.getProfilesByAccountIds failed, returning partial rows");
             }
         }
 
@@ -139,22 +160,19 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     @Override
     public AdminUserVO getUserById(String id) {
-        if (accountQueryService == null) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
-        }
-
-        RpcResult<AuthAccountDTO> rpcResult = accountQueryService.getAccountById(id);
-        if (rpcResult == null || !rpcResult.success() || rpcResult.data() == null) {
-            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
-        }
-
-        AuthAccountDTO account = rpcResult.data();
+        AuthAccountDTO account = fetchAccountOrUnavailable(id);
 
         UserProfileDTO profile = null;
         if (userProfileQueryService != null) {
-            RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(id);
-            if (profileRpc != null && profileRpc.success()) {
-                profile = profileRpc.data();
+            try {
+                RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(id);
+                if (profileRpc != null && profileRpc.success()) {
+                    profile = profileRpc.data();
+                } else {
+                    log.warn("UserProfileQueryService.getProfileByAccountId failed for {}, returning partial detail", id);
+                }
+            } catch (Exception e) {
+                log.warn("UserProfileQueryService.getProfileByAccountId unavailable for {}: {}", id, e.getMessage());
             }
         }
 
@@ -162,6 +180,35 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         populateStats(vo, account.accountId());
         populatePermissions(vo, account.accountId(), account.role());
         return vo;
+    }
+
+    /**
+     * Fetch one Auth-owned account with explicit failure semantics.
+     *
+     * <ul>
+     *   <li>Reference missing, RPC throws, or response unusable &rarr; {@link
+     *       AdminErrorCode#UPSTREAM_UNAVAILABLE} (503): infrastructure failure
+     *       must never masquerade as "user not found".</li>
+     *   <li>Provider answered but the account is absent &rarr; {@link
+     *       AdminErrorCode#USER_NOT_FOUND}: a genuine business result.</li>
+     * </ul>
+     */
+    private AuthAccountDTO fetchAccountOrUnavailable(String id) {
+        if (accountQueryService == null) {
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE,
+                    "AccountQueryService reference is not available");
+        }
+        RpcResult<AuthAccountDTO> rpcResult;
+        try {
+            rpcResult = accountQueryService.getAccountById(id);
+        } catch (Exception e) {
+            log.error("AccountQueryService.getAccountById unavailable for {}: {}", id, e.getMessage());
+            throw new BusinessException(AdminErrorCode.UPSTREAM_UNAVAILABLE, e);
+        }
+        if (rpcResult == null || !rpcResult.success() || rpcResult.data() == null) {
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+        }
+        return rpcResult.data();
     }
 
     private AdminUserVO toVO(AuthAccountDTO account, UserProfileDTO profile) {

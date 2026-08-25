@@ -69,6 +69,7 @@ public class NotificationIntegrationInboxBridge {
     private final UuidGenerator uuidGenerator;
     private final TransactionTemplate transactionTemplate;
     private final List<Binding> bindings;
+    private final com.ulticode.common.worker.StreamSloMetrics sloMetrics;
 
     @Autowired
     public NotificationIntegrationInboxBridge(
@@ -77,6 +78,7 @@ public class NotificationIntegrationInboxBridge {
             ObjectMapper objectMapper,
             UuidGenerator uuidGenerator,
             ObjectProvider<PlatformTransactionManager> transactionManagerProvider,
+            io.micrometer.core.instrument.MeterRegistry meterRegistry,
             SubmissionJudgedNotificationConsumer notificationConsumer,
             NotificationIntentEventConsumer notificationIntentConsumer) {
         PlatformTransactionManager transactionManager = transactionManagerProvider == null
@@ -99,6 +101,11 @@ public class NotificationIntegrationInboxBridge {
                 NotificationIntegrationInboxBridge::rejectPoison);
         this.bindings = List.of(new Binding("App-Notification", notificationInbox,
                 Set.of(EVENT_TYPE, NOTIFICATION_EVENT_TYPE)));
+        // Review 2026-08-25 FINAL P1: queue/consumption SLO gauges (no DLQ in
+        // this pipeline; poisoned events are rejected inline).
+        this.sloMetrics = new com.ulticode.common.worker.StreamSloMetrics(
+                redisTemplate, meterRegistry, "notification.worker.queue",
+                STREAM_KEY, "App-Notification", null);
     }
 
     /**
@@ -118,6 +125,7 @@ public class NotificationIntegrationInboxBridge {
         for (Binding binding : bindings) {
             processed += binding.inboxConsumer.consume();
         }
+        sloMetrics.recordPoll(staged + processed);
         return staged + processed;
     }
 

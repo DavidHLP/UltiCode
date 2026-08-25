@@ -271,14 +271,24 @@ solutionCreateFromSubmissionRoute.meta = { requiresAuth: true };
 solutionEditRoute.meta = { requiresAuth: true };
 forumCreateRoute.meta = { requiresAuth: true };
 forumEditRoute.meta = { requiresAuth: true };
+const landingRoute: RouteRecordRaw = {
+  path: "/landing",
+  name: "landing",
+  component: () => import("@/views/landing/LandingView.vue"),
+};
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: "/",
-      redirect: "/problemset",
+      name: "root",
+      redirect: () => {
+        const authStore = useAuthStore();
+        return authStore.isAuthenticated ? "/problemset" : "/landing";
+      },
     },
+    landingRoute,
     forumCreateRoute,
     forumEditRoute,
     submissionDetailRoute,

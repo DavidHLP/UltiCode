@@ -107,7 +107,13 @@ public class SearchDocumentIndexWorker {
         this.processedCounter = meterRegistry.counter("search.worker.processed");
         this.deadLetterCounter = meterRegistry.counter("search.worker.deadlettered");
         this.staleCounter = meterRegistry.counter("search.worker.stale_skipped");
+        // Review 2026-08-25 FINAL P1: queue/consumption SLO gauges.
+        this.sloMetrics = new com.ulticode.common.worker.StreamSloMetrics(
+                redisTemplate, meterRegistry, "search.worker.queue",
+                props.getStreamKey(), props.getGroup(), props.getDlqKey());
     }
+
+    private final com.ulticode.common.worker.StreamSloMetrics sloMetrics;
 
     private final TypeReference<Map<String, Object>> payloadType = new TypeReference<>() {
     };
@@ -121,6 +127,7 @@ public class SearchDocumentIndexWorker {
         int processed = 0;
         processed += drainPending();   // PEL: dead-letter + reclaim
         processed += drainNew();       // new entries
+        sloMetrics.recordPoll(processed);
         return processed;
     }
 
@@ -194,7 +201,7 @@ public class SearchDocumentIndexWorker {
 
     private List<MapRecord<String, String, String>> readNew(StreamOperations<String, String, String> streams) {
         List<MapRecord<String, String, String>> records = streams.read(
-                Consumer.from(props.getGroup(), props.getConsumerName()),
+                Consumer.from(props.getGroup(), props.resolvedConsumerName()),
                 StreamReadOptions.empty().count(props.getBatchSize()),
                 StreamOffset.create(props.getStreamKey(), ReadOffset.lastConsumed()));
         return records == null ? List.of() : records;
@@ -225,7 +232,7 @@ public class SearchDocumentIndexWorker {
         List<MapRecord<String, String, String>> reclaimed = streams.claim(
                 props.getStreamKey(),
                 props.getGroup(),
-                props.getConsumerName(),
+                props.resolvedConsumerName(),
                 CLAIM_MIN_IDLE,
                 reclaimIds.toArray(RecordId[]::new));
         return reclaimed == null ? List.of() : reclaimed;

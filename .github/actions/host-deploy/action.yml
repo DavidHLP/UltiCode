@@ -18,7 +18,16 @@ inputs:
     description: 'Deploy directory on the host'
     required: true
   image_tag:
+    description: "Shared image tag for all services"
     required: true
+  services:
+    description: >-
+      Optional comma-separated compose service names to roll out (e.g.
+      "backend-auth,console"). Empty deploys every service — the default.
+      Enables per-service rolling release and single-service rollback
+      (Review 2026-08-25 FINAL P1: independent release capability).
+    required: false
+    default: ''
   skip_migrations:
     description: '"true" skips the Flyway migrate step'
     required: false
@@ -93,8 +102,15 @@ runs:
         # Login to GHCR on remote
         $SSH_CMD "echo ${{ inputs.github_token }} | docker login ${{ inputs.registry }} -u ${{ inputs.actor }} --password-stdin"
 
-        # Pull and deploy with IMAGE_TAG exported in the same shell session
+        # Pull and deploy with IMAGE_TAG exported in the same shell session.
+        # SERVICES optionally restricts pull/up to a subset of services for
+        # per-service rolling release / independent rollback; per-service tag
+        # overrides (<SVC>_IMAGE_TAG) select the image version.
+        SERVICES_FILTER=""
+        if [ -n "${{ inputs.services }}" ]; then
+          SERVICES_FILTER=$(echo "${{ inputs.services }}" | tr ',' ' ' | tr -s ' ')
+        fi
         $SSH_CMD "cd ${{ inputs.path }} && \
                   export IMAGE_TAG=${{ inputs.image_tag }} && \
-                  docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
-                  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"
+                  docker compose -f docker-compose.yml -f docker-compose.prod.yml pull $SERVICES_FILTER && \
+                  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans $SERVICES_FILTER"

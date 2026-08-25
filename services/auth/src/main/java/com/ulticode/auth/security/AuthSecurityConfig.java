@@ -51,6 +51,7 @@ public class AuthSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/health",
+                                "/api/v1/auth/health/ready",
                                 "/auth/login",
                                 "/auth/register",
                                 "/auth/refresh",

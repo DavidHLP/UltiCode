@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Nightly reconciliation job and orphan scanner (P5-RECONCILE-001),
@@ -53,7 +54,7 @@ public class OwnerReconciler {
     private final AuditOrphanMapper auditOrphanMapper;
 
     @DubboReference(group = "backend-auth", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+            timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ReconciliationQueryService authQueryService;
 
     /** Reconciliation pair for vertical-split table count divergence checks. */

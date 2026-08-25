@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Shared helper that enriches admin projections with user display data via
@@ -42,15 +43,15 @@ import java.util.stream.Collectors;
 public class AdminUserEnricher {
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private IdentityQueryService identityQueryService;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-app", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private UserProfileQueryService userProfileQueryService;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
     /**

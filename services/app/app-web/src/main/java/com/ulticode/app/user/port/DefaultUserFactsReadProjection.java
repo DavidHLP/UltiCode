@@ -3,22 +3,22 @@ package com.ulticode.app.user.port;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.error.AuthErrorCode;
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.stereotype.Component;
-
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.stereotype.Component;
 
 /**
  * Owner-composed User Facts View projection.
@@ -34,7 +34,7 @@ public class DefaultUserFactsReadProjection
 
     private final UserProfileReadMapper profileReadMapper;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
     public DefaultUserFactsReadProjection(UserProfileReadMapper profileReadMapper) {

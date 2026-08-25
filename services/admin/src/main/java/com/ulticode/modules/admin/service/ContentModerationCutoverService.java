@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * P4-CUTOVER-004: feature-flagged routing adapter for content moderation.
@@ -43,7 +44,7 @@ public class ContentModerationCutoverService {
     private final CurrentUserProvider currentUserProvider;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ContentModerationService dubboProvider;
 
     @Value("${app.features.moderation-dubbo-cutover:false}")

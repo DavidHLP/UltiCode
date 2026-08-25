@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Dubbo consumer adapter registering {@link ContestLiveRankingReadPort} as a
@@ -21,7 +22,7 @@ import java.util.List;
 @Component
 public class DubboContestLiveRankingReadAdapter implements ContestLiveRankingReadPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestLiveRankingReadPort liveRankingReadPort;
 
     @Override

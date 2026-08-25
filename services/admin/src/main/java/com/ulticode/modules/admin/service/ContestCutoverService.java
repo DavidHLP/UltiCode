@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /** Admin-side adapter for the App-owned contest write contract. */
 @Service
@@ -47,7 +48,7 @@ public class ContestCutoverService {
     private boolean dubboEnabled;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ContestAdministrationService dubboProvider;
 
     public AdminContestVO createContest(CreateContestDTO dto, String userId) {

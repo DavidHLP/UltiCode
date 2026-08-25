@@ -5,7 +5,7 @@
     "module": "auth",
     "artifact": "app.jar",
     "port": "9101",
-    "health_path": "/api/v1/auth/health"
+    "health_path": "/api/v1/auth/health/ready"
   },
   {
     "name": "backend-admin",
@@ -13,7 +13,7 @@
     "module": "admin",
     "artifact": "app-exec.jar",
     "port": "9102",
-    "health_path": "/api/v1/admin/health"
+    "health_path": "/api/v1/admin/health/ready"
   },
   {
     "name": "backend-app",
@@ -21,7 +21,7 @@
     "module": "app/app-web",
     "artifact": "app-exec.jar",
     "port": "9103",
-    "health_path": "/api/v1/app/health"
+    "health_path": "/api/v1/app/health/ready"
   },
   {
     "name": "backend-submission",
@@ -37,7 +37,7 @@
     "module": "notification",
     "artifact": "notification-exec.jar",
     "port": "9105",
-    "health_path": "/api/v1/notification/health"
+    "health_path": "/api/v1/notification/health/ready"
   },
   {
     "name": "backend-judge",

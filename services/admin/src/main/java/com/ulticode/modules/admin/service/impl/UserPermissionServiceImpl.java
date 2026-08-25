@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.ulticode.common.rpc.RpcPolicy;
 
 @Slf4j
 @Service
@@ -46,7 +47,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     private final CurrentUserProvider currentUserProvider;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private AccountAdministrationService accountAdministrationService;
 
     @Override

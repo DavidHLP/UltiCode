@@ -40,6 +40,11 @@ search:
     dlq-key: ${SEARCH_WORKER_DLQ_KEY:search:stream:dlq}
     version-key-prefix: ${SEARCH_WORKER_VERSION_KEY_PREFIX:search:doc-version}
     interval-ms: 2000
+    # Review 2026-08-25 P0: readiness marker refreshed by the heartbeat while
+    # Redis and MeiliSearch both answer; empty disables the marker (local dev).
+    ready-file: ${SEARCH_READY_FILE:}
+    heartbeat-interval-ms: ${SEARCH_HEARTBEAT_INTERVAL_MS:10000}
+    heartbeat-initial-delay-ms: ${SEARCH_HEARTBEAT_INITIAL_DELAY_MS:5000}
 
 meilisearch:
   host: ${MEILI_HOST:http://localhost:7700}

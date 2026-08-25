@@ -1,17 +1,18 @@
 package com.ulticode.modules.submission.port.adapter;
 
-import com.ulticode.submission.api.dto.CreateSubmissionDTO;
-import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.app.api.service.ProblemFactsPort;
 import com.ulticode.app.api.service.UserExistencePort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionWritePort;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import lombok.RequiredArgsConstructor;
 
 /** Remote App route used only when Submission owner cutover is enabled. */
 @Component
@@ -22,8 +23,7 @@ public class RemoteSubmissionWritePort implements SubmissionWritePort {
     private final ProblemFactsPort problemFacts;
     private final UserExistencePort userExistencePort;
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
-            timeout = 10000, retries = 0, check = false)
+    @DubboReference(group = "backend-submission", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SubmissionWritePort submissionOwner;
 
     @Override

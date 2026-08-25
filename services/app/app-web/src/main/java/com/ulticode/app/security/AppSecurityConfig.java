@@ -29,7 +29,8 @@ public class AppSecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/api/v1/health").permitAll()
+                .requestMatchers("/actuator/health", "/api/v1/health",
+                        "/api/v1/app/health/ready").permitAll()
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

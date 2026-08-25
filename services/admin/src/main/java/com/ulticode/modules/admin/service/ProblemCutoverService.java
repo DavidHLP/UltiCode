@@ -25,6 +25,7 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * P4-CUTOVER-001: problem lifecycle write seam (create/update/publish/
@@ -52,7 +53,7 @@ public class ProblemCutoverService {
     private final CurrentUserProvider currentUserProvider;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ProblemAdministrationService dubboProvider;
 
     public ProblemAdminVO createProblem(CreateProblemDTO createDTO) {

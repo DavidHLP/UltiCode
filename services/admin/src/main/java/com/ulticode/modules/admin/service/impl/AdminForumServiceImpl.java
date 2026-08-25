@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Write-only implementation of {@link AdminForumService} after the ADR-0011
@@ -74,7 +75,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final AdminForumReadPort adminForumReadPort;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ContentModerationService contentModerationService;
 
     @Override

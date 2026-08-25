@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * P4-CUTOVER-002: feature-flagged routing adapter for submission rejudge.
@@ -40,7 +41,7 @@ public class SubmissionCutoverService {
     private final CurrentUserProvider currentUserProvider;
 
     @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SubmissionAdministrationService dubboProvider;
 
     @Value("${app.features.submission-dubbo-cutover:false}")

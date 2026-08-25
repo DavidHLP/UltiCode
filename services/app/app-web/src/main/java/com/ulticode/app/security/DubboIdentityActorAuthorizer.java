@@ -1,8 +1,9 @@
 package com.ulticode.app.security;
 
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.command.ActorDelegation;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DubboIdentityActorAuthorizer implements AdminActorAuthorizer {
 
-    @DubboReference(group = "backend-auth", check = false)
+    @DubboReference(group = "backend-auth", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private IdentityQueryService identityQueryService;
 
     private final InternalDelegationAssertionVerifier delegationVerifier;

@@ -410,7 +410,8 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   auth_ready=false
   for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
     auth_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
-      http://127.0.0.1:9101/api/v1/auth/health 2>/dev/null || true)"
+      # Readiness endpoint (review 2026-08-25 P0): verifies DB + Redis.
+      http://127.0.0.1:9101/api/v1/auth/health/ready 2>/dev/null || true)"
     if [[ "$auth_code" == "200" ]]; then
       auth_ready=true
       break
@@ -544,7 +545,7 @@ echo "Starting PM2 services: $PM2_APPS"
     app_ready=false
     for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
       if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
-        http://127.0.0.1:9103/api/v1/app/health 2>/dev/null || true)" == "200" ]]; then
+        http://127.0.0.1:9103/api/v1/app/health/ready 2>/dev/null || true)" == "200" ]]; then
         app_ready=true
         break
       fi

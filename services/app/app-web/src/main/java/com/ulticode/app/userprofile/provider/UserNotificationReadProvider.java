@@ -5,27 +5,27 @@ import com.ulticode.app.api.service.UserNotificationReadPort;
 import com.ulticode.auth.api.dto.AuthNotificationRecipientDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.auth.api.service.NotificationRecipientQueryService;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import org.apache.dubbo.config.annotation.DubboReference;
-import org.apache.dubbo.config.annotation.DubboService;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.stereotype.Component;
 
 /** App-owned notification recipient seam backed by Auth-owned account data. */
 @Component
 @DubboService(group = "backend-app", version = "1.0.0")
 public class UserNotificationReadProvider implements UserNotificationReadPort {
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private NotificationRecipientQueryService recipientQueryService;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private IdentityQueryService identityQueryService;
 
     @Override

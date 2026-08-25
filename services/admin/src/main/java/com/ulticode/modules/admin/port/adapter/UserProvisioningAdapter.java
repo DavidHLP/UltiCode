@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Production adapter for the admin module's {@link UserProvisioningPort}.
@@ -50,15 +51,15 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
     private final UuidGenerator uuidGenerator;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private AccountManagementService accountManagementService;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private AccountAdministrationService accountAdministrationService;
 
     @Override

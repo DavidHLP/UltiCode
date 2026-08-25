@@ -7,22 +7,22 @@ import com.ulticode.app.user.port.UserFactsProjection;
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAccountStateCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
-import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.TraceIdUtil;
-import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.stereotype.Component;
 
 /** Auth-owner adapter for moderation identity reads and ban-state commands. */
 @Component
@@ -30,10 +30,10 @@ public class ModerationAccountAdapter implements ModerationAccountPort {
 
     private final UserFactsProjection userFactsProjection;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private AccountAdministrationService accountAdministrationService;
 
     public ModerationAccountAdapter(UserFactsProjection userFactsProjection) {

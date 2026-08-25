@@ -1,10 +1,11 @@
 package com.ulticode.judge.adapter;
 
-import com.ulticode.submission.api.dto.CreateSubmissionDTO;
-import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.submission.api.dto.CreateSubmissionDTO;
+import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
+import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.service.SubmissionWritePort;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -14,8 +15,7 @@ import org.springframework.stereotype.Component;
 @Primary
 public class RemoteSubmissionWritePort implements SubmissionWritePort {
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
-            timeout = 10000, retries = 0, check = false)
+    @DubboReference(group = "backend-submission", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SubmissionWritePort submissionWritePort;
 
     @Override

@@ -18,10 +18,11 @@ inputs:
     description: 'Multiline service spec'
     required: false
     default: |
-      backend-auth curl-container 9101 /api/v1/auth/health
-      backend-admin curl-container 9102 /api/v1/admin/health
-      backend-app curl-container 9103 /api/v1/app/health
-      backend-notification curl-container 9105 /api/v1/notification/health
+      # Readiness probes (review 2026-08-25 P0): verify DB + Redis, 503 on failure.
+      backend-auth curl-container 9101 /api/v1/auth/health/ready
+      backend-admin curl-container 9102 /api/v1/admin/health/ready
+      backend-app curl-container 9103 /api/v1/app/health/ready
+      backend-notification curl-container 9105 /api/v1/notification/health/ready
       backend-submission inspect - -
       backend-judge inspect - -
       console curl-host 9002 -

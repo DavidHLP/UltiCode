@@ -1243,7 +1243,9 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
 - Gateway 是唯一外部 API/WS 入口，Dubbo 端口只在 internal network；
 - Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential；
-- 当前配置已暴露 `/actuator/health`，但迁移后的 readiness 不应假设该端点始终公开或把它作为唯一信号；应组合仓库允许的公共 API 探针、容器 health 与服务注册状态。
+- Owner 服务（auth/admin/app/notification）同时暴露 `/health`（进程 liveness）与 `/health/ready`（readiness：校验 owner 数据库与 Redis，失败返回 503）；
+- 生产探针统一使用 readiness 端点（compose `healthcheck`、CD `host-health`、DevStack manifest），Submission 沿用容器内 actuator 探针；
+- 无 HTTP 面的 Worker（judge/search）由心跳组件刷新 `/tmp` 下的就绪标记文件，compose healthcheck 校验标记新鲜度（search 同时校验 Redis + MeiliSearch，judge 保留 docker socket + 沙箱镜像能力检查）。
 
 ##### 11.4 WebSocket、调度、备份与判题
 
@@ -1811,3 +1813,34 @@ Total keys in en-US: 245
 - 所有缺陷均以当前源码为准逐文件核实;行号为评审当日快照,修复后以 git 历史为准。
 - 未声称的事项:OAuth 缺 cookie 分支的真实攻击可达性未做端到端复现;A1 的生产绕过路径未用真实 STOMP 解码消息验证(按潜在旁路处理);Search 读模式差异已核实为 manifest 显式决策,不作为漂移报告。
 - 评审边界只读,未修改任何源码;migration 与运行数据不在本次范围内。
+
+## 8. Services review findings 2026-08-25 remediation
+
+### 微服务架构评审(2026-08-25)修复记录
+
+来源评审：`SERVICES_MICROSERVICE_ARCHITECTURE_REVIEW_2026-08-25.md`。本节记录已落地的修复与明确保留的决策。
+
+#### P0 假健康 — 已修复
+
+- 新增 `com.ulticode.common.health.ReadinessChecks` 与四个 Owner readiness controller（`AuthReadinessController` 等）：`GET /api/v1/{svc}/health/ready` 校验 owner DataSource（JDBC `isValid`）+ Redis `PING`，任一失败返回 503 与组件明细；原 `/health` 保持为纯 liveness。
+- 安全配置显式 permitAll 各自 `/health/ready` 路径。
+- `docker-compose.prod.yml`、`.github/actions/host-health/action.yml`、`.github/services-matrix.json`、`scripts/dev/devstack-manifest.sh`、`scripts/dev/up.sh` 全部改用 readiness 端点作为健康门禁。Submission 维持容器内 `/actuator/health`（默认含 db/redis indicators，非假健康）。
+- Worker 就绪化：`SearchWorkerReadinessHeartbeat`（Redis ping + MeiliSearch health → 刷新 `SEARCH_READY_FILE` 标记）、`JudgeWorkerReadinessHeartbeat`（Redis ping → `JUDGE_READY_FILE`）。生产 compose 为 search 增加 tmpfs `/tmp` 并以“标记 2 分钟内刷新”作为 healthcheck；judge 的 healthcheck 在原 docker 能力检查上追加该标记校验。
+
+#### P1 RPC 可靠性策略 — 已强制执行
+
+- 全部约 90 处消费端 `@DubboReference` 统一改为显式 `RpcPolicy` 常量：查询接口 `QUERY_TIMEOUT_MS/QUERY_RETRIES`（800ms/1 次），写接口 `WRITE_TIMEOUT_MS/WRITE_RETRIES`（3000ms/0 次）；历史漂移值（如 `timeout=3000, retries=2`）清除。
+- 新增 `RpcPolicyArchTest`（admin/app-web/submission/notification/judge 五处）：ArchUnit 校验每个 `@DubboReference` 字段必须声明且仅能声明 RpcPolicy 允许的 timeout/retry 组合；裸引用（继承 YAML 默认）同样判定为违规。
+- Submission/Judge 的 fence/write 类混合语义接口按“有写即 WRITE”裁决。
+
+#### P1 运行模式校验 — 已存在（评审结论过时）
+
+- `FlagCombinationValidator` 已在 App/Submission/Judge 进程内强制 mode×flag 组合（非法组合启动失败）；`devstack-manifest.sh` 提供声明式拓扑清单。跨进程 Producer/Consumer 配对仍依赖部署门禁，未新增机制。
+
+#### P2 本地备份路径 — 已缓解
+
+- Admin `backup.dir` 本就可经 `BACKUP_DIR` 覆盖；prod compose 为 `backend-admin` 挂载持久卷 `backup_data:/var/lib/ulticode/backup`。多副本对象存储方案仍属未来基础设施升级。
+
+#### 明确保留（需生产决策，不在代码层修复）
+
+- 生产 HA 拓扑、Judge Docker Socket 强隔离节点、Redis ACL/按 Owner 凭据、分布式 tracing/SLO 补齐、Admin 管理 read model 全面事件化：评审自身要求在明确生产目标后再实施；维持现状并以此节为处置记录。

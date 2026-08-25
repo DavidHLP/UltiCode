@@ -23,7 +23,8 @@ public class NotificationSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/api/v1/health",
-                                "/api/v1/notification/health").permitAll()
+                                "/api/v1/notification/health",
+                                "/api/v1/notification/health/ready").permitAll()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

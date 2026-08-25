@@ -1,16 +1,17 @@
 package com.ulticode.modules.search.port;
 
+import com.ulticode.app.user.port.DefaultUserFactsReadProjection;
+import com.ulticode.app.user.port.UserAccountFact;
+import com.ulticode.app.user.port.UserFactView;
+import com.ulticode.app.user.port.UserFactsProjection;
 import com.ulticode.app.user.port.UserProfileReadMapper;
 import com.ulticode.app.user.port.UserProfileReadRow;
-import com.ulticode.app.user.port.UserFactView;
-import com.ulticode.app.user.port.UserAccountFact;
-import com.ulticode.app.user.port.UserFactsProjection;
-import com.ulticode.app.user.port.DefaultUserFactsReadProjection;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,7 +39,7 @@ public class OwnerUserSearchReadAdapter implements UserDirectoryQueryPort {
     private final UserProfileReadMapper profileReadMapper;
     private final UserFactsProjection userFactsReadPort;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
     @Autowired

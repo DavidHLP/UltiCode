@@ -15,6 +15,7 @@ import com.ulticode.modules.queue.port.adapter.ProblemExampleJudgingCaseSource;
 import com.ulticode.modules.queue.port.adapter.TestCaseJudgingCaseSource;
 import com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor;
 import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
+import com.ulticode.modules.queue.processor.JudgeWorkerReadinessHeartbeat;
 import com.ulticode.modules.queue.service.impl.QueueServiceImpl;
 import com.ulticode.modules.submission.config.DockerSandboxConfigRegistrar;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
@@ -75,6 +76,7 @@ import org.springframework.context.annotation.Import;
         DefaultJudgeExecutionPipeline.class,
         DefaultJudgeAttemptExecutor.class,
         JudgeWorkerProcessor.class,
+        JudgeWorkerReadinessHeartbeat.class,
         UnackedStreamEntriesReaper.class,
         JudgeStreamLegacyMigration.class
 })

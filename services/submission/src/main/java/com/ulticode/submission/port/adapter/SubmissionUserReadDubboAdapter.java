@@ -1,11 +1,11 @@
 package com.ulticode.submission.port.adapter;
 
 import com.ulticode.app.api.service.SubmissionUserReadPort;
+import com.ulticode.common.rpc.RpcPolicy;
+import java.util.Map;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 /**
  * Dubbo adapter for {@link SubmissionUserReadPort} — user profile facts are
@@ -20,8 +20,7 @@ import java.util.Map;
 @Primary
 public class SubmissionUserReadDubboAdapter implements SubmissionUserReadPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionUserReadPort appUserRead;
 
     @Override

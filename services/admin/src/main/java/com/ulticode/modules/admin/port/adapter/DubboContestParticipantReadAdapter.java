@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Admin consumer adapter for the App-owned contest participant read contract.
@@ -14,7 +15,7 @@ import java.util.List;
 @Component
 public class DubboContestParticipantReadAdapter implements ContestParticipantReadPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0", timeout = 3000, retries = 0, check = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestParticipantReadPort participantReadPort;
 
     @Override

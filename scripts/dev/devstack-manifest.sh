@@ -218,10 +218,11 @@ devstack_apply_mode() {
 
 devstack_readiness() {
   case "$1" in
-    ulticode-auth)         printf 'http|9101|/api/v1/auth/health' ;;
-    ulticode-admin)        printf 'http|9102|/api/v1/admin/health' ;;
-    ulticode-app)          printf 'http|9103|/api/v1/app/health' ;;
-    ulticode-notification) printf 'http|9105|/api/v1/notification/health' ;;
+    # Readiness endpoints (review 2026-08-25 P0): verify DB + Redis.
+    ulticode-auth)         printf 'http|9101|/api/v1/auth/health/ready' ;;
+    ulticode-admin)        printf 'http|9102|/api/v1/admin/health/ready' ;;
+    ulticode-app)          printf 'http|9103|/api/v1/app/health/ready' ;;
+    ulticode-notification) printf 'http|9105|/api/v1/notification/health/ready' ;;
     ulticode-submission|ulticode-judge|ulticode-search) printf 'pm2' ;;
     ulticode-9002)         printf 'http|9002|/' ;;
     ulticode-9003)         printf 'http|9003|/' ;;

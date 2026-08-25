@@ -5,15 +5,15 @@ import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /** App-side reconciliation adapter with Auth-owned parent existence checks. */
 @Component
@@ -31,8 +31,7 @@ public class DefaultAppReconciliationReadPort implements AppReconciliationReadPo
 
     private final AppReconciliationReadMapper appReconciliationReadMapper;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0",
-            timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ReconciliationQueryService authQueryService;
 
     void setAuthQueryService(ReconciliationQueryService authQueryService) {

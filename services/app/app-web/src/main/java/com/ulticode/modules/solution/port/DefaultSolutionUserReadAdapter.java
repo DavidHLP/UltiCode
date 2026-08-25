@@ -4,18 +4,18 @@ import com.ulticode.app.userprofile.entity.UserProfile;
 import com.ulticode.app.userprofile.mapper.UserProfileMapper;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.stereotype.Component;
 
 /**
  * Adapter implementing {@link SolutionUserReadPort} backed by
@@ -35,7 +35,7 @@ public class DefaultSolutionUserReadAdapter implements SolutionUserReadPort {
 
     private final UserProfileMapper userProfileMapper;
 
-    @DubboReference(group = "backend-auth", check = false)
+    @DubboReference(group = "backend-auth", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private IdentityQueryService identityQueryService;
 
     @Override

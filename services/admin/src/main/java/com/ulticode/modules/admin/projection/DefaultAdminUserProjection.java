@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Adapter for {@link AdminUserProjection} using decoupled Auth and App RPC/port seams.
@@ -41,19 +42,19 @@ import java.util.stream.Collectors;
 public class DefaultAdminUserProjection implements AdminUserProjection {
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-app", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private UserProfileQueryService userProfileQueryService;
 
     private final AdminUserStatsReadPort userStatsReadPort;
     @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AuthorizationSnapshotService authorizationSnapshotService;
 
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = 3000, retries = 2, check = false)
+    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private RoleTemplateService roleTemplateService;
 
     /**

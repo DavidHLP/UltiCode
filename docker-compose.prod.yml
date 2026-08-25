@@ -111,7 +111,8 @@ services:
       - default
       - infrastructure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9101/api/v1/auth/health"]
+      # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
+      test: ["CMD", "curl", "-f", "http://localhost:9101/api/v1/auth/health/ready"]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -153,6 +154,9 @@ services:
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9102
+      # Review 2026-08-25 P2: keep backups on a persistent volume instead of
+      # container-local /tmp so multi-replica or recreated instances agree.
+      - BACKUP_DIR=${BACKUP_DIR:-/var/lib/ulticode/backup}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
     depends_on:
       mysql:
@@ -161,11 +165,14 @@ services:
         condition: service_healthy
       nacos:
         condition: service_healthy
+    volumes:
+      - backup_data:/var/lib/ulticode/backup
     networks:
       - default
       - infrastructure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9102/api/v1/admin/health"]
+      # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
+      test: ["CMD", "curl", "-f", "http://localhost:9102/api/v1/admin/health/ready"]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -235,7 +242,8 @@ services:
       - default
       - infrastructure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9103/api/v1/app/health"]
+      # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
+      test: ["CMD", "curl", "-f", "http://localhost:9103/api/v1/app/health/ready"]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -327,6 +335,8 @@ services:
       # SEARCH-003 gate: worker is the sole MeiliSearch writer; the App
       # backfill runner must be run before/while it drains (guide §11.5).
       - SEARCH_WORKER_ENABLED=${SEARCH_WORKER_ENABLED:-true}
+      # Review 2026-08-25 P0: heartbeat marker proves Redis + MeiliSearch stay reachable.
+      - SEARCH_READY_FILE=/tmp/search-worker-ready
       - SEARCH_SERVER_PORT=9107
     depends_on:
       redis:
@@ -337,15 +347,20 @@ services:
       - default
       - infrastructure
     read_only: true
+    tmpfs:
+      # Writable home for the readiness heartbeat marker.
+      - /tmp:rw,noexec,nosuid,size=16m
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD-SHELL", "exit 0"]
+      # Readiness probe (review 2026-08-25 P0): the worker heartbeat refreshes
+      # the marker only while Redis and MeiliSearch answer; fail when stale.
+      test: ["CMD-SHELL", "find $${SEARCH_READY_FILE:-/tmp/search-worker-ready} -mmin -2 | grep -q ."]
       interval: 30s
       timeout: 5s
-      start_period: 20s
+      start_period: 30s
       retries: 3
     logging:
       driver: json-file
@@ -409,7 +424,8 @@ services:
       - default
       - infrastructure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9105/api/v1/notification/health"]
+      # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
+      test: ["CMD", "curl", "-f", "http://localhost:9105/api/v1/notification/health/ready"]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -447,6 +463,8 @@ services:
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
+      # Review 2026-08-25 P0: readiness marker proves the Redis Streams dependency.
+      - JUDGE_READY_FILE=/tmp/judge-worker-ready
       - SANDBOX_ENABLED=${SANDBOX_ENABLED:-true}
       - SANDBOX_IMAGE=${SANDBOX_IMAGE:-ulticode-sandbox:latest}
       - SANDBOX_MEMORY=${SANDBOX_MEMORY:-256m}
@@ -486,7 +504,10 @@ services:
       # sandbox executor passes child-container mounts to the host daemon.
       - ${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}:${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}
     healthcheck:
-      test: ["CMD-SHELL", "docker info >/dev/null 2>&1 && docker image inspect $${SANDBOX_IMAGE} >/dev/null 2>&1"]
+      # Capability (docker socket + sandbox image) plus dependency readiness
+      # (review 2026-08-25 P0): the Redis heartbeat must have refreshed the
+      # marker within the last two minutes.
+      test: ["CMD-SHELL", "docker info >/dev/null 2>&1 && docker image inspect $${SANDBOX_IMAGE} >/dev/null 2>&1 && find $${JUDGE_READY_FILE:-/tmp/judge-worker-ready} -mmin -2 | grep -q ."]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -558,3 +579,7 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
+
+volumes:
+  # Review 2026-08-25 P2: persistent Admin backup storage.
+  backup_data:

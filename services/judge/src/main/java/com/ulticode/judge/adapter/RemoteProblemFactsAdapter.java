@@ -1,20 +1,19 @@
 package com.ulticode.judge.adapter;
 
 import com.ulticode.app.api.service.ProblemFactsPort;
+import com.ulticode.common.rpc.RpcPolicy;
+import java.util.Collection;
+import java.util.Map;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
-
-import java.util.Collection;
-import java.util.Map;
 
 /** Judge-side RPC adapter for App-owned problem facts. */
 @Component
 @Primary
 public class RemoteProblemFactsAdapter implements ProblemFactsPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
-            timeout = 5000, retries = 0, check = false)
+    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ProblemFactsPort problemFactsPort;
 
     @Override

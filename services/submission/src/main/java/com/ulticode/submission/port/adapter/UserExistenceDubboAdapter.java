@@ -3,14 +3,14 @@ package com.ulticode.submission.port.adapter;
 import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * User-existence check for the submission owner.
@@ -25,7 +25,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserExistenceDubboAdapter implements UserExistencePort {
 
-    @DubboReference(group = "backend-auth", check = false)
+    @DubboReference(group = "backend-auth", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private IdentityQueryService identityQueryService;
 
     @Override

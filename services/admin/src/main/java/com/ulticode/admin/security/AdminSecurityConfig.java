@@ -36,7 +36,8 @@ public class AdminSecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/api/v1/admin/health").permitAll()
+                .requestMatchers("/actuator/health", "/api/v1/admin/health",
+                        "/api/v1/admin/health/ready").permitAll()
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

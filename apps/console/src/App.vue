@@ -23,6 +23,8 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- Garden paper grain (shared design system; see GARDEN_DESIGN_SPEC.md §5) -->
+  <div class="paper-texture-overlay" aria-hidden="true" />
   <RouterView />
   <PWAUpdatePrompt />
   <Toaster position="top-right" rich-colors close-button />

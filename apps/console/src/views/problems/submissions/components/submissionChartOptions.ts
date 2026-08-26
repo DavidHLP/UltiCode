@@ -121,7 +121,7 @@ export function buildDistributionChartOption(
         fontSize: 10,
         color: colors.foreground,
         fontFamily:
-          '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
+          '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
       },
       axisLine: { lineStyle: { color: colors.border } },
     },
@@ -135,7 +135,7 @@ export function buildDistributionChartOption(
         fontSize: 10,
         color: colors.foreground,
         fontFamily:
-          '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
+          '"JetBrains Mono", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
       },
     },
     series: [

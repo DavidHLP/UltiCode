@@ -200,7 +200,7 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 12px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-foreground-strong: var(--foreground-strong);
@@ -331,11 +331,12 @@
 }
 
 /* ========================================
-   Solarized Design System - Light
+   Garden Design System - Light ("Parchment Garden")
    ======================================== */
 
 :root {
-  /* Shared rounded geometry: controls use 6px, cards use 8px. */
+  /* Shared rounded geometry: controls use 8px, cards/panels use 20px
+   * (landing geometry: small 4 / control 8 / card+panel 20). */
   --radius: 0.5rem;
 
   /* Font stacks (--font-sans, --font-mono) and the legacy Tailwind size
@@ -343,57 +344,67 @@
    * shared/theme/src/typography.css, which is imported at the top of this
    * file. Do not redeclare them here. */
 
-  /* Canonical Solarized sRGB palette. */
-  --solarized-base03: #002b36;
-  --solarized-base02: #073642;
-  --solarized-base01: #586e75;
-  --solarized-base00: #657b83;
-  --solarized-base0: #839496;
-  --solarized-base1: #93a1a1;
-  --solarized-base2: #eee8d5;
-  --solarized-base3: #fdf6e3;
+  /* Canonical Garden palette (extracted from the landing page design; the
+   * historical `--solarized-*` names are kept as the raw bridge contract).
+   * See packages/design-system/docs/GARDEN_DESIGN_SPEC.md. */
+  --garden-card: #f7f6f0;
+  --garden-sky: #92b3cf;
+  --garden-sky-ink: #46769b;
+  --garden-leaf: #588e67;
+  --garden-moss: #3f683b;
+  --garden-ochre: #6e5b28;
 
-  /* Solarized Accent Colors */
-  --solarized-yellow: #b58900;
-  --solarized-orange: #cb4b16;
-  --solarized-red: #dc322f;
-  --solarized-magenta: #d33682;
+  --solarized-base03: #1c2412;
+  --solarized-base02: #26301b;
+  --solarized-base01: #545c45;
+  --solarized-base00: #6a7259;
+  --solarized-base0: #838f81;
+  --solarized-base1: #a2afa9;
+  --solarized-base2: #eae8d8;
+  --solarized-base3: #e3e1d1;
+
+  /* Garden accent colors */
+  --solarized-yellow: #9c7a14;
+  --solarized-orange: #b4622d;
+  --solarized-red: #8f4822;
+  --solarized-magenta: #a05c74;
   --solarized-violet: #6c71c4;
-  --solarized-blue: #268bd2;
-  --solarized-cyan: #2aa198;
-  --solarized-green: #859900;
+  --solarized-blue: #46769b;
+  --solarized-cyan: #4e7d64;
+  --solarized-green: #588e67;
   --overlay: color-mix(in srgb, var(--solarized-base03) 65%, transparent);
 
-  /* Solarized Light. Text-bearing semantic pairs are adjusted to meet WCAG AA. */
+  /* Parchment Garden Light. Cards float above the parchment canvas; the
+   * brand olive drives primary controls. Text pairs meet WCAG AA. */
   --background: var(--solarized-base3);
-  --foreground: var(--solarized-base01);
-  --foreground-strong: var(--solarized-base03);
+  --foreground: #19220e;
+  --foreground-strong: #19220e;
   --foreground-muted: var(--solarized-base01);
   --surface: var(--solarized-base3);
-  --surface-elevated: var(--solarized-base3);
+  --surface-elevated: var(--garden-card);
   --surface-highlight: var(--solarized-base2);
   --surface-sunken: var(--solarized-base2);
-  --card: var(--solarized-base3);
-  --card-foreground: var(--solarized-base01);
-  --popover: var(--solarized-base3);
-  --popover-foreground: var(--solarized-base01);
-  /* Solarized uses monotones for interface hierarchy; accents carry meaning. */
-  --primary: var(--solarized-base03);
-  --primary-foreground: var(--solarized-base3);
-  --primary-control: var(--solarized-base03);
-  --primary-control-foreground: var(--solarized-base3);
-  --link-foreground: var(--solarized-base01);
-  --link-decoration: var(--solarized-blue);
+  --card: var(--garden-card);
+  --card-foreground: #19220e;
+  --popover: var(--garden-card);
+  --popover-foreground: #19220e;
+  /* Brand olive primary; hover deepens to #3e4433 (see component variants). */
+  --primary: var(--solarized-base01);
+  --primary-foreground: var(--garden-card);
+  --primary-control: var(--solarized-base01);
+  --primary-control-foreground: var(--garden-card);
+  --link-foreground: #19220e;
+  --link-decoration: var(--garden-sky-ink);
   --secondary: var(--solarized-base2);
-  --secondary-foreground: var(--solarized-base03);
+  --secondary-foreground: #1c2412;
   --muted: var(--solarized-base2);
-  --muted-foreground: var(--solarized-base03);
+  --muted-foreground: var(--solarized-base01);
   --accent: var(--solarized-base2);
-  --accent-foreground: var(--solarized-base03);
+  --accent-foreground: #1c2412;
   --destructive: var(--solarized-red);
-  --destructive-foreground: var(--solarized-base3);
-  --border: var(--solarized-base1);
-  --border-subtle: var(--solarized-base1);
+  --destructive-foreground: var(--garden-card);
+  --border: color-mix(in srgb, var(--solarized-base01) 30%, transparent);
+  --border-subtle: color-mix(in srgb, var(--solarized-base01) 18%, transparent);
   --border-control: var(--solarized-base00);
   --input: var(--solarized-base00);
   --ring: var(--solarized-base00);
@@ -505,12 +516,12 @@
   --border-thin: 1px solid var(--border-subtle);
   --border-accent: 1px solid var(--accent-primary);
 
-  /* Shadow Styles */
-  --shadow-color: var(--solarized-base03);
+  /* Shadow Styles (landing ink shadows) */
+  --shadow-color: #19220e;
   --shadow-float: 0 4px 20px -4px
-    color-mix(in srgb, var(--shadow-color) 12%, transparent);
-  --shadow-float-hover: 0 8px 30px -4px
-    color-mix(in srgb, var(--shadow-color) 18%, transparent);
+    color-mix(in srgb, var(--shadow-color) 10%, transparent);
+  --shadow-float-hover: 0 12px 36px -8px
+    color-mix(in srgb, var(--shadow-color) 16%, transparent);
 
   /* Transition Timing */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -524,35 +535,36 @@
 }
 
 /* ========================================
-   Solarized Design System - Dark
+   Garden Design System - Dark ("Night Garden")
    ======================================== */
 
 .dark {
-  /* Solarized Dark: base03/base0, highlighted surfaces base02/base1. */
+  /* Night Garden dark: deep moss canvas, parchment text, sage muted.
+   * Primary controls invert to parchment-on-ink like the landing CTA. */
   --background: var(--solarized-base03);
-  --foreground: var(--solarized-base1);
-  --foreground-strong: var(--solarized-base1);
-  --foreground-muted: var(--solarized-base0);
+  --foreground: var(--solarized-base2);
+  --foreground-strong: var(--solarized-base3);
+  --foreground-muted: var(--solarized-base1);
   --surface: var(--solarized-base03);
   --surface-elevated: var(--solarized-base02);
   --surface-highlight: var(--solarized-base02);
   --surface-sunken: var(--solarized-base03);
   --card: var(--solarized-base02);
-  --card-foreground: var(--solarized-base1);
+  --card-foreground: var(--solarized-base2);
   --popover: var(--solarized-base02);
-  --popover-foreground: var(--solarized-base1);
+  --popover-foreground: var(--solarized-base2);
   --primary: var(--solarized-base3);
-  --primary-foreground: var(--solarized-base03);
+  --primary-foreground: #1c2412;
   --primary-control: var(--solarized-base3);
-  --primary-control-foreground: var(--solarized-base03);
-  --link-foreground: var(--solarized-base1);
-  --link-decoration: var(--solarized-blue);
+  --primary-control-foreground: #1c2412;
+  --link-foreground: var(--solarized-base2);
+  --link-decoration: var(--garden-sky);
   --secondary: var(--solarized-base02);
-  --secondary-foreground: var(--solarized-base1);
+  --secondary-foreground: var(--solarized-base2);
   --muted: var(--solarized-base02);
   --muted-foreground: var(--solarized-base1);
   --accent: var(--solarized-base02);
-  --accent-foreground: var(--solarized-base1);
+  --accent-foreground: var(--solarized-base2);
   --destructive: var(--solarized-red);
   --destructive-foreground: var(--solarized-base3);
   --border: var(--solarized-base01);
@@ -579,7 +591,7 @@
   --chart-tooltip-border: var(--border-control);
   --overlay: color-mix(in srgb, var(--solarized-base03) 65%, transparent);
   --sidebar: var(--solarized-base02);
-  --sidebar-foreground: var(--solarized-base1);
+  --sidebar-foreground: var(--solarized-base2);
   --sidebar-primary: var(--solarized-base3);
   --sidebar-primary-foreground: var(--solarized-base03);
   --sidebar-accent: var(--solarized-base03);
@@ -610,7 +622,7 @@
   );
   --status-error-mark: color-mix(
     in srgb,
-    var(--solarized-red) 65%,
+    var(--solarized-red) 55%,
     var(--solarized-base3)
   );
   --status-info-mark: color-mix(
@@ -662,6 +674,45 @@
   --scrollbar-thumb-active: var(--solarized-base0);
 }
 
+/* Garden app-wide surface treatments (see docs/GARDEN_DESIGN_SPEC.md §5).
+ * `.paper-texture-overlay` is mounted once per app root; the grain sits above
+ * content but never intercepts pointers. */
+.paper-texture-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  opacity: 0.035;
+  background-image: radial-gradient(#19220e 1px, transparent 0);
+  background-size: 4px 4px;
+}
+
+.dark .paper-texture-overlay {
+  background-image: radial-gradient(var(--solarized-base2) 1px, transparent 0);
+}
+
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 @layer base {
   /* Focus indicators use the public monotone ring at full opacity. Many
    * generated controls request `ring-ring/50`; retaining that alpha would
@@ -703,9 +754,9 @@
   h4,
   h5,
   h6 {
-    font-family: var(--uc-font-ui);
-    font-weight: var(--uc-font-weight-bold);
-    letter-spacing: var(--uc-tracking-normal);
+    font-family: var(--uc-font-display);
+    font-weight: var(--uc-font-weight-semibold);
+    letter-spacing: -0.01em;
   }
 
   pre,

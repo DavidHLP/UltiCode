@@ -70,6 +70,7 @@ const { t } = useI18n();
   color: var(--brand-olive);
   font-family: var(--font-serif);
   font-size: 2rem;
+  --reveal-delay: 0ms;
 }
 
 .section-title {
@@ -79,6 +80,7 @@ const { t } = useI18n();
   font-weight: 400;
   line-height: 0.98;
   letter-spacing: -0.035em;
+  --reveal-delay: 80ms;
 }
 
 .section-title em {
@@ -92,6 +94,7 @@ const { t } = useI18n();
   color: var(--text-muted);
   font-size: 1rem;
   line-height: 1.55;
+  --reveal-delay: 160ms;
 }
 
 .governance-grid {
@@ -103,6 +106,18 @@ const { t } = useI18n();
 
 .governance-copy {
   text-align: center;
+}
+
+.governance-grid > :nth-child(1) {
+  --reveal-delay: 240ms;
+}
+
+.governance-grid > :nth-child(2) {
+  --reveal-delay: 360ms;
+}
+
+.governance-grid > :nth-child(3) {
+  --reveal-delay: 480ms;
 }
 
 .governance-copy h3 {

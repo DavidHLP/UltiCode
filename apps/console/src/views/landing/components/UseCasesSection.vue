@@ -157,12 +157,14 @@ const { t } = useI18n();
   color: var(--brand-olive);
   letter-spacing: 0.15rem;
   margin-bottom: 1rem;
+  --reveal-delay: 0ms;
 }
 
 .section-title {
   font-family: var(--font-serif);
   font-size: 2.75rem;
   margin-bottom: 1rem;
+  --reveal-delay: 80ms;
 }
 
 .section-title-em {
@@ -173,6 +175,7 @@ const { t } = useI18n();
   font-size: 1.05rem;
   color: #2d3a24;
   margin-bottom: 3.5rem;
+  --reveal-delay: 160ms;
 }
 
 .scenarios-grid {
@@ -191,6 +194,18 @@ const { t } = useI18n();
   display: flex;
   flex-direction: column;
   min-height: 360px;
+}
+
+.scenario-card:nth-child(1) {
+  --reveal-delay: 220ms;
+}
+
+.scenario-card:nth-child(2) {
+  --reveal-delay: 340ms;
+}
+
+.scenario-card:nth-child(3) {
+  --reveal-delay: 460ms;
 }
 
 .scenario-header {
@@ -227,6 +242,51 @@ const { t } = useI18n();
 .snip-row {
   display: flex;
   justify-content: space-between;
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.scenario-card.is-visible .snip-row {
+  animation: scenario-line-in 0.4s linear both;
+}
+
+.scenario-card:nth-child(1).is-visible .snip-row:nth-child(1) {
+  animation-delay: 300ms;
+}
+
+.scenario-card:nth-child(1).is-visible .snip-row:nth-child(2) {
+  animation-delay: 480ms;
+}
+
+.scenario-card:nth-child(2).is-visible .snip-row:nth-child(1) {
+  animation-delay: 420ms;
+}
+
+.scenario-card:nth-child(2).is-visible .snip-row:nth-child(2) {
+  animation-delay: 600ms;
+}
+
+.scenario-card:nth-child(3).is-visible .snip-row:nth-child(1) {
+  animation-delay: 540ms;
+}
+
+.scenario-card:nth-child(3).is-visible .snip-row:nth-child(2) {
+  animation-delay: 720ms;
+}
+
+@keyframes scenario-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(0) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .snip-value {
@@ -283,6 +343,14 @@ const { t } = useI18n();
   .scenario-action-wrap {
     margin-top: 1rem;
     padding-top: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snip-row {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
 </style>

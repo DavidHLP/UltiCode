@@ -299,8 +299,9 @@ describe("Solarized component consumers", () => {
     expect(definitions.get("vs-dark")?.rules?.length).toBeGreaterThan(0);
     const lightRules = definitions.get("vs-light")?.rules ?? [];
     const darkRules = definitions.get("vs-dark")?.rules ?? [];
-    expect(lightRules.some((rule) => rule.foreground === "#859900")).toBe(true);
-    expect(darkRules.some((rule) => rule.foreground === "#859900")).toBe(true);
+    // Garden leaf green (the runtime palette bridge value for keywords).
+    expect(lightRules.some((rule) => rule.foreground === "#588e67")).toBe(true);
+    expect(darkRules.some((rule) => rule.foreground === "#588e67")).toBe(true);
     expect(lightRules.some((rule) => rule.fontStyle?.includes("underline"))).toBe(true);
     expect(darkRules.some((rule) => rule.fontStyle?.includes("underline"))).toBe(true);
     expect(monacoSource).toContain("focusBorder: SOLARIZED.base00");

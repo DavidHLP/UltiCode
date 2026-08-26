@@ -125,6 +125,7 @@ watchEffect(() => {
 });
 
 onMounted(async () => {
+  document.documentElement.dataset.landingRoute = "";
   isLoaded.value = true;
   await nextTick();
 
@@ -165,6 +166,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  delete document.documentElement.dataset.landingRoute;
   if (scrollObserver) {
     scrollObserver.disconnect();
     scrollObserver = null;
@@ -227,9 +229,6 @@ onUnmounted(() => {
 
 <template>
   <div class="ulticode-landing-root" :class="{ 'is-ready': isLoaded }">
-    <!-- 纸张质感与微噪点背景层 -->
-    <div class="paper-texture-overlay" aria-hidden="true" />
-
     <!-- 侧边算法工程与架构图纸装饰 (OJ Architectural Blueprint Grid) -->
     <div class="blueprint-frame blueprint-left" aria-hidden="true">
       <svg viewBox="0 0 160 600" fill="none" class="blueprint-svg">
@@ -386,18 +385,8 @@ onUnmounted(() => {
   color: var(--text-primary);
   font-family: var(--font-sans);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   line-height: 1.6;
-}
-
-.paper-texture-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 99;
-  opacity: 0.035;
-  background-image: radial-gradient(var(--text-primary) 1px, transparent 0);
-  background-size: 4px 4px;
 }
 
 .blueprint-frame {
@@ -422,16 +411,21 @@ onUnmounted(() => {
 
 :deep(.reveal-on-scroll) {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(12px);
+  filter: blur(6px);
   transition:
-    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
 }
 
 :deep(.reveal-on-scroll.is-visible) {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
+  will-change: auto;
 }
 
 @media (max-width: 1100px) {
@@ -444,6 +438,7 @@ onUnmounted(() => {
   :deep(.reveal-on-scroll) {
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
     transition: none !important;
   }
 }

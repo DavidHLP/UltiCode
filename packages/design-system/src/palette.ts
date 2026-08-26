@@ -11,22 +11,25 @@
  */
 
 export const SOLARIZED_PALETTE = {
-  base03: "#002b36",
-  base02: "#073642",
-  base01: "#586e75",
-  base00: "#657b83",
-  base0: "#839496",
-  base1: "#93a1a1",
-  base2: "#eee8d5",
-  base3: "#fdf6e3",
-  yellow: "#b58900",
-  orange: "#cb4b16",
-  red: "#dc322f",
-  magenta: "#d33682",
+  // Garden palette values (see packages/design-system/docs/GARDEN_DESIGN_SPEC.md).
+  // Historical Solarized key names are kept as the runtime bridge contract;
+  // the values mirror the CSS raw scale in style.css.
+  base03: "#1c2412",
+  base02: "#26301b",
+  base01: "#545c45",
+  base00: "#6a7259",
+  base0: "#838f81",
+  base1: "#a2afa9",
+  base2: "#eae8d8",
+  base3: "#e3e1d1",
+  yellow: "#9c7a14",
+  orange: "#b4622d",
+  red: "#8f4822",
+  magenta: "#a05c74",
   violet: "#6c71c4",
-  blue: "#268bd2",
-  cyan: "#2aa198",
-  green: "#859900",
+  blue: "#46769b",
+  cyan: "#4e7d64",
+  green: "#588e67",
 } as const;
 
 export type SolarizedPaletteKey = keyof typeof SOLARIZED_PALETTE;

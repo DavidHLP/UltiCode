@@ -132,6 +132,7 @@ export default defineConfig({
     // 监听所有接口 (0.0.0.0 + IPv6), 使 localhost 与 127.0.0.1 均可访问
     // (默认仅绑 localhost, 在 IPv6 优先的机器上只监听 [::1], IPv4 回环访问失败)
     host: true,
+    allowedHosts: ['.trycloudflare.com'],
     port: 9002,
     proxy: {
       '/api/auth': {

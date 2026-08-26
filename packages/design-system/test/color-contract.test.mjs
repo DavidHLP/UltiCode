@@ -6,24 +6,36 @@ import test from "node:test";
 const packageRoot = process.cwd();
 const repoRoot = resolve(packageRoot, "../..");
 
-const CANONICAL_HEX = new Set([
-  "#002b36",
-  "#073642",
-  "#586e75",
-  "#657b83",
-  "#839496",
-  "#93a1a1",
-  "#eee8d5",
-  "#fdf6e3",
-  "#b58900",
-  "#cb4b16",
-  "#dc322f",
-  "#d33682",
+// Garden palette: the 16 raw bridge values plus the derived semantic
+// literals used by packages/design-system/style.css (see
+// docs/GARDEN_DESIGN_SPEC.md).
+const GARDEN_HEX = [
+  "#1c2412",
+  "#26301b",
+  "#545c45",
+  "#6a7259",
+  "#838f81",
+  "#a2afa9",
+  "#eae8d8",
+  "#e3e1d1",
+  "#9c7a14",
+  "#b4622d",
+  "#8f4822",
+  "#a05c74",
   "#6c71c4",
-  "#268bd2",
-  "#2aa198",
-  "#859900",
-]);
+  "#46769b",
+  "#4e7d64",
+  "#588e67",
+];
+const GARDEN_CSS_ONLY = [
+  "#19220e",
+  "#3e4433",
+  "#f7f6f0",
+  "#92b3cf",
+  "#3f683b",
+  "#6e5b28",
+];
+const CANONICAL_HEX = new Set([...GARDEN_HEX]);
 
 test("locks the runtime palette to the canonical style.css values", async () => {
   const { SOLARIZED_PALETTE } = await import("../src/palette.ts");
@@ -54,25 +66,25 @@ test("readCssColor resolves browser values and falls back without a DOM", async 
   const { readCssColor, SOLARIZED_PALETTE } = await import("../src/palette.ts");
 
   // No DOM: returns the canonical fallback untouched.
-  assert.equal(readCssColor("--background", SOLARIZED_PALETTE.base3), "#fdf6e3");
-  assert.equal(readCssColor("var(--background)", SOLARIZED_PALETTE.base03), "#002b36");
+  assert.equal(readCssColor("--background", SOLARIZED_PALETTE.base3), "#e3e1d1");
+  assert.equal(readCssColor("var(--background)", SOLARIZED_PALETTE.base03), "#1c2412");
 
   // A non-canonical fallback is a programming error and is rejected.
   assert.throws(() => readCssColor("--background", "#ffffff"), TypeError);
 
   // Browser path: prefers the computed property value; unset properties fall back.
   const computed = new Map([
-    ["--background", "  #93a1a1 "],
-    ["--solarized-base03", "#002b36"],
+    ["--background", "  #a2afa9 "],
+    ["--solarized-base03", "#1c2412"],
   ]);
   globalThis.document = { documentElement: {} };
   globalThis.getComputedStyle = () => ({
     getPropertyValue: (name) => computed.get(name) ?? "",
   });
   try {
-    assert.equal(readCssColor("--background", SOLARIZED_PALETTE.base3), "#93a1a1");
-    assert.equal(readCssColor("var(--background)", SOLARIZED_PALETTE.base3), "#93a1a1");
-    assert.equal(readCssColor("--missing", SOLARIZED_PALETTE.base3), "#fdf6e3");
+    assert.equal(readCssColor("--background", SOLARIZED_PALETTE.base3), "#a2afa9");
+    assert.equal(readCssColor("var(--background)", SOLARIZED_PALETTE.base3), "#a2afa9");
+    assert.equal(readCssColor("--missing", SOLARIZED_PALETTE.base3), "#e3e1d1");
   } finally {
     delete globalThis.document;
     delete globalThis.getComputedStyle;
@@ -169,8 +181,9 @@ function scanFirstPartySource() {
  */
 const ALLOWED_FILES = {
   "packages/design-system/style.css": {
-    reason: "canonical CSS owner; only the 16 palette literals are allowed",
-    literals: [...CANONICAL_HEX],
+    reason:
+      "canonical CSS owner; only the 16 palette literals + derived garden semantic literals are allowed",
+    literals: [...GARDEN_HEX, ...GARDEN_CSS_ONLY],
   },
   "packages/design-system/src/palette.ts": {
     reason: "canonical runtime bridge",
@@ -217,12 +230,60 @@ const ALLOWED_FILES = {
     literals: [...CANONICAL_HEX],
   },
   "apps/management/src/i18n/locales/en-US/modules/tags.ts": {
-    reason: "canonical Solarized tag-color input example",
-    literals: ["#268bd2"],
+    reason: "garden sky-ink tag-color input example",
+    literals: ["#46769b"],
   },
   "apps/management/src/i18n/locales/zh-CN/modules/tags.ts": {
-    reason: "canonical Solarized tag-color input example",
-    literals: ["#268bd2"],
+    reason: "garden sky-ink tag-color input example",
+    literals: ["#46769b"],
+  },
+  // ---------------------------------------------------------------------------
+  // Landing design source (docs/GARDEN_DESIGN_SPEC.md). These files ARE the
+  // origin of the Garden palette; their decorative literals are canonical by
+  // definition. Sample-data strings ("#146", "#2904", "#704") are problem IDs
+  // in copy, not colors. Do not add NEW files here — consume tokens instead.
+  // ---------------------------------------------------------------------------
+  "apps/console/src/i18n/locales/en-US/landing.ts": {
+    reason: "landing sample-data strings (problem IDs), not colors",
+    literals: ["#146", "#2904", "#704"],
+  },
+  "apps/console/src/i18n/locales/zh-CN/landing.ts": {
+    reason: "landing sample-data strings (problem IDs), not colors",
+    literals: ["#146", "#2904", "#704"],
+  },
+  "apps/console/src/views/landing/LandingView.vue": {
+    reason: "landing design source; blueprint-frame decoration palette",
+    literals: [
+      "#19220e", "#3e4433", "#545c45", "#838f81", "#92b3cf",
+      "#a2afa9", "#e3e1d1", "#f7f6f0", "bg-sky", "rgba(",
+    ],
+  },
+  "apps/console/src/views/landing/components/FinalStorySection.vue": {
+    reason: "landing design source; section decoration palette",
+    literals: ["#19220e", "#203325", "#38402f", "#59614c", "#e3e1d1", "#ffffff", "rgba("],
+  },
+  "apps/console/src/views/landing/components/HeroSection.vue": {
+    reason: "landing design source; hero showcase + accent palette",
+    literals: [
+      "#146", "#3f683b", "#588e67", "#6e5b28", "#8f4822", "#c0bcb0",
+      "#e2e8d0", "#f2efe7", "#f4f2ea", "#faf9f5", "#fff", "bg-sky", "rgba(",
+    ],
+  },
+  "apps/console/src/views/landing/components/LandingFooter.vue": {
+    reason: "landing design source; footer decoration palette",
+    literals: ["#588e67", "#8c9985", "#e3e1d1", "rgba("],
+  },
+  "apps/console/src/views/landing/components/LandingHeader.vue": {
+    reason: "landing design source; translucent header surfaces",
+    literals: ["#ffffff", "rgba("],
+  },
+  "apps/console/src/views/landing/components/ProductProofSection.vue": {
+    reason: "landing design source; translucent proof surfaces",
+    literals: ["bg-sky", "rgba("],
+  },
+  "apps/console/src/views/landing/components/UseCasesSection.vue": {
+    reason: "landing design source; use-case card decoration palette",
+    literals: ["#2d3a24", "#8c6228", "#eeece1", "bg-sky", "rgba("],
   },
 };
 

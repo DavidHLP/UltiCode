@@ -30,6 +30,10 @@ vi.mock("vue-i18n", () => ({
 describe("Landing Page Component Suite", () => {
   beforeEach(() => {
     document.title = "";
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 0,
+    });
   });
 
   it("mounts LandingView, manages dynamic SEO and OpenGraph tags, and cleans them up on unmount", () => {
@@ -43,6 +47,7 @@ describe("Landing Page Component Suite", () => {
 
     const wrapper = shallowMount(LandingView);
     expect(wrapper.find(".ulticode-landing-root").exists()).toBe(true);
+    expect(document.documentElement.dataset.landingRoute).toBe("");
     expect(document.title).toBe("landing.seoTitle");
 
     const metaDesc = document.querySelector('meta[name="description"]');
@@ -61,6 +66,7 @@ describe("Landing Page Component Suite", () => {
     expect(canonical).not.toBeNull();
 
     wrapper.unmount();
+    expect(document.documentElement.dataset.landingRoute).toBeUndefined();
     expect(document.title).toBe("Original App Title");
     expect(document.querySelector('meta[name="description"]')).toBeNull();
     expect(document.querySelector('meta[property="og:title"]')).toBeNull();
@@ -104,6 +110,29 @@ describe("Landing Page Component Suite", () => {
     const wrapper = mount(LandingHeader, { attachTo: document.body });
     expect(wrapper.find(".brand-name").text()).toBe("UltiCode");
     expect(wrapper.find(".brand-tag").text()).toBe("ARCHIVE");
+    expect(wrapper.find(".editorial-header").classes()).not.toContain(
+      "is-elevated",
+    );
+
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 64,
+    });
+    window.dispatchEvent(new Event("scroll"));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".editorial-header").classes()).toContain(
+      "is-elevated",
+    );
+
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 0,
+    });
+    window.dispatchEvent(new Event("scroll"));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".editorial-header").classes()).not.toContain(
+      "is-elevated",
+    );
 
     const navLinks = wrapper.findAll(".nav-item");
     expect(navLinks.length).toBe(3);
@@ -120,17 +149,59 @@ describe("Landing Page Component Suite", () => {
     wrapper.unmount();
   });
 
-  it("renders editorial HeroSection with framed product demo and project CTAs", () => {
+  it("renders editorial HeroSection with distinct opposing foliage layers and project CTAs", async () => {
     const wrapper = mount(HeroSection);
     expect(wrapper.find(".institutional-badge").exists()).toBe(true);
     expect(wrapper.find(".headline-editorial-wrap").exists()).toBe(true);
-    expect(wrapper.find(".hero-headline").exists()).toBe(true);
+    const heroHeadline = wrapper.find(".hero-headline");
+    expect(heroHeadline.exists()).toBe(true);
+    expect(heroHeadline.attributes("aria-label")).toBe(
+      "landing.hero.title landing.hero.titleItalic",
+    );
+    expect(wrapper.findAll(".hero-letter")).toHaveLength(
+      Array.from("landing.hero.titlelanding.hero.titleItalic").length,
+    );
+    expect(wrapper.find(".hero-letter").attributes("style")).toContain(
+      "animation-delay: 0.12s",
+    );
     expect(wrapper.find(".hero-showcase").exists()).toBe(true);
+    const leftFoliage = wrapper.find(".hero-foliage-left");
+    const rightFoliage = wrapper.find(".hero-foliage-right");
+    expect(leftFoliage.exists()).toBe(true);
+    expect(rightFoliage.exists()).toBe(true);
+    expect(leftFoliage.attributes("src")).toContain("foliage-left.png");
+    expect(rightFoliage.attributes("src")).toContain("foliage-right.png");
+    expect(leftFoliage.attributes("src")).not.toBe(
+      rightFoliage.attributes("src"),
+    );
     expect(wrapper.find(".showcase-atmosphere").exists()).toBe(true);
+    expect(wrapper.find(".product-window-frame").exists()).toBe(true);
+    const windFilter = wrapper.element.querySelector("#landing-wind");
+    const windNoise = windFilter?.querySelector("feTurbulence");
+    const windAnimation = windFilter?.querySelector("animate");
+    const windDisplacement = windFilter?.querySelector("feDisplacementMap");
+    expect(windFilter).not.toBeNull();
+    expect(windNoise?.getAttribute("baseFrequency")).toBe("0.008 0.02");
+    expect(windAnimation?.getAttribute("dur")).toBe("8s");
+    expect(windDisplacement?.getAttribute("scale")).toBe("8");
+
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 400,
+    });
+    window.dispatchEvent(new Event("scroll"));
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+    const heroStyle = (wrapper.element as HTMLElement).style;
+    expect(heroStyle.getPropertyValue("--foliage-left-y")).toBe("40px");
+    expect(heroStyle.getPropertyValue("--foliage-right-y")).toBe("-40px");
+
     expect(wrapper.find(".execution-pipeline-bar").exists()).toBe(true);
     expect(wrapper.find(".product-window-panel").exists()).toBe(true);
     expect(wrapper.find(".window-status-pill").exists()).toBe(true);
     expect(wrapper.findAll(".showcase-actions a").length).toBe(2);
+    wrapper.unmount();
   });
 
   it("renders four workflow proofs and AI still-life in ProductProofSection", () => {

@@ -43,7 +43,7 @@ export default {
     slugPlaceholder: 'url-friendly-name',
     color: 'Color',
     colorHex: 'Color (Hex)',
-    colorPlaceholder: '#268bd2',
+    colorPlaceholder: '#46769b',
     description: 'Description',
     descriptionPlaceholder: 'Enter tag description (optional)',
     saveChanges: 'Save Changes',

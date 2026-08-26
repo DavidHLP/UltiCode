@@ -1,5 +1,5 @@
 {
-  "_comment": "Single allowlist for the typography guard (packages/theme/scripts/verify-typography-tokens.mjs). Add new entries only with written reason per docs/SHARED_TYPOGRAPHY_DESIGN.md §13.",
+  "_comment": "Single allowlist for the typography guard (packages/theme/scripts/verify-typography-tokens.mjs). Add new entries only with written reason per docs/SHARED_TYPOGRAPHY_DESIGN.md \u00a713.",
   "allowedPaths": [
     "packages/theme/src/typography.css",
     "packages/design-system/style.css",
@@ -7,6 +7,15 @@
     "apps/management/src/style.css",
     "apps/console/src/assets/charts.css",
     "apps/console/src/assets/markdown.css",
-    "apps/console/src/views/problems/description/DescriptionMarkdown.vue"
-  ]
+    "apps/console/src/views/problems/description/DescriptionMarkdown.vue",
+    "apps/console/src/views/landing/LandingView.vue",
+    "apps/console/src/views/landing/components/FinalStorySection.vue",
+    "apps/console/src/views/landing/components/HeroSection.vue",
+    "apps/console/src/views/landing/components/HumanControlSection.vue",
+    "apps/console/src/views/landing/components/LandingFooter.vue",
+    "apps/console/src/views/landing/components/LandingHeader.vue",
+    "apps/console/src/views/landing/components/ProductProofSection.vue",
+    "apps/console/src/views/landing/components/UseCasesSection.vue"
+  ],
+  "_comment_landing": "Landing view files are the origin of the Garden editorial typography (Instrument Serif / Inter / JetBrains Mono). Their scoped display styles are the canonical reference implementation; see packages/design-system/docs/GARDEN_DESIGN_SPEC.md."
 }

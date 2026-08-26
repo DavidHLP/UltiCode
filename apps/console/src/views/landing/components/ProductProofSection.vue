@@ -95,6 +95,7 @@ const { t } = useI18n();
   max-width: 650px;
   margin: 0 auto 5rem;
   text-align: center;
+  --reveal-delay: 0ms;
 }
 
 .section-title {
@@ -128,6 +129,7 @@ const { t } = useI18n();
   list-style: none;
   padding: 0;
   margin: 0;
+  --reveal-delay: 100ms;
 }
 
 .proof-steps > li {
@@ -136,6 +138,8 @@ const { t } = useI18n();
   gap: 1rem;
   padding: 1.5rem 0;
   border-top: 1px solid var(--border-delicate);
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 .proof-steps > li:last-child {
@@ -177,6 +181,7 @@ const { t } = useI18n();
   overflow: hidden;
   border-radius: var(--radius-panel);
   background: var(--bg-sky);
+  --reveal-delay: 180ms;
 }
 
 .proof-visual img {
@@ -209,6 +214,37 @@ const { t } = useI18n();
   letter-spacing: 0.08em;
 }
 
+.proof-steps.is-visible > li {
+  animation: proof-step-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.proof-steps.is-visible > li:nth-child(1) {
+  animation-delay: 80ms;
+}
+
+.proof-steps.is-visible > li:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.proof-steps.is-visible > li:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.proof-steps.is-visible > li:nth-child(4) {
+  animation-delay: 320ms;
+}
+
+@keyframes proof-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 900px) {
   .proof-body {
     grid-template-columns: 1fr;
@@ -234,6 +270,14 @@ const { t } = useI18n();
   .proof-visual,
   .proof-visual img {
     min-height: 310px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proof-steps > li {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
 </style>

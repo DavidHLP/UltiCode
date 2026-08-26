@@ -98,7 +98,7 @@ test("publishes the shared rounded geometry contract", () => {
   assert.doesNotMatch(css, /--radius:\s*0;/);
 });
 
-test("keeps the canonical Solarized palette", () => {
+test("keeps the canonical Garden palette", () => {
   const light = tokensFor(css, "solarized-base03");
 
   assert.deepEqual(
@@ -106,53 +106,56 @@ test("keeps the canonical Solarized palette", () => {
       Object.entries(light).filter(([name]) => name.startsWith("solarized-")),
     ),
     {
-      "solarized-base03": "#002b36",
-      "solarized-base02": "#073642",
-      "solarized-base01": "#586e75",
-      "solarized-base00": "#657b83",
-      "solarized-base0": "#839496",
-      "solarized-base1": "#93a1a1",
-      "solarized-base2": "#eee8d5",
-      "solarized-base3": "#fdf6e3",
-      "solarized-yellow": "#b58900",
-      "solarized-orange": "#cb4b16",
-      "solarized-red": "#dc322f",
-      "solarized-magenta": "#d33682",
+      // Historical Solarized key names carry the Garden values (see
+      // docs/GARDEN_DESIGN_SPEC.md).
+      "solarized-base03": "#1c2412",
+      "solarized-base02": "#26301b",
+      "solarized-base01": "#545c45",
+      "solarized-base00": "#6a7259",
+      "solarized-base0": "#838f81",
+      "solarized-base1": "#a2afa9",
+      "solarized-base2": "#eae8d8",
+      "solarized-base3": "#e3e1d1",
+      "solarized-yellow": "#9c7a14",
+      "solarized-orange": "#b4622d",
+      "solarized-red": "#8f4822",
+      "solarized-magenta": "#a05c74",
       "solarized-violet": "#6c71c4",
-      "solarized-blue": "#268bd2",
-      "solarized-cyan": "#2aa198",
-      "solarized-green": "#859900",
+      "solarized-blue": "#46769b",
+      "solarized-cyan": "#4e7d64",
+      "solarized-green": "#588e67",
     },
   );
 });
 
 test("publishes accessible Light and Dark product mappings", () => {
   const light = tokensFor(css, "solarized-base03");
-  const darkSource = css.slice(css.indexOf("Solarized Design System - Dark"));
+  const darkSource = css.slice(css.indexOf("Garden Design System - Dark"));
   const dark = tokensFor(darkSource, "background");
 
-  assert.equal(light.foreground, "var(--solarized-base01)");
-  assert.equal(light["foreground-strong"], "var(--solarized-base03)");
+  assert.equal(light.foreground, "#19220e");
+  assert.equal(light["foreground-strong"], "#19220e");
   assert.equal(light["foreground-muted"], "var(--solarized-base01)");
-  assert.equal(light.primary, "var(--solarized-base03)");
-  assert.equal(light["primary-foreground"], "var(--solarized-base3)");
-  assert.equal(light["primary-control"], "var(--solarized-base03)");
-  assert.equal(light["primary-control-foreground"], "var(--solarized-base3)");
-  assert.equal(light["secondary-foreground"], "var(--solarized-base03)");
-  assert.equal(light["muted-foreground"], "var(--solarized-base03)");
-  assert.equal(light["accent-foreground"], "var(--solarized-base03)");
+  assert.equal(light.card, "var(--garden-card)");
+  assert.equal(light.primary, "var(--solarized-base01)");
+  assert.equal(light["primary-foreground"], "var(--garden-card)");
+  assert.equal(light["primary-control"], "var(--solarized-base01)");
+  assert.equal(light["primary-control-foreground"], "var(--garden-card)");
+  assert.equal(light["secondary-foreground"], "#1c2412");
+  assert.equal(light["muted-foreground"], "var(--solarized-base01)");
+  assert.equal(light["accent-foreground"], "#1c2412");
   assert.equal(light["sidebar-foreground"], "var(--solarized-base03)");
   assert.equal(light["sidebar-accent-foreground"], "var(--solarized-base01)");
   assert.equal(light["border-control"], "var(--solarized-base00)");
   assert.equal(light.ring, "var(--solarized-base00)");
   assert.equal(light["sidebar-ring"], "var(--solarized-base00)");
   assert.match(light["accent-glow"], /var\(--ring\)/);
-  assert.equal(dark.foreground, "var(--solarized-base1)");
+  assert.equal(dark.foreground, "var(--solarized-base2)");
   assert.equal(dark.primary, "var(--solarized-base3)");
-  assert.equal(dark["primary-foreground"], "var(--solarized-base03)");
+  assert.equal(dark["primary-foreground"], "#1c2412");
   assert.equal(dark["primary-control"], "var(--solarized-base3)");
-  assert.equal(dark["primary-control-foreground"], "var(--solarized-base03)");
-  assert.equal(dark["foreground-strong"], "var(--solarized-base1)");
+  assert.equal(dark["primary-control-foreground"], "#1c2412");
+  assert.equal(dark["foreground-strong"], "var(--solarized-base3)");
   assert.equal(dark["muted-foreground"], "var(--solarized-base1)");
   assert.equal(dark["sidebar-accent-foreground"], "var(--solarized-base1)");
   assert.equal(dark["border-control"], "var(--solarized-base0)");
@@ -161,14 +164,15 @@ test("publishes accessible Light and Dark product mappings", () => {
   assert.match(dark["accent-glow"], /var\(--ring\)/);
 
   const textPairs = [
-    ["Light foreground", "#586e75", "#fdf6e3"],
-    ["Light strong/highlight", "#002b36", "#eee8d5"],
-    ["Light secondary", "#002b36", "#eee8d5"],
-    ["Light sidebar", "#002b36", "#eee8d5"],
-    ["Light sidebar accent", "#586e75", "#fdf6e3"],
-    ["Dark foreground", "#93a1a1", "#002b36"],
-    ["Dark elevated", "#93a1a1", "#073642"],
-    ["Dark sidebar accent", "#93a1a1", "#002b36"],
+    ["Light foreground on card", "#19220e", "#f7f6f0"],
+    ["Light foreground on canvas", "#19220e", "#e3e1d1"],
+    ["Light strong/highlight", "#19220e", "#eae8d8"],
+    ["Light secondary", "#1c2412", "#eae8d8"],
+    ["Light sidebar", "#1c2412", "#eae8d8"],
+    ["Light sidebar accent", "#545c45", "#e3e1d1"],
+    ["Dark foreground", "#eae8d8", "#1c2412"],
+    ["Dark elevated", "#eae8d8", "#26301b"],
+    ["Dark sidebar accent", "#eae8d8", "#1c2412"],
   ];
   for (const [label, foreground, background] of textPairs) {
     assert.ok(
@@ -176,59 +180,59 @@ test("publishes accessible Light and Dark product mappings", () => {
       `${label} must reach 4.5:1`,
     );
   }
-  assert.ok(contrast("#657b83", "#fdf6e3") >= 3);
-  assert.ok(contrast("#fdf6e3", "#002b36") >= 4.5);
-  assert.ok(contrast("#002b36", "#fdf6e3") >= 4.5);
+  assert.ok(contrast("#6a7259", "#e3e1d1") >= 3);
+  assert.ok(contrast("#f7f6f0", "#1c2412") >= 4.5);
+  assert.ok(contrast("#1c2412", "#f7f6f0") >= 4.5);
 
-  assert.ok(contrast("#839496", "#002b36") >= 3);
-  assert.ok(contrast("#fdf6e3", "#002b36") >= 3, "Light primary control text must reach 3:1");
-  assert.ok(contrast("#002b36", "#fdf6e3") >= 3, "Dark primary control text must reach 3:1");
+  assert.ok(contrast("#838f81", "#1c2412") >= 3);
+  assert.ok(contrast("#f7f6f0", "#545c45") >= 3, "Light primary control text must reach 3:1");
+  assert.ok(contrast("#1c2412", "#e3e1d1") >= 3, "Dark primary control text must reach 3:1");
 
   const statusSurfaces = [
-    ["#859900", 0.14, 0.16],
-    ["#b58900", 0.14, 0.16],
-    ["#dc322f", 0.12, 0.16],
-    ["#2aa198", 0.14, 0.14],
+    ["#588e67", 0.14, 0.16],
+    ["#9c7a14", 0.14, 0.16],
+    ["#8f4822", 0.12, 0.16],
+    ["#4e7d64", 0.14, 0.14],
     ["#6c71c4", 0.12, 0.16],
   ];
   for (const [accent, lightRatio, darkRatio] of statusSurfaces) {
     assert.ok(
-      contrast("#002b36", mixSrgb(accent, "#fdf6e3", lightRatio)) >= 4.5,
+      contrast("#1c2412", mixSrgb(accent, "#e3e1d1", lightRatio)) >= 4.5,
     );
     assert.ok(
-      contrast("#93a1a1", mixSrgb(accent, "#002b36", darkRatio)) >= 4.5,
+      contrast("#eae8d8", mixSrgb(accent, "#1c2412", darkRatio)) >= 4.5,
     );
   }
 
   const lightMarkAccents = [
-    ["#859900", 0.6],
-    ["#b58900", 0.65],
-    ["#dc322f", 0.7],
-    ["#2aa198", 0.6],
+    ["#588e67", 0.6],
+    ["#9c7a14", 0.65],
+    ["#8f4822", 0.7],
+    ["#4e7d64", 0.6],
     ["#6c71c4", 0.7],
   ];
   for (const [accent, ratio] of lightMarkAccents) {
-    assert.ok(contrast(mixSrgb(accent, "#002b36", ratio), "#fdf6e3") >= 4.5);
+    assert.ok(contrast(mixSrgb(accent, "#1c2412", ratio), "#e3e1d1") >= 4.5);
   }
 
   const darkMarkAccents = [
-    ["#859900", 0.7],
-    ["#b58900", 0.7],
-    ["#dc322f", 0.65],
-    ["#2aa198", 0.7],
+    ["#588e67", 0.7],
+    ["#9c7a14", 0.7],
+    ["#8f4822", 0.55],
+    ["#4e7d64", 0.7],
     ["#6c71c4", 0.7],
   ];
   for (const [accent, ratio] of darkMarkAccents) {
-    assert.ok(contrast(mixSrgb(accent, "#fdf6e3", ratio), "#073642") >= 4.5);
+    assert.ok(contrast(mixSrgb(accent, "#eae8d8", ratio), "#26301b") >= 4.5);
   }
 });
 
 test("keeps adaptive control foregrounds readable on dark status marks", () => {
-  const darkWarningMark = mixSrgb("#b58900", "#fdf6e3", 0.7);
-  const darkSuccessMark = mixSrgb("#859900", "#fdf6e3", 0.7);
+  const darkWarningMark = mixSrgb("#9c7a14", "#eae8d8", 0.7);
+  const darkSuccessMark = mixSrgb("#588e67", "#eae8d8", 0.7);
 
-  assert.ok(contrast("#002b36", darkWarningMark) >= 3);
-  assert.ok(contrast("#002b36", darkSuccessMark) >= 3);
+  assert.ok(contrast("#1c2412", darkWarningMark) >= 3);
+  assert.ok(contrast("#1c2412", darkSuccessMark) >= 3);
 });
 
 test("owns shared status and chart semantics", () => {
@@ -274,7 +278,7 @@ test("publishes shared component states without palette primitives", async () =>
 
   const light = tokensFor(css, "solarized-base03");
   const dark = tokensFor(
-    css.slice(css.indexOf("Solarized Design System - Dark")),
+    css.slice(css.indexOf("Garden Design System - Dark")),
     "background",
   );
   assert.notEqual(light["border-control"], light.primary);
@@ -315,24 +319,32 @@ test("keeps terminal badges readable with a semantic marker", () => {
   );
 });
 
-test("does not introduce colors outside the canonical palette", () => {
+test("does not introduce colors outside the canonical garden palette", () => {
+  // 16 raw bridge values + derived semantic literals owned by style.css
+  // (ink text, olive hover, card paper, sky fill). See GARDEN_DESIGN_SPEC.md.
   const canonical = new Set([
-    "#002b36",
-    "#073642",
-    "#586e75",
-    "#657b83",
-    "#839496",
-    "#93a1a1",
-    "#eee8d5",
-    "#fdf6e3",
-    "#b58900",
-    "#cb4b16",
-    "#dc322f",
-    "#d33682",
+    "#1c2412",
+    "#26301b",
+    "#545c45",
+    "#6a7259",
+    "#838f81",
+    "#a2afa9",
+    "#eae8d8",
+    "#e3e1d1",
+    "#9c7a14",
+    "#b4622d",
+    "#8f4822",
+    "#a05c74",
     "#6c71c4",
-    "#268bd2",
-    "#2aa198",
-    "#859900",
+    "#46769b",
+    "#4e7d64",
+    "#588e67",
+    "#19220e",
+    "#3e4433",
+    "#f7f6f0",
+    "#92b3cf",
+    "#3f683b",
+    "#6e5b28",
   ]);
   const literals = [...css.matchAll(/#[0-9a-f]{6}/gi)].map(([value]) =>
     value.toLowerCase(),

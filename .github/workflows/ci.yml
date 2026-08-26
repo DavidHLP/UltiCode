@@ -3,6 +3,7 @@
 #   changes ─┬─ security  (_security.yml)   always on
 #            ├─ backend   (_backend.yml)    gated by path filter
 #            ├─ frontend  (_frontend.yml)   gated by path filter
+#            ├─ contract  (_contract.yml)   gated by path filter
 #            └─ docker    (_docker.yml)     gated by path filter
 #                    └────── ci-ok ── single stable required context
 #
@@ -41,6 +42,7 @@ jobs:
       console: ${{ steps.filter.outputs.console }}
       management: ${{ steps.filter.outputs.management }}
       docker: ${{ steps.filter.outputs.docker }}
+      contract: ${{ steps.filter.outputs.contract }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -68,6 +70,10 @@ jobs:
               - 'shared/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/_frontend.yml'
+            contract:
+              - 'services/api/**'
+              - 'services/pom.xml'
+              - '.github/workflows/_contract.yml'
             docker:
               - 'services/**'
               - 'apps/console/Dockerfile'
@@ -107,6 +113,14 @@ jobs:
       management_changed: ${{ needs.changes.outputs.management == 'true' }}
     secrets: inherit
 
+  # --- Contract compatibility gate ---
+  contract:
+    name: Contract Compatibility
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.contract == 'true' }}
+    uses: ./.github/workflows/_contract.yml
+    secrets: inherit
+
   # --- Docker build verification ---
   docker:
     name: Docker Verify
@@ -119,7 +133,7 @@ jobs:
   #     stage succeeded; `skipped` is fine because stages are path-gated. ---
   ci-ok:
     name: ci-ok
-    needs: [changes, security, backend, frontend, docker]
+    needs: [changes, security, backend, frontend, contract, docker]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5

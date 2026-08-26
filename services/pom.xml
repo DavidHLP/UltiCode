@@ -61,6 +61,14 @@
 		<hutool.version>5.8.44</hutool.version>
 		<lombok.version>1.18.46</lombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
+		<japicmp.version>0.26.1</japicmp.version>
+		<!-- Contract compat gate: old artifact to compare against.
+		     Default is the current reactor revision (self-compare, zero diff).
+		     Override via -Dcontract.compat.oldVersion=1.0.0 or a Maven version
+		     range like -Dcontract.compat.oldVersion=[0,1.0.0) to resolve the
+		     nearest old release from the local repo. CI resolves this from the
+		     baseline tag's installed artifacts; see services/docs/CONTRACT_COMPAT_GATE.md. -->
+		<contract.compat.oldVersion>${project.version}</contract.compat.oldVersion>
 	</properties>
 
 	<dependencyManagement>
@@ -257,4 +265,57 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>contract-compat</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.siom79.japicmp</groupId>
+						<artifactId>japicmp-maven-plugin</artifactId>
+						<version>${japicmp.version}</version>
+						<configuration>
+							<oldVersion>
+								<dependency>
+									<groupId>${project.groupId}</groupId>
+									<artifactId>${project.artifactId}</artifactId>
+									<version>${contract.compat.oldVersion}</version>
+									<type>jar</type>
+								</dependency>
+							</oldVersion>
+							<newVersion>
+								<file>
+									<path>${project.build.directory}/${project.artifactId}-${project.version}.${project.packaging}</path>
+								</file>
+							</newVersion>
+							<parameter>
+								<onlyModified>true</onlyModified>
+								<accessModifier>public</accessModifier>
+								<breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+								<includeSynthetic>false</includeSynthetic>
+								<onlyBinaryIncompatible>false</onlyBinaryIncompatible>
+								<ignoreMissingClasses>false</ignoreMissingClasses>
+								<skipPomModules>true</skipPomModules>
+								<packagingSupporteds>
+									<packagingSupported>jar</packagingSupported>
+								</packagingSupporteds>
+								<includeModules>
+									<includeModule>backend-.*-api</includeModule>
+								</includeModules>
+							</parameter>
+						</configuration>
+						<executions>
+							<execution>
+								<id>contract-compat-check</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>cmp</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

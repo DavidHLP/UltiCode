@@ -1,41 +1,43 @@
-objective: Fix all remaining gaps in SERVICES_MICROSERVICE_ARCHITECTURE_FINAL_2026-08-25.md
+objective: Close remaining enterprise-readiness gaps from round-2 review (2026-08-26 remediation round 3)
 status: complete
+branch: fix/enterprise-remediation-round3 (integration worktree ~/project/UltiCode-r3-integration)
 tasks:
-  - id: T1
-    title: "P1 Admin silent degradation: explicit unavailable/partial semantics in DefaultAdminUserProjection + AdminUserEnricher"
+  - id: R3-1
+    title: "Landfall: verify and commit workspace Redis ACL + PM2 wiring + up.sh hardening"
     status: done
-  - id: T2
-    title: "P1 Worker scale-out contract: instance-unique consumer names, pending reclaim, graceful shutdown (search + other stream workers)"
+    evidence: "main-worktree commits 67609c799, a2da6fa83; ACL render==file; live auth/permission matrix 20/20; compose/node/bash -n checks"
+  - id: R3-2
+    title: "Remediation plan doc covering all 7 gaps (done/this-round/deferred+triggers)"
     status: done
-  - id: T3
-    title: "P1 Tracing/SLO: OTel OTLP config for submission/notification/search/judge + queue lag/PEL/DLQ worker metrics"
+    evidence: "f81a0847f services/docs/SERVICES_ENTERPRISE_REMEDIATION_PLAN_2026-08-26.md"
+  - id: R3-3
+    title: "T1 restructure final architecture review into mutually exclusive sections"
     status: done
-  - id: T4
-    title: "P1 Redis owner security boundary: ACL users per domain in compose, per-owner credential wiring"
+    evidence: "1d308f187; 8 branch-disposition blockquotes removed; closed 12 / open 5 / triggers 5; 19 relative paths verified"
+  - id: R3-4
+    title: "T2 japicmp mixed-version contract gate (pom profile + CI + doc)"
     status: done
-  - id: T5
-    title: "P0 Judge socket isolation: configurable remote/rootless docker endpoint, dedicated-node deploy path, socket mount demoted to dev fallback"
+    evidence: "4e582f1c6; com.github.siom79.japicmp 0.26.1 (verified via official docs + Maven Central); self-compare zero-diff BUILD SUCCESS; removed-method detection proven (BUILD FAILURE then restored); 5 api modules pass"
+  - id: R3-5
+    title: "T3 worker SLO alert rules + DLQ runbook + failure drill script"
     status: done
-  - id: T6
-    title: "P1 Independent release: per-service image tag overrides in CD action + mixed-version contract compat policy"
+    evidence: "eb15d3e92; promtool SUCCESS 24 rules; drill bash -n + dry-run OK; metric names verified against WorkerSloMeters + 3 register sites"
+  - id: R3-6
+    title: "Integration: merge T1-T3, dedupe PROJECT_DOCUMENTATION.md, wire cross-links"
     status: done
-  - id: T7
-    title: "P0 HA topology: single-host-achievable improvements (nacos cluster readiness, failure-domain docs) + explicit external-infra decisions"
+    evidence: "merges 2bf7477be/946c7212e/df4daa826 + docs dedupe commit; duplicate Admin/Worker entries removed (old 1848/1849)"
+  - id: R3-7
+    title: "Validation: targeted Maven/script/YAML checks + full-diff review + delivery report"
     status: done
-  - id: T8
-    title: "P2 local state: shared/object storage seam for avatar uploads"
-    status: done
-  - id: T9
-    title: "Docs + verification: PROJECT_DOCUMENTATION.md, review doc disposition, full test/compose checks"
-    status: done
+    evidence: "post-merge: mvnw -P contract-compat verify exit 0; promtool 24 rules; bash -n + dry-run; ci/_contract YAML parse; both compose configs OK; git diff --check clean"
 
 verification:
-  - ./mvnw test -B (full reactor) → BUILD SUCCESS, 0 failures / 0 errors
-  - docker compose base+dev & base+prod config → OK
-  - git diff --check → clean; user's dirty landing-page work untouched
-  - graphify update . → graph refreshed
+  - "ACL: render consistency + live auth/permission matrix (landfall)"
+  - "T2: self-compare pass + cross-version resolution + breaking-change detection proven"
+  - "T3: promtool + dry-run"
+  - "post-merge re-run of all targeted checks"
 
 notes:
-  - Pre-existing breakage found and fixed en route: BackendAuthApplicationTest /
-    BackendAppApplicationTest context-load failures at HEAD (readiness controllers
-    required DataSource/StringRedisTemplate excluded in test profiles) — now use ObjectProvider.
+  - "Deferred with explicit triggers (remediation plan §3): Admin event read model, real multi-host HA, Judge dedicated-node isolation."
+  - "Merging fix/enterprise-remediation-round3 into main requires the user to first commit or stash their dirty PROJECT_DOCUMENTATION.md (Garden §9) in the main worktree, otherwise git refuses the merge."
+  - "User's Garden/landing dirty work in main worktree untouched throughout."

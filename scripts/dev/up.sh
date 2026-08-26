@@ -33,6 +33,7 @@ SKIP_MIGRATE=false
 SKIP_BOOTSTRAP=false
 SKIP_SEED_DATA=false
 QUICK=false
+REBUILD=false
 NO_FRONTEND=false
 FRONTEND_ONLY=false
 PREPARE_SUBMISSION_OWNER=false
@@ -51,6 +52,10 @@ dev-admin bootstrap (经 Dubbo RPC) → pnpm install → PM2 服务 → 就绪�
 Options:
   --quick              热重启: 跳过 infra/Nacos/迁移/admin/依赖, 只重启 PM2 服务
                        (改代码后最快路径)
+  --rebuild            启动后端前执行 services 反应堆 ./mvnw -DskipTests install,
+                       刷新 ~/.m2 构建产物。PM2 以单模块 spring-boot:run 启动各
+                       服务并从 ~/.m2 解析兄弟模块; 源码接口变更后若不重新 install,
+                       会拿到旧 jar (构造器不匹配 / ClassNotFoundException)。
   --skip-infra         跳过 Docker 基础设施 (假设 mysql/redis/nacos 已运行)
   --skip-migrate       跳过 Flyway 迁移
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
@@ -69,6 +74,7 @@ Options:
 Examples:
   ./scripts/dev/up.sh                          # 全量冷启动
   ./scripts/dev/up.sh --quick                  # 改代码后热重启 (最快)
+  ./scripts/dev/up.sh --rebuild                # 先刷新 ~/.m2 构建产物再起服务
   ./scripts/dev/up.sh --only auth              # 只起 Auth
   ./scripts/dev/up.sh --frontend-only          # 只起前端
   ./scripts/dev/up.sh --prepare-submission-owner # 准备 owner，随后执行 cutover runbook
@@ -89,6 +95,7 @@ while [[ $# -gt 0 ]]; do
     --skip-bootstrap) SKIP_BOOTSTRAP=true; shift ;;
     --skip-seed-data) SKIP_SEED_DATA=true; shift ;;
     --quick)          QUICK=true; shift ;;
+    --rebuild)        REBUILD=true; shift ;;
     --no-frontend)    NO_FRONTEND=true; shift ;;
     --frontend-only)  FRONTEND_ONLY=true; shift ;;
     --prepare-submission-owner) PREPARE_SUBMISSION_OWNER=true; shift ;;
@@ -122,6 +129,11 @@ if [[ "$FRONTEND_ONLY" == true ]]; then
   SKIP_INFRA=true
   SKIP_MIGRATE=true
   SKIP_BOOTSTRAP=true
+fi
+
+if [[ "$REBUILD" == true && ("$QUICK" == true || "$FRONTEND_ONLY" == true) ]]; then
+  echo "--rebuild has no effect together with --quick/--frontend-only (no backend PM2 start path rebuilds there)." >&2
+  REBUILD=false
 fi
 
 if [[ "$PREPARE_SUBMISSION_OWNER" == true && ("$SKIP_MIGRATE" == true || "$FRONTEND_ONLY" == true) ]]; then
@@ -196,6 +208,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
 fi
 load_env_file
+
+# .env 可能残留历史通用 SERVER_PORT (曾为 9103/9001)。ecosystem.config.cjs 已按
+# 服务显式固定端口; 若该值经 --update-env 注入 PM2 子进程, 会覆盖/污染各服务端口,
+# 出现 submission 抢占 app 端口之类的串绑。这里统一丢弃, 以 ecosystem 为准。
+unset SERVER_PORT
 
 # Older generated env files may not contain a Meili key. Compose still
 # interpolates that service during dev startup, so provide a disposable
@@ -409,8 +426,8 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   )
   auth_ready=false
   for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
+    # Readiness endpoint (review 2026-08-25 P0): verifies DB + Redis.
     auth_code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
-      # Readiness endpoint (review 2026-08-25 P0): verifies DB + Redis.
       http://127.0.0.1:9101/api/v1/auth/health/ready 2>/dev/null || true)"
     if [[ "$auth_code" == "200" ]]; then
       auth_ready=true
@@ -500,6 +517,19 @@ else
   echo "Skipping dependency install (--skip-install / --quick / --frontend-only)."
 fi
 
+# ===== 步骤 5-pre: 可选的 Maven 反应堆重建 (--rebuild) =====
+# 背景: PM2 用单模块 mvn -f <module>/pom.xml spring-boot:run 启动各后端服务,
+# 兄弟模块 (api/*, platform/*, judge-runtime) 从 ~/.m2 仓库解析。只改源码不
+# install 时, ~/.m2 里的旧 jar 与新源码不一致, 表现为编译期构造器不匹配或
+# 运行期 ClassNotFoundException。--rebuild 提供一条显式刷新路径。
+if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *,ulticode-* ]]; then
+  echo "Rebuilding services reactor into ~/.m2 (-DskipTests install)..."
+  (cd "$ROOT_DIR/services" && ./mvnw -DskipTests install -B) || {
+    echo "Error: reactor install failed; fix compilation errors before starting the stack." >&2
+    exit 1
+  }
+fi
+
 # ===== 步骤 5a: 沙箱镜像前置告警(判题功能依赖;不阻塞启动) =====
 # 镜像不随仓库分发。缺失时判题 Worker 会返回 SANDBOX_ERROR。
 # 仅告警不 exit: 启动后端/前端不依赖沙箱, 只有判题需要。
@@ -507,6 +537,52 @@ if ! docker image inspect "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" >/dev/null
   echo "[WARN] ${SANDBOX_IMAGE:-ulticode-sandbox:latest} not found — judging will fail with SANDBOX_ERROR until built." >&2
   echo "[WARN]   Build runbook: README.md § Docker  |  Code: docker/sandbox/harness/build.sh" >&2
 fi
+
+# ===== 步骤 6 前置: 端口占用预检 (fail fast, 避免 crash-loop 掩盖真实原因) =====
+# 崩溃循环遗留的孤儿 java 子进程 (mvn spring-boot:run fork 出的 JVM 可能在
+# 父进程死后继续存活) 或无关进程占住服务端口时, startOrRestart 会陷入
+# BindException 重启风暴。这里在启动前识别: 目标端口被监听, 且监听者不是
+# 该 PM2 app 管理的进程及其后代 → 直接报错退出并给出处置建议。
+listener_pid_is_owned() {
+  # $1 = candidate listener pid, $2 = expected pm2-managed pid (may be empty)
+  local p="$1" expected="$2"
+  [[ -n "$expected" && "$p" == "$expected" ]] && return 0
+  # 沿 PPid 链上溯: mvn(pm2 直接子进程) 会 fork 实际监听端口的 java 子进程。
+  local guard=0
+  while [[ "$guard" -lt 16 ]]; do
+    p="$(awk '/^PPid:/{print $2}' "/proc/$p/status" 2>/dev/null || true)"
+    [[ -z "$p" || "$p" == "0" || "$p" == "1" ]] && return 1
+    [[ -n "$expected" && "$p" == "$expected" ]] && return 0
+    guard=$((guard + 1))
+  done
+  return 1
+}
+
+preflight_service_ports() {
+  command -v ss >/dev/null 2>&1 || {
+    echo "[WARN] ss not available; skipping service port preflight." >&2
+    return 0
+  }
+  local app kind port path pid pids listener_cmd owned
+  for app in "${DEVSTACK_READINESS_APPS[@]}"; do
+    [[ ",$PM2_APPS," == *",$app,"* ]] || continue
+    IFS='|' read -r kind port path <<< "$(devstack_readiness "$app")"
+    [[ "$kind" == "http" ]] || continue
+    pids="$(ss -ltnp "sport = :$port" 2>/dev/null | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u)"
+    [[ -z "$pids" ]] && continue
+    owned="$(pm2 pid "$app" 2>/dev/null || true)"
+    for pid in $pids; do
+      if ! listener_pid_is_owned "$pid" "$owned"; then
+        listener_cmd="$(ps -p "$pid" -o args= 2>/dev/null | head -c 200 || true)"
+        echo "Error: port $port ($app) is held by unrelated PID $pid: ${listener_cmd:-<unknown>}" >&2
+        echo "  Likely an orphaned JVM from a previous crashed run or another process." >&2
+        echo "  Stop it first, e.g.: kill $pid   (or: pm2 delete $app && kill <stale pid>), then re-run up.sh." >&2
+        exit 1
+      fi
+    done
+  done
+}
+preflight_service_ports
 
 # ===== 步骤 6: PM2 服务 =====
 # Judge 依赖 backend-app 的 Dubbo provider (SubmissionFencePort 等)。
@@ -672,4 +748,11 @@ done
 
 echo "Application readiness check timed out for: $PM2_APPS" >&2
 pm2 status >&2 || true
+echo >&2
+echo "Troubleshooting hints:" >&2
+echo "  - Compile/constructor errors or ClassNotFoundException in a service log" >&2
+echo "    usually mean stale ~/.m2 artifacts; re-run with: ./scripts/dev/up.sh --rebuild" >&2
+echo "  - BindException / address-in-use means a foreign process holds the service port;" >&2
+echo "    the preflight above passes only after it exits, so inspect: ss -ltnp | grep 910" >&2
+echo "  - Service-specific output: pm2 logs <app> --nostream --lines 100" >&2
 exit 1

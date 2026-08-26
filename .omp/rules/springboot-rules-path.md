@@ -3,9 +3,7 @@ description: Spring Boot backend conventions for the UltiCode API.
 globs:
 - services/pom.xml
 - services/**/pom.xml
-- '{backend-auth,backend-admin,backend-app}/pom.xml'
 - services/**/src/**/*.{java,yml,yaml,properties}
-- '{backend-auth,backend-admin,backend-app}/src/**/*.{java,yml,yaml,properties}'
 priority: 100
 ---
 
@@ -23,3 +21,6 @@ priority: 100
 - Do not expose entities, framework exceptions, stack traces, or internal configuration objects through HTTP responses.
 - Filters, interceptors, argument resolvers, and exception handlers **MUST** remain stateless or thread-safe because one instance serves concurrent requests.
 - New endpoints, beans, or configuration properties require tests proving startup wiring and the relevant success/failure behavior.
+- Dubbo RPC providers and consumers **MUST** adhere to contracts declared in `services/api/` and implement idempotent replay / deduplication where commands alter state.
+- Independent judge runtimes (`app.runtime.role=judge`) consume Redis Streams without exposing HTTP endpoints or querying business tables directly.
+- Register every new `@Audited` or `@CheckBan` site in `AuditPolicy`; push-port adapters must treat disconnected subscriptions as no-ops.

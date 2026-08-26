@@ -1,10 +1,9 @@
 ---
 paths:
   - "init-db/migrations/**/*.sql"
+  - "init-db/baseline/**/*.sql"
   - "services/**/src/main/java/**/*Mapper.java"
-  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/*Mapper.java"
   - "services/**/src/main/java/**/mapper/**/*.java"
-  - "{backend-auth,backend-admin,backend-app}/src/main/java/**/mapper/**/*.java"
 kind: rules
 summary: 'MySQL coding standards for mappers and migrations.'
 ---
@@ -27,3 +26,5 @@ summary: 'MySQL coding standards for mappers and migrations.'
 - Seed and fixture SQL **MUST NOT** create usable default credentials, plaintext tokens, or production-like secrets.
 - Before corrective update/delete DML, express the same predicate as a `SELECT` and verify the expected row set/count; make the migration's scope reviewable.
 - Mapper binding, column selection, query cardinality, pagination, and N+1 rules are owned by `backend/mysql-database.md`; do not redefine them here.
+- Schema changes **MUST** maintain owner isolation (`auth`, `admin`, `app`, `notification`, `submission`); cross-owner schema joins are forbidden.
+- Large table migrations (e.g. submissions, participants) **SHOULD** use online DDL (`ALGORITHM=INPLACE, LOCK=NONE`) and bounded lock timeouts to avoid long blocking locks.

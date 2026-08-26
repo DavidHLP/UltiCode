@@ -23,3 +23,5 @@ priority: 100
 - Never echo secrets, enable `set -x` around credentials, embed passwords in command arguments, or source an untrusted environment file.
 - A `shellcheck disable` comment **MUST** be adjacent to the line and justified by the surrounding code.
 - Changed scripts **MUST** pass `bash -n`; run ShellCheck when available and preserve executable permissions for entry-point scripts.
+- Migration and orchestration scripts **MUST** fail closed when credentials or prerequisite capabilities are missing or invalid.
+- Entry-point scripts (`scripts/dev/*.sh`) **MUST** remain idempotent, support non-interactive execution, and return clean non-zero exit codes on failure.

@@ -2,7 +2,6 @@
 description: Spring-specific code review rules.
 globs:
 - services/**/src/**/*.{java,yml,yaml,properties}
-- '{backend-auth,backend-admin,backend-app}/src/**/*.{java,yml,yaml,properties}'
 priority: 100
 ---
 

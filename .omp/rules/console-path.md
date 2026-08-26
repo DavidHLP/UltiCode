@@ -15,3 +15,7 @@ priority: 100
 - Compare with an existing Console feature that uses the same seam before introducing a new abstraction.
 - If the change might belong in `packages/`, inspect both applications and read `packages/AGENTS.md` before deciding ownership.
 - Run the checks selected from the Console and changed-package guides, then inspect any formatter or lint rewrite before keeping it.
+- API modules under `src/api/` call helpers from `src/utils/request.ts` directly; do not introduce management-style API objects solely for symmetry.
+- Auth must be initialized before installing the router; protected-route navigation guards depend on completed auth bootstrap.
+- Add translation keys to both `src/i18n/locales/zh-CN/` and `src/i18n/locales/en-US/`.
+- Mock `src/utils/request.ts` in API unit tests using Vitest; the project does not use MSW.

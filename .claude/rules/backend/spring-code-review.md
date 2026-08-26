@@ -1,7 +1,6 @@
 ---
 paths:
   - "services/**/src/**/*.{java,yml,yaml,properties}"
-  - "{backend-auth,backend-admin,backend-app}/src/**/*.{java,yml,yaml,properties}"
 kind: rules
 summary: 'Spring-specific code review rules.'
 ---

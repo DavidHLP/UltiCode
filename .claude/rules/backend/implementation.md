@@ -2,9 +2,7 @@
 paths:
   - "services/pom.xml"
   - "services/**/pom.xml"
-  - "{backend-auth,backend-admin,backend-app}/pom.xml"
   - "services/**/src/**/*.{java,xml,yml,yaml,properties}"
-  - "{backend-auth,backend-admin,backend-app}/src/**/*.{java,xml,yml,yaml,properties}"
 kind: rules
 summary: 'Backend implementation workflow and conventions.'
 ---

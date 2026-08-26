@@ -2,7 +2,6 @@
 description: Java programming standards for backend source.
 globs:
 - services/**/src/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/**/*.java'
 - docker/sandbox/harness/java/src/**/*.java
 priority: 100
 ---
@@ -19,7 +18,7 @@ These defaults apply unless the nearest project guide or an established local pa
 - New imports **MUST** be explicit; do not introduce wildcard imports. Existing wildcard imports may remain when they are outside the task scope. Raw types and new unchecked casts/suppressions are forbidden unless narrowly scoped with a reason.
 - New injected dependencies **MUST** use constructor injection and should be `private final`; do not add field injection.
 - Overridden methods **MUST** use `@Override`. Do not call deprecated APIs in new code; compatibility shims must identify the supported replacement and removal boundary.
-- Nullability **MUST** be handled deliberately. Return empty collections instead of `null`; do not call `Optional.get()` without a proven presence check.
+- Nullability **MUST** be handled deliberately. Return empty collections instead of `null`; do not use `Map.of` when any value may be null; do not call `Optional.get()` without a proven presence check.
 - `Optional` **SHOULD** be used for return values, not entity fields, DTO fields, parameters, or serialization contracts.
 - Collection ownership **MUST** be clear: copy mutable input when retaining it and do not expose internal mutable collections.
 - Streams **MUST NOT** hide side effects, checked-failure handling, or complex branching. Prefer a readable loop when it is clearer.

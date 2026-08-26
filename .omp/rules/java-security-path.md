@@ -2,9 +2,7 @@
 description: 'Java security rules: auth, validation, secrets.'
 globs:
 - services/**/src/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/**/*.java'
 - services/**/src/main/resources/**/*.{yml,yaml,properties}
-- '{backend-auth,backend-admin,backend-app}/src/main/resources/**/*.{yml,yaml,properties}'
 priority: 100
 ---
 
@@ -25,3 +23,5 @@ priority: 100
 - Security-sensitive fallback behavior **MUST** fail closed. Do not silently disable authentication, authorization, validation, sandboxing, or secret checks.
 - Secrets **MUST** come from approved runtime configuration and must not appear in source, defaults, fixtures, migrations, logs, or exception messages.
 - Every security fix **MUST** include a regression test proving the rejected or escaped malicious case, not only the valid path.
+- Access and refresh tokens **MUST** remain in HttpOnly cookies with hash-only database verification; JWT secrets must be >= 32 characters.
+- Privileged `/admin/**` or administrative RPC methods require authenticated `ADMIN`/`SUPER_ADMIN` authority; audit identity comes from principal, never request payload.

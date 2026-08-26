@@ -1,7 +1,6 @@
 ---
 paths:
   - "services/**/src/test/**/*.java"
-  - "{backend-auth,backend-admin,backend-app}/src/test/**/*.java"
   - "docker/sandbox/harness/java/src/test/**/*.java"
 kind: rules
 summary: 'Java unit testing standards (JUnit / Mockito).'
@@ -23,3 +22,5 @@ summary: 'Java unit testing standards (JUnit / Mockito).'
 - Unit tests use the repository's normal test selection. Database, security, queue, sandbox, or cross-module behavior belongs in an explicitly selected `*IT.java` test when unit isolation cannot prove it.
 - Tests **MUST NOT** depend on developer credentials, production-like secrets, or mutable data outside the test lifecycle.
 - Tests that use persistence **MUST** create their own data and clean it up or roll it back; never assume a developer database already contains a required row.
+- Audit and security annotation additions **MUST** maintain `AuditPolicyCoverageTest` assertions.
+- Use `*IT.java` naming for integration tests (Testcontainers, real database, Redis Streams, or Dubbo RPC) so Surefire isolates them from fast unit test suites.

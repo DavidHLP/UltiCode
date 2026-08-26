@@ -1,9 +1,9 @@
 ---
 description: Cross-cutting trust boundary and security invariants.
 globs:
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/controller/**/*.java'
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/security/**/*.java'
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/*.{java,yml,yaml,properties}'
+- services/**/src/main/java/**/controller/**/*.java
+- services/**/src/main/java/**/security/**/*.java
+- services/**/src/main/java/**/adapter/**/*.java
 - services/platform/common/src/main/java/com/ulticode/common/annotation/**/*.java
 - services/platform/common/src/main/java/com/ulticode/common/audit/**/*.java
 - services/platform/common/src/main/java/com/ulticode/common/util/AuditContext.java
@@ -11,11 +11,11 @@ globs:
 - services/platform/web-security/src/main/java/com/ulticode/common/auth/**/*.java
 - services/platform/web-security/src/main/java/com/ulticode/websecurity/**/*.java
 - services/app/app-web/src/main/java/com/ulticode/modules/websocket/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/main/resources/application*.{yml,yaml,properties}'
+- services/**/src/main/resources/application*.{yml,yaml,properties}
 - services/**/src/main/resources/security/serialize.allowlist
 - apps/console/src/**/*.{ts,vue}
 - apps/management/src/**/*.{ts,vue}
-- packages/{auth-core,auth-ui,http-client,markdown-utils,theme}/**/*.{ts,vue,js}
+- packages/{auth-core,auth-ui,http-client,markdown-utils,theme,design-system}/**/*.{ts,vue,js}
 - docker-compose*.yml
 - docker/**/*.{yml,yaml,json,conf}
 priority: 100
@@ -28,3 +28,4 @@ priority: 100
 - Trace the full credential or content path with graph tools and literal searches; include framework configuration and non-code consumers that static calls miss.
 - Derive negative test cases from the mapped boundaries and the root invariants, then run the relevant subtree checks.
 - Review the final diff for alternate credential paths, bypasses, unsafe sinks, secret exposure, and configuration differences across environments.
+- Invariants: Tokens in HttpOnly cookies; OAuth state consumed atomically; WebSocket auth via cookie only; `/admin/**` requires `ADMIN`/`SUPER_ADMIN` with principal-derived audit identity; Markdown rendering sanitized via `markdown-utils`; zero exposed infrastructure ports in base/prod Compose; no seed credentials in migrations.

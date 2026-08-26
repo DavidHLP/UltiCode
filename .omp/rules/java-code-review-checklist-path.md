@@ -2,7 +2,6 @@
 description: Java code review checklist for Spring Boot.
 globs:
 - services/**/src/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/**/*.java'
 - docker/sandbox/harness/java/src/**/*.java
 priority: 100
 ---
@@ -12,7 +11,7 @@ priority: 100
 Before completing a Java change:
 
 1. Build the changed call/data-flow map and list affected contracts, configuration, persistence, and tests.
-2. Apply `01` through `07` to the changed lines; apply `09` only when runtime diagnostics were used.
+2. Apply `java-programming-path.md`, `java-exception-logging-path.md`, `java-unit-testing-path.md`, `java-security-path.md`, `mysql-database-path.md`, `java-project-structure-path.md`, and `java-design-path.md`; apply `java-runtime-diagnostics-path.md` only when runtime diagnostics were used.
 3. Apply root and nested `AGENTS.md` plus `springboot-rules.md` for project/framework constraints.
 4. Inspect success, failure, cleanup, cancellation, retry, and concurrent execution paths that the change can reach.
 5. Confirm the selected unit/integration tests prove the regression and that the task diff contains no unrelated churn.

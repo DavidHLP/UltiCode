@@ -2,7 +2,6 @@
 description: Java design patterns and architectural rules.
 globs:
 - services/**/src/main/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/main/**/*.java'
 priority: 100
 ---
 
@@ -22,3 +21,5 @@ priority: 100
 - External calls **MUST** define timeout, retry, and failure semantics. Retries need bounded attempts and must not duplicate non-idempotent effects.
 - Optimize measured bottlenecks, not hypothetical ones. Performance shortcuts must preserve correctness and include evidence or a regression benchmark/test.
 - Design reviews **MUST** include abnormal flows and business boundaries, not only the happy path; document a state machine or interaction sequence when prose cannot make transitions/ownership unambiguous.
+- Vote state and denormalized counter updates belong to `VoteService`; callers must persist returned values rather than independently recounting through mapper queries.
+- Remote execution, sandbox isolation, and hidden test cases must fail closed: never silently substitute example test cases for unavailable hidden data.

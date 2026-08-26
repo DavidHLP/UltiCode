@@ -15,9 +15,10 @@ summary: 'Cross-cutting frontend conventions for Console and Management apps.'
 - User-visible text **MUST** use the established i18n modules and remain complete in both supported locales.
 - Cross-application behavior belongs in a focused `packages/` package only when both apps share the same stable meaning. Direct Console-to-Management imports are forbidden.
 - Markdown, KaTeX, and HTML rendering **MUST** use the shared sanitization pipeline. A component must not locally weaken sanitizer options.
-- Theme state and `data-theme` writes **MUST** remain owned by the shared theme package; components consume tokens and APIs rather than reimplementing bootstrap logic.
+- Theme state, Solarized color tokens, typography, and `data-theme` writes **MUST** remain owned by `packages/theme` and `packages/design-system`; components consume CSS tokens and theme composables rather than hardcoding hex colors or reimplementing bootstrap logic (`useThemeForceUpdate` is test-only).
 - Interactive UI **MUST** support keyboard operation, visible focus, semantic controls/labels, and correct disabled/loading states.
 - Async views **MUST** handle cancellation or stale results, normalize errors at the owned boundary, and avoid duplicate submissions.
 - Build-time environment variables are public client data. Secrets, private service credentials, and privileged-only data **MUST NOT** enter frontend bundles.
 - Keep generated component primitives and application-specific components separate; do not bulk-edit generated UI code for a one-off feature style.
 - Changes to shared contracts, auth, theme, or rendering **MUST** run the affected package checks and both consuming applications' relevant checks.
+- Management application translation changes **MUST** pass `pnpm validate:i18n-keys` in `apps/management`.

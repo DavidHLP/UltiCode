@@ -5,8 +5,6 @@ globs:
 - services/**/*.yml
 - services/**/*.yaml
 - services/**/*.properties
-- '{backend-auth,backend-admin,backend-app}/src/**/*.java'
-- '{backend-auth,backend-admin,backend-app}/src/**/*.{yml,yaml,properties}'
 priority: 100
 ---
 
@@ -14,7 +12,7 @@ priority: 100
 
 - MUST read `services/AGENTS.md` and the nearest service/module guide before editing.
 - MUST compile on Java 17 without preview features or later-JDK APIs.
-- MUST preserve `controller -> service -> mapper -> entity` and existing domain boundaries.
+- MUST preserve `controller -> service -> mapper -> entity` and owner service boundaries (`auth`, `admin`, `app`, `submission`, `notification`, `search`, `judge`, `platform`, `api`).
 - MUST use constructor injection for new dependencies; do not add field injection.
 - MUST validate DTOs at HTTP boundaries and preserve the existing `Result` envelope and field mappings.
 - MUST use parameterized database access and keep MyBatis/MyBatis-Plus mappings aligned with entities and migrations.
@@ -34,3 +32,5 @@ priority: 100
 - MUST add denied-path tests for security/authorization changes and cover boundary, common, contract, and error paths where relevant.
 - SHOULD prefer readable control flow over clever streams or speculative abstractions.
 - MUST inspect the relevant callers, configuration, tests, and diff before completion.
+- MUST route cross-service calls via Dubbo RPC contracts in `services/api/` and preserve schema isolation per owner.
+- MUST register every new `@Audited` and `@CheckBan` site in `AuditPolicy` and verify with `AuditPolicyCoverageTest`.

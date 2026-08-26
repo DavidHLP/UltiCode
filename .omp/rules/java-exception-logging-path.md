@@ -2,7 +2,6 @@
 description: Exception handling and logging rules for backend Java.
 globs:
 - services/**/src/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/**/*.java'
 priority: 100
 ---
 
@@ -15,7 +14,7 @@ priority: 100
 - `InterruptedException` handling **MUST** restore the interrupt flag with `Thread.currentThread().interrupt()` unless the method immediately rethrows it.
 - Close `AutoCloseable` resources with try-with-resources. Cleanup failures must not hide the primary failure.
 - Do not `return`, `throw`, or otherwise replace control flow from `finally`. A transaction that catches an exception must rethrow it or explicitly mark rollback when the operation cannot commit safely.
-- Use the project's established business-error and global-handler patterns for expected domain failures; do not create ad hoc response bodies in lower layers.
+- Use the project's established `BusinessException` and `ErrorCode` enum patterns for expected domain failures; do not invent ad hoc response structures or catch-all exception wrappers.
 - Use SLF4J parameter placeholders instead of string concatenation. Pass the throwable as the final argument when a stack trace is required.
 - Guard expensive debug/trace argument construction with the matching level check; simple placeholder logging needs no manual guard.
 - Log at one ownership boundary. Do not log and rethrow the same failure at every layer.

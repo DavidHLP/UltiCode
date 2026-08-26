@@ -22,3 +22,4 @@ priority: 100
 - Cover loading, empty, success, and failure states when the component owns them. Security-sensitive renderers require malicious-input regression cases.
 - Do not over-mock the component under test or assert private refs and implementation-only method calls.
 - App test commands do not prove changed shared-package behavior; run the package's own test command as well.
+- Run `pnpm validate:i18n-keys` in `apps/management` whenever routes, data tables, or translation keys are modified.

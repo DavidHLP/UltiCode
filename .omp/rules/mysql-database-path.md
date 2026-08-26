@@ -2,13 +2,9 @@
 description: MyBatis-Plus mapper and entity rules for MySQL.
 globs:
 - services/**/src/main/java/**/*Mapper.java
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/*Mapper.java'
 - services/**/src/main/java/**/mapper/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/mapper/**/*.java'
 - services/**/src/main/java/**/entity/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/entity/**/*.java'
 - services/**/src/main/java/**/service/**/*.java
-- '{backend-auth,backend-admin,backend-app}/src/main/java/**/service/**/*.java'
 priority: 100
 ---
 
@@ -28,3 +24,4 @@ priority: 100
 - Do not hold database transactions open across remote calls, blocking waits, sandbox execution, or message delivery.
 - Dynamic predicates **MUST** preserve authorization, tenancy/ownership, and soft-delete filters from the established query path.
 - New indexes or constraints require a canonical migration and a query-based reason; annotations are not schema migration tools.
+- Mappers **MUST** query only tables within their service's owned schema (`auth`, `admin`, `app`, `submission`, `notification`); cross-owner table joins or direct cross-schema queries are prohibited.

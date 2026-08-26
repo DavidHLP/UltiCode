@@ -1,43 +1,29 @@
-objective: Close remaining enterprise-readiness gaps from round-2 review (2026-08-26 remediation round 3)
+objective: Extract landing-page design language and adopt it globally across console, management, and shared packages ("Garden" design system)
 status: complete
-branch: fix/enterprise-remediation-round3 (integration worktree ~/project/UltiCode-r3-integration)
+branch: main
 tasks:
-  - id: R3-1
-    title: "Landfall: verify and commit workspace Redis ACL + PM2 wiring + up.sh hardening"
+  - id: G-1
+    title: "Extract Garden design spec from landing page"
     status: done
-    evidence: "main-worktree commits 67609c799, a2da6fa83; ACL render==file; live auth/permission matrix 20/20; compose/node/bash -n checks"
-  - id: R3-2
-    title: "Remediation plan doc covering all 7 gaps (done/this-round/deferred+triggers)"
+    evidence: "packages/design-system/docs/GARDEN_DESIGN_SPEC.md — palette light/dark, geometry, typography, texture & motion, compatibility"
+  - id: G-2
+    title: "Remap global token layer (colors, fonts, radius, shadows)"
     status: done
-    evidence: "f81a0847f services/docs/SERVICES_ENTERPRISE_REMEDIATION_PLAN_2026-08-26.md"
-  - id: R3-3
-    title: "T1 restructure final architecture review into mutually exclusive sections"
+    evidence: "packages/design-system/style.css + src/palette.ts (Garden values under historical --solarized-* names), packages/theme/src/typography.css; ECharts/Monaco consume runtime bridge"
+  - id: G-3
+    title: "Cover all pages incl. motion and app-wide style"
     status: done
-    evidence: "1d308f187; 8 branch-disposition blockquotes removed; closed 12 / open 5 / triggers 5; 19 relative paths verified"
-  - id: R3-4
-    title: "T2 japicmp mixed-version contract gate (pom profile + CI + doc)"
+    evidence: ".paper-texture-overlay mounted in both apps' App.vue roots; global .reveal-on-scroll utility with prefers-reduced-motion fallback; color-literal scanner forbids token bypass outside pinned landing design-source files"
+  - id: G-4
+    title: "Final acceptance gate (automated, repeatable)"
     status: done
-    evidence: "4e582f1c6; com.github.siom79.japicmp 0.26.1 (verified via official docs + Maven Central); self-compare zero-diff BUILD SUCCESS; removed-method detection proven (BUILD FAILURE then restored); 5 api modules pass"
-  - id: R3-5
-    title: "T3 worker SLO alert rules + DLQ runbook + failure drill script"
-    status: done
-    evidence: "eb15d3e92; promtool SUCCESS 24 rules; drill bash -n + dry-run OK; metric names verified against WorkerSloMeters + 3 register sites"
-  - id: R3-6
-    title: "Integration: merge T1-T3, dedupe PROJECT_DOCUMENTATION.md, wire cross-links"
-    status: done
-    evidence: "merges 2bf7477be/946c7212e/df4daa826 + docs dedupe commit; duplicate Admin/Worker entries removed (old 1848/1849)"
-  - id: R3-7
-    title: "Validation: targeted Maven/script/YAML checks + full-diff review + delivery report"
-    status: done
-    evidence: "post-merge: mvnw -P contract-compat verify exit 0; promtool 24 rules; bash -n + dry-run; ci/_contract YAML parse; both compose configs OK; git diff --check clean"
+    evidence: "./scripts/dev/verify-garden-design.sh --with-build PASS (theme guardrails, design-system contract tests, both apps type-check/test/build, legacy Solarized sweep zero); documented in PROJECT_DOCUMENTATION.md §9"
 
 verification:
-  - "ACL: render consistency + live auth/permission matrix (landfall)"
-  - "T2: self-compare pass + cross-version resolution + breaking-change detection proven"
-  - "T3: promtool + dry-run"
-  - "post-merge re-run of all targeted checks"
+  - "verify-garden-design.sh --with-build full pass (52s, 2026-08-26)"
+  - "bash -n on changed scripts OK; shellcheck not installed locally"
+  - "git diff --check clean before commit"
 
 notes:
-  - "Deferred with explicit triggers (remediation plan §3): Admin event read model, real multi-host HA, Judge dedicated-node isolation."
-  - "Merging fix/enterprise-remediation-round3 into main requires the user to first commit or stash their dirty PROJECT_DOCUMENTATION.md (Garden §9) in the main worktree, otherwise git refuses the merge."
-  - "User's Garden/landing dirty work in main worktree untouched throughout."
+  - "Commits: f60550053 fix(dev) gate hardening; fdbeda0c7 feat(design) Garden adoption (33 files)"
+  - "scripts/dev/architecture-contract-test.sh intentionally excluded from the gate: pre-existing devstack readiness subtest mismatch unrelated to design"

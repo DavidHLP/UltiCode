@@ -26,3 +26,4 @@ summary: 'Vue 3 + TypeScript conventions for both apps.'
 - Composables **MUST** start with `use`, keep lifecycle cleanup with their owner, and avoid hidden application-global mutable state.
 - Import shared behavior through declared package entry points. Do not reach into another application's source or undeclared shared internals.
 - Follow the nearest formatter and ESLint configuration; do not mix unrelated formatting changes into a functional patch.
+- Consume Solarized design tokens and typography variables (`--color-*`, `--font-*`) from shared design packages; avoid ad hoc hardcoded hex color values.

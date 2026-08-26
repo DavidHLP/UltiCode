@@ -27,3 +27,28 @@ verification:
 notes:
   - "Commits: f60550053 fix(dev) gate hardening; fdbeda0c7 feat(design) Garden adoption (33 files)"
   - "scripts/dev/architecture-contract-test.sh intentionally excluded from the gate: pre-existing devstack readiness subtest mismatch unrelated to design"
+
+follow_up:
+  objective: "Unify console sider visual language"
+  status: complete
+  tasks:
+    - id: G-5
+      title: "Unify console sider visual contract"
+      status: done
+      source: ["user browser comment: console /problemset sider"]
+      acceptance_criteria:
+        - "Sidebar shell, user row, navigation rows, groups, list rows, actions, and sub-items share Garden dimensions, color, radius, and state treatment"
+        - "Route activation, permissions, collapse behavior, dropdown actions, and keyboard/focus behavior remain unchanged"
+        - "Problemset, forum, contest, and personal sidebar contexts render through the same visual contract"
+      validation:
+        - "Console focused sidebar tests"
+        - "Console type-check, lint, and build"
+        - "Browser QA at /problemset and one non-problem context"
+      rollback: "Revert only the sidebar contract and feature-sider class changes; no data or route changes"
+      evidence:
+        - "apps/console/src/features/sider plus packages/sidebar-menu visual contract implemented"
+        - "Console 70 test files / 590 tests passed; vue-tsc, ESLint, Prettier, and Vite build passed"
+        - "Browser QA passed at /problemset, /forum, and /contest; visible rows share 194x36 geometry"
+        - "graphify update . exit 0; git diff --check exit 0"
+      commits: []
+      notes: "Preserve unrelated dirty worktree changes; package standalone test/type-check remain baseline-blocked by its existing aliases; do not stage .auto-flow control files"

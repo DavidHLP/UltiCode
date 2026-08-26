@@ -1954,7 +1954,7 @@ Total keys in en-US: 245
 
 - `.paper-texture-overlay` 纸张微噪点由设计系统提供，两个应用根组件各挂载一次（落地页本地的同名层已移除）。
 - `.reveal-on-scroll` 滚动显现工具类全局可用，`prefers-reduced-motion` 下禁用。
-- Console 的 `features/sider` 统一消费 `packages/sidebar-menu` 的 Garden 侧栏契约：用户区、上下文导航、分组标题、题单操作/列表、子项和下拉菜单共享行宽、间距、圆角、表面、激活态与焦点态；业务侧只提供内容和状态，不再覆盖局部尺寸或颜色。
+- Console 的 `features/sider` 统一消费 `packages/sidebar-menu` 的 Garden 侧栏契约：用户区、上下文导航、分组标题、题单操作/列表、子项和下拉菜单共享行宽、字号/行高、间距、圆角、表面、激活态与焦点态；业务侧只提供内容和状态，不再覆盖局部尺寸或颜色。
 
 **验收节点**
 

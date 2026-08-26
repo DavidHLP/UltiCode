@@ -44,16 +44,16 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
-    class="space-y-3 terminal-card animate-stagger p-3 md:p-4 problem-explorer-controls"
-  >
+  <div class="terminal-card animate-stagger problem-explorer-controls">
     <CategoryFilter
+      class="problem-category-filter"
       :categories="categoryOptions"
       :model-value="selectedCategory"
       @update:model-value="emit('update:selectedCategory', $event)"
     />
 
     <DataTableToolbar
+      class="problem-filter-toolbar"
       :model-value="searchQuery"
       :placeholder="t('problem.list.searchPlaceholder')"
       :filter-label="t('problem.explorer.filters')"
@@ -214,8 +214,13 @@ const emit = defineEmits<{
       </template>
     </DataTableToolbar>
 
-    <div class="border-t border-border-subtle pt-3">
+    <div class="problem-tag-shelf">
+      <div class="problem-tag-label">
+        <span class="problem-tag-mark" aria-hidden="true" />
+        <span>{{ t("problem.detail.tags") }}</span>
+      </div>
       <TagFilter
+        class="problem-tag-filter"
         :model-value="$props.selectedTags"
         @update:model-value="emit('update:selectedTags', $event)"
         :popular-tags="popularTags"
@@ -227,11 +232,203 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-.problem-explorer-controls :deep(button),
+.problem-explorer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 1rem 1.25rem 1.125rem;
+  border-color: var(--border-subtle);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-float);
+}
+
+.problem-tag-mark {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.problem-explorer-controls :deep(.problem-category-filter) {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  overflow-x: auto;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
+}
+
+.problem-explorer-controls :deep(.problem-category-filter .terminal-tab) {
+  flex: 0 0 auto;
+  min-width: max-content;
+  height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--foreground-muted);
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-control-size);
+  font-weight: var(--uc-type-control-weight);
+  line-height: var(--uc-type-control-line-height);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.problem-explorer-controls :deep(.problem-category-filter .terminal-tab:hover) {
+  border-bottom-color: var(--border-control);
+  background: transparent;
+  color: var(--foreground-strong);
+}
+
+.problem-explorer-controls
+  :deep(.problem-category-filter .terminal-tab.bg-surface-highlight) {
+  border-bottom-color: var(--primary);
+  background: transparent;
+  color: var(--foreground-strong);
+  font-weight: var(--uc-font-weight-semibold);
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar > div:first-child) {
+  max-width: none;
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar > div:last-child) {
+  width: auto;
+  padding-bottom: 0;
+}
+
 .problem-explorer-controls :deep(input),
+.problem-explorer-controls :deep(button),
 .problem-explorer-controls :deep([role="button"]),
 .problem-explorer-controls :deep([data-slot="badge"]) {
-  font-family: var(--uc-font-code);
+  font-family: var(--uc-font-ui);
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar input) {
+  height: 2.5rem;
+  border-color: var(--border-control);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  font-size: var(--uc-type-control-size);
+  line-height: var(--uc-type-control-line-height);
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar button) {
+  height: 2.5rem;
+  min-width: 2.5rem;
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: transparent;
+  box-shadow: none;
+  color: var(--foreground-muted);
+  font-size: var(--uc-type-control-size);
+  line-height: var(--uc-type-control-line-height);
+  letter-spacing: var(--uc-tracking-normal);
+  text-transform: none;
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar button:hover) {
+  border-color: var(--border-control);
+  background: var(--surface-highlight);
+  color: var(--foreground-strong);
+}
+
+.problem-explorer-controls :deep(.problem-filter-toolbar [data-slot="badge"]) {
+  border-radius: var(--radius-md);
+  background: var(--surface-highlight);
+  font-size: var(--uc-type-label-size);
+  line-height: var(--uc-type-label-line-height);
+}
+
+.problem-tag-shelf {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.problem-tag-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 1.875rem;
+  color: var(--foreground-muted);
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-label-size);
+  font-weight: var(--uc-type-label-weight);
+  line-height: var(--uc-type-label-line-height);
+}
+
+.problem-explorer-controls :deep(.problem-tag-filter) {
+  width: 100%;
+}
+
+.problem-explorer-controls :deep(.problem-tag-filter [data-slot="badge"]) {
+  min-height: 1.875rem;
+  padding: 0.375rem 0.625rem;
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground-muted);
+  font-size: var(--uc-type-label-size);
+  font-weight: var(--uc-type-label-weight);
+  line-height: var(--uc-type-label-line-height);
+}
+
+.problem-explorer-controls
+  :deep(.problem-tag-filter [data-slot="badge"]:hover) {
+  border-color: var(--border-control);
+  background: var(--surface-highlight);
+  color: var(--foreground-strong);
+}
+
+.problem-explorer-controls
+  :deep(
+    .problem-tag-filter [data-slot="badge"][class~="bg-surface-highlight"]
+  ) {
+  border-color: var(--primary);
+  background: var(--surface-highlight);
+  color: var(--foreground-strong);
+}
+
+.problem-explorer-controls :deep(.problem-tag-filter > div:last-child) {
+  padding-top: 0.5rem;
+}
+
+.problem-explorer-controls :deep(.problem-tag-filter button) {
+  height: auto;
+  min-height: 1.875rem;
+  padding: 0.375rem 0.25rem;
+  border-radius: 0;
+  color: var(--foreground-muted);
+  font-size: var(--uc-type-label-size);
+  line-height: var(--uc-type-label-line-height);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.problem-explorer-controls :deep(.problem-tag-filter button:hover) {
+  background: transparent;
+  color: var(--foreground-strong);
 }
 
 .problem-explorer-controls :deep(.border-dashed) {
@@ -247,5 +444,25 @@ const emit = defineEmits<{
 .problem-explorer-controls :deep(input:focus-visible) {
   border-color: var(--ring);
   box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+@media (max-width: 640px) {
+  .problem-explorer-controls {
+    padding: 0.875rem;
+  }
+
+  .problem-explorer-controls :deep(.problem-filter-toolbar) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .problem-explorer-controls :deep(.problem-filter-toolbar > div:last-child) {
+    justify-content: flex-end;
+  }
+
+  .problem-tag-shelf {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
 }
 </style>

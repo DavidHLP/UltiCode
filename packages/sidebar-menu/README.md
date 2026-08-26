@@ -67,7 +67,7 @@ The console shell also uses the layout contract classes
 `.uc-sidebar-nav`, `.uc-sidebar-section-trigger`, `.uc-sidebar-list-section`,
 `.uc-sidebar-user-trigger`, and `.uc-sidebar-dropdown`. They keep user rows,
 navigation rows, actions, groups, list rows, sub-items, and menus on the same
-Garden spacing, radius, surface, and focus treatment. Consumers should pass
+Garden spacing, typography, radius, surface, and focus treatment. Consumers should pass
 content and state only; do not add per-section width, radius, or color overrides.
 
 ## Tests

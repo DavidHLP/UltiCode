@@ -1,0 +1,15 @@
+outcome: complete
+outputs:
+  - "Console sider visual contract and all scoped callers updated"
+  - "Coverage, decision, worklog, and completion evidence persisted"
+evidence:
+  - "Console: 70 test files, 590 tests passed"
+  - "Console type-check, ESLint, Prettier, Vite build passed"
+  - "Browser QA passed for problemset, forum, and contest contexts"
+  - "graphify update . and git diff --check passed"
+next_goal: ""
+next_skill: none
+reason: "Objective acceptance, review, validation, coverage, and worktree audit are complete"
+alternatives: []
+blockers:
+  - "Standalone packages/sidebar-menu test/type-check remain blocked by pre-existing @/shared and peer dependency aliases; consuming console validation passed"

@@ -42,6 +42,9 @@ const REQUIRED_MARKERS = [
   // final DOM action
   "html.classList.add('dark')",
   "html.classList.remove('dark')",
+  // locale preference key and the shared CSS profile selector
+  "'ulticode-locale'",
+  'document.documentElement.lang = locale',
 ]
 
 function sha256(buf) {

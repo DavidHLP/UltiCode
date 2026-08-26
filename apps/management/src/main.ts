@@ -4,7 +4,7 @@ import './style.css'
 
 import App from './App.vue'
 import router from './router'
-import i18n, { setLocale, getStoredLocale } from './i18n'
+import i18n, { setLocale, getActiveLocale } from './i18n'
 import { initTheme, applyTypographyDensity } from '@/shared/theme/src'
 import { bootstrapApp } from '@/shared/app-bootstrap/src'
 import { setOnAuthFailure } from '@/shared/auth-core/src'
@@ -28,17 +28,7 @@ bootstrapApp({
     // Initialize locale from stored preference on startup so
     // document.documentElement.lang is set before any component mounts and
     // persists correctly to localStorage.
-    const storedLocale = getStoredLocale() as 'zh-CN' | 'en-US' | null
-    if (storedLocale === 'zh-CN' || storedLocale === 'en-US') {
-      setLocale(storedLocale)
-    } else {
-      const browserLang = navigator.language
-      if (browserLang.startsWith('zh')) {
-        setLocale('zh-CN')
-      } else {
-        setLocale('en-US')
-      }
-    }
+    setLocale(getActiveLocale() as 'zh-CN' | 'en-US')
   },
   registerAuthFailureHandler: setOnAuthFailure,
   async onAuthFailure() {

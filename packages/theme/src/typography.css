@@ -13,7 +13,8 @@
  *                          working through the migration)
  *   3. Semantic roles     (--uc-type-body-*, --uc-type-control-*, ...)
  *   4. Utility classes    (.uc-type-body, .uc-type-page-title, ...)
- *   5. Density profiles   (:root + [data-uc-density="compact"])
+ *   5. Locale profiles    (:root[lang="zh-CN"] / :root[lang="en-US"])
+ *   6. Density profiles   (:root + [data-uc-density="compact"])
  *
  * Apps may opt into a density profile by setting
  * `document.documentElement.dataset.ucDensity = 'comfortable' | 'compact'`
@@ -26,18 +27,9 @@
 /* ---------------------------------------------------------------------------
  * Font loading (jsDelivr CDN, see design notes below)
  *
- *   1. LXGW WenKai  (artistic CJK, full glyph coverage incl. Latin)
- *      @fontsource/lxgw-wenkai — the closest jsDelivr-mirrored match to the
- *      original "得意黑" goal; gives every CJK glyph + a calligraphic Latin
- *      face. Loaded as a single CSS so all subsets (TC / Latin) come in one
- *      round trip. This is now the SINGLE font family for the entire
- *      project: UI, headings, code, data, charts. Project-wide 楷体.
- *
- *   2. Noto Sans SC (clean SC fallback)
- *      @fontsource/noto-sans-sc — subset to chinese-simplified. Acts as
- *      the second face in the cascade so rare SC-only characters and
- *      Mac/Win native faces ("PingFang SC", "Microsoft YaHei") still
- *      participate when WenKai lacks a glyph.
+ * The shared pipeline loads both editorial Latin faces and Simplified Chinese
+ * faces. Locale profiles below select the primary family without duplicating
+ * font loading or component styles.
  * --------------------------------------------------------------------------- */
 /* Garden typography (extracted from the landing page design):
  *   - Display/headings: Instrument Serif / Newsreader (+ Noto Serif SC for CJK)
@@ -59,11 +51,8 @@
  * --------------------------------------------------------------------------- */
 
 :root {
-  /* Font families — the landing editorial trio is now project-wide:
-   * Inter for UI/body, Instrument Serif for display/headings, JetBrains Mono
-   * for code/data. CJK fallbacks ("Noto Serif SC"/"Noto Sans SC"/host native
-   * faces) keep rendering correct before webfonts load or when a glyph is
-   * missing. */
+  /* English is the safe pre-locale baseline; the zh-CN profile below moves
+   * CJK faces to the front of the same shared stacks. */
   --uc-font-ui:
     "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
@@ -111,6 +100,52 @@
 
   /* Numeric features (tabular numbers) */
   --uc-font-feature-data: "tnum" on, "lnum" on;
+}
+
+/* ---------------------------------------------------------------------------
+ * 1a. Locale design profiles
+ *
+ * `html[lang]` is the single runtime selector. Locale preference owns the
+ * attribute; the design system owns the metrics that respond to it. Color
+ * semantics and app density remain shared so language changes never turn
+ * into a second product theme.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  --uc-locale-heading-tracking: var(--uc-tracking-normal);
+  --uc-locale-control-tracking: var(--uc-tracking-normal);
+}
+
+:root[lang="zh-CN"] {
+  --uc-font-ui:
+    "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", ui-sans-serif,
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Noto Sans CJK SC", Arial, sans-serif;
+  --uc-font-display:
+    "Noto Serif SC", "Songti SC", "SimSun", "Instrument Serif", "Newsreader",
+    Georgia, serif;
+  --uc-leading-normal: 1.65;
+  --uc-leading-tight: 1.35;
+  --uc-leading-snug: 1.45;
+  --uc-tracking-label: var(--uc-tracking-normal);
+  --uc-locale-heading-tracking: var(--uc-tracking-normal);
+  --uc-locale-control-tracking: var(--uc-tracking-normal);
+}
+
+:root[lang="en-US"] {
+  --uc-font-ui:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+  --uc-font-display:
+    "Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", "Songti SC",
+    "SimSun", serif;
+  --uc-leading-normal: 1.5;
+  --uc-leading-tight: 1.25;
+  --uc-leading-snug: 1.35;
+  --uc-tracking-label: 0.05em;
+  --uc-locale-heading-tracking: -0.01em;
+  --uc-locale-control-tracking: var(--uc-tracking-normal);
 }
 
 /* ---------------------------------------------------------------------------
@@ -210,7 +245,7 @@
   font-size: var(--uc-type-body-size);
   line-height: var(--uc-type-body-line-height);
   font-weight: var(--uc-type-body-weight);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-control-tracking);
 }
 
 .uc-type-page-title {
@@ -218,7 +253,7 @@
   font-size: var(--uc-type-page-title-size);
   line-height: var(--uc-type-page-title-line-height);
   font-weight: var(--uc-type-page-title-weight);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-heading-tracking);
 }
 
 .uc-type-section-title {
@@ -226,7 +261,7 @@
   font-size: var(--uc-type-section-title-size);
   line-height: var(--uc-type-section-title-line-height);
   font-weight: var(--uc-type-section-title-weight);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-heading-tracking);
 }
 
 .uc-type-card-title {
@@ -234,7 +269,7 @@
   font-size: var(--uc-type-card-title-size);
   line-height: var(--uc-type-card-title-line-height);
   font-weight: var(--uc-type-card-title-weight);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-heading-tracking);
 }
 
 .uc-type-control {
@@ -242,7 +277,7 @@
   font-size: var(--uc-type-control-size);
   line-height: var(--uc-type-control-line-height);
   font-weight: var(--uc-type-control-weight);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-control-tracking);
 }
 
 .uc-type-label {

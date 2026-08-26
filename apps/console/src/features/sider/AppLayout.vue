@@ -132,10 +132,8 @@ const isActiveNav = (item: NavItem) => {
           <NotificationBadge />
         </div>
       </header>
-      <main
-        class="flex min-w-0 flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6 xl:px-8"
-      >
-        <div class="mx-auto w-full max-w-[1440px] min-w-0 px-2 sm:px-3 lg:px-4">
+      <main class="uc-page-main">
+        <div class="uc-page-container">
           <router-view />
         </div>
       </main>

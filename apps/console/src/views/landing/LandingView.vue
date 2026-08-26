@@ -368,11 +368,9 @@ onUnmounted(() => {
   --brand-olive-hover: #3e4433;
   --brand-sage: #a2afa9;
   --border-delicate: rgba(84, 92, 69, 0.18);
-  --font-serif:
-    "Instrument Serif", "Newsreader", "Cormorant Garamond", Georgia, serif;
-  --font-sans:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-serif: var(--uc-font-display);
+  --font-sans: var(--uc-font-ui);
+  --font-mono: var(--uc-font-code);
   --shadow-subtle: 0 4px 20px -4px rgba(25, 34, 14, 0.06);
   --shadow-elevated: 0 12px 36px -8px rgba(25, 34, 14, 0.12);
   --radius-small: 4px;

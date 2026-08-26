@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
-import { useI18n } from "vue-i18n";
 import { RouterLink } from "vue-router";
+import { useLocale } from "@/composables/useLocale";
 
-const { t, locale } = useI18n();
+const { t, locale, toggleLocale: toggleLocalePreference } = useLocale();
 const isScrolled = ref(false);
 const isMobileMenuOpen = ref(false);
 const menuBtnRef = ref<HTMLButtonElement | null>(null);
@@ -14,7 +14,7 @@ const handleScroll = () => {
 };
 
 const toggleLocale = () => {
-  locale.value = locale.value === "zh-CN" ? "en-US" : "zh-CN";
+  toggleLocalePreference();
 };
 
 const toggleMobileMenu = () => {

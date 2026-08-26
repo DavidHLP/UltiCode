@@ -4,9 +4,11 @@ import zhCN from './locales/zh-CN/'
 import enUS from './locales/en-US/'
 import {
   getStoredLocale,
+  resolveInitialLocale,
   setStoredLocale,
   setStorageNotifier,
 } from '@/shared/locale-preference/src'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './types'
 
 setStorageNotifier((level, message) => {
   if (level === 'warning') toast.warning(message)
@@ -21,29 +23,6 @@ export type { SupportedLocale, LocaleConfig, MessageSchema } from './types'
 
 export { getStoredLocale, setStoredLocale }
 
-// Get initial locale based on storage or browser preference
-function getInitialLocale(): string {
-  const stored = getStoredLocale()
-  if (stored && ['zh-CN', 'en-US'].includes(stored)) {
-    return stored
-  }
-
-  // Try to detect browser language
-  try {
-    const browserLang = navigator.language
-    if (browserLang.startsWith('zh')) {
-      return 'zh-CN'
-    }
-    if (browserLang.startsWith('en')) {
-      return 'en-US'
-    }
-  } catch {
-    // Ignore if navigator is not available
-  }
-
-  return 'zh-CN' // Default locale
-}
-
 const messages = {
   'zh-CN': zhCN,
   'en-US': enUS,
@@ -53,7 +32,7 @@ const messages = {
 export const i18n = createI18n({
   legacy: false, // Use Composition API
   globalInjection: true, // Inject $t globally
-  locale: getInitialLocale(),
+  locale: resolveInitialLocale(SUPPORTED_LOCALES, DEFAULT_LOCALE),
   fallbackLocale: 'zh-CN',
   silentTranslationWarn: true, // Suppress warnings in production
   missingWarn: import.meta.env.DEV, // true in development, false in production

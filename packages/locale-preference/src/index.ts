@@ -220,6 +220,54 @@ export function setStoredLocale(locale: string): void {
 }
 
 // ---------------------------------------------------------------------------
+// Initial locale resolution
+// ---------------------------------------------------------------------------
+
+/** Match browser language preferences to an application-supported locale. */
+export function detectBrowserLocale<L extends string>(
+  supported: readonly L[],
+): L | null {
+  if (typeof navigator === 'undefined') return null
+
+  try {
+    const languages = [
+      ...(Array.isArray(navigator.languages) ? navigator.languages : []),
+      navigator.language,
+    ]
+
+    for (const language of languages) {
+      if (!language) continue
+      const normalized = language.toLowerCase()
+      const exact = supported.find((locale) => locale.toLowerCase() === normalized)
+      if (exact) return exact
+
+      const languageCode = normalized.split('-')[0]
+      const regional = supported.find(
+        (locale) => locale.toLowerCase().split('-')[0] === languageCode,
+      )
+      if (regional) return regional
+    }
+  } catch {
+    // Browser locale detection is best effort; use the app fallback.
+  }
+
+  return null
+}
+
+/** Resolve the initial locale with one policy shared by both frontends. */
+export function resolveInitialLocale<L extends string>(
+  supported: readonly L[],
+  fallback: L,
+): L {
+  const stored = getStoredLocale()
+  const storedLocale = stored
+    ? supported.find((locale) => locale === stored)
+    : undefined
+
+  return storedLocale ?? detectBrowserLocale(supported) ?? fallback
+}
+
+// ---------------------------------------------------------------------------
 // Locale switching (the composable layer, now in the same module as storage)
 // ---------------------------------------------------------------------------
 

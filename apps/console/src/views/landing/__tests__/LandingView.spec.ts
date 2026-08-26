@@ -27,8 +27,19 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
+const mockToggleLocale = vi.hoisted(() => vi.fn());
+
+vi.mock("@/composables/useLocale", () => ({
+  useLocale: () => ({
+    t: (key: string) => key,
+    locale: { value: "zh-CN" },
+    toggleLocale: mockToggleLocale,
+  }),
+}));
+
 describe("Landing Page Component Suite", () => {
   beforeEach(() => {
+    mockToggleLocale.mockClear();
     document.title = "";
     Object.defineProperty(window, "scrollY", {
       configurable: true,
@@ -136,6 +147,9 @@ describe("Landing Page Component Suite", () => {
 
     const navLinks = wrapper.findAll(".nav-item");
     expect(navLinks.length).toBe(3);
+
+    await wrapper.find(".desktop-actions .locale-toggle-btn").trigger("click");
+    expect(mockToggleLocale).toHaveBeenCalledOnce();
 
     const menuBtn = wrapper.find(".mobile-menu-btn");
     expect(menuBtn.exists()).toBe(true);

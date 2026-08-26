@@ -61,7 +61,9 @@ jobs:
           ref="${{ steps.baseline.outputs.ref }}"
           echo "[contract] creating worktree for $ref at /tmp/baseline"
           git worktree add /tmp/baseline "$ref"
-          chmod +x /tmp/baseline/services/mvnw
+          if [[ -e /tmp/baseline/services/mvnw ]]; then
+            chmod +x /tmp/baseline/services/mvnw
+          fi
           echo "[contract] worktree created"
 
       - name: Install baseline api contracts

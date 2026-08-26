@@ -28,8 +28,8 @@ notes:
   - "Commits: f60550053 fix(dev) gate hardening; fdbeda0c7 feat(design) Garden adoption (33 files)"
   - "scripts/dev/architecture-contract-test.sh intentionally excluded from the gate: pre-existing devstack readiness subtest mismatch unrelated to design"
 
-follow_up:
-  objective: "Unify console sider visual language"
+  follow_up:
+    objective: "Unify console sider visual language"
   status: complete
   tasks:
     - id: G-5
@@ -52,3 +52,76 @@ follow_up:
         - "graphify update . exit 0; git diff --check exit 0"
       commits: []
       notes: "Preserve unrelated dirty worktree changes; package standalone test/type-check remain baseline-blocked by its existing aliases; do not stage .auto-flow control files"
+
+follow_up_locale_design:
+  objective: "Align zh-CN/en-US i18n lifecycle with locale-aware global Garden design profiles"
+  status: in_progress
+  source:
+    - "user request: zh/en i18n and global design must switch together"
+    - "browser evidence: landing content switched to English while html lang remained zh-CN"
+  tasks:
+    - id: I18N-DESIGN-001
+      title: "Unify initial locale resolution and DOM language lifecycle"
+      status: done
+      depends_on: []
+      acceptance_criteria:
+        - "Console and Management use the same stored-locale > browser-locale > zh-CN fallback policy"
+        - "Every locale switch path updates vue-i18n, persistence, and html lang together"
+        - "LandingHeader no longer mutates the vue-i18n locale directly"
+        - "The pre-bundle bootstrap seeds the same locale marker used by global CSS"
+      validation:
+        - "Shared locale lifecycle tests"
+        - "Console landing locale-switch regression test"
+        - "Both app type-check and i18n validators"
+      rollback: "Revert shared resolver, bootstrap locale marker, and locale caller changes; no data migration or API contract change"
+      evidence: []
+      commits: []
+      notes: "Keep management onLocaleChange backend sync and preserve ulticode-locale storage key; focused tests passed"
+    - id: I18N-DESIGN-002
+      title: "Add zh-CN and en-US Garden typography and geometry profiles"
+      status: in_progress
+      depends_on: [I18N-DESIGN-001]
+      acceptance_criteria:
+        - "Each supported locale has an explicit font, leading, tracking, control, panel, and layout profile"
+        - "Profiles share the Garden color identity and remain compatible with compact/comfortable density"
+        - "Global body, headings, controls, cards, tabs, and inputs consume profile-backed tokens"
+      validation:
+        - "Theme typography and design-system contract tests"
+        - "Theme sync and typography guard"
+        - "Both app builds"
+      rollback: "Revert locale profile declarations and primitive token consumption; preserve existing density and color mappings"
+      evidence: []
+      commits: []
+      notes: "Use html[lang] as the single profile selector; do not add a second locale state attribute"
+    - id: I18N-DESIGN-003
+      title: "Adopt shared locale metrics in console, management, and landing shells"
+      status: pending
+      depends_on: [I18N-DESIGN-002]
+      acceptance_criteria:
+        - "App shells and landing aliases use shared locale-aware spacing and typography tokens"
+        - "No locale-specific duplicate page stylesheet or hardcoded direct locale mutation remains"
+        - "Chinese and English preserve responsive layout and existing component behavior"
+      validation:
+        - "Targeted shell and landing tests"
+        - "Browser visual checks in zh-CN and en-US"
+        - "Static scan for direct locale mutation and profile coverage"
+      rollback: "Revert consumer token adoption only; shared locale lifecycle remains independently reversible"
+      evidence: []
+      commits: []
+      notes: "Do not rewrite translation copy unless validators expose a real missing or malformed key"
+    - id: I18N-DESIGN-004
+      title: "Run cross-app validation and close locale-design coverage"
+      status: pending
+      depends_on: [I18N-DESIGN-001, I18N-DESIGN-002, I18N-DESIGN-003]
+      acceptance_criteria:
+        - "Locale validators, theme guards, shared package checks, both app suites, type-checks, and builds pass"
+        - "Browser switch proves text, html lang, and computed design tokens change together"
+        - "Review confirms no unowned parallel design or locale lifecycle"
+      validation:
+        - "Console and Management full frontend validation"
+        - "Shared theme and locale-preference validation"
+        - "Desktop and narrow viewport browser QA"
+      rollback: "No release or remote mutation; keep verified local changes reversible by task boundaries"
+      evidence: []
+      commits: []
+      notes: "Completion requires coverage and evidence updates; do not stage .auto-flow files"

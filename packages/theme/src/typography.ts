@@ -70,6 +70,8 @@ export const typographyCssVariables = {
   dataSize: '--uc-type-data-size',
   codeSize: '--uc-type-code-size',
   markdownSize: '--uc-type-markdown-size',
+  localeHeadingTracking: '--uc-locale-heading-tracking',
+  localeControlTracking: '--uc-locale-control-tracking',
 } as const
 
 export type TypographyCssVariable = keyof typeof typographyCssVariables

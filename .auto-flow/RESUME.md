@@ -1,7 +1,7 @@
 # Resume
 
-- Objective: unify the console sider visual language.
-- Active task: G-5, console `features/sider` visual contract.
-- Scope: user row, context navigation, groups, problem-list actions/rows, sub-items, and dropdown surfaces.
-- Invariants: preserve routes, permissions, active-state logic, collapse state, menus, keyboard focus, and unrelated dirty worktree changes.
-- Next: implement shared Garden sidebar styling, then run focused tests, static checks, build, and browser QA.
+- Objective: align zh-CN/en-US i18n lifecycle with locale-aware global Garden design profiles.
+- Active task: I18N-DESIGN-001, shared initial locale resolution and DOM language lifecycle.
+- Scope: shared locale-preference, theme typography/geometry tokens, console and management locale callers, app shells, landing aliases, tests, and docs.
+- Invariants: preserve `ulticode-locale`, vue-i18n contracts, management backend locale sync, compact/comfortable density, Garden color identity, responsive behavior, and unrelated worktree changes.
+- Next: implement the shared locale lifecycle first, then add language profiles, adopt tokens, review, and run cross-app/browser validation.

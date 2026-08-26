@@ -93,9 +93,23 @@ test("publishes the shared rounded geometry contract", () => {
   );
   assert.match(
     css,
-    /\.terminal-card\s*\{[\s\S]*border-radius:\s*var\(--radius-lg\);/,
+    /\.terminal-card\s*\{[\s\S]*border-radius:\s*var\(--uc-component-card-radius\);/,
   );
   assert.doesNotMatch(css, /--radius:\s*0;/);
+});
+
+test("publishes zh-CN and en-US layout profiles", () => {
+  assert.match(
+    css,
+    /:root\[lang="zh-CN"\][\s\S]*--uc-layout-control-height:\s*2\.5rem;/,
+  );
+  assert.match(
+    css,
+    /:root\[lang="en-US"\][\s\S]*--uc-layout-control-height:\s*2\.25rem;/,
+  );
+  assert.match(css, /\.uc-page-main\s*\{/);
+  assert.match(css, /\.uc-page-container\s*\{/);
+  assert.match(css, /\.uc-page-stack\s*\{/);
 });
 
 test("keeps the canonical Garden palette", () => {

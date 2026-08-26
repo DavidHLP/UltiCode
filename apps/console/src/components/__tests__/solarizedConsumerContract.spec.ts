@@ -245,6 +245,9 @@ describe("Solarized component consumers", () => {
 
   it("uses semantic locale markers instead of emoji flags", () => {
     const switcher = source("../../components/LanguageSwitcher.vue");
+    const landingHeader = source(
+      "../../views/landing/components/LandingHeader.vue",
+    );
     const localeTypes = source("../../i18n/types.ts");
 
     expect(switcher).toContain('localeConfig.code.split("-")[0].toUpperCase()');
@@ -253,6 +256,8 @@ describe("Solarized component consumers", () => {
     expect(switcher).toContain("shadow-float");
     expect(switcher).not.toContain("localeConfig.flag");
     expect(switcher).not.toContain("bg-accent");
+    expect(landingHeader).toContain("toggleLocale: toggleLocalePreference");
+    expect(landingHeader).not.toContain("locale.value =");
     expect(localeTypes).not.toContain("flag:");
   });
 

@@ -25,7 +25,7 @@ assert_file_not_contains() {
 [[ "$(devstack_backend_apps_for_mode dev-lite)" == "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge" ]]
 [[ "$(devstack_apps_for_mode dev-full)" == \
   "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003" ]]
-[[ "$(devstack_readiness ulticode-auth)" == "http|9101|/api/v1/auth/health" ]]
+[[ "$(devstack_readiness ulticode-auth)" == "http|9101|/api/v1/auth/health/ready" ]]
 [[ "$(devstack_readiness ulticode-submission)" == "pm2" ]]
 [[ "$(devstack_readiness ulticode-9003)" == "http|9003|/" ]]
 [[ "$(devstack_readiness_banner ulticode-judge)" == "Started BackendJudgeApplication" ]]

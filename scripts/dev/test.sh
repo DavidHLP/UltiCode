@@ -38,6 +38,32 @@ else
   echo "shellcheck not installed; skipping static shell analysis." >&2
 fi
 
+# Continuation-then-comment guard: a comment line directly after a code line
+# ending in \\ becomes part of the continued command, silently swallowing the
+# following argument(s). Real regression (2026-08-26): the auth readiness curl
+# in up.sh lost its URL this way and the readiness loop could never succeed.
+# shellcheck does not flag it, so guard it explicitly. Comment blocks whose
+# own lines end with a backslash (function-signature docs) are not flagged.
+echo "Checking for comment lines after code line continuations..."
+while IFS= read -r script_file; do
+  awk -v F="$script_file" '
+    {
+      is_cont = ($0 ~ /\\[ \t]*$/)
+      is_comment = ($0 ~ /^[ \t]*#/)
+      if (pending_code && is_comment && !is_cont) {
+        print F ": line " NR " is a comment directly after a code line continuation (line " cont_line ")" > "/dev/stderr"
+        bad = 1
+      }
+      if (is_cont) {
+        if (cont_line == "") cont_line = NR
+        if (cont_line == NR || pending_code == 0) pending_code = (!is_comment)
+      } else {
+        cont_line = ""; pending_code = 0
+      }
+    }
+    END { exit bad ? 1 : 0 }' "$script_file" || exit 1
+done < <(find "$ROOT_DIR/scripts" -name '*.sh' -type f)
+
 # Owner migration preflight suite is fast and self-contained (fake mysql/docker
 # binaries), so it belongs in every gate, not just in migration-focused runs.
 echo "Running owner migration preflight tests..."

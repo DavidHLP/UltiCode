@@ -568,7 +568,7 @@ preflight_service_ports() {
     [[ ",$PM2_APPS," == *",$app,"* ]] || continue
     IFS='|' read -r kind port path <<< "$(devstack_readiness "$app")"
     [[ "$kind" == "http" ]] || continue
-    pids="$(ss -ltnp "sport = :$port" 2>/dev/null | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u)"
+    pids="$(ss -ltnp "sport = :$port" 2>/dev/null | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true)"
     [[ -z "$pids" ]] && continue
     owned="$(pm2 pid "$app" 2>/dev/null || true)"
     for pid in $pids; do

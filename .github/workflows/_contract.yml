@@ -1,0 +1,97 @@
+# Reusable: contract compatibility gate — binary compatibility of Dubbo api/* contracts.
+# Path filtering happens in the caller (ci.yml); all jobs here run when called.
+name: Contract Compatibility
+
+on:
+  workflow_call:
+    inputs:
+      baseline_ref:
+        description: 'Baseline tag/ref to compare against (optional, defaults to nearest tag)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  contract-compat:
+    name: Contract Compatibility (japicmp)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine baseline ref
+        id: baseline
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.baseline_ref }}" ]]; then
+            echo "ref=${{ inputs.baseline_ref }}" >> "$GITHUB_OUTPUT"
+            echo "[contract] using explicit baseline_ref=${{ inputs.baseline_ref }}"
+            exit 0
+          fi
+          if ref=$(git describe --tags --abbrev=0 2>/dev/null); then
+            echo "ref=$ref" >> "$GITHUB_OUTPUT"
+            echo "[contract] baseline ref=$ref (git describe --tags --abbrev=0)"
+          else
+            echo "::error::No release tag found (git describe --tags --abbrev=0 failed). Please create a release tag (e.g. git tag v1.0.0 && git push origin v1.0.0) to establish a contract baseline."
+            exit 1
+          fi
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'
+
+      - name: Grant Maven wrapper execute permission
+        run: chmod +x services/mvnw
+
+      - name: Create baseline worktree
+        run: |
+          set -euo pipefail
+          ref="${{ steps.baseline.outputs.ref }}"
+          echo "[contract] creating worktree for $ref at /tmp/baseline"
+          git worktree add /tmp/baseline "$ref"
+          chmod +x /tmp/baseline/services/mvnw
+          echo "[contract] worktree created"
+
+      - name: Install baseline api contracts
+        run: |
+          set -euo pipefail
+          echo "[contract] installing baseline api contracts from ${{ steps.baseline.outputs.ref }}"
+          cd /tmp/baseline/services
+          ./mvnw -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am -DskipTests install -B
+
+      - name: Build current api contracts
+        run: |
+          set -euo pipefail
+          echo "[contract] building current api contracts (package, keeps baseline jars in local repo for oldVersion resolution)"
+          cd services
+          ./mvnw -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am -DskipTests package -B
+
+      - name: Run japicmp contract compat check
+        run: |
+          set -euo pipefail
+          echo "[contract] running japicmp via profile contract-compat"
+          cd services
+          ./mvnw -P contract-compat -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am verify -B
+
+      - name: Upload japicmp reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: japicmp-reports
+          path: |
+            services/api/**/target/japicmp/**
+            services/**/target/japicmp/**
+          if-no-files-found: warn
+          retention-days: 7

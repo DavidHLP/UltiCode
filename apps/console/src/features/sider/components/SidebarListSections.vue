@@ -62,17 +62,16 @@ const isListActive = (id: string | number) => {
 // All problem-list rows share the same public sidebar-menu contract as the
 // primary problem navigation. The row keeps its action menu as a sibling while
 // `[data-active]` owns the active bar, surface, and text treatment.
-const listRowClass =
-  "uc-sidebar-item group group/item w-full min-w-0 text-xxs font-medium";
+const listRowClass = "uc-sidebar-item group group/item";
 const listSectionTriggerClass =
-  "uc-sidebar-group-label group/trigger flex flex-1 items-center gap-1 normal-case tracking-wider";
+  "uc-sidebar-section-trigger group/trigger flex-1";
 </script>
 
 <template>
   <!-- Load Failure Placeholder -->
   <div
     v-if="hasError"
-    class="px-3 py-3 mx-1 my-1 flex items-start gap-2 border border-dashed border-destructive/40 bg-destructive/5 text-destructive"
+    class="uc-sidebar-feedback flex items-start gap-2 text-destructive"
   >
     <AlertCircle class="h-3.5 w-3.5 mt-0.5 shrink-0" />
     <div class="flex-1 min-w-0">
@@ -91,24 +90,20 @@ const listSectionTriggerClass =
   </div>
 
   <!-- My Lists Section -->
-  <div class="px-1 py-0.5" v-if="data.ownLists.length > 0">
+  <div class="uc-sidebar-list-section" v-if="data.ownLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">
-      <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger
-          :class="listSectionTriggerClass"
-        >
+      <div class="uc-sidebar-section-header">
+        <CollapsibleTrigger :class="listSectionTriggerClass">
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
+            class="uc-sidebar-section-chevron group-data-[state=open]/collapsible:rotate-90"
           />
-          <User
-            class="h-3.5 w-3.5 mr-0.5 text-[var(--primary)]/70 group-hover/trigger:text-[var(--primary)] transition-colors"
-          />
+          <User class="uc-sidebar-section-icon" />
           <span>{{ t("sidebar.problemLists.myLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent class="py-0.5">
-        <ul class="space-y-0.5">
+      <CollapsibleContent class="uc-sidebar-list-content">
+        <ul class="uc-sidebar-list">
           <li v-for="item in data.ownLists" :key="item.id" class="group/item">
             <div
               :class="listRowClass"
@@ -129,13 +124,16 @@ const listSectionTriggerClass =
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="uc-sidebar-icon-button h-5 w-5 hover:text-[var(--primary)]"
+                    class="uc-sidebar-icon-button h-7 w-7 hover:text-[var(--primary)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" class="w-40">
+                <DropdownMenuContent
+                  align="end"
+                  class="uc-sidebar-dropdown w-40"
+                >
                   <DropdownMenuItem
                     class="text-destructive focus:text-destructive"
                     @click="emit('deleteList', item)"
@@ -153,24 +151,20 @@ const listSectionTriggerClass =
   </div>
 
   <!-- Saved Lists Section -->
-  <div class="px-1 py-0.5" v-if="data.savedLists.length > 0">
+  <div class="uc-sidebar-list-section" v-if="data.savedLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">
-      <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger
-          :class="listSectionTriggerClass"
-        >
+      <div class="uc-sidebar-section-header">
+        <CollapsibleTrigger :class="listSectionTriggerClass">
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
+            class="uc-sidebar-section-chevron group-data-[state=open]/collapsible:rotate-90"
           />
-          <Bookmark
-            class="h-3.5 w-3.5 mr-0.5 text-[var(--status-success-mark)]/70 group-hover/trigger:text-[var(--status-success-mark)] transition-colors"
-          />
+          <Bookmark class="uc-sidebar-section-icon" />
           <span>{{ t("sidebar.problemLists.savedLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent class="py-0.5">
-        <ul class="space-y-0.5">
+      <CollapsibleContent class="uc-sidebar-list-content">
+        <ul class="uc-sidebar-list">
           <li v-for="item in data.savedLists" :key="item.id" class="group/item">
             <div
               :class="listRowClass"
@@ -191,13 +185,16 @@ const listSectionTriggerClass =
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="uc-sidebar-icon-button h-5 w-5 hover:text-[var(--primary)]"
+                    class="uc-sidebar-icon-button h-7 w-7 hover:text-[var(--primary)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" class="w-48">
+                <DropdownMenuContent
+                  align="end"
+                  class="uc-sidebar-dropdown w-48"
+                >
                   <DropdownMenuSub v-if="allCategories.length > 0">
                     <DropdownMenuSubTrigger>
                       <FolderInput class="mr-2 h-4 w-4" />
@@ -228,24 +225,20 @@ const listSectionTriggerClass =
   </div>
 
   <!-- Featured Section -->
-  <div class="px-1 py-0.5" v-if="data.featuredLists.length > 0">
+  <div class="uc-sidebar-list-section" v-if="data.featuredLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">
-      <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger
-          :class="listSectionTriggerClass"
-        >
+      <div class="uc-sidebar-section-header">
+        <CollapsibleTrigger :class="listSectionTriggerClass">
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
+            class="uc-sidebar-section-chevron group-data-[state=open]/collapsible:rotate-90"
           />
-          <Star
-            class="h-3.5 w-3.5 mr-0.5 text-[var(--status-warning-mark)]/70 group-hover/trigger:text-[var(--status-warning-mark)] transition-colors"
-          />
+          <Star class="uc-sidebar-section-icon" />
           <span>{{ t("sidebar.problemLists.featured").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent class="py-0.5">
-        <ul class="space-y-0.5">
+      <CollapsibleContent class="uc-sidebar-list-content">
+        <ul class="uc-sidebar-list">
           <li
             v-for="item in data.featuredLists"
             :key="item.id"
@@ -275,15 +268,13 @@ const listSectionTriggerClass =
   <div
     v-for="category in data.categories"
     :key="category.id"
-    class="px-1 py-0.5"
+    class="uc-sidebar-list-section"
   >
     <Collapsible :default-open="true" class="group/collapsible">
-      <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger
-          :class="listSectionTriggerClass"
-        >
+      <div class="uc-sidebar-section-header">
+        <CollapsibleTrigger :class="listSectionTriggerClass">
           <ChevronRight
-            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)]"
+            class="uc-sidebar-section-chevron group-data-[state=open]/collapsible:rotate-90"
           />
           <span class="truncate">{{ category.name }}</span>
         </CollapsibleTrigger>
@@ -293,12 +284,12 @@ const listSectionTriggerClass =
             <Button
               variant="ghost"
               size="icon"
-              class="uc-sidebar-icon-button h-6 w-6"
+              class="uc-sidebar-icon-button h-7 w-7"
             >
               <MoreHorizontal class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" class="w-40">
+          <DropdownMenuContent align="end" class="uc-sidebar-dropdown w-40">
             <DropdownMenuItem @click="emit('editCategory', category)">
               <Pencil class="mr-2 h-4 w-4" />
               {{ t("common.actions.edit") }}
@@ -315,8 +306,8 @@ const listSectionTriggerClass =
         </DropdownMenu>
       </div>
 
-      <CollapsibleContent class="py-0.5">
-        <ul class="space-y-0.5">
+      <CollapsibleContent class="uc-sidebar-list-content">
+        <ul class="uc-sidebar-list">
           <li v-for="item in category.lists" :key="item.id" class="group/item">
             <div
               :class="listRowClass"
@@ -337,13 +328,16 @@ const listSectionTriggerClass =
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="uc-sidebar-icon-button h-5 w-5 hover:text-[var(--primary)]"
+                    class="uc-sidebar-icon-button h-7 w-7 hover:text-[var(--primary)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" class="w-48">
+                <DropdownMenuContent
+                  align="end"
+                  class="uc-sidebar-dropdown w-48"
+                >
                   <DropdownMenuItem
                     @click="emit('moveListToCategory', item, null)"
                   >

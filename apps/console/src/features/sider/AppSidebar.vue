@@ -62,18 +62,16 @@ const currentSidebarData = computed(() => {
 </script>
 
 <template>
-  <Sidebar v-bind="props">
-    <SidebarHeader
-      class="h-14 border-b border-sidebar-border flex items-center justify-center p-2"
-    >
+  <Sidebar v-bind="props" class="uc-sidebar-shell">
+    <SidebarHeader class="uc-sidebar-header">
       <NavUser :user="user" :is-authenticated="isAuthenticated" />
     </SidebarHeader>
-    <SidebarContent>
+    <SidebarContent class="uc-sidebar-content">
       <!-- Dynamic Sidebar Navigation -->
       <SidebarNav :sections="currentSidebarData" />
 
       <template v-if="isProblemContext">
-        <SidebarSeparator class="mx-0" />
+        <SidebarSeparator class="uc-sidebar-separator" />
         <!-- Problem Lists (Only for Problem Context) -->
         <Calendars />
       </template>

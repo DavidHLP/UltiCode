@@ -65,6 +65,8 @@ describe("Solarized component consumers", () => {
   it("uses one shared row contract across problem sidebar modules", () => {
     const nav = source("../../features/sider/SidebarNav.vue");
     const actions = source("../../features/sider/Calendars.vue");
+    const appSidebar = source("../../features/sider/AppSidebar.vue");
+    const navUser = source("../../features/sider/NavUser.vue");
     const lists = source(
       "../../features/sider/components/SidebarListSections.vue",
     );
@@ -75,15 +77,30 @@ describe("Solarized component consumers", () => {
     expect(nav).toContain("SharedSidebarMenuItem");
     expect(nav).toContain('class="uc-sidebar-item group"');
     expect(nav).not.toContain("border-l-4");
+    expect(nav).not.toContain("status-warning-mark");
+    expect(nav).not.toContain("status-info-mark");
     expect(actions).toContain("SidebarMenuItem as SharedSidebarMenuItem");
     expect(actions).toContain('as="button"');
     expect(actions).not.toContain("border-dashed");
+    expect(appSidebar).toContain('class="uc-sidebar-shell"');
+    expect(appSidebar).toContain('class="uc-sidebar-header"');
+    expect(appSidebar).toContain('class="uc-sidebar-content"');
+    expect(navUser).toContain("uc-sidebar-user-trigger");
+    expect(navUser).toContain("uc-sidebar-dropdown");
     expect(lists).toContain("uc-sidebar-item");
+    expect(lists).toContain("uc-sidebar-list-section");
+    expect(lists).toContain("uc-sidebar-dropdown");
     expect(lists).toContain("data-active");
     expect(lists).not.toContain("border-l-2");
     expect(lists).not.toContain("hover:bg-[var(--primary)]/4");
     expect(sharedStyles).toContain(".uc-sidebar-item:focus-visible");
-    expect(sharedStyles).not.toContain(".uc-sidebar-sub-item {\n  display: flex");
+    expect(sharedStyles).toContain(
+      '.uc-sidebar-shell [data-sidebar="sidebar"]',
+    );
+    expect(sharedStyles).toContain(".uc-sidebar-user-trigger");
+    expect(sharedStyles).not.toContain(
+      ".uc-sidebar-sub-item {\n  display: flex",
+    );
   });
 
   it("keeps the sticky app header above scrolling feature content", () => {

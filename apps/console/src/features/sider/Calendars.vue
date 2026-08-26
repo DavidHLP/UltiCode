@@ -44,22 +44,14 @@ const {
 
 <template>
   <!-- Action Buttons -->
-  <div class="flex flex-col gap-0.5 px-1 py-1">
-    <SharedSidebarMenuItem
-      as="button"
-      class="w-full text-left text-xs font-medium"
-      @click="isCreateListOpen = true"
-    >
+  <div class="uc-sidebar-action-list">
+    <SharedSidebarMenuItem as="button" @click="isCreateListOpen = true">
       <template #icon>
         <ListPlus class="h-3.5 w-3.5" />
       </template>
       {{ t("sidebar.problemLists.newList") }}
     </SharedSidebarMenuItem>
-    <SharedSidebarMenuItem
-      as="button"
-      class="w-full text-left text-xs font-medium"
-      @click="isCreateCategoryOpen = true"
-    >
+    <SharedSidebarMenuItem as="button" @click="isCreateCategoryOpen = true">
       <template #icon>
         <Plus class="h-3.5 w-3.5" />
       </template>

@@ -62,6 +62,14 @@ Tinted backgrounds use `color-mix()` wrapped in `@supports` — browsers without
 `color-mix` (Chrome <111 / Safari <16.2 / Firefox <113) still render the
 activation bar + color + font-weight; only the tint is dropped.
 
+The console shell also uses the layout contract classes
+`.uc-sidebar-shell`, `.uc-sidebar-header`, `.uc-sidebar-content`,
+`.uc-sidebar-nav`, `.uc-sidebar-section-trigger`, `.uc-sidebar-list-section`,
+`.uc-sidebar-user-trigger`, and `.uc-sidebar-dropdown`. They keep user rows,
+navigation rows, actions, groups, list rows, sub-items, and menus on the same
+Garden spacing, radius, surface, and focus treatment. Consumers should pass
+content and state only; do not add per-section width, radius, or color overrides.
+
 ## Tests
 
 ```bash

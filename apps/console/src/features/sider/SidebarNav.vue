@@ -7,7 +7,10 @@ import {
   SidebarMenuSub,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
@@ -64,39 +67,18 @@ const isItemActive = (item: SidebarItem): boolean => {
 
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
-  const active = isItemActive(item);
-  const probeUrl = item.url || item.children?.[0]?.url || "";
-  if (probeUrl.includes("/forum/c/interview")) {
-    return active
-      ? "text-status-warning-mark"
-      : "text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] group-hover:text-status-warning-mark";
-  }
-  if (probeUrl.includes("/forum/c/career")) {
-    return active
-      ? "text-status-info-mark"
-      : "text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] group-hover:text-status-info-mark";
-  }
-  if (probeUrl.includes("/forum/c/compensation")) {
-    return active
-      ? "text-status-success-mark"
-      : "text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] group-hover:text-status-success-mark";
-  }
-  if (probeUrl.includes("/forum/c/technology")) {
-    return active
-      ? "text-status-info-mark"
-      : "text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] group-hover:text-status-info-mark";
-  }
-  if (active) return "text-[var(--primary)]";
-  return "text-[var(--foreground-muted)] dark:text-[var(--foreground-muted)] group-hover:text-[var(--primary)]";
+  return isItemActive(item)
+    ? "text-[var(--primary)]"
+    : "text-[var(--foreground-muted)] group-hover:text-[var(--foreground)]";
 };
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 py-1">
+  <div class="uc-sidebar-nav">
     <SidebarGroup
       v-for="section in visibleSections"
       :key="section.name"
-      class="py-0"
+      class="uc-sidebar-section"
     >
       <!-- Collapsible Section -->
       <SidebarGroupCollapsible
@@ -104,13 +86,11 @@ const getItemIconColorClass = (item: SidebarItem) => {
         v-slot="{ open: isOpen }"
         :default-open="true"
       >
-        <CollapsibleTrigger
-          class="flex w-full items-center text-2xs font-bold tracking-widest text-foreground/80 dark:text-[var(--foreground-muted)] hover:text-[var(--primary)] transition-colors select-none py-1 px-2 outline-hidden"
-        >
-          <span>{{ t(section.name).toUpperCase() }}</span>
+        <CollapsibleTrigger class="uc-sidebar-section-trigger">
+          <span>{{ t(section.name) }}</span>
           <ChevronRight
             :class="[
-              'ml-auto h-3 w-3 text-foreground/80 dark:text-[var(--foreground-muted)] transition-transform',
+              'uc-sidebar-section-chevron ml-auto',
               isOpen ? 'rotate-90' : '',
             ]"
           />
@@ -118,14 +98,14 @@ const getItemIconColorClass = (item: SidebarItem) => {
         <CollapsibleContent>
           <SidebarMenuSub
             v-if="state !== 'collapsed'"
-            class="mx-3.5 border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
+            class="uc-sidebar-sub-list"
           >
             <SharedSidebarMenuSubItem
               v-for="item in section.items"
               :key="item.title"
               :is-active="isItemActive(item)"
               :to="item.url || '#'"
-              class="flex items-center gap-2 w-full"
+              class="flex items-center gap-2"
             >
               <component
                 :is="item.icon"
@@ -139,7 +119,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
               <Badge
                 v-if="item.badge"
                 :variant="item.badgeVariant || 'default'"
-                class="ml-auto h-5 px-1.5 text-2xs"
+                class="uc-sidebar-badge ml-auto"
               >
                 {{ item.badge }}
               </Badge>
@@ -148,10 +128,10 @@ const getItemIconColorClass = (item: SidebarItem) => {
           <SidebarMenu v-else>
             <SidebarMenuItem v-for="item in section.items" :key="item.title">
               <SidebarMenuButton
-              :tooltip="t(item.title)"
-              :is-active="isItemActive(item)"
-              as-child
-              class="uc-sidebar-item group"
+                :tooltip="t(item.title)"
+                :is-active="isItemActive(item)"
+                as-child
+                class="uc-sidebar-item group"
               >
                 <router-link :to="item.url || '#'">
                   <component
@@ -163,7 +143,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                   <Badge
                     v-if="item.badge"
                     :variant="item.badgeVariant || 'default'"
-                    class="ml-auto h-5 px-1.5 text-2xs"
+                    class="uc-sidebar-badge ml-auto"
                   >
                     {{ item.badge }}
                   </Badge>
@@ -176,10 +156,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
 
       <!-- Non-collapsible Section -->
       <template v-else>
-        <div
-          v-if="state !== 'collapsed'"
-          class="flex flex-col gap-0.5 px-1 py-0.5"
-        >
+        <div v-if="state !== 'collapsed'" class="uc-sidebar-section-items">
           <template v-for="item in section.items" :key="item.title">
             <!-- Item with children: shared SidebarParentItem (link + collapsible children).
                  NOTE: console sidebar.data is currently flat (no item has
@@ -196,15 +173,13 @@ const getItemIconColorClass = (item: SidebarItem) => {
               :active="isItemActive(item)"
               :default-open="isItemActive(item)"
             >
-              <div
-                class="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50 pl-2"
-              >
+              <div class="uc-sidebar-child-list">
                 <SharedSidebarMenuSubItem
                   v-for="child in item.children"
                   :key="child.title"
                   :is-active="isItemActive(child)"
                   :to="child.url || '#'"
-                  class="flex items-center gap-2 w-full"
+                  class="flex items-center gap-2"
                 >
                   <component
                     :is="child.icon"
@@ -223,7 +198,6 @@ const getItemIconColorClass = (item: SidebarItem) => {
               v-else
               :is-active="isItemActive(item)"
               :to="item.url || '#'"
-              class="text-sm font-medium"
             >
               <component
                 :is="item.icon"
@@ -237,7 +211,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
               <Badge
                 v-if="item.badge"
                 :variant="item.badgeVariant || 'default'"
-                class="ml-auto h-5 px-1.5 text-2xs"
+                class="uc-sidebar-badge ml-auto"
               >
                 {{ item.badge }}
               </Badge>
@@ -262,7 +236,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                 <Badge
                   v-if="item.badge"
                   :variant="item.badgeVariant || 'default'"
-                  class="ml-auto h-5 px-1.5 text-2xs"
+                  class="uc-sidebar-badge ml-auto"
                 >
                   {{ item.badge }}
                 </Badge>

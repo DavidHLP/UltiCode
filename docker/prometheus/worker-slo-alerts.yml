@@ -1,0 +1,250 @@
+groups:
+  - name: worker-slo
+    interval: 30s
+    rules:
+
+      # ——— search.worker: stream:integration / group search-worker ———
+
+      - alert: SearchWorkerQueueLagHigh
+        expr: search_worker_queue_lag > 500 and search_worker_queue_lag != -1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: search worker queue lag high (lag > 500 for 10m)
+          description: "search.worker queue.lag (XINFO GROUPS lag, fallback UNKNOWN=-1 filtered) sustained > 500. Check Redis XLEN / XINFO GROUPS and MeiliSearch writer."
+          threshold_note: "Initial suggestion: warning 500 / critical 2000. Tune per real baseline (daily p95 lag)."
+
+      - alert: SearchWorkerQueueLagCritical
+        expr: search_worker_queue_lag > 2000 and search_worker_queue_lag != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: search worker queue lag critical (lag > 2000 for 5m)
+          description: "search.worker queue.lag sustained > 2000. Writer likely stalled or MeiliSearch down. See WORKER_SLO_RUNBOOK.md."
+          threshold_note: "Initial suggestion: critical 2000. Tune per real baseline."
+
+      - alert: SearchWorkerPelOldestHigh
+        expr: search_worker_queue_pel_oldest_age_seconds > 300 and search_worker_queue_pel_oldest_age_seconds != -1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: search worker PEL oldest age high (> 300s for 5m)
+          description: "search.worker queue.pel.oldest.age.seconds sustained > 300s. Entries stuck in PEL pending > 5m; claim/retry thrashing or downstream stall."
+          threshold_note: "Initial suggestion: warning 300s / critical 600s. Align with search.worker claim min-idle 30s and maxAttempts 5."
+
+      - alert: SearchWorkerPelOldestCritical
+        expr: search_worker_queue_pel_oldest_age_seconds > 600 and search_worker_queue_pel_oldest_age_seconds != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: search worker PEL oldest age critical (> 600s)
+          description: "search.worker PEL oldest entry idle > 10m. Likely poison loop or repeated MeiliSearch failure; inspect DLQ search:stream:dlq."
+          threshold_note: "Initial suggestion: critical 600s. Tune per real baseline."
+
+      - alert: SearchWorkerConsumeFailures
+        expr: increase(search_worker_consume_failures_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: search worker consume failures rising (> 5 in 5m)
+          description: "search.worker consume.failures counter increasing. Each increment = read/claim/process/ack failure (refreshSloGauges excluded). Check PM2 logs and MeiliSearch health."
+          threshold_note: "Initial suggestion: warning > 5 / critical > 20 per 5m. Tune to normal error budget."
+
+      - alert: SearchWorkerConsumeFailuresCritical
+        expr: increase(search_worker_consume_failures_total[5m]) > 20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: search worker consume failures critical (> 20 in 5m)
+          description: "search.worker consume failures burst. Worker likely crash-looping or downstream unavailable."
+          threshold_note: "Initial suggestion: critical > 20 per 5m."
+
+      - alert: SearchWorkerStalled
+        expr: (time() - search_worker_last_success_timestamp / 1000) > 600 and search_worker_last_success_timestamp > 0 and search_worker_last_success_timestamp != -1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: search worker stalled (no success for 10m)
+          description: "search.worker last.success.timestamp not advanced for > 10m (stale > 600s). Worker may be stopped or blocked. 0 means never succeeded."
+          threshold_note: "Initial suggestion: warning 600s / critical 1800s. Tune to expected poll interval 2s + batch semantics."
+
+      - alert: SearchWorkerStalledCritical
+        expr: (time() - search_worker_last_success_timestamp / 1000) > 1800 and search_worker_last_success_timestamp > 0 and search_worker_last_success_timestamp != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: search worker stalled critical (no success for 30m)
+          description: "search.worker has not marked success for > 30m. Immediate investigation."
+          threshold_note: "Initial suggestion: critical 1800s."
+
+      # ——— judge.streams: judge:{judge-stream}:stream / group judge-workers ———
+
+      - alert: JudgeStreamsQueueLagHigh
+        expr: judge_streams_queue_lag > 200 and judge_streams_queue_lag != -1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: judge streams queue lag high (lag > 200 for 10m)
+          description: "judge.streams queue.lag (Redisson StreamGroup.getLag(), UNKNOWN=-1 filtered) sustained > 200. Dispatch outpacing judge capacity."
+          threshold_note: "Initial suggestion: warning 200 / critical 1000. Tune per submission rate baseline."
+
+      - alert: JudgeStreamsQueueLagCritical
+        expr: judge_streams_queue_lag > 1000 and judge_streams_queue_lag != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: judge streams queue lag critical (lag > 1000 for 5m)
+          description: "judge.streams lag critical. Consumer group judge-workers stalled or under-provisioned."
+          threshold_note: "Initial suggestion: critical 1000."
+
+      - alert: JudgeStreamsPelOldestHigh
+        expr: judge_streams_queue_pel_oldest_age_seconds > 600 and judge_streams_queue_pel_oldest_age_seconds != -1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: judge streams PEL oldest high (> 600s)
+          description: "judge.streams PEL oldest age > 10m. Entry idle beyond visibility timeout may need reaper reclaim (UnackedStreamEntriesReaper interval 10s, timeout 1800s)."
+          threshold_note: "Initial suggestion: warning 600s / critical 1800s. Reaper visibilityTimeoutMs=1800000 (30m) governs true reclaim horizon."
+
+      - alert: JudgeStreamsPelOldestCritical
+        expr: judge_streams_queue_pel_oldest_age_seconds > 1800 and judge_streams_queue_pel_oldest_age_seconds != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: judge streams PEL oldest critical (> 1800s)
+          description: "judge.streams PEL oldest > 30m (full visibility timeout). Worker may be dead without reclaim or DLQ path failing."
+          threshold_note: "Initial suggestion: critical 1800s."
+
+      - alert: JudgeStreamsConsumeFailures
+        expr: increase(judge_streams_consume_failures_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: judge streams consume failures rising (> 5 in 5m)
+          description: "judge.streams consume.failures increasing (poll/ack/decode failures). Check judge PM2 logs and Redis group health."
+          threshold_note: "Initial suggestion: warning > 5 / critical > 20 per 5m."
+
+      - alert: JudgeStreamsConsumeFailuresCritical
+        expr: increase(judge_streams_consume_failures_total[5m]) > 20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: judge streams consume failures critical (> 20 in 5m)
+          description: "judge.streams failures burst."
+          threshold_note: "Initial suggestion: critical > 20 per 5m."
+
+      - alert: JudgeStreamsStalled
+        expr: (time() - judge_streams_last_success_timestamp / 1000) > 600 and judge_streams_last_success_timestamp > 0 and judge_streams_last_success_timestamp != -1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: judge streams stalled (no ack success for 10m)
+          description: "judge.streams last.success.timestamp not advanced for > 600s."
+          threshold_note: "Initial suggestion: warning 600s / critical 1800s."
+
+      - alert: JudgeStreamsStalledCritical
+        expr: (time() - judge_streams_last_success_timestamp / 1000) > 1800 and judge_streams_last_success_timestamp > 0 and judge_streams_last_success_timestamp != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: judge streams stalled critical (no ack success for 30m)
+          description: "judge.streams stalled > 30m."
+          threshold_note: "Initial suggestion: critical 1800s."
+
+      # ——— notification.inbox: stream:integration / group App-Notification ———
+
+      - alert: NotificationInboxQueueLagHigh
+        expr: notification_inbox_queue_lag > 500 and notification_inbox_queue_lag != -1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: notification inbox queue lag high (lag > 500 for 10m)
+          description: "notification.inbox queue.lag sustained > 500 (XINFO GROUPS lag with stream-length fallback; UNKNOWN=-1 filtered)."
+          threshold_note: "Initial suggestion: warning 500 / critical 2000. Tune per baseline."
+
+      - alert: NotificationInboxQueueLagCritical
+        expr: notification_inbox_queue_lag > 2000 and notification_inbox_queue_lag != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: notification inbox queue lag critical (lag > 2000 for 5m)
+          description: "notification.inbox lag critical; inbox staging or DB apply stalled."
+          threshold_note: "Initial suggestion: critical 2000."
+
+      - alert: NotificationInboxPelOldestHigh
+        expr: notification_inbox_queue_pel_oldest_age_seconds > 300 and notification_inbox_queue_pel_oldest_age_seconds != -1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: notification inbox PEL oldest high (> 300s)
+          description: "notification.inbox PEL oldest age > 5m (reclaim window 30s, batch 50). Staging may be failing to ack."
+          threshold_note: "Initial suggestion: warning 300s / critical 600s."
+
+      - alert: NotificationInboxPelOldestCritical
+        expr: notification_inbox_queue_pel_oldest_age_seconds > 600 and notification_inbox_queue_pel_oldest_age_seconds != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: notification inbox PEL oldest critical (> 600s)
+          description: "notification.inbox PEL oldest > 10m. Check notification PM2 logs and inbox DB."
+          threshold_note: "Initial suggestion: critical 600s."
+
+      - alert: NotificationInboxConsumeFailures
+        expr: increase(notification_inbox_consume_failures_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: notification inbox consume failures rising (> 5 in 5m)
+          description: "notification.inbox consume.failures increasing (reclaim/read/stage failures)."
+          threshold_note: "Initial suggestion: warning > 5 / critical > 20 per 5m."
+
+      - alert: NotificationInboxConsumeFailuresCritical
+        expr: increase(notification_inbox_consume_failures_total[5m]) > 20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: notification inbox consume failures critical (> 20 in 5m)
+          description: "notification.inbox failures burst."
+          threshold_note: "Initial suggestion: critical > 20 per 5m."
+
+      - alert: NotificationInboxStalled
+        expr: (time() - notification_inbox_last_success_timestamp / 1000) > 600 and notification_inbox_last_success_timestamp > 0 and notification_inbox_last_success_timestamp != -1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: notification inbox stalled (no success for 10m)
+          description: "notification.inbox last.success.timestamp not advanced for > 600s (scheduled every 2000ms)."
+          threshold_note: "Initial suggestion: warning 600s / critical 1800s."
+
+      - alert: NotificationInboxStalledCritical
+        expr: (time() - notification_inbox_last_success_timestamp / 1000) > 1800 and notification_inbox_last_success_timestamp > 0 and notification_inbox_last_success_timestamp != -1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: notification inbox stalled critical (no success for 30m)
+          description: "notification.inbox stalled > 30m."
+          threshold_note: "Initial suggestion: critical 1800s."

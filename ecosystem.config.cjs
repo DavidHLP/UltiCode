@@ -33,6 +33,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         SERVER_PORT: '9101',
+        REDIS_USERNAME: 'ulticode-auth',
+        REDIS_PASSWORD: process.env.AUTH_REDIS_PASSWORD,
         ...dubboRegistryEnv(),
       },
       out_file: path.join(ROOT, 'logs', 'backend-auth.out.log'),
@@ -50,6 +52,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         SERVER_PORT: '9102',
+        REDIS_USERNAME: 'ulticode-admin',
+        REDIS_PASSWORD: process.env.ADMIN_REDIS_PASSWORD,
         APP_FEATURES_CONTEST_DUBBO_CUTOVER: process.env.APP_FEATURES_CONTEST_DUBBO_CUTOVER || 'true',
         APP_FEATURES_SUBMISSION_DUBBO_CUTOVER: process.env.APP_FEATURES_SUBMISSION_DUBBO_CUTOVER || 'false',
       },
@@ -68,6 +72,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         SERVER_PORT: '9103',
+        REDIS_USERNAME: 'ulticode-app',
+        REDIS_PASSWORD: process.env.APP_REDIS_PASSWORD,
         APP_RUNTIME_MODE: process.env.APP_RUNTIME_MODE || 'dev-lite',
         APP_FEATURES_USE_JUDGE_OUTBOX: process.env.APP_FEATURES_USE_JUDGE_OUTBOX || 'true',
         APP_FEATURES_USE_GENERATION_FENCE: process.env.APP_FEATURES_USE_GENERATION_FENCE || 'true',
@@ -97,6 +103,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         SERVER_PORT: '9105',
+        REDIS_USERNAME: 'ulticode-notification',
+        REDIS_PASSWORD: process.env.NOTIFICATION_REDIS_PASSWORD,
         NOTIFICATION_WORKER_ENABLED: 'true',
         ...dubboRegistryEnv(),
       },
@@ -119,6 +127,8 @@ module.exports = {
         // relaxed binding gives the env var precedence over
         // ${SUBMISSION_SERVER_PORT:9106} in application.yml.
         SERVER_PORT: '9106',
+        REDIS_USERNAME: 'ulticode-submission',
+        REDIS_PASSWORD: process.env.SUBMISSION_REDIS_PASSWORD,
         SUBMISSION_SERVER_PORT: '9106',
         SUBMISSION_DUBBO_PORT: '20886',
         APP_RUNTIME_MODE: process.env.APP_RUNTIME_MODE || 'dev-lite',
@@ -144,6 +154,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         JUDGE_SERVER_PORT: '9104',
+        REDIS_USERNAME: 'ulticode-judge',
+        REDIS_PASSWORD: process.env.JUDGE_REDIS_PASSWORD,
         JUDGE_DUBBO_PORT: '20884',
         APP_RUNTIME_ROLE: 'judge',
         APP_RUNTIME_MODE: process.env.APP_RUNTIME_MODE || 'dev-lite',
@@ -172,6 +184,8 @@ module.exports = {
       env_file: BACKEND_ENV_FILE,
       env: {
         SEARCH_SERVER_PORT: '9107',
+        REDIS_USERNAME: 'ulticode-search',
+        REDIS_PASSWORD: process.env.SEARCH_REDIS_PASSWORD,
         SEARCH_WORKER_ENABLED: 'true',
       },
       out_file: path.join(ROOT, 'logs', 'backend-search.out.log'),

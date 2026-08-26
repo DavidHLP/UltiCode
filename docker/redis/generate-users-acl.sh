@@ -47,8 +47,8 @@ user default off
 user ulticode-ops on #$(hash_of "$OPS_REDIS_PASSWORD") resetkeys ~* resetchannels &* +@all
 user ulticode-auth on #$(hash_of "$AUTH_REDIS_PASSWORD") resetkeys ~csrf:* ~oauth:* ~rate-limit:* ~stream:integration resetchannels &* $DATA_GRANTS
 user ulticode-admin on #$(hash_of "$ADMIN_REDIS_PASSWORD") resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* resetchannels &* $DATA_GRANTS
-user ulticode-app on #$(hash_of "$APP_REDIS_PASSWORD") resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~email_queue ~notification_queue resetchannels &ulticode:ws:broadcast $DATA_GRANTS +@pubsub +info
-user ulticode-submission on #$(hash_of "$SUBMISSION_REDIS_PASSWORD") resetkeys ~stream:integration resetchannels &* $DATA_GRANTS
+user ulticode-app on #$(hash_of "$APP_REDIS_PASSWORD") resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~email_queue ~notification_queue resetchannels &ulticode:ws:broadcast $DATA_GRANTS +@pubsub +info
+user ulticode-submission on #$(hash_of "$SUBMISSION_REDIS_PASSWORD") resetkeys ~stream:integration ~judge:* resetchannels &* $DATA_GRANTS
 user ulticode-search on #$(hash_of "$SEARCH_REDIS_PASSWORD") resetkeys ~stream:integration ~search:* resetchannels &* $DATA_GRANTS
 user ulticode-notification on #$(hash_of "$NOTIFICATION_REDIS_PASSWORD") resetkeys ~stream:integration ~poison:* ~notification:* resetchannels &ulticode:ws:broadcast $DATA_GRANTS +@pubsub
 user ulticode-judge on #$(hash_of "$JUDGE_REDIS_PASSWORD") resetkeys ~judge_queue ~queue:* ~judge:* resetchannels &* $DATA_GRANTS

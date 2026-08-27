@@ -61,7 +61,15 @@ jobs:
           PROP="${{ matrix.service.maven_version_property }}"
           VERSION=""
           if [ -n "$PROP" ]; then
-            VERSION="$(sed -n "s/.*<$PROP>\([^<]*\)</$PROP>.*/\1/p" services/pom.xml | head -1)"
+            VERSION="$(awk -v prop="$PROP" '
+              $0 ~ "<" prop ">" {
+                value = $0
+                sub(".*<" prop ">", "", value)
+                sub("</" prop ">.*", "", value)
+                print value
+                exit
+              }
+            ' services/pom.xml)"
             if [ -z "$VERSION" ]; then
               echo "::error::Property <$PROP> not found in services/pom.xml"
               exit 1

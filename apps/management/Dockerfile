@@ -6,25 +6,24 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Copy package files
-COPY management/package.json ./management/
-COPY management/pnpm-lock.yaml ./management/
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/management/package.json ./apps/management/
+COPY packages ./packages
 
-# Install dependencies
-RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-frozen-lockfile --dir ./management
+RUN corepack enable && corepack prepare pnpm@9 --activate && \
+    pnpm install --no-frozen-lockfile
 
 # Copy source code
-COPY management ./management
+COPY apps/management ./apps/management
 
 # Mirror the monorepo layout: management/ and shared/ are siblings. Locally
 # management/src/shared is a symlink to ../../shared, which `COPY` cannot
 # preserve (it follows symlinks and bakes shared/ into src/shared/). Place
-# shared at the repo root and recreate the symlink so (a) tsconfig.app.json
-# `../shared/auth-ui/...` resolves correctly and (b) the vite `@` alias
-# (mapped to ./src) reaches shared/ via the symlink as it does on host.
-COPY shared ./shared
-RUN rm -rf /app/management/src/shared && \
-    ln -sfn /app/shared /app/management/src/shared
+# packages at the repo root and recreate the symlink so the app resolves
+# shared package imports through the current monorepo layout.
+COPY packages ./packages
+RUN rm -rf /app/apps/management/src/shared && \
+    ln -sfn /app/packages /app/apps/management/src/shared
 # Give the shared/ packages a node_modules so their bare imports resolve from
 # management's installed deps. The shared packages ship source only (peer deps
 # provided by the host app), so in Docker they have no node_modules of their
@@ -32,11 +31,15 @@ RUN rm -rf /app/management/src/shared && \
 # vite/rolldown all fail to resolve vue / reka-ui / vue-router / vue-i18n /
 # clsx / etc. Symlinking shared/node_modules → management/node_modules fixes
 # all three resolution paths via Node's standard upward node_modules lookup.
-RUN ln -sfn /app/management/node_modules /app/shared/node_modules
+RUN ln -sfn /app/apps/management/node_modules /app/packages/node_modules
 
 # Build application
-WORKDIR /app/management
+WORKDIR /app/apps/management
 ARG VITE_API_BASE_URL=/api
+RUN mkdir -p /app/node_modules/@ulticode && \
+    ln -sfn /app/packages/auth-core /app/node_modules/@ulticode/auth-core && \
+    ln -sfn /app/packages/sandbox-types /app/node_modules/@ulticode/sandbox-types && \
+    ln -sfn /app/packages/badge-config /app/node_modules/@ulticode/badge-config
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN pnpm build
 
@@ -50,7 +53,7 @@ RUN addgroup -g 1001 -S appgroup && \
 # Copy nginx config (listen on 8080 since non-root cannot bind port 80)
 # Drop the alpine default conf so only ours loads.
 RUN rm -f /etc/nginx/conf.d/default.conf
-COPY management/nginx.conf /etc/nginx/templates/default.conf.template
+COPY apps/management/nginx.conf /etc/nginx/templates/default.conf.template
 # Keep the shared security headers under templates/includes so the nginx
 # entrypoint renders them into the conf.d/includes path used by nginx.conf.
 COPY infrastructure/nginx/includes/security-headers.conf /etc/nginx/templates/includes/security-headers.conf.template
@@ -62,7 +65,7 @@ RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx /etc/ngin
     chown appuser:appgroup /var/run/nginx.pid
 
 # Copy built application with proper ownership
-COPY --from=builder --chown=appuser:appgroup /app/management/dist /usr/share/nginx/html
+COPY --from=builder --chown=appuser:appgroup /app/apps/management/dist /usr/share/nginx/html
 
 # Expose port
 EXPOSE 8080

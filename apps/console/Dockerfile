@@ -6,25 +6,24 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Copy package files
-COPY console/package.json ./console/
-COPY console/pnpm-lock.yaml ./console/
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/console/package.json ./apps/console/
+COPY packages ./packages
 
-# Install dependencies
-RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-frozen-lockfile --dir ./console
+RUN corepack enable && corepack prepare pnpm@9 --activate && \
+    pnpm install --no-frozen-lockfile
 
 # Copy source code
-COPY console ./console
+COPY apps/console ./apps/console
 
 # Mirror the monorepo layout: console/ and shared/ are siblings. Locally
 # console/src/shared is a symlink to ../../shared, which `COPY` cannot
 # preserve (it follows symlinks and bakes shared/ into src/shared/). Place
-# shared at the repo root and recreate the symlink so (a) tsconfig.app.json
-# `../shared/auth-ui/...` resolves correctly and (b) the vite `@` alias
-# (mapped to ./src) reaches shared/ via the symlink as it does on host.
-COPY shared ./shared
-RUN rm -rf /app/console/src/shared && \
-    ln -sfn /app/shared /app/console/src/shared
+# packages at the repo root and recreate the symlink so the app resolves
+# shared package imports through the current monorepo layout.
+COPY packages ./packages
+RUN rm -rf /app/apps/console/src/shared && \
+    ln -sfn /app/packages /app/apps/console/src/shared
 # Give the shared/ packages a node_modules so their bare imports (vue,
 # vue-router, vue-i18n, reka-ui, clsx, ...) resolve from console's installed
 # deps. The shared packages ship source only — peer deps are provided by the
@@ -33,10 +32,14 @@ RUN rm -rf /app/console/src/shared && \
 # all fail to resolve those imports. Symlinking shared/node_modules →
 # console/node_modules fixes all three resolution paths at once via Node's
 # standard upward node_modules lookup.
-RUN ln -sfn /app/console/node_modules /app/shared/node_modules
+RUN ln -sfn /app/apps/console/node_modules /app/packages/node_modules
 
+RUN mkdir -p /app/node_modules/@ulticode && \
+    ln -sfn /app/packages/auth-core /app/node_modules/@ulticode/auth-core && \
+    ln -sfn /app/packages/sandbox-types /app/node_modules/@ulticode/sandbox-types && \
+    ln -sfn /app/packages/badge-config /app/node_modules/@ulticode/badge-config
 # Build application
-WORKDIR /app/console
+WORKDIR /app/apps/console
 ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN pnpm build
@@ -51,7 +54,7 @@ RUN addgroup -g 1001 -S appgroup && \
 # Copy nginx config (listen on 8080 since non-root cannot bind port 80).
 # Drop the alpine default conf so only ours gets loaded.
 RUN rm -f /etc/nginx/conf.d/default.conf
-COPY console/nginx.conf /etc/nginx/templates/default.conf.template
+COPY apps/console/nginx.conf /etc/nginx/templates/default.conf.template
 # Keep the shared security headers under templates/includes so the nginx
 # entrypoint renders them into the conf.d/includes path used by nginx.conf.
 COPY infrastructure/nginx/includes/security-headers.conf /etc/nginx/templates/includes/security-headers.conf.template
@@ -63,7 +66,7 @@ RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx /etc/ngin
     chown appuser:appgroup /var/run/nginx.pid
 
 # Copy built application with proper ownership
-COPY --from=builder --chown=appuser:appgroup /app/console/dist /usr/share/nginx/html
+COPY --from=builder --chown=appuser:appgroup /app/apps/console/dist /usr/share/nginx/html
 
 # Expose port
 EXPOSE 8080

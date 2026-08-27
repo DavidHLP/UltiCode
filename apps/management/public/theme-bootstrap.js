@@ -35,8 +35,7 @@
         typeof window.matchMedia === 'function' &&
         window.matchMedia(DARK_QUERY).matches
       )
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- intentional: ignore matchMedia throws
-    } catch (_) {
+    } catch {
       return false
     }
   }

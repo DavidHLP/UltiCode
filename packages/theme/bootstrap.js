@@ -35,8 +35,7 @@
         typeof window.matchMedia === 'function' &&
         window.matchMedia(DARK_QUERY).matches
       )
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- intentional: ignore matchMedia throws
-    } catch (_) {
+    } catch {
       return false
     }
   }
@@ -53,7 +52,7 @@
   function readStoredLocale() {
     try {
       return localStorage.getItem(LOCALE_STORAGE_KEY)
-    } catch (_) {
+    } catch {
       return null
     }
   }
@@ -80,7 +79,7 @@
           return 'en-US'
         }
       }
-    } catch (_) {
+    } catch {
       // Browser locale detection is best effort; use the shared default.
     }
 

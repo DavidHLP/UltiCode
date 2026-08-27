@@ -230,7 +230,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--surface-elevated);
-  box-shadow: 0 12px 36px -8px rgba(25, 34, 14, 0.16);
+  box-shadow: var(--shadow-float-hover);
 }
 
 [data-sidebar="sidebar"] .uc-sidebar-content [data-slot="sidebar-menu-button"] {

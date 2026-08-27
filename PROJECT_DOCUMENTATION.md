@@ -1947,7 +1947,9 @@ Total keys in en-US: 245
 
 - `packages/design-system/style.css`：明色 "Parchment Garden"（画布 `#e3e1d1`、卡片 `#f7f6f0`、墨色文本 `#19220e/#545c45`、橄榄主控件 `#545c45`）；暗色 "Night Garden"（深苔画布 `#1c2412/#26301b`、羊皮纸文本 `#eae8d8/#e3e1d1`）。历史 `--solarized-*` 变量名保留为原始桥接刻度，但值为 Garden 调色板；状态/图表语义经 color-mix 保证 WCAG AA。
 - 圆角阶梯：控件 8px（lg），卡片/面板 20px（xl = radius+12px）；阴影为墨色调 `rgba(25,34,14,…)`。
-- `packages/theme/src/typography.css`：字体三件套 Instrument Serif（标题，含 Noto Serif SC 回退）/ Inter（正文 UI，含 Noto Sans SC 回退）/ JetBrains Mono（代码数据）。原 LXGW WenKai 全项目楷体契约退役。页面与章节标题角色使用衬线展示字体。
+- `packages/theme/src/typography.css`：字体三件套由 `html[lang]` 选择 zh-CN / en-US profile：中文优先 Noto Sans/Serif SC，英文优先 Inter/Instrument Serif；JetBrains Mono 继续负责代码数据。两套 profile 同时调整行高、字距与可读性度量；原 LXGW WenKai 全项目楷体契约退役。页面与章节标题角色使用衬线展示字体。
+- `packages/design-system/style.css`：`--uc-layout-*` 与 `--uc-component-*` 提供语言感知的页面 gutter、区块间距、控件高度/内距和共享 primitive 几何；`.uc-page-main`、`.uc-page-container`、`.uc-page-stack` 供 console/management shell 复用。Garden 色彩和 comfortable/compact density 不随语言复制。
+- Locale 生命周期由 `packages/locale-preference` 统一处理：存储值 → 浏览器语言 → zh-CN fallback；`packages/theme/bootstrap.js` 在 Vue bundle 前同步 `html lang`，运行时切换也通过共享 `useLocale` 更新它。落地页不得直接写 `locale.value`。
 - `packages/design-system/src/palette.ts`：运行时桥（ECharts/Monaco）与 CSS 原始刻度逐值锁定；Monaco 主题自动跟随。
 
 **全局质感与动效**

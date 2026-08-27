@@ -113,6 +113,7 @@
 
 :root {
   --uc-locale-heading-tracking: var(--uc-tracking-normal);
+  --uc-locale-display-tracking: -0.035em;
   --uc-locale-control-tracking: var(--uc-tracking-normal);
 }
 
@@ -129,6 +130,7 @@
   --uc-leading-snug: 1.45;
   --uc-tracking-label: var(--uc-tracking-normal);
   --uc-locale-heading-tracking: var(--uc-tracking-normal);
+  --uc-locale-display-tracking: var(--uc-tracking-normal);
   --uc-locale-control-tracking: var(--uc-tracking-normal);
 }
 
@@ -145,6 +147,7 @@
   --uc-leading-snug: 1.35;
   --uc-tracking-label: 0.05em;
   --uc-locale-heading-tracking: -0.01em;
+  --uc-locale-display-tracking: -0.045em;
   --uc-locale-control-tracking: var(--uc-tracking-normal);
 }
 
@@ -303,7 +306,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * 5. Density profiles
+ * 6. Density profiles
  *
  * Apps opt in by setting `data-uc-density` on <html>:
  *   - 'comfortable' (default for console): generous reading surface

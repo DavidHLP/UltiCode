@@ -2,6 +2,7 @@ import { createI18n } from "vue-i18n";
 import zhCN from "./locales/zh-CN";
 import enUS from "./locales/en-US";
 import { getInitialLocale } from "./utils/detector";
+import "./utils/storage";
 import { FALLBACK_LOCALE } from "./types";
 
 // Re-export all types and constants from types.ts (single source of truth)

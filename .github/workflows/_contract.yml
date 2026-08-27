@@ -63,14 +63,25 @@ jobs:
           git worktree add /tmp/baseline "$ref"
           if [[ -e /tmp/baseline/services/mvnw ]]; then
             chmod +x /tmp/baseline/services/mvnw
+          elif [[ -e /tmp/baseline/backend-spring/mvnw ]]; then
+            chmod +x /tmp/baseline/backend-spring/mvnw
           fi
           echo "[contract] worktree created"
 
       - name: Install baseline api contracts
         run: |
           set -euo pipefail
-          echo "[contract] installing baseline api contracts from ${{ steps.baseline.outputs.ref }}"
-          cd /tmp/baseline/services
+          baseline_root=/tmp/baseline
+          if [[ -d "$baseline_root/services" ]]; then
+            baseline_services="$baseline_root/services"
+          elif [[ -d "$baseline_root/backend-spring" ]]; then
+            baseline_services="$baseline_root/backend-spring"
+          else
+            echo "::error::Baseline ref has no supported backend Maven root (expected services/ or backend-spring/)"
+            exit 1
+          fi
+          echo "[contract] installing baseline api contracts from ${{ steps.baseline.outputs.ref }} ($baseline_services)"
+          cd "$baseline_services"
           ./mvnw -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am -DskipTests install -B
 
       - name: Build current api contracts

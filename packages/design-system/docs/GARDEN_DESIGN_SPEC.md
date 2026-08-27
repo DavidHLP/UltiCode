@@ -56,21 +56,43 @@ Derived dark variant consistent with the landing mood:
   card/panel=20.
 - Shadows: subtle `0 4px 20px -4px rgba(25,34,14,.10)`;
   elevated/hover `0 12px 36px -8px rgba(25,34,14,.16)`.
-- Base line-height 1.6; display headlines use tight tracking (-0.04em range).
+- The unprofiled foundation uses 1.6 line-height; active locale profiles tune
+  body/control leading and display tracking for zh-CN or en-US below.
+
+### 3.1 Locale metric profiles
+
+The shared locale lifecycle writes `html[lang]`; the following profile values
+are selected by that one attribute and apply to both frontends. The palette,
+radius semantics, and app density remain shared so language adaptation changes
+fit and readability without creating a second product theme.
+
+| Locale | Page gutter | Section gap | Control gap | Control height | Panel padding |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `zh-CN` | 1rem | 1.25rem | 0.375rem | 2.5rem | 0.625rem / 0.875rem |
+| `en-US` | 1.25rem | 1.5rem | 0.5rem | 2.25rem | 0.5rem / 0.75rem |
+
+The values are exposed as `--uc-layout-*` and `--uc-component-*` variables in
+`packages/design-system/style.css`; `.uc-page-main`, `.uc-page-container`,
+`.uc-page-stack`, terminal cards, tabs, and inputs consume them.
 
 ## 4. Typography
 
 Landing fonts become the global contract:
 
-- Display/headings: `"Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", serif`
-  (editorial serif; italic accents allowed as on the landing hero)
-- UI/body: `"Inter", system-ui, ... "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
+- `zh-CN` display/headings: `"Noto Serif SC", "Songti SC", "SimSun", "Instrument Serif", "Newsreader", Georgia, serif`; UI/body: `"Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", system-ui, ...`
+- `en-US` display/headings: `"Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", serif`; UI/body: `"Inter", system-ui, ... "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
 - Code/data: `"JetBrains Mono", "Fira Code", monospace` with CJK fallbacks
 - The previous project-wide LXGW WenKai (楷体) contract is retired; all
   `--uc-font-*` roles, Tailwind `font-mono`, Monaco editor fonts, and chart
   font families now resolve through the stacks above.
 - Page titles and section titles use the display serif via
   `--uc-font-display`.
+
+`zh-CN` uses 1.65/1.35/1.45 normal/tight/snug leading and removes label
+tracking for CJK rhythm. `en-US` uses 1.5/1.25/1.35 leading with the standard
+short-label tracking and tighter display tracking. Locale switching updates
+the same `html lang` marker before and during app rendering; no component owns
+a second language-specific stylesheet.
 
 Font loading is centralized in `packages/theme/src/typography.css`
 (jsDelivr @fontsource imports); app `index.html` Google Fonts links mirror it.

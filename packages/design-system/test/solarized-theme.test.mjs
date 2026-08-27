@@ -5,6 +5,10 @@ import test from "node:test";
 
 const root = process.cwd();
 const css = readFileSync(resolve(root, "style.css"), "utf8");
+const typographyCss = readFileSync(
+  resolve(root, "../theme/src/typography.css"),
+  "utf8",
+);
 const manifest = JSON.parse(
   readFileSync(resolve(root, "package.json"), "utf8"),
 );
@@ -110,6 +114,16 @@ test("publishes zh-CN and en-US layout profiles", () => {
   assert.match(css, /\.uc-page-main\s*\{/);
   assert.match(css, /\.uc-page-container\s*\{/);
   assert.match(css, /\.uc-page-stack\s*\{/);
+});
+
+test("publishes zh-CN and en-US typography profiles", () => {
+  assert.match(typographyCss, /:root\[lang="zh-CN"\]/);
+  assert.match(typographyCss, /:root\[lang="en-US"\]/);
+  assert.match(typographyCss, /--uc-leading-normal:\s*1\.65/);
+  assert.match(typographyCss, /--uc-leading-normal:\s*1\.5/);
+  assert.match(typographyCss, /--uc-locale-heading-tracking:/);
+  assert.match(typographyCss, /--uc-locale-display-tracking:/);
+  assert.match(typographyCss, /--uc-locale-control-tracking:/);
 });
 
 test("keeps the canonical Garden palette", () => {

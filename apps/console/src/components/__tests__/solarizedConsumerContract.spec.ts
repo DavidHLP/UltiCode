@@ -248,6 +248,7 @@ describe("Solarized component consumers", () => {
     const landingHeader = source(
       "../../views/landing/components/LandingHeader.vue",
     );
+    const i18n = source("../../i18n/index.ts");
     const localeTypes = source("../../i18n/types.ts");
 
     expect(switcher).toContain('localeConfig.code.split("-")[0].toUpperCase()');
@@ -258,6 +259,7 @@ describe("Solarized component consumers", () => {
     expect(switcher).not.toContain("bg-accent");
     expect(landingHeader).toContain("toggleLocale: toggleLocalePreference");
     expect(landingHeader).not.toContain("locale.value =");
+    expect(i18n).toContain('import "./utils/storage"');
     expect(localeTypes).not.toContain("flag:");
   });
 

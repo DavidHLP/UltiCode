@@ -19,3 +19,5 @@ Scope intentionally excludes the separate right-column `ProblemSetSidebar` and m
 | Both locales preserve translation key coverage and responsive behavior | I18N-DESIGN-004; console/management validators, tests, builds, desktop and narrow browser QA |
 
 Out of scope: rewriting the 1908-key translation trees solely to equalize string length; changing Garden color semantics; adding RTL; release, deploy, or remote mutations.
+
+Final gate: `./scripts/dev/verify-garden-design.sh --with-build` passed. Browser evidence covered desktop and 390px responsive behavior; cross-route switching verified the content language and computed locale metrics together. The shared package formatter is not declared at the repository root; app-scoped ESLint/formatter checks and `git diff --check` passed without rewriting package baselines.

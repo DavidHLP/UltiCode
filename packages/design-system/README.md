@@ -1,8 +1,10 @@
-# UltiCode Solarized Theme Design v1.0
+# UltiCode Garden Design System
 
 This package is the public design seam for both UltiCode frontends. It owns the
-canonical Solarized palette, Light/Dark semantic mappings, shared component
-states, chart colors and the small TypeScript token interface.
+canonical Garden palette, Light/Dark semantic mappings, zh-CN/en-US locale
+profiles, shared component states, chart colors and the small TypeScript token
+interface. The full visual specification lives in
+`docs/GARDEN_DESIGN_SPEC.md`; this README is the integration contract.
 
 Consumers import the stylesheet through:
 
@@ -13,7 +15,7 @@ from them. It must not copy palette values or redefine Light/Dark mappings.
 
 ## Design principles
 
-1. Use only the eight Solarized monotones and eight invariant accent colors.
+1. Use the shared Garden monotones and invariant accent colors.
 2. Monotones communicate hierarchy; accents communicate meaning.
 3. Switching modes reverses the monotone relationships without changing an
    accent's meaning.
@@ -29,22 +31,22 @@ Reference: https://ethanschoonover.com/solarized/
 
 | Token   | Hex     | Role                                      |
 | ------- | ------- | ----------------------------------------- |
-| base03  | #002b36 | Dark canvas                               |
-| base02  | #073642 | Dark highlighted/elevated surface         |
-| base01  | #586e75 | Dark subtle boundary; Light strong text   |
-| base00  | #657b83 | Light raw secondary copy and control boundary |
-| base0   | #839496 | Dark body text and control boundary       |
-| base1   | #93a1a1 | Dark strong text; Light subtle boundary   |
-| base2   | #eee8d5 | Light highlighted/sunken surface          |
-| base3   | #fdf6e3 | Light canvas and light-on-accent text     |
-| yellow  | #b58900 | Waiting and warning                       |
-| orange  | #cb4b16 | Limits, timeouts and compilation problems |
-| red     | #dc322f | Failure and destructive actions           |
-| magenta | #d33682 | System exceptions and premium states      |
-| violet  | #6c71c4 | Privileged and special states             |
-| blue    | #268bd2 | Link decoration and explicit data emphasis |
-| cyan    | #2aa198 | Information and running state             |
-| green   | #859900 | Success and accepted state                |
+| base03  | #1c2412 | Deepest olive ink; dark canvas              |
+| base02  | #26301b | Dark elevated surface                       |
+| base01  | #545c45 | Brand olive; muted light text               |
+| base00  | #6a7259 | Control borders and focus ring              |
+| base0   | #838f81 | Dim sage-gray text                          |
+| base1   | #a2afa9 | Sage boundary and dark muted text           |
+| base2   | #eae8d8 | Light highlighted/sunken surface            |
+| base3   | #e3e1d1 | Light parchment canvas                      |
+| yellow  | #9c7a14 | Waiting and warning                         |
+| orange  | #b4622d | Limits, timeouts and compilation problems   |
+| red     | #8f4822 | Failure and destructive actions             |
+| magenta | #a05c74 | System exceptions and premium states        |
+| violet  | #6c71c4 | Privileged and special states               |
+| blue    | #46769b | Link decoration and explicit data emphasis  |
+| cyan    | #4e7d64 | Information and running state               |
+| green   | #588e67 | Success and accepted state                  |
 
 ## Public semantic mappings
 
@@ -86,12 +88,26 @@ The public geometry scale uses a shared `--radius` base of `0.5rem` (8px):
 | `--radius-sm` | 4px | compact tags and inline controls |
 | `--radius-md` | 6px | buttons, inputs, menu rows |
 | `--radius-lg` | 8px | cards and panels |
-| `--radius-xl` | 12px | dialogs and elevated surfaces |
+| `--radius-xl` | 20px | dialogs and elevated surfaces |
 
 `rounded-none` is retained as a compatibility class and resolves to
 `--radius-md`, so legacy feature markup follows the same rounded visual system.
 Use `rounded-full` only for intentionally circular status marks, avatars and
 loading indicators.
+
+## Locale profiles
+
+`html[lang="zh-CN"]` and `html[lang="en-US"]` select the two supported global
+design profiles. The shared locale lifecycle owns the attribute, so switching
+language changes content and the associated typography/layout metrics together.
+
+- `zh-CN`: Noto Sans/Serif SC first, relaxed CJK leading, normal label tracking,
+  40px controls, 16px page gutter.
+- `en-US`: Inter/Instrument Serif first, tighter editorial leading and display
+  tracking, 36px controls, 20px page gutter.
+
+Both profiles retain the same Garden color semantics and can be combined with
+the console `comfortable` or management `compact` density profile.
 
 ## Status semantics
 
@@ -151,7 +167,8 @@ on a small white-on-red label.
   concrete colors through it.
 - packages/design-system/src/variants.ts owns cross-app Button, Badge and menu
   state classes; applications may append local variants but do not copy them.
-- packages/theme alone owns theme state, persistence and DOM mode application.
+- packages/theme owns theme state, persistence, shared tokens and DOM mode
+  application; `html[lang]` is the locale profile selector.
 - App adapters may translate public tokens into Monaco, WebGL or chart-renderer
   configuration through the runtime palette bridge but may not create a second
   palette.
@@ -204,7 +221,7 @@ brand/data/vendor exception when the value is not a theme token.
 
 ## Acceptance
 
-- All sixteen canonical values match Solarized.
+- All sixteen canonical values match the Garden palette in `style.css`.
 - Accent meanings are invariant across modes.
 - Essential body text reaches 4.5:1 and functional boundaries reach 3:1.
 - Both apps import the package stylesheet through its public export.

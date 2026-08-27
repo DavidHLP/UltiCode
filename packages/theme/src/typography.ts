@@ -71,6 +71,7 @@ export const typographyCssVariables = {
   codeSize: '--uc-type-code-size',
   markdownSize: '--uc-type-markdown-size',
   localeHeadingTracking: '--uc-locale-heading-tracking',
+  localeDisplayTracking: '--uc-locale-display-tracking',
   localeControlTracking: '--uc-locale-control-tracking',
 } as const
 

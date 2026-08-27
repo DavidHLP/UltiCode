@@ -236,7 +236,8 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 1rem 1.25rem 1.125rem;
+  padding: var(--uc-layout-panel-padding-block)
+    var(--uc-layout-panel-padding-inline);
   border-color: var(--border-subtle);
   background: var(--surface-elevated);
   box-shadow: var(--shadow-float);
@@ -268,8 +269,8 @@ const emit = defineEmits<{
 .problem-explorer-controls :deep(.problem-category-filter .terminal-tab) {
   flex: 0 0 auto;
   min-width: max-content;
-  height: 2.75rem;
-  padding: 0.625rem 0.75rem;
+  height: var(--uc-layout-control-height);
+  padding: 0.625rem var(--uc-layout-control-padding-inline);
   border: 0;
   border-bottom: 2px solid transparent;
   border-radius: 0;
@@ -280,7 +281,7 @@ const emit = defineEmits<{
   font-size: var(--uc-type-control-size);
   font-weight: var(--uc-type-control-weight);
   line-height: var(--uc-type-control-line-height);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-control-tracking);
 }
 
 .problem-explorer-controls :deep(.problem-category-filter .terminal-tab:hover) {
@@ -301,7 +302,7 @@ const emit = defineEmits<{
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1rem;
+  gap: var(--uc-layout-panel-padding-inline);
   margin-bottom: 0.75rem;
 }
 
@@ -322,9 +323,9 @@ const emit = defineEmits<{
 }
 
 .problem-explorer-controls :deep(.problem-filter-toolbar input) {
-  height: 2.5rem;
+  height: var(--uc-layout-control-height);
   border-color: var(--border-control);
-  border-radius: var(--radius-md);
+  border-radius: var(--uc-component-control-radius);
   background: transparent;
   color: var(--foreground);
   font-size: var(--uc-type-control-size);
@@ -332,16 +333,16 @@ const emit = defineEmits<{
 }
 
 .problem-explorer-controls :deep(.problem-filter-toolbar button) {
-  height: 2.5rem;
-  min-width: 2.5rem;
+  height: var(--uc-layout-control-height);
+  min-width: var(--uc-layout-control-height);
   border-color: var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--uc-component-control-radius);
   background: transparent;
   box-shadow: none;
   color: var(--foreground-muted);
   font-size: var(--uc-type-control-size);
   line-height: var(--uc-type-control-line-height);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-control-tracking);
   text-transform: none;
 }
 
@@ -352,7 +353,7 @@ const emit = defineEmits<{
 }
 
 .problem-explorer-controls :deep(.problem-filter-toolbar [data-slot="badge"]) {
-  border-radius: var(--radius-md);
+  border-radius: var(--uc-component-control-radius);
   background: var(--surface-highlight);
   font-size: var(--uc-type-label-size);
   line-height: var(--uc-type-label-line-height);
@@ -362,7 +363,7 @@ const emit = defineEmits<{
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: start;
-  gap: 1rem;
+  gap: var(--uc-layout-panel-padding-inline);
   padding-top: 0.75rem;
   border-top: 1px solid var(--border-subtle);
 }
@@ -370,7 +371,7 @@ const emit = defineEmits<{
 .problem-tag-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: var(--uc-layout-control-gap);
   min-height: 1.875rem;
   color: var(--foreground-muted);
   font-family: var(--uc-font-ui);
@@ -387,7 +388,7 @@ const emit = defineEmits<{
   min-height: 1.875rem;
   padding: 0.375rem 0.625rem;
   border-color: var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--uc-component-control-radius);
   background: transparent;
   color: var(--foreground-muted);
   font-size: var(--uc-type-label-size);
@@ -423,7 +424,7 @@ const emit = defineEmits<{
   color: var(--foreground-muted);
   font-size: var(--uc-type-label-size);
   line-height: var(--uc-type-label-line-height);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: var(--uc-locale-control-tracking);
 }
 
 .problem-explorer-controls :deep(.problem-tag-filter button:hover) {
@@ -448,7 +449,8 @@ const emit = defineEmits<{
 
 @media (max-width: 640px) {
   .problem-explorer-controls {
-    padding: 0.875rem;
+    padding: var(--uc-layout-panel-padding-block)
+      var(--uc-layout-panel-padding-inline);
   }
 
   .problem-explorer-controls :deep(.problem-filter-toolbar) {

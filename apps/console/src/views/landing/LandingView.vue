@@ -384,7 +384,7 @@ onUnmounted(() => {
   font-family: var(--font-sans);
   min-height: 100vh;
   overflow-x: clip;
-  line-height: 1.6;
+  line-height: var(--uc-leading-normal);
 }
 
 .blueprint-frame {

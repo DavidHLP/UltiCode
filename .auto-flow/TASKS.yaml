@@ -55,7 +55,7 @@ notes:
 
 follow_up_locale_design:
   objective: "Align zh-CN/en-US i18n lifecycle with locale-aware global Garden design profiles"
-  status: in_progress
+  status: complete
   source:
     - "user request: zh/en i18n and global design must switch together"
     - "browser evidence: landing content switched to English while html lang remained zh-CN"
@@ -79,7 +79,7 @@ follow_up_locale_design:
       notes: "Keep management onLocaleChange backend sync and preserve ulticode-locale storage key; focused tests passed"
     - id: I18N-DESIGN-002
       title: "Add zh-CN and en-US Garden typography and geometry profiles"
-      status: in_progress
+      status: done
       depends_on: [I18N-DESIGN-001]
       acceptance_criteria:
         - "Each supported locale has an explicit font, leading, tracking, control, panel, and layout profile"
@@ -90,12 +90,15 @@ follow_up_locale_design:
         - "Theme sync and typography guard"
         - "Both app builds"
       rollback: "Revert locale profile declarations and primitive token consumption; preserve existing density and color mappings"
-      evidence: []
+      evidence:
+        - "Shared typography publishes explicit zh-CN/en-US font, leading, and tracking profiles"
+        - "Design-system publishes locale layout primitives and consumes them in body, headings, cards, tabs, and inputs"
+        - "Theme 31/31 tests, design-system 15/15 tests, type-checks, color scanner, and typography guard passed"
       commits: []
       notes: "Use html[lang] as the single profile selector; do not add a second locale state attribute"
     - id: I18N-DESIGN-003
       title: "Adopt shared locale metrics in console, management, and landing shells"
-      status: pending
+      status: done
       depends_on: [I18N-DESIGN-002]
       acceptance_criteria:
         - "App shells and landing aliases use shared locale-aware spacing and typography tokens"
@@ -106,12 +109,15 @@ follow_up_locale_design:
         - "Browser visual checks in zh-CN and en-US"
         - "Static scan for direct locale mutation and profile coverage"
       rollback: "Revert consumer token adoption only; shared locale lifecycle remains independently reversible"
-      evidence: []
+      evidence:
+        - "Console and Management shells consume shared page layout primitives"
+        - "Landing aliases, hero headings, proof headings, and problem filters consume locale-aware tokens"
+        - "Browser QA confirmed zh/en text, html lang, fonts, leading, control height, gutter, and section gap switch together"
       commits: []
       notes: "Do not rewrite translation copy unless validators expose a real missing or malformed key"
     - id: I18N-DESIGN-004
       title: "Run cross-app validation and close locale-design coverage"
-      status: pending
+      status: done
       depends_on: [I18N-DESIGN-001, I18N-DESIGN-002, I18N-DESIGN-003]
       acceptance_criteria:
         - "Locale validators, theme guards, shared package checks, both app suites, type-checks, and builds pass"
@@ -122,6 +128,12 @@ follow_up_locale_design:
         - "Shared theme and locale-preference validation"
         - "Desktop and narrow viewport browser QA"
       rollback: "No release or remote mutation; keep verified local changes reversible by task boundaries"
-      evidence: []
+      evidence:
+        - "verify-garden-design.sh --with-build PASS; theme guards, design-system contracts, both app type-check/test/build, and legacy color sweep passed"
+        - "Console 70 test files / 590 tests passed; Management 53 test files / 423 tests passed"
+        - "Locale-preference 4/4, theme 31/31, design-system 15/15, and console locale focused 29/29 tests passed"
+        - "Console locale parity 1908/1908 with 0 issues; Management i18n validator passed"
+        - "Browser QA proved zh/en content, html lang, font stacks, leading, control height, gutter, and section gap switch together"
+        - "Targeted ESLint, app formatter checks, git diff --check, and graphify update passed"
       commits: []
       notes: "Completion requires coverage and evidence updates; do not stage .auto-flow files"

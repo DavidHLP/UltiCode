@@ -246,7 +246,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4.5rem;
-  padding: 0 1.25rem 5.5rem;
+  padding: 0 var(--uc-layout-page-gutter) 5.5rem;
   overflow: clip;
 }
 
@@ -310,7 +310,7 @@ onUnmounted(() => {
   font-size: clamp(3.5rem, 6vw, 5rem);
   font-weight: 400;
   line-height: 1.1;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--uc-locale-display-tracking);
   white-space: nowrap;
   color: var(--text-primary);
 }

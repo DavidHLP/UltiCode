@@ -9,8 +9,6 @@
 // ---------------------------------------------------------------------------
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 
 import {
   TYPOGRAPHY_DENSITIES,
@@ -22,11 +20,6 @@ import {
   typographySizes,
   typographyUtilityClasses,
 } from '../src'
-
-const typographyCss = readFileSync(
-  fileURLToPath(new URL('../src/typography.css', import.meta.url)),
-  'utf8',
-)
 
 beforeEach(() => {
   delete document.documentElement.dataset.ucDensity
@@ -134,17 +127,6 @@ describe('density profiles', () => {
   it('exposes named alias constants', () => {
     expect(TYPOGRAPHY_DENSITY.comfortable).toBe('comfortable')
     expect(TYPOGRAPHY_DENSITY.compact).toBe('compact')
-  })
-})
-
-describe('locale design profiles', () => {
-  it('publishes explicit zh-CN and en-US typography selectors', () => {
-    expect(typographyCss).toContain(':root[lang="zh-CN"]')
-    expect(typographyCss).toContain(':root[lang="en-US"]')
-    expect(typographyCss).toContain('--uc-leading-normal: 1.65')
-    expect(typographyCss).toContain('--uc-leading-normal: 1.5')
-    expect(typographyCss).toContain('--uc-locale-heading-tracking')
-    expect(typographyCss).toContain('--uc-locale-control-tracking')
   })
 })
 

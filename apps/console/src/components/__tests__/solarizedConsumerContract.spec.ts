@@ -41,16 +41,9 @@ describe("Solarized component consumers", () => {
   });
 
   it("uses the warning marker for unread notifications", () => {
-    const notification = source(
-      "../../components/notification/NotificationBadge.vue",
-    );
     const notificationView = source("../../views/personal/NotificationsView.vue");
     const navUser = source("../../features/sider/NavUser.vue");
 
-    expect(notification).toContain("bg-status-warning-mark");
-    expect(notification).toContain("bg-status-warning-surface");
-    expect(notification).toContain('variant="outline"');
-    expect(notification).not.toContain("rounded-full bg-primary");
     expect(notificationView).toContain(
       "border-status-warning-mark/30 bg-status-warning-surface",
     );
@@ -59,6 +52,8 @@ describe("Solarized component consumers", () => {
     expect(navUser).toContain(
       "bg-status-warning-surface text-foreground-strong border-status-warning-mark",
     );
+    expect(navUser).toContain("notificationStore.loadUnreadCount()");
+    expect(navUser).toContain('to="/personal/notifications"');
     expect(navUser).not.toContain('variant="destructive"');
   });
 
@@ -138,8 +133,12 @@ describe("Solarized component consumers", () => {
     const layout = source("../../features/sider/AppLayout.vue");
 
     expect(layout).toContain(
-      "sticky top-0 z-30 flex h-14 shrink-0 items-center",
+      "sticky top-0 z-30 grid h-14 shrink-0 grid-cols-[1fr_auto_1fr]",
     );
+    expect(layout).toContain("-ml-1 justify-self-start");
+    expect(layout).toContain("justify-self-center md:flex");
+    expect(layout).toContain("justify-self-end");
+    expect(layout).not.toContain("<Separator");
   });
 
   it("uses neutral card text with semantic value and trend markers", () => {
@@ -257,10 +256,29 @@ describe("Solarized component consumers", () => {
       "../../components/ui/popover/PopoverContent.vue",
     );
     const search = source("../../components/search/GlobalSearch.vue");
+    const searchTrigger = source("../../components/search/SearchBar.vue");
     const variants = source("../../../../../packages/design-system/src/variants.ts");
 
-    expect(layout).toContain("bg-surface-sunken");
     expect(layout).toContain("border-border-subtle");
+    expect(layout).not.toContain("NotificationBadge");
+    expect(layout).toContain("gap-[var(--uc-layout-control-gap)]");
+    expect(layout).toContain("px-[var(--uc-layout-panel-padding-inline)]");
+    expect(layout).toContain("terminal-tab");
+    expect(layout).toContain("h-[var(--uc-layout-control-height)]");
+    expect(layout).toContain("flex-row items-center py-0");
+    expect(source("../../components/ui/navigation-menu/NavigationMenuLink.vue")).toContain(
+      "data-[active]:bg-surface-highlight",
+    );
+    expect(source("../../components/ui/navigation-menu/NavigationMenuLink.vue")).toContain(
+      "data-[active]:font-semibold",
+    );
+    expect(layout).toContain("border-b-2 border-primary !font-semibold");
+    expect(searchTrigger).toContain('variant="outline"');
+    expect(searchTrigger).toContain("--uc-layout-control-padding-inline");
+    expect(searchTrigger).toContain("<Kbd");
+    expect(searchTrigger).toContain("<Tooltip");
+    expect(searchTrigger).toContain('/Mac|iPhone|iPad|iPod/');
+    expect(searchTrigger).toContain("{{ shortcutLabel }}");
     expect(navigation).toContain("bg-surface-highlight");
     expect(navigation).toContain("focus-visible:ring-2");
     expect(popover).toContain("rounded-lg");

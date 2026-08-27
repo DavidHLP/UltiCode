@@ -1,8 +1,8 @@
 # UltiCode 项目统一文档
 
-更新时间：2026-08-22
+更新时间：2026-08-28
 
-本文是项目临时工程文档的唯一汇总入口。原分散在 `services/docs/`、`apps/management/docs/` 和 `wiki/` 的内容已按主题合并；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
+本文是项目临时工程说明的汇总入口。Services 架构问题、评审 Finding、修复状态和生产触发条件只在 [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) 维护；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
 
 ## 导航
 
@@ -12,7 +12,9 @@
 4. 安全：访问令牌吊销边界
 5. CONTEST-009 开发发布审批记录
 6. Management 前端 i18n 设计
-7. Services 评审记录与历史证据
+7. Garden 全局设计系统
+
+Services 问题唯一入口：[`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md)。
 
 ## 文档边界
 
@@ -32,7 +34,7 @@
 | `wiki/SECURITY_TOKEN_REVOCATION.md` | 安全：访问令牌吊销边界 |
 | `services/docs/CONTEST-009-RELEASE-APPROVAL.md` | CONTEST-009 审批记录 |
 | `apps/management/docs/i18n-design.md` | Management i18n 设计 |
-| `services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md` | Services 评审记录 |
+| 历史 Services 评审、最终评审与修复计划 | [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) |
 
 ## 1. Current services architecture status
 
@@ -121,76 +123,9 @@ Submission 已将复杂逻辑收进 Owner 内部：输入验证、事务、本�
 
 这些机制使跨进程副作用可重放、可观测，并降低 DB/Redis/SMTP/MeiliSearch 双写造成的丢失风险。
 
-#### 4. 未完成的收敛问题
+#### 4. 问题与收敛入口
 
-##### 4.1 同步回访与单跳原则
-
-长期约束应是“一次请求最多一次业务 Provider hop”。Submission 写入使用不可变 Facts Snapshot；Submission read 使用一次 bounded batch seam 取得本页所需的 User/Problem facts。事件化本地 projection 暂不作为开发环境的必需基础设施。
-
-##### 4.2 数据库物理隔离
-
-- 开发环境的 Auth/Admin/App/Notification/Submission runtime 已使用显式 Owner database/account 配置；
-- 当前边界仍是一个 MySQL instance 内的 schema/account isolation，不宣称独立物理集群；
-- users account/profile ownership 由 Auth account 与 App profile read/write seams 表达；
-- production physical cutover、external authority 和 grant retirement 不在当前开发目标内。
-
-后续必须按 expand → backfill → verify → cutover → observe → contract 推进：先建 profile/授权等新表和专用账号，再回填和校验，最后在有权限与回滚证据的窗口撤销旧访问。不要编辑已应用 migration，也不要在没有生产 authority 的情况下执行 revoke 或删除旧列。
-
-##### 4.3 App 双轨兼容
-
-App 当前保留 Submission local/remote compatibility、Search fallback 和显式 legacy rollback seams；Judge normal dev-lite/dev-full 使用 Streams，RQueue 只有 legacy-rollback mode 才能装配。不要在没有 external authority、quiesce、观察窗和 rollback artifact 的情况下删除这些 seams。
-
-###### 4.3.1 Submission 双轨 seam 的退出条件
-
-以下是三条 Submission routing seam 和 App 残留副本的共同 kill criteria。它们是
-切流前的可审计退出条件，不代表本地开发环境已经完成生产 cutover；生产观察窗和
-外部 authority 仍需单独批准。
-
-| Seam | Quiesce 观察窗 | Error budget / 必须为零的错误 | 退出前必须保留的 rollback artifacts |
-| --- | --- | --- | --- |
-| `SubmissionWriteRoutingPort` | 远程 writer 已完成一次授权切流后，连续 14 天覆盖至少一个高峰周期；无未完成的 App local submission/outbox writer、reaper 或 scheduler | 0 丢失/重复 intake、0 错误 Owner 写入、0 因路由产生的不可恢复 5xx；可用性错误预算不超过现有基线的 0.1% | `SubmissionWriteRoutingPort`、`DefaultSubmissionWritePort`、`RemoteSubmissionWritePort`、`SubmissionRoutingProperties`、`scripts/dev/devstack-manifest.sh` 的 route 快照和 routing tests |
-| `SubmissionFenceRoutingPort` | Judge、Submission 与所有 lease/reaper writer 已 drain；连续 14 天无未完成 generation/attempt lease | 0 stale generation 写入、0 split-brain lease、0 丢失 verdict；任何 fence 不一致都取消退役 | `SubmissionFenceRoutingPort`、`DefaultSubmissionFencePort`、`RemoteSubmissionFencePort`、generation/attempt contract tests、legacy rollback mode 配置 |
-| `SubmissionUserQueryRoutingPort` | 远程读路径连续 14 天完成分页/详情/最佳提交观察；无活跃 local read caller 依赖未迁移的表 | 0 跨用户泄漏、0 顺序/总数/VO 语义回归、0 因 owner 不可用而静默返回错误数据；读取错误预算不超过现有基线的 0.1% | `SubmissionUserQueryRoutingPort`、`LocalSubmissionUserQueryAdapter`、`RemoteSubmissionUserQueryAdapter`、read contract tests、`APP_SUBMISSION_ROUTING_MODE` 回滚值 |
-
-App 侧 `submission` mapper、result dispatcher、lease reaper、shadow comparator 等残留
-副本只有在对应三条 seam 的观察窗、零错误预算、数据/事件对账和 in-flight drain 均有
-证据后才能删除。每次退役前必须保存：当前 manifest/Compose/PM2 配置快照、local/
-remote adapter 版本、outbox/stream 水位与 checksum、恢复命令和一键切回
-`APP_SUBMISSION_ROUTING_MODE=local` 的配置 artifact。任何一个 artifact 缺失，都只
-能继续保留兼容路径，不能以“代码已不常用”代替退出证据。
-
-Search 的 `database` / `indexed` 读模式是 `devstack-manifest.sh` 的显式策略决策，
-不属于上述 Submission seam 的漂移信号，也不因本节的退出条件自动改写。
-
-##### 4.4 Admin Seam 已收敛为粗粒度查询切片
-
-Admin 已按可测量的查询垂直切片收敛为粗粒度 Query Seam：Contest 参与、Revenue、Overview 与 Dashboard（含用户图表）分别经 `AdminAnalyticsPort`/`AdminDashboardReadPort` 的 bounded 并行 Owner 组合暴露，Dashboard 用户图表经 `AccountQueryService` 分页扫描并在 `CancellableQueryExecutor` 的 800ms deadline 与 bounded reads 约束下收敛，`BackendAdminApplication` 的 exclusion 随之缩减。剩余细粒度遗留按需再聚合，不再作为阻塞项。
-
-##### 4.5 文档和运维入口漂移
-
-历史迁移章节可以保留为历史，但当前状态、启动和领域词汇必须与源码对账。当前权威顺序是：
-
-1. Java source and tests；
-2. Maven POM/reactor；
-3. application/config files；
-4. Compose；
-5. actual startup scripts/PM2 entries；
-6. documentation。
-
-文档只能追随前五项，不能反向定义实际拓扑；scripts/dev/architecture-contract-test.sh 负责阻止已知漂移回归。
-
-#### 5. 后续优先级
-
-优先级高于继续拆分模块：
-
-1. 继续用 bounded read contracts 收敛跨 Owner 读取，必要时再评估事件化 projection；
-2. 保持 Owner schema/account isolation 的 development evidence，不伪造 production acceptance；
-3. 只在真实稳定性和回滚门禁满足后删除 legacy compatibility；
-4. 维护 DevStack、Owner matrix、POM、PM2、Compose、CONTEXT 和 migration guide 的 executable consistency。
-
-#### 6. 评审边界
-
-架构盘点本身是只读 inventory：不以文档推断代码，不修改已应用数据库 migration，不声称生产部署或生产数据验证。后续 `ARCH-*` 任务单独记录实现、测试、回滚和外部 authority gate。
+当前开放问题、Submission 双轨退出门禁、生产触发条件、已关闭历史和明确裁决只在 [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) 维护。本节保留当前拓扑说明，不再复制问题状态。
 
 ## 2. Owner database isolation plan
 
@@ -1702,244 +1637,7 @@ Total keys in en-US: 245
    t('users.count', count)
    ```
 
-## 7. Services review findings 2026-08-22
-
-> 原文来源：`services/docs/SERVICES_REVIEW_FINDINGS_2026-08-22.md`
-
-> 状态：历史评审输入。修复结果以当前源码、测试和本文件前置章节为准。
-
-### Services 微服务架构评审结论(2026-08-22)
-
-评审方法:graphify 图谱定位 + 源码逐文件核实(所有缺陷均在当前工作区源码中确认,非文档推断)。评审视角为 deep module 设计(seam/interface/depth)+ 安全不变量 + 跨 Owner 一致性。
-
-总体判断:**骨架健康**(Contract Seam、Owner schema/account isolation、Outbox/Inbox/PEL/DLQ、七进程拓扑、executable contract checks 均已落地且相互对账),但存在 **2 个安全契约违规、3 个一致性缺陷**,应先于架构收敛项处理。
-
----
-
-#### A. 安全缺陷(违反仓库安全不变量)
-
-##### A1. WebSocket CONNECT 认证含 client-controlled 消息头回退分支
-
-- **位置**:`app/app-web/src/main/java/com/ulticode/modules/websocket/interceptor/JwtChannelInterceptor.java`(`authenticateConnection()`)+ `websocket/util/TokenExtractor.java:64-66`
-- **事实**:session 属性提取失败后,回退调用 `tokenExtractor.extractTokenFromHeaders(messageHeaders)`,读取 STOMP CONNECT **消息头 `"auth"`**。测试 `JwtChannelInterceptorTest.java:92,111` 将该回退 mock 为成功路径,固化了违规行为。
-- **定性**:直接违反仓库不变量 "WebSocket authentication accepts only the `access_token` cookie, never query, URL, or client-controlled STOMP tokens"。这是**契约违规/潜在旁路**:全仓未发现将客户端 `NATIVE_HEADERS` 提升为顶层消息头的代码,标准 Spring STOMP 客户端自定义头落在 `nativeHeaders` 内,生产可达性未经真实解码消息证实。
-- **修法**:无论可达与否,删除回退分支(session 无 token 即拒绝 CONNECT);新增"消息头携带 token 必须拒"的拒绝回归测试;同步移除 `TokenExtractor.extractTokenFromHeaders` 及对应测试。
-
-##### A2. OAuth callback 缺 state cookie 时放行
-
-- **位置**:`auth/src/main/java/com/ulticode/auth/security/oauth/OAuthStateModule.java`(`validateAndConsume()` ~L50-55)
-- **事实**:`cookieState != null && !cookieState.isBlank()` 才执行比较——cookie 缺失或空白时跳过绑定校验,callback `state` 与 Redis 匹配即通过。发 cookie 时有绑定,**收时不强制**。测试 `OAuthStateModuleTest` 覆盖 mismatch / missing-state / Redis-down,唯独没有缺 cookie 必拒用例。
-- **定性**:违反不变量 "OAuth state remains bound to an HttpOnly cookie";登录 CSRF / code 注入不再需要受害者浏览器携带正确 cookie。
-- **修法**:cookie 空白 → 抛 `UNAUTHORIZED`(一行收紧)+ 补缺失分支回归测试。
-
----
-
-#### B. 一致性 / 并发缺陷
-
-##### B3. AuditOutbox 的 claim 无事务保护,FOR UPDATE SKIP LOCKED 实际失效
-
-- **位置**:`admin/src/main/java/com/ulticode/modules/admin/outbox/mapper/AuditOutboxMapper.java:22-35`、`AuditOutboxDispatcher.dispatch()`
-- **事实**:`claimPending(...)` 用 `FOR UPDATE SKIP LOCKED`,但调度入口无事务边界——SELECT 在自动提交下执行,行锁即刻释放,multi-instance 并发时 claim 退化为普通轮询;`markProcessed` / `markFailed` 均无 `AND state='PENDING'` CAS 守卫,同一记录可被重复处理并落重复审计行。
-- **修法**:claim+处理收进同一事务边界,或改抢占式 CAS claim(`UPDATE ... SET state='PROCESSING' WHERE state='PENDING'`),两个 mark 方法补 state 守卫。
-
-##### B4. RBAC 变更缺 durable invalidation 事件(已知 TODO)
-
-- **位置**:`auth/src/main/java/com/ulticode/auth/permission/service/impl/RoleAdministrationServiceImpl.java:57`
-- **事实**:角色/权限变更只发结构化日志,代码注释明确 "P6-OUTBOX-001 will replace this structured log with a durable outbox event"。Auth 内未发现身份缓存——缺口是**事件扇出缺失**,不是缓存陈旧。降权/撤销的生效窗口 = access token 剩余 TTL(15 分钟),当前依赖该窗口兜底。
-- **修法**:与 B5/B6 合并为一个切片:auth 出 durable 变更事件(outbox),消费方据此失效通知/bump 版本。黑名单写入不在本切片内(B5 已裁决 read-only 为成立决策)。
-
-##### B5. 访问令牌即时吊销:read-only 黑名单是成立的设计决策(残留文档动作)
-
-吊销责任链分层完整:
-
-1. RefreshTokenService DB-backed hash-only 流承担吊销主责;
-2. WS CONNECT 每次实时校验 JWT 签名/过期 + Auth 侧 active/banned(`DefaultWebSocketAuthenticator`);
-3. HTTP 侧 `@CheckBan`;
-4. access token TTL = 15 分钟(`JwtProperties.expiration=900000L`)封顶最坏暴露窗口。
-
-`TokenBlacklistPort` 刻意只读,javadoc 完整记录了删除投机写方法的审计过程。**不列为缺陷**。仅当产品提出"即时踢下线"需求时,才升级为缺口并按其 javadoc 建议新建 writer-owned 吊销端口。**残留动作**:把"TTL 内不可即时吊销、依赖 15 分钟窗口 + 多层实时检查"的取舍写进 wiki 安全文档。
-
-##### B6. `UserRoleMapper.updateRole` 不 bump `authz_version`,使版本化失效机制出现旁路
-
-- **位置**:`auth/src/main/java/com/ulticode/auth/permission/mapper/UserRoleMapper.java:35`
-- **事实**:SQL 为 `UPDATE users SET role = #{newRole} WHERE id = #{userId} AND role <> #{newRole}`——角色变更后行的 `authz_version` 保持不变。而 Auth 已建有版本基础设施:`AuthAccountMapper` 提供 `authz_version = authz_version + 1 WHERE ... AND authz_version = #{expectedVersion}` 的原子 bump/CAS 语句,`AccountManagementEngine` 已消费 `authzVersion()`。任何依赖版本比对来失效缓存/会话/授权状态的路径,**经 RoleAdministration 变更的角色提升不会被感知**——与 B4 叠加后,降权/提权在 TTL 窗口内既无事件也无版本信号。
-- **修法**:角色实际变更时同步 bump 该用户 `authz_version`(可复用 `AuthAccountMapper` 的原子 bump);补回归测试断言 updateRole 后 version 递增。
-
----
-
-#### C. 已裁决项(后续评审不必重报)
-
-| 检查项 | 结论 |
-| --- | --- |
-| WS SEND/SUBSCRIBE 无 principal | 已 fail-closed(`validateUserSession` 含 Phase-0 修复注释) |
-| WS 连接的 active/ban 检查 | 存在(`DefaultWebSocketAuthenticator.isBannedOrInactive`:isActive=false 或 isBanned=true 即拒)。注:javadoc 声称的 `banned_until` 检查已被移除(代码注释明确 "bannedUntil check removed"),当前语义是 ban 生效即拒、由 Admin 操作解除;文档措辞应与实现对齐,不算缺陷 |
-| Admin→App 授权链同步查 Auth(`DubboIdentityActorAuthorizer`) | fail-closed 正确、授权新鲜;作为单跳原则的性能偏离保留观察,不算缺陷 |
-| Submission 写链跨 Owner hop | 已由不可变 `SubmissionFactsSnapshot` + fail-closed 校验关闭 |
-
----
-
-#### D. 架构问题(排在安全/一致性之后)
-
-##### D1. 双轨兼容只有入口、没有出口条件(最大结构性负债)
-
-- Submission 三条 RoutingPort(`SubmissionWriteRoutingPort` / `SubmissionFenceRoutingPort` / `SubmissionUserQueryRoutingPort`)各配 local/remote adapter;App 侧仍保留完整的 submission 域副本(mapper/reaper/result dispatcher/shadow comparator 等),与 Owner 内实现长期并存。
-- Search 读模式是**显式配置决策而非漂移**:`devstack-manifest.sh:162` 为 dev-lite 设 `APP_SEARCH_READ_MODE=database`,dev-full(:178)设 indexed,`application.yml:70` 默认 database 与 manifest 一致。真正的风险不是配置错误,而是 dev-lite 的日常默认路径持续强化 DATABASE 分支。
-- seam 本身设计正确(每条都有真实双 adapter),问题在于**仓库没有任何一处记录 kill criteria**(quiesce 观察窗、错误预算、回滚 artifact 清单)。没有退出条件的 strangler 会永久维护两份实现。
-
-##### D2. `judge-runtime` 归属词汇与实际拓扑相反
-
-被独立 Judge Worker 与 App boot 共同依赖的执行库(reactor 模块 `judge-runtime`,App 经 app-web 引入以复用 sandbox/试运行逻辑),其类却住在 App 私有域包名空间(`com.ulticode.modules.submission.sandbox`、`com.ulticode.modules.queue.port`),并依赖 app-api 合同(`RunSubmissionDTO` / `RunResultDTO` / `CodeExecutionPort`)。模块图上 Judge 已收深为独立 Worker,词汇仍宣称 judge ⊂ app。低成本修法:包改名或在模块内以 package-info 声明归属;进一步把试运行合同从 app-api 挪至 judge-config 或 submission-api。
-
-##### D3. `SubmissionFactsSnapshot` 需守最小字段闸
-
-快照字段会随需求逐个膨胀,最终退化为第二个隐式 facts 接口(接口悄悄变大 = 模块变浅)。规则:snapshot 字段 = Owner 校验所需最小集,加字段必须过现有 contract shape test。
-
-##### D4. 卫生债
-
-- 删除游离编译产物 `services/com/ulticode/modules/problem/service/impl/ProblemAdministrationDomainServiceImpl.class`(整个 `services/com/` 不属于任何 source root,污染 grep 与代码图谱)。
-- `PROJECT_DOCUMENTATION.md`(大体量历史文档)与 STATUS 并存——已有 `architecture-contract-test.sh` 对账兜底,保持现状。
-
----
-
-#### 建议执行顺序
-
-1. **A1、A2**:小改动大风险收敛,各半天内含回归测试;
-2. **B3、B6**:各一个局部改动(outbox 事务/CAS;updateRole 同步 bump authz_version);
-3. **B4(+B5 文档残留)**:auth 出 durable 事件的最小闭环切片,顺带把吊销取舍写入 wiki;
-4. **D 类**:回到架构收敛,优先为每条双轨 seam 写下并执行退出条件;不要继续拆进程(7 个 runtime 对开发环境已是上限)。
-
-#### 证据与核实方式
-
-- 所有缺陷均以当前源码为准逐文件核实;行号为评审当日快照,修复后以 git 历史为准。
-- 未声称的事项:OAuth 缺 cookie 分支的真实攻击可达性未做端到端复现;A1 的生产绕过路径未用真实 STOMP 解码消息验证(按潜在旁路处理);Search 读模式差异已核实为 manifest 显式决策,不作为漂移报告。
-- 评审边界只读,未修改任何源码;migration 与运行数据不在本次范围内。
-
-## 8. Services review findings 2026-08-25 remediation
-
-### 微服务架构评审(2026-08-25)修复记录
-
-来源评审：`services/docs/SERVICES_MICROSERVICE_ARCHITECTURE_FINAL_2026-08-25.md`。本节记录已落地的修复与明确保留的决策。
-
-#### P0 假健康 — 已修复
-
-- 新增 `com.ulticode.common.health.ReadinessChecks` 与四个 Owner readiness controller（`AuthReadinessController` 等）：`GET /api/v1/{svc}/health/ready` 校验 owner DataSource（JDBC `isValid`）+ Redis `PING`，任一失败返回 503 与组件明细；原 `/health` 保持为纯 liveness。
-- 安全配置显式 permitAll 各自 `/health/ready` 路径。
-- `docker-compose.prod.yml`、`.github/actions/host-health/action.yml`、`.github/services-matrix.json`、`scripts/dev/devstack-manifest.sh`、`scripts/dev/up.sh` 全部改用 readiness 端点作为健康门禁。Submission 维持容器内 `/actuator/health`（默认含 db/redis indicators，非假健康）。
-- Worker 就绪化：`SearchWorkerReadinessHeartbeat`（Redis ping + MeiliSearch health → 刷新 `SEARCH_READY_FILE` 标记）、`JudgeWorkerReadinessHeartbeat`（Redis ping → `JUDGE_READY_FILE`）。生产 compose 为 search 增加 tmpfs `/tmp` 并以“标记 2 分钟内刷新”作为 healthcheck；judge 的 healthcheck 在原 docker 能力检查上追加该标记校验。
-
-#### P1 RPC 可靠性策略 — 已强制执行
-
-- 全部约 90 处消费端 `@DubboReference` 统一改为显式 `RpcPolicy` 常量：查询接口 `QUERY_TIMEOUT_MS/QUERY_RETRIES`（800ms/1 次），写接口 `WRITE_TIMEOUT_MS/WRITE_RETRIES`（3000ms/0 次）；历史漂移值（如 `timeout=3000, retries=2`）清除。
-- 新增 `RpcPolicyArchTest`（admin/app-web/submission/notification/judge 五处）：ArchUnit 校验每个 `@DubboReference` 字段必须声明且仅能声明 RpcPolicy 允许的 timeout/retry 组合；裸引用（继承 YAML 默认）同样判定为违规。
-- Submission/Judge 的 fence/write 类混合语义接口按“有写即 WRITE”裁决。
-
-#### P1 运行模式校验 — 已存在（评审结论过时）
-
-- `FlagCombinationValidator` 已在 App/Submission/Judge 进程内强制 mode×flag 组合（非法组合启动失败）；`devstack-manifest.sh` 提供声明式拓扑清单。跨进程 Producer/Consumer 配对仍依赖部署门禁，未新增机制。
-
-#### P2 本地备份路径 — 已缓解
-
-- Admin `backup.dir` 本就可经 `BACKUP_DIR` 覆盖；prod compose 为 `backend-admin` 挂载持久卷 `backup_data:/var/lib/ulticode/backup`。多副本对象存储方案仍属未来基础设施升级。
-
-#### FINAL 评审(2026-08-25)剩余差距 — 第二轮修复记录
-
-针对同一文档"仍存在的企业级差距"一节的落地情况（本节取代上方"明确保留"中对下列条目的保留结论）：
-
-- **P1 Admin 静默降级 — 已修复**：Auth 查询不可用时抛类型化 503 `OWNER_QUERY_UNAVAILABLE`（不再伪装成空列表 `total=0`）；单一 Provider 故障时响应载荷显式携带 `degradationStatus=PARTIAL`（`platform/common` `DegradationStatus`：OK/PARTIAL/STALE/UNAVAILABLE，`PageResult`/`AdminUserVO` 可空字段向后兼容）。回归测试见 `AdminUserEnricherTest`。详见下方专节。
-- **P1 Worker 横向扩容契约 — 已修复**：Search/Judge/Notification 的 Consumer 身份实例唯一化（环境变量可覆盖确定值）；PEL 回收（dead-letter + claim）配合 Unacked reaper，副本宕机后其未确认条目由存活副本认领。详见下方专节。
-- **P1 分布式 tracing 与 Worker SLO — 已补齐**：submission/notification/search/judge 补充 `micrometer-tracing-bridge-otel` + `opentelemetry-exporter-otlp` + prometheus registry，并配置 W3C sampling + OTLP endpoint（`MANAGEMENT_OTLP_TRACING_ENDPOINT`）。新增 `com.ulticode.common.metrics.WorkerSloMeters`（无 Spring 注解、无 Redis client 依赖），导出队列 lag、PEL 回收、DLQ 计数等 SLO 指标，接入 search worker、judge 队列适配器/reaper 与 notification inbox bridge。
-  - 运维落地（2026-08-26 第三轮）：告警阈值规则与 DLQ/积压 runbook 见 `docker/prometheus/worker-slo-alerts.yml`（24 条规则，promtool 校验通过）与 `services/docs/WORKER_SLO_RUNBOOK.md`；故障演练脚本 `scripts/dev/drill-worker-failure.sh`（默认 dry-run）。
-- **P1 Redis Owner 安全边界 — 已落地**：静态渲染的 `docker/redis/users.acl`（密码仅 SHA-256 哈希落盘，default 用户关闭），七个 owner 用户限定真实 key pattern；生产 compose 要求八个 `<DOMAIN>_REDIS_PASSWORD` 变量并注入 `REDIS_USERNAME`；轮换经 `docker/redis/generate-users-acl.sh`。已用真实 Redis 容器做正反向验证。详见下方专节。
-- **P0 Judge Docker Socket — 可配置隔离**：`backend-judge` 透传 `DOCKER_HOST`（`JUDGE_DOCKER_HOST`）/TLS/CERT 环境变量，socket 挂载源可经 `JUDGE_DOCKER_SOCK` 覆盖（rootless socket）；迁移专用节点时移除挂载即可，无需镜像变更。强隔离（Kata/gVisor）仍属基础设施决策。
-- **P1 独立发布 — 能力已具备**：全部镜像支持 `<SERVICE>_IMAGE_TAG -> IMAGE_TAG -> latest` 三级回退（如 `BACKEND_AUTH_IMAGE_TAG`），`host-deploy` action 新增白名单校验的 `services` 子集与 `service_tags` 输入，实现逐服务滚动发布与单服务回滚；Maven per-service 版本见下方专节。
-  - 契约兼容门禁（2026-08-26 第三轮）：`api/*` 五个 Dubbo 契约模块新增 japicmp 二进制兼容门禁（`services` Maven profile `contract-compat` + CI `_contract.yml`），机制与基线 tag 约定见 `services/docs/CONTRACT_COMPAT_GATE.md`。
-- **P2 头像本地状态 — 已收敛**：App 新增 `com.ulticode.app.storage.FileStoragePort` 接缝（local 默认逐字节兼容旧契约；S3 兼容可选实现为手写 SigV4，未引入 SDK；`APP_STORAGE_TYPE` 切换）。prod compose 为 backend-app 挂载共享卷 `app_uploads:/data/uploads/avatars` 并设 `APP_STORAGE_LOCAL_ROOT_DIR`。admin 侧头像写入暂维持基线行为（已知遗留项）。
-
-#### 明确保留（需生产决策，不在代码层修复）
-
-- 生产多主机 HA 拓扑（Nacos 转 3 节点集群、MySQL 主从+切换、Redis Sentinel/Cluster、MeiliSearch 双副本）：单机 Compose 无法提供真 HA；升级触发条件为多可用区部署或正式 SLO 承诺。评审自身亦不建议在仅开发环境阶段引入 K8s/Service Mesh 形式化组件。
-- Judge 强隔离执行环境（Kata/gVisor/独立节点采购）：依赖基础设施选型；endpoint 与挂载源均已可配置（见下），强隔离本身仍保留。
-- Admin 管理 read model 全面事件化：评审自身要求在明确生产目标后再实施；静默降级已在本分支消除（见上）。
-- Redis ACL/按 Owner 凭据、分布式 tracing 与 Worker SLO、Admin 跨 Owner 读静默降级、Worker 唯一 Consumer identity、逐服务独立发布：已在本分支修复或建立机制，见上文各小节。
-- 第三轮（2026-08-26）：全部差距的互斥状态总览与生产触发条件见 `services/docs/SERVICES_ENTERPRISE_REMEDIATION_PLAN_2026-08-26.md`；最终评审文档已重写为"已关闭 / 仍开放 / 生产触发条件"三段式结构。
-
-#### P0 生产拓扑 — 可配置化与扩容边界（2026-08-25 分支）
-
-- `docker-compose.prod.yml` 中 Nacos `MODE` 支持 `${NACOS_MODE:-standalone}` 与 `NACOS_SERVERS` 环境变量，cluster 模式配置路径就绪；单主机上禁止以副本形式伪造集群。
-- 无状态后端的水平扩容当前受两个机制约束：服务定义中的固定 `container_name`（CD 健康门禁 `host-health` 依赖 `ulticode-backend-*` 容器名）与 Compose 单机部署形态。需要多副本时通过 compose override 文件移除 `container_name` 并调整健康检查，属部署期操作，不在默认配置中启用。
-
-#### P0 Judge 沙箱执行节点隔离 — 远程 daemon 接缝（2026-08-25 分支）
-
-- 沙箱执行器通过 `docker` CLI 拉起容器，CLI 遵循标准 Docker 环境变量。`backend-judge` 现已透传 `DOCKER_HOST`（`JUDGE_DOCKER_HOST`）、`DOCKER_TLS_VERIFY`（`JUDGE_DOCKER_TLS_VERIFY`）、`DOCKER_CERT_PATH`（`JUDGE_DOCKER_CERT_PATH`），可将沙箱指向专用（建议 rootless）daemon。
-- 默认仍挂载 `/var/run/docker.sock` 以保持现有部署可用。迁移到专用节点时使用 compose override 移除该挂载并设置上述变量；注意 `seccomp-profile-path` 由 daemon 侧读取，远程 daemon 主机上必须存在同一路径（`SANDBOX_SECCOMP_PROFILE` 可覆盖）。
-
-#### P1 独立发布能力（per-service release）— 已建立机制
-
-针对同一评审“尚未证明真正的独立发布”，本仓库已具备按服务独立发版与回滚的机制。当前各服务默认版本均为 `1.0.0`，机制本身可验证，尚未积累真实的多版本发布历史。
-
-**Maven 层：per-service 版本**
-
-- 根 `services/pom.xml` 引入 CI-friendly `<revision>`（reactor 平台版本，`platform/*`、`api/*`、领域模块等共享库统一使用），并保留 `flatten-maven-plugin` 在 install/deploy 时把 `${revision}` 与 `${service.version.*}` 解析为字面量（`.flattened-pom.xml` 已加入 `.gitignore`）。reactor 构建行为不变。
-- 七个可部署 Owner 服务（auth/admin/app/submission/search/notification/judge）各自声明权威发布版本属性 `service.version.<svc>`（定义在各自模块 pom 内，根 pom 保留同名默认值供跨服务 test 依赖解析），可单独 bump 而不影响其他服务；已用 `help:evaluate` 验证单服务 bump 隔离生效。
-
-**镜像层：per-service tag**
-
-- `.github/services-matrix.json` 为后端服务新增 `maven_version_property`；`docker-publish.yml` 从 `services/pom.xml` 提取对应服务版本，在原有 `sha-*` / `latest` 之外额外推送 `v<version>` tag，并通过 `SERVICE_VERSION` build arg 写入镜像 OCI label `org.opencontainers.image.version`。
-- `docker-compose.prod.yml` 每个可部署服务的镜像 tag 解析链为 `<SERVICE>_IMAGE_TAG -> IMAGE_TAG -> latest`（如 `BACKEND_AUTH_IMAGE_TAG`、`CONSOLE_IMAGE_TAG`）。全局 `IMAGE_TAG` 用法保持向后兼容。
-- 已知缺口：`backend-search` 镜像不在 docker-publish matrix 中（评审前即如此），其独立发版需先补齐该条目。
-
-**部署层：选择性 rollout / rollback**
-
-- `.github/actions/host-deploy` 新增可选输入：`services`（逗号/空格分隔的 compose 服务子集，空或 `all` 保持整栈 pull/up）、`service_tags`（每行一个 `NAME=value` 的逐服务 tag 导出）。两个输入均在本地做白名单校验后才进入远端 shell。
-- `cd-deploy.yml` 的 `services` 输入现真实透传到 host-deploy，并新增可选 `service_tags` 文本输入；`cd-rollback.yml` 的 `services` 改为自由字符串（支持子集回滚），GHCR tag 校验只校验所选服务。
-
-**逐服务发布 / 回滚流程**
-
-1. 发布：bump 目标服务 pom 内的 `service.version.<svc>` → merge 到 main 后 docker-publish 推送新 `v<version>` 与 `sha-*` tag → 触发 cd-deploy（`services=<svc>`，`image_tag` 可留 latest 并用 `service_tags` 指定 `BACKEND_<SVC>_IMAGE_TAG=v<version>` 或直接用全局 `image_tag=sha-xxx`）→ host-deploy 仅 pull/up 该服务 → host-health 全量健康检查。
-2. 回滚：触发 cd-rollback，填入旧 `sha-<tag>` 与 `services=<svc>`（migrations 固定跳过）；host-deploy 仅对该服务 `pull/up` 到旧镜像。Flyway 迁移不随服务回滚回退，要求服务镜像对 schema 保持向后兼容（见下方契约门禁）。
-
-**混合版本契约兼容门禁（现状）**
-
-- RPC 行为策略由 `com.ulticode.common.rpc.RpcPolicy` 常量统一约束：写命令 `WRITE_TIMEOUT_MS=3000/retries=0`，查询 `QUERY_TIMEOUT_MS=800/retries=1`；五个消费方服务各有 `RpcPolicyArchTest`（ArchUnit）禁止裸 `@DubboReference` 与 timeout/retry 漂移，防止混合版本下重试语义不一致放大故障。
-- Dubbo `api/*` 契约模块与全部共享库仍由 reactor 单一 `${revision}` 版本管理：任何契约（接口签名、DTO 字段）变更必须整 reactor 同步构建发布，因此当前允许的“混合版本”仅限各 Owner 服务实现层独立升级；契约破坏性变更没有独立版本化通道，需整栈协同升级（这是刻意的保守边界，未来如需 api 独立演进须先建立契约兼容性测试矩阵）。
-- 数据库 schema 由 Flyway 单向迁移保证：服务镜像必须兼容已应用的最新 migration 才允许发布，回滚镜像同样受此约束。
-
-#### P1 Redis per-owner ACL 安全边界 — 已修复
-
-本小节落地评审"Redis 尚未形成 Owner 安全边界"的修复，取代上文"明确保留"清单中的 Redis ACL 条目。此前七个服务共享一个 `REDIS_PASSWORD` 与 DB 0，OAuth state、限流、队列与缓存仅靠 key 前缀隔离，任一 Owner 可跨域读写/删除他人 key。
-
-**ACL 模型**
-
-- `docker/redis/users.acl`（由 `docker/redis/generate-users-acl.sh` 从 `*_REDIS_PASSWORD` 环境变量渲染，密码仅以 SHA-256 哈希 `#<hex>` 形式落盘）：禁用匿名 `default` 用户；每个安全域一个命名 ACL 用户，key pattern 与代码中真实 key 清单一一对应。
-- 命令面统一为 `-@all +@connection +@read +@write +@scripting`（限流 Lua 脚本需要 EVAL）；app/notification 额外 `+@pubsub`（WebSocket 广播频道 `ulticode:ws:broadcast`，且 channel 白名单只放行该频道），app 额外 `+info`（monitoring inspector）；ops 用户 `+@all ~*` 供迁移脚本与 compose healthcheck 使用。
-
-| ACL 用户 | 服务 | Key patterns |
-| --- | --- | --- |
-| `ulticode-ops` | 运维/迁移/healthcheck | `~*` |
-| `ulticode-auth` | backend-auth | `csrf:*`、`oauth:*`、`rate-limit:*`、`stream:integration` |
-| `ulticode-admin` | backend-admin | `rate-limit:*`、`userStats:*`、`contestRanking:*`、`contest:*` |
-| `ulticode-app` | backend-app | `rate-limit:*`、`userStats:*`、`contestRanking:*`、`contest:*`、`monitoring:*`、`queue:*`、`email_queue`、`notification_queue`、channel `ulticode:ws:broadcast` |
-| `ulticode-submission` | backend-submission | `stream:integration` |
-| `ulticode-search` | backend-search | `stream:integration`、`search:*` |
-| `ulticode-notification` | backend-notification | `stream:integration`、`poison:*`、`notification:*`、channel `ulticode:ws:broadcast` |
-| `ulticode-judge` | backend-judge | `judge_queue`、`queue:*`、`judge:*` |
-
-- 跨 Owner 共享点（刻意设计，非泄漏）：集成事件流 `stream:integration` 的生产方（auth/submission）与消费方（search/notification）各自持有该单 key 权限；`userStats`/`contestRanking` 等缓存命名空间由 app 写入、admin 驱逐，双方均持权限。新增 key namespace 必须同步扩展对应 pattern，否则运行时报 `NOPERM`。
-
-**接线与凭据流转**
-
-- Compose：base `redis` 改为 `--aclfile /usr/local/etc/redis/users.acl` 挂载启动，healthcheck 以 `ulticode-ops` 凭据 PING；dev override 保持 loopback-only 暴露不变。`docker-compose.prod.yml` 七个后端服务分别注入 `REDIS_USERNAME=<ACL 用户>` 与各自的 `<DOMAIN>_REDIS_PASSWORD`（如 `AUTH_REDIS_PASSWORD`），不再共享口令。
-- Spring：各服务 `spring.data.redis.username=${REDIS_USERNAME:}`（auth 的内联 Redisson config 同步增加 `username`；judge/submission 由 redisson-spring-boot-starter 自动映射该属性）。空默认值保证本地无认证 Redis 仍可直连。
-- 脚本：`.env.example` 提供与提交版 `users.acl` 哈希配对的 DEV-ONLY 占位口令；`scripts/dev/init-env.sh` 生成随机 per-domain 口令并重渲染 `users.acl`；`scripts/dev/test.sh` 以 ops 凭据导出 `REDIS_USERNAME/REDIS_PASSWORD` 后再跑宿主机测试；`scripts/dev/devstack-manifest.sh` 必需变量清单更新为新变量组。
-
-**凭据轮换**
-
-1. 在 `.env`/密钥库设置新的 `*_REDIS_PASSWORD` 八个值；
-2. 运行 `docker/redis/generate-users-acl.sh > docker/redis/users.acl`；
-3. `docker compose up -d --force-recreate redis` 及引用旧口令的后端服务；
-4. 生产部署机同步更新部署环境变量后重新 rollout。全程不出现明文口令入库。
-
-## 9. Garden design system (landing design adopted globally)
+## 7. Garden design system (landing design adopted globally)
 
 落地页（`apps/console/src/views/landing/`）的编辑风格视觉语言已提取为全局设计契约 "Garden"，覆盖 console 全部视图、management 全部视图与共享包。规范全文见 `packages/design-system/docs/GARDEN_DESIGN_SPEC.md`。
 
@@ -1957,6 +1655,7 @@ Total keys in en-US: 245
 
 - `.paper-texture-overlay` 纸张微噪点由设计系统提供，两个应用根组件各挂载一次（落地页本地的同名层已移除）。
 - Console 侧栏采用 shadcn-vue `sidebar-07` 的 icon-collapse 交互：展开态保留现有 Garden 导航与权限过滤，收起态仅保留带 tooltip 的主图标；题单管理区在收起态隐藏，避免无图标标题被截断，颜色仍由 `packages/sidebar-menu` 的语义 token 统一提供。
+- Console Header 使用三栏 Grid：`SidebarTrigger` 居左、shadcn-vue `NavigationMenu` 居中、带 `Kbd`/`Tooltip` 的搜索按钮居右；整体复用设计系统的 Theme 语义 token、`.terminal-tab` 和语言感知控件几何变量。通知入口、未读数加载和徽标统一由侧栏用户菜单承载，并跳转完整通知页。
 - `.reveal-on-scroll` 滚动显现工具类全局可用，`prefers-reduced-motion` 下禁用。
 - Console 的 `features/sider` 统一消费 `packages/sidebar-menu` 的 Garden 侧栏契约：用户区、上下文导航、分组标题、题单操作/列表、子项和下拉菜单共享行宽、字号/行高、间距、圆角、表面、激活态与焦点态；业务侧只提供内容和状态，不再覆盖局部尺寸或颜色。
 

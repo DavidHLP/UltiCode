@@ -2,23 +2,26 @@
 import AppSidebar from "@/features/sider/AppSidebar.vue";
 import {
   NavigationMenu,
-  NavigationMenuIndicator,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
-import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import NotificationBadge from "@/components/notification/NotificationBadge.vue";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import SearchBar from "@/components/search/SearchBar.vue";
 import type { RouteLocationRaw } from "vue-router";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { computed, onMounted } from "vue";
+import { cn } from "@/lib/utils";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -68,15 +71,19 @@ const isActiveNav = (item: NavItem) => {
     <AppSidebar />
     <SidebarInset>
       <header
-        class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-4 border-b border-border-subtle bg-surface-elevated px-4"
+        class="sticky top-0 z-30 grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-[var(--uc-layout-control-gap)] border-b border-border-subtle bg-surface-elevated px-[var(--uc-layout-panel-padding-inline)]"
       >
-        <SidebarTrigger
-          class="-ml-1 rounded-md text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong focus-visible:ring-2 focus-visible:ring-ring"
-        />
-        <Separator orientation="vertical" class="h-6 bg-border-subtle" />
-        <NavigationMenu class="hidden md:flex h-full">
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <SidebarTrigger class="-ml-1 justify-self-start" />
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {{ t("shortcuts.toggleSidebar") }}
+          </TooltipContent>
+        </Tooltip>
+        <NavigationMenu class="hidden h-full justify-self-center md:flex">
           <NavigationMenuList
-            class="flex h-full items-stretch gap-1 rounded-md border border-border-subtle bg-surface-sunken p-1"
+            class="flex h-full items-center gap-[var(--uc-layout-control-gap)]"
           >
             <NavigationMenuItem
               v-for="item in navItems"
@@ -87,17 +94,12 @@ const isActiveNav = (item: NavItem) => {
                 v-if="item.to"
                 :as-child="true"
                 :active="isActiveNav(item)"
-                class="flex items-stretch"
+                :class="cn(
+                  'terminal-tab h-[var(--uc-layout-control-height)] flex-row items-center py-0',
+                  isActiveNav(item) && 'border-b-2 border-primary !font-semibold',
+                )"
               >
-                <RouterLink
-                  :to="item.to"
-                  :class="[
-                    'terminal-tab flex items-center justify-center gap-1 rounded-md px-4 text-sm font-medium transition-all duration-200 border-b-2 h-full',
-                    isActiveNav(item)
-                      ? 'border-primary text-foreground-strong bg-surface-highlight'
-                      : 'border-transparent text-foreground-muted hover:text-foreground-strong hover:bg-surface-highlight',
-                  ]"
-                >
+                <RouterLink :to="item.to">
                   <span>{{ item.label }}</span>
                   <span
                     v-if="item.comingSoon"
@@ -110,7 +112,10 @@ const isActiveNav = (item: NavItem) => {
               <NavigationMenuLink
                 v-else
                 :href="item.href"
-                class="terminal-tab flex items-center justify-center gap-1 rounded-md px-4 border-b-2 border-transparent text-foreground-muted hover:text-foreground-strong hover:bg-surface-highlight transition-all duration-200 h-full"
+                :class="cn(
+                  'terminal-tab h-[var(--uc-layout-control-height)] flex-row items-center py-0',
+                  isActiveNav(item) && 'border-b-2 border-primary !font-semibold',
+                )"
                 target="_self"
               >
                 <span>{{ item.label }}</span>
@@ -123,13 +128,9 @@ const isActiveNav = (item: NavItem) => {
               </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
-          <NavigationMenuIndicator />
         </NavigationMenu>
-        <div
-          class="ml-auto flex items-center gap-1 rounded-md border border-border-subtle bg-surface-sunken p-1"
-        >
+        <div class="flex items-center justify-self-end">
           <SearchBar />
-          <NotificationBadge />
         </div>
       </header>
       <main class="uc-page-main">

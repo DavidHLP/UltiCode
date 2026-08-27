@@ -53,7 +53,7 @@
   function readStoredLocale() {
     try {
       return localStorage.getItem(LOCALE_STORAGE_KEY)
-    } catch (_) {
+    } catch {
       return null
     }
   }
@@ -80,7 +80,7 @@
           return 'en-US'
         }
       }
-    } catch (_) {
+    } catch {
       // Browser locale detection is best effort; use the shared default.
     }
 

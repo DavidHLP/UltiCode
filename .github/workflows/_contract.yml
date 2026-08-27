@@ -66,23 +66,29 @@ jobs:
           elif [[ -e /tmp/baseline/backend-spring/mvnw ]]; then
             chmod +x /tmp/baseline/backend-spring/mvnw
           fi
-          echo "[contract] worktree created"
-
       - name: Install baseline api contracts
         run: |
           set -euo pipefail
           baseline_root=/tmp/baseline
           if [[ -d "$baseline_root/services" ]]; then
             baseline_services="$baseline_root/services"
+            baseline_projects=(
+              api/auth-api
+              api/admin-api
+              api/app-api
+              api/submission-api
+              api/notification-api
+            )
           elif [[ -d "$baseline_root/backend-spring" ]]; then
-            baseline_services="$baseline_root/backend-spring"
+            echo "::notice::Baseline ref is monolithic; no standalone API contracts to install"
+            exit 0
           else
-            echo "::error::Baseline ref has no supported backend Maven root (expected services/ or backend-spring/)"
+            echo "::error::Baseline ref has no supported backend root"
             exit 1
           fi
-          echo "[contract] installing baseline api contracts from ${{ steps.baseline.outputs.ref }} ($baseline_services)"
           cd "$baseline_services"
-          ./mvnw -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am -DskipTests install -B
+          ./mvnw -pl "$(IFS=,; echo "${baseline_projects[*]}")" -am \
+            -DskipTests install -B
 
       - name: Build current api contracts
         run: |

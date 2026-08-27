@@ -19,26 +19,26 @@ const { t } = useI18n();
       </div>
 
       <div class="footer-links-col">
-        <h4 class="col-title">{{ t("landing.footer.archiveColTitle") }}</h4>
+        <h4 class="col-title">{{ t("landing.footer.platformColTitle") }}</h4>
         <ul class="col-list">
           <li>
             <RouterLink to="/problemset">{{
-              t("landing.footer.archiveLink1")
+              t("landing.footer.platformLink1")
             }}</RouterLink>
           </li>
           <li>
             <RouterLink to="/contest">{{
-              t("landing.footer.archiveLink2")
+              t("landing.footer.platformLink2")
             }}</RouterLink>
           </li>
           <li>
             <RouterLink to="/forum">{{
-              t("landing.footer.archiveLink3")
+              t("landing.footer.platformLink3")
             }}</RouterLink>
           </li>
           <li>
             <RouterLink to="/login">{{
-              t("landing.footer.archiveLink4")
+              t("landing.footer.platformLink4")
             }}</RouterLink>
           </li>
         </ul>

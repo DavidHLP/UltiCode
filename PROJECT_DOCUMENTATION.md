@@ -1951,10 +1951,12 @@ Total keys in en-US: 245
 - `packages/design-system/style.css`：`--uc-layout-*` 与 `--uc-component-*` 提供语言感知的页面 gutter、区块间距、控件高度/内距和共享 primitive 几何；`.uc-page-main`、`.uc-page-container`、`.uc-page-stack` 供 console/management shell 复用。Garden 色彩和 comfortable/compact density 不随语言复制。
 - Locale 生命周期由 `packages/locale-preference` 统一处理：存储值 → 浏览器语言 → zh-CN fallback；`packages/theme/bootstrap.js` 在 Vue bundle 前同步 `html lang`，运行时切换也通过共享 `useLocale` 更新它。落地页不得直接写 `locale.value`。
 - `packages/design-system/src/palette.ts`：运行时桥（ECharts/Monaco）与 CSS 原始刻度逐值锁定；Monaco 主题自动跟随。
+- `packages/design-system/src/variants.ts`：集中维护当前 shadcn-vue Button 的基础交互类、`xs`/`icon-xs` 等共享尺寸与 Garden 语义 variants；双应用保留本地导入路径，只追加自身扩展，并通过 `data-variant` / `data-size` 暴露稳定样式状态。
 
 **全局质感与动效**
 
 - `.paper-texture-overlay` 纸张微噪点由设计系统提供，两个应用根组件各挂载一次（落地页本地的同名层已移除）。
+- Console 侧栏采用 shadcn-vue `sidebar-07` 的 icon-collapse 交互：展开态保留现有 Garden 导航与权限过滤，收起态仅保留带 tooltip 的主图标；题单管理区在收起态隐藏，避免无图标标题被截断，颜色仍由 `packages/sidebar-menu` 的语义 token 统一提供。
 - `.reveal-on-scroll` 滚动显现工具类全局可用，`prefers-reduced-motion` 下禁用。
 - Console 的 `features/sider` 统一消费 `packages/sidebar-menu` 的 Garden 侧栏契约：用户区、上下文导航、分组标题、题单操作/列表、子项和下拉菜单共享行宽、字号/行高、间距、圆角、表面、激活态与焦点态；业务侧只提供内容和状态，不再覆盖局部尺寸或颜色。
 

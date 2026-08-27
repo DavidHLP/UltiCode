@@ -31,6 +31,8 @@
 export type { SemanticColor } from "../../badge-config/src/semantic-colors";
 export {
   BADGE_VARIANT_CLASSES,
+  BUTTON_BASE_CLASSES,
+  BUTTON_SIZE_CLASSES,
   BUTTON_VARIANT_CLASSES,
   getDifficultyBadgeClass,
   MENU_ITEM_VARIANT_CLASSES,

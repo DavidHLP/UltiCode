@@ -82,9 +82,11 @@ describe("Solarized component consumers", () => {
     expect(actions).toContain("SidebarMenuItem as SharedSidebarMenuItem");
     expect(actions).toContain('as="button"');
     expect(actions).not.toContain("border-dashed");
+    expect(appSidebar).toContain('collapsible: "icon"');
     expect(appSidebar).toContain('class="uc-sidebar-shell"');
     expect(appSidebar).toContain('class="uc-sidebar-header"');
     expect(appSidebar).toContain('class="uc-sidebar-content"');
+    expect(appSidebar).toContain('group-data-[collapsible=icon]:hidden');
     expect(navUser).toContain("uc-sidebar-user-trigger");
     expect(navUser).toContain("uc-sidebar-dropdown");
     expect(lists).toContain("uc-sidebar-item");
@@ -98,6 +100,35 @@ describe("Solarized component consumers", () => {
       '.uc-sidebar-shell [data-sidebar="sidebar"]',
     );
     expect(sharedStyles).toContain(".uc-sidebar-user-trigger");
+    expect(sharedStyles).toContain(`[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-user-trigger,
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-item {
+  width: 2rem;
+  margin-inline: 0;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-user-trigger
+  .uc-sidebar-avatar {
+  width: 1.875rem;
+  height: 1.875rem;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-item {
+  border-left-width: 0;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-item[data-active="true"] {
+  box-shadow: inset 3px 0 0 var(--primary);
+}`);
     expect(sharedStyles).not.toContain(
       ".uc-sidebar-sub-item {\n  display: flex",
     );
@@ -192,7 +223,7 @@ describe("Solarized component consumers", () => {
     const input = source("../../components/ui/input/Input.vue");
     const textarea = source("../../components/ui/textarea/Textarea.vue");
     const switchSource = source("../../components/ui/switch/Switch.vue");
-    const button = source("../../components/ui/button/index.ts");
+    const buttonAdapter = source("../../components/ui/button/index.ts");
 
     expect(dialog).toContain("bg-surface-elevated");
     expect(dialog).toContain("rounded-xl");
@@ -213,11 +244,8 @@ describe("Solarized component consumers", () => {
     expect(switchSource).toContain(
       "data-[state=unchecked]:bg-surface-highlight",
     );
-    expect(button).toContain("rounded-md");
-    expect(button).toContain("focus-visible:aria-invalid:ring-destructive");
-    expect(button).toContain(
-      "dark:focus-visible:aria-invalid:ring-destructive",
-    );
+    expect(buttonAdapter).toContain("BUTTON_BASE_CLASSES");
+    expect(buttonAdapter).toContain("BUTTON_SIZE_CLASSES");
   });
 
   it("keeps the header interaction rail on shared surfaces", () => {
@@ -341,5 +369,4 @@ describe("Solarized component consumers", () => {
     expect(forum).toContain("border-primary text-[var(--primary)]");
     expect(solution).toContain("border-primary text-[var(--primary)]");
   });
-
 });

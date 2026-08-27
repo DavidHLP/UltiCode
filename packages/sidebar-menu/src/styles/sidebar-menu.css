@@ -202,6 +202,38 @@
   width: calc(100% - 0.5rem);
 }
 
+/* Icon mode has a fixed 2rem rail item; remove the expanded-row margin so the
+ * icon stays centered instead of inheriting asymmetric inline spacing. */
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-user-trigger,
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-item {
+  width: 2rem;
+  margin-inline: 0;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-user-trigger
+  .uc-sidebar-avatar {
+  width: 1.875rem;
+  height: 1.875rem;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-item {
+  border-left-width: 0;
+}
+
+[data-slot="sidebar"][data-collapsible="icon"]
+  [data-sidebar="sidebar"]
+  .uc-sidebar-item[data-active="true"] {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
 [data-sidebar="sidebar"] .uc-sidebar-user-trigger {
   width: calc(100% - 0.5rem);
   min-height: 3rem;

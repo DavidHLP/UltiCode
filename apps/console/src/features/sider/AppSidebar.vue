@@ -21,7 +21,9 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 
-const props = defineProps<SidebarProps>();
+const props = withDefaults(defineProps<SidebarProps>(), {
+  collapsible: "icon",
+});
 const route = useRoute();
 const authStore = useAuthStore();
 
@@ -71,9 +73,11 @@ const currentSidebarData = computed(() => {
       <SidebarNav :sections="currentSidebarData" />
 
       <template v-if="isProblemContext">
-        <SidebarSeparator class="uc-sidebar-separator" />
-        <!-- Problem Lists (Only for Problem Context) -->
-        <Calendars />
+        <div class="group-data-[collapsible=icon]:hidden">
+          <SidebarSeparator class="uc-sidebar-separator" />
+          <!-- Problem Lists (Only for Problem Context) -->
+          <Calendars />
+        </div>
       </template>
     </SidebarContent>
     <SidebarFooter> </SidebarFooter>

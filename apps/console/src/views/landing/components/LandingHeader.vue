@@ -62,7 +62,6 @@ onUnmounted(() => {
       <RouterLink to="/" class="brand-logotype" @click="closeMobileMenu">
         <span class="brand-emblem">⌘</span>
         <span class="brand-name">UltiCode</span>
-        <span class="brand-tag">ARCHIVE</span>
       </RouterLink>
 
       <!-- 桌面端导航 -->
@@ -186,6 +185,12 @@ onUnmounted(() => {
   backdrop-filter: blur(20px);
 }
 
+@media (min-width: 961px) {
+  :global(html[lang="zh-CN"] .editorial-header.is-elevated .header-container) {
+    width: min(700px, calc(100% - 2rem));
+  }
+}
+
 .brand-logotype {
   display: flex;
   align-items: center;
@@ -205,16 +210,6 @@ onUnmounted(() => {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-
-.brand-tag {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.15rem 0.4rem;
-  border: 1px solid var(--border-delicate);
-  border-radius: var(--radius-small);
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
 }
 
 .nav-links {
@@ -308,6 +303,19 @@ onUnmounted(() => {
   border-color: var(--brand-olive);
 }
 
+:global(html[lang="en-US"] .nav-links) {
+  gap: 1rem;
+}
+
+:global(html[lang="en-US"] .desktop-actions) {
+  gap: 0.75rem;
+}
+
+:global(html[lang="en-US"] .nav-item),
+:global(html[lang="en-US"] .action-link) {
+  white-space: nowrap;
+}
+
 /* 移动端抽屉菜单 */
 .mobile-drawer {
   display: flex;
@@ -372,7 +380,7 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .nav-links {
     display: none;
   }

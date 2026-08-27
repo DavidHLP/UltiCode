@@ -120,7 +120,6 @@ describe("Landing Page Component Suite", () => {
   it("renders LandingHeader with navigation items, brand mark, and handles mobile drawer & Escape key", async () => {
     const wrapper = mount(LandingHeader, { attachTo: document.body });
     expect(wrapper.find(".brand-name").text()).toBe("UltiCode");
-    expect(wrapper.find(".brand-tag").text()).toBe("ARCHIVE");
     expect(wrapper.find(".editorial-header").classes()).not.toContain(
       "is-elevated",
     );
@@ -248,7 +247,7 @@ describe("Landing Page Component Suite", () => {
     expect(wrapper.find(".large-cta-btn").exists()).toBe(true);
   });
 
-  it("renders archive, specification, and institutional columns in LandingFooter", () => {
+  it("renders platform, specification, and institutional columns in LandingFooter", () => {
     const wrapper = mount(LandingFooter);
     const cols = wrapper.findAll(".footer-links-col");
     expect(cols.length).toBe(3);

@@ -330,6 +330,34 @@ onUnmounted(() => {
   font-weight: 400;
 }
 
+:global(html[lang="zh-CN"] .headline-editorial-wrap) {
+  gap: clamp(1.5rem, 5.2vw, 4.5rem);
+}
+
+:global(html[lang="zh-CN"] .editorial-bracket) {
+  font-size: clamp(3.75rem, 6.4vw, 5.25rem);
+}
+
+:global(html[lang="zh-CN"] .hero-headline) {
+  font-size: clamp(3.75rem, 5.2vw, 4.5rem);
+  line-height: 1.18;
+  letter-spacing: var(--uc-locale-display-tracking);
+}
+
+:global(html[lang="en-US"] .headline-editorial-wrap) {
+  gap: clamp(1.5rem, 6.8vw, 5.5rem);
+}
+
+:global(html[lang="en-US"] .editorial-bracket) {
+  font-size: clamp(4rem, 7vw, 5.75rem);
+}
+
+:global(html[lang="en-US"] .hero-headline) {
+  font-size: clamp(4rem, 6.2vw, 5.25rem);
+  line-height: 1.08;
+  letter-spacing: var(--uc-locale-display-tracking);
+}
+
 .hero-description {
   max-width: 36rem;
   min-height: 4.375rem;

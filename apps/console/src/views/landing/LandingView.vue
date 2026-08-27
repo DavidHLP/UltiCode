@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watchEffect, nextTick } from "vue";
+import {
+  ref,
+  onMounted,
+  onUnmounted,
+  watch,
+  watchEffect,
+  nextTick,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import LandingHeader from "./components/LandingHeader.vue";
 import HeroSection from "./components/HeroSection.vue";
@@ -10,7 +17,7 @@ import FinalStorySection from "./components/FinalStorySection.vue";
 import LandingFooter from "./components/LandingFooter.vue";
 import algorithmicGardenUrl from "@/assets/landing/algorithmic-garden.webp";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const isLoaded = ref(false);
 
 let originalTitle = "";
@@ -124,11 +131,7 @@ watchEffect(() => {
   }
 });
 
-onMounted(async () => {
-  document.documentElement.dataset.landingRoute = "";
-  isLoaded.value = true;
-  await nextTick();
-
+function setupScrollAnimations() {
   if (typeof window !== "undefined") {
     const prefersReducedMotion =
       typeof window.matchMedia === "function" &&
@@ -163,6 +166,23 @@ onMounted(async () => {
       });
     }
   }
+}
+
+watch(
+  () => locale.value,
+  async () => {
+    scrollObserver?.disconnect();
+    scrollObserver = null;
+    await nextTick();
+    setupScrollAnimations();
+  },
+);
+
+onMounted(async () => {
+  document.documentElement.dataset.landingRoute = "";
+  isLoaded.value = true;
+  await nextTick();
+  setupScrollAnimations();
 });
 
 onUnmounted(() => {
@@ -228,7 +248,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="ulticode-landing-root" :class="{ 'is-ready': isLoaded }">
+  <div
+    :key="locale"
+    class="ulticode-landing-root"
+    :class="{ 'is-ready': isLoaded }"
+  >
     <!-- 侧边算法工程与架构图纸装饰 (OJ Architectural Blueprint Grid) -->
     <div class="blueprint-frame blueprint-left" aria-hidden="true">
       <svg viewBox="0 0 160 600" fill="none" class="blueprint-svg">

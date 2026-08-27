@@ -280,6 +280,8 @@ test("owns shared status and chart semantics", () => {
 test("publishes shared component states without palette primitives", async () => {
   const {
     BADGE_VARIANT_CLASSES,
+    BUTTON_BASE_CLASSES,
+    BUTTON_SIZE_CLASSES,
     BUTTON_VARIANT_CLASSES,
     getDifficultyBadgeClass,
     MENU_ITEM_VARIANT_CLASSES,
@@ -291,6 +293,11 @@ test("publishes shared component states without palette primitives", async () =>
   });
 
   assert.match(BUTTON_VARIANT_CLASSES.default, /bg-primary/);
+  assert.match(BUTTON_BASE_CLASSES, /rounded-md/);
+  assert.match(BUTTON_BASE_CLASSES, /focus-visible:ring-ring\/50/);
+  assert.match(BUTTON_BASE_CLASSES, /focus-visible:ring-3/);
+  assert.match(BUTTON_SIZE_CLASSES.xs, /h-6/);
+  assert.match(BUTTON_SIZE_CLASSES["icon-xs"], /size-6/);
   assert.match(BUTTON_VARIANT_CLASSES.default, /border-primary/);
   assert.match(BUTTON_VARIANT_CLASSES.destructive, /status-error-surface/);
   assert.match(BUTTON_VARIANT_CLASSES.link, /decoration-link-decoration/);

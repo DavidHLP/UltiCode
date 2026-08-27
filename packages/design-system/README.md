@@ -165,8 +165,10 @@ on a small white-on-red label.
 - packages/design-system/src/palette.ts owns the canonical runtime palette
   (`SOLARIZED_PALETTE`) and the `readCssColor` helper; non-CSS renderers resolve
   concrete colors through it.
-- packages/design-system/src/variants.ts owns cross-app Button, Badge and menu
-  state classes; applications may append local variants but do not copy them.
+- packages/design-system/src/variants.ts owns the current shadcn-vue Button
+  foundation (base classes, shared sizes and semantic variants) plus shared
+  Badge and menu state classes; applications may append local variants but do
+  not copy the shared contract.
 - packages/theme owns theme state, persistence, shared tokens and DOM mode
   application; `html[lang]` is the locale profile selector.
 - App adapters may translate public tokens into Monaco, WebGL or chart-renderer

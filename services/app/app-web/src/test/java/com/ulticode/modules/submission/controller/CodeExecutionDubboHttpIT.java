@@ -130,12 +130,16 @@ class CodeExecutionDubboHttpIT {
     @Test
     @Order(2)
     void missingJudgeProviderMapsToHttp503() throws Exception {
+        Object judgeExecution = ReflectionTestUtils.getField(remote, "judgeExecution");
         ReflectionTestUtils.setField(remote, "judgeExecution", missingReference.get());
-
-        mockMvc.perform(runRequest())
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.code").value(30022))
-                .andExpect(jsonPath("$.message").value("Code execution is unavailable"));
+        try {
+            mockMvc.perform(runRequest())
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.code").value(30022))
+                    .andExpect(jsonPath("$.message").value("Code execution is unavailable"));
+        } finally {
+            ReflectionTestUtils.setField(remote, "judgeExecution", judgeExecution);
+        }
     }
 
     private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder runRequest() {

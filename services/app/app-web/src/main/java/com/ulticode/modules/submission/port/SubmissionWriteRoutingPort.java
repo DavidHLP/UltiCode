@@ -24,7 +24,7 @@ public class SubmissionWriteRoutingPort implements SubmissionIntakePort, Submiss
     private final SubmissionRoutingProperties routing;
 
     private SubmissionIntakePort intakeDelegate() {
-        return routing.select(local, remote::getIfAvailable, "write");
+        return routing.select(local, remote::getIfAvailable, "intake");
     }
 
     private SubmissionVerdictWritePort verdictDelegate() {

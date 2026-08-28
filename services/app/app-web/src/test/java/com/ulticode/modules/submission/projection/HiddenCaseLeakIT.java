@@ -15,8 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -70,9 +68,6 @@ class HiddenCaseLeakIT {
                         HIDDEN_SENTINEL + "_EXPECTED",
                         "diff: " + HIDDEN_SENTINEL + "_DETAIL_OK_TO_LEAK")
         ));
-        when(userReadPort.findById("u-1")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
-
         String json = jackson.writeValueAsString(projection.toVO(s));
 
         // Critical security assertions: hidden case INPUT / OUTPUT / EXPECTED_OUTPUT
@@ -116,9 +111,6 @@ class HiddenCaseLeakIT {
                         HIDDEN_SENTINEL + "_E",
                         "diff: " + HIDDEN_SENTINEL + "_F")
         ));
-        when(userReadPort.findById("u-2")).thenReturn(null);
-        when(problemFacts.findDisplayFacts(101L)).thenReturn(null);
-
         String json = jackson.writeValueAsString(projection.toVO(s));
 
         // No hidden I/O substring in the wire response.

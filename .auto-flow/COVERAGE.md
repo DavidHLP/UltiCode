@@ -21,3 +21,32 @@ Scope intentionally excludes the separate right-column `ProblemSetSidebar` and m
 Out of scope: rewriting the 1908-key translation trees solely to equalize string length; changing Garden color semantics; adding RTL; release, deploy, or remote mutations.
 
 Final gate: `./scripts/dev/verify-garden-design.sh --with-build` passed. Browser evidence covered desktop and 390px responsive behavior; cross-route switching verified the content language and computed locale metrics together. The shared package formatter is not declared at the repository root; app-scoped ESLint/formatter checks and `git diff --check` passed without rewriting package baselines.
+
+## Services issues 2026-08-28
+
+| Source item | Task / required evidence |
+| --- | --- |
+| SVC-001 App/Judge Docker execution seam | SVC-001; narrow CodeExecutionPort, Judge provider/App Adapter, success+unavailable regression, dependency/architecture checks |
+| SVC-002 broad Submission/Problem contracts | SVC-002; intake/verdict and title-lookup Interface split, all caller/provider/test migrations, no unsupported normal Contract methods |
+| SVC-003 Submission dual writer retirement | SVC-003-GATE; 14-day observation, drain, checksum, error-budget, and verified rollback evidence; external until real environment exists |
+| SVC-004 App/Submission sync dependency ring | SVC-004 after SVC-002; immutable intake facts, narrow bounded-batch read, no speculative event projection |
+| SVC-005 Search release/rollback selection | SVC-005; deploy option, rollback whitelist/all, services-matrix drift gate |
+| SVC-006 Admin event user read model | SVC-006; first merge existing aggregation into AdminUserEnricher deep Module; event table remains metric-triggered |
+| SVC-007 production multi-host HA | SVC-007-010-GATES; external topology/SLO trigger preserved |
+| SVC-008 Judge node isolation | SVC-007-010-GATES; external multi-tenant/threat-model trigger preserved |
+| SVC-009 operational observability evidence | SVC-007-010-GATES; requires real production traffic/drills; repository wiring remains audited |
+| SVC-010 mixed-version history | SVC-007-010-GATES; requires real releases; contract gate remains enforced |
+| CLOSED history | SVC-VALIDATE; regression/architecture gates and source evidence remain intact |
+| ACCEPTED decisions | All tasks; no access-token writer, no new MQ/mesh/Kubernetes/Seata, Search manifest policy preserved, SubmissionFactsSnapshot remains minimal, compatibility seam retained until SVC-003 gate |
+| Maintenance rules | SVC-VALIDATE; one registry, evidence-backed status transitions, docs/runbooks/contracts keep their own content |
+
+Delivery authority excludes commit, push, merge, release, deploy, production data, and third-party mutation.
+
+### Final Services gate
+
+- Repository-actionable: SVC-001 CLOSED, SVC-002 CLOSED, SVC-004 ACCEPTED, SVC-005 CLOSED, SVC-006 deep-Module precondition complete, SVC-009 OTLP repository wiring complete.
+- External/deferred by registry: SVC-006 event projection metrics, SVC-007 multi-host/SLO, SVC-008 multi-tenant threat model, SVC-009 real traffic/SLO/live drills, SVC-010 real mixed-version releases.
+- Objective blocker: SVC-003 local-copy retirement lacks the required 14-day write/fence/read observation, zero local activity, real drain/error budgets/checksums, and verified target rollback.
+- Formal Review: Standards 0, Spec 0, Security 0 Confirmed Findings.
+- Validation: reactor verify 2714 tests; `*IT` 233 tests; zero failures/errors. Supported quick, N-1 compatibility, architecture/docs/DevStack, Compose dev/prod, YAML, graph, coverage and diff gates passed.
+- Delivery: verified dirty worktree, no commit/push/deploy authorization.

@@ -8,7 +8,8 @@ import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.codec.TestCaseDetailCodec;
 import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -39,7 +40,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Local storage-writer adapter for {@link SubmissionWritePort}, owned by
+ * Local storage-writer adapter for {@link SubmissionIntakePort} and
+ * {@link SubmissionVerdictWritePort}, owned by
  * {@code backend-submission}.
  *
  * <p>SPLIT-003 local owner writer. It writes the {@code submission} schema
@@ -66,7 +68,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DefaultSubmissionWritePort implements SubmissionWritePort {
+public class DefaultSubmissionWritePort implements SubmissionIntakePort, SubmissionVerdictWritePort {
 
     private final SubmissionMapper submissionMapper;
     private final ObjectMapper objectMapper;

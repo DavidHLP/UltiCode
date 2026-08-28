@@ -161,6 +161,14 @@ cd services
    - 采用双版本并存窗口：Provider 同时暴露新旧接口（或新旧 DTO 通过 `compat` 字段兼容），消费者分批升级，窗口期内 CI 可通过 `excludes` 临时豁免已公告的类（需评审），窗口结束后移除旧版本并清理豁免；
    - 发版时打 tag（如 `v2.0.0`），成为下一轮 `baseline_ref`。
 
+当前 Submission mutation Interface 拆分采用兼容化而非豁免：
+
+1. `backend-submission` 先发布 `SubmissionIntakePort`、`SubmissionVerdictWritePort`，同时继续发布 deprecated `SubmissionWritePort` 1.0.0 provider；旧消费者仍可调用全部真实能力。
+2. App/Judge 再升级为只消费窄 Interface。升级期间不得先回滚 Submission provider；需要回滚时先回滚消费者，再回滚 provider。
+3. 只有混合版本窗口、consumer drain 与回滚证据完成后，才允许删除 deprecated Interface/provider；删除属于后续 major/version-window 任务，不属于本次窄化。
+
+`ProblemTitleLookupPort` 是新增的 App provider / Submission consumer Seam，发布顺序固定为 **App provider first → Submission consumer second**；回滚顺序固定为 **Submission consumer first → App provider second**。旧 App 不提供该 FQCN，因此禁止选择性先部署新 Submission；该顺序由架构门禁与发布交接共同保留，真实混合版本运行证据仍归 SVC-010。
+
 豁免流程：原则上 `excludes` 不开放业务豁免；确需豁免（合成/桥接噪音除外）必须在 PR 中说明理由、影响面、回滚计划，并由 Owner 负责人批准后在 `pom` 的 `<parameter><excludes>` 中按 `package.Class#method` 精确列出，禁止通配 `*`。
 
 ## 5. 基线 tag 约定

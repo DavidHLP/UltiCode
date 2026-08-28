@@ -1,5 +1,6 @@
 package com.ulticode.app.architecture;
 
+import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -46,11 +47,15 @@ class RpcPolicyArchTest {
                 int retries = reference.retries();
                 boolean queryPolicy = timeout == RpcPolicy.QUERY_TIMEOUT_MS && retries == RpcPolicy.QUERY_RETRIES;
                 boolean writePolicy = timeout == RpcPolicy.WRITE_TIMEOUT_MS && retries == RpcPolicy.WRITE_RETRIES;
-                if (!queryPolicy && !writePolicy) {
+                boolean executionPolicy = field.getRawType().isEquivalentTo(CodeExecutionPort.class)
+                        && timeout == RpcPolicy.EXECUTION_TIMEOUT_MS
+                        && retries == RpcPolicy.EXECUTION_RETRIES;
+                if (!queryPolicy && !writePolicy && !executionPolicy) {
                     events.add(SimpleConditionEvent.violated(field,
                             field.getFullName() + " declares timeout=" + timeout + ", retries=" + retries
                                     + "; use RpcPolicy.QUERY_TIMEOUT_MS/QUERY_RETRIES for reads or "
-                                    + "RpcPolicy.WRITE_TIMEOUT_MS/WRITE_RETRIES for writes"));
+                                    + "RpcPolicy.WRITE_TIMEOUT_MS/WRITE_RETRIES for writes, or the "
+                                    + "execution policy for synchronous sandbox calls"));
                 }
             }
         };

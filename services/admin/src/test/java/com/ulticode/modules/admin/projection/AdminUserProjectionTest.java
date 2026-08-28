@@ -25,9 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,6 +66,14 @@ class AdminUserProjectionTest {
     void setUp() {
         projection = new DefaultAdminUserProjection(
                 accountQueryService, userProfileQueryService, userStatsReadPort, authorizationSnapshotService, roleTemplateService);
+    }
+
+    @Test
+    void crossOwnerAggregationLivesOnlyInAdminUserEnricher() {
+        assertThat(Arrays.stream(DefaultAdminUserProjection.class.getDeclaredFields())
+                .map(Field::getType))
+                .contains(AdminUserEnricher.class)
+                .doesNotContain(AccountQueryService.class, UserProfileQueryService.class);
     }
 
     @Nested
@@ -121,7 +130,9 @@ class AdminUserProjectionTest {
         @Test
         @DisplayName("unwired AccountQueryService (provider never registered) -> 503, not an empty page")
         void unwiredAuthThrowsUnavailable() {
-            ReflectionTestUtils.setField(projection, "accountQueryService", null);
+            projection = new DefaultAdminUserProjection(
+                    null, userProfileQueryService, userStatsReadPort,
+                    authorizationSnapshotService, roleTemplateService);
 
             assertThatThrownBy(() -> projection.getUsers(new AdminUserQueryDTO()))
                     .isInstanceOf(BusinessException.class)
@@ -172,7 +183,8 @@ class AdminUserProjectionTest {
             UserProfileDTO profile = createValidProfile();
 
             when(accountQueryService.getAccountById("user-123")).thenReturn(RpcResult.success(account, "t-123"));
-            when(userProfileQueryService.getProfileByAccountId("user-123")).thenReturn(RpcResult.success(profile, "t-123"));
+            when(userProfileQueryService.getProfilesByAccountIds(any()))
+                    .thenReturn(RpcResult.success(List.of(profile), "t-123"));
 
             AdminUserVO vo = projection.getUserById("user-123");
 
@@ -221,7 +233,7 @@ class AdminUserProjectionTest {
             AuthAccountDTO account = createValidAccount();
 
             when(accountQueryService.getAccountById("user-123")).thenReturn(RpcResult.success(account, "t-123"));
-            when(userProfileQueryService.getProfileByAccountId("user-123"))
+            when(userProfileQueryService.getProfilesByAccountIds(any()))
                     .thenThrow(new RuntimeException("app provider down"));
 
             AdminUserVO vo = projection.getUserById("user-123");

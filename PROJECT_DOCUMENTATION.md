@@ -217,7 +217,7 @@ Auth owner。
 - **CI（`.github/workflows/ci.yml`）**：只做三件事——`dorny/paths-filter` 变更探测、按路径门禁调用可复用 workflow、`ci-ok` 汇总。分支保护只需依赖 `ci-ok` 一个稳定 context；矩阵/job 改名不再影响 required checks。被 path 过滤跳过的 stage 在 `ci-ok` 中视为通过；`changes` job 本身失败则硬失败。
 - **可复用子 workflow**：`_security.yml`（gitleaks，全量触发）、`_backend.yml`（build/test/features matrix/migrate-validate/baseline-parity/flyway-filename-lint）、`_frontend.yml`（lint/type-check/test/i18n/shared auth-core；per-app 门禁经显式 boolean inputs 传入）、`_docker.yml`（镜像构建验证）。新增门禁 = 新增一个 `_*.yml` + 编排器一个调用 job + 加入 `ci-ok.needs`。
 - **服务矩阵单一来源**：`.github/services-matrix.json` 同时驱动 `_docker.yml` 验证与 `docker-publish.yml` 发布；新增服务 = 新增一条 JSON 记录，两个 workflow 经 `load-matrix` job 读取。
-- **CD 复合动作**：`.github/actions/host-deploy/`（SSH 密钥、Flyway 迁移、judge 沙箱预置、compose 拉起）与 `.github/actions/host-health/`（统一健康检查，spec 行格式 `<container> <mode: curl-container|curl-host|inspect> <port> <path>`）由 `cd-deploy.yml` 与 `cd-rollback.yml` 共享；回滚 = 同一动作 + `skip_migrations: true`。
+- **CD 复合动作**：`.github/actions/host-deploy/`（SSH 密钥、Flyway 迁移、judge 沙箱预置、compose 拉起）与 `.github/actions/host-health/`（统一健康检查，spec 行格式 `<container> <mode: curl-container|curl-host|inspect> <port> <path>`）由 `cd-deploy.yml` 与 `cd-rollback.yml` 共享；回滚 = 同一动作 + `skip_migrations: true`。`backend-search` 可单独 deploy/rollback，并通过 Compose heartbeat healthcheck 的 Docker `inspect` Gate；`architecture-contract-test.sh` 从 services matrix 解析全部 backend，逐项核对 deploy、rollback 与 health spec。
 - **顺带修复**：`_docker`/publish 使用规范 Dockerfile 路径 `apps/{console,management}/Dockerfile`（原 ci.yml 内为失效的 `./console/Dockerfile`）；i18n job 工作目录修正为 `apps/management`；auth-core 缓存路径修正为 `packages/auth-core/pnpm-lock.yaml`。
 - **迁移注意**：原单体内各 check 名现以 `Backend / ...`、`Frontend / ...` 等 stage 前缀出现；分支保护应切换为仅要求 `ci-ok`。
 
@@ -310,7 +310,9 @@ Auth owner。
 
 ##### 2.2 当前运行拓扑
 
-> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。根级兼容别名已收敛：`scripts/start.sh`、`scripts/stop.sh`、`scripts/start.bat`、`scripts/stop.bat` 已删除（`scripts/dev/architecture-contract-test.sh` 断言其不存在）；唯一保留的根级 adapter 是 `scripts/pitstop-start-backend.ps1`，因 `pitstop.yaml` 仍消费它（委托 `bash scripts/dev/up.sh --no-frontend`）。一次性数据迁移 runbook 位于 `scripts/runbooks/`（cutover/backfill/rehearsal），独立冒烟位于 `scripts/test/`；共享 shell 原语（env 加载、显式值保全、容器探测、健康等待、写确认谓词）统一由 `scripts/dev/lib/common.sh` 提供，其内部按关注点拆分为 `lib/env.sh`/`lib/validate.sh`/`lib/docker.sh`/`lib/confirm.sh`/`lib/sql.sh` 子模块（外部入口不变）；`mysql_query` 连接 adapter 由 `lib/sql.sh` 的 `define_mysql_query_adapter` 单源生成，各 runbook 不再手写 docker-exec/mysql 调用；`scripts/test/` 冒烟共用 `scripts/test/lib/smoke-common.sh` 前奏（凭据收敛为 `SMOKE_USERNAME`/`SMOKE_PASSWORD`，旧变量名仍兼容）。本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖）；生产/PM2 拓扑另由 `docker-compose.*.yml`/`ecosystem.config.cjs` 定义。当前项目没有 production environment，因此本地证据不等于生产切流证据。
+> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；正常/生产同步 `/problems/{id}/submissions/run` 通过 `CodeExecutionPort` 从 App 调用 Judge provider，App 不执行本地 Docker。唯一例外是 SVC-003 尚未退役的显式 `legacy-rollback`：该开发回滚模式不启动 Judge，暂时激活 App 本地执行并保留 `app-web -> judge-runtime` 编译依赖；待 SVC-003 的观察、drain、checksum 与回滚门禁完成后一起删除。Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。根级兼容别名已收敛：`scripts/start.sh`、`scripts/stop.sh`、`scripts/start.bat`、`scripts/stop.bat` 已删除（`scripts/dev/architecture-contract-test.sh` 断言其不存在）；唯一保留的根级 adapter 是 `scripts/pitstop-start-backend.ps1`，因 `pitstop.yaml` 仍消费它（委托 `bash scripts/dev/up.sh --no-frontend`）。一次性数据迁移 runbook 位于 `scripts/runbooks/`（cutover/backfill/rehearsal），独立冒烟位于 `scripts/test/`；共享 shell 原语（env 加载、显式值保全、容器探测、健康等待、写确认谓词）统一由 `scripts/dev/lib/common.sh` 提供，其内部按关注点拆分为 `lib/env.sh`/`lib/validate.sh`/`lib/docker.sh`/`lib/confirm.sh`/`lib/sql.sh` 子模块（外部入口不变）；`mysql_query` 连接 adapter 由 `lib/sql.sh` 的 `define_mysql_query_adapter` 单源生成，各 runbook 不再手写 docker-exec/mysql 调用；`scripts/test/` 冒烟共用 `scripts/test/lib/smoke-common.sh` 前奏（凭据收敛为 `SMOKE_USERNAME`/`SMOKE_PASSWORD`，旧变量名仍兼容）。本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖）；生产/PM2 拓扑另由 `docker-compose.*.yml`/`ecosystem.config.cjs` 定义。当前项目没有 production environment，因此本地证据不等于生产切流证据。
+
+Admin 用户读面的 Auth account/identity + App profile freshness、批量合并与降级状态由 `AdminUserEnricher` 单一深 Module 负责；`DefaultAdminUserProjection` 不再持有两个 Owner Client，只保留 VO、权限与本地统计。事件化读模型仍以真实延迟/可用性指标为触发条件，不预建事件表。
 
 ```mermaid
 flowchart LR
@@ -392,7 +394,7 @@ flowchart LR
 | 邮件 | SMTP 管道，默认关闭；写 email log 后同步发 SMTP | 改 intent/outbox + worker；Auth 的密码重置邮件不依赖 App RPC |
 | 搜索 | MeiliSearch 可选，失败回退 DB | 保留在 App；由 Owner event 更新索引 |
 | AI | 当前未发现 AI/LLM/向量能力 | 不为不存在的能力引入服务或组件 |
-| 监控 | Actuator/Micrometer/Prometheus registry，自定义 DB/Redis/Queue inspector | 每服务保留指标；首次 RPC 切流前接分布式 tracing |
+| 监控 | Actuator/Micrometer/Prometheus registry，自定义 DB/Redis/Queue inspector；生产 Compose 强制透传外部 OTLP/HTTP collector 地址 | 仓库提供 instrumentation/rules/runbook；collector、Prometheus rule loading、真实 trace/SLO report 由外部运营平台承接 |
 
 ##### 2.6 配置、Filter、异常与数据库访问横切面
 
@@ -764,10 +766,13 @@ services/api/
 
 Wire-incompatible Submission contracts 以 version 门禁发布：`SubmissionFencePort`
 （`currentGeneration` 由 `Optional<Long>` 改为可空 `Long`，避免 Dubbo 序列化 `Optional`）与新增
-`findByProblemId` 的 `SubmissionUserQueryPort` 的 provider/reference 均已升到 version `1.1.0`；
-未变更的端口（如 `SubmissionWritePort`）保持 `1.0.0`。混合滚动窗口内旧消费者只会路由到旧版本
-provider，失配在发现阶段显式失败而不是反序列化错配；因此 `backend-submission` 必须与其消费者
-（`backend-app`、`backend-judge`）同批部署。
+`findByProblemId` 的 `SubmissionUserQueryPort` 的 provider/reference 均已升到 version `1.1.0`。
+Submission mutation 已拆为 `SubmissionIntakePort` 与 `SubmissionVerdictWritePort`；旧的
+`SubmissionWritePort` 1.0.0 只作为 deprecated 兼容 Interface/provider 保留，不再被仓库内业务
+consumer 注入。滚动顺序固定为 provider-first（Submission 同时暴露新旧）→ App/Judge 切换窄
+Interface；回滚顺序相反。混合版本窗口和 consumer drain 完成前不得删除旧 provider。
+新增 `ProblemTitleLookupPort` 采用 App-provider-first → Submission-consumer-second，回滚
+顺序相反；旧 App 不提供该 Interface，禁止先选择性发布新 Submission。
 
 当前 `backend-common` 还提供 implementation-free 的跨 Owner 基础契约：`common.command` 下的
 `ActorDelegation`/`WriteCommand`、`common.dto.DifficultyCountDTO`、`common.auth` 下的 credential-free
@@ -778,8 +783,9 @@ provider，失配在发现阶段显式失败而不是反序列化错配；因此
 
 `backend-app-api` 只保留 App-owned contracts 与显式的 App fact/recipient exceptions；Submission 的
 write/fence/read/rejudge/admin contracts、DTO 与 lifecycle events 位于 `backend-submission-api`，Notification
-admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。这次包名迁移是
-matched-release 的源码/制品边界；Submission compatibility provider 已在授权的可回滚代码变更中删除，当前本地运行时使用 `APP_SUBMISSION_ROUTING_MODE=remote`，代码默认仍保留 local route 作为回滚入口，失败只走既有 grant/watermark/reconciliation runbook。
+admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。当前
+Submission mutation 窄 Interface 与 deprecated 1.0.0 compatibility provider 并存；本地运行时仍由
+`APP_SUBMISSION_ROUTING_MODE` 选择 local/remote，失败只走既有 grant/watermark/reconciliation runbook。
 
 Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
@@ -1179,7 +1185,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Gateway 是唯一外部 API/WS 入口，Dubbo 端口只在 internal network；
 - Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential；
 - Owner 服务（auth/admin/app/notification）同时暴露 `/health`（进程 liveness）与 `/health/ready`（readiness：校验 owner 数据库与 Redis，失败返回 503）；
-- 生产探针统一使用 readiness 端点（compose `healthcheck`、CD `host-health`、DevStack manifest），Submission 沿用容器内 actuator 探针；
+- 生产探针统一使用 readiness 端点（compose `healthcheck`、CD `host-health`、DevStack manifest），Submission 沿用容器内 actuator 探针，Judge/Search 由 CD `inspect` 对应 Compose heartbeat 状态；
 - 无 HTTP 面的 Worker（judge/search）由心跳组件刷新 `/tmp` 下的就绪标记文件，compose healthcheck 校验标记新鲜度（search 同时校验 Redis + MeiliSearch，judge 保留 docker socket + 沙箱镜像能力检查）。
 
 ##### 11.4 WebSocket、调度、备份与判题

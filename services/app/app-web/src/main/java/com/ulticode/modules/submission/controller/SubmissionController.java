@@ -14,7 +14,7 @@ import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class SubmissionController {
 
     private final SubmissionUserQueryPort submissionUserQuery;
-    private final SubmissionWritePort submissionWritePort;
+    private final SubmissionIntakePort submissionWritePort;
     private final CurrentUserProvider currentUserProvider;
 
     /**

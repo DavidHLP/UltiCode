@@ -18,7 +18,7 @@ import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,7 +63,7 @@ class ContestServiceImplTest {
     @Mock private ContestMapper contestMapper;
     @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestParticipantMapper participantMapper;
-    @Mock private SubmissionWritePort submissionWritePort;
+    @Mock private SubmissionIntakePort submissionWritePort;
     @Mock private ContestLifecycleService contestLifecycleService;
     @Mock private ContestProjection contestProjection;
     @Mock private com.ulticode.modules.contest.clock.ContestClock contestClock;

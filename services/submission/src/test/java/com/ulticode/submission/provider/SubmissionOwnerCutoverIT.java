@@ -25,7 +25,7 @@ import com.ulticode.modules.submission.result.SubmissionResultOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxWriter;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
-import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionIntakeProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -280,7 +280,7 @@ class SubmissionOwnerCutoverIT {
     @DisplayName("write provider delegates to the Submission-schema writer")
     void writeProviderWritesSubmissionSchema() throws Exception {
         DefaultSubmissionWritePort localWriter = newLocalWriter();
-        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        SubmissionIntakeProvider provider = new SubmissionIntakeProvider(localWriter);
 
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);

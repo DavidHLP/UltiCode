@@ -12,10 +12,11 @@ import com.ulticode.submission.api.dto.SubmissionVO;
  * machine.
  *
  * <p>The <em>state mutation</em> work — Submission intake and the two verdict
- * writers — lives behind
- * {@link com.ulticode.submission.api.service.SubmissionWritePort}, the single
- * collaborator whose implementation owns every state mutation on submission
- * records (transaction, contest rules, outbox, fenced CAS).
+ * writers — lives behind the narrow
+ * {@link com.ulticode.submission.api.service.SubmissionIntakePort} and
+ * {@link com.ulticode.submission.api.service.SubmissionVerdictWritePort}
+ * Interfaces; their owner implementation holds the transaction, contest,
+ * outbox and fenced-CAS rules.
  *
  * <p>This interface owns:
  * <ul>
@@ -45,7 +46,7 @@ public interface SubmissionService {
      * Submit code for a problem — the Submission intake.
      *
      * <p>Thin facade delegate that forwards to
-     * {@link com.ulticode.submission.api.service.SubmissionWritePort#submit}.
+     * {@link com.ulticode.submission.api.service.SubmissionIntakePort#submit}.
      * Present so in-module controllers stay on the {@code Controller → Service}
      * path; cross-module write callers inject the port directly.
      *

@@ -30,10 +30,31 @@ for file in \
   services/app/app-web/src/main/java/com/ulticode/app/user/port/UserDirectoryProjection.java \
   services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserFactsReadProjection.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReadPort.java \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionIntakePort.java \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionVerdictWritePort.java \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
+  services/api/app-api/src/main/java/com/ulticode/app/api/service/CodeExecutionPort.java \
+  services/api/app-api/src/main/java/com/ulticode/app/api/service/ProblemTitleLookupPort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
+  services/judge/src/main/java/com/ulticode/judge/provider/CodeExecutionProvider.java \
+  services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \
+  services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemTitleLookupDubboAdapter.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionVerdictWriteProvider.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
   services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java; do
   [[ -f "$ROOT_DIR/$file" ]] || fail "missing architecture source: $file"
 done
+
+# SVC-006: Admin user projections cross Auth/App only through the shared deep
+# aggregation Module; the HTTP projection owns only VO/local concerns.
+contains services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminUserProjection.java \
+  'private final AdminUserEnricher userEnricher;'
+not_contains services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminUserProjection.java \
+  'private AccountQueryService'
+not_contains services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminUserProjection.java \
+  'private UserProfileQueryService'
 
 bash "$ROOT_DIR/scripts/dev/devstack-manifest-test.sh"
 
@@ -57,6 +78,82 @@ contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompa
 contains services/app/app-web/src/test/resources/application.yml 'use-judge-outbox: true'
 contains services/app/app-web/src/test/resources/application.yml 'use-generation-fence: true'
 contains services/app/app-web/src/test/resources/application.yml 'use-port: true'
+
+# SVC-001: synchronous preview execution is a real App -> Judge seam. App
+# controllers must not regain a concrete Docker runtime dependency.
+contains services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java \
+  'private final CodeExecutionPort codeExecutionPort;'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java \
+  'CodeExecutionService'
+contains services/app/app-web/src/main/java/com/ulticode/BackendAppApplication.java \
+  '@SpringBootApplication(scanBasePackages = {'
+contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
+  '@DubboReference(group = "backend-judge"'
+contains services/judge/src/main/java/com/ulticode/judge/provider/CodeExecutionProvider.java \
+  '@DubboService(group = "backend-judge"'
+contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java \
+  "'\${app.runtime.mode:dev-lite}' == 'legacy-rollback'"
+contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
+  "'\${app.runtime.mode:dev-lite}' != 'legacy-rollback'"
+
+# SVC-002: cross-process mutation and problem lookup contracts expose only
+# the capabilities each consumer actually uses.
+contains services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \
+  'implements SubmissionVerdictWritePort'
+contains services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemTitleLookupDubboAdapter.java \
+  'implements ProblemTitleLookupPort'
+not_contains services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \
+  'UnsupportedOperationException'
+not_contains services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemTitleLookupDubboAdapter.java \
+  'UnsupportedOperationException'
+contains services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
+  '@Deprecated(forRemoval = true)'
+contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
+  'implements SubmissionWritePort'
+contains services/docs/CONTRACT_COMPAT_GATE.md \
+  'App provider first → Submission consumer second'
+contains services/docs/CONTRACT_COMPAT_GATE.md \
+  'Submission consumer first → App provider second'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java \
+  'import com.ulticode.submission.api.service.SubmissionWritePort;'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionWriteRoutingPort.java \
+  'import com.ulticode.submission.api.service.SubmissionWritePort;'
+not_contains services/judge-runtime/src/main/java/com/ulticode/modules/queue/processor/DefaultJudgeAttemptExecutor.java \
+  'import com.ulticode.submission.api.service.SubmissionWritePort;'
+for stale_contract in \
+  services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionWritePort.java \
+  services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemAdminReadDubboAdapter.java; do
+  [[ ! -e "$ROOT_DIR/$stale_contract" ]] || fail "stale broad contract remains: $stale_contract"
+done
+
+# SVC-005: every backend image in the release matrix must remain selectable
+# by both manual deploy and rollback entry points.
+mapfile -t release_services < <(python3 - "$ROOT_DIR/.github/services-matrix.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    services = json.load(source)
+for service in services:
+    name = service.get("name", "")
+    if name.startswith("backend-"):
+        print(name)
+PY
+)
+(( ${#release_services[@]} > 0 )) || fail "services matrix contains no backend runtimes"
+for release_service in "${release_services[@]}"; do
+  contains .github/workflows/cd-deploy.yml "          - $release_service"
+  contains .github/workflows/cd-rollback.yml "\"$release_service\""
+  contains .github/actions/host-health/action.yml "      $release_service "
+  otlp_endpoint_count="$(awk -v service="$release_service" '
+    $0 == "  " service ":" { inside = 1; next }
+    inside && /^  [^ ]/ { exit }
+    inside && /MANAGEMENT_OTLP_TRACING_ENDPOINT=/ { count++ }
+    END { print count + 0 }
+  ' "$ROOT_DIR/docker-compose.prod.yml")"
+  [[ "$otlp_endpoint_count" -eq 1 ]] \
+    || fail "production Compose service $release_service must have exactly one OTLP endpoint"
+done
 
 not_contains scripts/dev/doctor.sh 'pm2 start ecosystem.config.cjs'
 

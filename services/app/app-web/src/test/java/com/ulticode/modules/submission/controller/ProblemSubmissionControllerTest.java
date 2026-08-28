@@ -5,9 +5,9 @@ import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.app.api.dto.RunSubmissionDTO;
+import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
-import com.ulticode.modules.submission.service.CodeExecutionService;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,10 +38,10 @@ class ProblemSubmissionControllerTest {
     private SubmissionUserQueryPort submissionUserQuery;
 
     @Mock
-    private SubmissionWritePort submissionWritePort;
+    private SubmissionIntakePort submissionWritePort;
 
     @Mock
-    private CodeExecutionService codeExecutionService;
+    private CodeExecutionPort codeExecutionPort;
 
     @Mock
     private CurrentUserProvider currentUserProvider;
@@ -52,7 +52,7 @@ class ProblemSubmissionControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        controller = new ProblemSubmissionController(submissionUserQuery, submissionWritePort, codeExecutionService, validator, currentUserProvider);
+        controller = new ProblemSubmissionController(submissionUserQuery, submissionWritePort, codeExecutionPort, validator, currentUserProvider);
     }
 
     @AfterEach
@@ -75,12 +75,12 @@ class ProblemSubmissionControllerTest {
                 .passedCases(0)
                 .totalCases(0)
                 .build();
-        when(codeExecutionService.execute(eq(request), eq(1L), eq(null))).thenReturn(expected);
+        when(codeExecutionPort.execute(eq(request), eq(1L), eq(null))).thenReturn(expected);
 
         RunResultDTO result = controller.runCode(1L, request).getData();
 
         assertThat(result).isSameAs(expected);
-        verify(codeExecutionService).execute(request, 1L, null);
+        verify(codeExecutionPort).execute(request, 1L, null);
     }
 
     @Test

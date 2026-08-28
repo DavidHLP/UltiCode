@@ -12,7 +12,7 @@ import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import com.ulticode.common.dto.DashboardBucketCount;
-import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.ProblemTitleLookupPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.entity.Submission;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * detail / statistics data from the Submission owner schema.
  *
  * <p>SPLIT-004 slice-5: copy of the App-owned provider with the problem-title
- * search pre-fetch routed through {@link ProblemAdminReadPort} (Dubbo to
+ * search pre-fetch routed through {@link ProblemTitleLookupPort} (Dubbo to
  * {@code backend-app}), never reading problem tables (DEC-011). Pagination,
  * filter and sort semantics mirror the legacy admin adapter exactly. The App
  * provider (group=backend-app) remains the active Admin route until the
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class SubmissionAdminReadProvider implements SubmissionAdminReadPort {
 
     private final SubmissionMapper submissionMapper;
-    private final ProblemAdminReadPort problemAdminReadPort;
+    private final ProblemTitleLookupPort problemTitleLookup;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -66,7 +66,7 @@ public class SubmissionAdminReadProvider implements SubmissionAdminReadPort {
         if (StringUtils.hasText(query.getSearch())) {
             String search = query.getSearch();
             List<String> matchingUserIds = Collections.emptyList();
-            List<Long> matchingProblemIds = problemAdminReadPort.searchProblemIdsByTitle(search);
+            List<Long> matchingProblemIds = problemTitleLookup.searchProblemIdsByTitle(search);
 
             wrapper.and(w -> {
                 w.like(Submission::getId, search)

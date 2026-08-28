@@ -3,7 +3,9 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.rpc.RpcResult;
@@ -58,6 +60,17 @@ import com.ulticode.common.rpc.RpcPolicy;
 @Component
 public class AdminUserEnricher {
 
+    public AdminUserEnricher() {
+    }
+
+    AdminUserEnricher(IdentityQueryService identityQueryService,
+                      UserProfileQueryService userProfileQueryService,
+                      AccountQueryService accountQueryService) {
+        this.identityQueryService = identityQueryService;
+        this.userProfileQueryService = userProfileQueryService;
+        this.accountQueryService = accountQueryService;
+    }
+
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private IdentityQueryService identityQueryService;
@@ -69,6 +82,92 @@ public class AdminUserEnricher {
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
+
+    /** Query an Auth account page and merge App profiles in one owner-aggregation round. */
+    public AccountPage queryAccountsWithProfiles(AccountQueryDTO query) {
+        if (accountQueryService == null) {
+            throw ownerUnavailable("AccountQueryService is unavailable");
+        }
+
+        RpcResult<AuthAccountDTO> rpc;
+        try {
+            rpc = accountQueryService.queryAccounts(query);
+        } catch (Exception e) {
+            log.warn("AccountQueryService.queryAccounts failed: {}", e.getMessage());
+            throw ownerUnavailable("AccountQueryService.queryAccounts failed", e);
+        }
+        if (rpc == null || !rpc.success() || rpc.page() == null) {
+            throw ownerUnavailable("AccountQueryService.queryAccounts returned failure");
+        }
+
+        RpcResult.Page page = rpc.page();
+        @SuppressWarnings("unchecked")
+        List<AuthAccountDTO> raw = (List<AuthAccountDTO>) page.items();
+        List<AuthAccountDTO> accounts = raw == null
+                ? List.of()
+                : raw.stream().filter(Objects::nonNull).toList();
+        long total = page.total() == null ? 0L : page.total();
+        if (accounts.isEmpty()) {
+            return new AccountPage(accounts, total, Map.of(), DegradationStatus.OK);
+        }
+
+        Set<String> accountIds = accounts.stream()
+                .map(AuthAccountDTO::accountId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        ProfileBatch profiles = batchProfiles(accountIds);
+        return new AccountPage(
+                accounts,
+                total,
+                profiles.data(),
+                profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
+    }
+
+    /** Query one authoritative Auth account and merge its optional App profile. */
+    public AccountDetail findAccountWithProfile(String accountId) {
+        if (accountQueryService == null) {
+            throw ownerUnavailable("AccountQueryService is unavailable");
+        }
+
+        RpcResult<AuthAccountDTO> rpc;
+        try {
+            rpc = accountQueryService.getAccountById(accountId);
+        } catch (Exception e) {
+            log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, e.getMessage());
+            throw ownerUnavailable("AccountQueryService.getAccountById failed", e);
+        }
+        if (rpc == null) {
+            throw ownerUnavailable("AccountQueryService.getAccountById returned null");
+        }
+        if (!rpc.success()) {
+            if (isAuthAccountNotFound(rpc)) {
+                return null;
+            }
+            throw ownerUnavailable("AccountQueryService.getAccountById returned failure");
+        }
+        if (rpc.data() == null) {
+            return null;
+        }
+
+        ProfileBatch profiles = batchProfiles(Set.of(accountId));
+        return new AccountDetail(
+                rpc.data(),
+                profiles.data().get(accountId),
+                profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
+    }
+
+    public record AccountPage(
+            List<AuthAccountDTO> accounts,
+            long total,
+            Map<String, UserProfileDTO> profiles,
+            DegradationStatus status) {
+    }
+
+    public record AccountDetail(
+            AuthAccountDTO account,
+            UserProfileDTO profile,
+            DegradationStatus status) {
+    }
 
     /**
      * Batch-enrich a set of account IDs.
@@ -89,9 +188,8 @@ public class AdminUserEnricher {
     public Map<String, AdminUserSummary> enrich(Set<String> accountIds) {
         EnrichedUsers result = enrichWithStatus(accountIds);
         if (result.status() == DegradationStatus.UNAVAILABLE) {
-            throw new BusinessException(
-                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
-                    "User identity and profile providers are both unavailable");
+            log.warn("User identity and profile providers are both unavailable");
+            throw new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
         }
         return result.users();
     }
@@ -218,9 +316,8 @@ public class AdminUserEnricher {
         // rethrown so a total outage never surfaces as "account unknown".
         EnrichedUsers result = enrichWithStatus(Set.of(accountId));
         if (result.status() == DegradationStatus.UNAVAILABLE) {
-            throw new BusinessException(
-                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
-                    "User identity and profile providers are both unavailable");
+            log.warn("User identity and profile providers are both unavailable");
+            throw new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
         }
         return result.users().get(accountId);
     }
@@ -261,5 +358,22 @@ public class AdminUserEnricher {
             log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}", accountIds.size(), e.getMessage());
             return new ProfileBatch(Collections.emptyMap(), false);
         }
+    }
+
+    private static boolean isAuthAccountNotFound(RpcResult<?> rpc) {
+        RpcResult.ErrorPayload error = rpc.error();
+        return error != null
+                && AuthErrorCode.NAMESPACE.equals(error.namespace())
+                && error.code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code();
+    }
+
+    private static BusinessException ownerUnavailable(String message) {
+        log.warn("Owner query unavailable: {}", message);
+        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+    }
+
+    private static BusinessException ownerUnavailable(String message, Throwable cause) {
+        log.warn("Owner query unavailable: {}", message, cause);
+        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, cause);
     }
 }

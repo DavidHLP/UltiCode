@@ -1,12 +1,9 @@
 package com.ulticode.modules.admin.projection;
 
 import com.ulticode.app.api.dto.UserProfileDTO;
-import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.dto.PermissionEntry;
-import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
@@ -29,10 +26,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.ulticode.common.rpc.RpcPolicy;
 
@@ -43,15 +36,8 @@ import com.ulticode.common.rpc.RpcPolicy;
 @Service
 public class DefaultAdminUserProjection implements AdminUserProjection {
 
-    @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private AccountQueryService accountQueryService;
-
-    @Autowired(required = false)
-    @DubboReference(group = "backend-app", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private UserProfileQueryService userProfileQueryService;
-
     private final AdminUserStatsReadPort userStatsReadPort;
+    private final AdminUserEnricher userEnricher;
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AuthorizationSnapshotService authorizationSnapshotService;
@@ -60,26 +46,29 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
     private RoleTemplateService roleTemplateService;
 
     /**
-     * Production constructor: only the local port is constructor-injected;
+     * Production constructor: the local stats port and the shared owner
+     * aggregation Module are constructor-injected;
      * the Dubbo references stay optional field injections so the admin
      * context loads while providers are down. Explicitly marked
      * {@link Autowired} because the test constructor below would otherwise
      * leave Spring without a unique candidate.
      */
     @Autowired
-    public DefaultAdminUserProjection(AdminUserStatsReadPort userStatsReadPort) {
+    public DefaultAdminUserProjection(AdminUserStatsReadPort userStatsReadPort,
+                                      AdminUserEnricher userEnricher) {
         this.userStatsReadPort = userStatsReadPort;
+        this.userEnricher = userEnricher;
     }
 
     // Constructors for test injection when Spring/Dubbo context is unavailable
-    public DefaultAdminUserProjection(AccountQueryService accountQueryService,
-                                      UserProfileQueryService userProfileQueryService,
+    public DefaultAdminUserProjection(com.ulticode.auth.api.service.AccountQueryService accountQueryService,
+                                      com.ulticode.app.api.service.UserProfileQueryService userProfileQueryService,
                                       AdminUserStatsReadPort userStatsReadPort,
                                       AuthorizationSnapshotService authorizationSnapshotService,
                                       RoleTemplateService roleTemplateService) {
-        this.accountQueryService = accountQueryService;
-        this.userProfileQueryService = userProfileQueryService;
         this.userStatsReadPort = userStatsReadPort;
+        this.userEnricher = new AdminUserEnricher(
+                null, userProfileQueryService, accountQueryService);
         this.authorizationSnapshotService = authorizationSnapshotService;
         this.roleTemplateService = roleTemplateService;
     }
@@ -99,144 +88,37 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
                 query.getSortOrder()
         );
 
-        if (accountQueryService == null) {
-            // The Auth owner query seam is not wired: never disguise this as
-            // an empty user list.
-            throw ownerUnavailable("AccountQueryService is unavailable");
-        }
-
-        RpcResult<AuthAccountDTO> rpcResult;
-        try {
-            rpcResult = accountQueryService.queryAccounts(accountQuery);
-        } catch (Exception e) {
-            log.warn("AccountQueryService.queryAccounts failed: {}", e.getMessage());
-            throw ownerUnavailable("AccountQueryService.queryAccounts failed", e);
-        }
-        if (rpcResult == null || !rpcResult.success() || rpcResult.page() == null) {
-            // The Auth provider answers business-empty queries with a
-            // successful empty page, so any failure here is infrastructure,
-            // not an empty dataset.
-            throw ownerUnavailable("AccountQueryService.queryAccounts returned failure");
-        }
-
-        RpcResult.Page page = rpcResult.page();
-        @SuppressWarnings("unchecked")
-        List<AuthAccountDTO> accountList = (List<AuthAccountDTO>) page.items();
-        long total = page.total() != null ? page.total() : 0L;
+        AdminUserEnricher.AccountPage ownerPage =
+                userEnricher.queryAccountsWithProfiles(accountQuery);
+        List<AuthAccountDTO> accountList = ownerPage.accounts();
+        long total = ownerPage.total();
 
         if (accountList == null || accountList.isEmpty()) {
             // Business-empty (Auth answered successfully with zero rows).
             return PageResult.of(Collections.emptyList(), total, pageRequest, DegradationStatus.OK);
         }
 
-        Set<String> accountIds = accountList.stream()
-                .map(AuthAccountDTO::accountId)
-                .collect(Collectors.toSet());
-
-        boolean profilesAvailable = userProfileQueryService != null;
-        Map<String, UserProfileDTO> profileMap = Collections.emptyMap();
-        if (profilesAvailable) {
-            try {
-                RpcResult<List<UserProfileDTO>> profileRpcResult =
-                        userProfileQueryService.getProfilesByAccountIds(accountIds);
-                if (profileRpcResult != null && profileRpcResult.success() && profileRpcResult.data() != null) {
-                    profileMap = profileRpcResult.data().stream()
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toMap(UserProfileDTO::accountId, Function.identity(), (a, b) -> a));
-                } else {
-                    profilesAvailable = false;
-                }
-            } catch (Exception e) {
-                log.warn("UserProfileQueryService.getProfilesByAccountIds failed for {} ids: {}",
-                        accountIds.size(), e.getMessage());
-                profilesAvailable = false;
-            }
-        }
-
-        final Map<String, UserProfileDTO> finalProfileMap = profileMap;
         List<AdminUserVO> voList = accountList.stream()
-                .map(acc -> toVO(acc, finalProfileMap.get(acc.accountId())))
+                .map(acc -> toVO(acc, ownerPage.profiles().get(acc.accountId())))
                 .collect(Collectors.toList());
-
-        // Partial availability of the App-owned profile source is expressed
-        // on the payload instead of being silently swallowed.
-        return PageResult.of(voList, total, pageRequest,
-                profilesAvailable ? DegradationStatus.OK : DegradationStatus.PARTIAL);
+        return PageResult.of(voList, total, pageRequest, ownerPage.status());
     }
 
     @Override
     public AdminUserVO getUserById(String id) {
-        if (accountQueryService == null) {
-            // The Auth owner query seam is not wired: never disguise this as
-            // USER_NOT_FOUND.
-            throw ownerUnavailable("AccountQueryService is unavailable");
-        }
-
-        RpcResult<AuthAccountDTO> rpcResult;
-        try {
-            rpcResult = accountQueryService.getAccountById(id);
-        } catch (Exception e) {
-            log.warn("AccountQueryService.getAccountById failed for {}: {}", id, e.getMessage());
-            throw ownerUnavailable("AccountQueryService.getAccountById failed", e);
-        }
-        if (rpcResult == null) {
-            throw ownerUnavailable("AccountQueryService.getAccountById returned null");
-        }
-        if (!rpcResult.success()) {
-            if (isAuthAccountNotFound(rpcResult)) {
-                // The Auth provider answered authoritatively: business not-found.
-                throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
-            }
-            // Any other RPC failure is infrastructure, not a missing user.
-            throw ownerUnavailable("AccountQueryService.getAccountById returned failure");
-        }
-        AuthAccountDTO account = rpcResult.data();
-        if (account == null) {
+        AdminUserEnricher.AccountDetail ownerDetail =
+                userEnricher.findAccountWithProfile(id);
+        if (ownerDetail == null) {
             throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
-
-        boolean profileAvailable = userProfileQueryService != null;
-        UserProfileDTO profile = null;
-        if (profileAvailable) {
-            try {
-                RpcResult<UserProfileDTO> profileRpc = userProfileQueryService.getProfileByAccountId(id);
-                if (profileRpc != null && profileRpc.success()) {
-                    profile = profileRpc.data();
-                } else {
-                    profileAvailable = false;
-                }
-            } catch (Exception e) {
-                log.warn("UserProfileQueryService.getProfileByAccountId failed for {}: {}", id, e.getMessage());
-                profileAvailable = false;
-            }
-        }
-
-        AdminUserVO vo = toVO(account, profile);
+        AuthAccountDTO account = ownerDetail.account();
+        AdminUserVO vo = toVO(account, ownerDetail.profile());
         populateStats(vo, account.accountId());
         populatePermissions(vo, account.accountId(), account.role());
-        if (!profileAvailable) {
+        if (ownerDetail.status() == DegradationStatus.PARTIAL) {
             vo.setDegradationStatus(DegradationStatus.PARTIAL);
         }
         return vo;
-    }
-
-    /**
-     * Distinguish an authoritative Auth "account does not exist" answer from
-     * any other provider failure: only the former may map to USER_NOT_FOUND.
-     */
-    private static boolean isAuthAccountNotFound(RpcResult<?> rpcResult) {
-        RpcResult.ErrorPayload error = rpcResult.error();
-        return error != null
-                && AuthErrorCode.NAMESPACE.equals(error.namespace())
-                && error.code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code();
-    }
-
-    private static BusinessException ownerUnavailable(String message) {
-        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, message);
-    }
-
-    private static BusinessException ownerUnavailable(String message, Throwable cause) {
-        return new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, message, cause);
     }
 
     private AdminUserVO toVO(AuthAccountDTO account, UserProfileDTO profile) {

@@ -45,6 +45,10 @@ class JudgeStreamRedisIntegrationTest {
     private static RedissonClient defaultCodecClient() {
         Config config = new Config();
         config.useSingleServer().setAddress(redisAddress());
+        String username = System.getenv("REDIS_USERNAME");
+        if (username != null && !username.isBlank()) {
+            config.useSingleServer().setUsername(username);
+        }
         String password = System.getenv("REDIS_PASSWORD");
         if (password != null && !password.isBlank()) {
             config.useSingleServer().setPassword(password);

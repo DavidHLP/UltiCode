@@ -13,7 +13,7 @@ import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
@@ -30,14 +30,15 @@ import java.util.Optional;
  *
  * <p><b>Deep-module boundary.</b> Every state mutation (Submission intake +
  * the two verdict writers) is owned by
- * {@link com.ulticode.submission.api.service.SubmissionWritePort} /
- * {@code DefaultSubmissionWritePort}. This implementation surfaces two
+ * {@link com.ulticode.submission.api.service.SubmissionIntakePort} and
+ * {@link com.ulticode.submission.api.service.SubmissionVerdictWritePort},
+ * implemented locally by {@code DefaultSubmissionWritePort}. This facade exposes two
  * surfaces to callers:
  * <ul>
  *   <li>the <em>write delegate</em> {@link #submit}, a thin facade so
  *       in-module controllers stay on the {@code Controller → Service → Port}
  *       path; cross-module write callers inject
- *       {@code SubmissionWritePort} directly, which is the legitimate
+ *       {@code SubmissionIntakePort} directly, which is the legitimate
  *       cross-module consumer-seam pattern;</li>
  *   <li>the <em>boundary reads</em> the caller crosses just after the state
  *       boundary: {@link #findById}, {@link #findByUserId},
@@ -58,7 +59,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final SubmissionMapper submissionMapper;
     private final SubmissionProjection submissionProjection;
     private final SubmissionPerformanceStats performanceStats;
-    private final SubmissionWritePort submissionWritePort;
+    private final SubmissionIntakePort submissionWritePort;
 
     @Override
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {

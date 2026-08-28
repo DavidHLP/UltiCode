@@ -33,6 +33,8 @@ import com.ulticode.submission.api.service.SubmissionReadPort;
 import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SubmissionApiContractShapeTest {
 
+    @SuppressWarnings("removal")
     private static final List<Class<?>> CONTRACTS = List.of(
             RejudgePolicy.class,
             SubmissionActivityAnalyticsPort.class,
@@ -56,7 +59,21 @@ class SubmissionApiContractShapeTest {
             SubmissionStreakPort.class,
             SubmissionUserQueryPort.class,
             SubmissionUserStatsPort.class,
+            SubmissionIntakePort.class,
+            SubmissionVerdictWritePort.class,
             SubmissionWritePort.class);
+
+    @Test
+    @SuppressWarnings("removal")
+    void mutationContractsStaySplitByConsumerCapability() {
+        assertThat(SubmissionIntakePort.class.getDeclaredMethods()).hasSize(4);
+        assertThat(SubmissionVerdictWritePort.class.getDeclaredMethods()).hasSize(2);
+        assertThat(Arrays.stream(SubmissionIntakePort.class.getDeclaredMethods())
+                .map(Method::getName)).allMatch(name -> name.startsWith("submit"));
+        assertThat(Arrays.stream(SubmissionVerdictWritePort.class.getDeclaredMethods())
+                .map(Method::getName)).allMatch(name -> name.startsWith("updateSubmissionResult"));
+        assertThat(SubmissionWritePort.class.isAnnotationPresent(Deprecated.class)).isTrue();
+    }
 
     @Test
     void submissionContractsAreInTheProviderOwnedNamespace() {

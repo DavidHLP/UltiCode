@@ -6,6 +6,7 @@ import com.ulticode.app.api.dto.ProblemJudgingCaseDTO;
 import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.ProblemTitleLookupPort;
 import com.ulticode.app.api.service.ProblemDifficultyReadPort;
 import com.ulticode.app.api.service.ProblemInteractionQueryPort;
 import com.ulticode.app.api.service.ProblemJudgingCaseReadPort;
@@ -111,6 +112,8 @@ class ProblemApiContractShapeTest {
         assertMethod(ProblemAdminReadPort.class, "findBySlugs", List.class, Collection.class);
         assertMethod(ProblemAdminReadPort.class, "findTestCasesByIds", List.class,
                 Long.class, Collection.class);
+        assertMethod(ProblemTitleLookupPort.class, "searchProblemIdsByTitle", List.class,
+                String.class);
         assertMethod(ProblemListReadPort.class, "findByIds", List.class, Collection.class);
         assertMethod(ProblemSearchReadPort.class, "searchForIndex", List.class,
                 String.class, int.class);
@@ -134,6 +137,7 @@ class ProblemApiContractShapeTest {
                 ProblemJudgingCaseReadPort.class,
                 ProblemInteractionQueryPort.class,
                 ProblemAdminReadPort.class,
+                ProblemTitleLookupPort.class,
                 ProblemAnalyticsReadPort.class);
 
         for (Class<?> contract : contracts) {

@@ -3,17 +3,11 @@ package com.ulticode.app.api.service;
 import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.app.api.dto.RunSubmissionDTO;
 
-/**
- * Port through which the queue module's judge pipeline executes code
- * in the sandbox, without importing the submission module directly.
- *
- * <p>P7-RELOCATE-SUBMISSION-001: extracted when CodeExecutionService
- * relocated to backend-app.
- */
+/** Narrow cross-process seam for synchronous code preview execution. */
 public interface CodeExecutionPort {
 
     /**
-     * Execute a run submission in the sandbox.
+     * Execute a run submission in the Judge-owned sandbox.
      *
      * @param runDto run parameters
      * @param problemId problem ID for test case lookup

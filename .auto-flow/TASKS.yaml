@@ -137,3 +137,199 @@ follow_up_locale_design:
         - "Targeted ESLint, app formatter checks, git diff --check, and graphify update passed"
       commits: []
       notes: "Completion requires coverage and evidence updates; do not stage .auto-flow files"
+
+services_issues_20260828:
+  objective: "Close every repository-actionable item in services/docs/SERVICES_ISSUES.md, preserve externally-triggered DEFERRED decisions, and prove the services gate"
+  status: blocked
+  source:
+    - "services/docs/SERVICES_ISSUES.md (2026-08-28)"
+    - "user request: complete all issues and iterate autonomously to terminal state"
+  tasks:
+    - id: SVC-RECOVER
+      title: "Recover current services issue state and protected worktree"
+      status: done
+      depends_on: []
+      acceptance_criteria:
+        - "Current Git, control-plane, issue registry, service guides, graph generation, and relevant architecture memory are reconciled"
+        - "Every OPEN and DEFERRED entry is classified by repository authority and trigger conditions"
+      validation:
+        - "Git/status evidence"
+        - "Tier-2 graph and direct-source coverage packet"
+      rollback: "Control-plane-only update; no business implementation in recovery"
+      evidence:
+        - "main@c3ceb69136b1678fde13461472ce191227a08167; clean business worktree before control-plane activation"
+        - "Codebase Memory Tier 2: project ready; critical symbol searches/traces/snippets complete; metadata-changed and excluded paths read directly"
+        - "Graphify existing graph queried after vocabulary expansion; traversal was broad/truncated and used only for candidate discovery"
+      commits: []
+      notes: "Existing Garden task history is protected and retained"
+    - id: SVC-PLAN
+      title: "Map SERVICES_ISSUES requirements to an executable task DAG"
+      status: done
+      depends_on: [SVC-RECOVER]
+      acceptance_criteria:
+        - "Every SVC-001..010, ACCEPTED decision, and maintenance rule maps to a task, acceptance criterion, or external trigger"
+      validation: ["Coverage audit"]
+      rollback: "Supersede plan entries; do not delete history"
+      evidence:
+        - "COVERAGE.md maps SVC-001..010, CLOSED, ACCEPTED, and maintenance rules"
+        - "Execution order: SVC-001 -> SVC-002 -> SVC-004 -> SVC-005 -> SVC-006 -> external gate audits -> objective validation"
+      commits: []
+      notes: ""
+    - id: SVC-001
+      title: "Move synchronous code preview behind the Judge execution seam"
+      status: done
+      depends_on: [SVC-PLAN]
+      acceptance_criteria:
+        - "ProblemSubmissionController depends only on CodeExecutionPort"
+        - "App calls a backend-judge Dubbo Adapter; Judge owns the CodeExecutionService implementation"
+        - "App no longer discovers or invokes the Docker sandbox for /run"
+        - "Success and Judge-unavailable failure semantics have regression tests"
+      validation:
+        - "app-api, judge, and app-web focused tests"
+        - "App dependency and architecture contract checks"
+      rollback: "Remove the remote Adapter/provider and restore the prior controller injection; no data migration"
+      evidence:
+        - "ProblemSubmissionController -> CodeExecutionPort -> RemoteCodeExecutionPort -> backend-judge CodeExecutionProvider -> CodeExecutionService"
+        - "legacy-rollback keeps local CodeExecutionService and disables the remote Adapter; normal App path cannot invoke Docker"
+        - "HTTP regression: success and Judge-unavailable 503/code30022"
+        - "Focused/rework Maven BUILD SUCCESS; affected-module suite 481 reports / 1601 tests / 0 failures / 0 errors / 17 skipped; exit 0"
+        - "architecture-contract-test.sh and bash -n exit 0"
+        - "Review round 1 closed 3 HIGH findings; follow-up Confirmed=0 after documentation fix"
+      commits: []
+      notes: "Reuse existing CodeExecutionPort; do not add a second execution contract"
+    - id: SVC-002
+      title: "Split Submission mutation and Problem title lookup contracts by consumer semantics"
+      status: done
+      depends_on: [SVC-PLAN]
+      acceptance_criteria:
+        - "Submission intake and verdict writes use separate Interfaces"
+        - "Judge Adapter implements verdict writes only and contains no unsupported intake methods"
+        - "Submission Problem adapter implements title lookup only and contains no unsupported admin methods"
+        - "Providers, production callers, tests, and contract-shape gates use the narrow Interfaces"
+      validation:
+        - "submission-api/app-api shape tests"
+        - "judge, app-web, submission focused tests and compile"
+      rollback: "Restore the composite contracts and provider wiring; no data migration"
+      evidence:
+        - "New narrow contracts: SubmissionIntakePort(4), SubmissionVerdictWritePort(2), ProblemTitleLookupPort(1)"
+        - "Judge and Submission adapters expose only verdict/title capabilities; no unsupported-method fillers"
+        - "Deprecated six-method SubmissionWritePort/provider retained only for provider-first N-1 window; business consumers use narrow contracts"
+        - "Focused tests 56/56 including Testcontainers admin-read IT; Maven exit 0"
+        - "origin/main baseline install, current package, and japicmp contract-compat all exit 0"
+        - "Affected-module suite 503 reports / 1671 tests / 0 failures / 0 errors / 17 skipped; Maven exit 0"
+        - "Review round 1 fixed mixed-version compatibility HIGH; follow-up Confirmed=0"
+      commits: []
+      notes: "SVC-004 depends on this Interface narrowing"
+    - id: SVC-004
+      title: "Verify the remaining App-Submission synchronous read seam is bounded and explicit"
+      status: done
+      depends_on: [SVC-002]
+      acceptance_criteria:
+        - "Submission intake continues to accept immutable SubmissionFactsSnapshot without synchronous callbacks"
+        - "Read aggregation uses narrow, bounded-batch App facts Interfaces"
+        - "No event projection is added without the documented latency/availability trigger"
+      validation:
+        - "contract shape and Submission provider tests"
+        - "source/graph call-chain audit"
+      rollback: "Contract-only verification and documentation status; no data migration"
+      evidence:
+        - "Owner intake validates immutable SubmissionFactsSnapshot and has no App/Auth facts-port fields"
+        - "SubmissionReadProvider batches by 100 and performs one Problem facts batch per chunk"
+        - "SubmissionUserQueryProvider batches page facts and skips RPC for empty pages; projection batches user IDs via findAllById"
+        - "Focused Testcontainers/provider suite 30/30; Maven exit 0"
+        - "Contextual review Confirmed=0; classified ACCEPTED until real latency/availability metrics trigger an event projection"
+      commits: []
+      notes: "Close by proving the acceptable synchronous read seam after SVC-002, not by speculative infrastructure"
+    - id: SVC-005
+      title: "Make Search selectable in deploy and rollback control planes"
+      status: done
+      depends_on: [SVC-PLAN]
+      acceptance_criteria:
+        - "cd-deploy choice includes backend-search"
+        - "cd-rollback whitelist and all set include backend-search"
+        - "architecture contract derives/checks release membership against services-matrix"
+      validation:
+        - "bash -n and architecture-contract-test.sh"
+      rollback: "Revert workflow options/whitelist and the focused drift assertion"
+      evidence:
+        - "backend-search present in deploy choice and rollback ALL/subset allowlist"
+        - "host-health checks backend-search through Compose heartbeat Docker health"
+        - "architecture gate parses non-empty services matrix with Python stdlib and checks deploy/rollback/health membership"
+        - "bash-n, DevStack/docs/architecture contracts, and PyYAML parse exit 0; minified matrix parse returns all 7 backends"
+        - "Review round 1 fixed missing Search health gate and sed-format false green; follow-up Confirmed=0"
+      commits: []
+      notes: ""
+    - id: SVC-006
+      title: "Use AdminUserEnricher as the single Admin owner-aggregation deep Module"
+      status: done
+      depends_on: [SVC-PLAN]
+      acceptance_criteria:
+        - "DefaultAdminUserProjection no longer implements its own profile aggregation/failure classification"
+        - "AdminUserEnricher owns Auth/App merge and explicit degradation semantics for list and detail flows"
+        - "Existing Admin caller behavior and failure semantics remain covered"
+      validation:
+        - "AdminUserEnricherTest and AdminUserProjectionTest"
+        - "backend-admin module tests"
+      rollback: "Restore projection-local merge; no schema or event table is introduced"
+      evidence:
+        - "AdminUserEnricher owns Auth account/identity + App profile page/detail aggregation and OK/PARTIAL/UNAVAILABLE semantics"
+        - "DefaultAdminUserProjection fields contain AdminUserEnricher and no AccountQueryService/UserProfileQueryService"
+        - "Focused 26 ran / 0 failures/errors; 2 existing infrastructure-dependent boot tests skipped and not counted as startup evidence"
+        - "Admin full module 189 reports / 600 tests / 0 failures / 0 errors / 3 skipped; Maven exit 0"
+        - "Architecture/docs/DevStack gates exit 0; Review Confirmed=0"
+      commits: []
+      notes: "Event projection itself remains trigger-gated"
+    - id: SVC-003-GATE
+      title: "Audit Submission local-copy retirement gate"
+      status: blocked
+      depends_on: [SVC-001, SVC-002, SVC-004]
+      acceptance_criteria:
+        - "Do not delete compatibility writers without the registry's observation, drain, checksum, error-budget, and rollback evidence"
+        - "Record exact missing external evidence and keep independent work moving"
+      validation: ["source/config/runbook gate audit"]
+      rollback: "No implementation change while gate is unmet"
+      evidence:
+        - "TEST-TARGET rollback ledger: production observation unavailable; production cutover remains blocked"
+        - "Local migration report proves 16/16 count+PK checksums and 72-row Submission backfill only, not traffic/error-budget observation"
+        - "No 14-day peak-window, local-activity-zero, drain, error-budget, leakage/order/total, or target rollback evidence exists"
+        - "Independent gate review confirms blocked_external; compatibility writers/routing/read adapters must remain"
+      commits: []
+      notes: "blocker_type: external_observation_environment; unblock with the registry's write/fence/read 14-day evidence, real drain/checksum, error budgets, and verified target rollback"
+    - id: SVC-007-010-GATES
+      title: "Audit production-triggered deferred findings"
+      status: done
+      depends_on: [SVC-PLAN]
+      acceptance_criteria:
+        - "SVC-007..010 retain explicit trigger, evidence gap, and non-speculative current posture"
+        - "No Kubernetes, Service Mesh, HA datastore, rootless remote Judge, synthetic SLO report, or fake mixed-version history is added"
+      validation: ["registry and current config/runbook audit"]
+      rollback: "Documentation/control-plane only"
+      evidence:
+        - "SVC-007: single-host/fixed-container/standalone stateful topology matches current scope; no multi-node/SLO trigger"
+        - "SVC-008: remote Docker host/TLS/seccomp controls exist; default socket remains until multi-tenant/threat-model trigger"
+        - "SVC-009: seven backends require explicit external OTLP endpoint with a per-service gate; Compose dev/prod config exit 0; Review Confirmed=0"
+        - "SVC-009 external remainder: no real traffic trace, tuned SLO report, or backlog/PEL/DLQ/last-success live drill"
+        - "SVC-010: tags v1.2..v3.0 all predate services matrix; no current mixed-version deploy/rollback history"
+      commits: []
+      notes: "Externally triggered, not repository-fixable today"
+    - id: SVC-VALIDATE
+      title: "Run objective-level Services review, Tier C validation, and coverage audit"
+      status: done
+      depends_on: [SVC-001, SVC-002, SVC-004, SVC-005, SVC-006, SVC-007-010-GATES]
+      acceptance_criteria:
+        - "Confirmed Findings = 0"
+        - "Required focused/module/integration/full-reactor and architecture checks pass"
+        - "SERVICES_ISSUES, PROJECT_DOCUMENTATION, control-plane, graph, diff, and Git status agree"
+      validation:
+        - "risk-selected Tier C commands with exact exit status"
+      rollback: "Return failures to the owning implementation task"
+      evidence:
+        - "Formal Standards Review Confirmed=0; Formal Spec Review Confirmed=0; Security Review Confirmed=0"
+        - "services ./mvnw verify: 813 reports / 2714 tests / 0 failures / 0 errors / 20 skipped; exit 0 after one App scan/test-isolation rework"
+        - "all *IT: 71 reports / 233 tests / 0 failures / 0 errors / 13 skipped; app/submission/notification resume BUILD SUCCESS / exit 0 after removing obsolete Mockito stubs"
+        - "./scripts/dev/test.sh quick: All quick checks passed / exit 0 after Redis ACL username fix"
+        - "origin/main N-1 app-api+submission-api japicmp contract-compat: exit 0"
+        - "architecture/docs/DevStack, bash-n, Compose dev/prod, workflow/action YAML, git diff --check: exit 0"
+        - "graphify update: 27545 nodes / 80685 edges / exit 0; Codebase Memory moderate: 43719 nodes / 188931 edges"
+      commits: []
+      notes: "No commit/push/deploy authorization. SVC-003-GATE remains an independent external blocker reported by completion audit."

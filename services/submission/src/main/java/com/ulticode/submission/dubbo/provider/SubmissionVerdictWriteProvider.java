@@ -1,0 +1,31 @@
+package com.ulticode.submission.dubbo.provider;
+
+import com.ulticode.domain.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
+import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.context.annotation.Profile;
+
+/** Direct Submission-owner provider for Judge verdict commands. */
+@DubboService(group = "backend-submission", version = "1.0.0")
+@Profile("!test")
+@RequiredArgsConstructor
+public class SubmissionVerdictWriteProvider implements SubmissionVerdictWritePort {
+
+    private final DefaultSubmissionWritePort delegate;
+
+    @Override
+    public void updateSubmissionResult(String submissionId, SubmissionStatus status,
+                                       int runtime, Double memory, String testDetailsJson) {
+        delegate.updateSubmissionResult(submissionId, status, runtime, memory, testDetailsJson);
+    }
+
+    @Override
+    public boolean updateSubmissionResultFenced(String submissionId, SubmissionStatus status,
+                                                int runtime, Double memory, String testDetailsJson,
+                                                long generation, String attemptId) {
+        return delegate.updateSubmissionResultFenced(
+                submissionId, status, runtime, memory, testDetailsJson, generation, attemptId);
+    }
+}

@@ -21,37 +21,6 @@
 
 ## OPEN
 
-### SVC-001 P0 App 直接复用 Judge Docker 执行实现
-
-`ProblemSubmissionController` 的同步 `/problems/{problemId}/submissions/run` 直接注入 `judge-runtime` 的 `CodeExecutionService`；`backend-app` 因此编译依赖整个 Judge 执行实现。该共享实现仍位于 App 私有域式包名并消费 `app-api` 的执行 DTO。默认 `SandboxExecutorImpl` 调用本机 `docker` CLI，但发布矩阵只给 `backend-judge` 镜像安装该能力。
-
-影响：App 与 Judge 没有真实部署 Seam；按默认生产镜像，`/run` 无法获得其声明的执行能力。给公开 HTTP App 增加 Docker socket 只会扩大宿主机控制面，不是正确修复。
-
-证据：
-
-- [`ProblemSubmissionController.java`](../app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java)
-- [`app-web/pom.xml`](../app/app-web/pom.xml)
-- [`CodeExecutionService.java`](../judge-runtime/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java)
-- [`SandboxExecutorImpl.java`](../judge-runtime/src/main/java/com/ulticode/modules/submission/sandbox/executor/SandboxExecutorImpl.java)
-- [`.github/services-matrix.json`](../../.github/services-matrix.json)
-
-关闭条件：App 只依赖窄的预执行 Interface；生产 Adapter 在 Judge 执行或显式关闭该能力；`backend-app` 不再依赖 Docker CLI/socket；同步接口与失败语义有端到端回归。
-
-### SVC-002 P1 跨进程 Contract Interface 过宽
-
-`SubmissionWritePort` 同时承载 intake 与 verdict 写入，Judge Adapter 只支持结果写入，其余提交方法直接抛 `UnsupportedOperationException`。`ProblemAdminReadPort` 同时承载完整 Admin problem 读面，Submission Adapter 只需要标题搜索，其余方法同样抛异常。
-
-影响：Adapter 被迫实现不会使用的 Interface，调用方能看到不属于自身能力的操作；Contract 改动的编译与发布影响面大于真实依赖面。
-
-证据：
-
-- [`SubmissionWritePort.java`](../api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java)
-- [`RemoteSubmissionWritePort.java`](../judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionWritePort.java)
-- [`ProblemAdminReadPort.java`](../api/app-api/src/main/java/com/ulticode/app/api/service/ProblemAdminReadPort.java)
-- [`ProblemAdminReadDubboAdapter.java`](../submission/src/main/java/com/ulticode/submission/port/adapter/ProblemAdminReadDubboAdapter.java)
-
-关闭条件：按消费语义拆成窄 Interface（至少分离 Submission intake/verdict 与 Problem title lookup）；生产和测试 Adapter 只实现实际能力；不再用“不支持”异常填充正常 Contract。
-
 ### SVC-003 P1 Submission single-writer 仍由运行模式决定
 
 默认 `dev-lite` 使用 App-local Submission；只有 `dev-full` 且 cutover gate 完成后才使用独立 Submission Owner。App 与 Submission 仍各自保留 writer、projection、mapper、dispatcher 和 reaper 的实现，部分核心实现已经分叉。
@@ -75,45 +44,15 @@
 
 所有门禁、in-flight drain、数据/事件 checksum 与回滚 artifact 均有证据后，才能删除 App-local Submission 副本。
 
-### SVC-004 P1 App 与 Submission 存在同步依赖环
-
-App 实现依赖 `submission-api`，Submission 实现依赖 `app-api`。写入已经通过 `SubmissionFactsSnapshot` 避免在 intake 事务内回访，但 Submission 的读侧仍通过 App Problem/User facts Interface 完成聚合。
-
-影响：没有跨库 JOIN，但部署和可用性仍互相牵连；过宽的 App read Contract 会进一步放大该环。
-
-证据：
-
-- [`app-web/pom.xml`](../app/app-web/pom.xml)
-- [`submission/pom.xml`](../submission/pom.xml)
-- [`ProblemFactsDubboAdapter.java`](../submission/src/main/java/com/ulticode/submission/port/adapter/ProblemFactsDubboAdapter.java)
-- [`SubmissionUserReadDubboAdapter.java`](../submission/src/main/java/com/ulticode/submission/port/adapter/SubmissionUserReadDubboAdapter.java)
-
-关闭条件：先完成 SVC-002 的窄 Interface；写事务继续只接受不可变 facts；读路径保持 bounded batch。只有真实延迟或可用性指标证明同步 read 是瓶颈时，才升级为事件 projection。
-
-### SVC-005 P2 Search 选择性发布/回滚入口不完整
-
-`backend-search` 已进入镜像矩阵和生产 Compose，但 `cd-deploy` 的手动服务选项遗漏它；`cd-rollback` 的说明包含它，实际白名单数组却遗漏它。
-
-影响：整栈部署可以带上 Search，单服务发布/回滚 Interface 却无法选择 Search，独立发布承诺不完整。
-
-证据：
-
-- [`.github/services-matrix.json`](../../.github/services-matrix.json)
-- [`docker-compose.prod.yml`](../../docker-compose.prod.yml)
-- [`cd-deploy.yml`](../../.github/workflows/cd-deploy.yml)
-- [`cd-rollback.yml`](../../.github/workflows/cd-rollback.yml)
-
-关闭条件：deploy 选项、rollback 白名单和 `all` 集合均包含 `backend-search`，并由现有 workflow/manifest 检查阻止再次漂移。
-
 ## DEFERRED
 
 ### SVC-006 Admin 事件化用户读模型
 
-现状：`DefaultAdminUserProjection` 与 `AdminUserEnricher` 同步组合 Auth identity/account 与 App profile，并分别表达 `OK/PARTIAL/UNAVAILABLE`。静默空列表问题已经修复，但调用方仍承担两个 Provider 的 freshness 和可用性组合。
+现状：跨 Owner 用户聚合已收敛到一个深 Module：`AdminUserEnricher` 统一查询 Auth identity/account、批量合并 App profile 并表达 `OK/PARTIAL/UNAVAILABLE`；`DefaultAdminUserProjection` 只负责 VO、权限与本地统计。静默空列表问题和两套聚合逻辑均已修复，但该同步 Module 仍承担两个 Provider 的 freshness 和可用性组合。
 
 证据：[`DefaultAdminUserProjection.java`](../admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminUserProjection.java)、[`AdminUserEnricher.java`](../admin/src/main/java/com/ulticode/modules/admin/projection/AdminUserEnricher.java)。
 
-触发条件：Admin 用户列表延迟明确归因于跨 Owner RPC、Owner 故障使管理面不可用超出目标，或 RPC 补偿成本高于本地 projection 维护成本。触发前先把两套聚合逻辑合并成一个深 Module；不提前建设事件表。
+触发条件：Admin 用户列表延迟明确归因于跨 Owner RPC、Owner 故障使管理面不可用超出目标，或 RPC 补偿成本高于本地 projection 维护成本。深 Module 前置条件已完成；触发前不建设事件表。
 
 ### SVC-007 生产多主机 HA
 
@@ -129,7 +68,7 @@ App 实现依赖 `submission-api`，Submission 实现依赖 `app-api`。写入�
 
 ### SVC-009 可观测运营证据
 
-现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；仓库不能生成真实流量下的端到端 trace、阈值调优和 SLO 报表。
+现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；生产 Compose 要求为全部 backend 显式提供外部 OTLP collector 地址。仓库只提供 instrumentation、rules 和加载说明，不内置 collector/Prometheus 运营平台，也不能生成真实流量下的端到端 trace、阈值调优和 SLO 报表。
 
 触发条件：首次真实生产流量可用于 HTTP → Dubbo → Redis Streams 链路验证，并能执行积压、PEL、DLQ 与 last-success 恢复演练。操作入口见 [`WORKER_SLO_RUNBOOK.md`](WORKER_SLO_RUNBOOK.md)。
 
@@ -145,6 +84,9 @@ App 实现依赖 `submission-api`，Submission 实现依赖 `app-api`。写入�
 
 | 历史问题 | 当前承接证据 |
 | --- | --- |
+| SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；本地 Docker 仅在 SVC-003 的显式 `legacy-rollback` 激活 |
+| SVC-002 跨进程 Contract Interface 过宽 | `SubmissionIntakePort`、`SubmissionVerdictWritePort` 与 `ProblemTitleLookupPort` 按消费语义拆分；旧 `SubmissionWritePort`/provider 仅作 deprecated N-1 兼容窗口且所有方法真实委托 |
+| SVC-005 Search 选择性发布/回滚入口不完整 | Search 已进入 deploy choice、rollback whitelist/all 与共享 `host-health`；架构门禁从 services matrix 解析全部 backend 并逐项校验三个控制面 |
 | Owner 假健康 | `ReadinessChecks`、各 Owner readiness controller、Compose/host health |
 | Search/Judge 静态健康证明 | `SearchWorkerReadinessHeartbeat`、`JudgeWorkerReadinessHeartbeat` |
 | Dubbo timeout/retry 漂移 | `RpcPolicy` 与各消费方 `RpcPolicyArchTest` |
@@ -167,6 +109,7 @@ App 实现依赖 `submission-api`，Submission 实现依赖 `app-api`。写入�
 
 ## ACCEPTED
 
+- SVC-004 App/Submission 同步读 Seam：写事务只接受不可变 `SubmissionFactsSnapshot`，Problem/User facts 读使用窄 Interface 与 bounded batch，空页跳过 RPC。只有真实延迟/可用性指标证明其为瓶颈时才重开并升级事件 projection。
 - Access token 即时黑名单 writer 当前不建设：refresh token hash-only revoke、HTTP ban check、WebSocket 实时 account check 与短期 access token TTL 共同限定窗口；只有产品明确要求即时踢下线时才新增 writer-owned revoke Interface。
 - Search `dev-lite=database`、`dev-full=indexed` 是 manifest 的显式策略，不是配置漂移。
 - `SubmissionFactsSnapshot` 只允许增加 Owner intake 校验所需的最小字段；字段变化必须通过现有 Contract shape test，避免形成第二套隐式 facts Interface。

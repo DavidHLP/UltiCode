@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
@@ -55,6 +56,40 @@ class AdminUserEnricherTest {
         ReflectionTestUtils.setField(enricher, "identityQueryService", identityQueryService);
         ReflectionTestUtils.setField(enricher, "userProfileQueryService", userProfileQueryService);
         ReflectionTestUtils.setField(enricher, "accountQueryService", accountQueryService);
+    }
+
+    @Nested
+    @DisplayName("owner account aggregation")
+    class OwnerAccountAggregation {
+
+        private AuthAccountDTO account(String id) {
+            return new AuthAccountDTO(id, "user-" + id, id + "@example.com", "ADMIN",
+                    true, false, null, null, LocalDateTime.now(), LocalDateTime.now(), 1L);
+        }
+
+        @Test
+        void pageMergesProfilesAndReportsStatus() {
+            when(accountQueryService.queryAccounts(any(AccountQueryDTO.class))).thenReturn(
+                    RpcResult.page(List.of(account("u1")), 1L, 1, 10, "t"));
+            when(userProfileQueryService.getProfilesByAccountIds(any())).thenReturn(
+                    RpcResult.success(List.of(profile("u1")), "t"));
+
+            AdminUserEnricher.AccountPage result =
+                    enricher.queryAccountsWithProfiles(new AccountQueryDTO(
+                            null, null, null, null, 1, 10, null, null));
+
+            assertThat(result.status()).isEqualTo(DegradationStatus.OK);
+            assertThat(result.total()).isEqualTo(1L);
+            assertThat(result.profiles().get("u1").name()).isEqualTo("Display u1");
+        }
+
+        @Test
+        void authoritativeNotFoundRemainsBusinessNotFound() {
+            when(accountQueryService.getAccountById("missing")).thenReturn(
+                    RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t"));
+
+            assertThat(enricher.findAccountWithProfile("missing")).isNull();
+        }
     }
 
     @Nested

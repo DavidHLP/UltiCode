@@ -24,6 +24,7 @@ inputs:
       backend-app curl-container 9103 /api/v1/app/health/ready
       backend-notification curl-container 9105 /api/v1/notification/health/ready
       backend-submission inspect - -
+      backend-search inspect - -
       backend-judge inspect - -
       console curl-host 9002 -
       management curl-host 9003 -

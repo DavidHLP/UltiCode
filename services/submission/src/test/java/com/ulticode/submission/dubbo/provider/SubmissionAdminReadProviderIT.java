@@ -11,7 +11,7 @@ import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
-import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.app.api.service.ProblemTitleLookupPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
  * ({@code SubmissionAdminReadPort}) from the {@code submission} schema:
  * list/detail/search pagination, status/language counts, distinct-language
  * options, and range counters. The problem-title search pre-fetch is routed
- * through the {@link ProblemAdminReadPort} seam (Dubbo to backend-app in
+ * through the {@link ProblemTitleLookupPort} seam (Dubbo to backend-app in
  * production; mocked here) per DEC-011. The App provider (group=backend-app)
  * remains the active Admin route until the read-routing cutover slice; this
  * IT proves the capability, not the switch.
@@ -122,7 +122,7 @@ class SubmissionAdminReadProviderIT {
         session.getConnection().createStatement().execute("DELETE FROM submissions");
         session.commit();
 
-        ProblemAdminReadPort problemRead = mock(ProblemAdminReadPort.class);
+        ProblemTitleLookupPort problemRead = mock(ProblemTitleLookupPort.class);
         when(problemRead.searchProblemIdsByTitle("Two Sum")).thenReturn(List.of(101L));
         when(problemRead.searchProblemIdsByTitle("missing")).thenReturn(List.of());
         provider = new SubmissionAdminReadProvider(
@@ -174,7 +174,7 @@ class SubmissionAdminReadProviderIT {
     }
 
     @Test
-    @DisplayName("search by problem title resolves via the ProblemAdminReadPort seam")
+    @DisplayName("search by problem title resolves via the narrow lookup seam")
     void searchByProblemTitleUsesProblemSeam() {
         insertRow("sub-1", 101L, "user-1", "python", "Accepted", 12,
                 LocalDateTime.of(2026, 8, 1, 10, 0));

@@ -18,6 +18,8 @@ package com.ulticode.common.rpc;
  *     <td>{@value #WRITE_RETRIES} (no auto-retry)</td><td>Required (enforced by WriteCommand)</td></tr>
  * <tr><td>Query (Read RPC)</td><td>{@value #QUERY_TIMEOUT_MS} ms (800 ms)</td>
  *     <td>{@value #QUERY_RETRIES} (one retry with jitter)</td><td>Not applicable</td></tr>
+ * <tr><td>Execution (long-running, non-idempotent)</td><td>{@value #EXECUTION_TIMEOUT_MS} ms</td>
+ *     <td>{@value #EXECUTION_RETRIES} (no auto-retry)</td><td>Not applicable</td></tr>
  * </table>
  *
  * <h2>YAML global default = WRITE boundary (fail-safe)</h2>
@@ -73,4 +75,12 @@ public final class RpcPolicy {
 
     /** Auto-retry count for read-only RPC calls: one retry (with framework jitter). */
     public static final int QUERY_RETRIES = 1;
+
+    // ── Long-running execution ───────────────────────────────────
+
+    /** Covers the sandbox's 180-second hard cap plus RPC response overhead. */
+    public static final int EXECUTION_TIMEOUT_MS = 190_000;
+
+    /** Sandbox execution is never automatically retried. */
+    public static final int EXECUTION_RETRIES = 0;
 }

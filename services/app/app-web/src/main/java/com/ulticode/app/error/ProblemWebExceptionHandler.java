@@ -29,7 +29,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(basePackages = "com.ulticode.modules.problem")
+@RestControllerAdvice(basePackages = {
+        "com.ulticode.modules.problem",
+        "com.ulticode.modules.submission.controller"
+})
 public class ProblemWebExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)

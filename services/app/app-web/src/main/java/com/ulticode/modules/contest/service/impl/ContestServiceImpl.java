@@ -24,7 +24,7 @@ import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -63,7 +63,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
-    private final SubmissionWritePort submissionWritePort;
+    private final SubmissionIntakePort submissionWritePort;
     private final ContestLifecycleService contestLifecycleService;
     private final ContestProjection contestProjection;
     private final ContestClock contestClock;

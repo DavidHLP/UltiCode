@@ -14,3 +14,37 @@
 - Alternatives: Duplicate zh/en page stylesheets (rejected: creates a second design system); put theme imports inside locale-preference (rejected: wrong dependency direction); rewrite all translation strings to equal character counts (rejected: copy quality and i18n semantics are not layout contracts).
 - Consequences: One locale change updates content and CSS custom properties through `html[lang]`; components remain locale-agnostic. CJK gets its own font/leading/space metrics while English keeps editorial Latin metrics. Density remains an independent app policy.
 - Affected tasks: I18N-DESIGN-001, I18N-DESIGN-002, I18N-DESIGN-003, I18N-DESIGN-004.
+
+## Services issue execution decisions (2026-08-28)
+
+### Reuse the existing code-execution seam
+
+- Context: `CodeExecutionPort` and serializable run DTOs already exist in `app-api`, while App injects the concrete Judge runtime implementation and Judge already hosts Dubbo.
+- Decision: Keep `CodeExecutionPort` as the only Interface. Add a backend-judge provider and an App remote Adapter, inject the Interface in the controller, and activate the Docker implementation only for the Judge runtime. Preserve synchronous success semantics and map transport unavailability to a typed HTTP failure.
+- Alternatives: Install Docker in App (rejected: expands the public host control plane); create another preview Interface (rejected: duplicate seam); disable `/run` globally (rejected: avoidable behavior loss).
+- Consequences: The App caller learns one narrow Interface; Judge owns Docker execution. A dedicated no-retry execution timeout must be explicit because the 3-second write policy is shorter than sandbox execution.
+- Affected tasks: SVC-001.
+
+### Replace broad mutation and lookup Interfaces
+
+- Context: Judge and Submission adapters implement broad contracts with normal methods that can only throw unsupported exceptions.
+- Decision: Replace `SubmissionWritePort` with `SubmissionIntakePort` and `SubmissionVerdictWritePort`; replace Submission's use of `ProblemAdminReadPort` with `ProblemTitleLookupPort`. Migrate providers, callers, tests, and contract-shape gates; do not layer narrow wrappers over a still-published broad remote Interface.
+- Alternatives: Default methods that throw (rejected: preserves the shallow Interface); a generic command envelope (rejected: hides type safety and expands scope).
+- Consequences: Consumer-visible capability matches real behavior; SVC-004 can be audited against narrow bounded reads.
+- Affected tasks: SVC-002, SVC-004.
+
+### Deepen Admin aggregation without an event table
+
+- Context: `DefaultAdminUserProjection` and `AdminUserEnricher` independently merge Auth and App responses and classify partial availability.
+- Decision: Make `AdminUserEnricher` the single deep Module for cross-Owner merge/degradation; keep pagination, permissions, and local stats in `DefaultAdminUserProjection`.
+- Alternatives: Add an Admin event read model now (rejected: no latency/availability trigger); create a new one-use gateway (rejected: existing Module already has the real seam and many callers).
+- Consequences: Aggregation failure semantics gain Locality without schema, migration, or new infrastructure.
+- Affected tasks: SVC-006.
+
+### Preserve external production gates
+
+- Context: SVC-003 requires 14-day traffic/drain/error-budget evidence; SVC-007..010 require real topology, threat model, traffic/drills, or release history. The checkout has only a development environment.
+- Decision: Complete every repository-actionable predecessor and record the remaining items as external gates with exact unblock evidence. Do not label development tests as production acceptance.
+- Alternatives: Build speculative HA/isolation/event/SLO infrastructure or fabricate observation history (rejected: violates the issue registry and current project scope).
+- Consequences: The development branch reaches the strongest honest state; Objective closure is blocked only if the user interprets externally-triggered entries as requiring unavailable production evidence.
+- Affected tasks: SVC-003-GATE, SVC-007-010-GATES.

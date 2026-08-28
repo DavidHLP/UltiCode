@@ -10,7 +10,8 @@ import com.ulticode.submission.api.event.SubmissionJudgedEvent;
 import com.ulticode.app.api.service.ContestSubmissionPort;
 import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.app.api.service.ProblemFactsPort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.ulticode.app.api.service.UserExistencePort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
@@ -41,7 +42,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Default (and only) adapter for {@link SubmissionWritePort}. Owns the
+ * Default local adapter for {@link SubmissionIntakePort} and
+ * {@link SubmissionVerdictWritePort}. Owns the
  * Submission intake + the two verdict writers.
  *
  * <p>All cross-module dependencies are injected as ports declared in
@@ -56,7 +58,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DefaultSubmissionWritePort implements SubmissionWritePort {
+public class DefaultSubmissionWritePort implements SubmissionIntakePort, SubmissionVerdictWritePort {
 
     private final SubmissionMapper submissionMapper;
     private final ProblemFactsPort problemFacts;

@@ -14,7 +14,13 @@ import com.ulticode.app.judge.AppJudgeCompatibilityConfiguration;
  */
 @EnableScheduling
 @Import(AppJudgeCompatibilityConfiguration.class)
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+        "com.ulticode.app",
+        "com.ulticode.audit",
+        "com.ulticode.common",
+        "com.ulticode.modules",
+        "com.ulticode.websecurity"
+})
 public class BackendAppApplication {
 
     public static void main(String[] args) {

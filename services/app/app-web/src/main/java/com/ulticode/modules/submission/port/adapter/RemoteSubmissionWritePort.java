@@ -7,7 +7,8 @@ import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,13 +19,16 @@ import org.springframework.util.StringUtils;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "app.submission.routing", name = "mode", havingValue = "remote")
-public class RemoteSubmissionWritePort implements SubmissionWritePort {
+public class RemoteSubmissionWritePort implements SubmissionIntakePort, SubmissionVerdictWritePort {
 
     private final ProblemFactsPort problemFacts;
     private final UserExistencePort userExistencePort;
 
     @DubboReference(group = "backend-submission", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
-    private SubmissionWritePort submissionOwner;
+    private SubmissionIntakePort submissionIntake;
+
+    @DubboReference(group = "backend-submission", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
+    private SubmissionVerdictWritePort submissionVerdict;
 
     @Override
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
@@ -39,26 +43,26 @@ public class RemoteSubmissionWritePort implements SubmissionWritePort {
     @Override
     public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO,
                                SubmissionFactsSnapshot facts) {
-        return submissionOwner.submit(userId, createDTO, facts);
+        return submissionIntake.submit(userId, createDTO, facts);
     }
 
     @Override
     public SubmissionVO submitContest(String userId, CreateSubmissionDTO createDTO,
                                       SubmissionFactsSnapshot facts) {
-        return submissionOwner.submitContest(userId, createDTO, facts);
+        return submissionIntake.submitContest(userId, createDTO, facts);
     }
 
     @Override
     public void updateSubmissionResult(String submissionId, SubmissionStatus status,
                                        int runtime, Double memory, String testDetailsJson) {
-        submissionOwner.updateSubmissionResult(submissionId, status, runtime, memory, testDetailsJson);
+        submissionVerdict.updateSubmissionResult(submissionId, status, runtime, memory, testDetailsJson);
     }
 
     @Override
     public boolean updateSubmissionResultFenced(String submissionId, SubmissionStatus status,
                                                 int runtime, Double memory, String testDetailsJson,
                                                 long generation, String attemptId) {
-        return submissionOwner.updateSubmissionResultFenced(
+        return submissionVerdict.updateSubmissionResultFenced(
                 submissionId, status, runtime, memory, testDetailsJson, generation, attemptId);
     }
 

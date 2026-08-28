@@ -40,7 +40,7 @@ jobs:
         run: |
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.repository }}"
-          ALL=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-judge" "console" "management")
+          ALL=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-search" "backend-judge" "console" "management")
 
           if [ -z "$SELECTED" ] || [ "$SELECTED" = "all" ]; then
             SERVICES=("${ALL[@]}")

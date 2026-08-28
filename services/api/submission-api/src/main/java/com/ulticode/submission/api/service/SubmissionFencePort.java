@@ -4,8 +4,9 @@ package com.ulticode.submission.api.service;
  * Read + mutate surface for the ADR-003 judge lease fence — the half of the
  * submission state machine the judge worker drives while a verdict is in flight.
  *
- * <p>{@link SubmissionWritePort} owns the <em>terminal</em> writes (intake +
- * verdict). This port owns the <em>in-flight</em> fence axis: reading the
+ * <p>{@link SubmissionVerdictWritePort} owns status/verdict writes and
+ * {@link SubmissionIntakePort} owns intake. This port owns the
+ * <em>in-flight</em> fence axis: reading the
  * generation a worker observed, CAS-acquiring the lease before judging starts,
  * and renewing it from the heartbeat so a slow sandbox run does not lose its
  * hold on the row.

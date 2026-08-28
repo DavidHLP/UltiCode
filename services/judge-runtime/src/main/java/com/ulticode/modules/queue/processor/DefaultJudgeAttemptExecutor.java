@@ -11,7 +11,7 @@ import com.ulticode.submission.api.queue.JudgeQueue;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.submission.api.service.SubmissionFencePort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.ulticode.modules.submission.fence.LeaseConstants;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
-    private final SubmissionWritePort submissionWritePort;
+    private final SubmissionVerdictWritePort submissionWritePort;
     private final JudgeExecutionPipeline executionPipeline;
     private final SubmissionFencePort submissionFencePort;
     private final JudgeFeatureFlagsPort featureFlags;
@@ -43,7 +43,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     private volatile ScheduledExecutorService heartbeatExecutor;
 
-    public DefaultJudgeAttemptExecutor(SubmissionWritePort submissionWritePort,
+    public DefaultJudgeAttemptExecutor(SubmissionVerdictWritePort submissionWritePort,
                                        JudgeExecutionPipeline executionPipeline,
                                        SubmissionFencePort submissionFencePort,
                                        JudgeFeatureFlagsPort featureFlags,

@@ -21,7 +21,7 @@ import java.util.List;
  * serving {@code /calendar}, {@code /learning-progress}, {@code /history}; the
  * read paths of {@code /submissions} and {@code /submissions/{id}}) cross this
  * seam and stay free of state-change concerns. Callers that mutate state
- * inject {@code SubmissionWritePort}; they delegate their projection work to
+ * inject the narrow intake or verdict port; they delegate projection work to
  * this interface so the projection rules live in one place.
  *
  * <p>Why a separate module and not "a helper class" or "moved methods":

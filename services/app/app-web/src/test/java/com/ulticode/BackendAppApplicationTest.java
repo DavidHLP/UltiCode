@@ -213,7 +213,7 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.api.service.SubmissionUserReadPort submissionUserReadPort;
     @MockBean
-    private com.ulticode.modules.submission.service.CodeExecutionService codeExecutionService;
+    private com.ulticode.app.api.service.CodeExecutionPort codeExecutionPort;
     @MockBean
     private com.ulticode.submission.api.service.RejudgePolicy rejudgePolicy;
     @MockBean

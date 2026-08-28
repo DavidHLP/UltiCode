@@ -7,10 +7,14 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionIntakePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionUserQueryProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionIntakeProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionVerdictWriteProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -33,10 +37,10 @@ import static org.mockito.Mockito.when;
 class SubmissionProviderContractTest {
 
     @Test
-    @DisplayName("publishes both owner ports under the backend-submission group")
+    @DisplayName("publishes narrow mutation and fence ports under the backend-submission group")
     void publishesOwnerPorts() {
-        // Write contract is unchanged since 1.0.0; the fence contract bumped
-        // to 1.1.0 for the nullable-Long currentGeneration wire change.
+        assertProvider(SubmissionIntakeProvider.class, SubmissionIntakePort.class, "1.0.0");
+        assertProvider(SubmissionVerdictWriteProvider.class, SubmissionVerdictWritePort.class, "1.0.0");
         assertProvider(SubmissionWriteProvider.class, SubmissionWritePort.class, "1.0.0");
         assertProvider(SubmissionFenceProvider.class, SubmissionFencePort.class, "1.1.0");
     }
@@ -48,10 +52,11 @@ class SubmissionProviderContractTest {
     }
 
     @Test
-    @DisplayName("forwards every write call to the local Submission owner")
+    @DisplayName("forwards intake and verdict calls to the local Submission owner")
     void writeProviderForwardsToLocalWriter() {
         DefaultSubmissionWritePort localWriter = mock(DefaultSubmissionWritePort.class);
-        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        SubmissionIntakeProvider intake = new SubmissionIntakeProvider(localWriter);
+        SubmissionVerdictWriteProvider verdict = new SubmissionVerdictWriteProvider(localWriter);
         CreateSubmissionDTO request = new CreateSubmissionDTO();
         SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot(
                 "user-1", true,
@@ -65,10 +70,10 @@ class SubmissionProviderContractTest {
                 "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
                 .thenReturn(true);
 
-        assertThat(provider.submit("user-1", request, facts)).isSameAs(expected);
-        assertThat(provider.submitContest("user-1", request, facts)).isSameAs(expected);
-        provider.updateSubmissionResult("sub-1", SubmissionStatus.WRONG_ANSWER, 8, 2.0, "[]");
-        assertThat(provider.updateSubmissionResultFenced(
+        assertThat(intake.submit("user-1", request, facts)).isSameAs(expected);
+        assertThat(intake.submitContest("user-1", request, facts)).isSameAs(expected);
+        verdict.updateSubmissionResult("sub-1", SubmissionStatus.WRONG_ANSWER, 8, 2.0, "[]");
+        assertThat(verdict.updateSubmissionResultFenced(
                 "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
                 .isTrue();
 
@@ -78,6 +83,28 @@ class SubmissionProviderContractTest {
                 "sub-1", SubmissionStatus.WRONG_ANSWER, 8, 2.0, "[]");
         verify(localWriter).updateSubmissionResultFenced(
                 "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1");
+    }
+
+    @Test
+    @SuppressWarnings("removal")
+    @DisplayName("legacy provider keeps every pre-split method operational")
+    void legacyProviderForwardsEveryCapability() {
+        DefaultSubmissionWritePort localWriter = mock(DefaultSubmissionWritePort.class);
+        SubmissionWriteProvider legacy = new SubmissionWriteProvider(localWriter);
+        CreateSubmissionDTO request = new CreateSubmissionDTO();
+        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot(
+                "user-1", true, null, 1L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
+        SubmissionVO expected = new SubmissionVO();
+        when(localWriter.submit("user-1", request, facts)).thenReturn(expected);
+        when(localWriter.updateSubmissionResultFenced(
+                "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
+                .thenReturn(true);
+
+        assertThat(legacy.submit("user-1", request, facts)).isSameAs(expected);
+        legacy.updateSubmissionResult("sub-1", SubmissionStatus.JUDGING, 0, 0.0, null);
+        assertThat(legacy.updateSubmissionResultFenced(
+                "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
+                .isTrue();
     }
 
     @Test
@@ -101,8 +128,12 @@ class SubmissionProviderContractTest {
     @Test
     @DisplayName("has no App compatibility reference or owner-mode selector")
     void providerHasNoCompatibilityReference() {
+        assertNoDubboReference(SubmissionIntakeProvider.class);
+        assertNoDubboReference(SubmissionVerdictWriteProvider.class);
         assertNoDubboReference(SubmissionWriteProvider.class);
         assertNoDubboReference(SubmissionFenceProvider.class);
+        assertNoOwnerModeSelector(SubmissionIntakeProvider.class);
+        assertNoOwnerModeSelector(SubmissionVerdictWriteProvider.class);
         assertNoOwnerModeSelector(SubmissionWriteProvider.class);
         assertNoOwnerModeSelector(SubmissionFenceProvider.class);
     }
@@ -115,7 +146,7 @@ class SubmissionProviderContractTest {
                 .thenThrow(new org.apache.dubbo.rpc.RpcException(
                         org.apache.dubbo.rpc.RpcException.TIMEOUT_EXCEPTION, "Dubbo RPC timeout"));
 
-        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        SubmissionIntakeProvider provider = new SubmissionIntakeProvider(localWriter);
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot("u-1", true, null, 1L, 1);
 
@@ -133,7 +164,7 @@ class SubmissionProviderContractTest {
                 .thenThrow(new org.apache.dubbo.rpc.RpcException(
                         org.apache.dubbo.rpc.RpcException.NETWORK_EXCEPTION, "Network partition / connection refused"));
 
-        SubmissionWriteProvider provider = new SubmissionWriteProvider(localWriter);
+        SubmissionIntakeProvider provider = new SubmissionIntakeProvider(localWriter);
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot("u-1", true, null, 1L, 1);
 

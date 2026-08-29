@@ -54,6 +54,40 @@ class UserProvisioningAdapterTest {
     }
 
     @Test
+    void administratorCountFailsWhenAuthQueryProviderIsUnavailable() {
+        ReflectionTestUtils.setField(adapter, "accountQueryService", null);
+
+        assertThatThrownBy(adapter::countActiveAdministrators)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("AccountQueryService unavailable");
+    }
+
+    @Test
+    void identityCheckFailsOnUnexpectedAuthError() {
+        when(accountQueryService.getAccountByUsername("admin"))
+                .thenReturn(RpcResult.failure(
+                        com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_DISABLED, "t-test"));
+
+        assertThatThrownBy(() -> adapter.identityExists("admin", "admin@example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("bootstrap username check");
+    }
+
+    @Test
+    void restoreFailsBeforeMutationWhenAuthQueryProviderIsUnavailable() {
+        ReflectionTestUtils.setField(adapter, "accountQueryService", null);
+
+        assertThatThrownBy(() -> adapter.restoreAdministrator("u-restore",
+                new UserProvisioningPort.AdministratorSpec(
+                        "restored", "Restored", "restored@example.com", "newpass", "ADMIN")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("AccountQueryService unavailable");
+        verify(accountManagementService, never()).updateCredentials(any());
+        verify(accountManagementService, never()).resetPassword(any());
+        verify(accountAdministrationService, never()).changeState(any());
+    }
+
+    @Test
     void identityExistsReturnsTrueWhenUsernameMatches() {
         when(accountQueryService.getAccountByUsername("admin"))
                 .thenReturn(RpcResult.success(

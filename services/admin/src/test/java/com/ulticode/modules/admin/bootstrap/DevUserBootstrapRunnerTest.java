@@ -64,6 +64,21 @@ class DevUserBootstrapRunnerTest {
   }
 
   @Test
+  void abortsWhenAuthCannotVerifyExistingAccount() {
+    MockEnvironment environment = developmentEnvironment();
+    when(userProvisioningPort.findIdByUsername("admin"))
+        .thenThrow(new IllegalStateException("AccountQueryService unavailable"));
+
+    assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("AccountQueryService unavailable");
+
+    verify(userProvisioningPort, never()).createAdministrator(any());
+    verify(userProvisioningPort, never()).restoreAdministrator(any(), any());
+    verify(applicationContext, never()).close();
+  }
+
+  @Test
   void refusesToRunOutsideDevelopmentProfile() {
     MockEnvironment environment = developmentEnvironment();
     environment.setActiveProfiles("prod");

@@ -44,6 +44,21 @@ class AdminBootstrapRunnerTest {
   }
 
   @Test
+  void abortsWhenAuthCannotVerifyAdministratorCount() {
+    MockEnvironment environment = productionEnvironment();
+    when(userProvisioningPort.countActiveAdministrators())
+        .thenThrow(new IllegalStateException("AccountQueryService unavailable"));
+
+    assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("AccountQueryService unavailable");
+
+    verify(userProvisioningPort, never()).identityExists(any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
+    verify(applicationContext, never()).close();
+  }
+
+  @Test
   void refusesWhenAnActiveAdministratorAlreadyExists() {
     MockEnvironment environment = productionEnvironment();
     when(userProvisioningPort.countActiveAdministrators()).thenReturn(1L);

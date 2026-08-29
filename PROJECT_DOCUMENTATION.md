@@ -932,7 +932,7 @@ Auth 是 `users.role`、`role_permissions`、`user_permissions` 的唯一 Owner�
 - **End-user delegation**：代表谁执行。HTTP ingress 验证后，Consumer filter 转发原始 audience 合法的短期 access assertion，或由 Auth 签发极短期 internal assertion；Provider 必须验证签名、audience、deadline、jti 和 actor service。
 
 Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 attachment；业务 request 中的 `userId/role` 只能是目标数据，不能作为审计 actor。审计记录 `subjectUserId`、`actorServiceId`、delegationId、traceId；身份传播丢失必须 fail closed，不能静默记成 `system`。
-实现约束：Admin Dubbo consumer filter 从目标 Application URL 读取服务名并仅为 `backend-app`、`backend-auth`、`backend-notification` 签发目标 audience；Auth、App、Notification 的高风险 Provider 在 durable receipt/数据库写入前验证签名 assertion。缺少目标、签名或 audience 时 fail closed。管理员 bootstrap 不复用普通 actor：仅在显式启用的一次性 runner 中提供 `BOOTSTRAP_DELEGATION_SECRET`，签发绑定 `backend-auth` 的 `BOOTSTRAP` assertion，Auth 只允许 create/update/reset/changeState provisioning 操作；普通签发 gate 默认关闭，Auth 未配置该专用 secret 时拒绝 bootstrap claim。
+实现约束：Admin Dubbo consumer filter 从目标 Application URL 读取服务名并仅为 `backend-app`、`backend-auth`、`backend-notification` 签发目标 audience；Auth、App、Notification 的高风险 Provider 在 durable receipt/数据库写入前验证签名 assertion。缺少目标、签名或 audience 时 fail closed。管理员 bootstrap 不复用普通 actor：仅在显式启用的一次性 runner 中提供 `BOOTSTRAP_DELEGATION_SECRET`，签发绑定 `backend-auth` 的 `BOOTSTRAP` assertion，Auth 只允许 create/update/reset/changeState provisioning 操作；普通签发 gate 默认关闭，Auth 未配置该专用 secret 时拒绝 bootstrap claim。Bootstrap 的管理员计数、identity、email-conflict 与 restore preflight 查询在 provider 缺失、RPC 异常或非 `ACCOUNT_NOT_FOUND` 错误时均 fail closed；只有 Auth 明确返回 `ACCOUNT_NOT_FOUND` 才视为空结果。
 
 ##### 7.7 CSRF、WebSocket 与 Auth 可用性
 

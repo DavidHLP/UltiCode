@@ -62,75 +62,102 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
 
     @Override
     public long countActiveAdministrators() {
-        if (accountQueryService == null) {
-            return 0L;
-        }
+        AccountQueryService queries = requireQueryService();
         try {
-            RpcResult<AuthAccountDTO> result = accountQueryService.queryAccounts(
+            RpcResult<AuthAccountDTO> result = queries.queryAccounts(
                     new AccountQueryDTO(null, null, true, false, 1, 1, "joinedAt", "desc"));
-            if (result != null && result.page() != null && result.page().total() != null) {
-                return result.page().total();
+            if (result == null || !result.success()
+                    || result.page() == null || result.page().total() == null) {
+                throw queryUnavailable("administrator count", result, null);
             }
-        } catch (Exception e) {
-            log.warn("AccountQueryService.queryAccounts failed for admin count: {}", e.getMessage());
+            return result.page().total();
+        } catch (IllegalStateException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw queryUnavailable("administrator count", null, exception);
         }
-        return 0L;
     }
 
     @Override
     public boolean identityExists(String username, String email) {
-        if (accountQueryService == null) {
-            return false;
+        if (username != null && !username.isBlank()
+                && queryAccountByUsername(username, "bootstrap username check").isPresent()) {
+            return true;
         }
-        try {
-            if (username != null && !username.isBlank()) {
-                RpcResult<AuthAccountDTO> byUsername = accountQueryService.getAccountByUsername(username);
-                if (byUsername != null && byUsername.success() && byUsername.data() != null) {
-                    return true;
-                }
-            }
-            if (email != null && !email.isBlank()) {
-                RpcResult<AuthAccountDTO> byEmail = accountQueryService.getAccountByEmail(email);
-                if (byEmail != null && byEmail.success() && byEmail.data() != null) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            log.warn("AccountQueryService identity check failed: {}", e.getMessage());
-        }
-        return false;
+        return email != null && !email.isBlank()
+                && queryAccountByEmail(email, "bootstrap email check").isPresent();
     }
 
     @Override
     public boolean emailConflicts(String email, String excludeId) {
-        if (accountQueryService == null || email == null || email.isBlank()) {
+        if (email == null || email.isBlank()) {
             return false;
         }
-        try {
-            RpcResult<AuthAccountDTO> result = accountQueryService.getAccountByEmail(email);
-            if (result != null && result.success() && result.data() != null) {
-                return !result.data().accountId().equals(excludeId);
-            }
-        } catch (Exception e) {
-            log.warn("AccountQueryService email conflict check failed: {}", e.getMessage());
-        }
-        return false;
+        return queryAccountByEmail(email, "administrator email conflict check")
+                .map(account -> !account.accountId().equals(excludeId))
+                .orElse(false);
     }
 
     @Override
     public Optional<String> findIdByUsername(String username) {
-        if (accountQueryService == null || username == null || username.isBlank()) {
+        if (username == null || username.isBlank()) {
             return Optional.empty();
         }
+        return queryAccountByUsername(username, "administrator username lookup")
+                .map(AuthAccountDTO::accountId);
+    }
+
+    private Optional<AuthAccountDTO> queryAccountByUsername(String username, String operation) {
+        AccountQueryService queries = requireQueryService();
+        return resolveAccountQuery(() -> queries.getAccountByUsername(username), operation);
+    }
+
+    private Optional<AuthAccountDTO> queryAccountByEmail(String email, String operation) {
+        AccountQueryService queries = requireQueryService();
+        return resolveAccountQuery(() -> queries.getAccountByEmail(email), operation);
+    }
+
+    private Optional<AuthAccountDTO> queryAccountById(String id, String operation) {
+        AccountQueryService queries = requireQueryService();
+        return resolveAccountQuery(() -> queries.getAccountById(id), operation);
+    }
+
+    private Optional<AuthAccountDTO> resolveAccountQuery(
+            java.util.function.Supplier<RpcResult<AuthAccountDTO>> query, String operation) {
         try {
-            RpcResult<AuthAccountDTO> result = accountQueryService.getAccountByUsername(username);
+            RpcResult<AuthAccountDTO> result = query.get();
             if (result != null && result.success() && result.data() != null) {
-                return Optional.of(result.data().accountId());
+                return Optional.of(result.data());
             }
-        } catch (Exception e) {
-            log.warn("AccountQueryService.findIdByUsername failed for {}: {}", username, e.getMessage());
+            if (isAccountNotFound(result)) {
+                return Optional.empty();
+            }
+            throw queryUnavailable(operation, result, null);
+        } catch (IllegalStateException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw queryUnavailable(operation, null, exception);
         }
-        return Optional.empty();
+    }
+
+    private AccountQueryService requireQueryService() {
+        if (accountQueryService == null) {
+            throw queryUnavailable("account query", null, null);
+        }
+        return accountQueryService;
+    }
+
+    private static boolean isAccountNotFound(RpcResult<?> result) {
+        return result != null && !result.success() && result.error() != null
+                && result.error().code() == com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND.code();
+    }
+
+    private static IllegalStateException queryUnavailable(
+            String operation, RpcResult<?> result, RuntimeException cause) {
+        String detail = result != null && result.error() != null
+                ? ": " + result.error().message() : "";
+        String message = "AccountQueryService unavailable during " + operation + detail;
+        return cause == null ? new IllegalStateException(message) : new IllegalStateException(message, cause);
     }
 
     @Override
@@ -164,16 +191,10 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
             throw new IllegalStateException("AccountManagementService unavailable; cannot restore administrator");
         }
 
-        // Verify the account exists
-        AuthAccountDTO current = null;
-        if (accountQueryService != null) {
-            RpcResult<AuthAccountDTO> check = accountQueryService.getAccountById(id);
-            if (check == null || !check.success() || check.data() == null) {
-                throw new IllegalStateException("Cannot restore nonexistent administrator: " + id);
-            }
-            current = check.data();
-        }
-
+        // Bootstrap may only proceed after Auth confirms the account exists.
+        AuthAccountDTO current = queryAccountById(id, "administrator restore preflight")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Cannot restore nonexistent administrator: " + id));
         String commandId = UUID.randomUUID().toString();
         String idempotencyKey = uuidGenerator.newId();
         ActorDelegation actor = new ActorDelegation("BOOTSTRAP", "bootstrap", "bootstrap", "restore admin");
@@ -215,11 +236,9 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
     }
 
     private AuthAccountDTO queryAccountOrThrow(String id) {
-        RpcResult<AuthAccountDTO> result = accountQueryService.getAccountById(id);
-        if (result == null || !result.success() || result.data() == null) {
-            throw new IllegalStateException("Cannot re-read administrator account after state change: " + id);
-        }
-        return result.data();
+        return queryAccountById(id, "administrator state-change re-read")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Cannot re-read administrator account after state change: " + id));
     }
 
     private void changeLifecycleState(String id, long expectedVersion,

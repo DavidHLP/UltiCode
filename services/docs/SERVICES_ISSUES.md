@@ -114,7 +114,7 @@ Admin rejudge compatibility remains an App-owned `SubmissionAdministrationServic
 | SVC-015 | Notification explicit-recipient resolution uses one Auth batch read and no longer routes through an App provider hop |
 | SVC-016 | Search and SubmissionJudged inbox bridges reject events with unsupported owner tags before durable handling |
 | SVC-017 | Search versioned index operations use a per-index/document Redis lease; stale/equal DELETE and lock-contention regressions are covered by worker tests |
-| SVC-018 | Bootstrap provisioning uses a dedicated `BOOTSTRAP` actor, scoped assertion secret, explicit runner gate, and provider operation allowlist; restore RPC failures propagate |
+| SVC-018 | Bootstrap provisioning uses a dedicated `BOOTSTRAP` actor, scoped assertion secret, explicit runner gate, provider operation allowlist, fail-closed Auth query preflights, and propagated restore RPC failures |
 
 ## ACCEPTED
 

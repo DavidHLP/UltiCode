@@ -53,7 +53,10 @@ import org.springframework.stereotype.Component;
  * The version is also embedded in the Meili document as
  * {@code _aggregateVersion} for diff watermark and observability.
  * Replicas serialize versioned operations for the same index/document with a
- * short Redis lease; lock contention leaves the event in the PEL for retry.
+ * short Redis lease; lock contention defers the event in the PEL (without
+ * inflating its delivery count, so contention cannot dead-letter a valid
+ * event), and the ledger write is guarded by a lease-ownership re-check so a
+ * slow Meili write cannot clobber a newer owner's ledger entry.
  */
 @Slf4j
 @Component
@@ -105,9 +108,39 @@ public class SearchDocumentIndexWorker {
     /** Lease covering the Redis ledger read, Meili write and ledger write. */
     private static final Duration DOCUMENT_LOCK_TTL = Duration.ofSeconds(30);
 
+    /**
+     * How long a lock-busy event is deferred from reclaim/dead-lettering.
+     * Must exceed {@link #DOCUMENT_LOCK_TTL} so a crashed lock holder cannot
+     * wedge the event: after the deadline the lock has auto-expired and the
+     * event is handled normally again.
+     */
+    private static final long LOCK_WAIT_MAX_MS = DOCUMENT_LOCK_TTL.toMillis() * 2;
+
     private static final RedisScript<Long> RELEASE_DOCUMENT_LOCK_SCRIPT = RedisScript.of(
             "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end",
             Long.class);
+
+    /** Re-extends the lease only while we still own it. */
+    private static final RedisScript<Long> RENEW_DOCUMENT_LOCK_SCRIPT = RedisScript.of("""
+            if redis.call('GET', KEYS[1]) == ARGV[1]
+            then return redis.call('EXPIRE', KEYS[1], ARGV[2])
+            else return 0 end
+            """, Long.class);
+
+    /** Signals another replica currently holds the per-document lease. */
+    private static final class LockBusyException extends RuntimeException {
+        LockBusyException(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * Events deferred because another replica held the document lease
+     * (record id value → deadline epoch millis). Membership suppresses
+     * re-claiming (which would inflate the delivery count and eventually
+     * dead-letter a perfectly valid event, including DELETEs).
+     */
+    private final java.util.Map<String, Long> lockWaitDeadline = new java.util.concurrent.ConcurrentHashMap<>();
 
     public SearchDocumentIndexWorker(
             StringRedisTemplate redisTemplate,
@@ -310,7 +343,9 @@ public class SearchDocumentIndexWorker {
 
     /**
      * PEL pass: dead-letter entries that exhausted deliveries, then claim and
-     * return the remaining pending records for reprocessing.
+     * return the remaining pending records for reprocessing. Events deferred
+     * for a busy document lease are skipped entirely so a claim cannot
+     * inflate their delivery count.
      */
     private List<MapRecord<String, String, String>> readPending(StreamOperations<String, String, String> streams) {
         PendingMessages pending = streams.pending(
@@ -319,8 +354,12 @@ public class SearchDocumentIndexWorker {
             return List.of();
         }
 
+        pruneExpiredLockWaits();
         List<RecordId> reclaimIds = new ArrayList<>(pending.size());
         for (PendingMessage message : pending) {
+            if (isWaitingForDocumentLock(message.getId())) {
+                continue;
+            }
             if (message.getTotalDeliveryCount() > props.getMaxAttempts()) {
                 deadLetter(streams, message);
             } else {
@@ -337,6 +376,15 @@ public class SearchDocumentIndexWorker {
                 CLAIM_MIN_IDLE,
                 reclaimIds.toArray(RecordId[]::new));
         return reclaimed == null ? List.of() : reclaimed;
+    }
+
+    private boolean isWaitingForDocumentLock(RecordId recordId) {
+        return lockWaitDeadline.containsKey(recordId.getValue());
+    }
+
+    private void pruneExpiredLockWaits() {
+        long now = System.currentTimeMillis();
+        lockWaitDeadline.values().removeIf(deadline -> deadline < now);
     }
     private void deadLetter(StreamOperations<String, String, String> streams, PendingMessage message) {
         List<MapRecord<String, String, String>> source = streams.range(
@@ -416,6 +464,14 @@ public class SearchDocumentIndexWorker {
             processedCounter.increment();
             return true;
 
+        } catch (LockBusyException busy) {
+            // Transient contention with another replica, not a failure:
+            // defer reclaiming/dead-lettering until the holder finishes.
+            lockWaitDeadline.put(record.getId().getValue(),
+                    System.currentTimeMillis() + LOCK_WAIT_MAX_MS);
+            log.debug("Search event {} deferred: document lock busy",
+                    record.getId().getValue());
+            return false;
         } catch (Exception e) {
             // Leave in PEL: reclaimed on the next cycle, dead-lettered after
             // maxAttempts deliveries.
@@ -438,8 +494,9 @@ public class SearchDocumentIndexWorker {
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(
                 lockKey, lockToken, DOCUMENT_LOCK_TTL);
         if (!Boolean.TRUE.equals(acquired)) {
-            throw new IllegalStateException("search document lock busy: " + index + "/" + documentId);
+            throw new LockBusyException("search document lock busy: " + index + "/" + documentId);
         }
+        lockWaitDeadline.remove(record.getId().getValue());
 
         try {
             String existing = ledgerVersion(versionKey, documentId);
@@ -456,17 +513,54 @@ public class SearchDocumentIndexWorker {
                         objectMapper.writeValueAsString(document), payloadType);
                 doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
                 meiliSearchClient.index(index).addDocuments(objectMapper.writeValueAsString(doc));
-                redisTemplate.opsForHash().put(versionKey, documentId, String.valueOf(incomingVersion));
+                writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
+                        String.valueOf(incomingVersion));
             } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
                 meiliSearchClient.index(index).deleteDocument(documentId);
-                redisTemplate.opsForHash().put(
-                        versionKey, documentId, "-" + incomingVersion);
+                writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
+                        "-" + incomingVersion);
             } else {
                 throw new IllegalArgumentException("unsupported operation: " + operation);
             }
             return true;
         } finally {
             releaseDocumentLock(lockKey, lockToken);
+        }
+    }
+
+    /**
+     * Persist the ledger entry only while we still own the lease. A slow Meili
+     * write can outlive the lease and let another replica take over; writing
+     * the ledger then would clobber the new owner's entry.
+     */
+    private void writeLedgerIfStillOwner(
+            String lockKey, String lockToken, String versionKey, String documentId, String ledgerValue) {
+        if (!ownsDocumentLock(lockKey, lockToken)) {
+            log.warn("Search document lease lost before ledger write: skipping ledger update for {} in {}",
+                    documentId, versionKey);
+            return;
+        }
+        redisTemplate.opsForHash().put(versionKey, documentId, ledgerValue);
+    }
+
+    /**
+     * Whether the lease is still ours (renewing it in the same check).
+     * Redis answers 1 (renewed) or 0 (lost); a {@code null} answer only
+     * occurs with a broken transport or test double and is optimistically
+     * treated as still owned — a genuinely unavailable Redis fails the
+     * subsequent ledger write loudly instead.
+     */
+    private boolean ownsDocumentLock(String lockKey, String lockToken) {
+        try {
+            Long renewed = redisTemplate.execute(
+                    RENEW_DOCUMENT_LOCK_SCRIPT,
+                    List.of(lockKey),
+                    lockToken,
+                    String.valueOf(DOCUMENT_LOCK_TTL.toSeconds()));
+            return renewed == null || renewed > 0L;
+        } catch (RuntimeException exception) {
+            log.warn("Search document lease renewal check failed for {}: {}", lockKey, exception.getMessage());
+            return true;
         }
     }
 

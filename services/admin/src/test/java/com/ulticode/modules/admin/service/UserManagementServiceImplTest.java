@@ -177,6 +177,40 @@ class UserManagementServiceImplTest {
     }
 
     @Test
+    @DisplayName("createUser fails closed when the Auth query provider cannot answer the username check")
+    void createUserFailsClosedWhenUsernameCheckUnavailable() {
+        AdminCreateUserDTO dto = new AdminCreateUserDTO();
+        dto.setUsername("alice");
+        dto.setEmail("alice@example.com");
+        dto.setPassword("pass12345");
+        dto.setRole("USER");
+
+        when(accountQueryService.getAccountByUsername("alice")).thenReturn(null);
+
+        assertThatThrownBy(() -> service.createUser(dto))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .hasMessageContaining("AccountQueryService unavailable");
+        verify(accountManagementService, never()).createAccount(any());
+    }
+
+    @Test
+    @DisplayName("updateUser fails closed when the email conflict check returns an unexpected error")
+    void updateUserFailsClosedWhenEmailCheckUnavailable() {
+        when(accountQueryService.getAccountById("user-100"))
+                .thenReturn(RpcResult.success(sampleAccount, "t-123"));
+        when(accountQueryService.getAccountByEmail("new@example.com"))
+                .thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_DISABLED, "t-123"));
+
+        AdminUpdateUserDTO dto = new AdminUpdateUserDTO();
+        dto.setEmail("new@example.com");
+
+        assertThatThrownBy(() -> service.updateUser("user-100", dto))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .hasMessageContaining("AccountQueryService unavailable");
+        verify(accountManagementService, never()).updateCredentials(any());
+    }
+
+    @Test
     @DisplayName("bulkBan processes ban for all requested IDs")
     void bulkBanSuccess() {
         when(accountQueryService.getAccountById("user-100")).thenReturn(RpcResult.success(sampleAccount, "t-123"));

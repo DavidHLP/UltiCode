@@ -10,6 +10,7 @@ import com.ulticode.app.api.service.AdminForumReadPort;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
@@ -121,7 +122,7 @@ public class AdminForumServiceImpl implements AdminForumService {
                 new ApplyModerationCommand(
                         UUID.randomUUID().toString(), IdMetadata.mint(),
                         new ActorDelegation(
-                                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                                AdminActors.typeOf(currentUserProvider),
                                 actorId, actorId, "admin forum delete"),
                         currentTrace(),
                         caseId, id, "forum_post", ModerationAction.DELETE,

@@ -15,6 +15,7 @@ import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.auth.permission.service.PermissionService;
 import com.ulticode.auth.service.AccountAdministrationWorkflow;
 import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
+import com.ulticode.auth.security.ProviderActorTrustGate;
 import com.ulticode.auth.service.DefaultAccountAdministrationWorkflow;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
@@ -64,7 +65,8 @@ class AccountAdministrationProviderTest {
                 new CommandReceiptExecutor(receiptMapper, objectMapper, clock);
         delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
         when(delegationVerifier.isTrusted(any())).thenReturn(true);
-        provider = new AccountAdministrationProvider(workflow, receiptExecutor, delegationVerifier);
+        provider = new AccountAdministrationProvider(
+                workflow, receiptExecutor, new ProviderActorTrustGate(delegationVerifier));
 
         actor = new ActorDelegation("ADMIN", "admin-1", "org-1", "reason");
         trace = new TraceMetadata("t-123", "span-1", null, null);

@@ -6,6 +6,7 @@ import com.ulticode.auth.api.dto.AccountMutationDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.api.dto.ChangePasswordDTO;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
@@ -86,7 +87,7 @@ public class AdminAccountController {
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
                 new ActorDelegation(
-                        currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                        AdminActors.typeOf(currentUserProvider),
                         userId, userId, "admin self password change"),
                 currentTrace(),
                 userId,

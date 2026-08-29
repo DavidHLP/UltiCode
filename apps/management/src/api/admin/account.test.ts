@@ -14,7 +14,6 @@ vi.mock('vue-sonner', () => ({
     success: vi.fn(),
     warning: vi.fn(),
   },
-    warning: vi.fn(),
 }))
 
 const profile: AccountProfile = {

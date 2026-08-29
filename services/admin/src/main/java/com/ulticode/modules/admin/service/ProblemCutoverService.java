@@ -8,6 +8,7 @@ import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
 import com.ulticode.app.api.service.ProblemAdministrationService;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
@@ -162,7 +163,7 @@ public class ProblemCutoverService {
     }
 
     private String actorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
 
     private static TraceMetadata currentTrace() {

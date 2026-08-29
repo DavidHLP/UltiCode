@@ -27,7 +27,7 @@ class InternalDelegationAssertionVerifierTest {
     @BeforeEach
     void setUp() {
         verifier = new InternalDelegationAssertionVerifier(
-                SECRET, DelegationAssertionContract.ISSUER, "backend-auth", BOOTSTRAP_SECRET);
+                SECRET, BOOTSTRAP_SECRET, DelegationAssertionContract.ISSUER, "backend-auth");
     }
 
     @AfterEach

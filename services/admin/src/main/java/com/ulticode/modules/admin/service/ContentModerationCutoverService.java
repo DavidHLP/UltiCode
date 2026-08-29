@@ -5,6 +5,7 @@ import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.service.ContentModerationService;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
@@ -77,7 +78,7 @@ public class ContentModerationCutoverService {
                 new ApplyModerationCommand(
                         UUID.randomUUID().toString(), IdMetadata.mint(),
                         new ActorDelegation(
-                                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                                AdminActors.typeOf(currentUserProvider),
                                 actorId, actorId, "cutover moderation"),
                         currentTrace(),
                         caseId, contentId, contentType, action,

@@ -75,12 +75,8 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
         }
     }
     private boolean trustedActor(ActorDelegation actor) {
-        try {
-            return actorAuthorizer.isAuthorized(actor);
-        } catch (RuntimeException exception) {
-            log.warn("Submission administration actor authorization failed", exception);
-            return false;
-        }
+        return com.ulticode.app.security.TrustedAdminActor.isTrusted(
+                actorAuthorizer, actor, "submission administration");
     }
 
     private RpcResult<RejudgeResultDTO> executeRejudge(RejudgeCommand command, String traceId) {

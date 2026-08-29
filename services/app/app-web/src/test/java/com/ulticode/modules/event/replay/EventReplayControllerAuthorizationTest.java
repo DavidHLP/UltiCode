@@ -1,6 +1,8 @@
 package com.ulticode.modules.event.replay;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.mock;
@@ -56,9 +58,62 @@ class EventReplayControllerAuthorizationTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
+    void ordinaryUserCannotReplayInbox() throws Exception {
+        mockMvc.perform(post("/admin/event-replay/inbox/replay")
+                        .param("consumer", "App")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void ordinaryUserCannotListDeadOutbox() throws Exception {
+        mockMvc.perform(get("/admin/event-replay/outbox/dlq"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void ordinaryUserCannotListDeadInbox() throws Exception {
+        mockMvc.perform(get("/admin/event-replay/inbox/dlq").param("consumer", "App"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void ordinaryUserCannotPurgeDeadOutbox() throws Exception {
+        mockMvc.perform(delete("/admin/event-replay/outbox/dlq").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void ordinaryUserCannotRerouteDeadOutbox() throws Exception {
+        mockMvc.perform(post("/admin/event-replay/outbox/dlq/reroute").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithAnonymousUser
+    void anonymousCannotReplayInbox() throws Exception {
+        mockMvc.perform(post("/admin/event-replay/inbox/replay")
+                        .param("consumer", "App")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void administratorCanReplayOutbox() throws Exception {
         mockMvc.perform(post("/admin/event-replay/outbox/replay").with(csrf()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void administratorCanListDeadOutbox() throws Exception {
+        mockMvc.perform(get("/admin/event-replay/outbox/dlq"))
                 .andExpect(status().isOk());
     }
 

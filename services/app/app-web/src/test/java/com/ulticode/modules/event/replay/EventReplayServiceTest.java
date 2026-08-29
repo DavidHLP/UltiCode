@@ -81,6 +81,22 @@ class EventReplayServiceTest {
 
             assertThat(count).isEqualTo(1);
         }
+
+        @Test
+        @DisplayName("Replay mutations are bounded by a LIMIT clause")
+        @SuppressWarnings("unchecked")
+        void replayMutationIsBounded() {
+            when(outboxMapper.update(isNull(), any())).thenReturn(EventReplayService.MAX_MUTATION_BATCH);
+
+            int count = service.replayOutbox(null);
+
+            assertThat(count).isEqualTo(EventReplayService.MAX_MUTATION_BATCH);
+            org.mockito.ArgumentCaptor<com.baomidou.mybatisplus.core.conditions.Wrapper<IntegrationOutboxRecord>> captor =
+                    org.mockito.ArgumentCaptor.forClass(com.baomidou.mybatisplus.core.conditions.Wrapper.class);
+            verify(outboxMapper).update(isNull(), captor.capture());
+            assertThat(captor.getValue().getSqlSegment())
+                    .contains("LIMIT " + EventReplayService.MAX_MUTATION_BATCH);
+        }
     }
 
     @Nested

@@ -36,8 +36,8 @@ vi.mock('@/utils/request', () => ({
 vi.mock('vue-sonner', () => ({
   toast: {
     error: vi.fn(),
-  },
     warning: vi.fn(),
+  },
 }))
 
 describe('VisibilitySection', () => {

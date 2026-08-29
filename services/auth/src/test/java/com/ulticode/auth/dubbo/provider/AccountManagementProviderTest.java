@@ -16,6 +16,8 @@ import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.auth.util.UuidGenerator;
 import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
+import com.ulticode.auth.security.ProviderActorTrustGate;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -68,7 +70,8 @@ class AccountManagementProviderTest {
                 new CommandReceiptExecutor(receiptMapper, objectMapper, clock);
         delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
         when(delegationVerifier.isTrusted(any())).thenReturn(true);
-        provider = new AccountManagementProvider(engine, receiptExecutor, delegationVerifier);
+        provider = new AccountManagementProvider(
+                engine, receiptExecutor, new ProviderActorTrustGate(delegationVerifier));
 
         actor = new ActorDelegation("ADMIN", "admin-1", "admin-1", "test account mgmt");
         trace = new TraceMetadata("t-trace-1", null, null, null);
@@ -147,14 +150,68 @@ class AccountManagementProviderTest {
         when(accountPort.findById("user-1")).thenReturn(Optional.of(current));
         when(passwordEncoder.matches("wrongpass", "hashed:oldpass")).thenReturn(false);
 
-        ChangePasswordCommand command = new ChangePasswordCommand(
-                "cmd-cp-1", IdMetadata.mint(), actor, trace,
-                "user-1", "wrongpass", "newpass123");
+        ChangePasswordCommand command = selfPasswordCommand(
+                "cmd-cp-1", "user-1", "wrongpass", "newpass123");
 
         RpcResult<AccountMutationDTO> result = provider.changePassword(command);
 
         assertThat(result.success()).isFalse();
         assertThat(result.error().code()).isEqualTo(AuthErrorCode.PASSWORD_MISMATCH.code());
+    }
+
+    @Test
+    @DisplayName("in-process USER self password change succeeds without a delegation assertion")
+    void userSelfChangePasswordSucceedsWithoutAssertion() {
+        AuthAccountRecord current = account("user-1", "hashed:oldpass");
+        AuthAccountRecord updated = new AuthAccountRecord(
+                "user-1", "user1", "u1@example.com", "hashed:newpass123",
+                "USER", true, false, null, null, 1L);
+        when(accountPort.findById("user-1"))
+                .thenReturn(Optional.of(current))
+                .thenReturn(Optional.of(updated));
+        when(passwordEncoder.matches("oldpass", "hashed:oldpass")).thenReturn(true);
+        when(passwordEncoder.encode("newpass123")).thenReturn("hashed:newpass123");
+        when(accountPort.updatePassword("user-1", "hashed:newpass123", "user-1"))
+                .thenReturn(true);
+
+        RpcResult<AccountMutationDTO> result = provider.changePassword(
+                selfPasswordCommand("cmd-cp-2", "user-1", "oldpass", "newpass123"));
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.data().accountId()).isEqualTo("user-1");
+        // The /auth/me/password path must not depend on a Dubbo attachment.
+        verify(delegationVerifier, never()).isTrusted(any());
+    }
+
+    @Test
+    @DisplayName("changePassword rejects an actor targeting another account")
+    void changePasswordRejectsNonSelfActor() {
+        ChangePasswordCommand command = new ChangePasswordCommand(
+                "cmd-cp-3", IdMetadata.mint(), actor, trace,
+                "user-1", "oldpass", "newpass123");
+
+        RpcResult<AccountMutationDTO> result = provider.changePassword(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(BaseErrorCode.FORBIDDEN.code());
+        verify(accountPort, never()).findById(any());
+        verify(accountPort, never()).updatePassword(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("admin self password change requires a verified delegation assertion")
+    void adminSelfChangePasswordRequiresAssertion() {
+        when(delegationVerifier.isTrusted(any())).thenReturn(false);
+        ChangePasswordCommand command = new ChangePasswordCommand(
+                "cmd-cp-4", IdMetadata.mint(), actor, trace,
+                "admin-1", "oldpass", "newpass123");
+
+        RpcResult<AccountMutationDTO> result = provider.changePassword(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(BaseErrorCode.FORBIDDEN.code());
+        verify(accountPort, never()).findById(any());
+        verify(accountPort, never()).updatePassword(any(), any(), any());
     }
 
     @Test
@@ -296,6 +353,15 @@ class AccountManagementProviderTest {
             String role) {
         return new CreateAccountCommand(
                 commandId, idempotency, actor, trace, username, email, password, role);
+    }
+
+    /** A self-service change command: the USER actor is the target account. */
+    private ChangePasswordCommand selfPasswordCommand(
+            String commandId, String accountId, String currentPassword, String newPassword) {
+        return new ChangePasswordCommand(
+                commandId, IdMetadata.mint(),
+                new ActorDelegation("USER", accountId, accountId, "self password change"),
+                trace, accountId, currentPassword, newPassword);
     }
 
     private static AuthAccountRecord account(String id, String password) {

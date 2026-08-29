@@ -292,6 +292,56 @@ class SearchDocumentIndexWorkerTest {
     }
 
     @Test
+    @DisplayName("lock contention does not dead-letter a valid event even after exhausting deliveries")
+    void lockBusyEventIsNotDeadLettered() {
+        stubBusyGroup();
+        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("7", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "200")));
+
+        worker.consume(); // defers the event behind the busy document lock
+
+        // Even once the delivery count exceeds maxAttempts, a lock-waiting
+        // event must not be transferred to the DLQ.
+        PendingMessage exhausted = new PendingMessage(
+                RecordId.of("evt-7"), Consumer.from("search-worker", "search-worker-1"),
+                java.time.Duration.ofSeconds(60), 99L);
+        when(streamOps.pending(anyString(), anyString(), any(org.springframework.data.domain.Range.class), anyLong()))
+                .thenReturn(new PendingMessages("stream:integration", org.springframework.data.domain.Range.unbounded(),
+                        List.of(exhausted)));
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of());
+
+        worker.consume();
+
+        verify(redisTemplate, never()).execute(
+                any(org.springframework.data.redis.core.script.RedisScript.class), anyList(), any(Object[].class));
+        verify(meiliSearchClient, never()).index(anyString());
+    }
+
+    @Test
+    @DisplayName("lease lost before the ledger write skips the ledger but still applies and ACKs")
+    void lostLeaseSkipsLedgerWrite() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(redisTemplate.execute(
+                any(org.springframework.data.redis.core.script.RedisScript.class), anyList(), any(Object[].class)))
+                .thenReturn(0L);
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("8", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "100")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isEqualTo(1);
+        verify(meiliIndex).addDocuments("{\"id\":\"doc-1\",\"title\":\"T\",\"_aggregateVersion\":100}");
+        // Lease was lost (renewal answered 0): the ledger must not be clobbered.
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-8"));
+    }
+
+    @Test
     @DisplayName("equal DELETE preserves the existing tombstone")
     void equalDeletePreservesTombstone() {
         stubBusyGroup();

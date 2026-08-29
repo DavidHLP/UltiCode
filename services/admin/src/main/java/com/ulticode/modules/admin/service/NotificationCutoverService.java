@@ -13,6 +13,7 @@ import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationServiceContract;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
@@ -261,7 +262,7 @@ public class NotificationCutoverService {
     }
 
     private String actorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
 
     private static IdMetadata idempotency(String requestedKey) {

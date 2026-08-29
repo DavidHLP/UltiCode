@@ -14,6 +14,7 @@ import com.ulticode.app.api.dto.ContestProblemAdminDTO;
 import com.ulticode.app.api.dto.ContestProblemInputDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestAdministrationService;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
@@ -185,7 +186,7 @@ public class ContestCutoverService {
     }
 
     private String actorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
 
     private void ensureDubboEnabled() {

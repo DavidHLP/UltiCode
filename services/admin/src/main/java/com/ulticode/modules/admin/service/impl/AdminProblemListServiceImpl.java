@@ -14,6 +14,7 @@ import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.exception.BusinessException;
@@ -357,7 +358,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
 
     private String actorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
     private static IdMetadata idempotency(String requestedKey) {
         if (requestedKey == null || requestedKey.isBlank()) {

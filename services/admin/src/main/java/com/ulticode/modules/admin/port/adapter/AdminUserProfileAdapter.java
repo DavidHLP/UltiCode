@@ -7,6 +7,7 @@ import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.service.ProfileWriteService;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcPolicy;
@@ -196,7 +197,7 @@ public class AdminUserProfileAdapter implements UserProfilePort {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
         return new ActorDelegation(
-                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                AdminActors.typeOf(currentUserProvider),
                 actorId, actorId, rationale);
     }
 

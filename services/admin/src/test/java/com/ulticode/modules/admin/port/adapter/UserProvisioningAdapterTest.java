@@ -266,9 +266,31 @@ class UserProvisioningAdapterTest {
     @Test
     void countActiveAdministratorsReturnsTotal() {
         when(accountQueryService.queryAccounts(any(AccountQueryDTO.class)))
-                .thenReturn(RpcResult.page(java.util.List.of(), 3L, 1, 1, "t-test"));
+                .thenAnswer(invocation -> {
+                    AccountQueryDTO query = invocation.getArgument(0);
+                    long total = "SUPER_ADMIN".equals(query.role()) ? 1L : 2L;
+                    return RpcResult.page(java.util.List.of(), total, 1, 1, "t-test");
+                });
 
         assertThat(adapter.countActiveAdministrators()).isEqualTo(3L);
+    }
+
+    @Test
+    void countActiveAdministratorsFiltersByAdministratorRoles() {
+        ArgumentCaptor<AccountQueryDTO> captor = ArgumentCaptor.forClass(AccountQueryDTO.class);
+        when(accountQueryService.queryAccounts(captor.capture()))
+                .thenReturn(RpcResult.page(java.util.List.of(), 0L, 1, 1, "t-test"));
+
+        adapter.countActiveAdministrators();
+
+        assertThat(captor.getAllValues())
+                .extracting(AccountQueryDTO::role)
+                .containsExactlyInAnyOrder("ADMIN", "SUPER_ADMIN");
+        assertThat(captor.getAllValues())
+                .allSatisfy(query -> {
+                    assertThat(query.active()).isTrue();
+                    assertThat(query.banned()).isFalse();
+                });
     }
 
     @Test

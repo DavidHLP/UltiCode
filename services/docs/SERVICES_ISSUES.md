@@ -107,14 +107,14 @@ Admin rejudge compatibility remains an App-owned `SubmissionAdministrationServic
 | Submission 写事务同步回访 App/Auth | request owner 传入不可变 `SubmissionFactsSnapshot` 并 fail closed |
 | 游离 `services/com` 编译产物 | 当前 source tree 已清除 |
 | Services 问题文档多入口与状态漂移 | 本文件为唯一注册表，`PROJECT_DOCUMENTATION.md` 只保留导航链接 |
-| SVC-011 | Replay/DLQ HTTP operations are method-protected with `ADMIN|SUPER_ADMIN` and have MockMvc denied-path coverage |
-| SVC-012 | Admin delegation assertions are target-audience bound; Auth, App profile/problem/contest/list/submission writes reject missing or invalid trust |
+| SVC-011 | Replay/DLQ HTTP operations are method-protected with `ADMIN|SUPER_ADMIN` and have MockMvc denied-path coverage for every operation |
+| SVC-012 | Admin delegation assertions are target-audience bound; Auth, App profile/problem/contest/list/submission writes reject missing or invalid trust; `changePassword` is self-service only (USER in-process via current-password check, admin self-change via verified assertion) |
 | SVC-013 | Production Compose requires RS256/JWKS, dedicated internal-delegation secret, explicit Dubbo namespace, and a least-privilege Nacos DB account |
-| SVC-014 | Replay/DLQ mutations use set-based SQL updates/deletes instead of unbounded read-plus-N+1 writes |
+| SVC-014 | Replay/DLQ mutations use set-based SQL updates/deletes instead of unbounded read-plus-N+1 writes; every mutation is bounded by a per-statement row LIMIT |
 | SVC-015 | Notification explicit-recipient resolution uses one Auth batch read and no longer routes through an App provider hop |
 | SVC-016 | Search and SubmissionJudged inbox bridges reject events with unsupported owner tags before durable handling |
-| SVC-017 | Search versioned index operations use a per-index/document Redis lease; stale/equal DELETE and lock-contention regressions are covered by worker tests |
-| SVC-018 | Bootstrap provisioning uses a dedicated `BOOTSTRAP` actor, scoped assertion secret, explicit runner gate, provider operation allowlist, fail-closed Auth query preflights, and propagated restore RPC failures |
+| SVC-017 | Search versioned index operations use a per-index/document Redis lease; stale/equal DELETE and lock-contention regressions are covered by worker tests; contention defers events without inflating delivery counts (no valid-event dead-lettering), and the ledger write is guarded by a lease-ownership re-check |
+| SVC-018 | Bootstrap provisioning uses a dedicated `BOOTSTRAP` actor, scoped assertion secret, explicit runner gate, provider operation allowlist, fail-closed Auth query preflights, and propagated restore RPC failures; the administrator count is role-filtered (`ADMIN`+`SUPER_ADMIN`), not an all-account count |
 
 ## ACCEPTED
 

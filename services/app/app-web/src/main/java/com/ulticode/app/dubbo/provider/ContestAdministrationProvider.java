@@ -353,23 +353,8 @@ public class ContestAdministrationProvider implements ContestAdministrationServi
     }
 
     private void requireAdminActor(ActorDelegation actor) {
-        if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
-                || (!"ADMIN".equalsIgnoreCase(actor.actorType())
-                && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
-            throw new BusinessException(BaseErrorCode.FORBIDDEN, "Contest mutation requires an admin actor");
-        }
-        try {
-            if (!actorAuthorizer.isAuthorized(actor)) {
-                throw new BusinessException(BaseErrorCode.FORBIDDEN,
-                        "Contest mutation requires a trusted admin actor");
-            }
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
-            log.warn("Contest actor authorization failed", exception);
-            throw new BusinessException(BaseErrorCode.FORBIDDEN,
-                    "Contest mutation requires a trusted admin actor");
-        }
+        com.ulticode.app.security.TrustedAdminActor.requireTrusted(
+                actorAuthorizer, actor, "Contest mutation");
     }
 
     private static void audit(ActorDelegation actor, String entityId,

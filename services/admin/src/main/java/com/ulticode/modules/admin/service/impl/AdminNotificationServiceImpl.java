@@ -11,6 +11,7 @@ import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationAdministrationService;
 import com.ulticode.notification.api.service.NotificationServiceContract;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
@@ -223,7 +224,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     // ── helpers ────────────────────────────────────────────────
 
     private String actorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
     /**
      * Re-fetch the full VO via the read port so the HTTP response shape

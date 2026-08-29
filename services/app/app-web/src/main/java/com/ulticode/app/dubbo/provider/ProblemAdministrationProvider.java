@@ -164,14 +164,10 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     }
     private <T> RpcResult<T> rejectIfUntrusted(
             com.ulticode.common.command.ActorDelegation actor, String traceId) {
-        try {
-            return actorAuthorizer.isAuthorized(actor)
-                    ? null
-                    : RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
-        } catch (RuntimeException exception) {
-            log.warn("Problem administration actor authorization failed", exception);
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
-        }
+        return com.ulticode.app.security.TrustedAdminActor.isTrusted(
+                        actorAuthorizer, actor, "problem administration")
+                ? null
+                : RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
     }
 
     private static String traceId(com.ulticode.common.command.WriteCommand command) {

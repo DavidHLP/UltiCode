@@ -23,34 +23,20 @@ public class InternalDelegationAssertionVerifier {
     private static final Duration CLOCK_SKEW = Duration.ofSeconds(5);
     private static final Duration MAX_ASSERTION_LIFETIME = Duration.ofMinutes(1);
 
-    @Value("${security.internal-delegation.secret:${jwt.secret:}}")
-    private String secret;
+    private final String secret;
+    private final String bootstrapSecret;
+    private final String expectedIssuer;
+    private final String expectedAudience;
 
-    @Value("${security.internal-delegation.bootstrap-secret:}")
-    private String bootstrapSecret;
-
-    @Value("${security.internal-delegation.issuer:" + DelegationAssertionContract.ISSUER + "}")
-    private String expectedIssuer;
-
-    @Value("${security.internal-delegation.audience:backend-auth}")
-    private String expectedAudience;
-
-    /** Spring constructor. */
-    public InternalDelegationAssertionVerifier() {
-    }
-
-    /** Focused-test constructor retaining the normal assertion seam. */
-    InternalDelegationAssertionVerifier(String secret, String expectedIssuer, String expectedAudience) {
-        this(secret, expectedIssuer, expectedAudience, "");
-    }
-
-    /** Focused-test constructor including the one-shot bootstrap secret. */
-    InternalDelegationAssertionVerifier(
-            String secret, String expectedIssuer, String expectedAudience, String bootstrapSecret) {
+    public InternalDelegationAssertionVerifier(
+            @Value("${security.internal-delegation.secret:${jwt.secret:}}") String secret,
+            @Value("${security.internal-delegation.bootstrap-secret:}") String bootstrapSecret,
+            @Value("${security.internal-delegation.issuer:" + DelegationAssertionContract.ISSUER + "}") String expectedIssuer,
+            @Value("${security.internal-delegation.audience:backend-auth}") String expectedAudience) {
         this.secret = secret;
+        this.bootstrapSecret = bootstrapSecret;
         this.expectedIssuer = expectedIssuer;
         this.expectedAudience = expectedAudience;
-        this.bootstrapSecret = bootstrapSecret;
     }
 
     /** Verify the current Dubbo caller's assertion for the requested actor. */

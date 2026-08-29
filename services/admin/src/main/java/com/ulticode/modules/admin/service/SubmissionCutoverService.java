@@ -8,6 +8,7 @@ import com.ulticode.submission.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
@@ -158,7 +159,7 @@ public class SubmissionCutoverService {
     }
 
     private String actorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
 
     private static IdMetadata idempotency(String requestedKey) {

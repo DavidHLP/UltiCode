@@ -276,12 +276,8 @@ public class ProfileWriteProvider implements ProfileWriteService {
         }
     }
     private boolean trustedActor(com.ulticode.common.command.ActorDelegation actor) {
-        try {
-            return actorAuthorizer.isAuthorized(actor);
-        } catch (RuntimeException exception) {
-            log.warn("Profile write actor authorization failed", exception);
-            return false;
-        }
+        return com.ulticode.app.security.TrustedAdminActor.isTrusted(
+                actorAuthorizer, actor, "profile write");
     }
 
     private static String extractIdempotencyKey(UpdateProfileCommand command) {

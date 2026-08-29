@@ -4,6 +4,7 @@ import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
@@ -99,7 +100,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
         ActorDelegation actor = new ActorDelegation(
-                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                AdminActors.typeOf(currentUserProvider),
                 actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
 
         // Compute target full replacement permission set

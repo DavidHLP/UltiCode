@@ -46,6 +46,9 @@ import com.ulticode.common.rpc.RpcPolicy;
 @RequiredArgsConstructor
 public class UserProvisioningAdapter implements UserProvisioningPort {
 
+    /** Roles that count as an active administrator for bootstrap gating. */
+    private static final List<String> ADMIN_ROLES = List.of("ADMIN", "SUPER_ADMIN");
+
     private final UuidGenerator uuidGenerator;
 
     @Autowired(required = false)
@@ -63,14 +66,21 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
     @Override
     public long countActiveAdministrators() {
         AccountQueryService queries = requireQueryService();
+        // Count only actual administrators (ADMIN + SUPER_ADMIN); counting
+        // every active account would block bootstrap whenever any regular
+        // user exists.
         try {
-            RpcResult<AuthAccountDTO> result = queries.queryAccounts(
-                    new AccountQueryDTO(null, null, true, false, 1, 1, "joinedAt", "desc"));
-            if (result == null || !result.success()
-                    || result.page() == null || result.page().total() == null) {
-                throw queryUnavailable("administrator count", result, null);
+            long total = 0L;
+            for (String role : ADMIN_ROLES) {
+                RpcResult<AuthAccountDTO> result = queries.queryAccounts(
+                        new AccountQueryDTO(null, role, true, false, 1, 1, "joinedAt", "desc"));
+                if (result == null || !result.success()
+                        || result.page() == null || result.page().total() == null) {
+                    throw queryUnavailable("administrator count", result, null);
+                }
+                total += result.page().total();
             }
-            return result.page().total();
+            return total;
         } catch (IllegalStateException exception) {
             throw exception;
         } catch (RuntimeException exception) {

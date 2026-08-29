@@ -245,19 +245,13 @@ public class ProblemListAdministrationProvider implements ProblemListAdministrat
             return RpcResult.failure(AppErrorCode.BAD_REQUEST, null);
         }
         ActorDelegation actor = command.actor();
-        if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
-                || (!"ADMIN".equalsIgnoreCase(actor.actorType())
-                && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
+        if (!com.ulticode.app.security.TrustedAdminActor.isAdminRole(actor)) {
             return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
         }
-        try {
-            return actorAuthorizer.isAuthorized(actor)
-                    ? null
-                    : RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
-        } catch (RuntimeException exception) {
-            log.warn("Problem-list actor authorization failed", exception);
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
-        }
+        return com.ulticode.app.security.TrustedAdminActor.isTrusted(
+                        actorAuthorizer, actor, "problem-list administration")
+                ? null
+                : RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
     }
 
     private static String traceId(WriteCommand command) {

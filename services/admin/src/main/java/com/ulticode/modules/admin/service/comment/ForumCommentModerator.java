@@ -8,6 +8,7 @@ import com.ulticode.app.api.service.ForumCommentAdministrationService;
 import com.ulticode.app.api.service.ForumCommentReadPort;
 import com.ulticode.app.api.service.ForumCommentReadPort.ForumCommentPage;
 import com.ulticode.app.api.service.ForumCommentReadPort.ForumCommentRow;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
@@ -156,7 +157,7 @@ public class ForumCommentModerator implements CommentModerator {
                 UUID.randomUUID().toString(),
                 IdMetadata.mint(),
                 new ActorDelegation(
-                        currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                        AdminActors.typeOf(currentUserProvider),
                         actorId, actorId, "forum comment moderation"),
                 currentTrace(),
                 commentId, action, reason, deletedBy);

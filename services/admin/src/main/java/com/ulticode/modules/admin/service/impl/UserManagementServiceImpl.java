@@ -15,6 +15,7 @@ import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
@@ -75,16 +76,13 @@ public class UserManagementServiceImpl implements UserManagementService {
         checkQueryServiceAvailable();
         checkManagementServiceAvailable();
 
-        RpcResult<AuthAccountDTO> usernameCheck = accountQueryService.getAccountByUsername(dto.getUsername());
-        if (usernameCheck != null && usernameCheck.success() && usernameCheck.data() != null) {
-            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Username already exists");
-        }
-
+        requireIdentityAvailable(
+                accountQueryService.getAccountByUsername(dto.getUsername()),
+                "username availability check", "Username already exists");
         if (StringUtils.hasText(dto.getEmail())) {
-            RpcResult<AuthAccountDTO> emailCheck = accountQueryService.getAccountByEmail(dto.getEmail());
-            if (emailCheck != null && emailCheck.success() && emailCheck.data() != null) {
-                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Email already exists");
-            }
+            requireIdentityAvailable(
+                    accountQueryService.getAccountByEmail(dto.getEmail()),
+                    "email availability check", "Email already exists");
         }
 
         String role = StringUtils.hasText(dto.getRole()) ? dto.getRole() : "USER";
@@ -136,17 +134,15 @@ public class UserManagementServiceImpl implements UserManagementService {
         AuthAccountDTO current = currentRpc.data();
 
         if (StringUtils.hasText(dto.getUsername()) && !dto.getUsername().equals(current.username())) {
-            RpcResult<AuthAccountDTO> existingUsername = accountQueryService.getAccountByUsername(dto.getUsername());
-            if (existingUsername != null && existingUsername.success() && existingUsername.data() != null) {
-                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Username already exists");
-            }
+            requireIdentityAvailable(
+                    accountQueryService.getAccountByUsername(dto.getUsername()),
+                    "username availability check", "Username already exists");
         }
 
         if (StringUtils.hasText(dto.getEmail()) && !dto.getEmail().equals(current.email())) {
-            RpcResult<AuthAccountDTO> existingEmail = accountQueryService.getAccountByEmail(dto.getEmail());
-            if (existingEmail != null && existingEmail.success() && existingEmail.data() != null) {
-                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Email already exists");
-            }
+            requireIdentityAvailable(
+                    accountQueryService.getAccountByEmail(dto.getEmail()),
+                    "email availability check", "Email already exists");
         }
 
         AuditContext.setOldValues(Map.of(
@@ -357,6 +353,27 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
     }
 
+    /**
+     * Fail closed identity conflict check: an existing account rejects the
+     * mutation, an explicit ACCOUNT_NOT_FOUND passes, and any other answer
+     * (null result, RPC error) aborts instead of being treated as "free".
+     */
+    private static void requireIdentityAvailable(
+            RpcResult<AuthAccountDTO> result, String operation, String conflictMessage) {
+        if (result != null && result.success() && result.data() != null) {
+            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, conflictMessage);
+        }
+        if (result != null && result.success()) {
+            return;
+        }
+        if (result != null && result.error() != null
+                && result.error().code() == com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND.code()) {
+            return;
+        }
+        throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                "AccountQueryService unavailable during " + operation);
+    }
+
     private AuthAccountDTO getAccountOrThrow(String id) {
         RpcResult<AuthAccountDTO> currentRpc = accountQueryService.getAccountById(id);
         if (currentRpc == null || !currentRpc.success() || currentRpc.data() == null) {
@@ -390,7 +407,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     private String currentActorType() {
-        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+        return AdminActors.typeOf(currentUserProvider);
     }
 
     private String currentActorId() {

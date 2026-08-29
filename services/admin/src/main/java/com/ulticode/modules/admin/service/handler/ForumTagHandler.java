@@ -8,6 +8,7 @@ import com.ulticode.app.api.service.ForumTagAdministrationService;
 import com.ulticode.app.api.service.ForumTagReadPort;
 import com.ulticode.app.api.service.ForumTagReadPort.ForumTagPage;
 import com.ulticode.app.api.service.ForumTagReadPort.ForumTagRow;
+import com.ulticode.common.auth.AdminActors;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
@@ -160,7 +161,7 @@ public class ForumTagHandler implements TagDomainHandler {
         if (actorId == null || actorId.isBlank()) {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
-        return new ActorDelegation(currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN", actorId, actorId, rationale);
+        return new ActorDelegation(AdminActors.typeOf(currentUserProvider), actorId, actorId, rationale);
     }
 
     private TagVO toTagVO(ForumTagRow tag) {

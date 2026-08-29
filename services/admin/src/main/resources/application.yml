@@ -85,6 +85,8 @@ security:
   internal-delegation:
     # Prefer a dedicated secret in production; JWT_SECRET is a compatibility fallback.
     secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
+    # Only the explicit one-shot bootstrap command may set this; no normal fallback.
+    bootstrap-secret: ${BOOTSTRAP_DELEGATION_SECRET:}
     issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
     audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-app}
     ttl-seconds: ${INTERNAL_DELEGATION_TTL_SECONDS:30}

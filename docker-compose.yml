@@ -13,6 +13,8 @@ services:
       MYSQL_DATABASE: ${DB_NAME:-ulticode}
       MYSQL_USER: ${DB_USER:-ulticode}
       MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      NACOS_DB_USER: ${NACOS_DB_USER:-}
+      NACOS_DB_PASSWORD: ${NACOS_DB_PASSWORD:-}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     volumes:

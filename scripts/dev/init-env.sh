@@ -73,6 +73,9 @@ nacos_password="Nacos!$(random_hex 18)"
 nacos_auth_token="$(random_base64 48)"
 nacos_identity_key="dev_$(random_hex 12)"
 nacos_identity_value="$(random_hex 24)"
+internal_delegation_secret="internal_$(random_hex 32)"
+bootstrap_delegation_secret="bootstrap_$(random_hex 32)"
+nacos_db_password="nacos_db_$(random_hex 24)"
 meili_master_key="meili_$(random_base64 32)"
 auth_db_password="auth_$(random_hex 18)"
 admin_db_password="admin_$(random_hex 18)"
@@ -160,6 +163,8 @@ JUDGE_REDIS_PASSWORD="$judge_redis_password"
 OPS_REDIS_PASSWORD="$ops_redis_password"
 
 JWT_SECRET="$jwt_secret"
+INTERNAL_DELEGATION_SECRET="$internal_delegation_secret"
+BOOTSTRAP_DELEGATION_SECRET="$bootstrap_delegation_secret"
 JWT_COOKIE_SECURE=false
 CORS_ALLOWED_ORIGINS=http://localhost:9002,http://localhost:9003,http://127.0.0.1:9002,http://127.0.0.1:9003
 FRONTEND_URL=http://localhost:9002
@@ -175,6 +180,8 @@ NACOS_PASSWORD="$nacos_password"
 NACOS_AUTH_TOKEN="$nacos_auth_token"
 NACOS_AUTH_IDENTITY_KEY="$nacos_identity_key"
 NACOS_AUTH_IDENTITY_VALUE="$nacos_identity_value"
+NACOS_DB_USER=nacos_rw
+NACOS_DB_PASSWORD="$nacos_db_password"
 
 SPRINGDOC_ENABLED=true
 MEILISEARCH_ENABLED=false

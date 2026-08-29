@@ -16,6 +16,7 @@ import com.ulticode.app.api.dto.ContestProblemInputDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestAdminReadPort;
 import com.ulticode.app.api.service.ContestAdministrationService;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
@@ -70,6 +71,7 @@ public class ContestAdministrationProvider implements ContestAdministrationServi
     private final ContestAdminReadPort readPort;
     private final AppCommandReceiptMapper receiptMapper;
     private final ObjectMapper objectMapper;
+    private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
     @Transactional
@@ -350,11 +352,23 @@ public class ContestAdministrationProvider implements ContestAdministrationServi
         return new ContestAdminViewDTO(contest.getId(), contest.getTitle(), contest.getStatus());
     }
 
-    private static void requireAdminActor(ActorDelegation actor) {
+    private void requireAdminActor(ActorDelegation actor) {
         if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
                 || (!"ADMIN".equalsIgnoreCase(actor.actorType())
                 && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
             throw new BusinessException(BaseErrorCode.FORBIDDEN, "Contest mutation requires an admin actor");
+        }
+        try {
+            if (!actorAuthorizer.isAuthorized(actor)) {
+                throw new BusinessException(BaseErrorCode.FORBIDDEN,
+                        "Contest mutation requires a trusted admin actor");
+            }
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            log.warn("Contest actor authorization failed", exception);
+            throw new BusinessException(BaseErrorCode.FORBIDDEN,
+                    "Contest mutation requires a trusted admin actor");
         }
     }
 

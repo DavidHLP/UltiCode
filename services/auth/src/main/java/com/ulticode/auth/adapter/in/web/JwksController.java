@@ -1,7 +1,6 @@
 package com.ulticode.auth.adapter.in.web;
 
 import com.ulticode.auth.security.jwt.RsaKeyManager;
-import com.ulticode.common.response.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +23,7 @@ public class JwksController {
     private final RsaKeyManager rsaKeyManager;
 
     @GetMapping("/jwks")
-    public Result<Map<String, Object>> getJwks() {
-        return Result.success(rsaKeyManager.toJwkSet());
+    public Map<String, Object> getJwks() {
+        return rsaKeyManager.toJwkSet();
     }
 }

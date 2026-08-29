@@ -166,6 +166,13 @@ management:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
       timeout: 5s
+security:
+  internal-delegation:
+    secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
+    # Only the explicit one-shot bootstrap command may set this; no normal fallback.
+    bootstrap-secret: ${BOOTSTRAP_DELEGATION_SECRET:}
+    issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-auth}
 
 # P1-INFRA-003: Dubbo 3.3.6 + Nacos registry.
 dubbo:

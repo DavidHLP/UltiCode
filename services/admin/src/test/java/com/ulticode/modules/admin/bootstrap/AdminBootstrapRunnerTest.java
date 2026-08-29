@@ -113,6 +113,7 @@ class AdminBootstrapRunnerTest {
     return new MockEnvironment()
         .withProperty("APP_BOOTSTRAP_ADMIN_USERNAME", "root")
         .withProperty("APP_BOOTSTRAP_ADMIN_EMAIL", "root@example.com")
-        .withProperty("APP_BOOTSTRAP_ADMIN_PASSWORD", "Admin!234567890Ab");
+        .withProperty("APP_BOOTSTRAP_ADMIN_PASSWORD", "Admin!234567890Ab")
+        .withProperty("BOOTSTRAP_DELEGATION_SECRET", "bootstrap-secret");
   }
 }

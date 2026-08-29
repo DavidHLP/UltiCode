@@ -321,6 +321,10 @@ public class NotificationIntegrationInboxBridge {
             }
             return 0;
         }
+        if (!expectedOwner(eventType, fields.get("owner"))) {
+            return stagePoison(binding, record, eventId,
+                    new IllegalArgumentException("Unexpected integration event owner"));
+        }
 
         Map<String, Object> payload;
         try {
@@ -427,6 +431,15 @@ public class NotificationIntegrationInboxBridge {
 
     private static void rejectPoison(Map<String, Object> payload) {
         throw new IllegalArgumentException("Poison integration event: " + payload.get("error"));
+    }
+    private static boolean expectedOwner(String eventType, String owner) {
+        if (EVENT_TYPE.equals(eventType)) {
+            return "App".equals(owner) || "Submission".equals(owner);
+        }
+        if (NOTIFICATION_EVENT_TYPE.equals(eventType)) {
+            return "App".equals(owner);
+        }
+        return true;
     }
     private static String required(Map<String, String> fields, String key) {
         String value = fields.get(key);

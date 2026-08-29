@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.crypto.SecretKey;
 import org.apache.dubbo.rpc.Filter;
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
@@ -55,8 +56,9 @@ class DelegationAssertionFilterSpiTest {
         DelegationAssertionSigner signer = new DelegationAssertionSigner();
         ReflectionTestUtils.setField(signer, "secret", SECRET);
         ReflectionTestUtils.setField(signer, "issuer", DelegationAssertionContract.ISSUER);
-        ReflectionTestUtils.setField(signer, "audience", DelegationAssertionContract.AUDIENCE);
         ReflectionTestUtils.setField(signer, "ttlSeconds", 30L);
+
+        assertThat(signer.issueForTarget("backend-untrusted")).isNull();
 
         Filter filter = getExtensionLoader(Filter.class)
                 .getExtension("delegationAssertionConsumer");
@@ -64,6 +66,9 @@ class DelegationAssertionFilterSpiTest {
         ((DelegationAssertionConsumerFilter) filter).setDelegationAssertionSigner(signer);
 
         Invoker<?> invoker = mock(Invoker.class);
+        URL target = mock(URL.class);
+        when(target.getParameter("application")).thenReturn("backend-app");
+        when(invoker.getUrl()).thenReturn(target);
         Invocation invocation = mock(Invocation.class);
         when(invoker.invoke(any())).thenAnswer(ignored -> {
             String assertion = RpcContext.getClientAttachment().getAttachment(
@@ -81,6 +86,55 @@ class DelegationAssertionFilterSpiTest {
             assertThat(claims.getId()).isNotBlank();
             assertThat(claims.get(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class))
                     .isEqualTo("backend-admin");
+            return mock(Result.class);
+        });
+
+        filter.invoke(invoker, invocation);
+        assertThat(RpcContext.getClientAttachment().getAttachment(
+                DelegationAssertionContract.ATTACHMENT_KEY)).isNull();
+    }
+
+    @Test
+    void bootstrapInvocationUsesOnlyScopedBootstrapAssertion() throws Exception {
+        DelegationAssertionSigner signer = new DelegationAssertionSigner();
+        ReflectionTestUtils.setField(signer, "bootstrapSecret", SECRET);
+        assertThat(signer.issueForBootstrap("backend-auth")).isNull();
+        ReflectionTestUtils.setField(signer, "developmentBootstrapEnabled", true);
+        ReflectionTestUtils.setField(signer, "issuer", DelegationAssertionContract.ISSUER);
+        ReflectionTestUtils.setField(signer, "ttlSeconds", 30L);
+
+        DelegationAssertionConsumerFilter filter = new DelegationAssertionConsumerFilter();
+        filter.setDelegationAssertionSigner(signer);
+        Invoker<?> invoker = mock(Invoker.class);
+        URL target = mock(URL.class);
+        when(target.getParameter("application")).thenReturn("backend-auth");
+        when(invoker.getUrl()).thenReturn(target);
+        Invocation invocation = mock(Invocation.class);
+        com.ulticode.auth.api.command.CreateAccountCommand command =
+                new com.ulticode.auth.api.command.CreateAccountCommand(
+                        "bootstrap-command",
+                        com.ulticode.common.tracing.IdMetadata.mint(),
+                        new com.ulticode.auth.api.command.ActorDelegation(
+                                "BOOTSTRAP", "bootstrap", "bootstrap", "one-shot"),
+                        com.ulticode.common.tracing.TraceMetadata.EMPTY,
+                        "bootstrap-user", "bootstrap@example.com", "Strong-password-123!", "ADMIN");
+        when(invocation.getMethodName()).thenReturn("createAccount");
+        when(invocation.getArguments()).thenReturn(new Object[] {command});
+        when(invoker.invoke(any())).thenAnswer(ignored -> {
+            String assertion = RpcContext.getClientAttachment().getAttachment(
+                    DelegationAssertionContract.ATTACHMENT_KEY);
+            Claims claims = Jwts.parser()
+                    .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                    .requireIssuer(DelegationAssertionContract.ISSUER)
+                    .requireAudience("backend-auth")
+                    .build()
+                    .parseSignedClaims(assertion)
+                    .getPayload();
+            assertThat(claims.getSubject()).isEqualTo("bootstrap");
+            assertThat(claims.get(DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class))
+                    .isEqualTo("BOOTSTRAP");
+            assertThat(claims.get(DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class))
+                    .isTrue();
             return mock(Result.class);
         });
 

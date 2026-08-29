@@ -41,6 +41,7 @@ public class AdminBootstrapRunner implements ApplicationRunner {
     String username = required("APP_BOOTSTRAP_ADMIN_USERNAME");
     String email = required("APP_BOOTSTRAP_ADMIN_EMAIL");
     String password = required("APP_BOOTSTRAP_ADMIN_PASSWORD");
+    required("BOOTSTRAP_DELEGATION_SECRET");
 
     if (!EMAIL_PATTERN.matcher(email).matches()) {
       throw new IllegalStateException("APP_BOOTSTRAP_ADMIN_EMAIL must be a valid email address");

@@ -13,6 +13,7 @@ import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,13 +41,30 @@ class ProblemListAdministrationProviderTest {
 
     @Mock
     private CommandReceiptExecutor receiptExecutor;
+    @Mock
+    private AdminActorAuthorizer actorAuthorizer;
 
     private ProblemListAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
         provider = new ProblemListAdministrationProvider(
-                problemListService, problemListAdminService, receiptExecutor);
+                problemListService, problemListAdminService, receiptExecutor, actorAuthorizer);
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+    }
+    @Test
+    void rejectsAnUntrustedActorBeforeTheProblemListReceiptBoundary() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
+
+        RpcResult<ProblemListSummaryDTO> result = provider.createProblemList(new CreateProblemListCommand(
+                "cmd-rejected",
+                IdMetadata.of("retry-rejected", null),
+                new ActorDelegation("ADMIN", "admin-1", "admin-1", "create list"),
+                new TraceMetadata("t-rejected", null, null, null),
+                "New List", null, true, null, null, null, null));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
     }
 
     @Test

@@ -88,6 +88,18 @@ class AdminAccountControllerTest {
             assertThat(command.actor().actorId()).isEqualTo("admin-123");
         }
 
+
+        @Test
+        @DisplayName("rejects a null Auth response instead of reporting success")
+        void nullAuthResponse() throws Exception {
+            when(accountManagementService.changePassword(any(ChangePasswordCommand.class)))
+                    .thenReturn(null);
+
+            mockMvc.perform(post("/admin/account/change-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(VALID_BODY))
+                    .andExpect(status().isInternalServerError());
+        }
         @Test
         @DisplayName("rejects a missing confirm password (400)")
         void missingConfirmPassword() throws Exception {

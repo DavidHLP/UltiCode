@@ -46,7 +46,7 @@ vi.mock("vue-i18n", () => ({
 }));
 
 vi.mock("vue-sonner", () => ({
-  toast: { error: mocks.toastError },
+  toast: { error: mocks.toastError, warning: mocks.toastError },
 }));
 
 vi.mock("lucide-vue-next", () => ({

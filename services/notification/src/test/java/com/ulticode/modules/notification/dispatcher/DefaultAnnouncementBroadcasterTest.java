@@ -1,6 +1,7 @@
 package com.ulticode.modules.notification.dispatcher;
 
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.app.api.dto.NotificationRecipientDTO;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
@@ -87,5 +88,23 @@ class DefaultAnnouncementBroadcasterTest {
                 .hasMessage("No target users found");
 
         verify(notificationMapper, never()).batchInsert(org.mockito.ArgumentMatchers.anyList());
+    }
+    @Test
+    @DisplayName("USERS resolves recipients with one batched owner lookup")
+    void explicitUsersUseBatchLookup() {
+        when(userNotificationReadPort.findByIds(List.of("user-1", "user-2", "user-1")))
+                .thenReturn(List.of(
+                        new NotificationRecipientDTO("user-1", "one@example.com", true, false),
+                        new NotificationRecipientDTO("user-2", "two@example.com", true, false)));
+        when(uuidGenerator.newId()).thenReturn("announcement-2");
+
+        AnnouncementBroadcaster.Outcome outcome = broadcaster.broadcast(
+                "Maintenance", "Scheduled maintenance", "SYSTEM_ANNOUNCEMENT",
+                NotificationCategory.SYSTEM, "USERS", List.of("user-1", "user-2", "user-1"), Map.of(), null);
+
+        assertThat(outcome.totalTargets()).isEqualTo(2);
+        assertThat(outcome.delivered()).isEqualTo(2);
+        verify(userNotificationReadPort).findByIds(List.of("user-1", "user-2", "user-1"));
+        verify(userNotificationReadPort, never()).findById(org.mockito.ArgumentMatchers.anyString());
     }
 }

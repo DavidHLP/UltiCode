@@ -1,7 +1,6 @@
 package com.ulticode.modules.notification.channel;
 
 import com.ulticode.app.api.dto.NotificationRecipientDTO;
-import com.ulticode.app.api.service.UserNotificationReadPort;
 import com.ulticode.modules.email.constants.EmailStatus;
 import com.ulticode.modules.email.dto.EmailLogDTO;
 import com.ulticode.modules.email.dto.SendEmailDTO;
@@ -40,10 +39,9 @@ public class EmailNotificationChannel implements NotificationChannel {
      * not be wired in. We tolerate the bean being absent and treat lookup
      * failure as a missing-recipient (handled in {@link #send}).
      *
-     * <p>The concrete adapter type avoids the ambiguity between the local
-     * {@link DubboUserNotificationReadAdapter} component and the
-     * {@code @DubboReference} proxy bean ({@code appRecipientReadPort}), both
-     * of which implement {@link UserNotificationReadPort}.
+     * <p>The Auth-backed adapter is injected directly. It implements the App
+     * compatibility port only to preserve the notification module's narrow
+     * recipient interface while its RPC targets remain in Auth.
      *
      * <p>Package-private to allow unit tests in the same package to inject
      * a mock directly (the {@code @Autowired(required = false)} path is

@@ -14,6 +14,7 @@ import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.auth.permission.service.PermissionService;
 import com.ulticode.auth.service.AccountAdministrationWorkflow;
+import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
 import com.ulticode.auth.service.DefaultAccountAdministrationWorkflow;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
@@ -44,6 +45,7 @@ class AccountAdministrationProviderTest {
     private AuthAccountPort authAccountPort;
     private PermissionService permissionService;
     private AuthCommandReceiptMapper receiptMapper;
+    private InternalDelegationAssertionVerifier delegationVerifier;
     private AccountAdministrationProvider provider;
 
     private ActorDelegation actor;
@@ -60,10 +62,24 @@ class AccountAdministrationProviderTest {
                 new DefaultAccountAdministrationWorkflow(authAccountPort, permissionService);
         CommandReceiptExecutor receiptExecutor =
                 new CommandReceiptExecutor(receiptMapper, objectMapper, clock);
-        provider = new AccountAdministrationProvider(workflow, receiptExecutor);
+        delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
+        when(delegationVerifier.isTrusted(any())).thenReturn(true);
+        provider = new AccountAdministrationProvider(workflow, receiptExecutor, delegationVerifier);
 
         actor = new ActorDelegation("ADMIN", "admin-1", "org-1", "reason");
         trace = new TraceMetadata("t-123", "span-1", null, null);
+    }
+    @Test
+    @DisplayName("rejects account mutation without a trusted delegation assertion")
+    void rejectsUntrustedActor() {
+        when(delegationVerifier.isTrusted(any())).thenReturn(false);
+
+        RpcResult<AccountStateDTO> result = provider.changeState(stateCommand(
+                "cmd-untrusted", IdMetadata.mint(), "user-1", 1L,
+                ChangeAccountStateCommand.AccountStateAction.DISABLE));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(40300);
     }
 
     @Test
@@ -201,6 +217,23 @@ class AccountAdministrationProviderTest {
         }
     }
 
+
+    @Test
+    @DisplayName("bootstrap actor cannot change authorization")
+    void bootstrapActorCannotChangeAuthorization() {
+        ActorDelegation bootstrap = new ActorDelegation(
+                "BOOTSTRAP", "bootstrap", "bootstrap", "one-shot");
+        ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
+                "cmd-bootstrap-authz", IdMetadata.mint(), bootstrap, trace,
+                "user-1", 1L, "ADMIN", Set.of(), "bootstrap scope test");
+
+        RpcResult<AuthorizationSnapshotDTO> result = provider.changeAuthorization(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(40300);
+        verify(authAccountPort, never()).updateAccountIfVersion(
+                anyString(), anyBoolean(), anyBoolean(), anyString(), anyLong());
+    }
     @Test
     @DisplayName("changeAuthorization updates role, synchronizes permissions and bumps version")
     void changeAuthorizationSuccess() {

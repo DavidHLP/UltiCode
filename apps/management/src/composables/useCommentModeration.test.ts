@@ -33,10 +33,12 @@ vi.mock('vue-i18n', () => ({
 
 const toastSuccess = vi.fn()
 const toastError = vi.fn()
+const toastWarning = vi.hoisted(() => vi.fn())
 vi.mock('vue-sonner', () => ({
   toast: {
     success: (...args: unknown[]) => toastSuccess(...args),
     error: (...args: unknown[]) => toastError(...args),
+    warning: (...args: unknown[]) => toastWarning(...args),
   },
 }))
 

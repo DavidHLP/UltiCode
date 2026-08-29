@@ -52,6 +52,8 @@ import org.springframework.stereotype.Component;
  * version so an equal-or-older UPSERT cannot resurrect a deleted document.
  * The version is also embedded in the Meili document as
  * {@code _aggregateVersion} for diff watermark and observability.
+ * Replicas serialize versioned operations for the same index/document with a
+ * short Redis lease; lock contention leaves the event in the PEL for retry.
  */
 @Slf4j
 @Component
@@ -99,6 +101,13 @@ public class SearchDocumentIndexWorker {
             redis.call('XACK', KEYS[1], ARGV[11], ARGV[12])
             return 1
             """, Long.class);
+
+    /** Lease covering the Redis ledger read, Meili write and ledger write. */
+    private static final Duration DOCUMENT_LOCK_TTL = Duration.ofSeconds(30);
+
+    private static final RedisScript<Long> RELEASE_DOCUMENT_LOCK_SCRIPT = RedisScript.of(
+            "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end",
+            Long.class);
 
     public SearchDocumentIndexWorker(
             StringRedisTemplate redisTemplate,
@@ -375,53 +384,38 @@ public class SearchDocumentIndexWorker {
         }
 
         try {
+            String owner = fields.get(SearchDocumentChangedEventContract.OWNER_FIELD);
+            if (owner == null || !SearchDocumentChangedEventContract.SUPPORTED_PUBLISHERS.contains(owner)) {
+                throw new IllegalArgumentException("unsupported search event owner: " + owner);
+            }
             Map<String, Object> payload = objectMapper.readValue(fields.get("payload"), payloadType);
             String index = stringField(payload, SearchDocumentChangedEventContract.INDEX);
             String operation = stringField(payload, SearchDocumentChangedEventContract.OPERATION);
             if (!SearchDocumentChangedEventContract.SUPPORTED_INDEXES.contains(index)) {
                 throw new IllegalArgumentException("unsupported search index: " + index);
             }
+            String expectedOwner = SearchDocumentChangedEventContract.USERS_INDEX.equals(index)
+                    ? SearchDocumentChangedEventContract.AUTH_PUBLISHER
+                    : SearchDocumentChangedEventContract.APP_PUBLISHER;
+            if (!expectedOwner.equals(owner)) {
+                throw new IllegalArgumentException(
+                        "search event owner does not own index: " + owner + " -> " + index);
+            }
             String documentId = fields.get(SearchDocumentChangedEventContract.AGGREGATE_ID);
             if (documentId == null || documentId.isBlank()) {
                 throw new IllegalArgumentException("missing aggregateId for search event");
             }
             long incomingVersion = parseVersion(fields.get(SearchDocumentChangedEventContract.AGGREGATE_VERSION));
-            String versionKey = props.getVersionKeyPrefix() + ":" + index;
 
-            if (SearchDocumentChangedEventContract.UPSERT.equals(operation)) {
-                Object document = payload.get(SearchDocumentChangedEventContract.DOCUMENT);
-                if (document == null) {
-                    throw new IllegalArgumentException("UPSERT search event without document");
-                }
-                String existing = ledgerVersion(versionKey, documentId);
-                if (isStale(existing, incomingVersion)) {
-                    // Stale snapshot or a write older than a tombstone (e.g.
-                    // backfill racing a newer live write or an unpublish):
-                    // skip the write but still ACK — the newer state is indexed.
-                    staleCounter.increment();
-                    ack(record);
-                    return true;
-                }
-                Map<String, Object> doc = objectMapper.readValue(
-                        objectMapper.writeValueAsString(document), payloadType);
-                doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
-                meiliSearchClient.index(index).addDocuments(objectMapper.writeValueAsString(doc));
-                redisTemplate.opsForHash().put(versionKey, documentId, String.valueOf(incomingVersion));
-            } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
-                meiliSearchClient.index(index).deleteDocument(documentId);
-                // Tombstone the ledger with the delete's version (stored
-                // negative): a later UPSERT that is not strictly newer than
-                // the delete is skipped, so a stale backfill snapshot can
-                // never resurrect a deleted document (DEC-016 revision).
-                redisTemplate.opsForHash().put(
-                        versionKey, documentId, "-" + incomingVersion);
-            } else {
-                throw new IllegalArgumentException("unsupported operation: " + operation);
-            }
-
+            boolean applied = applyVersionedOperation(
+                    record, index, documentId, incomingVersion, operation, payload);
             ack(record);
+            if (!applied) {
+                return true;
+            }
             processedCounter.increment();
             return true;
+
         } catch (Exception e) {
             // Leave in PEL: reclaimed on the next cycle, dead-lettered after
             // maxAttempts deliveries.
@@ -431,9 +425,62 @@ public class SearchDocumentIndexWorker {
         }
     }
 
+    private boolean applyVersionedOperation(
+            MapRecord<String, String, String> record,
+            String index,
+            String documentId,
+            long incomingVersion,
+            String operation,
+            Map<String, Object> payload) throws Exception {
+        String versionKey = props.getVersionKeyPrefix() + ":" + index;
+        String lockKey = versionKey + ":lock:" + documentId;
+        String lockToken = consumerName + ":" + record.getId().getValue();
+        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(
+                lockKey, lockToken, DOCUMENT_LOCK_TTL);
+        if (!Boolean.TRUE.equals(acquired)) {
+            throw new IllegalStateException("search document lock busy: " + index + "/" + documentId);
+        }
+
+        try {
+            String existing = ledgerVersion(versionKey, documentId);
+            if (isStale(existing, incomingVersion)) {
+                staleCounter.increment();
+                return false;
+            }
+            if (SearchDocumentChangedEventContract.UPSERT.equals(operation)) {
+                Object document = payload.get(SearchDocumentChangedEventContract.DOCUMENT);
+                if (document == null) {
+                    throw new IllegalArgumentException("UPSERT search event without document");
+                }
+                Map<String, Object> doc = objectMapper.readValue(
+                        objectMapper.writeValueAsString(document), payloadType);
+                doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
+                meiliSearchClient.index(index).addDocuments(objectMapper.writeValueAsString(doc));
+                redisTemplate.opsForHash().put(versionKey, documentId, String.valueOf(incomingVersion));
+            } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
+                meiliSearchClient.index(index).deleteDocument(documentId);
+                redisTemplate.opsForHash().put(
+                        versionKey, documentId, "-" + incomingVersion);
+            } else {
+                throw new IllegalArgumentException("unsupported operation: " + operation);
+            }
+            return true;
+        } finally {
+            releaseDocumentLock(lockKey, lockToken);
+        }
+    }
+
+    private void releaseDocumentLock(String lockKey, String lockToken) {
+        try {
+            redisTemplate.execute(RELEASE_DOCUMENT_LOCK_SCRIPT, List.of(lockKey), lockToken);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to release search document lock {}: {}", lockKey, exception.getMessage());
+        }
+    }
+
     /**
-     * Whether an incoming UPSERT must be skipped because the ledger already
-     * holds a newer state for the document:
+     * Whether an incoming versioned operation must be skipped because the
+     * ledger already holds a newer state for the document:
      * <ul>
      *   <li>positive ledger value = last written version: skip iff
      *       existing &gt; incoming (equal rewrites, idempotent);</li>

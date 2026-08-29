@@ -35,8 +35,9 @@ public class AdminCreateUserDTO {
     private String name;
 
     /**
-     * Password (optional - if not provided, user may need to set it later)
+     * Password used to initialize the Auth-owned credential.
      */
+    @NotBlank(message = "Password is required")
     @Size(min = 6, max = 255, message = "Password must be between 6 and 255 characters")
     private String password;
 

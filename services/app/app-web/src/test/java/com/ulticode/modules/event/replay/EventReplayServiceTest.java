@@ -17,6 +17,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 /**
@@ -62,21 +63,19 @@ class EventReplayServiceTest {
         @Test
         @DisplayName("Replay resets DELIVERED/DEAD rows to PENDING")
         void replayResetsToPending() {
-            when(outboxMapper.selectList(any())).thenReturn(List.of(
-                    makeOutboxRecord("evt-1", "DELIVERED", "agg-1", 0),
-                    makeOutboxRecord("evt-2", "DEAD", "agg-1", 5)));
+            when(outboxMapper.update(isNull(), any())).thenReturn(2);
 
             int count = service.replayOutbox(null);
 
             assertThat(count).isEqualTo(2);
-            verify(outboxMapper, times(2)).updateById(any(IntegrationOutboxRecord.class));
+            verify(outboxMapper).update(isNull(), any());
+            verify(outboxMapper, never()).selectList(any());
         }
 
         @Test
         @DisplayName("Replay by aggregateId filters correctly")
         void replayByAggregate() {
-            when(outboxMapper.selectList(any())).thenReturn(List.of(
-                    makeOutboxRecord("evt-1", "DEAD", "target-agg", 5)));
+            when(outboxMapper.update(isNull(), any())).thenReturn(1);
 
             int count = service.replayOutbox("target-agg");
 
@@ -91,21 +90,19 @@ class EventReplayServiceTest {
         @Test
         @DisplayName("Replay resets PROCESSED/DEAD rows to PENDING for a consumer")
         void replayInboxByConsumer() {
-            when(inboxMapper.selectList(any())).thenReturn(List.of(
-                    makeInboxRecord("in-1", "App", "evt-1", "PROCESSED"),
-                    makeInboxRecord("in-2", "App", "evt-2", "DEAD")));
+            when(inboxMapper.update(isNull(), any())).thenReturn(2);
 
             int count = service.replayInbox("App", null);
 
             assertThat(count).isEqualTo(2);
-            verify(inboxMapper, times(2)).updateById(any(ConsumerInboxRecord.class));
+            verify(inboxMapper).update(isNull(), any());
+            verify(inboxMapper, never()).selectList(any());
         }
 
         @Test
         @DisplayName("Replay specific event by eventId")
         void replaySpecificEvent() {
-            when(inboxMapper.selectList(any())).thenReturn(List.of(
-                    makeInboxRecord("in-1", "App", "target-evt", "DEAD")));
+            when(inboxMapper.update(isNull(), any())).thenReturn(1);
 
             int count = service.replayInbox("App", "target-evt");
 
@@ -131,25 +128,23 @@ class EventReplayServiceTest {
         @Test
         @DisplayName("Clear DEAD outbox events (purge DLQ)")
         void clearDeadOutbox() {
-            when(outboxMapper.selectList(any())).thenReturn(List.of(
-                    makeOutboxRecord("dead-1", "DEAD", "agg-1", 5)));
+            when(outboxMapper.delete(any())).thenReturn(1);
 
             int count = service.clearDeadOutbox();
 
             assertThat(count).isEqualTo(1);
-            verify(outboxMapper).deleteById("dead-1");
+            verify(outboxMapper).delete(any());
         }
 
         @Test
         @DisplayName("Re-route DEAD outbox events back to PENDING")
         void rerouteDeadOutbox() {
-            when(outboxMapper.selectList(any())).thenReturn(List.of(
-                    makeOutboxRecord("dead-1", "DEAD", "agg-1", 5)));
+            when(outboxMapper.update(isNull(), any())).thenReturn(1);
 
             int count = service.rerouteDeadOutbox();
 
             assertThat(count).isEqualTo(1);
-            verify(outboxMapper).updateById(any(IntegrationOutboxRecord.class));
+            verify(outboxMapper).update(isNull(), any());
         }
 
         @Test

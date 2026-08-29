@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.ulticode.common.security.DelegationAssertionContract;
+import org.apache.dubbo.common.URL;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
@@ -24,8 +25,11 @@ class DelegationAssertionConsumerFilterTest {
     @Test
     void configuredSignerAssertionIsAttachedOnlyForDownstreamCall() throws Exception {
         DelegationAssertionSigner signer = mock(DelegationAssertionSigner.class);
-        when(signer.issueForCurrentUser()).thenReturn("signed-assertion");
+        when(signer.issueForTarget("backend-app")).thenReturn("signed-assertion");
         Invoker<?> invoker = mock(Invoker.class);
+        URL target = mock(URL.class);
+        when(target.getParameter("application")).thenReturn("backend-app");
+        when(invoker.getUrl()).thenReturn(target);
         Invocation invocation = mock(Invocation.class);
         when(invoker.invoke(any())).thenAnswer(ignored -> {
             assertThat(RpcContext.getClientAttachment().getAttachment(

@@ -4,6 +4,7 @@ import com.ulticode.app.api.command.UpdateProfileCommand;
 import com.ulticode.app.api.command.UploadAvatarCommand;
 import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.app.api.service.ProfileWriteService;
 import com.ulticode.app.idempotency.entity.AppCommandReceiptEntity;
 import com.ulticode.app.idempotency.mapper.AppCommandReceiptMapper;
@@ -48,11 +49,15 @@ public class ProfileWriteProvider implements ProfileWriteService {
     private final UserProfileMapper userProfileMapper;
     private final AppCommandReceiptMapper receiptMapper;
     private final ObjectMapper objectMapper;
+    private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
     @Transactional
     public RpcResult<ProfileWriteResult> updateProfile(UpdateProfileCommand command) {
         String traceId = safeTraceId(command);
+        if (!trustedActor(command == null ? null : command.actor())) {
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
+        }
         String idempotencyKey = extractIdempotencyKey(command);
         String fingerprint = computeFingerprint(command);
 
@@ -158,7 +163,10 @@ public class ProfileWriteProvider implements ProfileWriteService {
     @Override
     @Transactional
     public RpcResult<ProfileWriteResult> uploadAvatar(UploadAvatarCommand command) {
-        String traceId = command.trace() != null ? command.trace().traceId() : null;
+        String traceId = command != null && command.trace() != null ? command.trace().traceId() : null;
+        if (!trustedActor(command == null ? null : command.actor())) {
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
+        }
         String idempotencyKey = command.idempotency() != null
                 ? command.idempotency().idempotencyKey() : null;
         String fingerprint = sha256Hex(command.accountId() + "|" + command.avatarUrl());
@@ -265,6 +273,14 @@ public class ProfileWriteProvider implements ProfileWriteService {
             log.error("Failed to record avatar receipt for commandId={}, key={}: {}",
                     command.commandId(), idempotencyKey, e.getMessage());
             throw new RuntimeException("Idempotency receipt insert failed", e);
+        }
+    }
+    private boolean trustedActor(com.ulticode.common.command.ActorDelegation actor) {
+        try {
+            return actorAuthorizer.isAuthorized(actor);
+        } catch (RuntimeException exception) {
+            log.warn("Profile write actor authorization failed", exception);
+            return false;
         }
     }
 

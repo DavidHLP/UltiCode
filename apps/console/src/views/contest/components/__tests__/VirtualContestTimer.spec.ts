@@ -36,6 +36,7 @@ vi.mock("vue-sonner", () => ({
   toast: {
     error: toastErrorMock,
   },
+    warning: vi.fn(),
 }));
 
 const stubs = {

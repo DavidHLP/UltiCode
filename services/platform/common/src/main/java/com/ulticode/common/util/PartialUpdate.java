@@ -1,7 +1,5 @@
 package com.ulticode.common.util;
 
-import org.springframework.util.StringUtils;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -34,7 +32,7 @@ import java.util.function.Function;
  * PartialUpdate.setIfPresent(dto, UpdateUserDTO::getName, user::setName);
  * PartialUpdate.setIfPresent(dto, dto -> dto.getIsActive(), user::setIsActive);
  *
- * // String-typed field (use hasText so an empty string is treated as "absent")
+ * // String-typed field (use isBlank so an empty string is treated as "absent")
  * PartialUpdate.setIfPresentText(dto, AdminUpdateUserDTO::getUsername, user::setUsername);
  * }</pre>
  */
@@ -59,13 +57,13 @@ public final class PartialUpdate {
 
     /**
      * If {@code getter.apply(dto)} is non-null and non-blank (per
-     * {@link StringUtils#hasText(CharSequence)}), call {@code setter.accept(value)}.
+     * {@link String#isBlank()}), call {@code setter.accept(value)}.
      * Use this for {@code String} DTO fields where an empty string should be
      * treated as "the user did not set this field".
      */
     public static <D> void setIfPresentText(D dto, Function<D, String> getter, Consumer<String> setter) {
         String value = getter.apply(dto);
-        if (StringUtils.hasText(value)) {
+        if (value != null && !value.isBlank()) {
             setter.accept(value);
         }
     }

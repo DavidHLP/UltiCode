@@ -16,6 +16,7 @@ import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,12 +45,29 @@ class ProblemAdministrationProviderTest {
 
     @Mock
     private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
+    @Mock
+    private AdminActorAuthorizer actorAuthorizer;
 
     private ProblemAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
-        provider = new ProblemAdministrationProvider(domainService, searchPublisher);
+        provider = new ProblemAdministrationProvider(domainService, searchPublisher, actorAuthorizer);
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+    }
+    @Test
+    @DisplayName("rejects an untrusted actor before mutating the problem owner")
+    void rejectsUntrustedActor() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
+        CreateProblemCommand command = new CreateProblemCommand(
+                UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
+                "two-sum", "Two Sum", UUID.randomUUID().toString());
+
+        RpcResult<ProblemAdminViewDTO> result = provider.createProblem(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        verify(domainService, org.mockito.Mockito.never()).createProblem(any(), any());
     }
 
     private static ActorDelegation adminActor() {

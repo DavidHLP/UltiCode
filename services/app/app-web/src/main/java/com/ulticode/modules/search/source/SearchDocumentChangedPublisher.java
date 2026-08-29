@@ -84,10 +84,9 @@ public class SearchDocumentChangedPublisher {
     /**
      * Publish an UPSERT or DELETE for a user document (SEARCH-001 slice-b).
      *
-     * <p>Auth publishes identity writes ({@code id}/{@code username}); App
-     * publishes profile enrichment ({@code name}/{@code avatar}) after
-     * {@code user_profiles} writes. Each side publishes a complete,
-     * self-sufficient document; last write wins per document id.
+     * <p>Auth owns the {@code users} index. App profile writes publish the
+     * complete user projection with the Auth owner tag so the Search worker
+     * enforces one owner per index while the profile migration is staged.
      *
      * @param aggregateId the user id (document id)
      * @param username    display username ({@code null} for DELETE)
@@ -100,8 +99,10 @@ public class SearchDocumentChangedPublisher {
         if (aggregateId == null || aggregateId.isBlank()) {
             return;
         }
-        publish(SearchDocumentChangedEventContract.USERS_INDEX, aggregateId,
-                upsert ? SearchDocumentBuilders.user(aggregateId, username, name, avatar) : null);
+        publishForOwner(SearchDocumentChangedEventContract.AUTH_PUBLISHER,
+                SearchDocumentChangedEventContract.USERS_INDEX, aggregateId,
+                upsert ? SearchDocumentBuilders.user(aggregateId, username, name, avatar) : null,
+                clock.instant().toEpochMilli());
     }
 
     /**
@@ -125,37 +126,42 @@ public class SearchDocumentChangedPublisher {
         if (document != null) {
             SearchDocumentChangedEventContract.requireSafeDocument(document);
         }
-        publish(index, documentId, document, versionMillis);
+        publishForOwner(ownerForIndex(index), index, documentId, document, versionMillis);
     }
 
     private void publish(String index, String documentId, Map<String, Object> document) {
-        publish(index, documentId, document, clock.instant().toEpochMilli());
+        publishForOwner(ownerForIndex(index), index, documentId, document, clock.instant().toEpochMilli());
     }
 
-    private void publish(String index, String documentId, Map<String, Object> document,
-                         long versionMillis) {
+    private void publishForOwner(String owner, String index, String documentId,
+                                 Map<String, Object> document, long versionMillis) {
         Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put(SearchDocumentChangedEventContract.INDEX, index);
-            payload.put(SearchDocumentChangedEventContract.OPERATION,
-                    document == null
-                            ? SearchDocumentChangedEventContract.DELETE
-                            : SearchDocumentChangedEventContract.UPSERT);
-            if (document != null) {
-                SearchDocumentChangedEventContract.requireSafeDocument(document);
-                payload.put(SearchDocumentChangedEventContract.DOCUMENT, document);
-            }
-            LocalDateTime occurredAt = LocalDateTime.now(clock);
-            payload.put(SearchDocumentChangedEventContract.OCCURRED_AT, occurredAt.toString());
+        payload.put(SearchDocumentChangedEventContract.INDEX, index);
+        payload.put(SearchDocumentChangedEventContract.OPERATION,
+                document == null
+                        ? SearchDocumentChangedEventContract.DELETE
+                        : SearchDocumentChangedEventContract.UPSERT);
+        if (document != null) {
+            SearchDocumentChangedEventContract.requireSafeDocument(document);
+            payload.put(SearchDocumentChangedEventContract.DOCUMENT, document);
+        }
+        LocalDateTime occurredAt = LocalDateTime.now(clock);
+        payload.put(SearchDocumentChangedEventContract.OCCURRED_AT, occurredAt.toString());
 
-            integrationEventPublisher.publish(
-                    SearchDocumentChangedEventContract.APP_PUBLISHER,
-                    SearchDocumentChangedEventContract.EVENT_TYPE,
-                    documentId,
-                    versionMillis,
-                    null,
-                    null,
-                    payload);
-            log.debug("Published {} {} event for {} at version {}", index,
-                    payload.get(SearchDocumentChangedEventContract.OPERATION), documentId, versionMillis);
+        integrationEventPublisher.publish(
+                owner,
+                SearchDocumentChangedEventContract.EVENT_TYPE,
+                documentId,
+                versionMillis,
+                null,
+                null,
+                payload);
+        log.debug("Published {} {} event for {} at version {}", index,
+                payload.get(SearchDocumentChangedEventContract.OPERATION), documentId, versionMillis);
+    }
+    private static String ownerForIndex(String index) {
+        return SearchDocumentChangedEventContract.USERS_INDEX.equals(index)
+                ? SearchDocumentChangedEventContract.AUTH_PUBLISHER
+                : SearchDocumentChangedEventContract.APP_PUBLISHER;
     }
 }

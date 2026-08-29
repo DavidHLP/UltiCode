@@ -167,6 +167,28 @@ contains scripts/dev/stop.sh 'pm2 delete'
 not_contains scripts/pitstop-start-backend.ps1 'mvn spring-boot:run'
 not_contains services/admin/src/main/java/com/ulticode/admin/security/jwt/AccountReadAdapter.java 'UserFactsProjection'
 
+# Security and repair regressions: keep the executable boundaries aligned with
+# the source-level fixes so future migrations cannot silently reopen them.
+replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
+replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
+[[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"
+contains docker/redis/generate-users-acl.sh '~stream:integration'
+contains docker/redis/users.acl '~stream:integration'
+contains services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksController.java 'public Map<String, Object> getJwks()'
+contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'backend-auth'
+contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
+contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ContestAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
+contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
+contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
+contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
+not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'
+contains docker/initdb/02-nacos-user.sh 'NACOS_DB_USER'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.bootstrap-admin.enabled:false'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.dev-users.enabled:false'
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'issueForBootstrap'
+contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'BOOTSTRAP_CLAIM'
+not_contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_SECRET='
+
 # Documentation-drift assertions live in docs-contract-test.sh; run it here so
 # existing callers of this script keep covering both halves of the contract.
 bash "$ROOT_DIR/scripts/dev/docs-contract-test.sh"

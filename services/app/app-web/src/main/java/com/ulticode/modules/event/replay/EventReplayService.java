@@ -5,6 +5,8 @@ import com.ulticode.modules.event.inbox.ConsumerInboxRecord;
 import com.ulticode.modules.event.outbox.IntegrationOutboxMapper;
 import com.ulticode.modules.event.outbox.IntegrationOutboxRecord;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -43,22 +45,21 @@ public class EventReplayService {
      * @return number of events reset to PENDING
      */
     public int replayOutbox(String aggregateId) {
-        LambdaQueryWrapper<IntegrationOutboxRecord> wrapper = new LambdaQueryWrapper<IntegrationOutboxRecord>()
-                .in(IntegrationOutboxRecord::getState, "DELIVERED", "DEAD");
+        LocalDateTime now = LocalDateTime.now();
+        UpdateWrapper<IntegrationOutboxRecord> update = new UpdateWrapper<IntegrationOutboxRecord>()
+                .in("state", "DELIVERED", "DEAD")
+                .set("state", "PENDING")
+                .set("attempts", 0)
+                .set("last_error", null)
+                .set("stream_id", null)
+                .set("claimed_at", null)
+                .set("claim_owner", null)
+                .set("delivered_at", null)
+                .set("next_retry_at", now);
         if (aggregateId != null) {
-            wrapper.eq(IntegrationOutboxRecord::getAggregateId, aggregateId);
+            update.eq("aggregate_id", aggregateId);
         }
-        List<IntegrationOutboxRecord> records = outboxMapper.selectList(wrapper);
-
-        int count = 0;
-        for (IntegrationOutboxRecord record : records) {
-            record.setState("PENDING");
-            record.setAttempts(0);
-            record.setLastError(null);
-            record.setNextRetryAt(java.time.LocalDateTime.now());
-            outboxMapper.updateById(record);
-            count++;
-        }
+        int count = outboxMapper.update(null, update);
         log.info("Replay: reset {} outbox events to PENDING (aggregateId={})", count, aggregateId);
         return count;
     }
@@ -73,25 +74,21 @@ public class EventReplayService {
      * @return number of events reset to PENDING
      */
     public int replayInbox(String consumer, String eventId) {
-        LambdaQueryWrapper<ConsumerInboxRecord> wrapper = new LambdaQueryWrapper<ConsumerInboxRecord>()
-                .in(ConsumerInboxRecord::getState, "PROCESSED", "DEAD")
-                .eq(ConsumerInboxRecord::getConsumer, consumer);
+        LocalDateTime now = LocalDateTime.now();
+        UpdateWrapper<ConsumerInboxRecord> update = new UpdateWrapper<ConsumerInboxRecord>()
+                .in("state", "PROCESSED", "DEAD")
+                .eq("consumer", consumer)
+                .set("state", "PENDING")
+                .set("attempts", 0)
+                .set("last_error", null)
+                .set("lease_owner", null)
+                .set("lease_expires_at", null)
+                .set("processed_at", null)
+                .set("next_retry_at", now);
         if (eventId != null) {
-            wrapper.eq(ConsumerInboxRecord::getEventId, eventId);
+            update.eq("event_id", eventId);
         }
-        List<ConsumerInboxRecord> records = inboxMapper.selectList(wrapper);
-
-        int count = 0;
-        for (ConsumerInboxRecord record : records) {
-            record.setState("PENDING");
-            record.setAttempts(0);
-            record.setLastError(null);
-            record.setLeaseOwner(null);
-            record.setLeaseExpiresAt(null);
-            record.setNextRetryAt(java.time.LocalDateTime.now());
-            inboxMapper.updateById(record);
-            count++;
-        }
+        int count = inboxMapper.update(null, update);
         log.info("Replay: reset {} inbox events to PENDING (consumer={}, eventId={})",
                 count, consumer, eventId);
         return count;
@@ -126,12 +123,11 @@ public class EventReplayService {
      * @return number of events deleted
      */
     public int clearDeadOutbox() {
-        List<IntegrationOutboxRecord> dead = listDeadOutbox();
-        for (IntegrationOutboxRecord record : dead) {
-            outboxMapper.deleteById(record.getEventId());
-        }
-        log.info("DLQ purge: deleted {} DEAD outbox events", dead.size());
-        return dead.size();
+        int count = outboxMapper.delete(
+                new LambdaQueryWrapper<IntegrationOutboxRecord>()
+                        .eq(IntegrationOutboxRecord::getState, "DEAD"));
+        log.info("DLQ purge: deleted {} DEAD outbox events", count);
+        return count;
     }
 
     /**
@@ -141,16 +137,18 @@ public class EventReplayService {
      * @return number of events re-routed
      */
     public int rerouteDeadOutbox() {
-        List<IntegrationOutboxRecord> dead = listDeadOutbox();
-        int count = 0;
-        for (IntegrationOutboxRecord record : dead) {
-            record.setState("PENDING");
-            record.setAttempts(0);
-            record.setLastError(null);
-            record.setNextRetryAt(java.time.LocalDateTime.now());
-            outboxMapper.updateById(record);
-            count++;
-        }
+        int count = outboxMapper.update(
+                null,
+                new UpdateWrapper<IntegrationOutboxRecord>()
+                        .eq("state", "DEAD")
+                        .set("state", "PENDING")
+                        .set("attempts", 0)
+                        .set("last_error", null)
+                        .set("stream_id", null)
+                        .set("claimed_at", null)
+                        .set("claim_owner", null)
+                        .set("delivered_at", null)
+                        .set("next_retry_at", LocalDateTime.now()));
         log.info("DLQ re-route: reset {} DEAD outbox events to PENDING", count);
         return count;
     }

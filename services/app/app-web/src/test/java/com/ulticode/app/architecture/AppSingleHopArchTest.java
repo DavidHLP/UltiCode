@@ -5,11 +5,18 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.lang.ArchCondition;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 
 /**
  * P4-RPC-002: single-hop RPC chain prevention for {@code backend-app}.
@@ -71,9 +78,20 @@ public class AppSingleHopArchTest {
      */
     @ArchTest
     static final ArchRule DUBBO_PROVIDER_MUST_NOT_ALSO_BE_CONSUMER =
-            noClasses()
-                    .that().areAnnotatedWith("org.apache.dubbo.config.annotation.DubboService")
-                    .should().beAnnotatedWith("org.apache.dubbo.config.annotation.DubboReference")
+            classes()
+                    .that().areAnnotatedWith(DubboService.class)
+                    .should(new ArchCondition<JavaClass>("not declare @DubboReference fields") {
+                        @Override
+                        public void check(JavaClass item, ConditionEvents events) {
+                            item.getFields().stream()
+                                    .filter(field -> field.isAnnotatedWith(DubboReference.class))
+                                    .forEach(field -> events.add(new SimpleConditionEvent(
+                                            item,
+                                            false,
+                                            item.getName() + " declares @DubboReference field "
+                                                    + field.getName())));
+                        }
+                    })
                     .because("§6.5: a Dubbo Provider class must not also hold a "
                             + "@DubboReference, which would make it a Consumer "
                             + "and create a controller → dubbo A → dubbo B chain.");
@@ -87,6 +105,20 @@ public class AppSingleHopArchTest {
         assertThatThrownBy(() -> CONTEST_PROVIDER_MUST_NOT_IMPORT_ADMIN_INTERNALS.check(imported))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining("ContestProviderFixture");
+    }
+    @Test
+    void providerConsumerRuleRejectsReferenceField() {
+        var imported = new ClassFileImporter().importClasses(ProviderWithConsumerFixture.class);
+
+        assertThatThrownBy(() -> DUBBO_PROVIDER_MUST_NOT_ALSO_BE_CONSUMER.check(imported))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("ProviderWithConsumerFixture");
+    }
+
+    @DubboService
+    static class ProviderWithConsumerFixture {
+        @DubboReference
+        private Object consumer;
     }
 
     /**

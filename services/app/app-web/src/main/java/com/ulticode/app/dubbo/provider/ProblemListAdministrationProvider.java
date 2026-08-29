@@ -13,6 +13,7 @@ import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.command.WriteCommand;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
@@ -54,6 +55,7 @@ public class ProblemListAdministrationProvider implements ProblemListAdministrat
     private final ProblemListService problemListService;
     private final ProblemListAdminService problemListAdminService;
     private final CommandReceiptExecutor receiptExecutor;
+    private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
     public RpcResult<ProblemListSummaryDTO> createProblemList(CreateProblemListCommand command) {
@@ -238,7 +240,7 @@ public class ProblemListAdministrationProvider implements ProblemListAdministrat
         }
     }
 
-    private static <T> RpcResult<T> rejectIfNotAdmin(WriteCommand command) {
+    private <T> RpcResult<T> rejectIfNotAdmin(WriteCommand command) {
         if (command == null) {
             return RpcResult.failure(AppErrorCode.BAD_REQUEST, null);
         }
@@ -248,7 +250,14 @@ public class ProblemListAdministrationProvider implements ProblemListAdministrat
                 && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
             return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
         }
-        return null;
+        try {
+            return actorAuthorizer.isAuthorized(actor)
+                    ? null
+                    : RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
+        } catch (RuntimeException exception) {
+            log.warn("Problem-list actor authorization failed", exception);
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
+        }
     }
 
     private static String traceId(WriteCommand command) {

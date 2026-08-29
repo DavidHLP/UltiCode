@@ -69,6 +69,9 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Override
     @Audited(action = AuditVocabulary.CREATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "#result.id")
     public AdminUserVO createUser(AdminCreateUserDTO dto) {
+        if (dto == null || !StringUtils.hasText(dto.getPassword())) {
+            throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Password is required");
+        }
         checkQueryServiceAvailable();
         checkManagementServiceAvailable();
 
@@ -93,7 +96,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                 currentTrace(),
                 dto.getUsername(),
                 dto.getEmail(),
-                dto.getPassword() != null ? dto.getPassword() : "DefaultPass123",
+                dto.getPassword(),
                 role
         );
 
@@ -164,7 +167,8 @@ public class UserManagementServiceImpl implements UserManagementService {
                 newUsername,
                 newEmail
         );
-        accountManagementService.updateCredentials(updateCredsCmd);
+        requireSuccessful(accountManagementService.updateCredentials(updateCredsCmd),
+                "Account credentials update failed");
 
         UpdateProfileCommand profileCmd = new UpdateProfileCommand(
                 UUID.randomUUID().toString(),
@@ -184,21 +188,18 @@ public class UserManagementServiceImpl implements UserManagementService {
         userProfilePort.updateProfile(profileCmd);
 
         if (StringUtils.hasText(dto.getRole()) && !dto.getRole().equals(current.role())) {
-            try {
-                if (accountAdministrationService != null) {
-                    String stableKey = "auth-role-update-" + currentTrace().traceId() + "-" + id;
-                    String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
-                    ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                            commandId, IdMetadata.of(stableKey, null), authActor("admin user update"), currentTrace(),
-                            id, current.authzVersion(), dto.getRole(), Collections.emptySet(), "update user role"
-                    );
-                    accountAdministrationService.changeAuthorization(command);
-                } else {
-                    log.warn("AccountAdministrationService unavailable; role change for user {} skipped", id);
-                }
-            } catch (RuntimeException e) {
-                log.warn("Role change failed for user {}: {}", id, e.getMessage());
+            if (accountAdministrationService == null) {
+                throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                        "AccountAdministrationService unavailable");
             }
+            String stableKey = "auth-role-update-" + currentTrace().traceId() + "-" + id;
+            String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
+            ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
+                    commandId, IdMetadata.of(stableKey, null), authActor("admin user update"), currentTrace(),
+                    id, current.authzVersion(), dto.getRole(), Collections.emptySet(), "update user role"
+            );
+            requireSuccessful(accountAdministrationService.changeAuthorization(command),
+                    "Account role update failed");
         }
 
         AuditContext.setNewValues(Map.of(
@@ -266,7 +267,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                 id,
                 "admin delete user"
         );
-        accountManagementService.deleteAccount(command);
+        requireSuccessful(accountManagementService.deleteAccount(command), "Account deletion failed");
         log.info("User deleted: {}", id);
     }
 
@@ -286,7 +287,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                 newPassword,
                 "admin reset password"
         );
-        accountManagementService.resetPassword(command);
+        requireSuccessful(accountManagementService.resetPassword(command), "Password reset failed");
         log.info("Password reset for user: {}", id);
     }
 
@@ -342,11 +343,17 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     private void executeStateChange(ChangeAccountStateCommand command) {
-        if (accountAdministrationService != null) {
-            RpcResult<AccountStateDTO> res = accountAdministrationService.changeState(command);
-            if (res == null || !res.success()) {
-                throw new BusinessException(AdminErrorCode.VALIDATION_FAILED, "Account state mutation failed");
-            }
+        if (accountAdministrationService == null) {
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "AccountAdministrationService unavailable");
+        }
+        requireSuccessful(accountAdministrationService.changeState(command),
+                "Account state mutation failed");
+    }
+
+    private static void requireSuccessful(RpcResult<?> result, String message) {
+        if (result == null || !result.success()) {
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, message);
         }
     }
 
@@ -372,12 +379,18 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     private com.ulticode.auth.api.command.ActorDelegation authActor(String rationale) {
         String actorId = currentActorId();
-        return new com.ulticode.auth.api.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
+        return new com.ulticode.auth.api.command.ActorDelegation(
+                currentActorType(), actorId, actorId, rationale);
     }
 
     private com.ulticode.common.command.ActorDelegation appActor(String rationale) {
         String actorId = currentActorId();
-        return new com.ulticode.common.command.ActorDelegation("ADMIN", actorId, actorId, rationale);
+        return new com.ulticode.common.command.ActorDelegation(
+                currentActorType(), actorId, actorId, rationale);
+    }
+
+    private String currentActorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
     }
 
     private String currentActorId() {

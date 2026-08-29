@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-08-28
+更新时间：2026-08-29
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与生产触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -26,6 +26,7 @@
 默认 `dev-lite` 使用 App-local Submission；只有 `dev-full` 且 cutover gate 完成后才使用独立 Submission Owner。App 与 Submission 仍各自保留 writer、projection、mapper、dispatcher 和 reaper 的实现，部分核心实现已经分叉。
 
 影响：single-writer 不是代码结构事实；日常开发主要验证 local 分支，修复可能只落在其中一份实现，降低 Locality 并延长 Strangler migration。
+Admin rejudge compatibility remains an App-owned `SubmissionAdministrationService` under Dubbo group `backend-app`; `backend-submission` exports no implementation of that contract. The enabled Admin cutover flag therefore targets App compatibility, not the independent Submission Owner, and must not be described as completed Owner cutover.
 
 证据：
 
@@ -106,6 +107,14 @@
 | Submission 写事务同步回访 App/Auth | request owner 传入不可变 `SubmissionFactsSnapshot` 并 fail closed |
 | 游离 `services/com` 编译产物 | 当前 source tree 已清除 |
 | Services 问题文档多入口与状态漂移 | 本文件为唯一注册表，`PROJECT_DOCUMENTATION.md` 只保留导航链接 |
+| SVC-011 | Replay/DLQ HTTP operations are method-protected with `ADMIN|SUPER_ADMIN` and have MockMvc denied-path coverage |
+| SVC-012 | Admin delegation assertions are target-audience bound; Auth, App profile/problem/contest/list/submission writes reject missing or invalid trust |
+| SVC-013 | Production Compose requires RS256/JWKS, dedicated internal-delegation secret, explicit Dubbo namespace, and a least-privilege Nacos DB account |
+| SVC-014 | Replay/DLQ mutations use set-based SQL updates/deletes instead of unbounded read-plus-N+1 writes |
+| SVC-015 | Notification explicit-recipient resolution uses one Auth batch read and no longer routes through an App provider hop |
+| SVC-016 | Search and SubmissionJudged inbox bridges reject events with unsupported owner tags before durable handling |
+| SVC-017 | Search versioned index operations use a per-index/document Redis lease; stale/equal DELETE and lock-contention regressions are covered by worker tests |
+| SVC-018 | Bootstrap provisioning uses a dedicated `BOOTSTRAP` actor, scoped assertion secret, explicit runner gate, and provider operation allowlist; restore RPC failures propagate |
 
 ## ACCEPTED
 

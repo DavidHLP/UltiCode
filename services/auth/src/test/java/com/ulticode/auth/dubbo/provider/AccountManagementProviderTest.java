@@ -15,6 +15,7 @@ import com.ulticode.auth.idempotency.CommandReceiptExecutor;
 import com.ulticode.auth.idempotency.entity.AuthCommandReceiptEntity;
 import com.ulticode.auth.idempotency.mapper.AuthCommandReceiptMapper;
 import com.ulticode.auth.util.UuidGenerator;
+import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
@@ -43,6 +44,7 @@ class AccountManagementProviderTest {
     private AuthCommandReceiptMapper receiptMapper;
     private ObjectMapper objectMapper;
     private AccountManagementProvider provider;
+    private InternalDelegationAssertionVerifier delegationVerifier;
 
     private ActorDelegation actor;
     private TraceMetadata trace;
@@ -64,10 +66,40 @@ class AccountManagementProviderTest {
                 new AccountManagementEngine(accountPort, passwordEncoder, uuidGenerator, clock);
         CommandReceiptExecutor receiptExecutor =
                 new CommandReceiptExecutor(receiptMapper, objectMapper, clock);
-        provider = new AccountManagementProvider(engine, receiptExecutor);
+        delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
+        when(delegationVerifier.isTrusted(any())).thenReturn(true);
+        provider = new AccountManagementProvider(engine, receiptExecutor, delegationVerifier);
 
         actor = new ActorDelegation("ADMIN", "admin-1", "admin-1", "test account mgmt");
         trace = new TraceMetadata("t-trace-1", null, null, null);
+    }
+    @Test
+    @DisplayName("rejects account mutation without a trusted delegation assertion")
+    void rejectsUntrustedActor() {
+        when(delegationVerifier.isTrusted(any())).thenReturn(false);
+
+        RpcResult<AccountMutationDTO> result = provider.createAccount(createCommand(
+                "cmd-untrusted", IdMetadata.mint(), "newuser", "new@example.com",
+                "secret123", "USER"));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(40300);
+    }
+
+    @Test
+    @DisplayName("bootstrap actor cannot invoke non-provisioning account operations")
+    void bootstrapActorCannotDeleteAccount() {
+        ActorDelegation bootstrap = new ActorDelegation(
+                "BOOTSTRAP", "bootstrap", "bootstrap", "one-shot");
+        DeleteAccountCommand command = new DeleteAccountCommand(
+                "cmd-bootstrap-delete", IdMetadata.mint(), bootstrap, trace,
+                "user-1", "bootstrap scope test");
+
+        RpcResult<AccountMutationDTO> result = provider.deleteAccount(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(40300);
+        verify(accountPort, never()).softDelete(any(), any());
     }
 
     @Test

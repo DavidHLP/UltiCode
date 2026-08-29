@@ -16,6 +16,8 @@ import java.util.UUID;
  *
  * <p>Claims PENDING result events and publishes SubmissionJudged events to
  * the shared {@code stream:integration} Redis stream via
+ * Submission owner events are tagged with the canonical `Submission` owner;
+ * App-local compatibility events remain tagged `App`.
  * {@link ResultEventPublisher} (DEC-014: no second integration-outbox table;
  * the result row itself is the durable outbox).
  *
@@ -85,7 +87,7 @@ public class SubmissionResultDispatcher {
 
         resultEventPublisher.publish(
                 record.getId(),
-                "App",
+                "Submission",
                 "SubmissionJudged",
                 record.getSubmissionId(),
                 generation,

@@ -14,6 +14,7 @@ import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
@@ -62,6 +63,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     private final ProblemListAdministrationService problemListAdministrationService;
     private final ProblemListChainReadPort problemListChainReadPort;
     private final AdminProblemListProjection adminProblemListProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public PageResult<ProblemListSummaryDTO> getProblemLists(AdminProblemListQueryDTO query) {
@@ -89,7 +91,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.createProblemList(
                 new CreateProblemListCommand(
                         commandId("create", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", authorId, authorId, "admin create problem list"),
+                        new ActorDelegation(actorType(), authorId, authorId, "admin create problem list"),
                         currentTrace(),
                         dto.getName(), dto.getDescription(), dto.getIsPublic(),
                         dto.getBannerTag(), dto.getBannerIcon(), dto.getBannerTheme(), dto.getBannerOrder()));
@@ -115,7 +117,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateProblemList(
                 new UpdateProblemListCommand(
                         commandId("update", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", userId, userId, "admin update problem list"),
+                        new ActorDelegation(actorType(), userId, userId, "admin update problem list"),
                         currentTrace(), id,
                         dto.getName(), dto.getDescription(), dto.getIsPublic(), dto.getIsFeatured(),
                         dto.getBannerTag(), dto.getBannerIcon(), dto.getBannerTheme(), dto.getBannerOrder()));
@@ -141,7 +143,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<Void> result = problemListAdministrationService.deleteProblemList(
                 new DeleteProblemListCommand(
                         commandId("delete", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", userId, userId, "admin delete problem list"),
+                        new ActorDelegation(actorType(), userId, userId, "admin delete problem list"),
                         currentTrace(), id));
         requireSuccess(result);
     }
@@ -171,7 +173,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<Void> result = problemListAdministrationService.replaceListProblems(
                 new ReplaceListProblemsCommand(
                         commandId("replace-problems", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", userId, userId, "admin replace list problems"),
+                        new ActorDelegation(actorType(), userId, userId, "admin replace list problems"),
                         currentTrace(), id, entries));
         requireSuccess(result);
         AuditContext.setNewValues(Map.of("updatedProblems", dto.getProblems().size()));
@@ -199,7 +201,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateBasicInfo(
                 new UpdateBasicInfoCommand(
                         commandId("basic-info", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", userId, userId, "admin update basic info"),
+                        new ActorDelegation(actorType(), userId, userId, "admin update basic info"),
                         currentTrace(), id, dto.getName(), dto.getDescription()));
         ProblemListSummaryDTO vo = requireSuccess(result);
 
@@ -232,7 +234,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateVisibility(
                 new UpdateVisibilityCommand(
                         commandId("visibility", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", userId, userId, "admin update visibility"),
+                        new ActorDelegation(actorType(), userId, userId, "admin update visibility"),
                         currentTrace(), id, dto.getIsPublic(), dto.getIsFeatured()));
         ProblemListSummaryDTO vo = requireSuccess(result);
 
@@ -267,7 +269,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         RpcResult<ProblemListSummaryDTO> result = problemListAdministrationService.updateBanner(
                 new UpdateBannerCommand(
                         commandId("banner", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", userId, userId, "admin update banner"),
+                        new ActorDelegation(actorType(), userId, userId, "admin update banner"),
                         currentTrace(), id,
                         dto.getBannerTag(), dto.getBannerIcon(), dto.getBannerTheme(), dto.getBannerOrder()));
         ProblemListSummaryDTO vo = requireSuccess(result);
@@ -353,6 +355,10 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR, err.message());
     }
 
+
+    private String actorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
+    }
     private static IdMetadata idempotency(String requestedKey) {
         if (requestedKey == null || requestedKey.isBlank()) {
             return IdMetadata.mint();

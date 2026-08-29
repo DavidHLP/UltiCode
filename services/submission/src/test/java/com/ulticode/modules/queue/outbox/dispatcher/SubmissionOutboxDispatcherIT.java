@@ -343,7 +343,7 @@ class SubmissionOutboxDispatcherIT {
                 "eventId", "owner", "aggregateId", "aggregateVersion",
                 "eventType", "schemaVersion", "payload");
         assertThat(event.getValue().get("eventType")).isEqualTo("SubmissionJudged");
-        assertThat(event.getValue().get("owner")).isEqualTo("App");
+        assertThat(event.getValue().get("owner")).isEqualTo("Submission");
         assertThat(event.getValue().get("aggregateId")).isEqualTo("sub-3");
         assertThat(event.getValue().get("payload").toString()).contains("ACCEPTED");
     }

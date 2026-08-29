@@ -8,10 +8,10 @@ import java.util.List;
 /**
  * Focused recipient read seam consumed by the notification owner.
  *
- * <p>The App provider composes App profile data with an Auth-owned recipient
- * query. Notification preferences are intentionally not part of this port;
- * they remain local to the notification owner and are evaluated by its
- * dispatcher.
+ * <p>The Notification adapter queries Auth directly and maps its minimum
+ * account projection into this contract. Notification preferences are
+ * intentionally not part of this port; they remain local to the notification
+ * owner and are evaluated by its dispatcher.
  */
 public interface UserNotificationReadPort {
 

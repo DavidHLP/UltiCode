@@ -45,6 +45,7 @@ vi.mock("vue-sonner", () => ({
     error: vi.fn(),
     success: vi.fn(),
     info: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 

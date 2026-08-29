@@ -17,7 +17,7 @@ vi.mock('vue-i18n', () => ({
 }))
 
 vi.mock('vue-sonner', () => ({
-  toast: { success: vi.fn() },
+  toast: { success: vi.fn(), warning: vi.fn() },
 }))
 
 vi.mock('@/components/ui/separator', () => ({

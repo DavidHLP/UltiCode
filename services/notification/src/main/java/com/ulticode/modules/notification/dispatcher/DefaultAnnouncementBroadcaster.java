@@ -12,7 +12,6 @@ import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -20,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,9 +38,10 @@ import java.util.stream.Collectors;
  * {@code SystemAlertIntent}; preserving that exception is part of the
  * preservation invariant.
  *
- * <p>User resolution is provided by the {@link UserNotificationReadPort} App owner seam.
- * {@code ALL} recipients come from Auth's active-account query; explicit
- * {@code USERS} recipients are verified through the same read port.
+ * <p>User resolution uses the Auth-backed adapter behind the
+ * {@link UserNotificationReadPort} compatibility seam. {@code ALL} recipients
+ * come from Auth's active-account query; explicit {@code USERS} recipients
+ * are verified through the same adapter.
  *
  * @author ulticode
  */
@@ -64,7 +65,6 @@ public class DefaultAnnouncementBroadcaster implements AnnouncementBroadcaster {
     private final Clock clock;
 
     @Override
-    @Transactional
     public Outcome broadcast(String title,
                              String body,
                              String type,
@@ -146,11 +146,16 @@ public class DefaultAnnouncementBroadcaster implements AnnouncementBroadcaster {
             if (userIds == null || userIds.isEmpty()) {
                 return Collections.emptyList();
             }
-            // Verify each userId exists and return only those found
+            Map<String, NotificationRecipientDTO> recipientsById = userNotificationReadPort.findByIds(userIds)
+                    .stream()
+                    .filter(recipient -> eligible(recipient) && recipient.userId() != null)
+                    .collect(Collectors.toMap(NotificationRecipientDTO::userId,
+                            Function.identity(), (first, ignored) -> first));
             return userIds.stream()
-                    .map(userNotificationReadPort::findById)
-                    .filter(this::eligible)
+                    .map(recipientsById::get)
+                    .filter(Objects::nonNull)
                     .map(NotificationRecipientDTO::userId)
+                    .distinct()
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();

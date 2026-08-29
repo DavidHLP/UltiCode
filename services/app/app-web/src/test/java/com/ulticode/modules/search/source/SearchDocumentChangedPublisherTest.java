@@ -43,14 +43,25 @@ class SearchDocumentChangedPublisherTest {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> capturePayload(String aggregateId) {
-        return capturePayload(aggregateId, FIXED_VERSION_MILLIS);
+        return capturePayload(SearchDocumentChangedEventContract.APP_PUBLISHER,
+                aggregateId, FIXED_VERSION_MILLIS);
+    }
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> capturePayload(String aggregateId, long versionMillis) {
+        return capturePayload(SearchDocumentChangedEventContract.APP_PUBLISHER,
+                aggregateId, versionMillis);
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> capturePayload(String aggregateId, long versionMillis) {
+    private Map<String, Object> capturePayload(String owner, String aggregateId) {
+        return capturePayload(owner, aggregateId, FIXED_VERSION_MILLIS);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> capturePayload(String owner, String aggregateId, long versionMillis) {
         ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
         verify(integrationEventPublisher).publish(
-                eq(SearchDocumentChangedEventContract.APP_PUBLISHER),
+                eq(owner),
                 eq(SearchDocumentChangedEventContract.EVENT_TYPE),
                 eq(aggregateId),
                 eq(versionMillis),
@@ -124,7 +135,8 @@ class SearchDocumentChangedPublisherTest {
     void publishUser_upsertCarriesVersion() {
         publisher.publishUser("u-1", "alice", "Alice", "/a.png", true);
 
-        Map<String, Object> payload = capturePayload("u-1");
+        Map<String, Object> payload = capturePayload(
+                SearchDocumentChangedEventContract.AUTH_PUBLISHER, "u-1");
         assertThat(payload.get(SearchDocumentChangedEventContract.INDEX))
                 .isEqualTo(SearchDocumentChangedEventContract.USERS_INDEX);
         Map<String, Object> document =

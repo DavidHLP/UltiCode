@@ -47,8 +47,7 @@ class UserProvisioningAdapterTest {
         accountQueryService = mock(AccountQueryService.class);
         accountManagementService = mock(AccountManagementService.class);
         accountAdministrationService = mock(AccountAdministrationService.class);
-        adapter = new UserProvisioningAdapter(
-                new PasswordEncoderStub(), new FixedUuidGenerator());
+        adapter = new UserProvisioningAdapter(new FixedUuidGenerator());
         ReflectionTestUtils.setField(adapter, "accountQueryService", accountQueryService);
         ReflectionTestUtils.setField(adapter, "accountManagementService", accountManagementService);
         ReflectionTestUtils.setField(adapter, "accountAdministrationService", accountAdministrationService);
@@ -110,7 +109,7 @@ class UserProvisioningAdapterTest {
     }
 
     @Test
-    void createAdministratorSendsCommandWithEncodedPassword() {
+    void createAdministratorSendsRawPasswordToAuthForHashing() {
         RpcResult<com.ulticode.auth.api.dto.AccountMutationDTO> okResult =
                 RpcResult.success(
                         new com.ulticode.auth.api.dto.AccountMutationDTO("u-new", "newadmin", "new@example.com", "ADMIN", true, false, 1L, false),
@@ -126,6 +125,7 @@ class UserProvisioningAdapterTest {
         assertThat(command.trace()).isNotNull();
         assertThat(command.trace().traceId()).isNotBlank();
         assertThat(command.actor().actorId()).isEqualTo("bootstrap");
+        assertThat(command.actor().actorType()).isEqualTo("BOOTSTRAP");
     }
 
     @Test
@@ -137,6 +137,51 @@ class UserProvisioningAdapterTest {
                 new UserProvisioningPort.AdministratorSpec(
                         "dupe", "D", "d@e.com", "pw", "USER")))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void restoreAdministratorStopsWhenCredentialUpdateFails() {
+        AuthAccountDTO current = new AuthAccountDTO(
+                "u-restore", "old", "old@example.com", "USER",
+                true, false, null, null, LocalDateTime.now(), null, 0L);
+        when(accountQueryService.getAccountById("u-restore"))
+                .thenReturn(RpcResult.success(current, "t-test"));
+        when(accountManagementService.updateCredentials(any()))
+                .thenReturn(RpcResult.failure(
+                        com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND, "t-test"));
+
+        assertThatThrownBy(() -> adapter.restoreAdministrator("u-restore",
+                new UserProvisioningPort.AdministratorSpec(
+                        "restored", "Restored", "restored@example.com", "newpass", "ADMIN")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to update administrator credentials");
+        verify(accountManagementService, never()).resetPassword(any());
+        verify(accountAdministrationService, never()).changeState(any());
+    }
+
+    @Test
+    void restoreAdministratorStopsWhenPasswordResetFails() {
+        AuthAccountDTO current = new AuthAccountDTO(
+                "u-restore", "old", "old@example.com", "USER",
+                true, false, null, null, LocalDateTime.now(), null, 0L);
+        when(accountQueryService.getAccountById("u-restore"))
+                .thenReturn(RpcResult.success(current, "t-test"));
+        when(accountManagementService.updateCredentials(any()))
+                .thenReturn(RpcResult.success(
+                        new com.ulticode.auth.api.dto.AccountMutationDTO(
+                                "u-restore", "restored", "restored@example.com",
+                                "ADMIN", true, false, 1L, false),
+                        "t-test"));
+        when(accountManagementService.resetPassword(any()))
+                .thenReturn(RpcResult.failure(
+                        com.ulticode.auth.api.error.AuthErrorCode.ACCOUNT_NOT_FOUND, "t-test"));
+
+        assertThatThrownBy(() -> adapter.restoreAdministrator("u-restore",
+                new UserProvisioningPort.AdministratorSpec(
+                        "restored", "Restored", "restored@example.com", "newpass", "ADMIN")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to reset administrator password");
+        verify(accountAdministrationService, never()).changeState(any());
     }
 
     @Test
@@ -201,21 +246,4 @@ class UserProvisioningAdapterTest {
         assertThat(spec.toString()).doesNotContain("secret");
     }
 
-    /** Minimal fake that records the cleartext and returns a distinguishable encoded value. */
-    private static final class PasswordEncoderStub implements org.springframework.security.crypto.password.PasswordEncoder {
-        @Override
-        public String encode(CharSequence rawPassword) {
-            return "encoded:" + rawPassword;
-        }
-
-        @Override
-        public boolean matches(CharSequence rawPassword, String encodedPassword) {
-            return ("encoded:" + rawPassword).equals(encodedPassword);
-        }
-
-        @Override
-        public boolean upgradeEncoding(String encodedPassword) {
-            return false;
-        }
-    }
 }

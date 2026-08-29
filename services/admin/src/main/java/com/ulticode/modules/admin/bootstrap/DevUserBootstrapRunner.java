@@ -47,6 +47,7 @@ public class DevUserBootstrapRunner implements ApplicationRunner {
     String username = required("DEV_SEED_ADMIN_USERNAME");
     String email = required("DEV_SEED_ADMIN_EMAIL");
     String password = required("DEV_SEED_ADMIN_PASSWORD");
+    required("BOOTSTRAP_DELEGATION_SECRET");
     String role = environment.getProperty("DEV_SEED_ADMIN_ROLE", "ADMIN").toUpperCase();
     if (!ALLOWED_ROLES.contains(role)) {
       throw new IllegalStateException("DEV_SEED_ADMIN_ROLE must be ADMIN or SUPER_ADMIN");

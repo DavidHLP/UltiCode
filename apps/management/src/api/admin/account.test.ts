@@ -12,7 +12,9 @@ vi.mock('@/utils/request', () => ({
 vi.mock('vue-sonner', () => ({
   toast: {
     success: vi.fn(),
+    warning: vi.fn(),
   },
+    warning: vi.fn(),
 }))
 
 const profile: AccountProfile = {

@@ -4,8 +4,10 @@ import com.ulticode.modules.queue.migration.JudgeStreamLegacyMigration;
 import com.ulticode.modules.queue.outbox.reaper.UnackedStreamEntriesReaper;
 import com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor;
 import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
+import com.ulticode.modules.submission.service.CodeExecutionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,5 +31,10 @@ class JudgeRuntimeConfigurationTest {
         assertThat(DefaultJudgeAttemptExecutor.class.isAnnotationPresent(Component.class)).isFalse();
         assertThat(UnackedStreamEntriesReaper.class.isAnnotationPresent(Component.class)).isFalse();
         assertThat(JudgeStreamLegacyMigration.class.isAnnotationPresent(Component.class)).isFalse();
+    }
+
+    @Test
+    void concreteExecutionServiceIsPrimaryOverTheDubboProvider() {
+        assertThat(CodeExecutionService.class.isAnnotationPresent(Primary.class)).isTrue();
     }
 }

@@ -13,6 +13,8 @@ public final class DelegationAssertionContract {
     public static final String AUDIENCE = "backend-app";
     public static final String ACTOR_SERVICE_CLAIM = "actor_service";
     public static final String ACTOR_TYPE_CLAIM = "actor_type";
+    /** Claim marking an explicitly approved one-shot bootstrap assertion. */
+    public static final String BOOTSTRAP_CLAIM = "bootstrap";
 
     private DelegationAssertionContract() {
     }

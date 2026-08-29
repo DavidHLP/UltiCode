@@ -261,7 +261,7 @@ Auth owner。
 - **`backend-auth`**：账号、凭证、OAuth identity、JWT、refresh session、账号状态和 RBAC；不拥有用户画像、题目、竞赛或运营数据。
 - **`backend-admin`**：管理端 BFF、审核治理、审计、系统配置、监控和备份；“能管理某数据”不等于“拥有该数据”。题目、竞赛、投稿等管理命令仍由其业务 Owner 执行。
 - **`backend-app`**：普通用户业务与题目/竞赛/题解/论坛/互动/WebSocket，包括用户画像；提交写入经 Submission Contract，搜索由 Search Worker 消费事件，通知状态和投递由 Notification Owner 持有。过渡期仍保留部分本地兼容实现。
-- **`backend-notification`**：通知、偏好、投递台账、邮件和通知相关管理查询/命令；消费 App 的通知意图事件，通过 App 的用户读契约取得收件人信息，并经 Redis Pub/Sub 请求 App 的本地 WebSocket 中继。
+- **`backend-notification`**：通知、偏好、投递台账、邮件和通知相关管理查询/命令；消费 App 的通知意图事件，通过 Auth 的 `NotificationRecipientQueryService` 与 `IdentityQueryService` 查询收件人，并经 Redis Pub/Sub 请求 App 的本地 WebSocket 中继。
 - **`backend-judge`**：独立判题 Worker；消费 Redis Streams，沙箱执行后通过 Submission Contract 回写 verdict。它不拥有 Submission/Problem/TestCase 表，数据写入由相应 Owner 负责。
 
 核心内部同步 RPC 使用 **Apache Dubbo 3**；注册发现使用 **Nacos**。外部 HTTP/WS 先由 **Nginx 逻辑 Gateway** 路由，暂不引入 Spring Cloud Gateway/Higress。数据先保持同一 MySQL 实例，按 Owner 收敛写入口和账号权限，再逐步分 schema/database；不一次性物理拆库。
@@ -546,9 +546,9 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 | Owned Tables | `notifications`、`notification_preferences`、`notification_delivery_ledger`、`notification_command_receipt`、Notification `consumer_inbox`、email 相关表 |
 | Exposed HTTP API | `/notifications/**`；通知偏好、历史、未读计数和管理端通知查询/操作 |
 | Dubbo Provider | `NotificationAdminReadPort`、`NotificationAdministrationService`；provider group 为 `backend-notification` |
-| Dubbo Consumer | App 的 `UserNotificationReadPort`；不直接读取 App/Auth mapper 或表 |
+| Dubbo Consumer | Auth 的 `NotificationRecipientQueryService`、`IdentityQueryService`；`UserNotificationReadPort` 仅作为收件人 DTO 兼容 seam |
 | Events | 消费 App 发布的 `SubmissionJudged` 与 `NotificationIntentCreated`；按投递结果发布可选 delivery outcome event |
-| External Dependencies | Notification MySQL、Redis Streams/Pub/Sub、SMTP、App recipient read port、Nacos、Prometheus/OTel |
+| External Dependencies | Notification MySQL、Redis Streams/Pub/Sub、SMTP、Auth recipient/identity contracts、App WebSocket relay、Nacos、Prometheus/OTel |
 | Failure Boundary | 邮件、WebSocket 或通知 worker 故障不阻塞 App 提交/判题；inbox、ledger、lease/retry 保证重放和进程恢复 |
 | Scaling | API 与 worker 角色独立扩容；worker 由 `ulticode.notification.worker.enabled` 控制，目标部署为独立 `backend-notification` |
 
@@ -903,6 +903,7 @@ sid, roles/authorities, authz_version
 ```
 
 每个接收方固定 algorithm allowlist，并校验 `iss/aud/typ/kid/exp/nbf`。Access TTL 保持短；Auth key rotation 使用 `kid` 和公钥重叠窗口。
+当前实现：`backend-auth` 的生产 access token 已强制使用 RS256；`/auth/jwks` 返回 RFC 7517 原生顶层 `keys` 文档，App/Admin/Notification 只缓存公钥，不共享 Auth 的 JWT 签名 secret。开发环境仍可显式使用 HMAC 兼容模式。
 
 ##### 7.4 Gateway Authentication 与 Service Authorization
 
@@ -931,6 +932,7 @@ Auth 是 `users.role`、`role_permissions`、`user_permissions` 的唯一 Owner�
 - **End-user delegation**：代表谁执行。HTTP ingress 验证后，Consumer filter 转发原始 audience 合法的短期 access assertion，或由 Auth 签发极短期 internal assertion；Provider 必须验证签名、audience、deadline、jti 和 actor service。
 
 Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 attachment；业务 request 中的 `userId/role` 只能是目标数据，不能作为审计 actor。审计记录 `subjectUserId`、`actorServiceId`、delegationId、traceId；身份传播丢失必须 fail closed，不能静默记成 `system`。
+实现约束：Admin Dubbo consumer filter 从目标 Application URL 读取服务名并仅为 `backend-app`、`backend-auth`、`backend-notification` 签发目标 audience；Auth、App、Notification 的高风险 Provider 在 durable receipt/数据库写入前验证签名 assertion。缺少目标、签名或 audience 时 fail closed。管理员 bootstrap 不复用普通 actor：仅在显式启用的一次性 runner 中提供 `BOOTSTRAP_DELEGATION_SECRET`，签发绑定 `backend-auth` 的 `BOOTSTRAP` assertion，Auth 只允许 create/update/reset/changeState provisioning 操作；普通签发 gate 默认关闭，Auth 未配置该专用 secret 时拒绝 bootstrap claim。
 
 ##### 7.7 CSRF、WebSocket 与 Auth 可用性
 
@@ -939,6 +941,8 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - WebSocket 归 App：只从 `access_token` cookie 获取 token，不接受 query、URL 或客户端 STOMP token；本地统一 JWT validator。
 - CONNECT 优先本地 JWT + account-state cache；cache 缺失/高风险时才查询 Auth。Auth 状态事件让 App 主动断开被禁用账号会话。
 - Auth 不可用时，已有且未撤销的短期 access token仍可访问普通 App；登录/refresh/fresh authorization 和缺少可信状态的 WebSocket CONNECT fail closed。
+- /admin/event-replay 的 replay、DLQ list、purge、reroute 方法均在 Controller 方法级要求 `ADMIN|SUPER_ADMIN`；App 的 HTTP filter 不得被视为该资源的唯一授权层。
+- Production Compose 不再默认使用 `dev` Dubbo namespace；它要求显式 `DUBBO_NAMESPACE`、RS256 private key、internal delegation secret 和 Nacos 专用数据库账号。Nacos bootstrap 在新 MySQL volume 初始化时创建最小权限账号。
 
 #### 8. Transaction Analysis
 
@@ -1221,7 +1225,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 ##### 11.5 Search 版本语义与 backfill（SEARCH-003，DEC-016/017）
 
-**版本语义**：`aggregateVersion` = 事件发布时刻（live publisher）或行最后变更时间（backfill）的 epoch 毫秒（同一墙钟域）。worker 对每索引维护 Redis 版本账本 `search:doc-version:{index}`（field=documentId）：UPSERT 仅当 incoming 严格新于账本版本才写（stale 跳过计数 `search.worker.stale_skipped`，仍 ACK）；DELETE 写负值 tombstone（`-V`），非严格新于 tombstone 的 UPSERT 一律跳过（防 backfill 乱序复活已删文档）；写入文档的 `_aggregateVersion` 供 diff watermark 与可观测。多副本并发 HGET/HSET 非原子：worker 按单副本运行，账本为 best-effort 排序辅助。外部重建 Meili 索引后必须 `DEL search:doc-version:{index}` 再重跑 backfill。
+**版本语义**：`aggregateVersion` = 事件发布时刻（live publisher）或行最后变更时间（backfill）的 epoch 毫秒（同一墙钟域）。worker 对每索引维护 Redis 版本账本 `search:doc-version:{index}`（field=documentId）：正值账本中旧版本的 UPSERT 跳过、同版本幂等重写；负值 tombstone（`-V`）中非严格更新的 UPSERT 一律跳过；DELETE 先比较同一账本，旧 DELETE 只 ACK、不删除较新的文档，也不回退账本；写入文档的 `_aggregateVersion` 供 diff watermark 与可观测。同一索引/document 的版本化操作持有 `search:doc-version:{index}:lock:{documentId}` Redis 短租约，副本竞争时未获得锁的事件留在 PEL 重试。外部重建 Meili 索引后必须 `DEL search:doc-version:{index}` 再重跑 backfill。
 
 **Backfill（App 侧 `SearchBackfillRunner`）**：唯一写者仍是 worker——runner 只枚举 owner 库并发布 `SearchDocumentChanged` 事件（经 integration outbox → stream）。门控 `app.search.backfill.enabled=true` + `meilisearch.enabled=true`（默认关；索引选择 `app.search.backfill.indexes`，空=全部）。协议：watermark W=now → 分页枚举快照（谓词与 Q-read 一致；文档形状与 live publisher 逐字一致）→ 预检读 Meili 现有 `id+_aggregateVersion`（不可达即失败不半跑）→ 全量 UPSERT（版本=行 updated_at；用户=max(users.updated_at, profile.updated_at, deleted_at, joined_at)）→ 仅 `_aggregateVersion < W` 且不在快照的 id 发 DELETE（backfill 期间新建/更新的文档由 live 事件负责）。重跑幂等收敛；每次输出 snapshot/existing/upserts/deletes/watermark 计数日志。
 

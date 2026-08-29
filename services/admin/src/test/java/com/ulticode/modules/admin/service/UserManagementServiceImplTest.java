@@ -10,7 +10,9 @@ import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
+import com.ulticode.app.api.dto.ProfileWriteResult;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.impl.UserManagementServiceImpl;
 import com.ulticode.admin.port.UserProfilePort;
@@ -30,8 +32,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,6 +79,19 @@ class UserManagementServiceImplTest {
     void clearAuditContext() {
         com.ulticode.common.util.AuditContext.clear();
     }
+    @Test
+    @DisplayName("createUser rejects a missing password instead of selecting a default credential")
+    void createUserRequiresPassword() {
+        AdminCreateUserDTO dto = new AdminCreateUserDTO();
+        dto.setUsername("alice");
+        dto.setEmail("alice@example.com");
+
+        assertThatThrownBy(() -> service.createUser(dto))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .hasMessageContaining("Password is required");
+        verify(accountQueryService, never()).getAccountByUsername(any());
+        verify(accountManagementService, never()).createAccount(any());
+    }
 
     @Test
     @DisplayName("createUser creates account on Auth provider and returns projected VO")
@@ -84,6 +101,7 @@ class UserManagementServiceImplTest {
         dto.setEmail("alice@example.com");
         dto.setPassword("pass12345");
         dto.setRole("USER");
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
 
         when(accountQueryService.getAccountByUsername("alice"))
                 .thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t-123"));
@@ -99,6 +117,8 @@ class UserManagementServiceImplTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getId()).isEqualTo("user-100");
+        verify(accountManagementService).createAccount(argThat(command ->
+                "SUPER_ADMIN".equals(command.actor().actorType())));
         assertThat(result.getUsername()).isEqualTo("alice");
     }
 
@@ -132,6 +152,28 @@ class UserManagementServiceImplTest {
                         && cmd.idempotency() != null
                         && cmd.commandId() != null
                         && cmd.trace() != null));
+    }
+    @Test
+    @DisplayName("updateUser fails instead of reporting success when the role owner rejects the change")
+    void updateUserPropagatesRoleMutationFailure() {
+        when(accountQueryService.getAccountById("user-100"))
+                .thenReturn(RpcResult.success(sampleAccount, "t-123"));
+        when(accountManagementService.updateCredentials(any()))
+                .thenReturn(RpcResult.success(
+                        new AccountMutationDTO("user-100", "alice", "alice@example.com", "USER",
+                                true, false, 1L, false), "t-123"));
+        when(userProfilePort.updateProfile(any()))
+                .thenReturn(new ProfileWriteResult("user-100", null, null, null, null,
+                        null, null, null, null, null));
+        when(accountAdministrationService.changeAuthorization(any()))
+                .thenReturn(RpcResult.failure(AuthErrorCode.AUTHORIZATION_VERSION_CONFLICT, "t-123"));
+
+        AdminUpdateUserDTO dto = new AdminUpdateUserDTO();
+        dto.setRole("ADMIN");
+
+        assertThatThrownBy(() -> service.updateUser("user-100", dto))
+                .isInstanceOf(com.ulticode.common.exception.BusinessException.class)
+                .hasMessageContaining("Account role update failed");
     }
 
     @Test

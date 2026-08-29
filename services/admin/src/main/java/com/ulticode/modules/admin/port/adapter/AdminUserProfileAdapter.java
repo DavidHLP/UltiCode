@@ -47,8 +47,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminUserProfileAdapter implements UserProfilePort {
 
-    private static final String ACTOR_TYPE = "ADMIN";
-
     @Autowired(required = false)
     @DubboReference(group = "backend-app", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
@@ -197,7 +195,9 @@ public class AdminUserProfileAdapter implements UserProfilePort {
         if (actorId == null || actorId.isBlank()) {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
-        return new ActorDelegation(ACTOR_TYPE, actorId, actorId, rationale);
+        return new ActorDelegation(
+                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                actorId, actorId, rationale);
     }
 
     private TraceMetadata trace() {

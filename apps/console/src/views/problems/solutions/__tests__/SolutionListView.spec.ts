@@ -26,7 +26,7 @@ vi.mock("vue-i18n", async (importOriginal) => {
   };
 });
 vi.mock("vue-sonner", () => ({
-  toast: { error: vi.fn() },
+  toast: { error: vi.fn(), warning: vi.fn() },
 }));
 vi.mock("@/composables/useErrorHandler", () => ({
   useErrorHandler: () => ({ handleError: vi.fn() }),

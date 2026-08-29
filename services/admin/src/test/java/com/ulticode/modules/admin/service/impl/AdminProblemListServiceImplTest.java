@@ -14,6 +14,7 @@ import com.ulticode.app.api.dto.ProblemListDetailDTO;
 import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListAdministrationService;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcResult;
@@ -82,6 +83,7 @@ class AdminProblemListServiceImplTest {
     @Mock private ProblemListAdministrationService problemListAdministrationService;
     @Mock private ProblemListChainReadPort problemListChainReadPort;
     @Mock private AdminProblemListProjection adminProblemListProjection;
+    @Mock private CurrentUserProvider currentUserProvider;
 
     private AdminProblemListServiceImpl service;
 
@@ -90,7 +92,8 @@ class AdminProblemListServiceImplTest {
         service = new AdminProblemListServiceImpl(
                 problemListAdministrationService,
                 problemListChainReadPort,
-                adminProblemListProjection);
+                adminProblemListProjection,
+                currentUserProvider);
     }
 
     @AfterEach
@@ -653,7 +656,8 @@ class AdminProblemListServiceImplTest {
         assertThat(paramTypes).containsOnly(
                 ProblemListAdministrationService.class,
                 ProblemListChainReadPort.class,
-                AdminProblemListProjection.class);
+                AdminProblemListProjection.class,
+                CurrentUserProvider.class);
     }
 
     @Test

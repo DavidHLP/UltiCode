@@ -78,23 +78,28 @@ public class AdminAccountController {
             throw new BusinessException(BaseErrorCode.VALIDATION_FAILED, "Password confirmation does not match");
         }
 
-        if (accountManagementService != null) {
-            ChangePasswordCommand command = new ChangePasswordCommand(
-                    UUID.randomUUID().toString(),
-                    IdMetadata.mint(),
-                    new ActorDelegation("ADMIN", userId, userId, "admin self password change"),
-                    currentTrace(),
-                    userId,
-                    changePasswordDTO.getCurrentPassword(),
-                    changePasswordDTO.getNewPassword());
+        if (accountManagementService == null) {
+            throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR,
+                    "AccountManagementService unavailable");
+        }
+        ChangePasswordCommand command = new ChangePasswordCommand(
+                UUID.randomUUID().toString(),
+                IdMetadata.mint(),
+                new ActorDelegation(
+                        currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                        userId, userId, "admin self password change"),
+                currentTrace(),
+                userId,
+                changePasswordDTO.getCurrentPassword(),
+                changePasswordDTO.getNewPassword());
 
-            RpcResult<AccountMutationDTO> res = accountManagementService.changePassword(command);
-            if (res != null && !res.success()) {
-                if (res.error() != null && res.error().code() == AuthErrorCode.PASSWORD_MISMATCH.code()) {
-                    throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Current password is incorrect");
-                }
-                throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR);
+        RpcResult<AccountMutationDTO> res = accountManagementService.changePassword(command);
+        if (res == null || !res.success()) {
+            if (res != null && res.error() != null
+                    && res.error().code() == AuthErrorCode.PASSWORD_MISMATCH.code()) {
+                throw new BusinessException(BaseErrorCode.BAD_REQUEST, "Current password is incorrect");
             }
+            throw new BusinessException(BaseErrorCode.UNKNOWN_ERROR);
         }
         return Result.success();
     }

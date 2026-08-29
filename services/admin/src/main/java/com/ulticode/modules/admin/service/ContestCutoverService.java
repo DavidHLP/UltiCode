@@ -62,7 +62,7 @@ public class ContestCutoverService {
         RpcResult<ContestAdminViewDTO> result = dubboProvider.createContest(
                 new CreateContestCommand(
                         commandId("create", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest create"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest create"),
                         trace(), dto.getSlug(), dto.getTitle(), actorId,
                         contestType(dto.getContestType()), "SCORE", dto.getScoringRuleId(), dto.getDescription(),
                         epochMs(dto.getStartTime()), dto.getDuration(), dto.getMaxParticipants(),
@@ -85,7 +85,7 @@ public class ContestCutoverService {
         RpcResult<ContestAdminViewDTO> result = dubboProvider.updateContest(
                 new UpdateContestCommand(
                         commandId("update", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest update"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest update"),
                         trace(), id, 0L, dto.getTitle(), epochMsOrNull(dto.getStartTime()),
                         dto.getDuration(), "contest update", dto.getDescription(),
                         dto.getMaxParticipants(), dto.getIsPremium(), dto.getIsPublished(),
@@ -108,7 +108,7 @@ public class ContestCutoverService {
         RpcResult<Void> result = dubboProvider.deleteContest(
                 new DeleteContestCommand(
                         commandId("delete", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest delete"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest delete"),
                         trace(), id, 0L, "contest delete"));
         if (!result.success()) {
             throw mapError(result);
@@ -138,7 +138,7 @@ public class ContestCutoverService {
         RpcResult<ContestProblemAdminDTO> result = dubboProvider.addProblem(
                 new AddContestProblemCommand(
                         commandId("add-problem", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest problem add"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest problem add"),
                         trace(), id, new ContestProblemInputDTO(dto.getProblemId(), dto.getScore())));
         if (!result.success()) {
             throw mapError(result);
@@ -153,7 +153,7 @@ public class ContestCutoverService {
         RpcResult<Void> result = dubboProvider.removeProblem(
                 new RemoveContestProblemCommand(
                         commandId("remove-problem", idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest problem remove"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest problem remove"),
                         trace(), id, problemId));
         if (!result.success()) {
             throw mapError(result);
@@ -168,11 +168,11 @@ public class ContestCutoverService {
         RpcResult<ContestAdminViewDTO> result = start
                 ? dubboProvider.startContest(new StartContestCommand(
                         commandId(operation, idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest start"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest start"),
                         trace(), id, 0L, "contest start"))
                 : dubboProvider.endContest(new EndContestCommand(
                         commandId(operation, idempotency), idempotency,
-                        new ActorDelegation("ADMIN", actorId, actorId, "contest end"),
+                        new ActorDelegation(actorType(), actorId, actorId, "contest end"),
                         trace(), id, 0L, "contest end"));
         if (!result.success()) {
             throw mapError(result);
@@ -182,6 +182,10 @@ public class ContestCutoverService {
 
     private String currentActor() {
         return requireActor(currentUserProvider.getCurrentUserId());
+    }
+
+    private String actorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
     }
 
     private void ensureDubboEnabled() {

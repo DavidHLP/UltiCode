@@ -275,6 +275,10 @@ public class SubmissionJudgedInboxBridge {
             }
             return 0;
         }
+        if (!expectedOwner(eventType, fields.get("owner"))) {
+            return stagePoison(binding, record, eventId,
+                    new IllegalArgumentException("Unexpected integration event owner"));
+        }
 
         Map<String, Object> payload;
         try {
@@ -378,6 +382,15 @@ public class SubmissionJudgedInboxBridge {
 
     private static void rejectPoison(Map<String, Object> payload) {
         throw new IllegalArgumentException("Poison integration event: " + payload.get("error"));
+    }
+    private static boolean expectedOwner(String eventType, String owner) {
+        return switch (eventType) {
+            case EVENT_TYPE -> "App".equals(owner) || "Submission".equals(owner);
+            case com.ulticode.submission.api.event.SubmissionLifecycleEventContract.CREATED_EVENT_TYPE ->
+                    "Submission".equals(owner);
+            case UserBannedModerationConsumer.EVENT_TYPE -> "moderation".equals(owner);
+            default -> true;
+        };
     }
     private static String required(Map<String, String> fields, String key) {
         String value = fields.get(key);

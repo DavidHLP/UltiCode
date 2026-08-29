@@ -62,7 +62,7 @@ public class ProblemCutoverService {
                 new CreateProblemCommand(
                         UUID.randomUUID().toString(),
                         IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover create"),
+                        new ActorDelegation(actorType(), actorId, actorId, "cutover create"),
                         currentTrace(),
                         createDTO.getSlug(),
                         createDTO.getTitle(),
@@ -82,7 +82,7 @@ public class ProblemCutoverService {
                 new UpdateProblemCommand(
                         UUID.randomUUID().toString(),
                         IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover update"),
+                        new ActorDelegation(actorType(), actorId, actorId, "cutover update"),
                         currentTrace(),
                         idStr,
                         current.version(),
@@ -110,7 +110,7 @@ public class ProblemCutoverService {
                 new DeleteProblemCommand(
                         UUID.randomUUID().toString(),
                         IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, "cutover delete"),
+                        new ActorDelegation(actorType(), actorId, actorId, "cutover delete"),
                         currentTrace(),
                         idStr,
                         current.version(),
@@ -130,7 +130,7 @@ public class ProblemCutoverService {
                 new PublishProblemCommand(
                         UUID.randomUUID().toString(),
                         IdMetadata.mint(),
-                        new ActorDelegation("ADMIN", actorId, actorId, publish ? "cutover publish" : "cutover unpublish"),
+                        new ActorDelegation(actorType(), actorId, actorId, publish ? "cutover publish" : "cutover unpublish"),
                         currentTrace(),
                         idStr,
                         current.version(),
@@ -159,6 +159,10 @@ public class ProblemCutoverService {
             throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
         }
         return actorId;
+    }
+
+    private String actorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
     }
 
     private static TraceMetadata currentTrace() {

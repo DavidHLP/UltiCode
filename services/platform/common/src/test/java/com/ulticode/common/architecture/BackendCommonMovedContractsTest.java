@@ -81,13 +81,15 @@ class BackendCommonMovedContractsTest {
                 DelegationAssertionContract.ISSUER,
                 DelegationAssertionContract.AUDIENCE,
                 DelegationAssertionContract.ACTOR_SERVICE_CLAIM,
-                DelegationAssertionContract.ACTOR_TYPE_CLAIM))
+                DelegationAssertionContract.ACTOR_TYPE_CLAIM,
+                DelegationAssertionContract.BOOTSTRAP_CLAIM))
                 .containsExactly(
                         "ulticode-delegation-assertion",
                         "backend-admin",
                         "backend-app",
                         "actor_service",
-                        "actor_type");
+                        "actor_type",
+                        "bootstrap");
     }
 
     private record SampleCommand(

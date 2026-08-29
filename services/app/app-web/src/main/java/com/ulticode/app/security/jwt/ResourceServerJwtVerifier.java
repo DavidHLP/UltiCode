@@ -35,7 +35,7 @@ public class ResourceServerJwtVerifier {
 
     private final JwksPublicKeyProvider jwksProvider;
 
-    @Value("${jwt.secret:test-secret-key-must-be-at-least-256-bits-long-for-testing}")
+    @Value("${jwt.secret:}")
     private String jwtSecret;
 
     @Value("${jwt.expected-issuer:ulticode-auth}")

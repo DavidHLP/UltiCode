@@ -17,6 +17,7 @@ import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.modules.contest.port.ContestOwnerPort;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,12 +50,16 @@ class ContestAdministrationProviderTest {
 
     @Mock
     private AppCommandReceiptMapper receiptMapper;
+    @Mock
+    private AdminActorAuthorizer actorAuthorizer;
 
     private ContestAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
-        provider = new ContestAdministrationProvider(ownerPort, readPort, receiptMapper, new ObjectMapper());
+        provider = new ContestAdministrationProvider(
+                ownerPort, readPort, receiptMapper, new ObjectMapper(), actorAuthorizer);
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
     }
 
     private static ActorDelegation adminActor() {
@@ -145,6 +150,20 @@ class ContestAdministrationProviderTest {
     void rejectsNonAdminActor() {
         StartContestCommand command = new StartContestCommand(
                 UUID.randomUUID().toString(), idempotency("forbidden-key"), userActor(), trace(),
+                "c-10", 1L, "starting");
+
+        RpcResult<ContestAdminViewDTO> result = provider.startContest(command);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+        verifyNoInteractions(ownerPort, readPort);
+    }
+    @Test
+    @DisplayName("signed admin actor is rejected when its delegation is not trusted")
+    void rejectsUntrustedAdminActor() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
+        StartContestCommand command = new StartContestCommand(
+                UUID.randomUUID().toString(), idempotency("untrusted-key"), adminActor(), trace(),
                 "c-10", 1L, "starting");
 
         RpcResult<ContestAdminViewDTO> result = provider.startContest(command);

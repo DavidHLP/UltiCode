@@ -8,6 +8,8 @@ import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.app.idempotency.CommandReceiptExecutor;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.modules.submission.dto.RejudgeResult;
@@ -31,9 +33,14 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
 
     private final SubmissionAdministrationDomainService domainService;
     private final CommandReceiptExecutor receiptExecutor;
+    private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
     public RpcResult<RejudgeResultDTO> rejudge(RejudgeCommand command) {
+        String requestTraceId = CommandReceiptExecutor.traceId(command);
+        if (!trustedActor(command == null ? null : command.actor())) {
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, requestTraceId);
+        }
         try {
             return receiptExecutor.execute(
                     "rejudge",
@@ -50,6 +57,10 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
 
     @Override
     public RpcResult<BatchRejudgeResultDTO> batchRejudge(BatchRejudgeCommand command) {
+        String requestTraceId = CommandReceiptExecutor.traceId(command);
+        if (!trustedActor(command == null ? null : command.actor())) {
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, requestTraceId);
+        }
         try {
             return receiptExecutor.execute(
                     "batchRejudge",
@@ -61,6 +72,14 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
                     command == null ? null : command.commandId(), e);
             return failure(AppErrorCode.UNEXPECTED_APP_STATE,
                     CommandReceiptExecutor.traceId(command), null);
+        }
+    }
+    private boolean trustedActor(ActorDelegation actor) {
+        try {
+            return actorAuthorizer.isAuthorized(actor);
+        } catch (RuntimeException exception) {
+            log.warn("Submission administration actor authorization failed", exception);
+            return false;
         }
     }
 

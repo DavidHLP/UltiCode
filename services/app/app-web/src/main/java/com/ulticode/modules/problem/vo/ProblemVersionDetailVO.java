@@ -2,6 +2,7 @@ package com.ulticode.modules.problem.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.Map;
  * Contains full problem data at a specific version.
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProblemVersionDetailVO extends ProblemVersionVO {
 

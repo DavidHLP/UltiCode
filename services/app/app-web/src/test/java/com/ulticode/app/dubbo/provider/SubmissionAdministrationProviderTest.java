@@ -14,6 +14,7 @@ import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
 import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.submission.service.SubmissionAdministrationDomainService;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,15 +43,29 @@ class SubmissionAdministrationProviderTest {
 
     @Mock private SubmissionAdministrationDomainService domainService;
     @Mock private AppCommandReceiptMapper receiptMapper;
+    @Mock private AdminActorAuthorizer actorAuthorizer;
     private SubmissionAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
-        when(receiptMapper.insertClaim(any())).thenReturn(1);
+        lenient().when(receiptMapper.insertClaim(any())).thenReturn(1);
         lenient().when(receiptMapper.markSuccess(anyString(), anyString())).thenReturn(1);
         CommandReceiptExecutor receiptExecutor =
                 new CommandReceiptExecutor(receiptMapper, new ObjectMapper(), Clock.systemUTC());
-        provider = new SubmissionAdministrationProvider(domainService, receiptExecutor);
+        provider = new SubmissionAdministrationProvider(domainService, receiptExecutor, actorAuthorizer);
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
+    }
+    @Test
+    @DisplayName("rejects an untrusted actor before the rejudge receipt boundary")
+    void rejectsUntrustedActor() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
+
+        RpcResult<RejudgeResultDTO> result = provider.rejudge(new RejudgeCommand(
+                UUID.randomUUID().toString(), IdMetadata.mint(), actor(), TraceMetadata.EMPTY,
+                "sub-1", true));
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
     }
 
     private static ActorDelegation actor() {

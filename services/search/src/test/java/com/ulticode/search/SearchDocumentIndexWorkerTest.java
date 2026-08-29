@@ -14,6 +14,7 @@ import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.search.config.SearchWorkerProperties;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +35,11 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
+import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StreamOperations;
-import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -47,6 +49,7 @@ class SearchDocumentIndexWorkerTest {
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private StreamOperations<String, Object, Object> streamOps;
     @Mock private HashOperations<String, Object, Object> hashOps;
+    @Mock private ValueOperations<String, String> valueOps;
     @Mock private Client meiliSearchClient;
     @Mock private Index meiliIndex;
 
@@ -61,17 +64,24 @@ class SearchDocumentIndexWorkerTest {
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
         when(redisTemplate.opsForHash()).thenReturn(hashOps);
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         when(meiliSearchClient.index(anyString())).thenReturn(meiliIndex);
     }
 
     private MapRecord<String, String, String> record(String id, String eventType, String payload) {
-        return record(id, eventType, payload, "0");
+        return record(id, eventType, payload, "0", "App");
     }
 
     private MapRecord<String, String, String> record(String id, String eventType, String payload, String version) {
+        return record(id, eventType, payload, version, "App");
+    }
+
+    private MapRecord<String, String, String> record(
+            String id, String eventType, String payload, String version, String owner) {
         return StreamRecords.mapBacked(Map.of(
                         "eventId", "evt-" + id,
-                        "owner", "App",
+                        "owner", owner,
                         "eventType", eventType,
                         "aggregateId", "doc-" + id,
                         "aggregateVersion", version,
@@ -119,6 +129,51 @@ class SearchDocumentIndexWorkerTest {
         assertThat(processed).isEqualTo(1);
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
         verify(meiliSearchClient, never()).index(anyString());
+    }
+    @Test
+    @DisplayName("search events from unsupported owners remain unacknowledged")
+    void unsupportedOwnerIsNotProcessed() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("foreign", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "1", "Notification")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isZero();
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
+    }
+    @Test
+    @DisplayName("Auth cannot publish a non-user search index")
+    void authCannotPublishProblemIndex() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("auth-wrong", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "1", "Auth")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isZero();
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
+    }
+    @Test
+    @DisplayName("App cannot publish the Auth-owned users search index")
+    void appCannotPublishUserIndex() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("app-wrong", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("users"), "1", "App")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isZero();
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
 
     @Test
@@ -190,7 +245,8 @@ class SearchDocumentIndexWorkerTest {
         stubBusyGroup();
         stubEmptyReads();
         when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
-                .thenReturn(List.of(record("2", SearchDocumentChangedEventContract.EVENT_TYPE, deletePayload("users"), "200")));
+                .thenReturn(List.of(record("2", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        deletePayload("users"), "200", "Auth")));
 
         worker.consume();
 
@@ -199,6 +255,59 @@ class SearchDocumentIndexWorkerTest {
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-2"));
     }
 
+    @Test
+    @DisplayName("stale DELETE is skipped without removing the newer document")
+    void staleDeleteIsSkippedAndAcked() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:users", "doc-3")).thenReturn("300");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("3", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        deletePayload("users"), "200", "Auth")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isEqualTo(1);
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-3"));
+    }
+
+    @Test
+    @DisplayName("busy document lock leaves the event pending for retry")
+    void busyDocumentLockLeavesEventPending() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(false);
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("4", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "200")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isZero();
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
+    }
+
+    @Test
+    @DisplayName("equal DELETE preserves the existing tombstone")
+    void equalDeletePreservesTombstone() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:users", "doc-5")).thenReturn("-300");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("5", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        deletePayload("users"), "300", "Auth")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isEqualTo(1);
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-5"));
+    }
     @Test
     @DisplayName("UPSERT not newer than a tombstone is skipped (no resurrection)")
     void upsertNotNewerThanTombstoneIsSkipped() {

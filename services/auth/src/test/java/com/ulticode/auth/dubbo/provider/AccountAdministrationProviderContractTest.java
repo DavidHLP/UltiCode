@@ -6,6 +6,7 @@ import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
 import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.idempotency.CommandReceiptExecutor;
+import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
 import com.ulticode.auth.service.AccountAdministrationWorkflow;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
@@ -27,13 +28,16 @@ class AccountAdministrationProviderContractTest {
 
     private AccountAdministrationWorkflow workflow;
     private CommandReceiptExecutor receiptExecutor;
+    private InternalDelegationAssertionVerifier delegationVerifier;
     private AccountAdministrationProvider provider;
 
     @BeforeEach
     void setUp() {
         workflow = mock(AccountAdministrationWorkflow.class);
         receiptExecutor = mock(CommandReceiptExecutor.class);
-        provider = new AccountAdministrationProvider(workflow, receiptExecutor);
+        delegationVerifier = mock(InternalDelegationAssertionVerifier.class);
+        when(delegationVerifier.isTrusted(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        provider = new AccountAdministrationProvider(workflow, receiptExecutor, delegationVerifier);
     }
 
     @Test

@@ -10,6 +10,8 @@ import com.ulticode.auth.api.dto.AccountMutationDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.auth.idempotency.CommandReceiptExecutor;
+import com.ulticode.auth.security.InternalDelegationAssertionVerifier;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.slf4j.Logger;
@@ -28,12 +30,15 @@ public class AccountManagementProvider implements AccountManagementService {
 
     private final AccountManagementEngine engine;
     private final CommandReceiptExecutor receiptExecutor;
+    private final InternalDelegationAssertionVerifier delegationVerifier;
 
     public AccountManagementProvider(
             AccountManagementEngine engine,
-            CommandReceiptExecutor receiptExecutor) {
+            CommandReceiptExecutor receiptExecutor,
+            InternalDelegationAssertionVerifier delegationVerifier) {
         this.engine = engine;
         this.receiptExecutor = receiptExecutor;
+        this.delegationVerifier = delegationVerifier;
     }
 
     @Override
@@ -88,12 +93,39 @@ public class AccountManagementProvider implements AccountManagementService {
             Class<T> resultType,
             Function<String, RpcResult<T>> mutation) {
         String traceId = CommandReceiptExecutor.traceId(command);
+        if (!isAllowedBootstrapOperation(command, operation)) {
+            return RpcResult.failure(BaseErrorCode.FORBIDDEN, traceId);
+        }
+        if (!trustedActor(command == null ? null : command.actor())) {
+            return RpcResult.failure(BaseErrorCode.FORBIDDEN, traceId);
+        }
         try {
             return receiptExecutor.execute(
                     SERVICE_NAME, operation, command, resultType, mutation);
         } catch (RuntimeException e) {
             log.error("Account management operation failed: {}", operation, e);
             return RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, traceId);
+        }
+    }
+    private static boolean isAllowedBootstrapOperation(WriteCommand command, String operation) {
+        if (command == null || command.actor() == null
+                || !"BOOTSTRAP".equalsIgnoreCase(command.actor().actorType())) {
+            return true;
+        }
+        return "bootstrap".equals(command.actor().actorId())
+                && "bootstrap".equals(command.actor().delegatorId())
+                && switch (operation) {
+                    case "createAccount", "updateCredentials", "resetPassword" -> true;
+                    default -> false;
+                };
+    }
+
+    private boolean trustedActor(com.ulticode.auth.api.command.ActorDelegation actor) {
+        try {
+            return delegationVerifier.isTrusted(actor);
+        } catch (RuntimeException exception) {
+            log.warn("Account management actor authorization failed", exception);
+            return false;
         }
     }
 }

@@ -1,9 +1,9 @@
 user default off
-user ulticode-ops on #5395abbbc10eead10d0664f54d48c7a158a7e6f1be8ae563cb26770c614a67cf resetkeys ~* resetchannels &* +@all
-user ulticode-auth on #ffe1d06b1d33a718f926fb724a647b73d55a7fcd8ff3aea7958b3777c5524a1b resetkeys ~csrf:* ~oauth:* ~rate-limit:* ~stream:integration resetchannels &* -@all +@connection +@read +@write +@scripting
-user ulticode-admin on #48d44db27c6f3c0df316c64b17c159f892873672b7638a4f165429983ca47a88 resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* resetchannels &* -@all +@connection +@read +@write +@scripting
-user ulticode-app on #a41485c9cc9414264d6389c271ccde0c60a6fea80bff5852ba0637c7f0aececd resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~email_queue ~notification_queue resetchannels &ulticode:ws:broadcast -@all +@connection +@read +@write +@scripting +@pubsub +info
-user ulticode-submission on #8db4a19c8e12b5f58b9d876f318f989e5f18638cff67f400370e3162776fed7e resetkeys ~stream:integration ~judge:* resetchannels &* -@all +@connection +@read +@write +@scripting
-user ulticode-search on #030ac23be959f178478486de4dab9e0e688de48fd49b49709328a6c6429c0bde resetkeys ~stream:integration ~search:* resetchannels &* -@all +@connection +@read +@write +@scripting
-user ulticode-notification on #c76a40783c64ddd61a37b650de3ceca9bec1b4ae8f5e3ea88571fc3b600b59b8 resetkeys ~stream:integration ~poison:* ~notification:* resetchannels &ulticode:ws:broadcast -@all +@connection +@read +@write +@scripting +@pubsub
-user ulticode-judge on #b68e0131f67d08582484847dceea50a1a46cbd8d5db755776d50ce120f99a070 resetkeys ~judge_queue ~queue:* ~judge:* resetchannels &* -@all +@connection +@read +@write +@scripting
+user ulticode-ops on #a3abf6f4798b0339b00e7e2681c12d2403e9d0be0c8e6d0695f744ba59f8797b resetkeys ~* resetchannels &* +@all
+user ulticode-auth on #995e44d8ea4a08b2ed04be5f489e06ab5893fb9b00ac7a5364ef0f6004f72798 resetkeys ~csrf:* ~oauth:* ~rate-limit:* ~stream:integration resetchannels &* -@all +@connection +@read +@write +@scripting
+user ulticode-admin on #a76e6a4711328b2316792eb494a7d0811b7b90abe03617d58afdfbd92fd10732 resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* resetchannels &* -@all +@connection +@read +@write +@scripting
+user ulticode-app on #e41bd4844c4b0fcee8646a2c59c8efdad74df5dc61d8d0924e0fdaf84b7426ac resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~problem:* ~email_queue ~notification_queue ~stream:integration resetchannels &ulticode:ws:broadcast -@all +@connection +@read +@write +@scripting +@pubsub +info
+user ulticode-submission on #38bcd4558dab506138aca80287e4e6014dc6498dc9ef299c753b4ca5823c104d resetkeys ~stream:integration ~judge:* resetchannels &* -@all +@connection +@read +@write +@scripting
+user ulticode-search on #e936dac75e941b959d5ac65c5e64a8a164188170afef87e03b01e528abc446e9 resetkeys ~stream:integration ~search:* resetchannels &* -@all +@connection +@read +@write +@scripting
+user ulticode-notification on #89a9808faacbee99c10183ff65cd87e00791849c580baa473c3b57d1e35e34ab resetkeys ~stream:integration ~poison:* ~notification:* resetchannels &ulticode:ws:broadcast -@all +@connection +@read +@write +@scripting +@pubsub
+user ulticode-judge on #5d45417c025db204facc840694f4860940ee64af3b669e1eebcb19d00cc3b739 resetkeys ~judge_queue ~queue:* ~judge:* resetchannels &* -@all +@connection +@read +@write +@scripting

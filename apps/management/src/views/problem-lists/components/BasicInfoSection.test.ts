@@ -23,6 +23,7 @@ vi.mock('vue-sonner', () => ({
   toast: {
     error: vi.fn(),
     success: vi.fn(),
+    warning: vi.fn(),
   },
 }))
 

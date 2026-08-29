@@ -64,8 +64,18 @@ class InternalDelegationAssertionVerifierTest {
         assertThat(verifier.isTrusted(new ActorDelegation(
                 "ADMIN", ACTOR_ID, "different-delegator", "test"))).isFalse();
     }
+    @Test
+    void rejectsAssertionIssuedForDifferentOwner() {
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), "backend-notification");
+
+        assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
+    }
 
     private void putAssertion(String subject, Instant expiresAt) {
+        putAssertion(subject, expiresAt, DelegationAssertionContract.AUDIENCE);
+    }
+
+    private void putAssertion(String subject, Instant expiresAt, String audience) {
         Instant issuedAt = Instant.now();
         SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         String assertion = Jwts.builder()
@@ -74,7 +84,7 @@ class InternalDelegationAssertionVerifierTest {
                 .claim(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, "backend-admin")
                 .claim(DelegationAssertionContract.ACTOR_TYPE_CLAIM, "ADMIN")
                 .issuer(DelegationAssertionContract.ISSUER)
-                .audience().add(DelegationAssertionContract.AUDIENCE).and()
+                .audience().add(audience).and()
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(expiresAt))
                 .signWith(key, Jwts.SIG.HS256)

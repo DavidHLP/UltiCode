@@ -1,6 +1,7 @@
 package com.ulticode.modules.event.outbox;
 
 import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
@@ -33,6 +34,7 @@ public class IntegrationOutboxDispatcher {
     private static final String STREAM_KEY = "stream:integration";
     private static final int BATCH_SIZE = 50;
     private static final int MAX_ATTEMPTS = 5;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final String claimOwner = "integration-outbox-" + UUID.randomUUID();
 
@@ -99,8 +101,7 @@ public class IntegrationOutboxDispatcher {
             fields.put("traceId", record.getTraceId());
         }
         // Payload is serialized as JSON string to keep Redis field types simple
-        fields.put("payload", new com.fasterxml.jackson.databind.ObjectMapper()
-                .writeValueAsString(record.getPayload()));
+        fields.put("payload", OBJECT_MAPPER.writeValueAsString(record.getPayload()));
 
         MapRecord<String, String, String> streamRecord =
                 StreamRecords.mapBacked(fields).withStreamKey(STREAM_KEY);

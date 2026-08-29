@@ -9,7 +9,8 @@
 #   SUBMISSION_REDIS_PASSWORD, SEARCH_REDIS_PASSWORD, NOTIFICATION_REDIS_PASSWORD,
 #   JUDGE_REDIS_PASSWORD, OPS_REDIS_PASSWORD  (per-owner Redis ACL credentials,
 #   see docker/redis/users.acl and PROJECT_DOCUMENTATION.md)
-#   JWT_SECRET
+#   JWT_SECRET (Auth refresh-token signing), JWT_RSA_PRIVATE_KEY (Auth access-token signing),
+#   INTERNAL_DELEGATION_SECRET, DUBBO_NAMESPACE, NACOS_DB_USER, NACOS_DB_PASSWORD
 #   NACOS_USERNAME, NACOS_PASSWORD, NACOS_AUTH_TOKEN,
 #   NACOS_AUTH_IDENTITY_KEY, NACOS_AUTH_IDENTITY_VALUE
 #   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
@@ -56,8 +57,8 @@ services:
       MYSQL_SERVICE_HOST: ${DB_HOST:-mysql}
       MYSQL_SERVICE_PORT: ${DB_PORT:-3306}
       MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MYSQL_SERVICE_USER: ${NACOS_DB_USER:?NACOS_DB_USER is required}
+      MYSQL_SERVICE_PASSWORD: ${NACOS_DB_PASSWORD:?NACOS_DB_PASSWORD is required}
       MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=true&allowPublicKeyRetrieval=true"
       JVM_XMS: 256m
       JVM_XMX: 512m
@@ -114,9 +115,12 @@ services:
       - REDIS_USERNAME=ulticode-auth
       - REDIS_PASSWORD=${AUTH_REDIS_PASSWORD:?AUTH_REDIS_PASSWORD is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_RSA_ENABLED=true
+      - JWT_RSA_PRIVATE_KEY=${JWT_RSA_PRIVATE_KEY:?JWT_RSA_PRIVATE_KEY is required}
+      - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9101
@@ -173,10 +177,12 @@ services:
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_USERNAME=ulticode-admin
       - REDIS_PASSWORD=${ADMIN_REDIS_PASSWORD:?ADMIN_REDIS_PASSWORD is required}
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_RSA_ENABLED=true
+      - JWT_JWKS_URI=http://backend-auth:9101/auth/jwks
+      - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9102
@@ -235,10 +241,12 @@ services:
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_USERNAME=ulticode-app
       - REDIS_PASSWORD=${APP_REDIS_PASSWORD:?APP_REDIS_PASSWORD is required}
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_RSA_ENABLED=true
+      - JWT_JWKS_URI=http://backend-auth:9101/auth/jwks
+      - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9103
@@ -316,7 +324,7 @@ services:
       - REDIS_DB=${REDIS_DB:-0}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - DUBBO_REGISTRY_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
@@ -328,7 +336,7 @@ services:
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
     depends_on:
       backend-app:
         condition: service_healthy
@@ -434,10 +442,12 @@ services:
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_USERNAME=ulticode-notification
       - REDIS_PASSWORD=${NOTIFICATION_REDIS_PASSWORD:?NOTIFICATION_REDIS_PASSWORD is required}
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_RSA_ENABLED=true
+      - JWT_JWKS_URI=http://backend-auth:9101/auth/jwks
+      - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9105
@@ -493,7 +503,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_USERNAME=ulticode-judge
       - REDIS_PASSWORD=${JUDGE_REDIS_PASSWORD:?JUDGE_REDIS_PASSWORD is required}
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
       - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - DUBBO_REGISTRY_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
@@ -504,7 +514,7 @@ services:
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:-dev}
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       # Review 2026-08-25 P0: readiness marker proves the Redis Streams dependency.
       - JUDGE_READY_FILE=/tmp/judge-worker-ready
       - SANDBOX_ENABLED=${SANDBOX_ENABLED:-true}

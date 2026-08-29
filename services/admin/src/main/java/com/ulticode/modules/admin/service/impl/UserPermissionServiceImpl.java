@@ -90,46 +90,51 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         oldValues.put("alreadyPresent", alreadyPresent);
         AuditContext.setOldValues(oldValues);
 
-        if (accountAdministrationService != null) {
-            String actorId = currentUserProvider == null ? null : currentUserProvider.getCurrentUserId();
-            if (actorId == null || actorId.isBlank()) {
-                throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
-            }
-            ActorDelegation actor = new ActorDelegation("ADMIN", actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
+        if (accountAdministrationService == null) {
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "AccountAdministrationService unavailable");
+        }
+        String actorId = currentUserProvider == null ? null : currentUserProvider.getCurrentUserId();
+        if (actorId == null || actorId.isBlank()) {
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+        }
+        ActorDelegation actor = new ActorDelegation(
+                currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN",
+                actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
 
-            // Compute target full replacement permission set
-            Set<String> targetPermissions = new HashSet<>();
-            if (beforeVo != null && beforeVo.getPermissions() != null) {
-                targetPermissions = beforeVo.getPermissions().stream()
-                        .map(p -> p.getAction() + ":" + p.getResource())
-                        .collect(Collectors.toSet());
-            }
+        // Compute target full replacement permission set
+        Set<String> targetPermissions = new HashSet<>();
+        if (beforeVo != null && beforeVo.getPermissions() != null) {
+            targetPermissions = beforeVo.getPermissions().stream()
+                    .map(p -> p.getAction() + ":" + p.getResource())
+                    .collect(Collectors.toSet());
+        }
 
-            String targetPermStr = action + ":" + resource;
-            if (isRevoke) {
-                targetPermissions.remove(targetPermStr);
-            } else {
-                targetPermissions.add(targetPermStr);
-            }
-
-            // Bind idempotency key to current request/trace identity so retries share key but distinct operations over time do not collide
-            String traceId = TraceIdUtil.current();
-            if (traceId == null || traceId.isBlank()) {
-                traceId = "t-" + UUID.randomUUID().toString();
-            }
-            String stableKey = "auth-perm-" + traceId + "-" + id + "-" + action + "-" + resource;
-            String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
-
-            ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                    commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(traceId, null, null, null),
-                    id, 0L, user.role(), targetPermissions, isRevoke ? "revoke permission" : "grant permission"
-            );
-            RpcResult<?> result = accountAdministrationService.changeAuthorization(command);
-            if (result != null && !result.success()) {
-                log.warn("AccountAdministrationService.changeAuthorization failed for user {}: {}", id, result.error());
-            }
+        String targetPermStr = action + ":" + resource;
+        if (isRevoke) {
+            targetPermissions.remove(targetPermStr);
         } else {
-            log.warn("AccountAdministrationService unavailable; permission change for user {} skipped", id);
+            targetPermissions.add(targetPermStr);
+        }
+
+        // Bind idempotency key to current request/trace identity so retries share key but distinct operations over time do not collide
+        String traceId = TraceIdUtil.current();
+        if (traceId == null || traceId.isBlank()) {
+            traceId = "t-" + UUID.randomUUID().toString();
+        }
+        String stableKey = "auth-perm-" + traceId + "-" + id + "-" + action + "-" + resource;
+        String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
+
+        ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
+                commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(traceId, null, null, null),
+                id, 0L, user.role(), targetPermissions, isRevoke ? "revoke permission" : "grant permission"
+        );
+        RpcResult<?> result = accountAdministrationService.changeAuthorization(command);
+        if (result == null || !result.success()) {
+            log.warn("AccountAdministrationService.changeAuthorization failed for user {}: {}", id,
+                    result == null ? "null response" : result.error());
+            throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
+                    "Permission change failed on Auth provider");
         }
 
         Map<String, Object> newValues = new HashMap<>();

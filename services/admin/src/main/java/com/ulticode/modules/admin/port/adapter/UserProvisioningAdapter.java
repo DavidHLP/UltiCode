@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -34,8 +33,8 @@ import com.ulticode.common.rpc.RpcPolicy;
  *
  * <p>Uses Dubbo RPC contracts ({@link AccountQueryService} +
  * {@link AccountManagementService}) instead of direct {@code UserMapper} +
- * {@code AuthAccountPort} access. The adapter still owns password encoding,
- * id/timestamp stamping, and all command construction — so admin/bootstrap
+ * {@code AuthAccountPort} access. Auth owns password hashing; this adapter
+ * owns id/timestamp stamping and command construction — so admin/bootstrap
  * no longer imports any user-internal Legacy type.
  *
  * <p>Dubbo references use {@code check=false} and {@code required=false} so
@@ -47,7 +46,6 @@ import com.ulticode.common.rpc.RpcPolicy;
 @RequiredArgsConstructor
 public class UserProvisioningAdapter implements UserProvisioningPort {
 
-    private final PasswordEncoder passwordEncoder;
     private final UuidGenerator uuidGenerator;
 
     @Autowired(required = false)
@@ -142,7 +140,7 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
         }
         String commandId = UUID.randomUUID().toString();
         String idempotencyKey = uuidGenerator.newId();
-        ActorDelegation actor = new ActorDelegation("ADMIN", "bootstrap", "bootstrap", "initial admin provisioning");
+        ActorDelegation actor = new ActorDelegation("BOOTSTRAP", "bootstrap", "bootstrap", "initial admin provisioning");
         CreateAccountCommand command = new CreateAccountCommand(
                 commandId,
                 IdMetadata.of(idempotencyKey, null),
@@ -178,19 +176,21 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
 
         String commandId = UUID.randomUUID().toString();
         String idempotencyKey = uuidGenerator.newId();
-        ActorDelegation actor = new ActorDelegation("ADMIN", "bootstrap", "bootstrap", "restore admin");
+        ActorDelegation actor = new ActorDelegation("BOOTSTRAP", "bootstrap", "bootstrap", "restore admin");
         TraceMetadata trace = currentTrace();
 
         // Update credentials
         UpdateAccountCredentialsCommand credsCmd = new UpdateAccountCredentialsCommand(
                 commandId, IdMetadata.of(idempotencyKey, null), actor, trace, id, spec.username(), spec.email());
-        accountManagementService.updateCredentials(credsCmd);
+        requireSuccessful(accountManagementService.updateCredentials(credsCmd),
+                "Failed to update administrator credentials");
         // Reset password (admin doesn't know current password)
         String pwCommandId = UUID.randomUUID().toString();
         String pwIdempotencyKey = uuidGenerator.newId();
         ResetPasswordCommand pwCmd = new ResetPasswordCommand(
                 pwCommandId, IdMetadata.of(pwIdempotencyKey, null), actor, trace, id, spec.rawPassword(), "admin restore");
-        accountManagementService.resetPassword(pwCmd);
+        requireSuccessful(accountManagementService.resetPassword(pwCmd),
+                "Failed to reset administrator password");
 
         // Restore lifecycle state: the seed-account lockdown migration
         // (V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts) may
@@ -227,13 +227,21 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
         ChangeAccountStateCommand command = new ChangeAccountStateCommand(
                 UUID.randomUUID().toString(),
                 IdMetadata.of(uuidGenerator.newId(), null),
-                new ActorDelegation("ADMIN", "bootstrap", "bootstrap", "restore admin"),
+                new ActorDelegation("BOOTSTRAP", "bootstrap", "bootstrap", "restore admin"),
                 currentTrace(),
                 id, expectedVersion, action, "admin restore");
         RpcResult<?> result = accountAdministrationService.changeState(command);
         if (result == null || !result.success()) {
             throw new IllegalStateException("Failed to " + action + " administrator " + id
                     + (result != null && result.error() != null ? ": " + result.error().message() : ""));
+        }
+    }
+
+    private static void requireSuccessful(RpcResult<?> result, String message) {
+        if (result == null || !result.success()) {
+            throw new IllegalStateException(message +
+                    (result != null && result.error() != null
+                            ? ": " + result.error().message() : ""));
         }
     }
 

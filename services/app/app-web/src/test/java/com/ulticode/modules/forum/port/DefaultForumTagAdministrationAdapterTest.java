@@ -51,7 +51,7 @@ class DefaultForumTagAdministrationAdapterTest {
     @Test
     void updateDoesNotReturnSuccessWhenLockedRowDisappears() {
         ForumTag existing = tag("tag-1", "Java", "java");
-        when(forumTagMapper.selectByIdForUpdate("tag-1")).thenReturn(existing, null);
+        when(forumTagMapper.selectByIdForUpdate("tag-1")).thenReturn(existing).thenReturn(null);
         when(forumTagMapper.updateById(existing)).thenReturn(0);
 
         RpcResult<ForumTagDTO> result = adapter.mutate(command(

@@ -78,7 +78,7 @@ security:
   internal-delegation:
     secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
     issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
-    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-app}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-notification}
 
 dubbo:
   application:

@@ -60,7 +60,7 @@ public class SubmissionCutoverService {
         RpcResult<RejudgeResultDTO> result = callRejudge(new RejudgeCommand(
                 commandId("rejudge", idempotency),
                 idempotency,
-                new ActorDelegation("ADMIN", actorId, actorId, "cutover rejudge"),
+                new ActorDelegation(actorType(), actorId, actorId, "cutover rejudge"),
                 currentTrace(), id, notifyUser));
         if (result == null || !result.success()) {
             throw mapError(result);
@@ -82,7 +82,7 @@ public class SubmissionCutoverService {
         RpcResult<BatchRejudgeResultDTO> result = callBatchRejudge(new BatchRejudgeCommand(
                 commandId("batchRejudge", idempotency),
                 idempotency,
-                new ActorDelegation("ADMIN", actorId, actorId, "cutover batch rejudge"),
+                new ActorDelegation(actorType(), actorId, actorId, "cutover batch rejudge"),
                 currentTrace(), submissionIds, notifyUsers));
         if (result == null || !result.success()) {
             throw mapError(result);
@@ -155,6 +155,10 @@ public class SubmissionCutoverService {
                     "Authenticated admin actor is required");
         }
         return actorId;
+    }
+
+    private String actorType() {
+        return currentUserProvider.hasRole("SUPER_ADMIN") ? "SUPER_ADMIN" : "ADMIN";
     }
 
     private static IdMetadata idempotency(String requestedKey) {

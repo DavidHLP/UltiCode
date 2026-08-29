@@ -14,6 +14,7 @@ import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,10 +33,17 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
 
     private final ProblemAdministrationDomainService domainService;
     private final SearchDocumentChangedPublisher searchPublisher;
+    private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
     @Transactional
     public RpcResult<ProblemAdminViewDTO> createProblem(CreateProblemCommand command) {
+        String traceId = traceId(command);
+        RpcResult<ProblemAdminViewDTO> rejected = rejectIfUntrusted(
+                command == null ? null : command.actor(), traceId);
+        if (rejected != null) {
+            return rejected;
+        }
         log.info("ProblemAdministrationProvider.createProblem slug={} commandId={} actor={}",
                 command.slug(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
@@ -58,6 +66,12 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     @Override
     @Transactional
     public RpcResult<ProblemAdminViewDTO> updateProblem(UpdateProblemCommand command) {
+        String traceId = traceId(command);
+        RpcResult<ProblemAdminViewDTO> rejected = rejectIfUntrusted(
+                command == null ? null : command.actor(), traceId);
+        if (rejected != null) {
+            return rejected;
+        }
         Long id = parseId(command.problemId(), command.trace().traceId());
         if (id == null) {
             return RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, command.trace().traceId());
@@ -83,6 +97,12 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     @Override
     @Transactional
     public RpcResult<Void> publishProblem(PublishProblemCommand command) {
+        String traceId = traceId(command);
+        RpcResult<Void> rejected = rejectIfUntrusted(
+                command == null ? null : command.actor(), traceId);
+        if (rejected != null) {
+            return rejected;
+        }
         Long id = parseId(command.problemId(), command.trace().traceId());
         if (id == null) {
             return RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, command.trace().traceId());
@@ -112,6 +132,12 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     @Override
     @Transactional
     public RpcResult<Void> deleteProblem(DeleteProblemCommand command) {
+        String traceId = traceId(command);
+        RpcResult<Void> rejected = rejectIfUntrusted(
+                command == null ? null : command.actor(), traceId);
+        if (rejected != null) {
+            return rejected;
+        }
         Long id = parseId(command.problemId(), command.trace().traceId());
         if (id == null) {
             return RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, command.trace().traceId());
@@ -135,6 +161,21 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
             log.error("ProblemAdministrationProvider.deleteProblem unexpected error id={}", id, e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
         }
+    }
+    private <T> RpcResult<T> rejectIfUntrusted(
+            com.ulticode.common.command.ActorDelegation actor, String traceId) {
+        try {
+            return actorAuthorizer.isAuthorized(actor)
+                    ? null
+                    : RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
+        } catch (RuntimeException exception) {
+            log.warn("Problem administration actor authorization failed", exception);
+            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId);
+        }
+    }
+
+    private static String traceId(com.ulticode.common.command.WriteCommand command) {
+        return command == null || command.trace() == null ? null : command.trace().traceId();
     }
 
     // ── helpers ────────────────────────────────────────────────

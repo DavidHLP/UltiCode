@@ -18,6 +18,7 @@ import com.ulticode.app.api.service.ProblemFactsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@Primary
 @ConditionalOnExpression("'${app.runtime.role:app}' == 'judge' or "
         + "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor

@@ -99,6 +99,32 @@ class UserPermissionServiceImplTest {
     }
 
     @Test
+    @DisplayName("permission RPC failure is propagated instead of reported as success")
+    void permissionMutationFailureIsPropagated() {
+        when(userEnricher.enrichOne("user-123")).thenReturn(createValidUser());
+        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class)))
+                .thenReturn(RpcResult.failure(com.ulticode.auth.api.error.AuthErrorCode.AUTHORIZATION_VERSION_CONFLICT,
+                        "t-test"));
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Permission change failed on Auth provider");
+    }
+
+    @Test
+    @DisplayName("missing Auth permission provider fails closed")
+    void missingPermissionProviderFailsClosed() {
+        when(userEnricher.enrichOne("user-123")).thenReturn(createValidUser());
+        ReflectionTestUtils.setField(userPermissionService, "accountAdministrationService", null);
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("AccountAdministrationService unavailable");
+    }
+
+    @Test
     @DisplayName("revokeUserPermission succeeds")
     void revokePermissionSuccess() {
         AdminUserSummary u = createValidUser();
@@ -117,6 +143,7 @@ class UserPermissionServiceImplTest {
     @Test
     @DisplayName("assignUserPermission preserves existing permissions in target full set")
     void assignPermissionPreservesExistingPermissions() {
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
         AdminUserSummary u = createValidUser();
         when(userEnricher.enrichOne("user-123")).thenReturn(u);
 
@@ -137,6 +164,7 @@ class UserPermissionServiceImplTest {
 
         ChangeAuthorizationCommand cmd = captor.getValue();
         assertThat(cmd.permissions()).containsExactlyInAnyOrder("READ:PROBLEM", "WRITE:PROBLEM");
+        assertThat(cmd.actor().actorType()).isEqualTo("SUPER_ADMIN");
     }
 
     @Test

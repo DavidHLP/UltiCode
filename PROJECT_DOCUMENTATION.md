@@ -363,7 +363,7 @@ flowchart LR
 | 搜索 | Search Projection → MeiliSearch 或四个 SearchSource → Problem/Forum/Solution/User mappers | 目标应由 App 拥有搜索索引，不做四路远程串行查询 |
 | WebSocket | access cookie → Handshake → STOMP interceptor → Redis blacklist → JWT → User DB → session principal | 目标在 App 本地验 JWT，以事件/cache 处理状态失效，避免每消息 Auth RPC |
 
-代表源码：`services/auth/src/main/java/com/ulticode/auth/service/DefaultAuthenticationWorkflow.java`、`services/submission/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java`、`services/app/app-web/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java:141-185,412-498`、`services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java:278-314`、`services/app/app-web/src/main/java/com/ulticode/modules/websocket/auth/DefaultWebSocketAuthenticator.java:46-86`。
+代表源码：`services/auth/src/main/java/com/ulticode/auth/service/DefaultAuthenticationWorkflow.java`、`services/submission/src/main/java/com/ulticode/submission/port/DefaultSubmissionWritePort.java`、`services/app/app-web/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java:141-185,412-498`、`services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java:278-314`、`services/app/app-web/src/main/java/com/ulticode/modules/websocket/auth/DefaultWebSocketAuthenticator.java:46-86`。
 
 ##### 2.4 当前耦合与循环性质
 
@@ -586,15 +586,14 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 |---|---|
 | Responsibility | Submission write/fence 的独立 HTTP/Dubbo 进程边界；本地存储 writer、outbox 消费者、cutover runbook 与 direct owner provider 均已落地，当前本地目标已切流 |
 | Owned Domain | Submission intake、verdict、generation/lease fence、judge/result outbox；写路径类（entity/mapper/codec/stats/result outbox）已复制到本服务，outbox 消费者（`JudgeOutboxDispatcher`/`SubmissionResultDispatcher`）与 `ResultEventPublisher`（直接 XADD `stream:integration`）已迁移到本服务 |
-| Owned Tables | `submission` schema 的 `submissions`/`judge_outbox`/`submission_result_outbox`/`submission_created_outbox` 由 Submission owner 负责；当前 remote route 下四张表只有 Submission writer |
-| Dubbo Provider | `SubmissionWritePort`、`SubmissionFencePort` 的 direct provider，group=`backend-submission`，只注入进程内 writer/fence 直写 `submission` schema |
+| Owned Tables | `submission` schema 的 `submissions`/`judge_outbox`/`submission_result_outbox`/`submission_created_outbox`/`submission_command_receipt` 由 Submission owner 负责；当前 remote route 下这些写表只有 Submission writer |
+| Dubbo Provider | SubmissionIntakePort、SubmissionVerdictWritePort、SubmissionFencePort、SubmissionAdministrationService 的 direct provider，group=backend-submission；所有 Submission mutation/fence/rejudge 均在 owner 进程内执行 |
 | Dubbo Consumer | ProblemFacts（backend-app）、UserExistence（backend-auth IdentityQueryService）；write/fence regular path 不再回访 App |
-| Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 四张 owner 表（submission/judge/created/result outbox）；contest `submitContest` 在同一 intake 事务内写 `submission_created_outbox`，judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox` |
+| Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 四张 owner 表（submission/judge/created/result outbox）；contest `submitContest` 在同一 intake 事务内写 `submission_created_outbox`，judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；`SubmissionRejudgeService` 在 owner 事务内执行 generation CAS/lease expiry，并由 `SubmissionCommandReceiptExecutor` 将 Admin command 的 actor/trace、fingerprint、结果写入 `submission_command_receipt`；terminal rejudge 写非 shadow `judge_outbox`，terminal verdict 总是写 `submission_result_outbox` |
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
 | Rollback | 当前 artifact 不含 App-local writer。回滚必须部署上一已验证 artifact 并执行 `submission-schema-cutover.sh rollback`；不得在当前版本通过配置重新产生第二 writer |
 
 Owner-only intake cutover：App 的 local writer、mutation router、fence adapters、judge/result dispatchers、shadow comparator 与 lease reaper 已删除。`RemoteSubmissionWritePort` 无条件捕获 App-owned request facts，再调用 `backend-submission` 的 `SubmissionIntakePort`；`APP_SUBMISSION_ROUTING_MODE` 只保留给临时 read projection。Judge verdict/fence/reaper/outbox 全部由 Judge/Submission runtime 直接使用 owner contract。
-
 ##### 4.5.2 Writer behavior decision matrix (P1-SUB-001)
 
 | ID | Owner decision | Regression evidence |
@@ -620,8 +619,17 @@ Owner-only intake cutover：App 的 local writer、mutation router、fence adapt
 | W19 | fenced verdict rejects stale generation/attempt | `DefaultSubmissionWritePortIT.fencedVerdictRejectsStaleGeneration` |
 | W20 | terminal verdict writes one generation-idempotent result outbox | `DefaultSubmissionWritePortIT.fencedVerdictAcceptsCurrentGeneration` |
 
-Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component. Live traffic observation remains external. Admin rejudge and App-local reads are tracked separately by P1-SUB-002/003/004 and SVC-003.
+Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component. Live traffic observation remains external. Admin rejudge is now owner-routed per P1-SUB-002; App-local reads remain tracked by P1-SUB-003/004 and SVC-003.
 
+##### 4.5.3 Admin rejudge ownership (P1-SUB-002)
+
+Admin 的 `SubmissionCutoverService` 只创建带 `ActorDelegation`、`TraceMetadata`、`IdMetadata` 的 command，并通过 group=`backend-submission` 的 `SubmissionAdministrationService` 发起调用；不读取或写入 Submission entity、mapper 或 outbox。
+
+Submission owner 的 `SubmissionAdministrationProvider` 先验证 backend-admin 签发、audience=backend-submission、RS256、短时效、角色/subject/self-delegation 和 Redis replay claim，再进入 `SubmissionCommandReceiptExecutor`。receipt 以 service/operation/idempotency-key 唯一键原子 claim；相同 fingerprint 重放成功结果，处理中重复请求返回冲突，不同 payload 返回 key conflict。
+
+`SubmissionRejudgeService` 只在 owner 事务内执行状态转换：terminal 行使用 generation CAS 后写非 shadow `judge_outbox`；Judging 行只失效当前 lease/attempt，交给 owner reaper 生成下一代任务；contest 关联仍按既有 `submission_created_outbox` 保护。actor、trace、fingerprint 和结果暂存于 owner receipt，完整跨 owner audit outbox 由 P1-AUDIT-001 收敛。
+
+证据：`SubmissionCutoverServiceTest`、`SubmissionRejudgeServiceTest`、`SubmissionCommandReceiptExecutorTest`、`SubmissionAdministrationProviderTest`、`InternalDelegationAssertionVerifierTest`、`architecture-contract-test.sh`。真实 Nacos/Dubbo/数据库运行与流量切换仍需外部环境；当前变更不执行生产或远程操作。
 ##### 4.6 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |
@@ -795,8 +803,8 @@ Interface；回滚顺序相反。混合版本窗口和 consumer drain 完成前�
 `backend-app-api` 只保留 App-owned contracts 与显式的 App fact/recipient exceptions；Submission 的
 write/fence/read/rejudge/admin contracts、DTO 与 lifecycle events 位于 `backend-submission-api`，Notification
 admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。当前
-Submission mutation 窄 Interface 与 deprecated 1.0.0 compatibility provider 并存；本地运行时仍由
-`APP_SUBMISSION_ROUTING_MODE` 选择 local/remote，失败只走既有 grant/watermark/reconciliation runbook。
+Submission mutation 窄 Interface 与 owner 内部的 deprecated 1.0.0 compatibility provider 并存；App
+不再提供 Submission mutation/rejudge provider，`APP_SUBMISSION_ROUTING_MODE` 只选择临时 read projection，失败只走既有 grant/watermark/reconciliation runbook。
 
 Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity

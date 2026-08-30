@@ -39,6 +39,10 @@ for file in \
   services/judge/src/main/java/com/ulticode/judge/provider/CodeExecutionProvider.java \
   services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \
   services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemTitleLookupDubboAdapter.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java \
+  services/submission/src/main/java/com/ulticode/submission/admin/SubmissionRejudgeService.java \
+  services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java \
+  services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionVerdictWriteProvider.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
@@ -236,7 +240,7 @@ contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jw
 not_contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
 # P0-SEC-005: transport assertions are RS256-only. Private signing material
 # stays in Admin; every verifier receives only public key material.
-for delegation_source in services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java services/app/app-web/src/main/java/com/ulticode/app/security/InternalDelegationAssertionVerifier.java services/notification/src/main/java/com/ulticode/notification/security/InternalDelegationAssertionVerifier.java; do
+for delegation_source in services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java services/app/app-web/src/main/java/com/ulticode/app/security/InternalDelegationAssertionVerifier.java services/notification/src/main/java/com/ulticode/notification/security/InternalDelegationAssertionVerifier.java services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java; do
   not_contains "$delegation_source" 'Keys.hmacShaKeyFor'
 done
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Jwts.SIG.RS256'
@@ -267,7 +271,22 @@ contains services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksContro
 contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'backend-auth'
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ContestAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
-contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
+for stale_rejudge in \
+  services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionAdministrationProvider.java \
+  services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/RejudgePolicyProvider.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/service/AdminSubmissionService.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminSubmissionServiceImpl.java; do
+  [[ ! -e "$ROOT_DIR/$stale_rejudge" ]] \
+    || fail "stale rejudge compatibility source remains: $stale_rejudge"
+done
+contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java 'implements SubmissionAdministrationService'
+contains services/submission/src/main/java/com/ulticode/submission/admin/SubmissionRejudgeService.java '@Transactional'
+contains services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java 'expectedAudience'
+contains services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java 'backend-submission'
+contains services/submission/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java 'current_attempt_id = NULL'
+contains services/submission/src/main/java/com/ulticode/submission/idempotency/mapper/SubmissionCommandReceiptMapper.java 'INSERT IGNORE INTO submission_command_receipt'
+contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java 'group = "backend-submission"'
+not_contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java 'app.features.submission-dubbo-cutover'
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'

@@ -16,17 +16,19 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * SPLIT-003 slice-3/7 adds the local outbox consumers
  * ({@code JudgeOutboxDispatcher}, {@code SubmissionResultDispatcher}, and
  * {@code SubmissionCreatedDispatcher}).
- * App routing stays {@code local} until the separately authorized runtime
- * cutover; after that cutover this process remains the sole Submission writer.
+ * App read projections remain local until their separate bounded-read cutover;
+ * this process is already the sole Submission mutation writer.
  */
 @SpringBootApplication(scanBasePackages = "com.ulticode.submission")
 @EnableScheduling
 @ComponentScan(basePackages = {
         "com.ulticode.submission",
         "com.ulticode.modules.submission",
-        "com.ulticode.modules.queue"
+        "com.ulticode.modules.queue",
+        "com.ulticode.websecurity"
 })
 @MapperScan({"com.ulticode.modules.submission.mapper",
+        "com.ulticode.submission.idempotency.mapper",
         "com.ulticode.modules.submission.outbox.mapper",
         "com.ulticode.modules.submission.result",
         "com.ulticode.modules.submission.created"})

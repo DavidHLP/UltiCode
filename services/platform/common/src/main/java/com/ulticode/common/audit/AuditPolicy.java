@@ -139,9 +139,6 @@ public final class AuditPolicy {
                     "deleteNotification", "DELETE_NOTIFICATION", "NOTIFICATION", null),
             entry("com.ulticode.modules.admin.service.NotificationCutoverService",
                     "updateSystemNotification", "UPDATE_NOTIFICATION", "NOTIFICATION", null),
-            entry("com.ulticode.modules.admin.service.impl.AdminSubmissionServiceImpl",
-                    "rejudge", "REQUEUE_SUBMISSION", "SUBMISSION",
-                    "ADMIN re-judges a submission"),
             // Contest user-facing problem link management.
             entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
                     "addProblem", "UPDATE_CONTEST", "CONTEST", null),

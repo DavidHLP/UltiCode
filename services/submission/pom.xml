@@ -102,6 +102,10 @@
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>
+            <artifactId>backend-web-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ulticode</groupId>
             <artifactId>backend-auth-api</artifactId>
         </dependency>
         <dependency>

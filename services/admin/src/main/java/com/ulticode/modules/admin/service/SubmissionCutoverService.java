@@ -20,7 +20,6 @@ import com.ulticode.modules.admin.dto.RejudgeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -30,32 +29,23 @@ import java.util.List;
 import java.util.UUID;
 import com.ulticode.common.rpc.RpcPolicy;
 
-/**
- * P4-CUTOVER-002: feature-flagged routing adapter for submission rejudge.
- */
+/** Admin BFF adapter that always sends rejudge intent to backend-submission. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubmissionCutoverService {
 
-    private final AdminSubmissionService submissionService;
     private final CurrentUserProvider currentUserProvider;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SubmissionAdministrationService dubboProvider;
-
-    @Value("${app.features.submission-dubbo-cutover:false}")
-    private boolean dubboEnabled;
 
     public RejudgeResult rejudge(String id, boolean notifyUser) {
         return rejudge(id, notifyUser, null);
     }
 
     public RejudgeResult rejudge(String id, boolean notifyUser, String requestedKey) {
-        if (!dubboEnabled) {
-            return submissionService.rejudge(id, notifyUser);
-        }
         String actorId = currentActorId();
         IdMetadata idempotency = idempotency(requestedKey);
         RpcResult<RejudgeResultDTO> result = callRejudge(new RejudgeCommand(
@@ -75,9 +65,6 @@ public class SubmissionCutoverService {
 
     public BatchRejudgeResponse batchRejudge(
             List<String> submissionIds, boolean notifyUsers, String requestedKey) {
-        if (!dubboEnabled) {
-            return submissionService.batchRejudge(submissionIds, notifyUsers);
-        }
         String actorId = currentActorId();
         IdMetadata idempotency = idempotency(requestedKey);
         RpcResult<BatchRejudgeResultDTO> result = callBatchRejudge(new BatchRejudgeCommand(

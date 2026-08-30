@@ -9,7 +9,6 @@ import com.ulticode.modules.admin.dto.LanguageOption;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.dto.StatusOption;
 import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
-import com.ulticode.modules.admin.service.AdminSubmissionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -58,8 +57,6 @@ class AdminSubmissionControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
-    private AdminSubmissionService adminSubmissionService;
 
     @MockBean
     private com.ulticode.modules.admin.service.SubmissionCutoverService submissionCutoverService;
@@ -181,7 +178,7 @@ class AdminSubmissionControllerTest {
                 .andExpect(jsonPath("$.code").value(40000))
                 .andExpect(jsonPath("$.data.notifyUser").value("notifyUser is required"));
 
-            verify(adminSubmissionService, never()).rejudge(anyString(), anyBoolean());
+            verify(submissionCutoverService, never()).rejudge(anyString(), anyBoolean());
         }
 
         @Test
@@ -242,7 +239,7 @@ class AdminSubmissionControllerTest {
                 .andExpect(jsonPath("$.code").value(40000))
                 .andExpect(jsonPath("$.data.submissionIds").exists());
 
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
+            verify(submissionCutoverService, never()).batchRejudge(anyList(), anyBoolean());
         }
 
         @Test
@@ -254,7 +251,7 @@ class AdminSubmissionControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.submissionIds").exists());
 
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
+            verify(submissionCutoverService, never()).batchRejudge(anyList(), anyBoolean());
         }
 
         @Test
@@ -266,7 +263,7 @@ class AdminSubmissionControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.submissionIds").exists());
 
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
+            verify(submissionCutoverService, never()).batchRejudge(anyList(), anyBoolean());
         }
 
         @Test
@@ -285,7 +282,7 @@ class AdminSubmissionControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.submissionIds").exists());
 
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
+            verify(submissionCutoverService, never()).batchRejudge(anyList(), anyBoolean());
         }
 
         @Test
@@ -297,7 +294,7 @@ class AdminSubmissionControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.submissionIds").exists());
 
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
+            verify(submissionCutoverService, never()).batchRejudge(anyList(), anyBoolean());
         }
 
         @Test

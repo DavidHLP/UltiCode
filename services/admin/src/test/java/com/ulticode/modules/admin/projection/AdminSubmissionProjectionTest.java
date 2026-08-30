@@ -31,10 +31,10 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DefaultAdminSubmissionProjection} &mdash; the read-side
- * deep module lifted out of AdminSubmissionServiceImpl per ADR-0011 Stage 2.
+ * deep read module extracted during ADR-0011 Stage 2.
  *
- * <p>Covers the read paths that previously lived on
- * {@code AdminSubmissionServiceImplTest}: {@code getStatuses} (enum-derived),
+ * <p>Covers the read paths that previously shared the Admin submission
+ * management service: {@code getStatuses} (enum-derived),
  * {@code getLanguages} (humanised labels), {@code getStatistics} (typed
  * read-port aggregation), and {@code getSubmissions} (paginated search delegated
  * to the read port + batch user/problem enrichment). The projection no longer

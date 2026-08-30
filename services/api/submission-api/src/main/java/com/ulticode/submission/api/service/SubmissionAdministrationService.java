@@ -17,16 +17,14 @@ import com.ulticode.common.rpc.RpcResult;
  * "不应该 RPC" row in &sect;6.3.
  *
  * <p>The Submission provider owns the full rejudge state machine (generation
- * fence via {@code bumpGeneration} CAS, lease expiry, outbox
- * double-write) per the P3-OWNER-001-C {@code RejudgePolicy}; the
- * Admin BFF merely issues the command and receives the resulting
- * status. Fence enforcement is server-side &mdash; see
- * {@link RejudgeCommand} javadoc for rationale.
+ * fence via generation-checked SQL CAS, lease expiry, and durable judge/result
+ * outbox writes). The Admin BFF merely issues the command and receives the
+ * resulting status. Fence enforcement is server-side; see
+ * {@link com.ulticode.submission.api.command.RejudgeCommand} for the command
+ * contract.
  *
- * <p>This interface is contract-only; no ServiceImpl lives in this
- * module. The provider implementation belongs to {@code backend-submission};
- * the pre-cutover App compatibility provider is a separately gated runtime
- * artifact and does not change this contract owner.
+ * <p>This interface is contract-only; its sole provider is
+ * {@code backend-submission}. No App compatibility rejudge provider remains.
  */
 public interface SubmissionAdministrationService {
 
@@ -36,7 +34,7 @@ public interface SubmissionAdministrationService {
      * status.
      *
      * @param command carries commandId, idempotency, actor, trace,
-     *                submission id and the notifyUser flag
+     *                submission id and the compatibility notifyUser flag
      * @return success with the post-rejudge
      *         {@link RejudgeResultDTO}; failure with
      *         {@code CONTENT_NOT_FOUND} when the submission id is
@@ -45,10 +43,10 @@ public interface SubmissionAdministrationService {
     RpcResult<RejudgeResultDTO> rejudge(RejudgeCommand command);
 
     /**
-     * Batch-rejudge multiple submissions (up to 50). The provider loops
-     * over per-submission {@code RejudgePolicy.rejudgeFenced} CAS — there
-     * is no batch-level fence; each submission is independently
-     * generation-fenced.
+     * Batch-rejudge multiple submissions (up to 50). The provider delegates
+     * each item to the Submission owner's {@code SubmissionRejudgeService}
+     * transition; there is no batch-level fence, so each submission is
+     * independently generation-fenced.
      *
      * @param command carries commandId, idempotency, actor, trace,
      *                submission ids and the notifyUser flag

@@ -28,10 +28,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -48,7 +44,6 @@ import static org.mockito.Mockito.when;
 @DisplayName("SubmissionCutoverService.batchRejudge")
 class SubmissionCutoverServiceTest {
 
-    @Mock private AdminSubmissionService adminSubmissionService;
     @Mock private SubmissionAdministrationService submissionDubbo;
     @Mock private CurrentUserProvider currentUserProvider;
 
@@ -56,10 +51,9 @@ class SubmissionCutoverServiceTest {
 
     @BeforeEach
     void setUp() {
-        submissionCutover = new SubmissionCutoverService(adminSubmissionService, currentUserProvider);
+        submissionCutover = new SubmissionCutoverService(currentUserProvider);
         when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
         ReflectionTestUtils.setField(submissionCutover, "dubboProvider", submissionDubbo);
-        ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", false);
     }
 
     @Test
@@ -70,35 +64,15 @@ class SubmissionCutoverServiceTest {
                 .getAnnotation(DubboReference.class);
 
         assertThat(reference.group()).isEqualTo("backend-submission");
-        assertThat(java.util.Arrays.stream(SubmissionCutoverService.class.getDeclaredFields())
-                .map(java.lang.reflect.Field::getType))
-                .doesNotContain(AdminSubmissionService.class);
     }
     @Nested
     @DisplayName("batchRejudge")
     class BatchRejudge {
 
-        @Test
-        @DisplayName("flag=off delegates to the local submission service")
-        void delegatesLocal() {
-            BatchRejudgeResponse resp = new BatchRejudgeResponse();
-            resp.setTotal(2);
-            resp.setSuccessful(2);
-            resp.setFailed(0);
-            when(adminSubmissionService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
-
-            BatchRejudgeResponse result = submissionCutover.batchRejudge(List.of("s1", "s2"), false);
-
-            assertThat(result.getTotal()).isEqualTo(2);
-            assertThat(result.getSuccessful()).isEqualTo(2);
-            assertThat(result.getFailed()).isEqualTo(0);
-            verify(submissionDubbo, never()).batchRejudge(any());
-        }
 
         @Test
-        @DisplayName("flag=on writes via Dubbo and maps the DTO")
+        @DisplayName("writes via Submission-owner Dubbo and maps the DTO")
         void viaDubbo() {
-            ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", true);
             when(submissionDubbo.batchRejudge(any())).thenReturn(
                     RpcResult.success(new BatchRejudgeResultDTO(2, 1, 1,
                             List.of(new RejudgeResultDTO("s1", "ACCEPTED", Instant.now().toEpochMilli(), 0))),
@@ -110,13 +84,11 @@ class SubmissionCutoverServiceTest {
             assertThat(result.getSuccessful()).isEqualTo(1);
             assertThat(result.getFailed()).isEqualTo(1);
             assertThat(result.getResults()).hasSize(1);
-            verify(adminSubmissionService, never()).batchRejudge(anyList(), anyBoolean());
         }
 
         @Test
-        @DisplayName("flag=on treats a legacy payload without success as successful")
+        @DisplayName("treats a legacy payload without success as successful")
         void acceptsLegacyProviderPayload() throws Exception {
-            ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", true);
             RejudgeResultDTO legacy = new ObjectMapper().readValue(
                     """
                     {"submissionId":"s1","newStatus":"PENDING",
@@ -133,9 +105,8 @@ class SubmissionCutoverServiceTest {
         }
 
         @Test
-        @DisplayName("flag=on maps provider transport failure to a generic admin error")
+        @DisplayName("maps owner transport failure to a generic admin error")
         void mapsProviderUnavailable() {
-            ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", true);
             when(submissionDubbo.batchRejudge(any()))
                     .thenThrow(new RuntimeException("transport details"));
 

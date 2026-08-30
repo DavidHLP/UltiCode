@@ -34,7 +34,7 @@ import lombok.Getter;
  * </ul>
  * <p>
  * This enum unifies the three previously divergent sources of truth:
- * (a) the hard-coded 7-entry list in {@code AdminSubmissionServiceImpl.getStatuses()},
+ * (a) the former hard-coded admin status list,
  * (b) the {@code byStatus} aggregation in {@code getStatistics()} (11 entries), and
  * (c) the raw strings in the {@code submissions} table. Admin filter dropdowns and
  * statistics cards now derive from the same source.

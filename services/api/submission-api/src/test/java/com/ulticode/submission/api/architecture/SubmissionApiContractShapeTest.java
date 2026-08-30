@@ -18,11 +18,9 @@ import com.ulticode.submission.api.dto.SubmissionResultPayload;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
-import com.ulticode.submission.api.dto.RejudgeResult;
 import com.ulticode.submission.api.dto.RejudgeResultDTO;
 import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
 import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
-import com.ulticode.submission.api.service.RejudgePolicy;
 import com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
@@ -48,7 +46,6 @@ class SubmissionApiContractShapeTest {
 
     @SuppressWarnings("removal")
     private static final List<Class<?>> CONTRACTS = List.of(
-            RejudgePolicy.class,
             SubmissionActivityAnalyticsPort.class,
             SubmissionAdminReadPort.class,
             SubmissionAdministrationService.class,
@@ -89,7 +86,6 @@ class SubmissionApiContractShapeTest {
                 SubmissionListItemVO.class, SubmissionQueryDTO.class,
                 SubmissionResultPayload.class, SubmissionStatusMeta.class,
                 SubmissionTestCaseDetailDTO.class, SubmissionVO.class,
-                RejudgeResult.class, RejudgeResultDTO.class,
                 SubmissionLifecycleEventContract.class))
                 .allSatisfy(type -> assertThat(type.getPackageName())
                         .startsWith("com.ulticode.submission.api"));

@@ -6,11 +6,13 @@ import com.ulticode.modules.submission.port.DefaultSubmissionWritePort;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
+import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
+import com.ulticode.submission.dubbo.provider.SubmissionAdministrationProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionUserQueryProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionIntakeProvider;
@@ -42,6 +44,8 @@ class SubmissionProviderContractTest {
         assertProvider(SubmissionIntakeProvider.class, SubmissionIntakePort.class, "1.0.0");
         assertProvider(SubmissionVerdictWriteProvider.class, SubmissionVerdictWritePort.class, "1.0.0");
         assertProvider(SubmissionWriteProvider.class, SubmissionWritePort.class, "1.0.0");
+        assertProvider(SubmissionAdministrationProvider.class,
+                SubmissionAdministrationService.class, "1.0.0");
         assertProvider(SubmissionFenceProvider.class, SubmissionFencePort.class, "1.1.0");
     }
 

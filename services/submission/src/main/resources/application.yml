@@ -44,6 +44,13 @@ app:
     judge-queue:
       use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
 
+security:
+  internal-delegation:
+    public-key: ${INTERNAL_DELEGATION_PUBLIC_KEY:}
+    key-id: ${INTERNAL_DELEGATION_KEY_ID:}
+    issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
+    audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-submission}
+
 management:
   endpoints:
     web:

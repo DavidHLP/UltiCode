@@ -12,23 +12,18 @@ import com.ulticode.common.tracing.TraceMetadata;
  *
  * <p>Per migration guide &sect;6.3 "显式 rejudge command" is an
  * RPC-suitable scenario. The Submission provider owns the full rejudge state
- * machine (generation fence, lease expiry, outbox double-write) per the
- * P3-OWNER-001-C {@code RejudgePolicy}; the Admin BFF merely issues the
- * command and receives the resulting status.
+ * machine (generation fence, lease expiry, and durable outboxes) in
+ * backend-submission; the Admin BFF merely issues the command and receives
+ * the resulting status.
  *
  * <p>Per migration guide &sect;6.2 the command carries
  * {@code commandId}, {@link IdMetadata}, {@link ActorDelegation} and
  * {@link TraceMetadata} via the {@link WriteCommand} base contract.
  *
- * <p>Fence enforcement is <b>server-side</b> via
- * {@code RejudgePolicy.rejudgeFenced}'s atomic {@code bumpGeneration}
- * CAS: the submission's {@code generation} is read from the DB row
- * inside the CAS, not passed in by the caller. The Admin BFF has no way
- * to know the current generation without an extra read, and there is no
- * need to fence against a stale caller view because the server-side CAS
- * handles the race. This mirrors the existing admin HTTP
- * {@code RejudgeRequest} which carries only {@code submissionId} +
- * {@code notifyUser}.
+ * <p>Fence enforcement is <b>server-side</b> via the owner's atomic
+ * generation CAS: the current generation is read from the database inside
+ * the transition, not supplied by the caller. The Admin BFF therefore needs
+ * no stale generation read before issuing this command.
  *
  * <p>If a future RPC version needs caller-supplied optimistic concurrency
  * (e.g. "only rejudge if the submission hasn't been rejudged since I
@@ -36,11 +31,8 @@ import com.ulticode.common.tracing.TraceMetadata;
  * field, don't try to back-fit it now.
  *
  * @param submissionId the target submission (UUID String)
- * @param notifyUser   whether the Submission provider should emit a user-facing
- *                     notification about the rejudge (mirrors the legacy
- *                     {@code AdminSubmissionServiceImpl.rejudge(id, notifyUser)}
- *                     flag and {@code RejudgeRequest}'s
- *                     {@code @NotNull notifyUser})
+ * @param notifyUser   retained for command compatibility; notification delivery is
+ *                     not part of this owner transition
  */
 public record RejudgeCommand(
         String commandId,
@@ -50,7 +42,6 @@ public record RejudgeCommand(
         String submissionId,
         boolean notifyUser) implements WriteCommand {
     private static final long serialVersionUID = 1L;
-
 
     public RejudgeCommand {
         if (commandId == null || commandId.isBlank()) {

@@ -51,6 +51,27 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
                                @Param("expectedGen") long expectedGen,
                                @Param("newGen") long newGen);
 
+    /** Atomically reset a terminal row and increment its rejudge counter. */
+    @Update("UPDATE submissions "
+            + "SET status = 'Pending', generation = #{newGen}, "
+            + "    retry_count = COALESCE(retry_count, 0) + 1, "
+            + "    current_attempt_id = NULL, judging_lease_expires_at = NULL "
+            + "WHERE id = #{id} AND generation = #{expectedGen} "
+            + "  AND status IN ('Accepted','Presentation Error','Wrong Answer',"
+            + "'Time Limit Exceeded','Memory Limit Exceeded','Output Limit Exceeded',"
+            + "'Runtime Error','Compile Error','Sandbox Error','System Error')")
+    int rejudgeTerminal(@Param("id") String id,
+                        @Param("expectedGen") long expectedGen,
+                        @Param("newGen") long newGen);
+
+    /** Expire the active attempt and count a request without dispatching twice. */
+    @Update("UPDATE submissions "
+            + "SET judging_lease_expires_at = NOW(), "
+            + "    current_attempt_id = NULL, "
+            + "    retry_count = COALESCE(retry_count, 0) + 1 "
+            + "WHERE id = #{id} AND generation = #{generation} AND status = 'Judging'")
+    int requestJudgingRejudge(@Param("id") String id,
+                              @Param("generation") long generation);
     /**
      * CAS verdict write under generation/attempt fence. Returns 1 only when the
      * row still matches the caller's generation and attempt; otherwise the

@@ -13,12 +13,13 @@ import java.util.List;
  * {@code SubmissionAdministrationService.batchRejudge}.
  *
  * <p>Mirrors {@code BatchRejudgeRequest}: up to 50 submission IDs per
- * batch. The provider loops over per-submission
- * {@code RejudgePolicy.rejudgeFenced} CAS — there is no batch-level
- * fence; each submission is independently generation-fenced.
+ * batch. The provider invokes the Submission owner's generation-fenced
+ * rejudge transition for each item; there is no batch-level fence, so each
+ * submission is independently idempotent and concurrency-safe.
  *
  * @param submissionIds list of submission IDs (non-empty, max 50)
- * @param notifyUsers   whether to notify affected users after rejudge
+ * @param notifyUsers   retained for command compatibility; notification delivery is
+ *                      not part of this owner transition
  */
 public record BatchRejudgeCommand(
         String commandId,
@@ -28,7 +29,6 @@ public record BatchRejudgeCommand(
         List<String> submissionIds,
         boolean notifyUsers) implements WriteCommand {
     private static final long serialVersionUID = 1L;
-
 
     public BatchRejudgeCommand {
         if (commandId == null || commandId.isBlank()) {

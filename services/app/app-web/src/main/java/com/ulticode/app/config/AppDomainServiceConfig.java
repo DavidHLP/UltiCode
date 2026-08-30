@@ -8,9 +8,6 @@ import com.ulticode.modules.problem.port.ProblemVersionPort;
 import com.ulticode.modules.problem.port.ProblemWritePort;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
 import com.ulticode.modules.problem.service.impl.ProblemAdministrationDomainServiceImpl;
-import com.ulticode.modules.submission.port.SubmissionAdministrationWritePort;
-import com.ulticode.modules.submission.service.SubmissionAdministrationDomainService;
-import com.ulticode.modules.submission.service.impl.SubmissionAdministrationDomainServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -40,11 +37,6 @@ public class AppDomainServiceConfig {
         return new ContentModerationDomainServiceImpl(writePort);
     }
 
-    @Bean
-    public SubmissionAdministrationDomainService submissionAdministrationDomainService(
-            SubmissionAdministrationWritePort writePort) {
-        return new SubmissionAdministrationDomainServiceImpl(writePort);
-    }
 
     @Bean
     public ProblemAdministrationDomainService problemAdministrationDomainService(

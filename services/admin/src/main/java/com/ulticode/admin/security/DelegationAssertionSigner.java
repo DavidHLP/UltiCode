@@ -21,7 +21,8 @@ import org.springframework.stereotype.Component;
 public class DelegationAssertionSigner {
 
     private static final Set<String> ALLOWED_TARGET_APPLICATIONS =
-            Set.of("backend-app", "backend-auth", "backend-notification");
+            Set.of("backend-app", "backend-auth", "backend-notification",
+                    "backend-submission");
 
     @Value("${security.internal-delegation.private-key:}")
     private String privateKeyBase64;

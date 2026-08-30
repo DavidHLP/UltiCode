@@ -6,7 +6,6 @@ import com.ulticode.common.response.Result;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
-import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.modules.admin.service.SubmissionCutoverService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -21,8 +20,8 @@ import java.util.List;
 /**
  * Admin controller for submission management.
  *
- * <p>Depends on {@link AdminSubmissionProjection} for reads and
- * {@link AdminSubmissionService} for writes (ADR-0011 Stage 2 split).
+ * <p>Reads use {@link AdminSubmissionProjection}; rejudge mutations are sent
+ * through {@link SubmissionCutoverService} to the Submission owner.
  */
 @Tag(name = "Admin - Submissions", description = "Submission management endpoints for admin panel")
 @RestController
@@ -32,7 +31,6 @@ import java.util.List;
 public class AdminSubmissionController {
 
     private final AdminSubmissionProjection adminSubmissionProjection;
-    private final AdminSubmissionService adminSubmissionService;
     private final SubmissionCutoverService submissionCutoverService;
 
     @Operation(summary = "Get submissions", description = "Get paginated list of submissions with filters")

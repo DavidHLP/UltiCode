@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-08-29
+更新时间：2026-08-30
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与生产触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -25,13 +25,17 @@
 
 Ordinary and contest intake now always use App's `RemoteSubmissionWritePort` and execute in `backend-submission`. The App-local writer, mutation router, fence adapters, judge/result dispatchers, shadow comparator, and lease reaper are deleted; write ownership is no longer selected by `APP_SUBMISSION_ROUTING_MODE`.
 
-Remaining contraction work: App still owns temporary submission read projections, and Admin rejudge still calls an App-owned `SubmissionAdministrationService` provider. Until rejudge and reads move, the App submission mapper retains compatibility mutation methods and the old schema cannot be contracted.
+Remaining contraction work: App still owns temporary submission read projections and the App submission mapper retains compatibility read/mutation methods until the bounded-read cutover. Admin rejudge now routes through the Submission owner; its live registration, database, and traffic evidence remains external.
 
 Evidence:
 
 - [Owner-only intake adapter](../app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java)
 - [Owner writer](../submission/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java)
 - [Owner intake provider](../submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java)
+- [Owner rejudge provider](../submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java)
+- [Owner rejudge state machine](../submission/src/main/java/com/ulticode/submission/admin/SubmissionRejudgeService.java)
+- [Owner command receipt](../submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java)
+- [Owner delegation verifier](../submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java)
 - [Owner-only architecture regression](../app/app-web/src/test/java/com/ulticode/modules/submission/port/SubmissionPortWiringTest.java)
 
 Retirement gates:
@@ -39,10 +43,10 @@ Retirement gates:
 | Seam | Repository state | Remaining external/next evidence |
 | --- | --- | --- |
 | Intake/outbox/fence | App mutation implementation deleted; owner tests and duplicate-writer gate are authoritative | Live registration/traffic observation remains external; rollback uses a prior verified artifact plus the data runbook, not a second current writer |
-| Admin rejudge | App compatibility provider remains | P1-SUB-002 must move authorization, idempotency, CAS, outbox, audit/event semantics to backend-submission |
+| Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Live Nacos/Dubbo/Redis/target-database observation remains external; full cross-owner audit outbox is P1-AUDIT-001 |
 | User reads | Local/remote read routing remains | P1-SUB-003/004 must backfill, reconcile, and switch bounded owner facts before App read tables/contracts are removed |
 
-Do not close SVC-003 or contract the App schema until Admin rejudge and all reads use the Submission owner.
+Do not close SVC-003 or contract the App schema until all Submission reads use owner facts and the bounded-read/backfill evidence is complete.
 
 ## DEFERRED
 

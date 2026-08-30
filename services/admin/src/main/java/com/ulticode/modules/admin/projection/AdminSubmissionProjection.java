@@ -21,8 +21,8 @@ import java.util.List;
  * statistics aggregation and filter-option derivation for the admin submission
  * surface.
  *
- * <p>This is the same shallow cluster lifted out of
- * {@link com.ulticode.modules.admin.service.AdminSubmissionService} for the
+ * <p>This projection is independent of the Submission-owned rejudge command
+ * service; it owns only the Admin read surface described below.
  * Stage 2 rollout of ADR-0011: the paginated list read
  * ({@link #getSubmissions}, ~110 LoC of query building + batch user/problem
  * enrichment + N+1-safe VO shaping), the single-detail read
@@ -35,13 +35,9 @@ import java.util.List;
  *
  * <p>After the deepening:
  * <ul>
- *   <li>{@link com.ulticode.modules.admin.service.AdminSubmissionService}
- *       keeps the write state machine only (single rejudge + batch rejudge,
- *       ADR-003 fenced outbox + generation bump). Write paths return
- *       {@code RejudgeResult} / {@code BatchRejudgeResponse} and never call
- *       this projection.</li>
- *   <li>The controller depends on this projection directly for reads and on
- *       the service for writes.</li>
+ *   <li>The controller depends on this projection directly for reads.</li>
+ *   <li>Rejudge commands pass through {@code SubmissionCutoverService} to
+ *       the Submission owner and never call this projection.</li>
  * </ul>
  *
  * <p>All methods are pure reads; none mutate submission state. The single-item

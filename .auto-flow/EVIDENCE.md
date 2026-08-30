@@ -1,5 +1,7 @@
 # Services Issues Evidence
 
+- P2-TLS-001 validation: `bb01971` adds certificate-mounted production HTTPS overlays for both frontend gateways, HTTP redirect, TLS 1.2/1.3, scheme-aware HSTS, HTTPS healthchecks, explicit Secure cookie/CORS/JWKS settings, CI/static wiring, and a temporary-certificate Nginx contract. Nginx syntax, live redirect/HSTS, architecture/docs/YAML/shell/diff, and Graphify pass; real certificate/domain/edge authority remains external. Evidence: `p2-tls-001-green.result`.
+
 - P2-REDIS-001 validation: `e15c34c` moves Redis ACL materialization to ignored runtime `REDIS_ACL_DIR`, removes the tracked verifier, adds previous-password hashes and `materialize`/overlap/finalize/rollback/drift-check operations, and wires host-deploy/Compose/CI. Redis 7 disposable rotation, ACL generator, lock/plaintext/drift checks, Compose dev, architecture/docs/YAML/shell/diff, and Graphify pass; production secret-store rotation and live rollout remain external. Evidence: `p2-redis-001-green.result`.
 
 - P2-BACKUP-001 validation: `4423fae` adds the external owner backup/restore runbook and disposable contract. Encrypted six-schema archive, secret-free manifest, checksum and Flyway metadata, wrong-key rejection, singleton lock, retention, fresh-container restore, migration validation, checksum reconciliation, smoke, RPO/RTO, architecture/docs/YAML/shell/diff, and Graphify all pass; production storage/key/restore authority remains external. Evidence: `p2-backup-001-green.result`.

@@ -136,6 +136,13 @@
 - Consequences: local startup and host deploy materialize without committing verifier hashes; disposable Redis proves old/new credential behavior and retention of the deny-by-default command/key policy. Production secret-store rotation, host ACL directory, and rollout authority remain external.
 - Affected tasks: P2-REDIS-001, P2-TLS-001, P3-LEASE-001.
 
+## P2-TLS-001: make HTTPS/HSTS a production profile without changing dev HTTP
+
+- Context: both frontend gateways served only HTTP, HSTS was commented out, and the images had no certificate secret mount or executable HTTPS contract.
+- Decision: keep dev on the existing port 8080 through an empty listener overlay; production mounts `TLS_CERT_DIR`, overlays an `8443 ssl` listener with TLS 1.2/1.3 and HTTP 301 redirect, maps HSTS from `$scheme` in the shared headers include, and checks HTTPS from container healthchecks.
+- Consequences: Auth production explicitly requires Secure cookies and production CORS/frontend origins; resource owners use HTTPS Auth JWKS. Certificate files, domain/edge port ownership, and rotation remain external and are never committed.
+- Affected tasks: P2-TLS-001, P0-SEC-004, P2-SC-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

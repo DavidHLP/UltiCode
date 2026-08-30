@@ -764,7 +764,7 @@ architecture_remediation_20260830:
       priority: P2
       scope: "Delivery/TLS"
       dependencies: [P0-SEC-001, P0-SEC-004]
-      status: TODO
+      status: DONE
       affected_modules: ["infrastructure/nginx", "compose", "deployment docs/tests"]
       acceptance_criteria:
         - "Production edge requires HTTPS, redirects/rejects HTTP, emits HSTS and aligns Secure cookies/JWKS"
@@ -773,10 +773,11 @@ architecture_remediation_20260830:
         - "Nginx config test"
         - "Production profile security test"
         - "Compose config"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p2-tls-001-green.result"
+      commit: bb01971
       blocked_by: []
-      notes: "No certificate or real endpoint is provisioned locally"
+      notes: "Certificate-mounted HTTPS/HSTS profile, Secure cookie/CORS/JWKS alignment, gateway syntax, redirect/HSTS contract, Compose and architecture gates pass; no certificate or real endpoint is provisioned locally"
     - id: P2-SC-001
       title: "Verify immutable signed image supply chain"
       priority: P2

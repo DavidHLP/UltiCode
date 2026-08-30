@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P2-TLS-001 completed in `bb01971`: both frontend gateways now have an explicit production certificate overlay, HTTP-to-HTTPS redirect, TLS1.2/1.3, scheme-aware HSTS, HTTPS healthchecks, and Secure cookie/CORS/JWKS alignment; temporary-cert Nginx/architecture/docs gates pass. Next task is P2-SC-001; real certificate/edge authority remains external.
+
 - 2026-08-31: P2-REDIS-001 completed in `e15c34c`: removed tracked Redis ACL hashes, materialized an atomic runtime ACL directory, added dual-password overlap/finalize/rollback/drift-check with Redis ACL LOAD and singleton lock, and passed disposable Redis/architecture/docs/Graphify gates. Next task is P2-TLS-001; production secret-store rotation remains external.
 
 - 2026-08-31: P2-BACKUP-001 completed in `4423fae`: added the external five-owner plus control-schema encrypted backup manifest, Flyway/checksum/reconciliation/smoke restore drill, measured RPO/RTO report, singleton lock, wrong-key rejection, and retention pruning. Next task is P2-REDIS-001; production backup storage/key/restore authority remains external.

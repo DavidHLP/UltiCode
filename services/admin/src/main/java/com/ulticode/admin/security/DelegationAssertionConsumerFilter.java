@@ -75,7 +75,10 @@ public class DelegationAssertionConsumerFilter implements Filter {
         if (invoker == null || invoker.getUrl() == null) {
             return null;
         }
-        String application = invoker.getUrl().getParameter("application");
+        String application = invoker.getUrl().getParameter("group");
+        if (application == null || application.isBlank()) {
+            application = invoker.getUrl().getParameter("application");
+        }
         return application == null || application.isBlank() ? null : application.trim();
     }
 }

@@ -83,6 +83,7 @@ Judge 执行库归属，而不是 App 私有业务包。`RunSubmissionDTO`、`Ru
 公共类型，也不因此新增进程或持久化依赖。
 
 生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。`up.sh --rebuild` 在启动后端前执行 services 反应堆 `-DskipTests install`,用于刷新 `~/.m2`(PM2 以单模块 spring-boot:run 启动各服务并从本地仓库解析兄弟模块,源码接口变更后不重新 install 会命中旧 jar);启动前还会做服务端口占用预检(监听者不属于对应 PM2 app 时 fail fast),并在加载 `.env` 后丢弃遗留的通用 `SERVER_PORT`,端口一律以 `ecosystem.config.cjs` 为准。完整 DEV-LOCAL 启动在 Owner migration 后通过 `init-db/scripts/app-owner-seed.sh` 分域、幂等导入 App problemset/forum/contest/solution 与 global-ranking seed；该 Adapter 按领域组分别处理空/完整/部分状态，不进入生产 Compose/Owner Flyway 主链。Contest 事务同时导入竞赛和全球排名 canonical fixtures，只使用 App Owner 表与 fixture ID，不通过运行时跨 Owner 查询用户。
+启动前 `up.sh` 还会用当前 `.env` 重渲染挂载给 Redis 的 `docker/redis/users.acl`，避免凭据轮换后 healthcheck 使用旧 hash；旧生成 `.env` 缺少一次性 `BOOTSTRAP_DELEGATION_SECRET` 时只在 Admin bootstrap 阶段生成内存值，常驻 PM2 进程和 dump 不保留该 secret。
 
 ##### 2.2 Contract Seam
 

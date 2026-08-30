@@ -25,7 +25,8 @@ capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION
   MIGRATION_DB_PASSWORD MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
   SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD \
   DEV_LOCAL_SEED_DATA_ENABLED DEV_LOCAL_SEED_ALLOW_REMOTE APP_DB_USER \
-  APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE
+  APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE \
+  BOOTSTRAP_DELEGATION_SECRET
 
 # ===== 参数解析 =====
 SKIP_INSTALL=false
@@ -249,6 +250,16 @@ if [[ "$FRONTEND_ONLY" != true && ! "$SUBMISSION_MIGRATION_DB_USER" =~ ^[A-Za-z0
 fi
 devstack_validate_environment "$DEV_MODE" "$ROOT_DIR" "$FRONTEND_ONLY" "$PREPARE_SUBMISSION_OWNER"
 
+# Keep the mounted Redis ACL file in lockstep with the credentials loaded from
+# .env. Without this, --force-recreate can start Redis with stale hashes and
+# block the whole stack at its healthcheck with WRONGPASS.
+if [[ -x "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
+  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$ROOT_DIR/docker/redis/users.acl"
+else
+  echo "Missing Redis ACL generator: docker/redis/generate-users-acl.sh" >&2
+  exit 1
+fi
+
 if [[ "$FRONTEND_ONLY" != true ]]; then
   # Per-owner shadow-user 迁移 (CREATE USER / 跨库 GRANT / 建库) 需要 DBA 权限,
   # 运行账号 ulticode 只持有 ulticode.* 权限 (官方 mysql 镜像授予), 不能执行。
@@ -420,10 +431,15 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   # AccountManagementService 创建/恢复 admin (check=false: 容器可启动, 调用期才需要 provider)。
   # 所以 bootstrap 前必须先拉起 ulticode-auth 并等待其 Dubbo provider 注册到 Nacos。
   echo "Starting ulticode-auth first (admin provisioning uses Dubbo RPC to backend-auth)..."
+  # Older generated .env files predate the one-shot bootstrap secret. Keep the
+  # secret ephemeral in that case; use it only while Auth serves this bootstrap.
+  if [[ -z "${BOOTSTRAP_DELEGATION_SECRET:-}" ]]; then
+    BOOTSTRAP_DELEGATION_SECRET="$(openssl rand -hex 32)"
+    export BOOTSTRAP_DELEGATION_SECRET
+  fi
   (
     cd "$ROOT_DIR"
     pm2 startOrRestart ecosystem.config.cjs --only ulticode-auth --update-env
-    pm2 save
   )
   auth_ready=false
   for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
@@ -469,6 +485,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD" \
     DUBBO_PROTOCOL_PORT=-1 \
     APP_DEV_USERS_ENABLED=true \
+    BOOTSTRAP_DELEGATION_SECRET="$BOOTSTRAP_DELEGATION_SECRET" \
     DEV_SEED_ADMIN_USERNAME="$DEV_SEED_ADMIN_USERNAME" \
     DEV_SEED_ADMIN_EMAIL="$DEV_SEED_ADMIN_EMAIL" \
     DEV_SEED_ADMIN_PASSWORD="$DEV_SEED_ADMIN_PASSWORD" \
@@ -492,6 +509,9 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
       exit "$bootstrap_rc"
       ;;
   esac
+  # The normal long-lived Auth process does not need the one-shot verifier
+  # secret; do not carry it into the final PM2 environment or dump.
+  unset BOOTSTRAP_DELEGATION_SECRET
 else
   echo "Skipping dev-admin bootstrap (--skip-bootstrap / --quick / --frontend-only)."
 fi

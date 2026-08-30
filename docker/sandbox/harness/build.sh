@@ -101,7 +101,7 @@ build_python() {
             [ -f "${m}.pyc" ] && cp "${m}.pyc" "${STAGING}/python/"
         done
     )
-    echo "[build.sh] python: $(ls "${STAGING}/python}")"
+    echo "[build.sh] python: $(ls "${STAGING}/python/")"
 }
 
 build_c() {

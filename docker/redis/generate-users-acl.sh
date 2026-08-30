@@ -17,6 +17,9 @@ set -euo pipefail
 
 command -v openssl >/dev/null 2>&1 || { echo "openssl is required" >&2; exit 1; }
 
+OUTPUT_FILE="${1:-}"
+[[ $# -le 1 ]] || { echo "Usage: $0 [output-file]" >&2; exit 2; }
+
 VARS=(
   AUTH_REDIS_PASSWORD APP_REDIS_PASSWORD ADMIN_REDIS_PASSWORD
   SUBMISSION_REDIS_PASSWORD SEARCH_REDIS_PASSWORD NOTIFICATION_REDIS_PASSWORD
@@ -42,6 +45,7 @@ DATA_GRANTS="-@all +@connection +@read +@write +@scripting"
 # named ACL user mapped to exactly one security domain. Key patterns mirror
 # the real key inventory in services/*/src/main/java. A service that starts
 # using a new key namespace needs its pattern extended below.
+render_acl() {
 cat <<ACL
 user default off
 user ulticode-ops on #$(hash_of "$OPS_REDIS_PASSWORD") resetkeys ~* resetchannels &* +@all
@@ -53,3 +57,16 @@ user ulticode-search on #$(hash_of "$SEARCH_REDIS_PASSWORD") resetkeys ~stream:i
 user ulticode-notification on #$(hash_of "$NOTIFICATION_REDIS_PASSWORD") resetkeys ~stream:integration ~poison:* ~notification:* resetchannels &ulticode:ws:broadcast $DATA_GRANTS +@pubsub
 user ulticode-judge on #$(hash_of "$JUDGE_REDIS_PASSWORD") resetkeys ~judge_queue ~queue:* ~judge:* resetchannels &* $DATA_GRANTS
 ACL
+}
+
+if [[ -n "$OUTPUT_FILE" ]]; then
+  output_dir="$(dirname -- "$OUTPUT_FILE")"
+  tmp_file="$(mktemp "$output_dir/.users.acl.XXXXXX")"
+  trap 'rm -f "$tmp_file"' EXIT
+  render_acl > "$tmp_file"
+  chmod 644 "$tmp_file"
+  mv -- "$tmp_file" "$OUTPUT_FILE"
+  trap - EXIT
+else
+  render_acl
+fi

@@ -35,6 +35,7 @@ module.exports = {
         SERVER_PORT: '9101',
         REDIS_USERNAME: 'ulticode-auth',
         REDIS_PASSWORD: process.env.AUTH_REDIS_PASSWORD,
+        BOOTSTRAP_DELEGATION_SECRET: process.env.BOOTSTRAP_DELEGATION_SECRET || '',
         ...dubboRegistryEnv(),
       },
       out_file: path.join(ROOT, 'logs', 'backend-auth.out.log'),

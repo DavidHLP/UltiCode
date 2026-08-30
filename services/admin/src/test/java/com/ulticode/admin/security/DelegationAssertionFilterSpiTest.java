@@ -107,7 +107,8 @@ class DelegationAssertionFilterSpiTest {
         filter.setDelegationAssertionSigner(signer);
         Invoker<?> invoker = mock(Invoker.class);
         URL target = mock(URL.class);
-        when(target.getParameter("application")).thenReturn("backend-auth");
+        when(target.getParameter("application")).thenReturn("backend-admin");
+        when(target.getParameter("group")).thenReturn("backend-auth");
         when(invoker.getUrl()).thenReturn(target);
         Invocation invocation = mock(Invocation.class);
         com.ulticode.auth.api.command.CreateAccountCommand command =

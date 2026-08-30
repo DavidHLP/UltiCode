@@ -124,6 +124,23 @@ CREATE USER 'ulticode'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';"
 printf 'grant isolation fixture setup: PASS\n'
 
 env ENV_FILE="$TEST_ENV" \
+  BACKFILL_CHECKPOINT_FILE="$TEST_DIR/submission-backfill.checkpoint" \
+  BACKFILL_FAILURE_FILE="$TEST_DIR/submission-backfill.failures.tsv" \
+  SUBMISSION_BACKFILL_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL \
+  SUBMISSION_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" backfill --execute > "$TEST_DIR/submission-backfill.log" 2>&1
+
+grep -q 'Backfill complete: mode=execute' "$TEST_DIR/submission-backfill.log"
+printf 'submission resumable backfill: PASS\n'
+
+env ENV_FILE="$TEST_ENV" \
+  BACKFILL_CHECKPOINT_FILE="$TEST_DIR/submission-backfill.checkpoint" \
+  BACKFILL_FAILURE_FILE="$TEST_DIR/submission-backfill.failures.tsv" \
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" verify > "$TEST_DIR/submission-verify.log" 2>&1
+grep -q 'VERIFY PASS: count/checksum/field/writer differences are zero.' "$TEST_DIR/submission-verify.log"
+printf 'submission parity verification: PASS\n'
+
+env ENV_FILE="$TEST_ENV" \
   SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
   SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
   bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover.log" 2>&1

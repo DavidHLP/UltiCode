@@ -2,23 +2,25 @@
 set -euo pipefail
 
 # SPLIT-003 slice-4 runbook helper: submission aggregate + judge/result outbox
-# expand -> backfill -> verify -> cutover runbook. The default action is
-# read-only preflight. A cutover/rollback requires both --execute and an
-# explicit confirmation token.
+# expand -> backfill -> verify -> cutover runbook. Actions are preflight,
+# backfill, verify, cutover, and rollback. Backfill defaults to a read-only
+# dry-run; batch writes require --execute plus two explicit confirmations.
 #
-# The source schema is the App schema (`ulticode` by default) where the
+# The source schema is the App schema (ulticode by default) where the
 # submission aggregate and outboxes currently live; the target is the
-# dedicated Submission owner schema (`submission` by default, created by
+# dedicated Submission owner schema (submission by default, created by
 # MIGRATION_SCHEMA=submission ./scripts/dev/migrate.sh migrate).
 #
-# Gate: this script copies data and revokes App write grants. Before cutover
-# or rollback, stop and drain every process that can write either schema:
-# backend-app/App PM2 (submission intake, contest/rejudge paths, local
-# outbox dispatchers and lease reapers), backend-submission (owner writer,
-# dispatcher and reaper), backend-judge (legacy or remote verdict/lease
-# writes), and any direct admin/maintenance client. Pass the one-time
-# confirmation only after all in-flight work is drained; source rows/checksums
-# are rechecked before REVOKE.
+# Backfill is checkpointed and insert-only: an existing target row with changed
+# fields is exported as a failure and stops the batch; newer owner data is never
+# overwritten. verify must report zero count/checksum/field/writer differences
+# before cutover. Cutover only revokes the verified App table grants; it does
+# not perform an implicit full-table copy.
+#
+# Before backfill --execute, cutover, or rollback, stop and drain every process
+# that can write either schema: backend-app/App PM2, backend-submission,
+# backend-judge, schedulers, dispatchers, reapers, and direct maintenance
+# clients. Source rows/checksums are rechecked before REVOKE.
 #
 # The actual runtime cutover (APP_SUBMISSION_ROUTING_MODE=remote) must only be
 # enabled after the SPLIT-004 read-path migration. See the migration guide §8.
@@ -29,9 +31,9 @@ ACTION="${1:-preflight}"
 EXECUTE="${2:-}"
 
 case "$ACTION" in
-  preflight|cutover|rollback) ;;
+  preflight|backfill|verify|cutover|rollback) ;;
   *)
-    echo "Usage: $0 [preflight|cutover|rollback] [--execute]" >&2
+    echo "Usage: $0 [preflight|backfill|verify|cutover|rollback] [--execute]" >&2
     exit 2
     ;;
 esac
@@ -56,7 +58,16 @@ MIGRATION_PASSWORD="${MIGRATION_DB_PASSWORD:-$DB_PASSWORD}"
 APP_DB_USER="${SUBMISSION_APP_DB_USER:-${APP_DB_USER:-}}"
 APP_DB_HOST="${SUBMISSION_APP_DB_HOST:-%}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-${MIGRATION_MYSQL_CONTAINER:-}}"
+BACKFILL_BATCH_SIZE="${BACKFILL_BATCH_SIZE:-500}"
+BACKFILL_AUDIT_DIR="${BACKFILL_AUDIT_DIR:-$ROOT_DIR/.local/migration-audit}"
+BACKFILL_CHECKPOINT_FILE="${BACKFILL_CHECKPOINT_FILE:-$BACKFILL_AUDIT_DIR/submission-backfill.checkpoint}"
+BACKFILL_FAILURE_FILE="${BACKFILL_FAILURE_FILE:-$BACKFILL_AUDIT_DIR/submission-backfill.failures.tsv}"
+BACKFILL_DRY_RUN_CHECKPOINT_FILE="${BACKFILL_DRY_RUN_CHECKPOINT_FILE:-$BACKFILL_CHECKPOINT_FILE.dry-run}"
 
+if [[ ! "$BACKFILL_BATCH_SIZE" =~ ^[1-9][0-9]{0,4}$ ]]; then
+  echo "BACKFILL_BATCH_SIZE must be an integer from 1 to 99999." >&2
+  exit 1
+fi
 for identifier in "$SOURCE_SCHEMA" "$TARGET_SCHEMA" "$MIGRATION_USER" "$APP_DB_USER"; do
   if [[ -n "$identifier" ]] && ! valid_identifier "$identifier"; then
     echo "Invalid schema/user identifier: $identifier" >&2
@@ -133,7 +144,8 @@ print_snapshot() {
   done
 }
 
-assert_ready() {
+assert_schema_ready() {
+  local table
   for table in "${TABLES[@]}"; do
     if ! table_exists "$SOURCE_SCHEMA" "$table"; then
       echo "Source table missing: $SOURCE_SCHEMA.$table" >&2
@@ -147,21 +159,351 @@ assert_ready() {
       echo "Column shape mismatch: $SOURCE_SCHEMA.$table vs $TARGET_SCHEMA.$table" >&2
       return 1
     fi
-    if [[ "$(row_count "$TARGET_SCHEMA" "$table")" != "0" ]]; then
-      echo "Target table is not empty: $TARGET_SCHEMA.$table" >&2
-      return 1
-    fi
   done
   for table in "${TARGET_ONLY_TABLES[@]}"; do
     if ! table_exists "$TARGET_SCHEMA" "$table"; then
       echo "Target-only table missing: $TARGET_SCHEMA.$table; run submission migrations first" >&2
       return 1
     fi
+  done
+}
+
+assert_target_empty() {
+  local table
+  for table in "${TABLES[@]}" "${TARGET_ONLY_TABLES[@]}"; do
     if [[ "$(row_count "$TARGET_SCHEMA" "$table")" != "0" ]]; then
-      echo "Target-only table is not empty: $TARGET_SCHEMA.$table" >&2
+      echo "Target table is not empty: $TARGET_SCHEMA.$table" >&2
       return 1
     fi
   done
+}
+
+assert_ready() {
+  assert_schema_ready || return 1
+  assert_target_empty || return 1
+}
+
+sql_quote() {
+  local value="$1"
+  value="$(printf '%s' "$value" | sed "s/'/''/g")"
+  printf "'%s'" "$value"
+}
+
+column_names() {
+  local schema="$1" table="$2"
+  mysql_query "SELECT COLUMN_NAME FROM information_schema.columns
+    WHERE table_schema = '$schema' AND table_name = '$table'
+      AND (extra IS NULL OR extra NOT LIKE '%GENERATED%')
+    ORDER BY ordinal_position;"
+}
+
+validated_columns() {
+  local schema="$1" table="$2" columns column
+  columns="$(column_names "$schema" "$table")" || return 1
+  while IFS= read -r column; do
+    [[ -n "$column" ]] || continue
+    [[ "$column" =~ ^[A-Za-z0-9_]+$ ]] || {
+      echo "Unsafe column name returned by metadata: $schema.$table.$column" >&2
+      return 1
+    }
+    printf '%s\n' "$column"
+  done <<< "$columns"
+}
+
+column_list() {
+  local schema="$1" table="$2" columns column result=""
+  columns="$(validated_columns "$schema" "$table")" || return 1
+  while IFS= read -r column; do
+    [[ -n "$column" ]] || continue
+    [[ -n "$result" ]] && result+=","
+    result+="$column"
+  done <<< "$columns"
+  [[ -n "$result" ]] || {
+    echo "No comparable columns found: $schema.$table" >&2
+    return 1
+  }
+  printf '%s\n' "$result"
+}
+
+field_predicate() {
+  local schema="$1" table="$2" columns column result=""
+  columns="$(validated_columns "$schema" "$table")" || return 1
+  while IFS= read -r column; do
+    [[ -n "$column" ]] || continue
+    [[ -n "$result" ]] && result+=" AND "
+    result+="s.$column <=> t.$column"
+  done <<< "$columns"
+  [[ -n "$result" ]] || return 1
+  printf '%s\n' "$result"
+}
+
+batch_range_predicate() {
+  local start="$1" end="$2" alias="${3:-}" column="id" result="1=1"
+  [[ -n "$alias" ]] && column="$alias.id"
+  if [[ -n "$start" ]]; then
+    result="$column > $(sql_quote "$start")"
+  fi
+  if [[ -n "$end" ]]; then
+    [[ "$result" == "1=1" ]] || result+=" AND "
+    result+="$column <= $(sql_quote "$end")"
+  fi
+  printf '%s\n' "$result"
+}
+
+checkpoint_last_id() {
+  local file="$1" table="$2"
+  awk -F '\t' -v table="$table" '$1 == table { print substr($0, index($0, "\t") + 1); found = 1 } END { if (!found) exit 0 }' "$file"
+}
+
+checkpoint_prepare() {
+  local file="$1"
+  mkdir -p "$(dirname "$file")"
+  if [[ ! -f "$file" ]]; then
+    {
+      printf 'version=1\n'
+      printf 'source_schema=%s\n' "$SOURCE_SCHEMA"
+      printf 'target_schema=%s\n' "$TARGET_SCHEMA"
+    } > "$file"
+    return 0
+  fi
+  grep -Fqx 'version=1' "$file" || {
+    echo "Unsupported backfill checkpoint format: $file" >&2
+    return 1
+  }
+  grep -Fqx "source_schema=$SOURCE_SCHEMA" "$file" || {
+    echo "Checkpoint source schema mismatch: $file" >&2
+    return 1
+  }
+  grep -Fqx "target_schema=$TARGET_SCHEMA" "$file" || {
+    echo "Checkpoint target schema mismatch: $file" >&2
+    return 1
+  }
+}
+
+checkpoint_save() {
+  local file="$1" table="$2" last_id="$3" tmp
+  tmp="$(mktemp "$file.tmp.XXXXXX")"
+  awk -F '\t' -v table="$table" '$1 != table { print }' "$file" > "$tmp"
+  printf '%s\t%s\n' "$table" "$last_id" >> "$tmp"
+  mv -f -- "$tmp" "$file"
+}
+
+failure_export() {
+  local table="$1" start="$2" end="$3" reason="$4" safe_reason
+  mkdir -p "$(dirname "$BACKFILL_FAILURE_FILE")"
+  if [[ ! -s "$BACKFILL_FAILURE_FILE" ]]; then
+    printf 'timestamp\ttable\tstart_id\tend_id\treason\n' > "$BACKFILL_FAILURE_FILE"
+  fi
+  safe_reason="$(printf '%s' "$reason" | tr '\t\r\n' '   ')"
+  printf '%s\t%s\t%s\t%s\t%s\n' \
+    "$(date -Is)" "$table" "$start" "$end" "$safe_reason" >> "$BACKFILL_FAILURE_FILE"
+}
+failure_export_prepare() {
+  mkdir -p "$(dirname "$BACKFILL_FAILURE_FILE")"
+  if [[ ! -s "$BACKFILL_FAILURE_FILE" ]]; then
+    printf 'timestamp\ttable\tstart_id\tend_id\treason\n' > "$BACKFILL_FAILURE_FILE"
+  fi
+}
+require_backfill_execute() {
+  if ! require_write_confirmation "$EXECUTE" SUBMISSION_BACKFILL_CONFIRM I_UNDERSTAND_SUBMISSION_BACKFILL; then
+    echo "Refusing backfill write. Pass --execute and SUBMISSION_BACKFILL_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL." >&2
+    exit 1
+  fi
+  if ! gate_confirmed SUBMISSION_BACKFILL_QUIESCE_CONFIRM I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS; then
+    echo "Refusing backfill write. Stop and drain every App, Submission, Judge, scheduler, and direct database writer; then pass SUBMISSION_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS." >&2
+    exit 1
+  fi
+}
+
+next_batch_end() {
+  local table="$1" start="$2" predicate
+  predicate="$(batch_range_predicate "$start" "")"
+  mysql_query "SELECT COALESCE(MAX(id), '') FROM (SELECT id FROM $SOURCE_SCHEMA.$table WHERE $predicate ORDER BY id LIMIT $BACKFILL_BATCH_SIZE) AS batch;"
+}
+
+insert_batch() {
+  local table="$1" start="$2" end="$3" columns predicate
+  columns="$(column_list "$SOURCE_SCHEMA" "$table")" || return 1
+  predicate="$(batch_range_predicate "$start" "$end" s)"
+  mysql_query "INSERT INTO $TARGET_SCHEMA.$table ($columns)
+    SELECT $columns FROM $SOURCE_SCHEMA.$table s
+    WHERE $predicate
+      AND NOT EXISTS (SELECT 1 FROM $TARGET_SCHEMA.$table t WHERE t.id = s.id);" >/dev/null
+}
+
+batch_conflict_count() {
+  local table="$1" start="$2" end="$3" range predicate
+  range="$(batch_range_predicate "$start" "$end" s)"
+  predicate="$(field_predicate "$SOURCE_SCHEMA" "$table")" || return 1
+  mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.$table s
+    JOIN $TARGET_SCHEMA.$table t ON t.id = s.id
+    WHERE $range AND NOT ($predicate);"
+}
+
+batch_missing_count() {
+  local table="$1" start="$2" end="$3" range
+  range="$(batch_range_predicate "$start" "$end" s)"
+  mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.$table s
+    LEFT JOIN $TARGET_SCHEMA.$table t ON t.id = s.id
+    WHERE $range AND t.id IS NULL;"
+}
+
+do_backfill() {
+  local dry_run=1 checkpoint_file table last_id end conflicts missing
+  if [[ -n "$EXECUTE" && "$EXECUTE" != "--dry-run" && "$EXECUTE" != "--execute" ]]; then
+    echo "Usage: $0 backfill [--dry-run|--execute]" >&2
+    return 2
+  fi
+  [[ "$EXECUTE" == "--execute" ]] && dry_run=0
+  [[ "$dry_run" == "1" ]] || require_backfill_execute
+  assert_schema_ready || {
+    echo "BACKFILL FAILED: source/target schema shape is not ready." >&2
+    return 1
+  }
+  checkpoint_file="$BACKFILL_DRY_RUN_CHECKPOINT_FILE"
+  [[ "$dry_run" == "0" ]] && checkpoint_file="$BACKFILL_CHECKPOINT_FILE"
+  checkpoint_prepare "$checkpoint_file" || return 1
+  failure_export_prepare || return 1
+  for table in "${TABLES[@]}"; do
+    last_id="$(checkpoint_last_id "$checkpoint_file" "$table")"
+    while true; do
+      end="$(next_batch_end "$table" "$last_id")" || {
+        failure_export "$table" "$last_id" "" "unable to determine next batch boundary"
+        return 1
+      }
+      [[ -n "$end" ]] || break
+      [[ "$end" != "$last_id" ]] || {
+        failure_export "$table" "$last_id" "$end" "checkpoint did not advance"
+        return 1
+      }
+      conflicts="$(batch_conflict_count "$table" "$last_id" "$end")" || {
+        failure_export "$table" "$last_id" "$end" "unable to compare existing owner rows"
+        return 1
+      }
+      if [[ "$conflicts" != "0" ]]; then
+        failure_export "$table" "$last_id" "$end" "field conflicts=$conflicts; newer owner rows are never overwritten"
+        echo "BACKFILL CONFLICT table=$table start=$last_id end=$end field_conflicts=$conflicts; see $BACKFILL_FAILURE_FILE" >&2
+        return 1
+      fi
+      missing="$(batch_missing_count "$table" "$last_id" "$end")" || {
+        failure_export "$table" "$last_id" "$end" "unable to count missing owner rows"
+        return 1
+      }
+      if [[ "$dry_run" == "1" ]]; then
+        echo "DRY-RUN table=$table start=$last_id end=$end missing=$missing action=insert-only"
+      else
+        if ! insert_batch "$table" "$last_id" "$end"; then
+          failure_export "$table" "$last_id" "$end" "insert batch failed; checkpoint remains at $last_id"
+          echo "BACKFILL FAILED table=$table start=$last_id end=$end; see $BACKFILL_FAILURE_FILE" >&2
+          return 1
+        fi
+        echo "BACKFILL table=$table start=$last_id end=$end missing=$missing action=insert-only"
+      fi
+      checkpoint_save "$checkpoint_file" "$table" "$end"
+      last_id="$end"
+    done
+  done
+  echo "Backfill complete: mode=$([[ "$dry_run" == "1" ]] && printf dry-run || printf execute) checkpoint=$checkpoint_file failures=$BACKFILL_FAILURE_FILE"
+}
+
+app_grants_absent() {
+  local table_privilege_count column_privilege_count check_status
+  [[ -n "$APP_DB_USER" && -n "$APP_DB_HOST" ]] || return 1
+  table_privilege_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.table_privileges
+    WHERE GRANTEE = CONCAT(CHAR(39), '$APP_DB_USER', CHAR(39), '@', CHAR(39), '$APP_DB_HOST', CHAR(39))
+      AND TABLE_SCHEMA = '$SOURCE_SCHEMA'
+      AND TABLE_NAME IN ('submissions','judge_outbox','submission_result_outbox');")" || return 1
+  [[ "$table_privilege_count" == "0" ]] || return 1
+  column_privilege_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.COLUMN_PRIVILEGES
+    WHERE GRANTEE = CONCAT(CHAR(39), '$APP_DB_USER', CHAR(39), '@', CHAR(39), '$APP_DB_HOST', CHAR(39))
+      AND TABLE_SCHEMA = '$SOURCE_SCHEMA';")" || return 1
+  [[ "$column_privilege_count" == "0" ]] || return 1
+  if app_user_role_grant_exists; then
+    return 1
+  else
+    check_status=$?
+    [[ "$check_status" == "1" ]] || return 1
+  fi
+  if app_user_global_dml_grant_exists; then
+    return 1
+  else
+    check_status=$?
+    [[ "$check_status" == "1" ]] || return 1
+  fi
+  if app_user_schema_dml_grant_exists "$SOURCE_SCHEMA"; then
+    return 1
+  else
+    check_status=$?
+    [[ "$check_status" == "1" ]] || return 1
+  fi
+}
+
+verify_writer_state() {
+  [[ -n "$APP_DB_USER" && -n "$APP_DB_HOST" ]] || {
+    echo "WRITER_DIFF=1 state=UNKNOWN reason=SUBMISSION_APP_DB_USER/HOST not supplied" >&2
+    return 1
+  }
+  if assert_revoke_ready >/dev/null 2>&1; then
+    echo "WRITER_DIFF=0 state=PRE_CUTOVER app_grants=exact_table_scoped"
+    return 0
+  fi
+  if app_grants_absent; then
+    echo "WRITER_DIFF=0 state=POST_CUTOVER app_grants=none"
+    return 0
+  fi
+  echo "WRITER_DIFF=1 state=UNSAFE app_grants=unexplained" >&2
+  return 1
+}
+
+verify_table_parity() {
+  local table="$1" source_rows target_rows missing extra fields source_checksum target_checksum predicate
+  source_rows="$(row_count "$SOURCE_SCHEMA" "$table")" || return 1
+  target_rows="$(row_count "$TARGET_SCHEMA" "$table")" || return 1
+  missing="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.$table s
+    LEFT JOIN $TARGET_SCHEMA.$table t ON t.id = s.id WHERE t.id IS NULL;")" || return 1
+  extra="$(mysql_query "SELECT COUNT(*) FROM $TARGET_SCHEMA.$table t
+    LEFT JOIN $SOURCE_SCHEMA.$table s ON s.id = t.id WHERE s.id IS NULL;")" || return 1
+  predicate="$(field_predicate "$SOURCE_SCHEMA" "$table")" || return 1
+  fields="$(mysql_query "SELECT COUNT(*) FROM $SOURCE_SCHEMA.$table s
+    JOIN $TARGET_SCHEMA.$table t ON t.id = s.id WHERE NOT ($predicate);")" || return 1
+  source_checksum="$(checksum_table "$SOURCE_SCHEMA" "$table")" || return 1
+  target_checksum="$(checksum_table "$TARGET_SCHEMA" "$table")" || return 1
+  printf 'PARITY table=%s source_rows=%s target_rows=%s missing=%s extra=%s field_differences=%s source_checksum=%s target_checksum=%s\n' \
+    "$table" "$source_rows" "$target_rows" "$missing" "$extra" "$fields" "$source_checksum" "$target_checksum"
+  [[ "$source_rows" == "$target_rows" \
+    && "$missing" == "0" \
+    && "$extra" == "0" \
+    && "$fields" == "0" \
+    && "$source_checksum" == "$target_checksum" ]]
+}
+
+verify_submission_parity() {
+  local failures=0 table
+  for table in "${TABLES[@]}"; do
+    if verify_table_parity "$table"; then
+      echo "PARITY_OK table=$table"
+    else
+      echo "PARITY_FAIL table=$table" >&2
+      failures=$((failures + 1))
+    fi
+  done
+  return "$failures"
+}
+
+do_verify() {
+  local failures=0
+  assert_schema_ready || {
+    echo "VERIFY FAILED: source/target schema shape is not ready." >&2
+    return 1
+  }
+  verify_submission_parity || failures=$((failures + 1))
+  verify_writer_state || failures=$((failures + 1))
+  if [[ "$failures" == "0" ]]; then
+    echo "VERIFY PASS: count/checksum/field/writer differences are zero."
+  else
+    echo "VERIFY FAIL: unexplained differences=$failures; cutover is blocked." >&2
+  fi
+  return "$failures"
 }
 
 require_execute() {
@@ -180,14 +522,6 @@ require_quiesce() {
   fi
 }
 
-copy_forward() {
-  for table in "${TABLES[@]}"; do
-    if ! mysql_query "INSERT INTO \`$TARGET_SCHEMA\`.\`$table\` SELECT * FROM \`$SOURCE_SCHEMA\`.\`$table\`;"; then
-      echo "Copy failed for $SOURCE_SCHEMA.$table -> $TARGET_SCHEMA.$table." >&2
-      return 1
-    fi
-  done
-}
 
 copy_back() {
   local query="START TRANSACTION;"
@@ -438,19 +772,6 @@ assert_revoke_ready() {
   fi
 }
 
-# Restore the pre-cutover state after a failed cutover: the target was verified
-# empty by assert_ready, so deleting the copied rows is a full cleanup. Never
-# touches source rows.
-cleanup_failed_cutover() {
-  echo "Cutover failed; cleaning copied rows from target (target was empty before copy)." >&2
-  for table in "${TABLES[@]}"; do
-    if ! mysql_query "DELETE FROM \`$TARGET_SCHEMA\`.\`$table\`;"; then
-      echo "Cleanup failed for target table $TARGET_SCHEMA.$table." >&2
-      return 1
-    fi
-  done
-  echo "Target restored to empty; fix the cause above and re-run preflight/cutover." >&2
-}
 
 echo "Submission schema=$SOURCE_SCHEMA -> $TARGET_SCHEMA"
 
@@ -469,6 +790,12 @@ case "$ACTION" in
       echo "PRECHECK: compatibility mode; no physical move requested."
     fi
     ;;
+  backfill)
+    do_backfill
+    ;;
+  verify)
+    do_verify
+    ;;
   cutover)
     require_execute I_UNDERSTAND_SUBMISSION_CUTOVER
     require_quiesce I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS
@@ -481,44 +808,40 @@ case "$ACTION" in
       exit 1
     fi
     echo "WARNING: all App, Submission-owner, Judge, dispatcher, reaper, scheduler, and direct database writers must remain stopped and drained until the cutover completes." >&2
-    assert_ready
-    assert_revoke_ready || {
-      echo "Refusing cutover: App grants are not revocable; run preflight first." >&2
+    assert_schema_ready || {
+      echo "Refusing cutover: source/target schema shape is not ready." >&2
+      exit 1
+    }
+    verify_submission_parity || {
+      echo "Refusing cutover: count/checksum/field differences are not zero; run backfill/verify." >&2
+      exit 1
+    }
+    verify_writer_state || {
+      echo "Refusing cutover: writer differences are not zero." >&2
       exit 1
     }
     if ! source_before="$(source_snapshot "$SOURCE_SCHEMA")"; then
-      echo "Unable to capture source rows/checksums before copy; refusing cutover." >&2
-      exit 1
-    fi
-    if ! copy_forward; then
-      echo "Copy failed; aborting without revoking grants." >&2
-      if ! cleanup_failed_cutover; then
-        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
-      fi
-      exit 1
-    fi
-    if ! source_after="$(source_snapshot "$SOURCE_SCHEMA")"; then
-      echo "Unable to recheck source rows/checksums after copy; refusing to revoke grants." >&2
-      if ! cleanup_failed_cutover; then
-        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
-      fi
-      exit 1
-    fi
-    if [[ "$source_before" != "$source_after" ]]; then
-      echo "Source rows/checksums changed during copy; refusing to revoke grants and cleaning the target." >&2
-      if ! cleanup_failed_cutover; then
-        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
-      fi
+      echo "Unable to capture source rows/checksums before grant revocation; refusing cutover." >&2
       exit 1
     fi
     if ! revoke_app_grants; then
-      echo "Grant revocation failed after copy; restoring App grants and rolling back copied rows." >&2
-      if ! restore_app_grants; then
-        echo "CRITICAL: App grant restoration failed; stop all writers and repair grants before restart." >&2
-      fi
-      if ! cleanup_failed_cutover; then
-        echo "CRITICAL: copied target cleanup failed; stop all writers and run reconciliation/rollback manually." >&2
-      fi
+      echo "Grant revocation failed; restoring App grants before stopping." >&2
+      restore_app_grants || echo "CRITICAL: App grant restoration failed; stop all writers and repair grants manually." >&2
+      exit 1
+    fi
+    if ! app_grants_absent; then
+      echo "App writer grants remain after revocation; restoring grants and refusing cutover." >&2
+      restore_app_grants || echo "CRITICAL: App grant restoration failed; stop all writers and repair grants manually." >&2
+      exit 1
+    fi
+    if ! source_after="$(source_snapshot "$SOURCE_SCHEMA")"; then
+      echo "Unable to recheck source rows/checksums after grant revocation; refusing cutover." >&2
+      restore_app_grants || echo "CRITICAL: App grant restoration failed; stop all writers and repair grants manually." >&2
+      exit 1
+    fi
+    if [[ "$source_before" != "$source_after" ]]; then
+      echo "Source rows/checksums changed during cutover; restoring App grants and refusing cutover." >&2
+      restore_app_grants || echo "CRITICAL: App grant restoration failed; stop all writers and repair grants manually." >&2
       exit 1
     fi
     print_snapshot "$SOURCE_SCHEMA" source-after-cutover

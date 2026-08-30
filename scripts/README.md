@@ -51,7 +51,13 @@ semantics in the runbooks.
 
 Independent cutover/backfill/rehearsal procedures with explicit confirmation
 tokens. Each keeps its own REVOKE/drain semantics; shared primitives come from
-`scripts/dev/lib/common.sh`.
+`scripts/dev/lib/common.sh`. The Submission runbook now sequences:
+`backfill --dry-run` (default, insert-free plan), `backfill --execute`
+(batch checkpoint/resume with insert-only conflict protection), `verify`
+(count/checksum/field/writer parity), then `cutover --execute`.
+Checkpoint and failure artifacts default under `.local/migration-audit/`; the
+execute path requires explicit backfill and all-writers quiesce confirmations.
+- `submission-backfill-contract.sh` — executable fake-MySQL rehearsal for dry-run checkpoint resume, failure export, and insert-free behavior.
 
 ## scripts/test/ — standalone smoke suites
 

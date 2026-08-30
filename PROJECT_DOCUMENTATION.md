@@ -630,6 +630,14 @@ Submission owner 的 `SubmissionAdministrationProvider` 先验证 backend-admin 
 `SubmissionRejudgeService` 只在 owner 事务内执行状态转换：terminal 行使用 generation CAS 后写非 shadow `judge_outbox`；Judging 行只失效当前 lease/attempt，交给 owner reaper 生成下一代任务；contest 关联仍按既有 `submission_created_outbox` 保护。actor、trace、fingerprint 和结果暂存于 owner receipt，完整跨 owner audit outbox 由 P1-AUDIT-001 收敛。
 
 证据：`SubmissionCutoverServiceTest`、`SubmissionRejudgeServiceTest`、`SubmissionCommandReceiptExecutorTest`、`SubmissionAdministrationProviderTest`、`InternalDelegationAssertionVerifierTest`、`architecture-contract-test.sh`。真实 Nacos/Dubbo/数据库运行与流量切换仍需外部环境；当前变更不执行生产或远程操作。
+##### 4.5.4 Resumable Submission backfill verification (P1-SUB-003)
+
+`submission-schema-cutover.sh preflight` 保持首次迁移的空 target/shape/grant 检查；实际数据搬运先执行默认无写入的 `backfill --dry-run`，再由显式 `SUBMISSION_BACKFILL_CONFIRM` 与全 writer quiesce token 解锁 `backfill --execute`。每个 owner 表按主键字典序批处理，成功批次原子更新本地 checkpoint；失败批次写入 TSV failure export，checkpoint 停留在上一批。
+
+Backfill 只插入 target 缺失主键，不更新已有 owner 行。已有同主键但字段不同的行会停止该批并导出冲突；因此不会用 legacy source 覆盖较新的 owner 数据。`verify` 对 submissions/judge_outbox/submission_result_outbox 分别检查 source/target count、缺失/多余主键、逐字段 NULL-safe 比较、CHECKSUM TABLE 和 App writer 状态；任一 unexplained difference 非零都会阻止 `cutover --execute`。cutover 只撤销已核验的 App 表级 grants，不再隐式执行一把梭复制。
+
+证据：`scripts/test/submission-backfill-contract.sh`（fake-MySQL dry-run/checkpoint/conflict rehearsal）与 `owner-migration-safety-integration-test.sh`（真实 disposable MySQL/Redis，当前因 Docker daemon 权限外部阻塞）。
+
 ##### 4.6 身份模型裁决
 
 | 模型 | 当前现实 | 目标 Owner | 其他服务如何使用 |

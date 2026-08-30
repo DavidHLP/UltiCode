@@ -25,6 +25,7 @@ not_contains() {
 for file in \
   scripts/runbooks/notification-schema-cutover.sh \
   scripts/runbooks/submission-schema-cutover.sh \
+  scripts/test/submission-backfill-contract.sh \
   scripts/runbooks/owner-user-profile-backfill.sh \
   services/app/app-web/src/main/java/com/ulticode/app/user/port/UserFactsProjection.java \
   services/app/app-web/src/main/java/com/ulticode/app/user/port/UserDirectoryProjection.java \
@@ -267,6 +268,7 @@ contains docker/redis/users.acl '~stream:integration'
 bash "$ROOT_DIR/scripts/test/redis-acl-contract.sh"
 bash "$ROOT_DIR/scripts/test/ssh-host-identity-contract.sh"
 bash "$ROOT_DIR/scripts/test/nacos-security-contract.sh"
+bash "$ROOT_DIR/scripts/test/submission-backfill-contract.sh"
 contains services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksController.java 'public Map<String, Object> getJwks()'
 contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'backend-auth'
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'

@@ -13,8 +13,9 @@ evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
   - "P0-SEC-005 asymmetric delegation committed as 05285c5; focused security/bootstrap suites and secret-boundary gates pass"
-next_goal: "Restrict Redis principals by exact command and key/channel policy"
-next_skill: redis-patterns
+  - "P0-SEC-006 Redis ACL committed as 054b95e; exact static contract and Compose dev config pass; runtime Redis integration is Docker-blocked"
+next_goal: "Verify deployment SSH host identity and known_hosts rotation"
+next_skill: github-ops
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers:
   - id: DOCKER-ENV

@@ -244,8 +244,11 @@ batch_range_predicate() {
     result="$column > $(sql_quote "$start")"
   fi
   if [[ -n "$end" ]]; then
-    [[ "$result" == "1=1" ]] || result+=" AND "
-    result+="$column <= $(sql_quote "$end")"
+    if [[ "$result" == "1=1" ]]; then
+      result="$column <= $(sql_quote "$end")"
+    else
+      result+=" AND $column <= $(sql_quote "$end")"
+    fi
   fi
   printf '%s\n' "$result"
 }

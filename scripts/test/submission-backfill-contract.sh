@@ -169,6 +169,7 @@ run_verify() {
 run_backfill > "$TMP_DIR/dry-run.log"
 assert_contains "$TMP_DIR/dry-run.log" 'DRY-RUN table=submissions'
 assert_contains "$TMP_DIR/dry-run.log" 'Backfill complete: mode=dry-run'
+assert_not_contains "$FAKE_LOG" '1=1s.'
 assert_contains "$TMP_DIR/dry-checkpoint" $'submissions\tsubmissions-boundary'
 assert_contains "$TMP_DIR/dry-checkpoint" $'judge_outbox\tjudge_outbox-boundary'
 assert_contains "$TMP_DIR/dry-checkpoint" $'submission_result_outbox\tsubmission_result_outbox-boundary'

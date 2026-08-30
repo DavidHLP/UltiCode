@@ -91,6 +91,8 @@ jobs:
               - '.github/workflows/cd-rollback.yml'
               - 'scripts/runbooks/image-reference-policy.sh'
               - 'scripts/test/supply-chain-contract.sh'
+              - 'scripts/runbooks/deployment-integrity.sh'
+              - 'scripts/test/deployment-integrity-contract.sh'
               - '.dockerignore'
               - 'apps/console/nginx.conf'
               - 'apps/management/nginx.conf'

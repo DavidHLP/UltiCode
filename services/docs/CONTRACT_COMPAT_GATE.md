@@ -7,7 +7,7 @@
 
 ## 1. 为什么需要这个门禁
 
-仓库已落地 per-service 独立发布（`service.version.*`、逐服务镜像 tag、按需 rollout/rollback），但 `api/*` 契约此前只有“形式上的 Dubbo 接口”而无机器化混合版本兼容证明。不同服务可能以不同版本运行，若契约出现二进制不兼容变更（删方法/改签名/降可见性/删字段等），旧消费者在滚动发布窗口内会以 `NoSuchMethodError` / `IncompatibleClassChangeError` 等形式崩溃。本门禁在 PR 阶段用 japicmp 对新旧 jar 做二进制对比，破坏性变更默认 fail。
+仓库已落地 per-service 独立发布（`service.version.*`、不可变镜像 digest manifest、按需 rollout/rollback），但 `api/*` 契约此前只有“形式上的 Dubbo 接口”而无机器化混合版本兼容证明。不同服务可能以不同版本运行，若契约出现二进制不兼容变更（删方法/改签名/降可见性/删字段等），旧消费者在滚动发布窗口内会以 `NoSuchMethodError` / `IncompatibleClassChangeError` 等形式崩溃。本门禁在 PR 阶段用 japicmp 对新旧 jar 做二进制对比，破坏性变更默认 fail。
 
 ## 2. 机制
 

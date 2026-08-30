@@ -26,6 +26,16 @@ inputs:
       Newline-separated NAME=registry/path/service@sha256:digest entries for
       all nine deployable services. Every entry is verified before Compose.
     required: true
+  source_commit:
+    description: 'Approved source commit checked out on the deployment host'
+    required: true
+  schema_manifest_checksum:
+    description: 'Approved canonical migration manifest SHA-256'
+    required: true
+  deployment_descriptor_file:
+    description: 'Remote deployment descriptor path relative to the deploy root'
+    required: false
+    default: '.local/deploy/deployment.json'
   services:
     description: >-
       Optional subset of compose services to pull and up (comma/space
@@ -140,6 +150,67 @@ runs:
         ssh-keygen -F "$host_lookup" -f ~/.ssh/known_hosts >/dev/null \
           || { echo "::error::known_hosts has no pinned key for $host_lookup" >&2; exit 1; }
 
+    - name: Validate release and deployment integrity before mutation
+      shell: bash
+      env:
+        IMAGE_REF_LIST: ${{ inputs.image_refs }}
+        DEPLOYMENT_COMMIT: ${{ inputs.source_commit }}
+        EXPECTED_SCHEMA_MANIFEST_CHECKSUM: ${{ inputs.schema_manifest_checksum }}
+        DEPLOYMENT_DESCRIPTOR_FILE: ${{ inputs.deployment_descriptor_file }}
+        COSIGN_CERT_IDENTITY: ${{ inputs.supply_chain_identity }}
+        COSIGN_CERT_ISSUER: ${{ inputs.supply_chain_issuer }}
+        SUPPLY_CHAIN_EXCEPTION_FILE: ${{ inputs.supply_chain_exception_file }}
+        SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT: ${{ inputs.supply_chain_exception_expires_at }}
+        GITHUB_TOKEN_VALUE: ${{ inputs.github_token }}
+        DEPLOY_ACTOR: ${{ inputs.actor }}
+        DEPLOY_REGISTRY: ${{ inputs.registry }}
+        SKIP_MIGRATIONS: ${{ inputs.skip_migrations }}
+        DEPLOY_HOST: ${{ inputs.host }}
+        DEPLOY_PORT: ${{ inputs.port }}
+        DEPLOY_USER: ${{ inputs.user }}
+        DEPLOY_PATH: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        [[ -n "$IMAGE_REF_LIST" ]] || { echo "::error::image_refs is required" >&2; exit 1; }
+        [[ -n "$DEPLOYMENT_COMMIT" ]] || { echo "::error::source_commit is required" >&2; exit 1; }
+        [[ -n "$EXPECTED_SCHEMA_MANIFEST_CHECKSUM" ]] || { echo "::error::schema_manifest_checksum is required" >&2; exit 1; }
+        [[ -n "$COSIGN_CERT_IDENTITY" ]] || { echo "::error::supply_chain_identity is required" >&2; exit 1; }
+        IMAGE_REF_LIST="$IMAGE_REF_LIST" \
+          "$GITHUB_WORKSPACE/scripts/runbooks/image-reference-policy.sh" validate
+
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "$DEPLOY_USER@$DEPLOY_HOST" -p "$DEPLOY_PORT")
+        EXPORTS=""
+        while IFS= read -r pair; do
+          [[ -z "$pair" ]] && continue
+          NAME="${pair%%=*}"
+          VALUE="${pair#*=}"
+          EXPORTS+=" $(shell_quote "$NAME")=$(shell_quote "$VALUE")"
+        done <<< "$IMAGE_REF_LIST"
+        REMOTE_ENV="$EXPORTS"
+        REMOTE_ENV+=" DEPLOYMENT_COMMIT=$(shell_quote "$DEPLOYMENT_COMMIT")"
+        REMOTE_ENV+=" EXPECTED_SCHEMA_MANIFEST_CHECKSUM=$(shell_quote "$EXPECTED_SCHEMA_MANIFEST_CHECKSUM")"
+        REMOTE_ENV+=" DEPLOYMENT_DESCRIPTOR_FILE=$(shell_quote "$DEPLOYMENT_DESCRIPTOR_FILE")"
+        REMOTE_ENV+=" COSIGN_CERT_IDENTITY=$(shell_quote "$COSIGN_CERT_IDENTITY")"
+        REMOTE_ENV+=" COSIGN_CERT_ISSUER=$(shell_quote "$COSIGN_CERT_ISSUER")"
+        REMOTE_ENV+=" SUPPLY_CHAIN_EXCEPTION_FILE=$(shell_quote "$SUPPLY_CHAIN_EXCEPTION_FILE")"
+        REMOTE_ENV+=" SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT=$(shell_quote "$SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT")"
+
+        printf '%s\n' "$GITHUB_TOKEN_VALUE" | "${SSH_CMD[@]}" \
+          "docker login $(shell_quote "$DEPLOY_REGISTRY") -u $(shell_quote "$DEPLOY_ACTOR") --password-stdin"
+
+        remote_command="cd $(shell_quote "$DEPLOY_PATH") &&"
+        remote_command+=" $REMOTE_ENV ./scripts/runbooks/deployment-integrity.sh preflight &&"
+        if [[ "$SKIP_MIGRATIONS" == "true" ]]; then
+          remote_command+=" $REMOTE_ENV ./scripts/runbooks/deployment-integrity.sh check-rollback &&"
+        fi
+        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet &&"
+        remote_command+=" $REMOTE_ENV ./scripts/runbooks/image-reference-policy.sh verify"
+        "${SSH_CMD[@]}" "$remote_command"
+
     - name: Run ordered owner database migrations
       if: ${{ inputs.skip_migrations != 'true' }}
       shell: bash
@@ -222,21 +293,21 @@ runs:
       shell: bash
       env:
         IMAGE_REF_LIST: ${{ inputs.image_refs }}
+        DEPLOYMENT_COMMIT: ${{ inputs.source_commit }}
+        EXPECTED_SCHEMA_MANIFEST_CHECKSUM: ${{ inputs.schema_manifest_checksum }}
+        DEPLOYMENT_DESCRIPTOR_FILE: ${{ inputs.deployment_descriptor_file }}
         COSIGN_CERT_IDENTITY: ${{ inputs.supply_chain_identity }}
         COSIGN_CERT_ISSUER: ${{ inputs.supply_chain_issuer }}
         SUPPLY_CHAIN_EXCEPTION_FILE: ${{ inputs.supply_chain_exception_file }}
         SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT: ${{ inputs.supply_chain_exception_expires_at }}
-        GITHUB_TOKEN_VALUE: ${{ inputs.github_token }}
-        DEPLOY_ACTOR: ${{ inputs.actor }}
-        DEPLOY_REGISTRY: ${{ inputs.registry }}
         DEPLOY_SERVICES: ${{ inputs.services }}
       run: |
         set -euo pipefail
         shell_quote() { printf '%q' "$1"; }
         [[ -n "$IMAGE_REF_LIST" ]] || { echo "::error::image_refs is required" >&2; exit 1; }
+        [[ -n "$DEPLOYMENT_COMMIT" ]] || { echo "::error::source_commit is required" >&2; exit 1; }
+        [[ -n "$EXPECTED_SCHEMA_MANIFEST_CHECKSUM" ]] || { echo "::error::schema_manifest_checksum is required" >&2; exit 1; }
         [[ -n "$COSIGN_CERT_IDENTITY" ]] || { echo "::error::supply_chain_identity is required" >&2; exit 1; }
-        IMAGE_REF_LIST="$IMAGE_REF_LIST" \
-          "$GITHUB_WORKSPACE/scripts/runbooks/image-reference-policy.sh" validate
 
         SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
           -o StrictHostKeyChecking=yes
@@ -254,21 +325,17 @@ runs:
           EXPORTS+=" $(shell_quote "$NAME")=$(shell_quote "$VALUE")"
         done <<< "$IMAGE_REF_LIST"
         REMOTE_ENV="$EXPORTS"
+        REMOTE_ENV+=" DEPLOYMENT_COMMIT=$(shell_quote "$DEPLOYMENT_COMMIT")"
+        REMOTE_ENV+=" EXPECTED_SCHEMA_MANIFEST_CHECKSUM=$(shell_quote "$EXPECTED_SCHEMA_MANIFEST_CHECKSUM")"
+        REMOTE_ENV+=" DEPLOYMENT_DESCRIPTOR_FILE=$(shell_quote "$DEPLOYMENT_DESCRIPTOR_FILE")"
         REMOTE_ENV+=" COSIGN_CERT_IDENTITY=$(shell_quote "$COSIGN_CERT_IDENTITY")"
         REMOTE_ENV+=" COSIGN_CERT_ISSUER=$(shell_quote "$COSIGN_CERT_ISSUER")"
         REMOTE_ENV+=" SUPPLY_CHAIN_EXCEPTION_FILE=$(shell_quote "$SUPPLY_CHAIN_EXCEPTION_FILE")"
         REMOTE_ENV+=" SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT=$(shell_quote "$SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT")"
 
-        # Keep the registry token on the SSH stdin stream; it is not embedded
-        # in the remote command or echoed into the workflow log.
-        printf '%s\n' "$GITHUB_TOKEN_VALUE" | "${SSH_CMD[@]}" \
-          "docker login $(shell_quote "$DEPLOY_REGISTRY") -u $(shell_quote "$DEPLOY_ACTOR") --password-stdin"
-
-        # Verify every supplied digest, its Cosign signature, its SPDX SBOM,
-        # its SLSA provenance, and its HIGH/CRITICAL vulnerability result on
-        # the deployment host before any image is started.
+        # The manifest was verified before mutation; pull/up now records a
+        # pending descriptor atomically, and host-health marks it final.
         remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
-        remote_command+=" $REMOTE_ENV ./scripts/runbooks/image-reference-policy.sh verify &&"
 
         # Optional selective rollout/rollback: restrict pull/up to an explicit
         # allowlisted subset instead of reconciling the whole stack.
@@ -284,5 +351,6 @@ runs:
         fi
 
         remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml pull$TARGETS &&"
-        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans$TARGETS"
+        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans$TARGETS &&"
+        remote_command+=" $REMOTE_ENV DEPLOYED_SERVICES=$(shell_quote "${DEPLOY_SERVICES:-all}") DEPLOYMENT_STATUS=PENDING_HEALTH ./scripts/runbooks/deployment-integrity.sh record"
         "${SSH_CMD[@]}" "$remote_command"

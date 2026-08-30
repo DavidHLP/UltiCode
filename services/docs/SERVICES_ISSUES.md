@@ -81,7 +81,7 @@ Do not close SVC-003 or contract the App schema until the external owner registr
 
 ### SVC-010 混合版本运行历史
 
-现状：per-service tag、选择性 host deploy 与 Contract 兼容门禁已经存在；尚未积累真实混合版本并存和独立回滚证据。
+现状：per-service version/digest manifest、选择性 host deploy 与 Contract 兼容门禁已经存在；尚未积累真实混合版本并存和独立回滚证据。
 
 触发条件：随真实发布自然积累。破坏性 Contract 变更仍要求 reactor 协同升级；门禁说明见 [`CONTRACT_COMPAT_GATE.md`](CONTRACT_COMPAT_GATE.md)。
 
@@ -105,7 +105,7 @@ Do not close SVC-003 or contract the App schema until the external owner registr
 | tracing/SLO 无代码采集 | OTel/Prometheus 接线、Worker 指标与告警规则 |
 | App 头像本地状态无 Seam | `FileStoragePort` 与生产持久卷；对象存储仍按需 |
 | Nacos/Judge endpoint 写死 | Nacos cluster 参数与 Judge Docker endpoint/TLS 参数 |
-| 服务无法独立标记/发布 | per-service version/tag、host-deploy 子集、Contract 兼容门禁；Search 选择入口残差见 SVC-005 |
+| 服务无法独立标记/发布 | per-service version/digest manifest、host-deploy 子集、Contract 兼容门禁；Search 选择入口残差见 SVC-005 |
 | WebSocket 接受 client-controlled STOMP token | CONNECT 仅从 handshake session 读取 cookie token，并有拒绝回归 |
 | OAuth callback 缺 state cookie 仍放行 | `OAuthStateModule` 对空 cookie fail closed |
 | Audit outbox claim 无并发围栏 | PENDING→PROCESSING CAS claim、lease reclaim、claim-owner fenced completion |

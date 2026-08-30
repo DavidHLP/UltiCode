@@ -57,6 +57,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+      - name: Resolve canonical migration manifest checksum
+        id: schema
+        run: |
+          set -euo pipefail
+          echo "checksum=$(scripts/runbooks/deployment-integrity.sh schema-checksum)" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to host
         id: deploy
         uses: ./.github/actions/host-deploy
@@ -68,6 +74,8 @@ jobs:
           user: ${{ secrets.DEPLOY_USER }}
           path: ${{ secrets.DEPLOY_PATH }}
           image_refs: ${{ github.event.inputs.image_refs }}
+          source_commit: ${{ github.sha }}
+          schema_manifest_checksum: ${{ steps.schema.outputs.checksum }}
           services: ${{ github.event.inputs.services }}
           supply_chain_identity: ${{ secrets.SUPPLY_CHAIN_CERT_IDENTITY }}
           skip_migrations: ${{ github.event.inputs.skip_migrations }}
@@ -96,6 +104,9 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           user: ${{ secrets.DEPLOY_USER }}
+          deployment_path: ${{ secrets.DEPLOY_PATH }}
+          deployment_commit: ${{ github.sha }}
+          schema_manifest_checksum: ${{ steps.schema.outputs.checksum }}
 
       - name: Notify failure
         if: failure()

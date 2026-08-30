@@ -855,6 +855,13 @@ signature、SPDX SBOM、SLSA provenance 和 Trivy HIGH/CRITICAL 结果；漏洞�
 `docker-publish.yml` 生成 BuildKit SBOM/provenance、Trivy 报告、Cosign 签名/attestations 及不可变 release manifest，外部 Actions 全部锁定
 到 commit SHA。registry signing、release promotion、Cosign identity/issuer、生产部署主机与真实漏洞例外审批仍属于外部信任边界。
 
+P2-DEPLOY-001 将 CD 的完整性校验前移到任何远端迁移、Redis ACL materialization、Judge sandbox provisioning 或 Compose mutation 之前：
+`scripts/runbooks/deployment-integrity.sh` 校验部署 checkout/source commit、canonical migration manifest SHA-256、必需 runbook/Compose
+文件和九服务 digest manifest，并要求远端 `docker compose ... config --quiet` 通过。成功 `pull/up` 只先原子写入
+`PENDING_HEALTH` descriptor；`host-health` 完成全部服务检查后才标为 `HEALTHY`，任一服务失败都会输出 system-level FAILED 并返回非零。
+Rollback 需要当前 descriptor 存在且 schema checksum 与批准输入一致，禁止以旧 artifact 静默跨 schema 回退；descriptor 只含 commit、schema
+checksum、service scope、digest manifest 和状态，不含凭据。真实主机 checkout、数据库 schema、远端 Docker 和生产回滚 authority 仍需外部授权。
+
 P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
 consumer 和 WebSocket consumer 均实现并调用完整契约。保留的 `SubmissionWritePort`/provider 是明确标注的 N-1

@@ -65,6 +65,7 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 - `redis-acl-rotation.sh` — runtime ACL materialization and `prepare`/`finalize`/`rollback` overlap rotation with atomic replacement and drift-check; state/report files contain only hashes and phase.
 - `image-reference-policy.sh` — shared production image policy: exact nine-service digest manifest, Cosign signature/SPDX/SLSA verification, Trivy HIGH/CRITICAL scan, and expiring exception gate.
 - `observability-release-annotation.sh` — publish a release/environment marker and immutable image manifest to Grafana without printing the API token.
+- `deployment-integrity.sh` — preflight source commit, migration manifest checksum, required deployment files, atomic release descriptor, and schema-compatible rollback/health state.
 - `redis-acl-rotation.sh` — runtime ACL materialization and `prepare`/`finalize`/`rollback` overlap rotation with atomic replacement and drift-check; state/report files contain only hashes and phase.
 
 ## scripts/test/ — standalone smoke suites
@@ -79,6 +80,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 - `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 - `supply-chain-contract.sh` — immutable production Compose/Dockerfile references, full-SHA Actions, release evidence, digest-manifest, and expiry-bound exception contract.
 - `observability-contract.sh` — validate the optional Prometheus/Alertmanager/Collector/Grafana/Tempo/Loki overlay, rules, dashboard, and release annotation guard.
+- `deployment-integrity-contract.sh` — disposable descriptor/rollback/schema mismatch and host-health system-summary contract without remote mutation.
 - `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 
 ## Other

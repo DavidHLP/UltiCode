@@ -13,6 +13,10 @@ on:
           NAME=registry/path/service@sha256:digest entries.
         required: true
         type: string
+      schema_manifest_checksum:
+        description: 'Canonical migration manifest SHA-256 for the currently deployed database'
+        required: true
+        type: string
       services:
         description: >-
           Services to roll back: 'all', or a comma/space-separated subset of
@@ -27,6 +31,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  contents: read
   packages: read
 
 jobs:
@@ -42,6 +47,16 @@ jobs:
         env:
           IMAGE_REF_LIST: ${{ github.event.inputs.image_refs }}
         run: scripts/runbooks/image-reference-policy.sh validate
+
+      - name: Validate rollback schema compatibility input
+        env:
+          SCHEMA_MANIFEST_CHECKSUM: ${{ github.event.inputs.schema_manifest_checksum }}
+        run: |
+          set -euo pipefail
+          [[ "$SCHEMA_MANIFEST_CHECKSUM" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "::error::schema_manifest_checksum must be a 64-character lowercase SHA-256"
+            exit 1
+          }
 
       - name: Validate deployable service selection
         env:
@@ -82,6 +97,8 @@ jobs:
           user: ${{ secrets.DEPLOY_USER }}
           path: ${{ secrets.DEPLOY_PATH }}
           image_refs: ${{ github.event.inputs.image_refs }}
+          source_commit: ${{ github.sha }}
+          schema_manifest_checksum: ${{ github.event.inputs.schema_manifest_checksum }}
           services: ${{ github.event.inputs.services }}
           supply_chain_identity: ${{ secrets.SUPPLY_CHAIN_CERT_IDENTITY }}
           skip_migrations: 'true'
@@ -97,6 +114,9 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           user: ${{ secrets.DEPLOY_USER }}
+          deployment_path: ${{ secrets.DEPLOY_PATH }}
+          deployment_commit: ${{ github.sha }}
+          schema_manifest_checksum: ${{ github.event.inputs.schema_manifest_checksum }}
 
       - name: Notify failure
         if: failure()

@@ -35,3 +35,7 @@
 - Maven baseline: clean compile exit 0 in 14s; clean test exit 0 in 86s; clean verify exit 0 in 86s. Surefire: 809 reports / 2739 tests / 0 failures / 0 errors / 20 skipped. JaCoCo line/branch: Admin 62.0%/47.9%, Notification 55.9%/39.4%, App Web 54.1%/42.4%.
 - P0-SEC-001 RED: focused Auth test ran 4 tests with 4 assertion failures because emitted Set-Cookie headers lack Secure and SameSite=Lax; no setup or execution errors.
 - [降级执行] Java LSP references were unavailable for CookieMutation, SessionCookieAdapter, and JwtProperties. Codebase Memory and direct-source reads supplied caller/implementation evidence instead.
+- P0-SEC-001 TDD: RED commits `3d5c7814d796`, `8417bfa7432e`, and `dad4fafc7557` proved missing Set-Cookie attributes, fail-open production startup, and mixed dev+prod bypass. GREEN `ef10d92c7272` emits complete ResponseCookie policy and allows Secure=false only when every active profile is dev/test/ci.
+- P0-SEC-001 validation: focused 29/29 and full Auth 240/240, zero failures/errors/skips; architecture and documentation contracts PASS; Graphify rebuilt 27456 nodes / 81995 edges.
+- P0-SEC-001 environmental failure: the first full Auth run used obsolete Java 17.0.2 and failed in JVM cgroup-v2 discovery before application assertions. The installed Zulu 17.0.20.1 rerun passed and is the accepted result.
+- [降级执行] context-mode batch static gates exceeded its 30-second transport timeout because Graphify ran longer; architecture/docs/Graphify were rerun individually with exits 0.

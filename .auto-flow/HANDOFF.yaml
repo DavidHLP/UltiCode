@@ -2,14 +2,14 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P0-SEC-001
+active_task: P0-SEC-002
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
-  - "P0-SEC-001 actual Set-Cookie regression is RED on missing Secure and SameSite"
+  - "P0-SEC-001 secure cookie policy committed as ef10d92c7272; focused 29/29 and Auth 240/240"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
-next_goal: "Commit baseline and RED checkpoints, then make the shared cookie policy GREEN"
+next_goal: "Trace cookie-authenticated mutations and commit the P0-SEC-002 cross-owner CSRF RED matrix"
 next_skill: springboot-tdd
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers:

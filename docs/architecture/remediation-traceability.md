@@ -18,14 +18,14 @@ No staging or production application is assumed by repository completion.
 
 | Finding or requirement | Task IDs | Primary implementation surfaces | Acceptance evidence | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
-| Rebuild current Git, topology, task, build, Compose and Docker baseline | `CTX-001` | `.auto-flow/*`, evidence logs, Maven reactor, Compose | Static gates and clean Maven compile/test/verify exit 0; Docker daemon is `BLOCKED_EXTERNAL` with exact permission evidence | pending | Locally Validated |
-| Map every assessment finding and directive item | `TRACE-001` | this file, `.auto-flow/TASKS.yaml`, `SERVICES_ISSUES.md` | 42/42 task mapping, six explicit ADR deferrals, documentation contract exit 0 | pending | Locally Validated |
+| Rebuild current Git, topology, task, build, Compose and Docker baseline | `CTX-001` | `.auto-flow/*`, evidence logs, Maven reactor, Compose | Static gates and clean Maven compile/test/verify exit 0; Docker daemon is `BLOCKED_EXTERNAL` with exact permission evidence | `fa71f276e530` | Locally Validated |
+| Map every assessment finding and directive item | `TRACE-001` | this file, `.auto-flow/TASKS.yaml`, `SERVICES_ISSUES.md` | 42/42 task mapping, six explicit ADR deferrals, documentation contract exit 0 | `fa71f276e530` | Locally Validated |
 
 ## P0 security
 
 | Original finding | Task IDs | Implementation surfaces | Required validation | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
-| Authentication cookies are emitted with `Secure=false`; configured SameSite is not applied; clear attributes can drift | `P0-SEC-001` | `platform/web-security`, Auth session/cookie adapters, Auth configuration | RED: actual login/refresh/logout Set-Cookie assertions fail on missing Secure and SameSite; production insecure-policy startup rejection remains required | pending | In progress |
+| Authentication cookies are emitted with `Secure=false`; configured SameSite is not applied; clear attributes can drift | `P0-SEC-001` | Auth JWT/session/OAuth cookie policy and configuration | Actual login/refresh/logout headers preserve Secure, HttpOnly, SameSite, Path, Domain, and lifetime; non-local and mixed production profiles reject insecure startup; focused 29/29 and Auth 240/240 | `ef10d92c7272` | Locally Validated |
 | CSRF validation exists only in Auth and does not cover all Cookie-authenticated mutations or refresh/logout without a valid access token | `P0-SEC-002` | shared web-security CSRF Module, Auth/App/Admin/Notification filter chains, auth-core | Cross-owner CSRF matrix: missing/invalid/valid/safe-method/Bearer/refresh/logout | pending | TODO |
 | App/Admin/Notification use `anyRequest().permitAll()` and route authorization is fail-open | `P0-SEC-003` | three SecurityFilterChains, public route catalog, method-security tests | Anonymous/USER/ADMIN/service matrix; unmatched route denied | pending | TODO |
 | Three resource-server JWT/JWKS implementations and four authentication filters have diverged | `P0-SEC-004`, `ARCH-SEC-001` | `platform/web-security`, App/Admin/Notification/Auth | Shared verifier tests and architecture rule forbidding local copies | pending | TODO |

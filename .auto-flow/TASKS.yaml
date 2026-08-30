@@ -364,7 +364,7 @@ architecture_remediation_20260830:
         - "Maven clean compile exit 0 in 14s; clean test exit 0 in 86s; clean verify exit 0 in 86s"
         - "Surefire 809 reports / 2739 tests / 0 failures / 0 errors / 20 skipped"
         - "Docker daemon BLOCKED_EXTERNAL: user lacks docker group; version/info exit 1; Compose CLI works"
-      commit: null
+      commit: "fa71f276e530"
       blocked_by: []
       notes: "Read-only baseline; Docker denial becomes BLOCKED_EXTERNAL, never PASS"
     - id: TRACE-001
@@ -384,7 +384,7 @@ architecture_remediation_20260830:
         - "Traceability matrix maps all 42 tasks; validation reports unmapped=[]"
         - "Deferred-platform ADR covers all six explicit non-implementations, triggers, alternatives, costs, and review conditions"
         - "Documentation contract exit 0"
-      commit: null
+      commit: "fa71f276e530"
       blocked_by: []
       notes: "SERVICES_ISSUES remains canonical issue registry; traceability links rather than duplicates findings"
     - id: P0-SEC-001
@@ -392,7 +392,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/Cookie"
       dependencies: [CTX-001]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["platform/web-security", "auth"]
       acceptance_criteria:
         - "Actual login refresh logout Set-Cookie headers include required Secure HttpOnly SameSite Path and lifetime"
@@ -400,8 +400,12 @@ architecture_remediation_20260830:
       validation_commands:
         - "Focused MockMvc Set-Cookie tests"
         - "Auth module tests"
-      evidence: []
-      commit: null
+      evidence:
+        - "RED 3d5c7814d796: actual login/refresh/logout headers failed on missing Secure and SameSite"
+        - "RED 8417bfa7432e: production-like startup accepted Secure=false"
+        - "RED dad4fafc7557: mixed dev+prod profiles bypassed the first local-profile guard"
+        - "GREEN focused 29/29 and Auth 240/240; architecture/docs contracts PASS; graphify rebuilt"
+      commit: "RED 3d5c7814d796, 8417bfa7432e, dad4fafc7557; GREEN ef10d92c7272"
       blocked_by: []
       notes: "Local HTTP exception must be explicit profile-only"
     - id: P0-SEC-002
@@ -409,7 +413,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/CSRF"
       dependencies: [P0-SEC-001]
-      status: TODO
+      status: IN_PROGRESS
       affected_modules: ["platform/web-security", "auth", "app", "admin", "notification", "packages/auth-core"]
       acceptance_criteria:
         - "Cookie-auth mutations require valid CSRF in every HTTP owner"

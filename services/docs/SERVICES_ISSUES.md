@@ -21,29 +21,28 @@
 
 ## OPEN
 
-### SVC-003 P1 Submission single-writer 仍由运行模式决定
+### SVC-003 P1 Submission ownership contraction remains incomplete
 
-默认 `dev-lite` 使用 App-local Submission；只有 `dev-full` 且 cutover gate 完成后才使用独立 Submission Owner。App 与 Submission 仍各自保留 writer、projection、mapper、dispatcher 和 reaper 的实现，部分核心实现已经分叉。
+Ordinary and contest intake now always use App's `RemoteSubmissionWritePort` and execute in `backend-submission`. The App-local writer, mutation router, fence adapters, judge/result dispatchers, shadow comparator, and lease reaper are deleted; write ownership is no longer selected by `APP_SUBMISSION_ROUTING_MODE`.
 
-影响：single-writer 不是代码结构事实；日常开发主要验证 local 分支，修复可能只落在其中一份实现，降低 Locality 并延长 Strangler migration。
-Admin rejudge compatibility remains an App-owned `SubmissionAdministrationService` under Dubbo group `backend-app`; `backend-submission` exports no implementation of that contract. The enabled Admin cutover flag therefore targets App compatibility, not the independent Submission Owner, and must not be described as completed Owner cutover.
+Remaining contraction work: App still owns temporary submission read projections, and Admin rejudge still calls an App-owned `SubmissionAdministrationService` provider. Until rejudge and reads move, the App submission mapper retains compatibility mutation methods and the old schema cannot be contracted.
 
-证据：
+Evidence:
 
-- [`SubmissionRoutingProperties.java`](../app/app-web/src/main/java/com/ulticode/modules/submission/config/SubmissionRoutingProperties.java)
-- [`devstack-manifest.sh`](../../scripts/dev/devstack-manifest.sh)
-- [App-local `DefaultSubmissionWritePort`](../app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java)
-- [Owner `DefaultSubmissionWritePort`](../submission/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java)
+- [Owner-only intake adapter](../app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java)
+- [Owner writer](../submission/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java)
+- [Owner intake provider](../submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java)
+- [Owner-only architecture regression](../app/app-web/src/test/java/com/ulticode/modules/submission/port/SubmissionPortWiringTest.java)
 
-退役门禁：
+Retirement gates:
 
-| Seam | 最小观察证据 | 必须为零的错误 | 必须保留的回滚能力 |
-| --- | --- | --- | --- |
-| Write routing | 远程 writer 连续 14 天并覆盖至少一个高峰周期；无 App-local writer/outbox/reaper 活动 | 丢失或重复 intake、错误 Owner 写入、不可恢复路由错误均为零；可用性错误预算不超过既有基线的 0.1% | routing config、local/remote Adapter、写入与 outbox 对账、切回 local 的已验证命令 |
-| Fence routing | Judge、Submission 与 lease/reaper writer 全部 drain；连续 14 天无未完成 generation/attempt lease | stale generation、split-brain lease、丢失 verdict 均为零 | generation/attempt Contract tests 与 legacy rollback 配置 |
-| User read routing | 远程分页、详情、最佳提交连续观察 14 天；无活跃 local read caller | 跨用户泄漏、顺序/总数/VO 语义回归、静默错误数据均为零；读取错误预算不超过既有基线的 0.1% | local/remote read Adapter、read Contract tests 与路由快照 |
+| Seam | Repository state | Remaining external/next evidence |
+| --- | --- | --- |
+| Intake/outbox/fence | App mutation implementation deleted; owner tests and duplicate-writer gate are authoritative | Live registration/traffic observation remains external; rollback uses a prior verified artifact plus the data runbook, not a second current writer |
+| Admin rejudge | App compatibility provider remains | P1-SUB-002 must move authorization, idempotency, CAS, outbox, audit/event semantics to backend-submission |
+| User reads | Local/remote read routing remains | P1-SUB-003/004 must backfill, reconcile, and switch bounded owner facts before App read tables/contracts are removed |
 
-所有门禁、in-flight drain、数据/事件 checksum 与回滚 artifact 均有证据后，才能删除 App-local Submission 副本。
+Do not close SVC-003 or contract the App schema until Admin rejudge and all reads use the Submission owner.
 
 ## DEFERRED
 

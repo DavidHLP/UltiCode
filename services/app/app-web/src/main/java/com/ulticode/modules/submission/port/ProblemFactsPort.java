@@ -13,7 +13,7 @@ package com.ulticode.modules.submission.port;
  * write-side {@code ProblemDetailPort} (ADR-0011 satellite mutation) untouched.
  *
  * <p>Replaces the pre-2026-07-10 leakage where four submission paths
- * ({@code DefaultSubmissionWritePort}, {@code DefaultSubmissionProjection},
+ * ({@code RemoteSubmissionWritePort}, {@code DefaultSubmissionProjection},
  * {@code CodeExecutionService}, {@code JudgedNotificationDispatcher}) each
  * reached into {@code problem.mapper.*} for title / limits / languages.
  *

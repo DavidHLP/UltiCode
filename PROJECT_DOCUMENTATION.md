@@ -363,7 +363,7 @@ flowchart LR
 | 搜索 | Search Projection → MeiliSearch 或四个 SearchSource → Problem/Forum/Solution/User mappers | 目标应由 App 拥有搜索索引，不做四路远程串行查询 |
 | WebSocket | access cookie → Handshake → STOMP interceptor → Redis blacklist → JWT → User DB → session principal | 目标在 App 本地验 JWT，以事件/cache 处理状态失效，避免每消息 Auth RPC |
 
-代表源码：`services/auth/src/main/java/com/ulticode/auth/service/DefaultAuthenticationWorkflow.java`、`services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java:110-214`、`services/app/app-web/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java:141-185,412-498`、`services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java:278-314`、`services/app/app-web/src/main/java/com/ulticode/modules/websocket/auth/DefaultWebSocketAuthenticator.java:46-86`。
+代表源码：`services/auth/src/main/java/com/ulticode/auth/service/DefaultAuthenticationWorkflow.java`、`services/submission/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java`、`services/app/app-web/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java:141-185,412-498`、`services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java:278-314`、`services/app/app-web/src/main/java/com/ulticode/modules/websocket/auth/DefaultWebSocketAuthenticator.java:46-86`。
 
 ##### 2.4 当前耦合与循环性质
 
@@ -591,26 +591,36 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | Dubbo Consumer | ProblemFacts（backend-app）、UserExistence（backend-auth IdentityQueryService）；write/fence regular path 不再回访 App |
 | Storage | 本地 `DefaultSubmissionWritePort` 写 `submission` schema 四张 owner 表（submission/judge/created/result outbox）；contest `submitContest` 在同一 intake 事务内写 `submission_created_outbox`，judge dispatch 依赖 `useJudgeOutbox+usePort` 激活的 outbox-only 模式；terminal verdict 总是写 `submission_result_outbox` |
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
-| Rollback | 本 direct-provider artifact 只接受 `APP_SUBMISSION_ROUTING_MODE=remote`；回滚先部署上一已验证 compatibility artifact，再切回 `local`，数据回写使用 `scripts/runbooks/submission-schema-cutover.sh rollback`，不通过当前 artifact 做 route-only rollback |
+| Rollback | 当前 artifact 不含 App-local writer。回滚必须部署上一已验证 artifact 并执行 `submission-schema-cutover.sh rollback`；不得在当前版本通过配置重新产生第二 writer |
 
-slice-3 历史边界：outbox 消费者已迁移到 backend-submission（读取 `submission` schema 的 outbox 行；`JudgeOutboxDispatcher` 仅 real dispatch，无 legacy shadow/replay）。App 侧 dispatcher 仍仅在 `app.submission.routing.mode=local` 装配，因此 `APP_SUBMISSION_ROUTING_MODE=remote` 下 regular outbox 不会被 App 消费。
+Owner-only intake cutover：App 的 local writer、mutation router、fence adapters、judge/result dispatchers、shadow comparator 与 lease reaper 已删除。`RemoteSubmissionWritePort` 无条件捕获 App-owned request facts，再调用 `backend-submission` 的 `SubmissionIntakePort`；`APP_SUBMISSION_ROUTING_MODE` 只保留给临时 read projection。Judge verdict/fence/reaper/outbox 全部由 Judge/Submission runtime 直接使用 owner contract。
 
-slice-4 历史边界：`scripts/runbooks/submission-schema-cutover.sh` 提供 expand→backfill→verify→cutover 数据 runbook（preflight 列形状/空目标核对 + target-only `submission_created_outbox` 存在且为空核对、cutover 复制三表+撤销 App 表级 grant、rollback 回写+恢复 grant）。**不得**在 SPLIT-004 之前启用 remote：App 读路径（`SubmissionReadAdapter` 等）仍直读 App schema，切流后新提交对用户/管理列表不可见。实际切流 gate 属 SPLIT-004 完成后的观察窗口；切流完成后 direct owner provider 取代过渡 provider。按 advisory 保独立语义：`submission-schema-cutover.sh`、`notification-schema-cutover.sh`、`owner-user-profile-backfill.sh` 各自保持独立 runbook 与 REVOKE/drain 实现，不按文件大小物理合并；公共前言与通用原语（env 加载、显式值保全、容器探测、健康等待、确认谓词 `gate_confirmed`/`require_write_confirmation`、数据核对原语 table_exists/column_signature/row_count/checksum_table——连接统一由 `lib/sql.sh` 的 `define_mysql_query_adapter` 按各 runbook 声明的连接参数生成，传输语义（容器内 socket/TCP、字符集、默认库）保持与原实现一致）仅通过 `scripts/dev/lib/common.sh` 收敛，且全部函数以 readonly -f 冻结防 .env 注入；各 runbook 的 REVOKE/drain 语义保持独立，本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖），根级兼容别名已收敛（仅 `pitstop-start-backend.ps1` 保留），由 `scripts/dev/architecture-contract-test.sh` 断言。
-slice-7 边界（contest association 事件化）：切流后 contest 提交经 `submitContest` → `submission_created_outbox` → App-Contest 幂等消费写 `contest_submissions`。**历史 contest 提交无 created-outbox 行**：cutover 前已存在的 contest 提交，其 verdict 仍由 App 本地 dispatcher（contest 兼容路径）处理，contestId 从 App 自身 `contest_submissions` 解析，不受影响；若未来 contest 路径整体迁移到 backend-submission 处理历史 verdict，需先从 App `contest_submissions` 回填 `submission_created_outbox`（当前 runbook 未做回填，属已知边界）。
+##### 4.5.2 Writer behavior decision matrix (P1-SUB-001)
 
-slice-9 边界（SPLIT-004 read-routing 切换 + AC4 退役证据）：数据 cutover 已在可丢弃 MySQL 8.0 环境全链路执行（preflight→cutover 三表 72/2/2 行 checksum 一致→App 表级 grant 撤销→App 用户读写被拒（本环境 1044；表级 grant 姿态下为 1142）、`submission_rw` 解锁后读写正常）。运行时切换组合 = App `APP_SUBMISSION_ROUTING_MODE=remote`（读经 `SubmissionUserQueryRoutingPort` 委托 backend-submission）+ Admin `app.submission.admin.read-group=backend-submission`；Submission provider 已收敛为 direct owner provider。**AC4 退役证据**：以下 App 组件在切流状态仅剩 local contest rollback 与回滚路径职责。Dispatcher/Listener 已由 route 条件装配保护：
+| ID | Owner decision | Regression evidence |
+|---|---|---|
+| W01 | blank user id is BAD_REQUEST | `DefaultSubmissionWritePortTest.blankUserId` |
+| W02 | null request is BAD_REQUEST | `DefaultSubmissionWritePortTest.nullRequest` |
+| W03 | blank code is BAD_REQUEST | `DefaultSubmissionWritePortTest.blankCode` |
+| W04 | blank language is BAD_REQUEST | `DefaultSubmissionWritePortTest.blankLanguage` |
+| W05 | unsupported language is BAD_REQUEST | `DefaultSubmissionWritePortTest.unsupportedLanguage` |
+| W06 | immutable facts are mandatory at the owner boundary | `DefaultSubmissionWritePortTest.missingFacts` |
+| W07 | facts must admit the same user/problem | `DefaultSubmissionWritePortTest.mismatchedFacts` |
+| W08 | generic intake rejects contest context | `DefaultSubmissionWritePortIT.contestSubmissionsAreRejected` |
+| W09 | generic intake rejects virtual-session-only context | `DefaultSubmissionWritePortIT.virtualSessionOnlyContextIsRejected` |
+| W10 | contest intake requires a contest id | `DefaultSubmissionWritePortTest.contestIdRequired` |
+| W11 | language is normalized to lower case | `DefaultSubmissionWritePortTest.normalizesLanguage` |
+| W12 | owner allocates the submission id | `DefaultSubmissionWritePortIT.submitPersistsSubmissionAndOutbox` |
+| W13 | new rows start Pending with zero runtime/memory | `DefaultSubmissionWritePortIT.submitPersistsSubmissionAndOutbox` |
+| W14 | submission and judge outbox persist together | `DefaultSubmissionWritePortIT.submitPersistsSubmissionAndOutbox` |
+| W15 | missing generation defaults to generation 1 | `DefaultSubmissionWritePortIT.submitPersistsSubmissionAndOutbox` |
+| W16 | owner outbox is real/non-shadow when Streams is active | `DefaultSubmissionWritePortTest.ownerOutboxIsNotShadow` |
+| W17 | contest intake writes the durable association outbox | `DefaultSubmissionWritePortIT.explicitContestCommandWritesAssociationOutbox` |
+| W18 | owner never falls back to App's legacy RQueue | `DefaultSubmissionWritePortTest.ownerDoesNotUseLegacyQueue` |
+| W19 | fenced verdict rejects stale generation/attempt | `DefaultSubmissionWritePortIT.fencedVerdictRejectsStaleGeneration` |
+| W20 | terminal verdict writes one generation-idempotent result outbox | `DefaultSubmissionWritePortIT.fencedVerdictAcceptsCurrentGeneration` |
 
-| App 组件 | 切流后状态 |
-|---|---|
-| `JudgeOutboxDispatcher`（App） | 仅 local route 装配；remote/local 时 regular judge_outbox 由 backend-submission 消费 |
-| `JudgingLeaseReaper`（App） | 仅 local route + generation fence 装配；remote 时由 backend-submission 回收 |
-| `SubmissionResultDispatcher`（App） | 仅 local route 装配；remote/local 时 regular result outbox 由 backend-submission 直发 `stream:integration` |
-| `SubmissionResultOutboxListener`/`Writer`/`Mapper`（App） | listener 仅 local route 装配；remote/local 时不访问 App result outbox |
-| `SubmissionMapper`/`DefaultSubmissionWritePort`/`SubmissionReadAdapter`/`DefaultSubmissionUserReadAdapter`（App） | local 默认模式与 contest 路径的 read/write adapter，保持兼容职责 |
-
-grant revocation 完整性已通过本地观察：remote route 下显式 contest intake 只写 Submission owner 的四张表，App-Contest 仅消费 `SubmissionCreated` 写 `contest_submissions`；App 源表 grants 已撤销并验证无跨 owner 写入。
-
-slice-6 观察窗（SPLIT-003 实际切流 gate，已执行）：backend-submission 直接 provider 下全量 IT+boot 30/30（本地直写三表强一致、judge/result 事件链、crash-window/duplicate/stale 拒绝）、App 路由单测 9/9（remote 单一 writer 委托 + explicit contest command）；grant revocation 观察：cutover → App 用户读写被拒（1044/1142 语义）→ rollback 回写+恢复 grant（checksum 全同）→ 重 cutover 恢复。gate 结论：regular 路径切流就绪；slice-7 已完成 contest association event/inbox 验证，默认路由仍保留 local 作为可回滚保护，运行时切换由 SPLIT-005 最终 gate 决定。
+Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component. Live traffic observation remains external. Admin rejudge and App-local reads are tracked separately by P1-SUB-002/003/004 and SVC-003.
 
 ##### 4.6 身份模型裁决
 

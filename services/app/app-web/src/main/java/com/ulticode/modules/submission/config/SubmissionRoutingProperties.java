@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.function.Supplier;
 
-/** Selects the single active App-to-Submission writer route during cutover. */
+/** Selects the temporary App-local or owner read projection during backfill. */
 @Configuration
 @ConfigurationProperties(prefix = "app.submission.routing")
 public class SubmissionRoutingProperties {
@@ -39,9 +39,8 @@ public class SubmissionRoutingProperties {
     }
 
     /**
-     * Central migration-seam policy shared by write, fence and user-read
-     * routes. Only the selected implementation is resolved; no dual call is
-     * possible in either mode.
+     * Selects one read implementation. Intake and verdict mutations no longer
+     * use this migration seam and always execute in backend-submission.
      */
     public <T> T select(T local, Supplier<T> remoteSupplier, String operation) {
         if (!isRemote()) {

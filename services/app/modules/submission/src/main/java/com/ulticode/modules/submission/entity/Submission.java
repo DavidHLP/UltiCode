@@ -95,8 +95,8 @@ public class Submission {
     /**
      * Absolute expiry of the current JUDGING lease (ADR-003 M3b). The worker
      * heartbeats this forward every {@code leaseTtl/3} seconds while judging.
-     * When it lapses, {@link com.ulticode.modules.submission.reaper.JudgingLeaseReaper}
-     * recovers the row (bumps generation, resets to Pending, re-enqueues).
+     * When it lapses, the Submission owner reaper bumps generation, resets the
+     * row to Pending, and records a new judge outbox entry.
      * {@code null} when the submission is not being judged.
      */
     @TableField("judging_lease_expires_at")

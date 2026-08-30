@@ -116,8 +116,23 @@ contains services/docs/CONTRACT_COMPAT_GATE.md \
   'Submission consumer first → App provider second'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java \
   'import com.ulticode.submission.api.service.SubmissionWritePort;'
-not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionWriteRoutingPort.java \
-  'import com.ulticode.submission.api.service.SubmissionWritePort;'
+contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java \
+  'implements SubmissionIntakePort'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java \
+  'SubmissionVerdictWritePort'
+for stale_app_mutation in \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionWriteRoutingPort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionFencePort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionFenceRoutingPort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionFencePort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/queue/outbox/dispatcher/JudgeOutboxDispatcher.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/queue/outbox/shadow/OutboxShadowComparator.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/reaper/JudgingLeaseReaper.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/result/SubmissionResultDispatcher.java; do
+  [[ ! -e "$ROOT_DIR/$stale_app_mutation" ]] \
+    || fail "stale App Submission mutation component remains: $stale_app_mutation"
+done
 not_contains services/judge-runtime/src/main/java/com/ulticode/modules/queue/processor/DefaultJudgeAttemptExecutor.java \
   'import com.ulticode.submission.api.service.SubmissionWritePort;'
 for stale_contract in \

@@ -22,9 +22,8 @@ import java.util.UUID;
  * a record ID. Failed publishes are retried with exponential backoff;
  * after {@code MAX_ATTEMPTS} the row goes to DEAD (DLQ).
  *
- * <p>Follows the same claim/dispatch/confirm pattern as {@code AuditOutboxDispatcher}
- * and {@code JudgeOutboxDispatcher}, but targets Redis Streams instead of an
- * in-JVM consumer.
+ * <p>Uses a bounded claim/dispatch/confirm cycle and publishes to Redis Streams
+ * outside the database claim transaction.
  */
 @Slf4j
 @Component

@@ -28,7 +28,7 @@ import java.util.List;
  *
  * <p>Callers from other modules:
  * <ul>
- *   <li><code>DefaultSubmissionWritePort</code> — problem solved, first problem, language milestone</li>
+ *   <li><code>SubmissionJudgedInboxBridge</code> — problem solved, first problem, language milestone</li>
  *   <li><code>ContestServiceImpl</code> — contest joined</li>
  *   <li><code>FollowServiceImpl</code> — follower count changed</li>
  * </ul>

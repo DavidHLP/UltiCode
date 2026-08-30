@@ -60,19 +60,6 @@ class SubmissionPortWiringTest {
         assertThat(intakeImplementations).containsExactly(RemoteSubmissionWritePort.class.getName());
         assertThat(localMutationImplementations).isEmpty();
     }
-    @Test
-    @DisplayName("DefaultSubmissionFencePort implements app-api SubmissionFencePort")
-    void fencePortWiring() {
-        assertTrue(SubmissionFencePort.class.isAssignableFrom(DefaultSubmissionFencePort.class),
-                "DefaultSubmissionFencePort must implement com.ulticode.submission.api.service.SubmissionFencePort");
-    }
-
-    @Test
-    @DisplayName("DefaultSubmissionWritePort implements narrow mutation ports")
-    void writePortWiring() {
-        assertTrue(SubmissionIntakePort.class.isAssignableFrom(DefaultSubmissionWritePort.class));
-        assertTrue(SubmissionVerdictWritePort.class.isAssignableFrom(DefaultSubmissionWritePort.class));
-    }
 
     @Test
     @DisplayName("VerdictResolver implements app-api VerdictResolvePort")

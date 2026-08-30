@@ -52,15 +52,13 @@ app:
     mode: ${APP_RUNTIME_MODE:dev-lite}
   submission:
     routing:
-      # local (default) keeps every submission read/write on the App schema.
-      # remote is the cutover mode: reads go through SubmissionUserQueryRoutingPort
-      # to backend-submission and writes through SubmissionWriteRoutingPort, both
-      # enabled only after the SPLIT-004 read-path migration + schema cutover
-      # (scripts/runbooks/submission-schema-cutover.sh). Contest intake uses the
-      # explicit submitContest command; the App-Contest association remains an
-      # event/inbox projection rather than a Submission-schema write.
+      # Intake is always delegated to backend-submission. This remaining mode
+      # selects only the temporary App-local versus owner read projection while
+      # historical rows are backfilled and verified. Contest intake uses the
+      # explicit submitContest command; App updates contest_submissions only by
+      # consuming the owner's durable SubmissionCreated event.
       mode: ${APP_SUBMISSION_ROUTING_MODE:local}
-      # Remote startup is refused until the explicit data/grant cutover gate is set.
+      # Owner-read startup remains gated until data/grant cutover verification.
       cutover-complete: ${SUBMISSION_CUTOVER_COMPLETE:false}
   search:
     read:

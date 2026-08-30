@@ -345,8 +345,8 @@ class DefaultSubmissionWritePortIT {
     }
 
     @Test
-    @DisplayName("contest submissions are rejected by the local writer")
-    void contestSubmissionRejected() {
+    @DisplayName("generic owner intake rejects contest context")
+    void contestSubmissionsAreRejected() {
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
         dto.setLanguage("python");
@@ -358,8 +358,8 @@ class DefaultSubmissionWritePortIT {
     }
 
     @Test
-    @DisplayName("virtual-session-only context is rejected by the local writer")
-    void virtualSessionOnlySubmissionRejected() {
+    @DisplayName("generic owner intake rejects virtual-session-only context")
+    void virtualSessionOnlyContextIsRejected() {
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
         dto.setLanguage("python");
@@ -372,7 +372,7 @@ class DefaultSubmissionWritePortIT {
 
     @Test
     @DisplayName("explicit contest command writes the durable association outbox")
-    void contestCommandWritesCreatedOutbox() {
+    void explicitContestCommandWritesAssociationOutbox() {
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
         dto.setProblemId(101L);
         dto.setLanguage("java");

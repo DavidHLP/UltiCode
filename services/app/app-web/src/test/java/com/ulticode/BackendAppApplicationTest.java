@@ -190,10 +190,6 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
     @MockBean
-    private com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper judgeOutboxMapper;
-    @MockBean
-    private com.ulticode.modules.submission.result.SubmissionResultOutboxMapper submissionResultOutboxMapper;
-    @MockBean
     private com.ulticode.modules.submission.projection.SubmissionProjection submissionProjection;
     @MockBean
     private com.ulticode.modules.submission.stats.SubmissionPerformanceStats submissionPerformanceStats;

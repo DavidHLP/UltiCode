@@ -1,26 +1,18 @@
 package com.ulticode.modules.submission.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.app.api.service.ProblemFactsPort;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.mapper.SubmissionMapper.SubmissionWithProblem;
+import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionListItemVO;
 import com.ulticode.submission.api.dto.SubmissionQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.dto.UserBestStats;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.domain.submission.enums.SubmissionStatus;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper.SubmissionWithProblem;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
-import com.ulticode.app.api.service.JudgeEnqueuePort;
-import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.UserExistencePort;
-import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
-import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,15 +23,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,20 +37,10 @@ import static org.mockito.Mockito.*;
 class SubmissionServiceImplTest {
 
     @Mock private SubmissionMapper submissionMapper;
-    @Mock private UserExistencePort userExistencePort;
-    @Mock private ProblemFactsPort problemFacts;
-    @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
-    @Mock private Clock clock;
-    @Mock private JudgeEnqueuePort judgeEnqueuePort;
-    @Mock private ContestSubmissionPort contestSubmissionPort;
     @Mock private SubmissionProjection submissionProjection;
-    @Mock private JudgeOutboxMapper judgeOutboxMapper;
-    @Mock private ApplicationEventPublisher applicationEventPublisher;
-    @Mock private com.ulticode.modules.submission.result.SubmissionResultOutboxWriter resultOutboxWriter;
-    @Mock private UuidGenerator uuidGenerator;
+    @Mock private com.ulticode.submission.api.service.SubmissionIntakePort writePort;
 
     private SubmissionServiceImpl submissionService;
-    private com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort;
 
     private static final String USER_ID = "user-123";
     private static final Long PROBLEM_ID = 1L;
@@ -70,19 +49,8 @@ class SubmissionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        com.ulticode.modules.submission.config.FeatureFlagsProperties flags =
-                new com.ulticode.modules.submission.config.FeatureFlagsProperties();
-        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
-        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
         com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats performanceStats =
                 new com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats(submissionMapper);
-        writePort =
-                new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
-                        submissionMapper, problemFacts, userExistencePort, objectMapper,
-                        submissionProjection, performanceStats,
-                        judgeEnqueuePort, contestSubmissionPort,
-                        judgeOutboxMapper, flags, null, resultOutboxWriter,
-                        applicationEventPublisher, clock, uuidGenerator);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
         lenient().when(submissionProjection.toVO(any(com.ulticode.modules.submission.entity.Submission.class)))
@@ -160,9 +128,6 @@ class SubmissionServiceImplTest {
         return submission;
     }
 
-    private ProblemFactsPort.ProblemDisplayFacts createValidProblem() {
-        return new ProblemFactsPort.ProblemDisplayFacts(PROBLEM_ID, "Test Problem", "test-problem");
-    }
 
     private CreateSubmissionDTO createDTO() {
         CreateSubmissionDTO dto = new CreateSubmissionDTO();
@@ -177,76 +142,16 @@ class SubmissionServiceImplTest {
     class Submit {
 
         @Test
-        @DisplayName("valid request persists submission and enqueues judge job")
-        void submit_validRequest_persistsAndEnqueues() {
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
-            when(userExistencePort.existsById(USER_ID)).thenReturn(true);
-            when(submissionMapper.insert(any(Submission.class))).thenReturn(1);
+        @DisplayName("delegates intake to the Submission owner port")
+        void submitDelegatesToOwner() {
+            CreateSubmissionDTO request = createDTO();
+            SubmissionVO expected = new SubmissionVO();
+            when(writePort.submit(USER_ID, request)).thenReturn(expected);
 
-            SubmissionVO result = writePort.submit(USER_ID, createDTO());
+            assertThat(submissionService.submit(USER_ID, request)).isSameAs(expected);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getStatus()).isEqualTo("Pending");
-            assertThat(result.getLanguage()).isEqualTo(LANGUAGE);
-            assertThat(result.getUserId()).isEqualTo(USER_ID);
-            assertThat(result.getProblemId()).isEqualTo(PROBLEM_ID);
-            verify(submissionMapper).insert(any(Submission.class));
-        }
-
-        @Test
-        @DisplayName("null userId throws BAD_REQUEST")
-        void submit_nullUserId_throwsException() {
-            assertThatThrownBy(() -> writePort.submit(null, createDTO()))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(BaseErrorCode.BAD_REQUEST));
-        }
-
-        @Test
-        @DisplayName("empty code throws BAD_REQUEST")
-        void submit_emptyCode_throwsException() {
-            CreateSubmissionDTO dto = createDTO();
-            dto.setCode("");
-
-            assertThatThrownBy(() -> writePort.submit(USER_ID, dto))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(BaseErrorCode.BAD_REQUEST));
-        }
-
-        @Test
-        @DisplayName("unsupported language throws BAD_REQUEST")
-        void submit_unsupportedLanguage_throwsException() {
-            CreateSubmissionDTO dto = createDTO();
-            dto.setLanguage("assembly");
-
-            assertThatThrownBy(() -> writePort.submit(USER_ID, dto))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(BaseErrorCode.BAD_REQUEST));
-        }
-
-        @Test
-        @DisplayName("problem not found throws NOT_FOUND")
-        void submit_problemNotFound_throwsException() {
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(null);
-
-            assertThatThrownBy(() -> writePort.submit(USER_ID, createDTO()))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(BaseErrorCode.NOT_FOUND));
-        }
-
-        @Test
-        @DisplayName("user not found throws NOT_FOUND")
-        void submit_userNotFound_throwsException() {
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
-            when(userExistencePort.existsById(USER_ID)).thenReturn(false);
-
-            assertThatThrownBy(() -> writePort.submit(USER_ID, createDTO()))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(BaseErrorCode.NOT_FOUND));
+            verify(writePort).submit(USER_ID, request);
+            verifyNoInteractions(submissionMapper);
         }
     }
 
@@ -312,7 +217,6 @@ class SubmissionServiceImplTest {
             Submission submission = createValidSubmission();
 
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -335,7 +239,6 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
                     .thenReturn(peerBests);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -356,7 +259,6 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
                     .thenReturn(List.of(new UserBestStats("other-user", 90, 200.0)));
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -371,7 +273,6 @@ class SubmissionServiceImplTest {
             submission.setStatus("Wrong Answer");
 
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -391,105 +292,4 @@ class SubmissionServiceImplTest {
         }
     }
 
-    @Nested
-    @DisplayName("updateSubmissionResult()")
-    class UpdateSubmissionResultTest {
-
-        @Test
-        @DisplayName("accepted result stores percentiles and visible distribution bins")
-        void updateSubmissionResult_Accepted_updatesPerformanceDistribution() {
-            Submission submission = createValidSubmission();
-            submission.setStatus("Pending");
-
-            List<UserBestStats> peerBests = List.of(
-                    new UserBestStats("user-fast", 80, 192.0),
-                    new UserBestStats("user-slow", 120, 320.0));
-
-            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
-                    .thenReturn(peerBests);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
-
-            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, null);
-
-            verify(submissionMapper).updateById(argThat((Submission updated) -> {
-                assertThat(updated.getRuntimePercentile()).isEqualTo(33.3);
-                assertThat(updated.getMemoryPercentile()).isEqualTo(33.3);
-                assertThat(updated.getRuntimeDistBinsMs()).isInstanceOf(List.class);
-                assertThat((List<?>) updated.getRuntimeDistBinsMs()).isNotEmpty();
-                assertThat(updated.getMemoryDistBinsMb()).isInstanceOf(List.class);
-                assertThat((List<?>) updated.getMemoryDistBinsMb()).isNotEmpty();
-                return true;
-            }));
-        }
-
-        @Test
-        @DisplayName("accepted result uses one best score per user")
-        void updateSubmissionResult_Accepted_countsUsersNotRepeatedSubmissions() {
-            Submission submission = createValidSubmission();
-
-            List<UserBestStats> peerBests = List.of(
-                    new UserBestStats("other-user", 50, 128.0));
-
-            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
-                    .thenReturn(peerBests);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
-
-            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, null);
-
-            verify(submissionMapper).updateById(argThat((Submission updated) -> {
-                assertThat(updated.getRuntimePercentile()).isEqualTo(0.0);
-                assertThat(updated.getMemoryPercentile()).isEqualTo(0.0);
-                assertThat((List<?>) updated.getRuntimeDistBinsMs()).hasSize(2);
-                assertThat((List<?>) updated.getMemoryDistBinsMb()).hasSize(2);
-                return true;
-            }));
-        }
-
-        @Test
-        @DisplayName("wrong answer result updates without exception")
-        void updateSubmissionResult_WrongAnswer_noException() {
-            Submission submission = createValidSubmission();
-            submission.setStatus("Pending");
-            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
-
-            writePort.updateSubmissionResult("sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, null);
-
-            verify(submissionMapper).updateById(submission);
-        }
-
-        @Test
-        @DisplayName("accepted result does not perform post-verdict delivery in the transaction")
-        void updateSubmissionResult_Accepted_doesNotDispatchDelivery() {
-            Submission submission = createValidSubmission();
-            submission.setStatus("Pending");
-            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
-
-            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, null);
-
-            verify(submissionMapper).updateById(submission);
-        }
-
-        @Test
-        @DisplayName("post-verdict event delivery failure does not roll back the local result")
-        void updateSubmissionResult_eventPublicationFailure_doesNotRollbackResult() {
-            Submission submission = createValidSubmission();
-            submission.setStatus("Pending");
-            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            doThrow(new IllegalStateException("event bus unavailable"))
-                    .when(applicationEventPublisher).publishEvent(any());
-
-            assertDoesNotThrow(() -> writePort.updateSubmissionResult(
-                    "sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, null));
-
-            verify(submissionMapper).updateById(submission);
-            assertThat(submission.getStatus()).isEqualTo("Wrong Answer");
-            verify(resultOutboxWriter).recordVerdictResult(
-                    eq("sub-123"), eq(1L), eq(USER_ID), eq(String.valueOf(PROBLEM_ID)),
-                    eq("Wrong Answer"), eq(50), eq(128.0), isNull());
-        }
-    }
 }

@@ -27,24 +27,17 @@ import java.util.Optional;
 /**
  * Submission domain facade — controller-facing seam for the submission state
  * machine.
- *
- * <p><b>Deep-module boundary.</b> Every state mutation (Submission intake +
- * the two verdict writers) is owned by
- * {@link com.ulticode.submission.api.service.SubmissionIntakePort} and
- * {@link com.ulticode.submission.api.service.SubmissionVerdictWritePort},
- * implemented locally by {@code DefaultSubmissionWritePort}. This facade exposes two
- * surfaces to callers:
+ * <p><b>Deep-module boundary.</b> Submission intake is delegated through
+ * {@link com.ulticode.submission.api.service.SubmissionIntakePort} to the
+ * backend-submission owner. Verdict/fence writes do not exist in App. This
+ * facade exposes two surfaces to callers:
  * <ul>
- *   <li>the <em>write delegate</em> {@link #submit}, a thin facade so
- *       in-module controllers stay on the {@code Controller → Service → Port}
- *       path; cross-module write callers inject
- *       {@code SubmissionIntakePort} directly, which is the legitimate
- *       cross-module consumer-seam pattern;</li>
- *   <li>the <em>boundary reads</em> the caller crosses just after the state
- *       boundary: {@link #findById}, {@link #findByUserId},
- *       {@link #findByProblemId}, and {@link #findBest}.</li>
+ *   <li>the <em>write delegate</em> {@link #submit}, preserving the local
+ *       {@code Controller → Service → Port} flow without a local writer;</li>
+ *   <li>temporary App-local reads: {@link #findById}, {@link #findByUserId},
+ *       {@link #findByProblemId}, and {@link #findBest}, pending the bounded
+ *       owner-read cutover.</li>
  * </ul>
- *
  * <p>View-shape aggregation (calendar, learning progress, history) stays
  * behind {@link SubmissionProjection}, and the entity-to-VO projection used
  * by {@code findBest} delegates to {@code SubmissionProjection} so the

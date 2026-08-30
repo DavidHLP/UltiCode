@@ -1,9 +1,11 @@
 package com.ulticode.admin.security;
 
-import com.ulticode.admin.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.websecurity.csrf.CookieCsrfFilter;
+import com.ulticode.websecurity.jwt.JwtAuthenticationFilter;
+import com.ulticode.websecurity.jwt.JwtResourceServerConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,6 +28,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * backend-auth) and populate the SecurityContext needed by
  * {@code @PreAuthorize} method security.
  */
+@Import(JwtResourceServerConfiguration.class)
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

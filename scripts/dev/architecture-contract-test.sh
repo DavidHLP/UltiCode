@@ -230,7 +230,7 @@ contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/Prob
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ContestAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/SubmissionAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
-contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
+contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'
 contains docker/initdb/02-nacos-user.sh 'NACOS_DB_USER'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.bootstrap-admin.enabled:false'

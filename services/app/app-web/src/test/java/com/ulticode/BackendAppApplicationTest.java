@@ -8,7 +8,7 @@ import com.ulticode.app.api.service.FollowCountPort;
 import com.ulticode.app.api.service.SubscriptionReadPort;
 import com.ulticode.app.i18n.service.I18nService;
 import com.ulticode.app.security.AppTestSecurityConfig;
-import com.ulticode.app.security.jwt.ResourceServerJwtVerifier;
+import com.ulticode.websecurity.jwt.ResourceServerJwtVerifier;
 import com.ulticode.modules.bookmark.projection.BookmarkProjection;
 import com.ulticode.modules.bookmark.service.BookmarkService;
 import com.ulticode.modules.follow.inspector.FollowInspector;

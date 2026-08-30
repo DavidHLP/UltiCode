@@ -5,8 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.ulticode.app.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.app.security.jwt.ResourceServerJwtVerifier;
+import com.ulticode.websecurity.jwt.AccessTokenVerifier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,14 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = AppRouteAuthorizationContractTest.ProbeController.class)
 @ContextConfiguration(classes = {AppRouteAuthorizationContractTest.ProbeController.class,
-        AppSecurityConfig.class, JwtAuthenticationFilter.class})
+        AppSecurityConfig.class})
 class AppRouteAuthorizationContractTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private ResourceServerJwtVerifier jwtVerifier;
+    private AccessTokenVerifier accessTokenVerifier;
 
     @ParameterizedTest
     @ValueSource(strings = {"/problems/1", "/contest/1", "/forum/posts", "/users/user-1/profile"})

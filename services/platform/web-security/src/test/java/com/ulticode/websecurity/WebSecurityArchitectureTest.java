@@ -22,11 +22,4 @@ class WebSecurityArchitectureTest {
                 .check(moduleClasses);
     }
 
-    @Test
-    void moduleDoesNotOwnSpringSecurityConfiguration() {
-        noClasses()
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "org.springframework.security..")
-                .check(moduleClasses);
-    }
 }

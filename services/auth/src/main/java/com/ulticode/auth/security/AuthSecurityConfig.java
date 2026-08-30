@@ -1,7 +1,7 @@
 package com.ulticode.auth.security;
 
-import com.ulticode.auth.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.websecurity.csrf.CookieCsrfFilter;
+import com.ulticode.websecurity.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -77,7 +77,7 @@ auth:
         # backend-search worker consumer exists (SEARCH-002). Enable in the
         # deployed runtime once the worker is live.
         enabled: ${AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED:false}
-  # Redisson Configuration (distributed locks, OAuth state, CSRF nonce)
+  # Redisson Configuration (distributed locks, OAuth state)
   redis:
     redisson:
       config: |
@@ -93,6 +93,8 @@ auth:
 
 # JWT Configuration
 jwt:
+  resource-server:
+    enabled: false
   secret: ${JWT_SECRET:}
   # Issuer claim (iss) stamped onto every access and refresh token. Must match
   # jwt.expected-issuer in backend-app and backend-admin application.yml.

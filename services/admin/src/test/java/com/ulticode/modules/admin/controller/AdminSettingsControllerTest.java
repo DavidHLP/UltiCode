@@ -1,10 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.admin.security.AdminSecurityConfig;
-import com.ulticode.admin.security.jwt.JwksPublicKeyProvider;
-import com.ulticode.admin.security.jwt.ResourceServerJwtVerifier;
-import com.ulticode.admin.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.admin.error.AdminWebExceptionHandler;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
@@ -22,8 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.ContextConfiguration;
@@ -50,12 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(AdminSettingsController.class)
 @ContextConfiguration(classes = {AdminSettingsController.class, AdminWebExceptionHandler.class})
-@Import({
-        AdminSecurityConfig.class,
-        JwtAuthenticationFilter.class,
-        JwksPublicKeyProvider.class,
-        ResourceServerJwtVerifier.class
-})
+@Import(AdminSettingsControllerTest.MethodSecurityTestConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminSettingsController")
 @WithMockUser(roles = "ADMIN")
@@ -343,5 +336,9 @@ class AdminSettingsControllerTest {
     void nonAdminRoleIsForbidden() throws Exception {
         mockMvc.perform(get("/admin/settings"))
                 .andExpect(status().isForbidden());
+    }
+    @Configuration(proxyBeanMethods = false)
+    @EnableMethodSecurity
+    static class MethodSecurityTestConfig {
     }
 }

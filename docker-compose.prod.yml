@@ -178,7 +178,9 @@ services:
       - REDIS_USERNAME=ulticode-admin
       - REDIS_PASSWORD=${ADMIN_REDIS_PASSWORD:?ADMIN_REDIS_PASSWORD is required}
       - JWT_RSA_ENABLED=true
-      - JWT_JWKS_URI=http://backend-auth:9101/auth/jwks
+      - JWT_JWKS_URI=https://backend-auth:9101/auth/jwks
+      - JWT_ALLOWED_ALGORITHMS=RS256
+      - JWT_JWKS_ALLOWED_HOSTS=backend-auth
       - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -242,7 +244,9 @@ services:
       - REDIS_USERNAME=ulticode-app
       - REDIS_PASSWORD=${APP_REDIS_PASSWORD:?APP_REDIS_PASSWORD is required}
       - JWT_RSA_ENABLED=true
-      - JWT_JWKS_URI=http://backend-auth:9101/auth/jwks
+      - JWT_JWKS_URI=https://backend-auth:9101/auth/jwks
+      - JWT_ALLOWED_ALGORITHMS=RS256
+      - JWT_JWKS_ALLOWED_HOSTS=backend-auth
       - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
@@ -443,7 +447,9 @@ services:
       - REDIS_USERNAME=ulticode-notification
       - REDIS_PASSWORD=${NOTIFICATION_REDIS_PASSWORD:?NOTIFICATION_REDIS_PASSWORD is required}
       - JWT_RSA_ENABLED=true
-      - JWT_JWKS_URI=http://backend-auth:9101/auth/jwks
+      - JWT_JWKS_URI=https://backend-auth:9101/auth/jwks
+      - JWT_ALLOWED_ALGORITHMS=RS256
+      - JWT_JWKS_ALLOWED_HOSTS=backend-auth
       - INTERNAL_DELEGATION_SECRET=${INTERNAL_DELEGATION_SECRET:?INTERNAL_DELEGATION_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848

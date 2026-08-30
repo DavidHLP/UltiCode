@@ -48,11 +48,8 @@ import static org.mockito.Mockito.when;
  * ports/providers — cross-owner SQL has been removed from admin.
  *
  * <p>Bootstrap is a hand-rolled MyBatis-Plus {@link SqlSessionFactory}
- * over the container datasource instead of a full Spring context: the
- * admin application component-scan collides with backend-app's
- * {@code ResourceServerJwtVerifier} (pre-existing P7 conflict,
- * tracked as known Admin DB IT failure), which is unrelated to this
- * family.
+ * over the container datasource so this test isolates the admin-owned
+ * reconciliation mappers from unrelated service-shell infrastructure.
  */
 @Testcontainers
 @DisplayName("P7-RECON-AGGREGATOR-001: OwnerReconciler admin-local IT")

@@ -1,9 +1,11 @@
 package com.ulticode.notification.security;
 
-import com.ulticode.notification.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.websecurity.csrf.CookieCsrfFilter;
+import com.ulticode.websecurity.jwt.JwtAuthenticationFilter;
+import com.ulticode.websecurity.jwt.JwtResourceServerConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /** Cookie/Bearer JWT security for notification HTTP APIs. */
+@Import(JwtResourceServerConfiguration.class)
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

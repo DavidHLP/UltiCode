@@ -1,8 +1,7 @@
 package com.ulticode.auth.security;
 
-import com.ulticode.auth.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.auth.security.jwt.JwtProperties;
-import com.ulticode.auth.security.jwt.JwtTokenProvider;
+import com.ulticode.auth.security.jwt.AuthAccessTokenVerifier;
+import com.ulticode.auth.security.jwt.AuthJwtFilterConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -16,16 +15,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AuthSecurityConfigContractTest.SecurityProbeController.class)
-@Import({AuthSecurityConfig.class, AuthAuthenticationEntryPoint.class, JwtAuthenticationFilter.class})
+@Import({AuthSecurityConfig.class, AuthAuthenticationEntryPoint.class, AuthJwtFilterConfiguration.class})
 class AuthSecurityConfigContractTest {
 
     @Autowired
     private MockMvc mockMvc;
     @MockBean
-    private JwtTokenProvider jwtTokenProvider;
-
-    @MockBean
-    private JwtProperties jwtProperties;
+    private AuthAccessTokenVerifier accessTokenVerifier;
 
 
     @Test

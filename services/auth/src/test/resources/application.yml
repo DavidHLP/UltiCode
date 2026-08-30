@@ -35,6 +35,8 @@ management:
 
 # JWT test secret must be >= 256 bits (32 bytes) for HS256.
 jwt:
+  resource-server:
+    enabled: false
   secret: "test-test-test-test-test-test-test-test"
   access-token:
     expiration: 3600000

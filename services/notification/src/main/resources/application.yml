@@ -67,12 +67,21 @@ notification:
       channel: ${NOTIFICATION_WS_BROADCAST_CHANNEL:ulticode:ws:broadcast}
 
 jwt:
+  resource-server:
+    enabled: true
   secret: ${JWT_SECRET:}
   expected-issuer: ${JWT_EXPECTED_ISSUER:ulticode-auth}
   expected-audience: ${JWT_EXPECTED_AUDIENCE:ulticode-api}
+  allowed-algorithms: ${JWT_ALLOWED_ALGORITHMS:HS256,RS256}
+  clock-skew-seconds: ${JWT_CLOCK_SKEW_SECONDS:30}
   rsa:
     enabled: ${JWT_RSA_ENABLED:false}
   jwks-uri: ${JWT_JWKS_URI:http://localhost:9101/auth/jwks}
+  jwks-json: ${JWT_JWKS_JSON:}
+  jwks:
+    cache-ttl-seconds: ${JWT_JWKS_CACHE_TTL_SECONDS:900}
+    retry-backoff-seconds: ${JWT_JWKS_RETRY_BACKOFF_SECONDS:30}
+    allowed-hosts: ${JWT_JWKS_ALLOWED_HOSTS:localhost,127.0.0.1,::1,backend-auth}
 
 security:
   internal-delegation:

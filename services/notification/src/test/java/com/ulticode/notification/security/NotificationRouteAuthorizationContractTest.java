@@ -4,8 +4,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.ulticode.notification.security.jwt.JwtAuthenticationFilter;
-import com.ulticode.notification.security.jwt.ResourceServerJwtVerifier;
+import com.ulticode.websecurity.jwt.AccessTokenVerifier;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -17,14 +16,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = NotificationRouteAuthorizationContractTest.ProbeController.class)
 @ContextConfiguration(classes = {NotificationRouteAuthorizationContractTest.ProbeController.class,
-        NotificationSecurityConfig.class, JwtAuthenticationFilter.class})
+        NotificationSecurityConfig.class})
 class NotificationRouteAuthorizationContractTest {
 
     @Autowired
     private MockMvc mockMvc;
-
     @MockBean
-    private ResourceServerJwtVerifier jwtVerifier;
+    private AccessTokenVerifier accessTokenVerifier;
 
     @Test
     void anonymousCanReachExplicitHealthRoute() throws Exception {

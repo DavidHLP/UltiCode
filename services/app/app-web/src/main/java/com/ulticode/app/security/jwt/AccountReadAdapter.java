@@ -17,8 +17,8 @@ import java.util.Optional;
  * App-owned {@link UserDirectoryProjection} Q-read to support connection-time
  * ban checks.
  *
- * <p>Closes the bean gap created by P7-RELOCATE-WEBSOCKET-001 alongside
- * {@link JwtValidationAdapter}.
+ * <p>Closes the account-read bean gap for the WebSocket security module; JWT
+ * validation is provided by the shared web-security adapter.
  */
 @Slf4j
 @Component

@@ -1190,7 +1190,8 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；`backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`、`backend-judge`、`backend-search` 使用不同 service name；业务配置继续 env/application，避免同时改变 discovery 和 config source；
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
 - Gateway 是唯一外部 API/WS 入口，Dubbo 端口只在 internal network；
-- Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential；
+- Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential。
+- Redis ACL 采用 `default off`、按 Owner 的精确命令与 key/channel pattern；唯一共享 key 是 `stream:integration` 事件流。业务用户禁止 `FLUSHDB`、`FLUSHALL`、`CONFIG`、`SHUTDOWN`、`MODULE`、`DEBUG`，健康用户 `ulticode-health` 仅允许 `PING`，运维测试用户与健康身份分离。
 - Owner 服务（auth/admin/app/notification）同时暴露 `/health`（进程 liveness）与 `/health/ready`（readiness：校验 owner 数据库与 Redis，失败返回 503）；
 - 生产探针统一使用 readiness 端点（compose `healthcheck`、CD `host-health`、DevStack manifest），Submission 沿用容器内 actuator 探针，Judge/Search 由 CD `inspect` 对应 Compose heartbeat 状态；
 - 无 HTTP 面的 Worker（judge/search）由心跳组件刷新 `/tmp` 下的就绪标记文件，compose healthcheck 校验标记新鲜度（search 同时校验 Redis + MeiliSearch，judge 保留 docker socket + 沙箱镜像能力检查）。

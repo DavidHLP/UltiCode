@@ -39,8 +39,8 @@ services:
     # docker/redis/generate-users-acl.sh.
     command: ["redis-server", "--aclfile", "/usr/local/etc/redis/users.acl"]
     environment:
-      REDIS_HEALTH_USER: ulticode-ops
-      REDIS_HEALTH_PASSWORD: ${OPS_REDIS_PASSWORD:?OPS_REDIS_PASSWORD is required}
+      REDIS_HEALTH_USER: ulticode-health
+      REDIS_HEALTH_PASSWORD: ${HEALTH_REDIS_PASSWORD:?HEALTH_REDIS_PASSWORD is required}
     volumes:
       - ./docker/redis/users.acl:/usr/local/etc/redis/users.acl:ro
       - redis_data:/data

@@ -498,7 +498,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/Redis"
       dependencies: [CTX-001]
-      status: TODO
+      status: IN_PROGRESS
       affected_modules: ["docker/redis", "scripts/dev", "services Redis clients"]
       acceptance_criteria:
         - "Business principals use command allowlists and key/channel patterns"
@@ -506,8 +506,8 @@ architecture_remediation_20260830:
       validation_commands:
         - "Disposable Redis ACL integration tests"
         - "ACL generator contract tests"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-006-red.result"
       blocked_by: []
       notes: "P2 handles runtime materialization and rotation"
     - id: P0-SEC-007

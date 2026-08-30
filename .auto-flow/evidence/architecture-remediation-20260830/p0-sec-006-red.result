@@ -1,0 +1,7 @@
+task: P0-SEC-006
+status: RED
+check:
+  command: "rtk ./scripts/test/redis-acl-contract.sh"
+  exit: 1
+  failure: "ulticode-auth uses command categories"
+  interpretation: "The rendered ACL still grants broad command categories and unrestricted channel/key access; health also shares the operational principal."

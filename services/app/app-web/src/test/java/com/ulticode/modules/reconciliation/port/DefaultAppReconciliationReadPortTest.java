@@ -36,7 +36,7 @@ class DefaultAppReconciliationReadPortTest {
         port = new DefaultAppReconciliationReadPort(mapper);
         port.setAuthQueryService(authQueryService);
         lenient().when(mapper.existingChildTables()).thenReturn(List.of(
-                "solutions", "forum_posts", "notifications",
+                "solutions", "forum_posts",
                 "user_profiles", "contest_participants"));
     }
 

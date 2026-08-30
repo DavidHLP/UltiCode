@@ -35,6 +35,7 @@ for file in \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionVerdictWritePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReconciliationReadPort.java \
+  services/api/notification-api/src/main/java/com/ulticode/notification/api/service/NotificationReconciliationReadPort.java \
   services/api/app-api/src/main/java/com/ulticode/app/api/service/CodeExecutionPort.java \
   services/api/app-api/src/main/java/com/ulticode/app/api/service/ProblemTitleLookupPort.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
@@ -52,7 +53,10 @@ for file in \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
   services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
+  services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java \
+  services/notification/src/main/java/com/ulticode/modules/notification/mapper/NotificationReconciliationReadMapper.java \
   services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java \
+  services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboNotificationReconciliationReadAdapter.java \
   services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java; do
   [[ -f "$ROOT_DIR/$file" ]] || fail "missing architecture source: $file"
 done
@@ -295,10 +299,16 @@ contains services/submission/src/main/java/com/ulticode/submission/idempotency/m
 contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java 'group = "backend-submission"'
 not_contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java 'app.features.submission-dubbo-cutover'
 contains services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java 'group = "backend-submission"'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboNotificationReconciliationReadAdapter.java 'group = NotificationServiceContract.DUBBO_GROUP'
+contains services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java 'NotificationServiceContract.DUBBO_GROUP'
+contains services/notification/src/main/java/com/ulticode/modules/notification/mapper/NotificationReconciliationReadMapper.java 'FROM notifications'
 contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'runIncrementalReconciliation'
 contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'tryAcquireLease'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'notificationOrphans'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'submissions'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'submissionUserCounts'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'notifications'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'notificationUserCounts'
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'

@@ -8,6 +8,8 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
+import com.ulticode.notification.api.dto.NotificationUserReferenceCountDTO;
+import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,6 +51,7 @@ class OwnerReconcilerTest {
     @Mock private UuidGenerator uuidGenerator;
     @Mock private AppReconciliationReadPort appPort;
     @Mock private SubmissionReconciliationReadPort submissionPort;
+    @Mock private NotificationReconciliationReadPort notificationPort;
     @Mock private AuditOrphanMapper auditMapper;
     @Mock private ReconciliationQueryService authService;
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
@@ -62,8 +65,11 @@ class OwnerReconcilerTest {
         when(runMapper.releaseLease(any())).thenReturn(1);
         when(submissionPort.findUserReferenceCounts("", null,
                 SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
         reconciler = new OwnerReconciler(
-                runMapper, uuidGenerator, appPort, submissionPort, auditMapper, meterRegistry);
+                runMapper, uuidGenerator, appPort, submissionPort, notificationPort,
+                auditMapper, meterRegistry);
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
     }
 
@@ -96,6 +102,31 @@ class OwnerReconcilerTest {
         assertThat(run.getDetail()).contains("\"child\":\"submissions\"");
         verify(submissionPort).findUserReferenceCounts(
                 "", since, SubmissionReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("incremental runs use the Notification owner cursor and watermark")
+    void incrementalRunsUseNotificationOwnerFacts() {
+        LocalDateTime since = LocalDateTime.of(2026, 8, 29, 0, 0);
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("", since,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("", since,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE))
+                .thenReturn(List.of(new NotificationUserReferenceCountDTO("ghost", 3L)));
+        when(authService.existingUserIds(Set.of("ghost")))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runIncrementalReconciliation(since);
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        assertThat(run.getDetail()).contains("\"child\":\"notifications\"", "\"orphans\":3");
+        verify(notificationPort).findUserReferenceCounts(
+                "", since, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
     }
 
     @Test

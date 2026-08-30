@@ -16,6 +16,7 @@ class NotificationProviderContractTest {
     void notificationProvidersUseTheTargetOwnerGroup() {
         assertTargetGroup(NotificationAdminReadProvider.class);
         assertTargetGroup(NotificationAdministrationProvider.class);
+        assertTargetGroup(NotificationReconciliationReadProvider.class);
     }
 
     private static void assertTargetGroup(Class<?> providerType) {

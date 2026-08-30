@@ -7,6 +7,7 @@ import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
+import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.zaxxer.hikari.HikariConfig;
@@ -155,10 +156,13 @@ class OwnerReconcilerIT {
         SubmissionReconciliationReadPort submissionPort = mock(SubmissionReconciliationReadPort.class);
         when(submissionPort.findUserReferenceCounts("", null,
                 SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        NotificationReconciliationReadPort notificationPort = mock(NotificationReconciliationReadPort.class);
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
 
         OwnerReconciler reconciler = new OwnerReconciler(
                 runMapper, new FixedUuidGenerator("run-it-1"), appPort,
-                submissionPort, auditOrphanMapper, null);
+                submissionPort, notificationPort, auditOrphanMapper, null);
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }

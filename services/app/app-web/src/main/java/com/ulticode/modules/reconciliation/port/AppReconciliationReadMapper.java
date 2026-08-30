@@ -14,7 +14,7 @@ public interface AppReconciliationReadMapper {
             FROM information_schema.tables
             WHERE table_schema = DATABASE()
               AND table_name IN (
-                    'solutions', 'forum_posts', 'notifications',
+                    'solutions', 'forum_posts',
                     'user_profiles', 'contest_participants', 'user_achievements',
                     'user_follows'
               )
@@ -38,15 +38,6 @@ public interface AppReconciliationReadMapper {
             GROUP BY user_id ORDER BY user_id LIMIT #{limit}
             """)
     List<UserReferenceCount> forumPostUserCounts(
-            @Param("afterId") String afterId, @Param("limit") int limit);
-
-    @Select("""
-            SELECT user_id AS account_id, COUNT(*) AS row_count
-            FROM notifications
-            WHERE user_id IS NOT NULL AND user_id > #{afterId}
-            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
-            """)
-    List<UserReferenceCount> notificationUserCounts(
             @Param("afterId") String afterId, @Param("limit") int limit);
 
     @Select("""

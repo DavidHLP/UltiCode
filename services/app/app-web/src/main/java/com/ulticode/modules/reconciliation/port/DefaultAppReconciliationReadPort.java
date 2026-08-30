@@ -50,8 +50,6 @@ public class DefaultAppReconciliationReadPort implements AppReconciliationReadPo
                 appReconciliationReadMapper::solutionUserCounts);
         long forumPosts = countOrphans(tables, "forum_posts",
                 appReconciliationReadMapper::forumPostUserCounts);
-        long notifications = countOrphans(tables, "notifications",
-                appReconciliationReadMapper::notificationUserCounts);
         long profiles = countOrphans(tables, "user_profiles",
                 appReconciliationReadMapper::userProfileAccountCounts);
         long participants = countOrphans(tables, "contest_participants",
@@ -59,7 +57,7 @@ public class DefaultAppReconciliationReadPort implements AppReconciliationReadPo
         // The legacy submissions field remains zero for wire compatibility;
         // Submission owner facts are now read through its own contract.
         return new ReconciliationOrphanCounts(
-                0L, solutions, forumPosts, notifications, profiles,
+                0L, solutions, forumPosts, 0L, profiles,
                 participants, 0L, 0L, 0L);
     }
 

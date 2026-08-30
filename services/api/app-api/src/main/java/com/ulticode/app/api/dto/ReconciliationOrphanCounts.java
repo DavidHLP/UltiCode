@@ -3,12 +3,13 @@ package com.ulticode.app.api.dto;
 import java.io.Serializable;
 
 /**
- * Aggregated orphan-count snapshot for the eight App child references
- * that point at the Auth-owned {@code users} table.
+ * Aggregated App-side orphan-count snapshot for child references that point
+ * at the Auth-owned {@code users} table.
  *
- * <p>The {@code submissions} component is retained as a wire-compatible
- * zero placeholder. Submission-owned orphan facts are supplied by
- * {@code backend-submission}; App no longer queries the submissions table.
+ * <p>The {@code submissions} and {@code notifications} components are retained
+ * as wire-compatible zero placeholders. Their owner facts are supplied by
+ * {@code backend-submission} and {@code backend-notification}; App no longer
+ * queries either owner table.
  *
  * <p>Orphan semantics match the legacy scanner: a child row is an
  * orphan only if the referenced parent id does not exist <em>at

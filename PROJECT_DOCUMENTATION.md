@@ -546,7 +546,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 | Owned Domain | Notification、NotificationPreference、NotificationDeliveryLedger、Email |
 | Owned Tables | `notifications`、`notification_preferences`、`notification_delivery_ledger`、`notification_command_receipt`、Notification `consumer_inbox`、email 相关表 |
 | Exposed HTTP API | `/notifications/**`；通知偏好、历史、未读计数和管理端通知查询/操作 |
-| Dubbo Provider | `NotificationAdminReadPort`、`NotificationAdministrationService`；provider group 为 `backend-notification` |
+| Dubbo Provider | `NotificationAdminReadPort`、`NotificationAdministrationService`、`NotificationReconciliationReadPort`；provider group 为 `backend-notification` |
 | Dubbo Consumer | Auth 的 `NotificationRecipientQueryService`、`IdentityQueryService`；`UserNotificationReadPort` 仅作为收件人 DTO 兼容 seam |
 | Events | 消费 App 发布的 `SubmissionJudged` 与 `NotificationIntentCreated`；按投递结果发布可选 delivery outcome event |
 | External Dependencies | Notification MySQL、Redis Streams/Pub/Sub、SMTP、Auth recipient/identity contracts、App WebSocket relay、Nacos、Prometheus/OTel |
@@ -564,6 +564,13 @@ Notification 不承载 WebSocket endpoint。它将允许的 payload 发布到 Re
 目标空表核对。只有在停止旧 writer、核对通过且显式确认后才执行 cutover；失败时先停
 Notification、恢复 App grant/路由，再执行 rollback 子命令回写新增行。整个过程不启用
 第二个通知 writer。
+
+Notification reconciliation facts 由 owner 内的 `NotificationReconciliationReadMapper` 按
+`notifications.user_id` 分组并以 account-id 游标分页，单页最多 500 行；`createdSince == null`
+表示全量，非空值表示包含式增量窗口。Admin 的 `OwnerReconciler` 通过该 provider 做孤儿计数，
+而 App 的 `ReconciliationOrphanCounts.notifications` 只保留 wire-compatible 零占位，不再读取
+Notification-owned 表。Notification 的 intent 消费仍经 `consumer_inbox`、delivery ledger 与
+既有 retry/lease 机制，App 只发布 intent outbox 并保留 WebSocket relay。
 
 ##### 4.5 `backend-judge`
 

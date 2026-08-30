@@ -42,6 +42,12 @@ class NotificationExtractionBoundaryTest {
                 .exists();
         assertThat(source.resolve("com/ulticode/modules/notification/intent"))
                 .exists();
+        assertThat(Files.readString(source.resolve(
+                "com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java")))
+                .doesNotContain("FROM notifications", "notificationUserCounts");
+        assertThat(Files.readString(source.resolve(
+                "com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java")))
+                .doesNotContain("notificationUserCounts");
 
         String bridge = Files.readString(source.resolve(
                 "com/ulticode/modules/event/inbox/SubmissionJudgedInboxBridge.java"));

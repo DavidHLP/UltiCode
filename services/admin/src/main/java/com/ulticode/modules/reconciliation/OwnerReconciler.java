@@ -11,6 +11,8 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
+import com.ulticode.notification.api.dto.NotificationUserReferenceCountDTO;
+import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +41,11 @@ import java.util.stream.Collectors;
  *       user count, physical-existence id check, 4 Auth-internal orphan
  *       counts;</li>
  *   <li>App: {@link AppReconciliationReadPort} (local port) —
- *       user_profiles count and 8 App child orphan counts;</li>
+ *       user_profiles count and 7 App child orphan counts;</li>
  *   <li>Submission: {@link SubmissionReconciliationReadPort} (Dubbo) —
  *       bounded full/incremental submission user-reference facts;</li>
+ *   <li>Notification: {@link NotificationReconciliationReadPort} (Dubbo) —
+ *       bounded full/incremental notification user-reference facts;</li>
  *   <li>Admin: local {@code audit_logs.performer_id} orphan check and
  *       the {@code reconciliation_runs} persistence. A MySQL advisory lock
  *       prevents duplicate multi-replica runs.</li>
@@ -58,11 +62,14 @@ public class OwnerReconciler {
 
     private static final String RECONCILIATION_LOCK = "ulticode:admin:reconciliation";
     private static final int RECONCILIATION_PAGE_SIZE = SubmissionReconciliationReadPort.MAX_PAGE_SIZE;
+    private static final int NOTIFICATION_RECONCILIATION_PAGE_SIZE =
+            NotificationReconciliationReadPort.MAX_PAGE_SIZE;
 
     private final ReconciliationRunMapper runMapper;
     private final UuidGenerator uuidGenerator;
     private final AppReconciliationReadPort appReconciliationReadPort;
     private final SubmissionReconciliationReadPort submissionReconciliationReadPort;
+    private final NotificationReconciliationReadPort notificationReconciliationReadPort;
     private final AuditOrphanMapper auditOrphanMapper;
     private final MeterRegistry meterRegistry;
 
@@ -149,6 +156,7 @@ public class OwnerReconciler {
 
                 orphanResults.addAll(authOrphans());
                 orphanResults.add(submissionOrphans(createdSince));
+                orphanResults.add(notificationOrphans(createdSince));
                 orphanResults.addAll(appOrphans());
                 orphanResults.add(auditLogsOrphans());
                 for (OrphanDetectionResult result : orphanResults) {
@@ -322,13 +330,61 @@ public class OwnerReconciler {
         return orphan("submissions", "user_id", "Submission", "users", "Auth", missing);
     }
 
-    /** Eight App child orphan checks; Submission rows are owner facts above. */
+    /** Bounded Notification-owned orphan scan for full or incremental runs. */
+    private OrphanDetectionResult notificationOrphans(LocalDateTime createdSince) {
+        if (notificationReconciliationReadPort == null) {
+            throw notificationUnavailable();
+        }
+        String afterAccountId = "";
+        long missing = 0L;
+        while (true) {
+            List<NotificationUserReferenceCountDTO> references =
+                    notificationReconciliationReadPort.findUserReferenceCounts(
+                            afterAccountId, createdSince, NOTIFICATION_RECONCILIATION_PAGE_SIZE);
+            if (references == null) {
+                throw notificationUnavailable();
+            }
+            if (references.isEmpty()) {
+                break;
+            }
+            if (references.size() > NOTIFICATION_RECONCILIATION_PAGE_SIZE) {
+                throw notificationUnavailable();
+            }
+            Set<String> candidates = new HashSet<>();
+            String previousAccountId = afterAccountId;
+            for (NotificationUserReferenceCountDTO reference : references) {
+                if (reference == null || reference.accountId() == null
+                        || reference.accountId().isBlank() || reference.rowCount() < 0
+                        || !candidates.add(reference.accountId())
+                        || reference.accountId().compareTo(previousAccountId) <= 0) {
+                    throw notificationUnavailable();
+                }
+                previousAccountId = reference.accountId();
+            }
+            Set<String> existing = existingUserIds(candidates);
+            for (NotificationUserReferenceCountDTO reference : references) {
+                if (!existing.contains(reference.accountId())) {
+                    missing += reference.rowCount();
+                }
+            }
+            String nextAccountId = references.get(references.size() - 1).accountId();
+            if (nextAccountId.compareTo(afterAccountId) <= 0) {
+                throw notificationUnavailable();
+            }
+            afterAccountId = nextAccountId;
+            if (references.size() < NOTIFICATION_RECONCILIATION_PAGE_SIZE) {
+                break;
+            }
+        }
+        return orphan("notifications", "user_id", "Notification", "users", "Auth", missing);
+    }
+
+    /** Seven App child orphan checks; Submission and Notification rows are owner facts above. */
     private List<OrphanDetectionResult> appOrphans() {
         ReconciliationOrphanCounts counts = appReconciliationReadPort.countOrphans();
         return List.of(
                 orphan("solutions", "user_id", "App", "users", "Auth", counts.solutions()),
                 orphan("forum_posts", "user_id", "App", "users", "Auth", counts.forumPosts()),
-                orphan("notifications", "user_id", "App", "users", "Auth", counts.notifications()),
                 orphan("user_profiles", "account_id", "App", "users", "Auth", counts.userProfiles()),
                 orphan("contest_participants", "user_id", "App", "users", "Auth", counts.contestParticipants()),
                 orphan("user_achievements", "user_id", "App", "users", "Auth", counts.userAchievements()),
@@ -388,6 +444,10 @@ public class OwnerReconciler {
     private BusinessException submissionUnavailable() {
         return new BusinessException(
                 BaseErrorCode.UNKNOWN_ERROR, "Submission reconciliation owner unavailable");
+    }
+    private BusinessException notificationUnavailable() {
+        return new BusinessException(
+                BaseErrorCode.UNKNOWN_ERROR, "Notification reconciliation owner unavailable");
     }
     private static OrphanDetectionResult orphan(String childTable, String childColumn,
                                                 String childOwner, String parentTable,

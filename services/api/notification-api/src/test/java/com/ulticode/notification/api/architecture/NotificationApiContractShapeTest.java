@@ -10,9 +10,11 @@ import com.ulticode.notification.api.dto.BadgeEarnedPayload;
 import com.ulticode.notification.api.dto.NotificationAdminDTO;
 import com.ulticode.notification.api.dto.NotificationAdminViewDTO;
 import com.ulticode.notification.api.dto.NotificationPayload;
+import com.ulticode.notification.api.dto.NotificationUserReferenceCountDTO;
 import com.ulticode.notification.api.event.NotificationIntentEventContract;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
 import com.ulticode.notification.api.service.NotificationAdministrationService;
+import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
 import com.ulticode.notification.api.service.NotificationServiceContract;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +28,8 @@ class NotificationApiContractShapeTest {
 
     private static final List<Class<?>> CONTRACTS = List.of(
             NotificationAdminReadPort.class,
-            NotificationAdministrationService.class);
+            NotificationAdministrationService.class,
+            NotificationReconciliationReadPort.class);
 
     @Test
     void notificationContractsAreInTheProviderOwnedNamespace() {
@@ -41,6 +44,7 @@ class NotificationApiContractShapeTest {
                 NotificationAdminDTO.class,
                 NotificationAdminViewDTO.class,
                 NotificationPayload.class,
+                NotificationUserReferenceCountDTO.class,
                 NotificationIntentEventContract.class))
                 .allSatisfy(type -> assertThat(type.getPackageName())
                         .startsWith("com.ulticode.notification.api"));

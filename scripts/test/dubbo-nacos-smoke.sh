@@ -43,14 +43,16 @@ export NACOS_HOST NACOS_PORT NACOS_NAMESPACE NACOS_GROUP NACOS_USERNAME NACOS_PA
 export NACOS_AUTH_TOKEN NACOS_AUTH_IDENTITY_KEY NACOS_AUTH_IDENTITY_VALUE
 export NACOS_SERVER_ADDR NACOS_GRPC_PORT
 export JWT_SECRET
-# Nacos Server runs with NACOS_AUTH_ENABLE=true; the dev admin account
-# is created by scripts/security/bootstrap-nacos-user.sh into
-# nacos_config.users. The Dubbo Nacos registry client must carry those
-# same credentials or the register call is rejected (HTTP 403) and the
-# instance never lands. application.yml reads DUBBO_REGISTRY_USERNAME /
-# DUBBO_REGISTRY_PASSWORD; alias them to the .env values here.
-export DUBBO_REGISTRY_USERNAME="$NACOS_USERNAME"
-export DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD"
+DUBBO_NAMESPACE="${DUBBO_NAMESPACE:-dev}"
+DUBBO_APPLICATION_NAME="${DUBBO_APPLICATION_NAME:-backend-auth}"
+export DUBBO_NAMESPACE DUBBO_APPLICATION_NAME
+export AUTH_NACOS_USERNAME AUTH_NACOS_PASSWORD ADMIN_NACOS_USERNAME ADMIN_NACOS_PASSWORD
+export APP_NACOS_USERNAME APP_NACOS_PASSWORD SUBMISSION_NACOS_USERNAME SUBMISSION_NACOS_PASSWORD
+export NOTIFICATION_NACOS_USERNAME NOTIFICATION_NACOS_PASSWORD JUDGE_NACOS_USERNAME JUDGE_NACOS_PASSWORD
+# The smoke exercises backend-auth with its own least-privilege registry user;
+# bootstrap-nacos-user.sh provisions the same six service users before startup.
+export DUBBO_REGISTRY_USERNAME="$AUTH_NACOS_USERNAME"
+export DUBBO_REGISTRY_PASSWORD="$AUTH_NACOS_PASSWORD"
 
 SERVICE_NAME="${DUBBO_APPLICATION_NAME:-backend-auth}"
 NACOS_BASE="${NACOS_BASE:-http://${NACOS_HOST:-127.0.0.1}:${NACOS_PORT:-28848}}"

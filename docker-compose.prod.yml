@@ -13,7 +13,12 @@
 #   INTERNAL_DELEGATION_PRIVATE_KEY, BOOTSTRAP_DELEGATION_PRIVATE_KEY (Admin-only signing keys)
 #   INTERNAL_DELEGATION_PUBLIC_KEY, BOOTSTRAP_DELEGATION_PUBLIC_KEY (verifier keys)
 #   INTERNAL_DELEGATION_KEY_ID, BOOTSTRAP_DELEGATION_KEY_ID, DUBBO_NAMESPACE
-#   NACOS_DB_USER, NACOS_DB_PASSWORD, NACOS_USERNAME, NACOS_PASSWORD, NACOS_AUTH_TOKEN
+#   Nacos control-plane bootstrap: NACOS_DB_USER, NACOS_DB_PASSWORD,
+#   NACOS_USERNAME, NACOS_PASSWORD (one operator administrator only)
+#   AUTH_NACOS_USERNAME/PASSWORD, ADMIN_NACOS_USERNAME/PASSWORD,
+#   APP_NACOS_USERNAME/PASSWORD, SUBMISSION_NACOS_USERNAME/PASSWORD,
+#   NOTIFICATION_NACOS_USERNAME/PASSWORD, JUDGE_NACOS_USERNAME/PASSWORD
+#   DUBBO_NAMESPACE, NACOS_SERVERS, NACOS_AUTH_TOKEN,
 #   NACOS_AUTH_IDENTITY_KEY, NACOS_AUTH_IDENTITY_VALUE
 #   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
 #
@@ -48,13 +53,9 @@ services:
           memory: 768M
           cpus: "1.0"
     environment:
-      # Review 2026-08-25 P0: standalone remains the single-host default; set
-      # NACOS_MODE=cluster + NACOS_SERVERS (comma-separated peer list, e.g.
-      # "nacos-1:8848,nacos-2:8848,nacos-3:8848") via a deployment override
-      # once real multi-host infrastructure exists. Do NOT fake a cluster by
-      # scaling this service on one host.
-      MODE: ${NACOS_MODE:-standalone}
-      NACOS_SERVERS: ${NACOS_SERVERS:-}
+      # Production is cluster-only; a real peer list is mandatory.
+      MODE: cluster
+      NACOS_SERVERS: ${NACOS_SERVERS:?NACOS_SERVERS is required for production cluster mode}
       SPRING_DATASOURCE_PLATFORM: mysql
       MYSQL_SERVICE_HOST: ${DB_HOST:-mysql}
       MYSQL_SERVICE_PORT: ${DB_PORT:-3306}
@@ -126,9 +127,11 @@ services:
       - INTERNAL_DELEGATION_AUDIENCE=backend-auth
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
+      - DUBBO_APPLICATION_NAME=backend-auth
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
-      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - DUBBO_REGISTRY_USERNAME=${AUTH_NACOS_USERNAME:?AUTH_NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${AUTH_NACOS_PASSWORD:?AUTH_NACOS_PASSWORD is required}
       - SERVER_PORT=9101
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
       # SEARCH-003 gate: dispatch Auth user-document events to the search stream
@@ -193,9 +196,11 @@ services:
       - BOOTSTRAP_DELEGATION_KEY_ID=${BOOTSTRAP_DELEGATION_KEY_ID:?BOOTSTRAP_DELEGATION_KEY_ID is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
+      - DUBBO_APPLICATION_NAME=backend-admin
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
-      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - DUBBO_REGISTRY_USERNAME=${ADMIN_NACOS_USERNAME:?ADMIN_NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${ADMIN_NACOS_PASSWORD:?ADMIN_NACOS_PASSWORD is required}
       - SERVER_PORT=9102
       # Review 2026-08-25 P2: keep backups on a persistent volume instead of
       # container-local /tmp so multi-replica or recreated instances agree.
@@ -261,9 +266,11 @@ services:
       - INTERNAL_DELEGATION_AUDIENCE=backend-app
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
+      - DUBBO_APPLICATION_NAME=backend-app
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
-      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - DUBBO_REGISTRY_USERNAME=${APP_NACOS_USERNAME:?APP_NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${APP_NACOS_PASSWORD:?APP_NACOS_PASSWORD is required}
       - SERVER_PORT=9103
       - APP_RUNTIME_MODE=external-full
       # This artifact exports only the direct Submission owner; rollback to local
@@ -339,19 +346,17 @@ services:
       - REDIS_DB=${REDIS_DB:-0}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
-      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
-      - DUBBO_REGISTRY_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - DUBBO_REGISTRY_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - DUBBO_APPLICATION_NAME=backend-submission
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
+      - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
+      - DUBBO_REGISTRY_USERNAME=${SUBMISSION_NACOS_USERNAME:?SUBMISSION_NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${SUBMISSION_NACOS_PASSWORD:?SUBMISSION_NACOS_PASSWORD is required}
       - SUBMISSION_SERVER_PORT=9106
       - SUBMISSION_DUBBO_PORT=20886
       - APP_RUNTIME_MODE=external-full
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
     depends_on:
       backend-app:
         condition: service_healthy
@@ -466,9 +471,11 @@ services:
       - INTERNAL_DELEGATION_AUDIENCE=backend-notification
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
+      - DUBBO_APPLICATION_NAME=backend-notification
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
-      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - DUBBO_REGISTRY_USERNAME=${NOTIFICATION_NACOS_USERNAME:?NOTIFICATION_NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${NOTIFICATION_NACOS_PASSWORD:?NOTIFICATION_NACOS_PASSWORD is required}
       - SERVER_PORT=9105
       - NOTIFICATION_DUBBO_PORT=20885
       - NOTIFICATION_WORKER_ENABLED=${NOTIFICATION_WORKER_ENABLED:-true}
@@ -522,18 +529,17 @@ services:
       - REDIS_PORT=6379
       - REDIS_USERNAME=ulticode-judge
       - REDIS_PASSWORD=${JUDGE_REDIS_PASSWORD:?JUDGE_REDIS_PASSWORD is required}
+      - DUBBO_APPLICATION_NAME=backend-judge
+      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       - DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848?namespace=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
-      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
-      - DUBBO_REGISTRY_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
-      - DUBBO_REGISTRY_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
+      - DUBBO_REGISTRY_USERNAME=${JUDGE_NACOS_USERNAME:?JUDGE_NACOS_USERNAME is required}
+      - DUBBO_REGISTRY_PASSWORD=${JUDGE_NACOS_PASSWORD:?JUDGE_NACOS_PASSWORD is required}
       - JUDGE_SERVER_PORT=9104
       - JUDGE_DUBBO_PORT=20884
       - APP_RUNTIME_MODE=external-full
       - APP_FEATURES_USE_JUDGE_OUTBOX=true
       - APP_FEATURES_USE_GENERATION_FENCE=true
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      - DUBBO_NAMESPACE=${DUBBO_NAMESPACE:?DUBBO_NAMESPACE is required}
       # Review 2026-08-25 P0: readiness marker proves the Redis Streams dependency.
       - JUDGE_READY_FILE=/tmp/judge-worker-ready
       - SANDBOX_ENABLED=${SANDBOX_ENABLED:-true}

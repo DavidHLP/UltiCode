@@ -4,23 +4,6 @@ const ROOT = __dirname
 const BACKEND_CWD = path.join(ROOT, 'services')
 const BACKEND_ENV_FILE = path.join(ROOT, '.env')
 
-// Map NACOS_* → DUBBO_REGISTRY_* ONLY when the launching shell actually
-// exported them (the supported path: scripts/dev/up.sh sources .env first).
-// When they are absent, DUBBO_REGISTRY_* must stay UNSET so Spring's
-// `${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}` resolves the next fallback
-// (NACOS_PASSWORD, always injected by env_file). The previous
-// `process.env.NACOS_PASSWORD || ''` form set an EMPTY password when the
-// launcher lacked NACOS_*, and Spring treats a present-but-empty
-// DUBBO_REGISTRY_PASSWORD as definitive — so the fallback never fired, the
-// Dubbo Nacos client logged in with no password ("Required request parameter
-// 'password' ... is not present" in the Nacos log) and the owner service
-// crash-looped on "Failed to create nacos config service client".
-function dubboRegistryEnv() {
-  const env = {}
-  if (process.env.NACOS_USERNAME) env.DUBBO_REGISTRY_USERNAME = process.env.NACOS_USERNAME
-  if (process.env.NACOS_PASSWORD) env.DUBBO_REGISTRY_PASSWORD = process.env.NACOS_PASSWORD
-  return env
-}
 
 module.exports = {
   apps: [
@@ -40,7 +23,10 @@ module.exports = {
         BOOTSTRAP_DELEGATION_PUBLIC_KEY: process.env.BOOTSTRAP_DELEGATION_PUBLIC_KEY,
         BOOTSTRAP_DELEGATION_KEY_ID: process.env.BOOTSTRAP_DELEGATION_KEY_ID,
         INTERNAL_DELEGATION_AUDIENCE: 'backend-auth',
-        ...dubboRegistryEnv(),
+        DUBBO_APPLICATION_NAME: 'backend-auth',
+        DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,
+        DUBBO_REGISTRY_USERNAME: process.env.AUTH_NACOS_USERNAME,
+        DUBBO_REGISTRY_PASSWORD: process.env.AUTH_NACOS_PASSWORD,
       },
       out_file: path.join(ROOT, 'logs', 'backend-auth.out.log'),
       error_file: path.join(ROOT, 'logs', 'backend-auth.err.log'),
@@ -59,6 +45,10 @@ module.exports = {
         SERVER_PORT: '9102',
         REDIS_USERNAME: 'ulticode-admin',
         REDIS_PASSWORD: process.env.ADMIN_REDIS_PASSWORD,
+        DUBBO_APPLICATION_NAME: 'backend-admin',
+        DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,
+        DUBBO_REGISTRY_USERNAME: process.env.ADMIN_NACOS_USERNAME,
+        DUBBO_REGISTRY_PASSWORD: process.env.ADMIN_NACOS_PASSWORD,
         INTERNAL_DELEGATION_PRIVATE_KEY: process.env.INTERNAL_DELEGATION_PRIVATE_KEY,
         INTERNAL_DELEGATION_KEY_ID: process.env.INTERNAL_DELEGATION_KEY_ID,
         BOOTSTRAP_DELEGATION_PRIVATE_KEY: process.env.BOOTSTRAP_DELEGATION_PRIVATE_KEY,
@@ -99,7 +89,10 @@ module.exports = {
         MEILISEARCH_ENABLED: process.env.MEILISEARCH_ENABLED || 'false',
         APP_SUBMISSION_ROUTING_MODE: process.env.APP_SUBMISSION_ROUTING_MODE || 'local',
         SUBMISSION_CUTOVER_COMPLETE: process.env.SUBMISSION_CUTOVER_COMPLETE || 'false',
-        ...dubboRegistryEnv(),
+        DUBBO_APPLICATION_NAME: 'backend-app',
+        DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,
+        DUBBO_REGISTRY_USERNAME: process.env.APP_NACOS_USERNAME,
+        DUBBO_REGISTRY_PASSWORD: process.env.APP_NACOS_PASSWORD,
       },
       out_file: path.join(ROOT, 'logs', 'backend-app.out.log'),
       error_file: path.join(ROOT, 'logs', 'backend-app.err.log'),
@@ -122,7 +115,10 @@ module.exports = {
         INTERNAL_DELEGATION_KEY_ID: process.env.INTERNAL_DELEGATION_KEY_ID,
         INTERNAL_DELEGATION_AUDIENCE: 'backend-notification',
         NOTIFICATION_WORKER_ENABLED: 'true',
-        ...dubboRegistryEnv(),
+        DUBBO_APPLICATION_NAME: 'backend-notification',
+        DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,
+        DUBBO_REGISTRY_USERNAME: process.env.NOTIFICATION_NACOS_USERNAME,
+        DUBBO_REGISTRY_PASSWORD: process.env.NOTIFICATION_NACOS_PASSWORD,
       },
       out_file: path.join(ROOT, 'logs', 'backend-notification.out.log'),
       error_file: path.join(ROOT, 'logs', 'backend-notification.err.log'),
@@ -153,7 +149,10 @@ module.exports = {
         APP_FEATURES_USE_JUDGE_OUTBOX: process.env.APP_FEATURES_USE_JUDGE_OUTBOX || 'true',
         APP_FEATURES_USE_GENERATION_FENCE: process.env.APP_FEATURES_USE_GENERATION_FENCE || 'true',
         APP_FEATURES_JUDGE_QUEUE_USE_PORT: process.env.APP_FEATURES_JUDGE_QUEUE_USE_PORT || 'true',
-        ...dubboRegistryEnv(),
+        DUBBO_APPLICATION_NAME: 'backend-submission',
+        DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,
+        DUBBO_REGISTRY_USERNAME: process.env.SUBMISSION_NACOS_USERNAME,
+        DUBBO_REGISTRY_PASSWORD: process.env.SUBMISSION_NACOS_PASSWORD,
       },
       out_file: path.join(ROOT, 'logs', 'backend-submission.out.log'),
       error_file: path.join(ROOT, 'logs', 'backend-submission.err.log'),
@@ -180,7 +179,10 @@ module.exports = {
         APP_FEATURES_USE_JUDGE_OUTBOX: process.env.APP_FEATURES_USE_JUDGE_OUTBOX || 'true',
         APP_FEATURES_USE_GENERATION_FENCE: process.env.APP_FEATURES_USE_GENERATION_FENCE || 'true',
         APP_FEATURES_JUDGE_QUEUE_USE_PORT: process.env.APP_FEATURES_JUDGE_QUEUE_USE_PORT || 'true',
-        ...dubboRegistryEnv(),
+        DUBBO_APPLICATION_NAME: 'backend-judge',
+        DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,
+        DUBBO_REGISTRY_USERNAME: process.env.JUDGE_NACOS_USERNAME,
+        DUBBO_REGISTRY_PASSWORD: process.env.JUDGE_NACOS_PASSWORD,
       },
       out_file: path.join(ROOT, 'logs', 'backend-judge.out.log'),
       error_file: path.join(ROOT, 'logs', 'backend-judge.err.log'),

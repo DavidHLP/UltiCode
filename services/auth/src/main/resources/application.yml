@@ -195,8 +195,8 @@ dubbo:
       max-requests-per-connection: 50
   registry:
     address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
-    username: ${DUBBO_REGISTRY_USERNAME:}
-    password: ${DUBBO_REGISTRY_PASSWORD:}
+    username: ${DUBBO_REGISTRY_USERNAME:${AUTH_NACOS_USERNAME:}}
+    password: ${DUBBO_REGISTRY_PASSWORD:${AUTH_NACOS_PASSWORD:}}
     timeout: 5000
     # P1-INFRA-003: register-mode=instance 下 provider 必须把 interface→application
     # 映射发布到 metadata/config center, 否则消费方解析不到实例

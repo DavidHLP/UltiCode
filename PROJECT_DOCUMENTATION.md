@@ -339,7 +339,7 @@ flowchart LR
     MONO -->|Docker API| SANDBOX[Judge Sandbox]
     MONO -.->|可选| MEILI[MeiliSearch]
     MONO -.->|可选| SMTP[SMTP]
-    NACOS[Nacos standalone] -. 运行但无客户端消费 .-> MONO
+    NACOS[Nacos registry] -. 注册发现 .-> MONO
 ```
 
 证据：
@@ -1187,7 +1187,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 ##### 11.3 Registry、配置与网络
 
-- Nacos 只用注册发现，namespace 按 dev/staging/prod 隔离，关闭默认账号并保留现有 ACL；`backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`、`backend-judge`、`backend-search` 使用不同 service name；业务配置继续 env/application，避免同时改变 discovery 和 config source；
+- Nacos 只用注册发现；dev 使用显式 standalone + `DUBBO_NAMESPACE=dev`，prod 强制 cluster 并要求 `NACOS_SERVERS` 与非空 `DUBBO_NAMESPACE`；每个 Dubbo workload 使用独立 Nacos 用户、角色与 application name，operator administrator 由 `scripts/security/bootstrap-nacos-user.sh` 维护，内置 `nacos` 账号保持禁用；业务配置继续 env/application，避免同时改变 discovery 和 config source；
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
 - Gateway 是唯一外部 API/WS 入口，Dubbo 端口只在 internal network；
 - Auth/Admin/App 使用不同 Nacos service name、DB user、Redis key prefix；高价值 security Redis 可单独 logical DB/credential。

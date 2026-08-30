@@ -57,7 +57,7 @@ Admin rejudge compatibility remains an App-owned `SubmissionAdministrationServic
 
 ### SVC-007 生产多主机 HA
 
-现状：生产 Compose 仍是单机拓扑，固定 `container_name`；MySQL、Redis、MeiliSearch 默认单点，Nacos 默认 standalone。
+现状：生产 Compose 仍是单机拓扑，固定 `container_name`；MySQL、Redis、MeiliSearch 默认单点，Nacos 已强制 cluster 模式但尚无多节点故障演练。
 
 触发条件：出现真实多节点生产环境、明确可用性 SLO，且单机维护窗口不再可接受。届时再实施无状态多副本、反向代理和有状态组件 HA。
 

@@ -123,8 +123,8 @@ dubbo:
       max-requests-per-connection: 50
   registry:
     address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
-    username: ${DUBBO_REGISTRY_USERNAME:${NACOS_USERNAME:}}
-    password: ${DUBBO_REGISTRY_PASSWORD:${NACOS_PASSWORD:}}
+    username: ${DUBBO_REGISTRY_USERNAME:${JUDGE_NACOS_USERNAME:}}
+    password: ${DUBBO_REGISTRY_PASSWORD:${JUDGE_NACOS_PASSWORD:}}
     timeout: 5000
     use-as-config-center: true
     use-as-metadata-center: true

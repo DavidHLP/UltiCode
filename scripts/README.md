@@ -62,7 +62,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 
 ## Other
 
-- `security/bootstrap-nacos-user.sh` — opt-in Nacos administrator provisioning.
+- `security/bootstrap-nacos-user.sh` — opt-in Nacos administrator and per-service registry-user provisioning.
 - `pitstop-start-backend.ps1` — Windows pitstop adapter delegating to
   `scripts/dev/up.sh --no-frontend` (consumed by `pitstop.yaml`).
 - `statusline/` — Claude Code statusline configuration.

@@ -575,7 +575,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Submission/Rejudge"
       dependencies: [P1-SUB-001]
-      status: TODO
+      status: IN_PROGRESS
       affected_modules: ["admin", "submission", "submission-api", "app"]
       acceptance_criteria:
         - "Admin expresses intent only and calls backend-submission"
@@ -583,7 +583,8 @@ architecture_remediation_20260830:
       validation_commands:
         - "Admin/Submission rejudge tests"
         - "Provider/reference architecture gate"
-      evidence: []
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-002-red.result"
       commit: null
       blocked_by: []
       notes: "Remove App compatibility provider production references"

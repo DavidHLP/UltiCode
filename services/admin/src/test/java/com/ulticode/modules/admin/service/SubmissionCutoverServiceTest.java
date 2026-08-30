@@ -10,6 +10,7 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.SubmissionCutoverService;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -61,6 +62,18 @@ class SubmissionCutoverServiceTest {
         ReflectionTestUtils.setField(submissionCutover, "dubboEnabled", false);
     }
 
+    @Test
+    @DisplayName("rejudge commands target only the Submission owner")
+    void targetsSubmissionOwnerWithoutLocalFallback() throws Exception {
+        var reference = SubmissionCutoverService.class
+                .getDeclaredField("dubboProvider")
+                .getAnnotation(DubboReference.class);
+
+        assertThat(reference.group()).isEqualTo("backend-submission");
+        assertThat(java.util.Arrays.stream(SubmissionCutoverService.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getType))
+                .doesNotContain(AdminSubmissionService.class);
+    }
     @Nested
     @DisplayName("batchRejudge")
     class BatchRejudge {

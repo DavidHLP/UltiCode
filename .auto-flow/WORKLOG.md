@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P3-SCHED-001 completed in `5a578a7`: isolated Admin audit/reconciliation/backup, Submission outbox/recovery, and Search consume/heartbeat schedulers with bounded 1–16 pools, 30-second shutdown, active/queued/completed/rejected metrics, and independent-progress/rejection JUnit. Full architecture/docs, compile, shell/diff, and Graphify gates pass; production saturation/drain evidence remains external. Next task is P3-LEASE-001.
+
 - 2026-08-31: P2-DEPLOY-001 completed in `60784a5`: host-deploy now preflights source/schema/digest/Compose integrity before migrations/ACL/sandbox/Compose mutation; atomic descriptors and schema-compatible rollback are enforced; host-health requires HTTPS and full system PASS. Disposable contract, full architecture/docs, shell/diff, and Graphify gates pass; remote/production execution remains external. Next task is P3-SCHED-001.
 
 - 2026-08-31: P2-OBS-001 completed in `7320923`: added the optional digest-pinned Collector/Prometheus/Alertmanager/Grafana/Tempo/Loki overlay, worker OTLP metrics, trace/span log correlation, SLO formulas/budgets, alert routes, dashboard, release annotation, and recovery Runbook; fixed Search artifact naming; observability contract, disposable six-container smoke, Search/Judge compile, Search Docker build, architecture/docs, shell/diff, and Graphify gates pass. Production telemetry/on-call authority remains external. Next task is P2-DEPLOY-001.

@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 25 DONE, 17 TODO. `P3-SCHED-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, and `P2-DEPLOY-001` are closed in the repository with their available owner checks green.
+Current count: 26 DONE, 16 TODO. `P3-LEASE-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, `P2-DEPLOY-001`, and `P3-SCHED-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -161,7 +161,7 @@ Current count: 25 DONE, 17 TODO. `P3-SCHED-001` is the active implementation tas
 - `P2-SC-001`: DONE — Verify immutable signed image supply chain
 - `P2-OBS-001`: DONE — Operate metrics traces alerts and SLOs
 - `P2-DEPLOY-001`: DONE — Enforce release rollback and config integrity
-- `P3-SCHED-001`: TODO — Isolate critical scheduler executors
+- `P3-SCHED-001`: DONE — Isolate critical scheduler executors
 - `P3-LEASE-001`: TODO — Fence singleton jobs across replicas
 - `P3-GRACE-001`: TODO — Drain services safely on termination
 - `P3-RES-001`: TODO — Bound retries circuits and dependency concurrency
@@ -589,13 +589,13 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed P2-DEPLOY-001 implementation checkpoint: `60784a5`; the previous P2-OBS-001 implementation is `7320923`.
-- Current active task: `P3-SCHED-001`.
+- Last committed P3-SCHED-001 implementation checkpoint: `5a578a7`; the previous P2-DEPLOY-001 implementation is `60784a5`.
+- Current active task: `P3-LEASE-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P2-DEPLOY-001 as complete and points to `P3-SCHED-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P3-SCHED-001 as complete and points to `P3-LEASE-001`.
 
 ## 17. Handoff stop condition
 
@@ -803,3 +803,20 @@ The deployment-integrity contract passes source/schema/image preflight, descript
 rejection, atomic health updates, preflight ordering, HTTPS health, and partial/system summary assertions. Full architecture/docs/P2-SC/
 P2-OBS/YAML/shell/diff gates and Graphify pass. No remote SSH deployment, production migration/rollback, database downgrade, credential
 rotation, registry mutation, or host checkout mutation was executed. The next repository task is `P3-SCHED-001`.
+
+## 29. Completed checkpoint — P3-SCHED-001
+
+P3-SCHED-001 is repository-complete in `5a578a7` (`feat(scheduler): isolate critical owner executors`). Admin audit staging/dispatch,
+reconciliation, and backup use separate bounded schedulers (audit pool 2; reconciliation/backup pool 1). Submission Judge outbox,
+result outbox, created outbox, and lease recovery use separate bounded pools. Search consume and Search readiness heartbeat use separate
+bounded pools. Every affected `@Scheduled` method names its scheduler explicitly.
+
+Each pool is configurable only between 1 and 16, stops periodic work on context close, waits at most 30 seconds for bounded tasks, and
+publishes Micrometer executor active/queued/pool/completed metrics plus an explicit `ulticode.scheduler.rejected` counter. The scheduler
+Runbook records the map, rationale, saturation response, shutdown/PEL behavior, and the boundary against bypassing owner leases or
+dependency controls.
+
+The scheduler contract and real `AdminSchedulerConfigurationTest` pass: a blocked backup executor does not starve reconciliation, a
+closed scheduler rejects new work, and the rejection metric increments. Admin/Submission/Search compile, full architecture/docs/YAML/
+shell/diff gates and Graphify pass. Production load/saturation, JVM sizing, multi-replica lease behavior, and SIGTERM traffic drills
+remain follow-up evidence; the next repository task is `P3-LEASE-001`.

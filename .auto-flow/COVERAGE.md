@@ -80,3 +80,9 @@ The complete finding-to-task matrix is maintained in docs/architecture/remediati
 - Pre-mutation deployment checks bind the source commit, canonical migration manifest checksum, required files, merged production Compose config, immutable image evidence, and rollback schema compatibility.
 - `deployment-integrity.sh` atomically records a secret-free `PENDING_HEALTH`/`HEALTHY`/`FAILED` descriptor; host-health checks HTTPS and every allowlisted service and never returns system success for partial health.
 - The disposable contract covers descriptor JSON, schema mismatch refusal, atomic health updates, preflight ordering, and no remote mutation; full architecture/docs/YAML/shell/diff and Graphify passed.
+
+### P3-SCHED-001 isolated scheduler executors
+
+- Admin audit/reconciliation/backup, Submission outbox/recovery, and Search consume/heartbeat have explicit bounded owner-local schedulers with configurable 1–16 limits, 30-second graceful shutdown, and rejection/active/queued/completed metrics.
+- The real scheduler test proves a blocked backup executor does not starve reconciliation and that closed executors reject work; static contracts cover all affected bindings and forbid unbounded scheduled executors.
+- Admin/Submission/Search compile, scheduler/architecture/docs contracts, YAML/shell/diff checks, and Graphify passed; production saturation and SIGTERM drain remain follow-up environment evidence.

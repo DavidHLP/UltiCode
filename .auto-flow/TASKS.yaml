@@ -840,7 +840,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Resilience/Scheduler"
       dependencies: [P1-SUB-004]
-      status: TODO
+      status: DONE
       affected_modules: ["submission", "search", "admin"]
       acceptance_criteria:
         - "Heartbeat, consume, recovery, maintenance and health work use bounded isolated executors with justified sizes and clean shutdown"
@@ -848,10 +848,11 @@ architecture_remediation_20260830:
       validation_commands:
         - "Scheduler blocking/saturation tests"
         - "Module tests"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-sched-001-green.result"
+      commit: 5a578a7
       blocked_by: []
-      notes: "No unbounded executor"
+      notes: "Admin audit/reconciliation/backup, Submission outbox/recovery, and Search consume/heartbeat use explicit 1-16 bounded schedulers with 30-second shutdown, Micrometer active/queued/completed/rejected metrics, independent-progress/rejection test, and full architecture/docs gates"
     - id: P3-LEASE-001
       title: "Fence singleton jobs across replicas"
       priority: P3

@@ -70,7 +70,7 @@ No staging or production application is assumed by repository completion.
 
 | Original finding | Task IDs | Implementation surfaces | Required validation | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
-| Submission recovery tasks share one scheduler; Search consume can starve heartbeat; Admin maintenance can starve audit dispatch | `P3-SCHED-001` | Submission/Search/Admin scheduler configuration and metrics | blocking/saturation/rejection/independent-progress tests | pending | TODO |
+| Submission recovery tasks share one scheduler; Search consume can starve heartbeat; Admin maintenance can starve audit dispatch | `P3-SCHED-001` | Submission/Search/Admin scheduler configuration and metrics | blocking/saturation/rejection/independent-progress tests | `5a578a7` | Locally Validated; production saturation/drain external |
 | Backup, reconciliation, migration and singleton jobs can run on every replica | `P3-LEASE-001` | shared fenced lease Module and job callers | two-runner, expiry, pause, crash, lost-lease stale completion tests | pending | TODO |
 | HTTP/RPC/workers lack complete graceful drain | `P3-GRACE-001` | Spring lifecycle, Dubbo/worker drain, Compose | real SIGTERM integration and no-loss/no-duplicate proof | pending | TODO |
 | Timeout/retry policy lacks circuit, bulkhead and total retry budget | `P3-RES-001` | shared RPC/HTTP policy and consumers | timeout/refusal/slow/open/half-open/recovery/saturation tests | pending | TODO |

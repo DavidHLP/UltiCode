@@ -12,9 +12,11 @@ import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.app.api.service.ProblemTitleLookupPort;
+import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.mapper.SubmissionReconciliationReadMapper;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -61,7 +63,9 @@ class SubmissionAdminReadProviderIT {
     private static SqlSessionFactory sqlSessionFactory;
     private SqlSession session;
     private SubmissionMapper submissionMapper;
+    private SubmissionReconciliationReadMapper reconciliationMapper;
     private SubmissionAdminReadProvider provider;
+    private SubmissionReconciliationReadProvider reconciliationProvider;
 
     @BeforeAll
     static void createSchema() throws Exception {
@@ -102,7 +106,7 @@ class SubmissionAdminReadProviderIT {
         MybatisConfiguration configuration = new MybatisConfiguration();
         configuration.setCacheEnabled(false);
         configuration.addMapper(SubmissionMapper.class);
-
+        configuration.addMapper(SubmissionReconciliationReadMapper.class);
         // Mirrors the production MybatisPlusConfig bean: selectPage needs the
         // pagination interceptor to issue COUNT and LIMIT.
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
@@ -119,6 +123,7 @@ class SubmissionAdminReadProviderIT {
     void setUp() throws Exception {
         session = sqlSessionFactory.openSession(false);
         submissionMapper = session.getMapper(SubmissionMapper.class);
+        reconciliationMapper = session.getMapper(SubmissionReconciliationReadMapper.class);
         session.getConnection().createStatement().execute("DELETE FROM submissions");
         session.commit();
 
@@ -127,8 +132,8 @@ class SubmissionAdminReadProviderIT {
         when(problemRead.searchProblemIdsByTitle("missing")).thenReturn(List.of());
         provider = new SubmissionAdminReadProvider(
                 submissionMapper, problemRead, new ObjectMapper());
+        reconciliationProvider = new SubmissionReconciliationReadProvider(reconciliationMapper);
     }
-
     @AfterEach
     void tearDown() {
         if (session != null) {
@@ -245,5 +250,31 @@ class SubmissionAdminReadProviderIT {
                 "day");
         assertThat(chart).extracting(SubmissionDashboardChartDataDTO::date)
                 .containsExactly("2026-08-01", "2026-08-02");
+    }
+    @Test
+    @DisplayName("reconciliation facts support full and incremental bounded scans")
+    void reconciliationFactsSupportFullAndIncrementalWindows() {
+        insertRow("sub-1", 101L, "user-1", "python", "Accepted", 12,
+                LocalDateTime.of(2026, 8, 1, 10, 0));
+        insertRow("sub-2", 101L, "user-1", "python", "Wrong_Answer", 20,
+                LocalDateTime.of(2026, 8, 2, 10, 0));
+        insertRow("sub-3", 102L, "user-2", "java", "Accepted", 8,
+                LocalDateTime.of(2026, 8, 3, 10, 0));
+        session.commit();
+
+        List<SubmissionUserReferenceCountDTO> full =
+                reconciliationProvider.findUserReferenceCounts("", null, 500);
+        assertThat(full).extracting(SubmissionUserReferenceCountDTO::accountId)
+                .containsExactly("user-1", "user-2");
+        assertThat(full).extracting(SubmissionUserReferenceCountDTO::rowCount)
+                .containsExactly(2L, 1L);
+
+        List<SubmissionUserReferenceCountDTO> incremental =
+                reconciliationProvider.findUserReferenceCounts(
+                        "", LocalDateTime.of(2026, 8, 2, 0, 0), 500);
+        assertThat(incremental).extracting(SubmissionUserReferenceCountDTO::accountId)
+                .containsExactly("user-1", "user-2");
+        assertThat(incremental).extracting(SubmissionUserReferenceCountDTO::rowCount)
+                .containsExactly(1L, 1L);
     }
 }

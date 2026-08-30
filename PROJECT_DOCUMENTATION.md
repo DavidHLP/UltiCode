@@ -818,6 +818,19 @@ Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `Submis
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
 mapping。`JudgeTestCaseDetailCodec` 仍是独立的 execution-side serializer，不与持久化 codec 合并。
 
+#### Submission reconciliation owner-facts
+
+P1-SUB-004 将 Submission 孤儿对账收敛到 owner facts：`OwnerReconciler.runReconciliation()` 保留每天
+02:00 的全量调度，`runIncrementalReconciliation(createdSince)` 只接受调用方提供的包含式 watermark，
+不使用未跟踪的时间窗口猜测。Admin 通过 `SubmissionReconciliationReadPort` 调用 `backend-submission`
+的 Dubbo provider；provider 在 Submission owner 内以 `user_id` 分组并按 account-id 游标分页，单页上限
+为 500，`createdSince == null` 表示全量历史。
+
+Admin 在同一事务/数据库连接内使用 `GET_LOCK`/`RELEASE_LOCK` 防止多副本重叠。锁明确返回 busy 时只
+返回不落库的 `SKIPPED`；锁查询异常、owner facts 响应为 null、乱序/重复/负数或越界时失败闭环，持久化 `FAILED`
+记录、模式与可行动错误，并递增失败指标。App 的 reconciliation mapper 不再读取 `submissions`；
+`ReconciliationOrphanCounts.submissions` 暂作为 wire-compatible 零占位，待后续合同收缩。
+
 允许内容：接口、request/response DTO、枚举、稳定错误码、trace/idempotency metadata。禁止内容：Entity、Mapper、ServiceImpl、Repository、MyBatis annotation、Spring Security context、数据库字段泄漏。
 
 接口思想示例（现有 ID 是 UUID String，不使用 Long）：

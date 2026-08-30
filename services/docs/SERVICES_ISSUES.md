@@ -25,7 +25,7 @@
 
 Ordinary and contest intake now always use App's `RemoteSubmissionWritePort` and execute in `backend-submission`. The App-local writer, mutation router, fence adapters, judge/result dispatchers, shadow comparator, and lease reaper are deleted; write ownership is no longer selected by `APP_SUBMISSION_ROUTING_MODE`.
 
-Remaining contraction work: App still owns temporary submission read projections and the App submission mapper retains compatibility read/mutation methods until the bounded-read cutover. Admin rejudge now routes through the Submission owner; its live registration, database, and traffic evidence remains external.
+P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. Remaining contraction work: App still owns temporary submission read projections and the App submission mapper retains compatibility read/mutation methods until the bounded-read cutover. Admin rejudge and the new reconciliation provider's live registration, database, and traffic evidence remain external.
 
 Evidence:
 
@@ -37,6 +37,9 @@ Evidence:
 - [Owner command receipt](../submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java)
 - [Owner delegation verifier](../submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java)
 - [Owner-only architecture regression](../app/app-web/src/test/java/com/ulticode/modules/submission/port/SubmissionPortWiringTest.java)
+- [Submission reconciliation contract](../api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReconciliationReadPort.java)
+- [Submission reconciliation provider](../submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionReconciliationReadProvider.java)
+- [Admin reconciliation aggregator](../admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java)
 
 Retirement gates:
 
@@ -44,7 +47,7 @@ Retirement gates:
 | --- | --- | --- |
 | Intake/outbox/fence | App mutation implementation deleted; owner tests and duplicate-writer gate are authoritative | Live registration/traffic observation remains external; rollback uses a prior verified artifact plus the data runbook, not a second current writer |
 | Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Live Nacos/Dubbo/Redis/target-database observation remains external; full cross-owner audit outbox is P1-AUDIT-001 |
-| User reads | Local/remote read routing remains | P1-SUB-003/004 must backfill, reconcile, and switch bounded owner facts before App read tables/contracts are removed |
+| User reads | Local/remote read routing remains; reconciliation itself now consumes Submission owner facts | P1-DATA-001 must switch all remaining Submission reads to bounded owner facts before App read tables/contracts are removed |
 
 Do not close SVC-003 or contract the App schema until all Submission reads use owner facts and the bounded-read/backfill evidence is complete.
 

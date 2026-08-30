@@ -6,6 +6,7 @@ import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
+import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.zaxxer.hikari.HikariConfig;
@@ -28,6 +29,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,8 +46,9 @@ import static org.mockito.Mockito.when;
  *   <li>{@code reconciliation_runs} persistence (ReconciliationRunMapper);</li>
  *   <li>{@code audit_logs.performer_id} orphan check (AuditOrphanMapper).</li>
  * </ul>
- * Auth facts and the nine App child counts come from faked
- * ports/providers — cross-owner SQL has been removed from admin.
+ * Auth and App facts come from faked owner ports/providers; Submission facts
+ * are supplied by the owner reconciliation port and the admin audit check
+ * runs against real SQL — cross-owner SQL has been removed from admin.
  *
  * <p>Bootstrap is a hand-rolled MyBatis-Plus {@link SqlSessionFactory}
  * over the container datasource so this test isolates the admin-owned
@@ -149,8 +152,13 @@ class OwnerReconcilerIT {
         when(appPort.countUserProfiles()).thenReturn(2L);
         when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
 
+        SubmissionReconciliationReadPort submissionPort = mock(SubmissionReconciliationReadPort.class);
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+
         OwnerReconciler reconciler = new OwnerReconciler(
-                runMapper, new FixedUuidGenerator("run-it-1"), appPort, auditOrphanMapper);
+                runMapper, new FixedUuidGenerator("run-it-1"), appPort,
+                submissionPort, auditOrphanMapper, null);
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }

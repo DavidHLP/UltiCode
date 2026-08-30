@@ -14,21 +14,13 @@ public interface AppReconciliationReadMapper {
             FROM information_schema.tables
             WHERE table_schema = DATABASE()
               AND table_name IN (
-                    'submissions', 'solutions', 'forum_posts', 'notifications',
+                    'solutions', 'forum_posts', 'notifications',
                     'user_profiles', 'contest_participants', 'user_achievements',
                     'user_follows'
               )
             """)
     List<String> existingChildTables();
 
-    @Select("""
-            SELECT user_id AS account_id, COUNT(*) AS row_count
-            FROM submissions
-            WHERE user_id IS NOT NULL AND user_id > #{afterId}
-            GROUP BY user_id ORDER BY user_id LIMIT #{limit}
-            """)
-    List<UserReferenceCount> submissionUserCounts(
-            @Param("afterId") String afterId, @Param("limit") int limit);
 
     @Select("""
             SELECT user_id AS account_id, COUNT(*) AS row_count

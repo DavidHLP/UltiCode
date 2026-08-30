@@ -34,6 +34,7 @@ for file in \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionIntakePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionVerdictWritePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReconciliationReadPort.java \
   services/api/app-api/src/main/java/com/ulticode/app/api/service/CodeExecutionPort.java \
   services/api/app-api/src/main/java/com/ulticode/app/api/service/ProblemTitleLookupPort.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
@@ -41,6 +42,8 @@ for file in \
   services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \
   services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemTitleLookupDubboAdapter.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionReconciliationReadProvider.java \
+  services/submission/src/main/java/com/ulticode/modules/submission/mapper/SubmissionReconciliationReadMapper.java \
   services/submission/src/main/java/com/ulticode/submission/admin/SubmissionRejudgeService.java \
   services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java \
   services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java \
@@ -48,7 +51,9 @@ for file in \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionVerdictWriteProvider.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
   services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
-  services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java; do
+  services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
+  services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java \
+  services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java; do
   [[ -f "$ROOT_DIR/$file" ]] || fail "missing architecture source: $file"
 done
 
@@ -289,6 +294,11 @@ contains services/submission/src/main/java/com/ulticode/modules/submission/mappe
 contains services/submission/src/main/java/com/ulticode/submission/idempotency/mapper/SubmissionCommandReceiptMapper.java 'INSERT IGNORE INTO submission_command_receipt'
 contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java 'group = "backend-submission"'
 not_contains services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java 'app.features.submission-dubbo-cutover'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java 'group = "backend-submission"'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'runIncrementalReconciliation'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'tryAcquireLease'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'submissions'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'submissionUserCounts'
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'

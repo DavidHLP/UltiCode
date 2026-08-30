@@ -7,6 +7,7 @@ import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
@@ -18,6 +19,7 @@ import com.ulticode.submission.dubbo.provider.SubmissionUserQueryProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionIntakeProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionVerdictWriteProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
+import com.ulticode.submission.dubbo.provider.SubmissionReconciliationReadProvider;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +48,8 @@ class SubmissionProviderContractTest {
         assertProvider(SubmissionWriteProvider.class, SubmissionWritePort.class, "1.0.0");
         assertProvider(SubmissionAdministrationProvider.class,
                 SubmissionAdministrationService.class, "1.0.0");
+        assertProvider(SubmissionReconciliationReadProvider.class,
+                SubmissionReconciliationReadPort.class, "1.0.0");
         assertProvider(SubmissionFenceProvider.class, SubmissionFencePort.class, "1.1.0");
     }
 

@@ -18,12 +18,14 @@ import com.ulticode.submission.api.dto.SubmissionResultPayload;
 import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
+import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
 import com.ulticode.submission.api.dto.RejudgeResultDTO;
 import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
 import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.submission.api.service.SubmissionAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionGenerationReadPort;
@@ -49,6 +51,7 @@ class SubmissionApiContractShapeTest {
             SubmissionActivityAnalyticsPort.class,
             SubmissionAdminReadPort.class,
             SubmissionAdministrationService.class,
+            SubmissionReconciliationReadPort.class,
             SubmissionAnalyticsPort.class,
             SubmissionFencePort.class,
             SubmissionGenerationReadPort.class,
@@ -86,6 +89,7 @@ class SubmissionApiContractShapeTest {
                 SubmissionListItemVO.class, SubmissionQueryDTO.class,
                 SubmissionResultPayload.class, SubmissionStatusMeta.class,
                 SubmissionTestCaseDetailDTO.class, SubmissionVO.class,
+                SubmissionUserReferenceCountDTO.class,
                 SubmissionLifecycleEventContract.class))
                 .allSatisfy(type -> assertThat(type.getPackageName())
                         .startsWith("com.ulticode.submission.api"));

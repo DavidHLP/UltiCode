@@ -6,21 +6,26 @@ import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
+import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Nightly reconciliation job and orphan scanner (P5-RECONCILE-001),
@@ -34,9 +39,12 @@ import com.ulticode.common.rpc.RpcPolicy;
  *       user count, physical-existence id check, 4 Auth-internal orphan
  *       counts;</li>
  *   <li>App: {@link AppReconciliationReadPort} (local port) —
- *       user_profiles count and 9 App child orphan counts;</li>
+ *       user_profiles count and 8 App child orphan counts;</li>
+ *   <li>Submission: {@link SubmissionReconciliationReadPort} (Dubbo) —
+ *       bounded full/incremental submission user-reference facts;</li>
  *   <li>Admin: local {@code audit_logs.performer_id} orphan check and
- *       the {@code reconciliation_runs} persistence.</li>
+ *       the {@code reconciliation_runs} persistence. A MySQL advisory lock
+ *       prevents duplicate multi-replica runs.</li>
  * </ul>
  *
  * <p>Orphan semantics preserved: a child row is an orphan only if the
@@ -48,10 +56,15 @@ import com.ulticode.common.rpc.RpcPolicy;
 @RequiredArgsConstructor
 public class OwnerReconciler {
 
+    private static final String RECONCILIATION_LOCK = "ulticode:admin:reconciliation";
+    private static final int RECONCILIATION_PAGE_SIZE = SubmissionReconciliationReadPort.MAX_PAGE_SIZE;
+
     private final ReconciliationRunMapper runMapper;
     private final UuidGenerator uuidGenerator;
     private final AppReconciliationReadPort appReconciliationReadPort;
+    private final SubmissionReconciliationReadPort submissionReconciliationReadPort;
     private final AuditOrphanMapper auditOrphanMapper;
+    private final MeterRegistry meterRegistry;
 
     @DubboReference(group = "backend-auth", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
@@ -65,67 +78,159 @@ public class OwnerReconciler {
     // Reconciliation infrastructure remains for future pairs and orphan detection.
     private static final List<ReconciliationPair> RECONCILIATION_PAIRS = List.of();
 
+
     @Scheduled(cron = "0 0 2 * * *")
+    @Transactional
     public void scheduledReconciliation() {
         runReconciliation();
     }
 
-    /**
-     * Execute a full reconciliation run: count divergence check + orphan scan.
-     *
-     * @return the persisted run record
-     */
+    /** Execute a full reconciliation run. */
+    @Transactional
     public ReconciliationRun runReconciliation() {
-        String runId = uuidGenerator.newId();
-        LocalDateTime startedAt = LocalDateTime.now();
+        return runReconciliationInternal(null);
+    }
 
+    /** Execute a bounded incremental reconciliation from an inclusive watermark. */
+    @Transactional
+    public ReconciliationRun runIncrementalReconciliation(LocalDateTime createdSince) {
+        if (createdSince == null) {
+            throw new IllegalArgumentException("createdSince is required for incremental reconciliation");
+        }
+        return runReconciliationInternal(createdSince);
+    }
+
+    private ReconciliationRun runReconciliationInternal(LocalDateTime createdSince) {
+        String mode = createdSince == null ? "FULL" : "INCREMENTAL";
+        Integer leaseResult;
+        try {
+            leaseResult = runMapper.tryAcquireLease(RECONCILIATION_LOCK);
+        } catch (RuntimeException exception) {
+            return persistFailure(mode, "GET_LOCK failed: " + failureReason(exception));
+        }
+        if (leaseResult == null) {
+            return persistFailure(mode, "GET_LOCK returned NULL");
+        }
+        if (leaseResult != 0 && leaseResult != 1) {
+            return persistFailure(mode, "GET_LOCK returned unexpected result: " + leaseResult);
+        }
+        if (leaseResult == 0) {
+            incrementCounter("reconciliation.skipped", "reason", "lease_busy");
+            log.info("Reconciliation skipped: another replica owns {}", RECONCILIATION_LOCK);
+            return skippedRun(mode);
+        }
+
+        try {
+            String runId = uuidGenerator.newId();
+            LocalDateTime startedAt = LocalDateTime.now();
+            ReconciliationRun run = new ReconciliationRun();
+            run.setRunId(runId);
+            run.setStartedAt(startedAt);
+            run.setOwner("ALL");
+            run.setStatus("RUNNING");
+            run.setDivergenceCount(0);
+            run.setOrphanCount(0);
+            runMapper.insert(run);
+
+            List<ReconciliationResult> reconResults = new ArrayList<>();
+            List<OrphanDetectionResult> orphanResults = new ArrayList<>();
+            int totalDivergence = 0;
+            int totalOrphans = 0;
+            String failureReason = null;
+
+            try {
+                for (ReconciliationPair pair : RECONCILIATION_PAIRS) {
+                    ReconciliationResult result = reconcilePair(pair);
+                    reconResults.add(result);
+                    if (!result.isDriftFree()) {
+                        totalDivergence++;
+                    }
+                }
+
+                orphanResults.addAll(authOrphans());
+                orphanResults.add(submissionOrphans(createdSince));
+                orphanResults.addAll(appOrphans());
+                orphanResults.add(auditLogsOrphans());
+                for (OrphanDetectionResult result : orphanResults) {
+                    if (!result.isOrphanFree()) {
+                        totalOrphans++;
+                    }
+                }
+
+                run.setDivergenceCount(totalDivergence);
+                run.setOrphanCount(totalOrphans);
+                run.setStatus("COMPLETED");
+            } catch (Exception exception) {
+                failureReason = failureReason(exception);
+                log.error("Reconciliation run {} failed: {}", runId, failureReason, exception);
+                run.setStatus("FAILED");
+                incrementCounter("reconciliation.failures", "mode", mode);
+            }
+
+            run.setFinishedAt(LocalDateTime.now());
+            run.setDetail(buildDetailJson(mode, reconResults, orphanResults, failureReason));
+            runMapper.updateById(run);
+            incrementCounter("reconciliation.runs", "mode", mode, "status", run.getStatus());
+            logReconciliationResults(reconResults, orphanResults, totalDivergence, totalOrphans);
+            return run;
+        } finally {
+            try {
+                runMapper.releaseLease(RECONCILIATION_LOCK);
+            } catch (RuntimeException exception) {
+                log.error("Unable to release reconciliation lease {}", RECONCILIATION_LOCK, exception);
+            }
+        }
+    }
+
+    private ReconciliationRun persistFailure(String mode, String reason) {
+        String runId = uuidGenerator.newId();
         ReconciliationRun run = new ReconciliationRun();
         run.setRunId(runId);
-        run.setStartedAt(startedAt);
+        run.setStartedAt(LocalDateTime.now());
         run.setOwner("ALL");
         run.setStatus("RUNNING");
         run.setDivergenceCount(0);
         run.setOrphanCount(0);
         runMapper.insert(run);
-
-        List<ReconciliationResult> reconResults = new ArrayList<>();
-        List<OrphanDetectionResult> orphanResults = new ArrayList<>();
-        int totalDivergence = 0;
-        int totalOrphans = 0;
-
-        try {
-            for (ReconciliationPair pair : RECONCILIATION_PAIRS) {
-                ReconciliationResult result = reconcilePair(pair);
-                reconResults.add(result);
-                if (!result.isDriftFree()) {
-                    totalDivergence++;
-                }
-            }
-
-            orphanResults.addAll(authOrphans());
-            orphanResults.addAll(appOrphans());
-            orphanResults.add(auditLogsOrphans());
-            for (OrphanDetectionResult result : orphanResults) {
-                if (!result.isOrphanFree()) {
-                    totalOrphans++;
-                }
-            }
-
-            run.setDivergenceCount(totalDivergence);
-            run.setOrphanCount(totalOrphans);
-            run.setStatus("COMPLETED");
-        } catch (Exception e) {
-            log.error("Reconciliation run {} failed: {}", runId, e.getMessage(), e);
-            run.setStatus("FAILED");
-        }
-
         run.setFinishedAt(LocalDateTime.now());
-        run.setDetail(buildDetailJson(reconResults, orphanResults));
+        run.setStatus("FAILED");
+        run.setDetail(buildDetailJson(mode, List.of(), List.of(), reason));
         runMapper.updateById(run);
-
-        logReconciliationResults(reconResults, orphanResults, totalDivergence, totalOrphans);
-
+        incrementCounter("reconciliation.failures", "mode", mode);
+        incrementCounter("reconciliation.runs", "mode", mode, "status", "FAILED");
+        log.error("Reconciliation run {} failed before lease acquisition: {}", runId, reason);
         return run;
+    }
+
+    private ReconciliationRun skippedRun(String mode) {
+        ReconciliationRun run = new ReconciliationRun();
+        run.setOwner("ALL");
+        run.setStatus("SKIPPED");
+        run.setDivergenceCount(0);
+        run.setOrphanCount(0);
+        run.setStartedAt(LocalDateTime.now());
+        run.setFinishedAt(LocalDateTime.now());
+        run.setDetail("{\"mode\":\"" + mode
+                + "\",\"status\":\"SKIPPED\",\"reason\":\"lease_busy\"}");
+        return run;
+    }
+
+    private void incrementCounter(String name, String... tags) {
+        if (meterRegistry == null) {
+            return;
+        }
+        Counter counter = meterRegistry.counter(name, tags);
+        if (counter != null) {
+            counter.increment();
+        }
+    }
+
+    private static String failureReason(Exception exception) {
+        String message = exception.getMessage();
+        if (message == null || message.isBlank()) {
+            return exception.getClass().getSimpleName();
+        }
+        return exception.getClass().getSimpleName() + ": " + message;
     }
 
     /**
@@ -168,11 +273,59 @@ public class OwnerReconciler {
                 orphan("user_permissions", "user_id", "Auth", "users", "Auth", counts.userPermissions()));
     }
 
-    /** Nine App child orphan checks via the app read port. */
+    /** Bounded Submission-owned orphan scan for full or incremental runs. */
+    private OrphanDetectionResult submissionOrphans(LocalDateTime createdSince) {
+        if (submissionReconciliationReadPort == null) {
+            throw submissionUnavailable();
+        }
+        String afterAccountId = "";
+        long missing = 0L;
+        while (true) {
+            List<SubmissionUserReferenceCountDTO> references =
+                    submissionReconciliationReadPort.findUserReferenceCounts(
+                            afterAccountId, createdSince, RECONCILIATION_PAGE_SIZE);
+            if (references == null) {
+                throw submissionUnavailable();
+            }
+            if (references.isEmpty()) {
+                break;
+            }
+            if (references.size() > RECONCILIATION_PAGE_SIZE) {
+                throw submissionUnavailable();
+            }
+            Set<String> candidates = new HashSet<>();
+            String previousAccountId = afterAccountId;
+            for (SubmissionUserReferenceCountDTO reference : references) {
+                if (reference == null || reference.accountId() == null
+                        || reference.accountId().isBlank() || reference.rowCount() < 0
+                        || !candidates.add(reference.accountId())
+                        || reference.accountId().compareTo(previousAccountId) <= 0) {
+                    throw submissionUnavailable();
+                }
+                previousAccountId = reference.accountId();
+            }
+            Set<String> existing = existingUserIds(candidates);
+            for (SubmissionUserReferenceCountDTO reference : references) {
+                if (!existing.contains(reference.accountId())) {
+                    missing += reference.rowCount();
+                }
+            }
+            String nextAccountId = references.get(references.size() - 1).accountId();
+            if (nextAccountId.compareTo(afterAccountId) <= 0) {
+                throw submissionUnavailable();
+            }
+            afterAccountId = nextAccountId;
+            if (references.size() < RECONCILIATION_PAGE_SIZE) {
+                break;
+            }
+        }
+        return orphan("submissions", "user_id", "Submission", "users", "Auth", missing);
+    }
+
+    /** Eight App child orphan checks; Submission rows are owner facts above. */
     private List<OrphanDetectionResult> appOrphans() {
         ReconciliationOrphanCounts counts = appReconciliationReadPort.countOrphans();
         return List.of(
-                orphan("submissions", "user_id", "App", "users", "Auth", counts.submissions()),
                 orphan("solutions", "user_id", "App", "users", "Auth", counts.solutions()),
                 orphan("forum_posts", "user_id", "App", "users", "Auth", counts.forumPosts()),
                 orphan("notifications", "user_id", "App", "users", "Auth", counts.notifications()),
@@ -232,7 +385,10 @@ public class OwnerReconciler {
     private BusinessException authUnavailable() {
         return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Auth reconciliation owner unavailable");
     }
-
+    private BusinessException submissionUnavailable() {
+        return new BusinessException(
+                BaseErrorCode.UNKNOWN_ERROR, "Submission reconciliation owner unavailable");
+    }
     private static OrphanDetectionResult orphan(String childTable, String childColumn,
                                                 String childOwner, String parentTable,
                                                 String parentOwner, long count) {
@@ -240,14 +396,17 @@ public class OwnerReconciler {
                 parentTable, parentOwner, count);
     }
 
-    private String buildDetailJson(List<ReconciliationResult> reconResults,
-                                   List<OrphanDetectionResult> orphanResults) {
-        StringBuilder sb = new StringBuilder("{\"reconciliation\":[");
+    private String buildDetailJson(String mode,
+                                   List<ReconciliationResult> reconResults,
+                                   List<OrphanDetectionResult> orphanResults,
+                                   String failureReason) {
+        StringBuilder sb = new StringBuilder("{\"mode\":\"")
+                .append(jsonEscape(mode)).append("\",\"reconciliation\":[");
         for (int i = 0; i < reconResults.size(); i++) {
             if (i > 0) sb.append(",");
             ReconciliationResult r = reconResults.get(i);
             sb.append(String.format("{\"table\":\"%s\",\"source\":%d,\"target\":%d,\"drift\":%s}",
-                    r.getTableName(), r.getSourceCount(), r.getTargetCount(),
+                    jsonEscape(r.getTableName()), r.getSourceCount(), r.getTargetCount(),
                     r.isDriftFree() ? "false" : "true"));
         }
         sb.append("],\"orphans\":[");
@@ -255,12 +414,41 @@ public class OwnerReconciler {
             if (i > 0) sb.append(",");
             OrphanDetectionResult o = orphanResults.get(i);
             sb.append(String.format("{\"child\":\"%s\",\"parent\":\"%s\",\"orphans\":%d}",
-                    o.getChildTable(), o.getParentTable(), o.getOrphanCount()));
+                    jsonEscape(o.getChildTable()), jsonEscape(o.getParentTable()), o.getOrphanCount()));
         }
-        sb.append("]}");
-        return sb.toString();
+        sb.append("]");
+        if (failureReason != null) {
+            sb.append(",\"error\":\"").append(jsonEscape(failureReason)).append("\"");
+        }
+        return sb.append("}").toString();
     }
 
+    private static String jsonEscape(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            switch (character) {
+                case '\\' -> escaped.append("\\\\");
+                case '"' -> escaped.append("\\\"");
+                case '\b' -> escaped.append("\\b");
+                case '\f' -> escaped.append("\\f");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        escaped.append(String.format("\\u%04x", (int) character));
+                    } else {
+                        escaped.append(character);
+                    }
+                }
+            }
+        }
+        return escaped.toString();
+    }
     private void logReconciliationResults(List<ReconciliationResult> reconResults,
                                           List<OrphanDetectionResult> orphanResults,
                                           int totalDivergence, int totalOrphans) {

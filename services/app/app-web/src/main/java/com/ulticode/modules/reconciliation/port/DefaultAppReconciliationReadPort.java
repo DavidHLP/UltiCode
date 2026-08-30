@@ -46,8 +46,6 @@ public class DefaultAppReconciliationReadPort implements AppReconciliationReadPo
     @Override
     public ReconciliationOrphanCounts countOrphans() {
         Set<String> tables = new HashSet<>(safe(appReconciliationReadMapper.existingChildTables()));
-        long submissions = countOrphans(tables, "submissions",
-                appReconciliationReadMapper::submissionUserCounts);
         long solutions = countOrphans(tables, "solutions",
                 appReconciliationReadMapper::solutionUserCounts);
         long forumPosts = countOrphans(tables, "forum_posts",
@@ -58,9 +56,10 @@ public class DefaultAppReconciliationReadPort implements AppReconciliationReadPo
                 appReconciliationReadMapper::userProfileAccountCounts);
         long participants = countOrphans(tables, "contest_participants",
                 appReconciliationReadMapper::contestParticipantUserCounts);
-        // Legacy achievement/follow tables are not part of the current App owner schema.
+        // The legacy submissions field remains zero for wire compatibility;
+        // Submission owner facts are now read through its own contract.
         return new ReconciliationOrphanCounts(
-                submissions, solutions, forumPosts, notifications, profiles,
+                0L, solutions, forumPosts, notifications, profiles,
                 participants, 0L, 0L, 0L);
     }
 

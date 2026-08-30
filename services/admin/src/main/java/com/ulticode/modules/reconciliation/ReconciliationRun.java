@@ -30,7 +30,7 @@ public class ReconciliationRun {
     /** Auth/Admin/App/ALL */
     private String owner;
 
-    /** RUNNING/COMPLETED/FAILED */
+    /** RUNNING/COMPLETED/FAILED/SKIPPED */
     private String status;
 
     @TableField("divergence_count")

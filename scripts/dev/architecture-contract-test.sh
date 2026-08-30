@@ -336,6 +336,8 @@ for audit_source in \
   init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql \
   init-db/migrations/admin/V20260831100200__Create_Admin_Audit_Inbox.sql \
   init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql \
+  init-db/flyway-post-owner.conf \
+  init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql \
   scripts/test/audit-owner-boundary-contract.sh; do
   [[ -f "$ROOT_DIR/$audit_source" ]] || fail "missing P1-AUDIT source: $audit_source"
 done
@@ -355,8 +357,9 @@ contains services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDisp
 contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'Admin-Audit'
 contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'AuditRecorded'
 contains services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java 'ON DUPLICATE KEY UPDATE id = id'
-contains init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
-contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+not_contains init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+not_contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+contains init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
 contains init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql 'MODIFY COLUMN `action` VARCHAR(64) NOT NULL'
 bash "$ROOT_DIR/scripts/test/audit-owner-boundary-contract.sh"
 
@@ -367,6 +370,12 @@ contains scripts/runbooks/owner-migration-manifest.sh \
 contains scripts/runbooks/owner-migration-manifest.sh 'flock -n'
 contains scripts/runbooks/owner-migration-manifest.sh 'no repair is attempted'
 contains scripts/runbooks/owner-migration-manifest.sh 'skip_migrations=true preserves schema'
+contains scripts/runbooks/owner-migration-manifest.sh '-baselineOnMigrate=true'
+contains init-db/flyway-post-owner.conf 'flyway.baselineOnMigrate=true'
+contains scripts/dev/up.sh 'migrate-post-owner.sh'
+contains scripts/dev/migrate-post-owner.sh 'flyway-post-owner.conf'
+contains init-db/scripts/generate-baseline.sh 'flyway_post_owner_history'
+contains init-db/scripts/validate-baseline.sh 'flyway_post_owner_history'
 contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
 contains .github/actions/host-deploy/action.yml 'MIGRATION_DB_PASSWORD'
 contains .github/actions/host-deploy/action.yml "inputs.skip_migrations != 'true'"

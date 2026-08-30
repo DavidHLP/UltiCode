@@ -46,6 +46,7 @@ mysql_root -e "
 CREATE DATABASE auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE admin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE ulticode CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE TABLE admin.audit_outbox (
   id VARCHAR(40) NOT NULL PRIMARY KEY,
   performer_id VARCHAR(40) NOT NULL,
@@ -74,6 +75,8 @@ docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
   mysql -uroot auth < "$ROOT_DIR/init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql"
 docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
   mysql -uroot app < "$ROOT_DIR/init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql"
+docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
+  mysql -uroot ulticode < "$ROOT_DIR/init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql"
 
 for account in auth_rw app_rw; do
   remaining="$(mysql_root -N -B -e "SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE = '''$account''@''%''' AND TABLE_SCHEMA = 'admin' AND TABLE_NAME = 'audit_outbox' AND PRIVILEGE_TYPE = 'INSERT';")"

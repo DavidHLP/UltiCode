@@ -1,6 +1,8 @@
 # Baseline — Fresh-install Tooling (Immutable History Preserved)
 
-`init-db/migrations/` remains the **sole Flyway source of truth**. All 89 applied migrations are **immutable** per `AGENTS.md §Database changes` — they are never edited, moved, or squashed.
+`init-db/migrations/` remains the **sole Flyway source of truth**. Historical
+applied migrations are **immutable** per `AGENTS.md §Database changes` — they
+are never moved or squashed; later corrections use forward migrations.
 
 This directory provides **fresh-install tooling** with **preserved immutable history**:
 
@@ -27,12 +29,12 @@ The generator starts a disposable MySQL, runs the full Flyway chain, dumps `--no
 # plus owner migrations via ./init-db/scripts/owner-migrate.sh migrate all
 # or via ./scripts/dev/up.sh (which now delegates through owner-migrate.sh)
 ```
-This runs all 89 migrations (incremental, `baselineOnMigrate=false`).
+This runs the full incremental migration set (`baselineOnMigrate=false`).
 
 **Baseline-optimized (validated per-schema adoption):**
 `baseline.sql` is a `--no-data` dump with `CREATE DATABASE`/`USE` for 6 schemas
 (shared `ulticode` + 5 owners). Parity is validated per-schema
-(`validate-baseline.sh` & `baseline-adopt.sh` both `130 vs 130 PASS`).
+(`validate-baseline.sh` and `baseline-adopt.sh` both perform per-schema parity checks).
 
 Adoption requires per-schema `flyway baseline` at the auto-detected max
 versions (shared `20260822120000`, `auth` `20260821100000`,
@@ -61,4 +63,6 @@ use `baseline-adopt.sh` instead.
 
 ## AI Navigability
 
-Instead of reading 72 root + owner files to infer the final schema, AI/tools can read `baseline.sql` for the converged shape and consult `migrations/` only for historical intent.
+Instead of reading every root and owner migration to infer the final schema,
+AI/tools can read `baseline.sql` for the converged shape and consult
+`migrations/` only for historical intent.

@@ -824,10 +824,12 @@ Submission mutation 窄 Interface 与 owner 内部的 deprecated 1.0.0 compatibi
 仅作为兼容配置保留，显式 `legacy-rollback` 才允许临时本地 read projection。
 
 P2-MIG-001 的 CD 迁移入口是 `scripts/runbooks/owner-migration-manifest.sh`：它固定 shared → Auth → Admin → App →
-Notification → Submission 的顺序，校验每个 `flyway-*.conf` 的 owner schema/location、runtime account 分离、依赖与
-config/migration checksum，在部署主机使用 `flock` 防止并发迁移，并对 Flyway 连接/升级失败做一次有界重试而不自动
-`repair`。每次执行生成不含密码的 JSON 与人读日志；rollback 继续由 `host-deploy` 传入 `skip_migrations=true`，不执行
-schema downgrade。CI/本地只验证 manifest 与 disposable/fake migration 合约，真实生产迁移仍需单独授权。
+Notification → Submission → post-owner controls 的顺序，校验每个 `flyway-*.conf` 的 owner schema/location、runtime
+account 分离、依赖与 config/migration checksum，在部署主机使用 `flock` 防止并发迁移，并对 Flyway 连接/升级失败做一次
+有界重试而不自动 `repair`。跨 owner audit grant 只由 post-owner 阶段以 shared privileged identity 清理，且在所有
+local outbox 已创建后执行。每次执行生成不含密码的 JSON 与人读日志；rollback 继续由 `host-deploy` 传入
+`skip_migrations=true`，不执行 schema downgrade。CI/本地只验证 manifest 与 disposable/fake migration 合约，真实生产
+迁移仍需单独授权。
 
 P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin

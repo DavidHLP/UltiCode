@@ -77,7 +77,8 @@ grep -q 'retrying owner=shared' "$TEST_DIR/retry.log"
 grep -q 'status=PASS' "$TEST_DIR/retry.log"
 RETRY_REPORT="$(find "$TEST_DIR/retry" -name '*.json' -type f -print -quit)"
 grep -q '"status": "PASS"' "$RETRY_REPORT"
-[[ "$(cat "$FAKE_STATE")" == 7 ]]
+[[ "$(cat "$FAKE_STATE")" == 8 ]]
+grep -q 'post-owner' "$TEST_DIR/retry.log"
 printf 'manifest failure retry and fresh/upgrade runner: PASS\n'
 
 LOCK_FILE="$TEST_DIR/owner.lock"

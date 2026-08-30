@@ -2,6 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+if ! java -version >/dev/null 2>&1 && command -v mise >/dev/null 2>&1; then
+  exec mise exec java@zulu-17.68.203.0 -- bash "$0" "$@"
+fi
+
 MYSQL_TEST_CONTAINER="ulticode-owner-migration-test-mysql-$$"
 REDIS_TEST_CONTAINER="ulticode-owner-migration-test-redis-$$"
 TEST_DIR="$(mktemp -d)"
@@ -48,9 +53,11 @@ mysql_root() {
 
 mysql_root -e "
 CREATE DATABASE auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE admin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE ulticode CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE submission CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE TABLE admin.audit_outbox (id VARCHAR(40) NOT NULL PRIMARY KEY, action VARCHAR(64) NOT NULL);
 CREATE USER 'auth_rw'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';
 CREATE USER 'app_rw'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';
 CREATE USER 'migration_missing'@'%' IDENTIFIED BY '$MIGRATION_PASSWORD';
@@ -60,6 +67,8 @@ GRANT RELOAD ON *.* TO 'migration_missing'@'%';
 GRANT SELECT ON auth.* TO 'migration_full'@'%' WITH GRANT OPTION;
 GRANT INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON auth.* TO 'migration_full'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX, REFERENCES, CREATE ROUTINE, ALTER ROUTINE ON app.* TO 'migration_full'@'%' WITH GRANT OPTION;
+GRANT INSERT ON admin.audit_outbox TO 'auth_rw'@'%';
+GRANT INSERT ON admin.audit_outbox TO 'app_rw'@'%';
 GRANT RELOAD ON *.* TO 'migration_full'@'%';"
 
 set +e
@@ -79,14 +88,28 @@ fi
 printf 'missing Flyway DML rejection: PASS\n'
 
 for OWNER_SCHEMA in auth app; do
-  env ENV_FILE="$TEST_ENV" MIGRATION_SCHEMA="$OWNER_SCHEMA" MIGRATION_DB_HOST=127.0.0.1 \
+  if ! env ENV_FILE="$TEST_ENV" MIGRATION_SCHEMA="$OWNER_SCHEMA" MIGRATION_DB_HOST=127.0.0.1 \
     MIGRATION_DB_PORT="$MYSQL_TEST_PORT" MIGRATION_DB_NAME="$OWNER_SCHEMA" \
     MIGRATION_DB_USER=migration_full MIGRATION_DB_PASSWORD="$MIGRATION_PASSWORD" \
     MIGRATION_MYSQL_CONTAINER="$MYSQL_TEST_CONTAINER" MIGRATION_MYSQL_CONTAINER_PORT=3306 \
-    bash "$ROOT_DIR/scripts/dev/migrate.sh" migrate > "$TEST_DIR/migrate-$OWNER_SCHEMA.log" 2>&1
+    MAVEN_BIN="$ROOT_DIR/services/mvnw" \
+    bash "$ROOT_DIR/scripts/dev/migrate.sh" migrate > "$TEST_DIR/migrate-$OWNER_SCHEMA.log" 2>&1; then
+    tail -40 "$TEST_DIR/migrate-$OWNER_SCHEMA.log" >&2
+    exit 1
+  fi
   grep -q 'BUILD SUCCESS' "$TEST_DIR/migrate-$OWNER_SCHEMA.log"
 done
 printf 'Auth/App owner migrations: PASS\n'
+
+env ENV_FILE="$TEST_ENV" MIGRATION_DB_HOST=127.0.0.1 \
+  MIGRATION_DB_PORT="$MYSQL_TEST_PORT" MIGRATION_DB_NAME=ulticode \
+  MIGRATION_DB_USER=root MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
+  MAVEN_BIN="$ROOT_DIR/services/mvnw" \
+  bash "$ROOT_DIR/scripts/dev/migrate-post-owner.sh" migrate > "$TEST_DIR/migrate-post-owner.log" 2>&1
+grep -q 'BUILD SUCCESS' "$TEST_DIR/migrate-post-owner.log"
+POST_OWNER_GRANTS="$(mysql_root -N -B -e "SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE IN (CONCAT(CHAR(39),'auth_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)),CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39))) AND TABLE_SCHEMA='admin' AND TABLE_NAME='audit_outbox' AND PRIVILEGE_TYPE='INSERT';")"
+[[ "$POST_OWNER_GRANTS" == "0" ]]
+printf 'post-owner cross-grant cleanup: PASS\n'
 
 mysql_root -e "
 CREATE TABLE ulticode.users LIKE auth.users;
@@ -123,12 +146,15 @@ INSERT INTO ulticode.submission_result_outbox VALUES ('result-1');
 CREATE USER 'ulticode'@'%' IDENTIFIED BY '$RUNTIME_PASSWORD';"
 printf 'grant isolation fixture setup: PASS\n'
 
-env ENV_FILE="$TEST_ENV" \
-  BACKFILL_CHECKPOINT_FILE="$TEST_DIR/submission-backfill.checkpoint" \
-  BACKFILL_FAILURE_FILE="$TEST_DIR/submission-backfill.failures.tsv" \
-  SUBMISSION_BACKFILL_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL \
-  SUBMISSION_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS \
-  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" backfill --execute > "$TEST_DIR/submission-backfill.log" 2>&1
+if ! env ENV_FILE="$TEST_ENV" \
+    BACKFILL_CHECKPOINT_FILE="$TEST_DIR/submission-backfill.checkpoint" \
+    BACKFILL_FAILURE_FILE="$TEST_DIR/submission-backfill.failures.tsv" \
+    SUBMISSION_BACKFILL_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL \
+    SUBMISSION_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS \
+    bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" backfill --execute > "$TEST_DIR/submission-backfill.log" 2>&1; then
+  tail -60 "$TEST_DIR/submission-backfill.log" >&2
+  exit 1
+fi
 
 grep -q 'Backfill complete: mode=execute' "$TEST_DIR/submission-backfill.log"
 printf 'submission resumable backfill: PASS\n'

@@ -89,6 +89,8 @@ deterministic Owner manifest (`auth`, `admin`, `app`, `notification`,
 `submission`) through the corresponding `flyway-*.conf` files. It keeps the
 shared `MIGRATION_DB_*` identity for Auth/Admin/App/Notification and passes
 `SUBMISSION_MIGRATION_DB_USER/PASSWORD` to the Submission owner migration.
+It then runs `flyway-post-owner.conf` with the shared privileged identity to
+remove the historical cross-owner audit grants after both local outboxes exist.
 Finally it provisions and probes all five local runtime accounts before PM2
 starts. These identities must not be merged or silently defaulted to a runtime
 account.
@@ -164,7 +166,7 @@ complete chain against a fresh MySQL database before release.
 
 ## Convergence — Fresh-install Baseline & Seed Isolation (2026-08-22)
 
-All 89 migrations remain immutable per `AGENTS.md §Database changes`. New tooling
+Historical applied migrations remain immutable per `AGENTS.md §Database changes`. New tooling
 provides **fresh-install** convergence without rewriting history:
 
 - **Baseline**: `init-db/baseline/baseline.sql` (generated, not Flyway source) + `init-db/scripts/generate-baseline.sh` / `validate-baseline.sh`. See `init-db/baseline/README.md`. Fresh-install via baseline avoids re-running legacy seed migrations on new databases.

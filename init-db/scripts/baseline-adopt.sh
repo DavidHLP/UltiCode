@@ -2,7 +2,7 @@
 # baseline-adopt.sh — Per-schema fresh-install adoption for baseline.sql (shared + 5 owners)
 # Validates that baseline.sql + flyway baseline per schema yields same parity as incremental migrate.
 # This is the executable per-schema baseline flow required by architecture review.
-# All 89 migrations remain immutable; this script establishes Flyway history on a fresh DB
+# Historical applied migrations remain immutable; this script establishes Flyway history on a fresh DB
 # that was loaded from baseline.sql, so future increments apply normally.
 # Usage:
 #   ./init-db/scripts/baseline-adopt.sh              # disposable validation (starts MySQL, loads baseline, baselines all 6)
@@ -38,8 +38,9 @@ ADMIN_VER=$(detect_version "$ROOT/init-db/migrations/admin")
 APP_VER=$(detect_version "$ROOT/init-db/migrations/app")
 NOTIF_VER=$(detect_version "$ROOT/init-db/migrations/notification")
 SUB_VER=$(detect_version "$ROOT/init-db/migrations/submission")
+POST_OWNER_VER=$(detect_version "$ROOT/init-db/migrations/post-owner")
 
-echo "[adopt] versions: shared=$SHARED_VER auth=$AUTH_VER admin=$ADMIN_VER app=$APP_VER notification=$NOTIF_VER submission=$SUB_VER"
+echo "[adopt] versions: shared=$SHARED_VER auth=$AUTH_VER admin=$ADMIN_VER app=$APP_VER notification=$NOTIF_VER submission=$SUB_VER post-owner=$POST_OWNER_VER"
 
 JDBC_PARAMS="allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8"
 
@@ -60,6 +61,11 @@ if [ "$MODE" = "disposable" ]; then
   docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
     flyway/flyway:10.17.0 -url="jdbc:mysql://127.0.0.1:3306/ulticode?$JDBC_PARAMS" -user=root -password=root \
     -locations="filesystem:/flyway/init-db/migrations/*.sql" -baselineVersion="$SHARED_VER" baseline >/dev/null
+  echo "[adopt] baselining post-owner controls at $POST_OWNER_VER..."
+  docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
+    flyway/flyway:10.17.0 -url="jdbc:mysql://127.0.0.1:3306/ulticode?$JDBC_PARAMS" -user=root -password=root \
+    -locations="filesystem:/flyway/init-db/migrations/post-owner" -defaultSchema=ulticode \
+    -table=flyway_post_owner_history -baselineVersion="$POST_OWNER_VER" baseline >/dev/null
   for pair in "auth:$AUTH_VER:migrations/auth" "admin:$ADMIN_VER:migrations/admin" "app:$APP_VER:migrations/app" "notification:$NOTIF_VER:migrations/notification" "submission:$SUB_VER:migrations/submission"; do
     IFS=: read -r schema ver loc <<<"$pair"
     echo "[adopt] baselining $schema at $ver..."
@@ -73,6 +79,10 @@ if [ "$MODE" = "disposable" ]; then
   docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
     flyway/flyway:10.17.0 -url="jdbc:mysql://127.0.0.1:3306/ulticode?$JDBC_PARAMS" -user=root -password=root \
     -locations="filesystem:/flyway/init-db/migrations/*.sql" validate >/dev/null
+  docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
+    flyway/flyway:10.17.0 -url="jdbc:mysql://127.0.0.1:3306/ulticode?$JDBC_PARAMS" -user=root -password=root \
+    -locations="filesystem:/flyway/init-db/migrations/post-owner" -defaultSchema=ulticode \
+    -table=flyway_post_owner_history validate >/dev/null
   for pair in "auth:$AUTH_VER:migrations/auth" "admin:$ADMIN_VER:migrations/admin" "app:$APP_VER:migrations/app" "notification:$NOTIF_VER:migrations/notification" "submission:$SUB_VER:migrations/submission"; do
     IFS=: read -r schema ver loc <<<"$pair"
     docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
@@ -84,7 +94,9 @@ if [ "$MODE" = "disposable" ]; then
   trap 'docker rm -f "$CID" >/dev/null 2>&1 || true; rm -f "$TMP_DUMP" "$TMP_BASELINE_PER_SCHEMA" "$TMP_ADOPTED_PER_SCHEMA"' EXIT
   : > "$TMP_DUMP"
   for schema in ulticode auth admin app notification submission; do
-    docker exec "$CID" mysqldump -uroot -proot --no-data --skip-add-drop-table --routines --events --databases "$schema" --ignore-table="$schema.flyway_schema_history" >> "$TMP_DUMP"
+    DUMP_ARGS=(--no-data --skip-add-drop-table --routines --events --databases "$schema" --ignore-table="$schema.flyway_schema_history")
+    [[ "$schema" == "ulticode" ]] && DUMP_ARGS+=(--ignore-table="$schema.flyway_post_owner_history")
+    docker exec "$CID" mysqldump -uroot -proot "${DUMP_ARGS[@]}" >> "$TMP_DUMP"
   done
   extract_per_schema() {
     local file="$1"; local out="$2"
@@ -99,7 +111,7 @@ if [ "$MODE" = "disposable" ]; then
   echo "[adopt] baseline per-schema tables: $(wc -l < "$TMP_BASELINE_PER_SCHEMA"), adopted per-schema tables: $(wc -l < "$TMP_ADOPTED_PER_SCHEMA")"
   if diff -u "$TMP_BASELINE_PER_SCHEMA" "$TMP_ADOPTED_PER_SCHEMA"; then
     echo "[adopt] PASS — baseline+per-schema baseline parity holds (6 schemas, no history leaked)"
-    if grep -q "flyway_schema_history" "$BASELINE_SQL"; then echo "[adopt] FAIL — baseline should not contain history"; exit 1; fi
+    if grep -qE "flyway_(schema|post_owner)_history" "$BASELINE_SQL"; then echo "[adopt] FAIL — baseline should not contain Flyway history"; exit 1; fi
     exit 0
   else
     echo "[adopt] FAIL — per-schema mismatch after adopt"
@@ -159,6 +171,14 @@ else
         -Dflyway.user="$MIGRATION_DB_USER" -Dflyway.password="$MIGRATION_DB_PASSWORD" -Dflyway.baselineVersion="$ver"
     fi
   done
+  echo "[adopt] baselining post-owner controls at $POST_OWNER_VER via privileged shared account..."
+  mvn -f "$ROOT/init-db/pom.xml" -q flyway:baseline -Dflyway.configFiles="$ROOT/init-db/flyway-post-owner.conf" \
+    -Dflyway.url="jdbc:mysql://$MIGRATION_DB_HOST:$MIGRATION_DB_PORT/ulticode?$JDBC_PARAMS" \
+    -Dflyway.user="$MIGRATION_DB_USER" -Dflyway.password="$MIGRATION_DB_PASSWORD" -Dflyway.baselineVersion="$POST_OWNER_VER"
+  echo "[adopt] validating post-owner controls..."
+  mvn -f "$ROOT/init-db/pom.xml" -q flyway:validate -Dflyway.configFiles="$ROOT/init-db/flyway-post-owner.conf" \
+    -Dflyway.url="jdbc:mysql://$MIGRATION_DB_HOST:$MIGRATION_DB_PORT/ulticode?$JDBC_PARAMS" \
+    -Dflyway.user="$MIGRATION_DB_USER" -Dflyway.password="$MIGRATION_DB_PASSWORD"
   echo "[adopt] real adoption complete — 6 schemas baselined, future migrates will apply incrementally"
 
 fi

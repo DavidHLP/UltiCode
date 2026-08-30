@@ -395,6 +395,13 @@ if [[ "$SKIP_MIGRATE" != true ]]; then
       DEV_LOCAL_OWNER_BASELINE_CONFIRM="${DEV_LOCAL_OWNER_BASELINE_CONFIRM:-I_UNDERSTAND_DEV_LOCAL_OWNER_BASELINE}" \
       "$ROOT_DIR/init-db/scripts/owner-migrate.sh" migrate "$owner"
   done
+  echo "Applying post-owner grant cleanup..."
+  MIGRATION_DB_HOST="$MIGRATION_DB_HOST" \
+    MIGRATION_DB_PORT="$MIGRATION_DB_PORT" \
+    MIGRATION_DB_NAME=ulticode \
+    MIGRATION_DB_USER="$MIGRATION_DB_USER" \
+    MIGRATION_DB_PASSWORD="$MIGRATION_DB_PASSWORD" \
+    "$ROOT_DIR/scripts/dev/migrate-post-owner.sh" migrate
   echo "Provisioning local Owner accounts and checking schema readiness..."
   provision_owner_accounts
   verify_owner_accounts

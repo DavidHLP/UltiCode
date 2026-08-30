@@ -38,6 +38,7 @@ ERROR_MESSAGE=""
 MANIFEST_CHECKSUM=""
 declare -A OWNER_CHECKSUMS=()
 declare -a MANIFEST_FILES=()
+POST_OWNER_CHECKSUM=""
 
 mkdir -p "$REPORT_DIR"
 
@@ -67,6 +68,7 @@ write_report() {
     printf '  "manifest_checksum": "%s",\n' "$(json_escape "${MANIFEST_CHECKSUM:-unverified}")"
     printf '  "owner_order": ["auth", "admin", "app", "notification", "submission"],\n'
     printf '  "owner_checksums": {%s},\n' "$owner_json"
+    printf '  "post_owner_checksum": "%s",\n' "$(json_escape "${POST_OWNER_CHECKSUM:-unverified}")"
     printf '  "rollback_compatibility": "skip_migrations=true preserves schema",\n'
     printf '  "error": "%s"\n' "$(json_escape "$ERROR_MESSAGE")"
     printf '}\n'
@@ -135,6 +137,8 @@ collect_manifest_files() {
   for owner in "${OWNER_MIGRATION_ORDER[@]}"; do
     MANIFEST_FILES+=("$ROOT_DIR/init-db/migrations/$owner"/V*.sql)
   done
+  MANIFEST_FILES+=("$ROOT_DIR/init-db/flyway-post-owner.conf")
+  MANIFEST_FILES+=("$ROOT_DIR/init-db/migrations/post-owner"/V*.sql)
   for file in "${MANIFEST_FILES[@]}"; do
     [[ -f "$file" ]] || die "manifest file glob has no match: ${file##*/}"
   done
@@ -148,6 +152,7 @@ validate_manifest() {
     require_value "$variable"
   done
   valid_identifier "$MIGRATION_DB_NAME" || die "invalid migration database name"
+  [[ "$MIGRATION_DB_NAME" == "ulticode" ]] || die "MIGRATION_DB_NAME must be ulticode"
   valid_identifier "$MIGRATION_DB_USER" || die "invalid migration account name"
   valid_port "$MIGRATION_DB_PORT" || die "invalid migration database port"
 
@@ -163,6 +168,7 @@ validate_manifest() {
 
   local owner prefix runtime_user_var runtime_user db_name_var db_name migration_user dependency
   local config expected_location actual_schema migration_dir file index dependency_index
+  local post_owner_config post_owner_location post_owner_schema post_owner_file
   declare -A owner_indexes=()
   for index in "${!OWNER_MIGRATION_ORDER[@]}"; do
     owner_indexes["${OWNER_MIGRATION_ORDER[$index]}"]="$index"
@@ -211,6 +217,23 @@ validate_manifest() {
       "$owner" "${dependency:-none}" "$db_name" "$migration_user" "${OWNER_CHECKSUMS[$owner]}" | tee -a "$HUMAN_REPORT"
   done
 
+  post_owner_config="$ROOT_DIR/init-db/flyway-post-owner.conf"
+  post_owner_location="flyway.locations=filesystem:migrations/post-owner"
+  [[ -f "$post_owner_config" ]] || die "missing post-owner Flyway config"
+  grep -Fx -- "$post_owner_location" "$post_owner_config" >/dev/null \
+    || die "Flyway location mismatch for post-owner controls"
+  post_owner_schema="$(sed -n 's/^flyway.defaultSchema=//p' "$post_owner_config" | head -1)"
+  [[ "$post_owner_schema" == "ulticode" ]] || die "post-owner Flyway schema must be ulticode"
+  post_owner_file="$(find "$ROOT_DIR/init-db/migrations/post-owner" -maxdepth 1 -type f -name 'V*.sql' -print | sort | head -1)"
+  [[ -n "$post_owner_file" ]] || die "no versioned post-owner migrations"
+  while IFS= read -r post_owner_file; do
+    [[ "${post_owner_file##*/}" =~ ^V[0-9]{14}__[A-Za-z0-9_]+\.sql$ ]] \
+      || die "invalid post-owner migration filename: ${post_owner_file#$ROOT_DIR/}"
+  done < <(find "$ROOT_DIR/init-db/migrations/post-owner" -maxdepth 1 -type f -name 'V*.sql' -print | sort)
+  POST_OWNER_CHECKSUM="$(sha256sum "$post_owner_config" "$ROOT_DIR/init-db/migrations/post-owner"/V*.sql | sha256sum | awk '{print $1}')"
+  printf '[owner-migration] preflight phase=post-owner schema=%s checksum=%s\n' \
+    "$post_owner_schema" "$POST_OWNER_CHECKSUM" | tee -a "$HUMAN_REPORT"
+
   collect_manifest_files
   printf '[owner-migration] preflight order=%s\n' "${OWNER_MIGRATION_ORDER[*]}" | tee -a "$HUMAN_REPORT"
   printf '[owner-migration] preflight datasource=%s:%s root_database=%s\n' \
@@ -221,10 +244,18 @@ run_flyway() {
   local owner="$1" user="$2" password="$3" database="$4"
   local locations="filesystem:/flyway/sql/*.sql" schema_args=()
   local flyway_url="jdbc:mysql://${MIGRATION_DB_HOST}:${MIGRATION_DB_PORT}/${database}?allowPublicKeyRetrieval=true&useSSL=true"
-  if [[ "$owner" != "shared" ]]; then
-    locations="filesystem:/flyway/sql/$owner"
-    schema_args=("-defaultSchema=$owner")
-  fi
+  case "$owner" in
+    shared)
+      ;;
+    post-owner)
+      locations="filesystem:/flyway/sql/post-owner"
+      schema_args=("-defaultSchema=ulticode" "-table=flyway_post_owner_history" "-baselineOnMigrate=true" "-baselineVersion=0")
+      ;;
+    *)
+      locations="filesystem:/flyway/sql/$owner"
+      schema_args=("-defaultSchema=$owner")
+      ;;
+  esac
   FLYWAY_URL="$flyway_url" FLYWAY_USER="$user" FLYWAY_PASSWORD="$password" \
     "$DOCKER_BIN" run --rm --network host \
       -e FLYWAY_URL -e FLYWAY_USER -e FLYWAY_PASSWORD \
@@ -270,6 +301,8 @@ run_migrations() {
     migrate_with_retry "$owner" "$migration_user" "$migration_password" "$owner" \
       || die "$owner Flyway migration failed after $MAX_ATTEMPTS attempt(s)"
   done
+  migrate_with_retry post-owner "$MIGRATION_DB_USER" "$MIGRATION_DB_PASSWORD" "$MIGRATION_DB_NAME" \
+    || die "post-owner Flyway migration failed after $MAX_ATTEMPTS attempt(s)"
   PHASE="complete"
 }
 

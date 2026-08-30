@@ -59,7 +59,8 @@ Checkpoint and failure artifacts default under `.local/migration-audit/`; the
 execute path requires explicit backfill and all-writers quiesce confirmations.
 - `submission-backfill-contract.sh` — executable fake-MySQL rehearsal for dry-run checkpoint resume, failure export, and insert-free behavior.
 - `owner-schema-contraction.sh` — read-only owner parity/grant proof by default; `contract --execute` requires backup, writer-quiescence, and contraction confirmations before the destructive step.
-- `owner-migration-manifest.sh` — CD migration seam: validates owner order/config/account/schema/checksums, takes a host lock, runs shared plus owner Flyway chains with bounded retry, and writes JSON/human reports.
+- `owner-migration-manifest.sh` — CD migration seam: validates owner order/config/account/schema/checksums, takes a host lock, runs shared plus owner and post-owner Flyway chains with bounded retry, and writes JSON/human reports.
+- `migrate-post-owner.sh` — local privileged post-owner Flyway chain for cross-schema controls that cannot run under an owner-scoped migration account.
 
 ## scripts/test/ — standalone smoke suites
 
@@ -67,7 +68,7 @@ Gateway baseline, moderation API, admin solutions, Dubbo/Nacos smoke. New
 smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 `smoke_require_credentials`, `smoke_login`). Credentials converge on
 `SMOKE_USERNAME`/`SMOKE_PASSWORD`; legacy names are still accepted.
-- `audit-owner-boundary-contract.sh` — disposable MySQL proof for owner-local audit outboxes, Admin inbox creation, and cross-owner grant revocation.
+- `audit-owner-boundary-contract.sh` — disposable MySQL proof for owner-local audit outboxes, Admin inbox creation, and post-owner cross-owner grant revocation.
 - `owner-migration-manifest-contract.sh` — fast manifest validation/retry/lock/rollback-report contract without a production database.
 
 ## Other

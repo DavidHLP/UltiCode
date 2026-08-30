@@ -1187,6 +1187,31 @@ CREATE TABLE `oauth_provider_identities` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `owner_contraction_proof`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `owner_contraction_proof` (
+  `owner` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source_schema` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_schema` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source_rows` bigint NOT NULL,
+  `target_rows` bigint NOT NULL,
+  `snapshot_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `app_account` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `app_dml_grants` int NOT NULL,
+  `backup_reference` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `backup_verified_at` datetime(3) NOT NULL,
+  `writers_quiesced_at` datetime(3) NOT NULL,
+  `verified_at` datetime(3) NOT NULL,
+  `verified_by` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`owner`),
+  KEY `idx_owner_contraction_proof_verified_at` (`verified_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `password_resets`
 --
 
@@ -2118,7 +2143,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 16:46:28
+-- Dump completed on 2026-08-30 19:34:15
 --
 -- Dumping schema: auth
 --
@@ -2146,6 +2171,37 @@ CREATE TABLE `virtual_contest_sessions` (
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `auth` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 
 USE `auth`;
+
+--
+-- Table structure for table `audit_outbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `audit_outbox` (
+  `id` varchar(40) NOT NULL,
+  `performer_id` varchar(40) NOT NULL,
+  `user_id` varchar(40) DEFAULT NULL,
+  `action` varchar(64) NOT NULL,
+  `entity_type` varchar(64) NOT NULL,
+  `entity_id` varchar(64) NOT NULL,
+  `old_values` json DEFAULT NULL,
+  `new_values` json DEFAULT NULL,
+  `ip_address` varchar(45) NOT NULL DEFAULT 'unknown',
+  `user_agent` varchar(255) DEFAULT NULL,
+  `state` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` text,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `claimed_at` datetime(3) DEFAULT NULL,
+  `claim_owner` varchar(80) DEFAULT NULL,
+  `delivered_at` datetime(3) DEFAULT NULL,
+  `next_retry_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_outbox_state_retry` (`state`,`next_retry_at`),
+  KEY `idx_audit_outbox_claim_owner` (`state`,`claim_owner`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `auth_command_receipt`
@@ -2345,7 +2401,7 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 16:46:29
+-- Dump completed on 2026-08-30 19:34:15
 --
 -- Dumping schema: admin
 --
@@ -2384,7 +2440,7 @@ CREATE TABLE `audit_logs` (
   `id` varchar(40) NOT NULL,
   `performer_id` varchar(40) NOT NULL,
   `user_id` varchar(40) DEFAULT NULL,
-  `action` varchar(60) NOT NULL,
+  `action` varchar(64) NOT NULL,
   `entity_type` varchar(64) DEFAULT NULL,
   `entity_id` varchar(64) DEFAULT NULL,
   `old_values` json DEFAULT NULL,
@@ -2409,7 +2465,7 @@ CREATE TABLE `audit_outbox` (
   `id` varchar(40) NOT NULL,
   `performer_id` varchar(40) NOT NULL,
   `user_id` varchar(40) DEFAULT NULL,
-  `action` varchar(60) NOT NULL,
+  `action` varchar(64) NOT NULL,
   `entity_type` varchar(64) DEFAULT NULL,
   `entity_id` varchar(64) DEFAULT NULL,
   `old_values` json DEFAULT NULL,
@@ -2427,6 +2483,32 @@ CREATE TABLE `audit_outbox` (
   `processed_at` datetime(3) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_state_claimed` (`state`,`claimed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `consumer_inbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `consumer_inbox` (
+  `id` varchar(40) NOT NULL,
+  `consumer` varchar(40) NOT NULL,
+  `event_id` varchar(40) NOT NULL,
+  `event_type` varchar(120) NOT NULL,
+  `payload` json NOT NULL,
+  `state` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` text,
+  `lease_owner` varchar(80) DEFAULT NULL,
+  `lease_expires_at` datetime(3) DEFAULT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `processed_at` datetime(3) DEFAULT NULL,
+  `next_retry_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_consumer_event` (`consumer`,`event_id`),
+  KEY `idx_inbox_state_retry` (`state`,`next_retry_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2532,7 +2614,7 @@ CREATE TABLE `user_warnings` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 16:46:29
+-- Dump completed on 2026-08-30 19:34:15
 --
 -- Dumping schema: app
 --
@@ -2636,6 +2718,37 @@ CREATE TABLE `appeals` (
   KEY `appeals_appellant_id_idx` (`appellant_id`),
   KEY `appeals_status_idx` (`status`),
   KEY `appeals_reviewed_by_id_fkey` (`reviewed_by_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `audit_outbox`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `audit_outbox` (
+  `id` varchar(40) NOT NULL,
+  `performer_id` varchar(40) NOT NULL,
+  `user_id` varchar(40) DEFAULT NULL,
+  `action` varchar(64) NOT NULL,
+  `entity_type` varchar(64) NOT NULL,
+  `entity_id` varchar(64) NOT NULL,
+  `old_values` json DEFAULT NULL,
+  `new_values` json DEFAULT NULL,
+  `ip_address` varchar(45) NOT NULL DEFAULT 'unknown',
+  `user_agent` varchar(255) DEFAULT NULL,
+  `state` varchar(16) NOT NULL DEFAULT 'PENDING',
+  `attempts` int NOT NULL DEFAULT '0',
+  `last_error` text,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `claimed_at` datetime(3) DEFAULT NULL,
+  `claim_owner` varchar(80) DEFAULT NULL,
+  `delivered_at` datetime(3) DEFAULT NULL,
+  `next_retry_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_outbox_state_retry` (`state`,`next_retry_at`),
+  KEY `idx_audit_outbox_claim_owner` (`state`,`claim_owner`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -4094,7 +4207,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 16:46:29
+-- Dump completed on 2026-08-30 19:34:15
 --
 -- Dumping schema: notification
 --
@@ -4311,7 +4424,7 @@ CREATE TABLE `notifications` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 16:46:30
+-- Dump completed on 2026-08-30 19:34:16
 --
 -- Dumping schema: submission
 --
@@ -4361,6 +4474,31 @@ CREATE TABLE `judge_outbox` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_dispatch` (`submission_id`,`generation`),
   KEY `idx_state_retry` (`state`,`next_retry_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `submission_command_receipt`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `submission_command_receipt` (
+  `id` varchar(40) NOT NULL,
+  `command_id` varchar(40) NOT NULL,
+  `service` varchar(80) NOT NULL,
+  `operation` varchar(80) NOT NULL,
+  `idempotency_key` varchar(120) NOT NULL,
+  `request_fingerprint` varchar(64) DEFAULT NULL,
+  `status` varchar(20) NOT NULL COMMENT 'PROCESSING or SUCCESS',
+  `result_payload` json DEFAULT NULL,
+  `actor_type` varchar(30) NOT NULL,
+  `actor_id` varchar(40) NOT NULL,
+  `trace_id` varchar(80) NOT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_submission_command_receipt` (`service`,`operation`,`idempotency_key`),
+  KEY `idx_submission_command_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -4480,4 +4618,4 @@ CREATE TABLE `submissions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 16:46:30
+-- Dump completed on 2026-08-30 19:34:16

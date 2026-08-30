@@ -1,0 +1,24 @@
+task: P2-REDIS-001
+status: PASS_WITH_EXTERNAL_GATE
+implementation_commit: e15c34c
+checks:
+  - command: "rtk bash scripts/test/redis-acl-contract.sh"
+    result: PASS
+    detail: "Deny-by-default exact commands, owner key/channel patterns, previous-password hash overlap, ops ACL LOAD, no plaintext output, and runtime-readable mode pass"
+  - command: "rtk bash scripts/test/redis-acl-rotation-contract.sh"
+    result: PASS
+    detail: "Runtime materialize, dual-credential overlap, Redis ACL LOAD, finalize/old credential retirement, rollback overlap, drift rejection, singleton lock, and plaintext absence pass against disposable Redis 7"
+  - command: "rtk env HEALTH_REDIS_PASSWORD=health-only docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config"
+    result: PASS
+    detail: "Development Compose mounts the ignored runtime REDIS_ACL_DIR directory"
+  - command: "rtk bash scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Architecture/docs contracts, Redis generator/rotation contracts, owner backup/migration contracts, and prior owner gates pass"
+  - command: "rtk bash -n changed Redis scripts; workflow YAML parse; rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "27791 nodes, 82836 edges, 893 communities; 108 SQL files lack tree_sitter_sql and remain covered by direct migration checks"
+external_gates:
+  - "No production Redis credentials were rotated, no remote host was changed, and no production deployment was executed"
+  - "Production secret-store overlap/finalize authority and live Redis rollout remain external"

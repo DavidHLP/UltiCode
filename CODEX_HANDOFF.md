@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-REDIS-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-TLS-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 20 DONE, 22 TODO. `P2-REDIS-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, and `P2-BACKUP-001` are closed in the repository with their available owner checks green.
+Current count: 21 DONE, 21 TODO. `P2-TLS-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, and `P2-REDIS-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -156,7 +156,7 @@ Current count: 20 DONE, 22 TODO. `P2-REDIS-001` is the active implementation tas
 - `P1-SEAM-001`: DONE — Remove shallow and migration-only seams
 - `P2-MIG-001`: DONE — Execute owner migration manifest in CD
 - `P2-BACKUP-001`: DONE — Back up and restore all data owners
-- `P2-REDIS-001`: TODO — Materialize and rotate Redis ACL safely
+- `P2-REDIS-001`: DONE — Materialize and rotate Redis ACL safely
 - `P2-TLS-001`: TODO — Provide production TLS and HSTS profile
 - `P2-SC-001`: TODO — Verify immutable signed image supply chain
 - `P2-OBS-001`: TODO — Operate metrics traces alerts and SLOs
@@ -590,12 +590,12 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P2-REDIS-001`.
+- Current active task: `P2-TLS-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P2-BACKUP-001 as complete and points to `P2-REDIS-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P2-REDIS-001 as complete and points to `P2-TLS-001`.
 
 ## 17. Handoff stop condition
 
@@ -706,3 +706,21 @@ reconciles every archived table row/checksum, runs schema/`SELECT 1` smoke check
 The disposable contract also proves wrong-key rejection and retention pruning. Architecture/documentation/YAML/shell/diff gates and
 Graphify pass. Production off-host backup storage, key management, and restore authority remain external; no production or remote
 mutation was executed. The next repository task is `P2-REDIS-001`.
+
+## 24. Completed checkpoint — P2-REDIS-001
+
+P2-REDIS-001 is repository-complete in `e15c34c`. The tracked Redis ACL
+verifier was removed; Compose now mounts an ignored runtime ACL directory, and
+`init-env.sh`/`up.sh` materialize the hash-only file with same-filesystem
+temporary output plus atomic rename. The generator accepts an optional
+previous-password hash for overlap, while the dedicated ops principal can
+reload the mounted policy with `ACL LOAD`.
+
+`scripts/runbooks/redis-acl-rotation.sh` provides `materialize`, `prepare`,
+`finalize`, `rollback`, and `drift-check`, all serialized by `flock`; state
+and reports contain only phase/file hashes. Host deploy materializes the ACL
+before Compose rollout. The disposable Redis contract proves old/new password
+overlap, old-password retirement, rollback, drift rejection, lock contention,
+deny-by-default policy preservation, and no plaintext credentials. No
+production Redis credentials, remote host, or rollout was changed. The next
+repository task is `P2-TLS-001`.

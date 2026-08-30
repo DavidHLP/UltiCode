@@ -129,6 +129,13 @@
 - Consequences: checksum reconciliation, Flyway validation, smoke, retention, and measured RPO/RTO are executable locally; production off-host storage, key management, and restore authority remain external. The existing Admin HTTP backup surface remains compatible and is not expanded into a cross-owner business-data API.
 - Affected tasks: P2-BACKUP-001, P3-LEASE-001, P2-OBS-001.
 
+## P2-REDIS-001: materialize ACL policy outside Git with overlap rotation
+
+- Context: the tracked `docker/redis/users.acl` was a generated hash snapshot, while replacing a bind-mounted file could leave a running Redis instance on the old inode and there was no executable overlap/rollback proof.
+- Decision: mount an ignored runtime ACL directory, atomically rename generated hash-only `users.acl`, keep current/next credentials as two Redis password hashes during `prepare`, allow the dedicated ops principal to `ACL LOAD`, and expose `finalize`, `rollback`, and `drift-check` under one `flock`.
+- Consequences: local startup and host deploy materialize without committing verifier hashes; disposable Redis proves old/new credential behavior and retention of the deny-by-default command/key policy. Production secret-store rotation, host ACL directory, and rollout authority remain external.
+- Affected tasks: P2-REDIS-001, P2-TLS-001, P3-LEASE-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

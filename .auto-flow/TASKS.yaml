@@ -745,7 +745,7 @@ architecture_remediation_20260830:
       priority: P2
       scope: "Delivery/Redis"
       dependencies: [P0-SEC-006]
-      status: TODO
+      status: DONE
       affected_modules: ["docker/redis", "compose", ".github/actions/host-deploy", "scripts"]
       acceptance_criteria:
         - "Tracked policy contains no credential verifier; runtime ACL is atomically generated outside Git and drift-checked"
@@ -754,10 +754,11 @@ architecture_remediation_20260830:
         - "ACL materialization tests"
         - "Disposable Redis rotation test"
         - "Compose config"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p2-redis-001-green.result"
+      commit: e15c34c
       blocked_by: []
-      notes: "No real production Redis credentials are changed"
+      notes: "Runtime ACL is atomically materialized outside Git; dual-credential overlap/finalize/rollback, ACL LOAD, drift, lock, plaintext, and Compose/architecture contracts pass; no real production Redis credentials are changed"
     - id: P2-TLS-001
       title: "Provide production TLS and HSTS profile"
       priority: P2

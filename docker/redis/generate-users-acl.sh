@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
-# Render docker/redis/users.acl from per-owner Redis credentials.
+# Render a runtime Redis ACL file from per-owner Redis credentials.
 #
 # Usage:
-#   docker/redis/generate-users-acl.sh [output-file]   # defaults to stdout
+#   docker/redis/generate-users-acl.sh [output-file]   # defaults to REDIS_ACL_FILE/stdout
 #
 # Reads one password per security domain from the environment:
 #   AUTH_REDIS_PASSWORD APP_REDIS_PASSWORD ADMIN_REDIS_PASSWORD
 #   SUBMISSION_REDIS_PASSWORD SEARCH_REDIS_PASSWORD NOTIFICATION_REDIS_PASSWORD
 #   JUDGE_REDIS_PASSWORD OPS_REDIS_PASSWORD HEALTH_REDIS_PASSWORD
 #
-# Passwords are stored as SHA-256 hashes (#<hex>), never plaintext. Rotation
-# procedure: set new values in the secret store, render to a same-filesystem
-# temporary file, then atomically replace the mounted ACL file.
+# Passwords are stored as SHA-256 hashes (#<hex>), never plaintext. An optional
+# <PREFIX>_REDIS_PASSWORD_PREVIOUS adds a second hash for overlap rotation.
+# Render to a same-filesystem temporary file, then atomically replace the
+# runtime ACL file; the tracked repository contains no generated verifier.
 set -euo pipefail
 
 command -v openssl >/dev/null 2>&1 || { echo "openssl is required" >&2; exit 1; }
 
-OUTPUT_FILE="${1:-}"
+OUTPUT_FILE="${1:-${REDIS_ACL_FILE:-}}"
 [[ $# -le 1 ]] || { echo "Usage: $0 [output-file]" >&2; exit 2; }
 
 VARS=(
@@ -34,6 +35,14 @@ done
 
 hash_of() { printf '%s' "$1" | openssl dgst -sha256 | awk '{print $NF}'; }
 
+password_hashes() {
+  local variable="$1" previous_variable="${1}_PREVIOUS"
+  printf '#%s' "$(hash_of "${!variable}")"
+  if [[ -n "${!previous_variable:-}" ]]; then
+    printf ' #%s' "$(hash_of "${!previous_variable}")"
+  fi
+}
+
 # Exact commands needed by the current Spring Data Redis, Redisson, and stream
 # adapters. No command categories are used: administrative commands such as
 # FLUSHDB, FLUSHALL, CONFIG, SHUTDOWN, MODULE, and DEBUG remain denied.
@@ -50,23 +59,27 @@ PUBSUB_COMMANDS="+publish +subscribe +psubscribe +unsubscribe +punsubscribe"
 render_acl() {
 cat <<ACL
 user default off
-user ulticode-health on #$(hash_of "$HEALTH_REDIS_PASSWORD") resetkeys resetchannels -@all +ping
-user ulticode-ops on #$(hash_of "$OPS_REDIS_PASSWORD") resetkeys ~* resetchannels &* -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info +acl|whoami
-user ulticode-auth on #$(hash_of "$AUTH_REDIS_PASSWORD") resetkeys ~csrf:* ~oauth:* ~rate-limit:* ~auth:* ~security:delegation:replay:* ~stream:integration resetchannels -@all $COMMON_COMMANDS
-user ulticode-admin on #$(hash_of "$ADMIN_REDIS_PASSWORD") resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* resetchannels -@all $COMMON_COMMANDS
-user ulticode-app on #$(hash_of "$APP_REDIS_PASSWORD") resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~problem:* ~email_queue ~notification_queue ~security:delegation:replay:* ~stream:integration resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info
-user ulticode-submission on #$(hash_of "$SUBMISSION_REDIS_PASSWORD") resetkeys ~stream:integration ~judge:* ~security:delegation:replay:* resetchannels -@all $COMMON_COMMANDS
-user ulticode-search on #$(hash_of "$SEARCH_REDIS_PASSWORD") resetkeys ~stream:integration ~search:* resetchannels -@all $COMMON_COMMANDS
-user ulticode-notification on #$(hash_of "$NOTIFICATION_REDIS_PASSWORD") resetkeys ~stream:integration ~poison:* ~notification:* ~security:delegation:replay:* resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS
-user ulticode-judge on #$(hash_of "$JUDGE_REDIS_PASSWORD") resetkeys ~judge_queue ~queue:* ~judge:* resetchannels -@all $COMMON_COMMANDS
+user ulticode-health on $(password_hashes HEALTH_REDIS_PASSWORD) resetkeys resetchannels -@all +ping
+user ulticode-ops on $(password_hashes OPS_REDIS_PASSWORD) resetkeys ~* resetchannels &* -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info +acl|whoami +acl|load
+user ulticode-auth on $(password_hashes AUTH_REDIS_PASSWORD) resetkeys ~csrf:* ~oauth:* ~rate-limit:* ~auth:* ~security:delegation:replay:* ~stream:integration resetchannels -@all $COMMON_COMMANDS
+user ulticode-admin on $(password_hashes ADMIN_REDIS_PASSWORD) resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* resetchannels -@all $COMMON_COMMANDS
+user ulticode-app on $(password_hashes APP_REDIS_PASSWORD) resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~problem:* ~email_queue ~notification_queue ~security:delegation:replay:* ~stream:integration resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info
+user ulticode-submission on $(password_hashes SUBMISSION_REDIS_PASSWORD) resetkeys ~stream:integration ~judge:* ~security:delegation:replay:* resetchannels -@all $COMMON_COMMANDS
+user ulticode-search on $(password_hashes SEARCH_REDIS_PASSWORD) resetkeys ~stream:integration ~search:* resetchannels -@all $COMMON_COMMANDS
+user ulticode-notification on $(password_hashes NOTIFICATION_REDIS_PASSWORD) resetkeys ~stream:integration ~poison:* ~notification:* ~security:delegation:replay:* resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS
+user ulticode-judge on $(password_hashes JUDGE_REDIS_PASSWORD) resetkeys ~judge_queue ~queue:* ~judge:* resetchannels -@all $COMMON_COMMANDS
 ACL
 }
 
 if [[ -n "$OUTPUT_FILE" ]]; then
   output_dir="$(dirname -- "$OUTPUT_FILE")"
+  mkdir -p "$output_dir"
   tmp_file="$(mktemp "$output_dir/.users.acl.XXXXXX")"
   trap 'rm -f "$tmp_file"' EXIT
   render_acl > "$tmp_file"
+  # Redis runs as a non-root container user and must read the bind-mounted
+  # runtime file. The file contains one-way hashes only; plaintext secrets
+  # remain in the caller's environment and never enter this output.
   chmod 644 "$tmp_file"
   mv -- "$tmp_file" "$OUTPUT_FILE"
   trap - EXIT

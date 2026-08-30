@@ -99,7 +99,7 @@ Do not close SVC-003 or contract the App schema until the external owner registr
 | Dubbo timeout/retry 漂移 | `RpcPolicy` 与各消费方 `RpcPolicyArchTest` |
 | 非法运行模式组合 | `FlagCombinationValidator` 与 `devstack-manifest.sh` |
 | Admin 备份本地易失 | `BACKUP_DIR` 与生产持久卷 |
-| Redis 共享口令/跨域 key | `docker/redis/users.acl` 与 `generate-users-acl.sh` |
+| Redis 共享口令/跨域 key | runtime `REDIS_ACL_DIR`、`generate-users-acl.sh` 与 `scripts/runbooks/redis-acl-rotation.sh` |
 | Admin Owner 故障伪装空数据 | 类型化 `OWNER_QUERY_UNAVAILABLE` 与 `DegradationStatus` |
 | Worker Consumer 身份冲突/PEL 接管 | 实例唯一 consumer name、claim/reaper 与 `WorkerSloMeters` |
 | tracing/SLO 无代码采集 | OTel/Prometheus 接线、Worker 指标与告警规则 |

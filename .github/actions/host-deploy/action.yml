@@ -182,6 +182,19 @@ runs:
         remote_command+=" ./scripts/runbooks/owner-migration-manifest.sh migrate"
         "${SSH_CMD[@]}" "$remote_command"
 
+    - name: Materialize runtime Redis ACL
+      shell: bash
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        remote_command+=" ./scripts/runbooks/redis-acl-rotation.sh materialize"
+        "${SSH_CMD[@]}" "$remote_command"
+
     - name: Provision sandbox prerequisites on host
       # The judge worker healthcheck requires the sandbox image and seccomp
       # profile to exist on the host; without this step a fresh host would

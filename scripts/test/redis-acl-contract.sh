@@ -5,15 +5,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUTPUT_FILE="$(mktemp)"
 trap 'rm -f "$OUTPUT_FILE"' EXIT
 
-export AUTH_REDIS_PASSWORD=test-auth-password
-export ADMIN_REDIS_PASSWORD=test-admin-password
-export APP_REDIS_PASSWORD=test-app-password
-export SUBMISSION_REDIS_PASSWORD=test-submission-password
-export SEARCH_REDIS_PASSWORD=test-search-password
-export NOTIFICATION_REDIS_PASSWORD=test-notification-password
-export JUDGE_REDIS_PASSWORD=test-judge-password
-export OPS_REDIS_PASSWORD=test-ops-password
-export HEALTH_REDIS_PASSWORD=test-health-password
+password_prefixes=(AUTH ADMIN APP SUBMISSION SEARCH NOTIFICATION JUDGE OPS HEALTH)
+for prefix in "${password_prefixes[@]}"; do
+  password_var="${prefix}_REDIS_PASSWORD"
+  printf -v "$password_var" '%s' "$(openssl rand -hex 24)"
+  export "$password_var"
+done
+AUTH_REDIS_PASSWORD_PREVIOUS="$(openssl rand -hex 24)"
+export AUTH_REDIS_PASSWORD_PREVIOUS
 
 "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$OUTPUT_FILE"
 grep -Fxq 'user default off' "$OUTPUT_FILE"
@@ -49,5 +48,15 @@ grep -Fq 'user ulticode-app ' "$OUTPUT_FILE"
 grep -Fq 'user ulticode-notification ' "$OUTPUT_FILE"
 grep -Fq '~stream:integration' "$OUTPUT_FILE"
 grep -Fq '&ulticode:ws:broadcast' "$OUTPUT_FILE"
+grep -Fq '+acl|load' "$OUTPUT_FILE"
+auth_hash="$(printf '%s' "$AUTH_REDIS_PASSWORD" | openssl dgst -sha256 | awk '{print $NF}')"
+previous_auth_hash="$(printf '%s' "$AUTH_REDIS_PASSWORD_PREVIOUS" | openssl dgst -sha256 | awk '{print $NF}')"
+auth_line="$(grep -F 'user ulticode-auth ' "$OUTPUT_FILE")"
+[[ "$auth_line" == *"#$auth_hash"* && "$auth_line" == *"#$previous_auth_hash"* ]]
+for prefix in "${password_prefixes[@]}"; do
+  password_var="${prefix}_REDIS_PASSWORD"
+  ! grep -F "${!password_var}" "$OUTPUT_FILE" >/dev/null
+done
+[[ "$(stat -c '%a' "$OUTPUT_FILE")" == "644" ]]
 
 printf '%s\n' "Redis ACL contract: PASS"

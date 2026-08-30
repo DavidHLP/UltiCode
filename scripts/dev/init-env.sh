@@ -178,9 +178,10 @@ DB_ROOT_PASSWORD="$mysql_root_password"
 REDIS_HOST=localhost
 REDIS_PORT=26379
 REDIS_DB=0
+REDIS_ACL_DIR=.local/redis
 
-# Per-owner Redis ACL credentials (review 2026-08-25). users.acl is re-rendered
-# from these values below, so the dev stack always pairs with this .env.
+# Per-owner Redis ACL credentials (review 2026-08-25). The runtime ACL is
+# re-rendered outside the repository from these values below.
 AUTH_REDIS_PASSWORD="$auth_redis_password"
 ADMIN_REDIS_PASSWORD="$admin_redis_password"
 APP_REDIS_PASSWORD="$app_redis_password"
@@ -301,19 +302,24 @@ EOF
 
 chmod 600 "$OUTPUT_FILE"
 
-# Re-render the Redis ACL file from the freshly generated per-owner passwords so
-# the dev stack always pairs with this .env (review 2026-08-25).
-ACL_FILE="$ROOT_DIR/docker/redis/users.acl"
+# Re-render the runtime Redis ACL file from the freshly generated per-owner
+# passwords so the dev stack always pairs with this .env. The output stays
+# outside the tracked repository (review 2026-08-25 / P2-REDIS-001).
+ACL_DIR="${REDIS_ACL_DIR:-$ROOT_DIR/.local/redis}"
+ACL_FILE="${REDIS_ACL_FILE:-$ACL_DIR/users.acl}"
+[[ "$ACL_DIR" == /* ]] || ACL_DIR="$ROOT_DIR/$ACL_DIR"
+[[ "$ACL_FILE" == /* ]] || ACL_FILE="$ROOT_DIR/$ACL_FILE"
+mkdir -p "$ACL_DIR"
+chmod 755 "$ACL_DIR"
 if [[ -f "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
   # shellcheck disable=SC1090
   set -a
   source "$OUTPUT_FILE"
   set +a
-  "$ROOT_DIR/docker/redis/generate-users-acl.sh" > "$ACL_FILE"
-  chmod 644 "$ACL_FILE"
-  echo "Re-rendered Redis ACL file: $ACL_FILE"
+  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$ACL_FILE"
+  echo "Materialized Redis ACL file: $ACL_FILE"
 else
-  echo "WARNING: docker/redis/generate-users-acl.sh not found; docker/redis/users.acl still holds the committed dev-placeholder hashes." >&2
+  echo "WARNING: docker/redis/generate-users-acl.sh not found; runtime Redis ACL was not materialized." >&2
 fi
 
 echo "Generated private development environment: $OUTPUT_FILE"

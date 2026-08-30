@@ -273,8 +273,16 @@ replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/mod
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"
 contains docker/redis/generate-users-acl.sh '~stream:integration'
-contains docker/redis/users.acl '~stream:integration'
+[[ ! -e "$ROOT_DIR/docker/redis/users.acl" ]] || fail "tracked Redis ACL verifier remains"
+contains docker-compose.yml 'REDIS_ACL_DIR'
+contains docker/redis/generate-users-acl.sh '<PREFIX>_REDIS_PASSWORD_PREVIOUS'
+contains scripts/runbooks/redis-acl-rotation.sh 'next-overlap-current'
+contains scripts/runbooks/redis-acl-rotation.sh 'current-overlap-next'
+contains scripts/runbooks/redis-acl-rotation.sh 'runtime ACL drift detected'
+contains .github/actions/host-deploy/action.yml 'redis-acl-rotation.sh materialize'
+contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
 bash "$ROOT_DIR/scripts/test/redis-acl-contract.sh"
+bash "$ROOT_DIR/scripts/test/redis-acl-rotation-contract.sh"
 bash "$ROOT_DIR/scripts/test/ssh-host-identity-contract.sh"
 bash "$ROOT_DIR/scripts/test/nacos-security-contract.sh"
 bash "$ROOT_DIR/scripts/test/submission-backfill-contract.sh"
@@ -381,6 +389,7 @@ contains scripts/runbooks/owner-backup-restore.sh 'openssl enc -aes-256-cbc -sal
 contains scripts/runbooks/owner-backup-restore.sh 'flock -n'
 contains scripts/runbooks/owner-backup-restore.sh 'rto_seconds'
 contains .github/workflows/_backend.yml 'owner-backup-restore-contract.sh'
+contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
 contains .github/actions/host-deploy/action.yml 'MIGRATION_DB_PASSWORD'

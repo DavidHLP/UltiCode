@@ -29,6 +29,7 @@ capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION
   INTERNAL_DELEGATION_PRIVATE_KEY INTERNAL_DELEGATION_PUBLIC_KEY \
   INTERNAL_DELEGATION_KEY_ID BOOTSTRAP_DELEGATION_PRIVATE_KEY \
   BOOTSTRAP_DELEGATION_PUBLIC_KEY BOOTSTRAP_DELEGATION_KEY_ID HEALTH_REDIS_PASSWORD DUBBO_NAMESPACE \
+  REDIS_ACL_DIR REDIS_ACL_FILE \
   AUTH_NACOS_USERNAME AUTH_NACOS_PASSWORD ADMIN_NACOS_USERNAME ADMIN_NACOS_PASSWORD \
   APP_NACOS_USERNAME APP_NACOS_PASSWORD SUBMISSION_NACOS_USERNAME SUBMISSION_NACOS_PASSWORD \
   NOTIFICATION_NACOS_USERNAME NOTIFICATION_NACOS_PASSWORD JUDGE_NACOS_USERNAME JUDGE_NACOS_PASSWORD
@@ -256,11 +257,19 @@ if [[ "$FRONTEND_ONLY" != true && ! "$SUBMISSION_MIGRATION_DB_USER" =~ ^[A-Za-z0
 fi
 devstack_validate_environment "$DEV_MODE" "$ROOT_DIR" "$FRONTEND_ONLY" "$PREPARE_SUBMISSION_OWNER"
 
-# Keep the mounted Redis ACL file in lockstep with the credentials loaded from
-# .env. Without this, --force-recreate can start Redis with stale hashes and
-# block the whole stack at its healthcheck with WRONGPASS.
+REDIS_ACL_DIR="${REDIS_ACL_DIR:-$ROOT_DIR/.local/redis}"
+[[ "$REDIS_ACL_DIR" == /* ]] || REDIS_ACL_DIR="$ROOT_DIR/$REDIS_ACL_DIR"
+REDIS_ACL_FILE="${REDIS_ACL_FILE:-$REDIS_ACL_DIR/users.acl}"
+[[ "$REDIS_ACL_FILE" == /* ]] || REDIS_ACL_FILE="$ROOT_DIR/$REDIS_ACL_FILE"
+export REDIS_ACL_DIR REDIS_ACL_FILE
+mkdir -p "$REDIS_ACL_DIR"
+chmod 755 "$REDIS_ACL_DIR"
+
+# Keep the runtime Redis ACL directory in lockstep with the credentials loaded
+# from .env. Without this, --force-recreate can start Redis with stale hashes
+# and block the whole stack at its healthcheck with WRONGPASS.
 if [[ -x "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
-  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$ROOT_DIR/docker/redis/users.acl"
+  "$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
 else
   echo "Missing Redis ACL generator: docker/redis/generate-users-acl.sh" >&2
   exit 1

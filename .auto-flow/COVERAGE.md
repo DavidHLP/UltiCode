@@ -68,3 +68,9 @@ The complete finding-to-task matrix is maintained in docs/architecture/remediati
 - Every external GitHub Action is pinned to a full commit SHA; Docker Publish emits BuildKit SBOM/provenance, a pinned Trivy report, Cosign signature/attestations, and an immutable release manifest.
 - Deploy and rollback validate the manifest locally and run digest/signature/SPDX/SLSA/Trivy verification on the target host before Compose pull/up. Exceptions require a non-empty ignorefile and future UTC expiry.
 - Contract, synthetic Compose config, three representative container builds, architecture/docs/YAML/shell/diff, and Graphify passed. Real registry/OIDC, promotion, and production host authority remain external.
+
+### P2-OBS-001 runnable observability control plane
+
+- The opt-in overlay wires owner Actuator metrics, web-less worker OTLP metrics, HTTP/Dubbo/Streams traces, mounted logs, Tempo/Loki correlation, Grafana dashboards, Prometheus rules, Alertmanager routing, and release annotations.
+- Initial availability/latency/worker/reconciliation/backup/stream/security/scheduler/JVM/pool formulas, windows, budgets, and recovery actions are documented; production telemetry storage, notification, threshold tuning, and real-traffic SLO evidence remain external.
+- Prometheus/Alertmanager/Collector validation, merged Compose, disposable overlay smoke, Search/Judge compile, Search Docker build, architecture/docs/YAML/XML/shell/diff, and Graphify passed.

@@ -1,0 +1,24 @@
+task: P2-OBS-001
+status: GREEN
+commit: 7320923
+date: 2026-08-31
+
+implementation:
+  - "Added an opt-in, loopback-only docker-compose.observability.yml with digest-pinned OpenTelemetry Collector, Prometheus, Alertmanager, Grafana, Tempo, and Loki services."
+  - "Prometheus scrapes all HTTP owner Actuator endpoints and the Collector's Prometheus exporter; Search/Judge retain web-application-type=none and export Micrometer metrics over OTLP."
+  - "Owner/worker logging patterns include traceId/spanId; Grafana provisions Prometheus, Tempo, Loki, and Alertmanager datasources plus a release-annotation dashboard with TraceID derived links."
+  - "Added Prometheus service/HTTP/RPC/reconciliation/worker alerts, Alertmanager severity routes, initial SLO formulas/windows/budgets, owner recovery guidance, and a secret-safe Grafana release annotation runbook."
+  - "Added micrometer-registry-otlp to Search/Judge and explicit production Compose MANAGEMENT_OTLP_METRICS_* wiring; fixed Search's missing stable finalName so the existing release matrix artifact is actually copyable."
+
+validation:
+  - "scripts/test/observability-contract.sh: PASS; dashboard JSON, merged Compose, Prometheus promtool config/rules, Alertmanager amtool config, OTel Collector validate, release annotation input/success/redaction paths all pass."
+  - "Disposable observability Compose smoke: PASS; Prometheus, Alertmanager, Grafana, Tempo, Loki, and OTel Collector all reached running state with fixed digest images; exact project/volumes/network were cleaned afterward."
+  - "Observability YAML/JSON/POM XML parse: PASS."
+  - "Search/Judge Maven reactor compile with Zulu 17 and micrometer-registry-otlp: PASS (exit 0)."
+  - "Search worker production Docker build after artifact fix: PASS; local image id sha256:0499f323e5cd663a9eef0c9feac8645267c1267e5015182a48fdcb53d45957d0."
+  - "scripts/test/supply-chain-contract.sh, scripts/dev/architecture-contract-test.sh, scripts/dev/docs-contract-test.sh, bash syntax checks, and git diff checks: PASS."
+  - "graphify update .: PASS; 27832 nodes, 82891 edges, 910 communities; the known tree_sitter_sql warning remains limited to excluded SQL extraction."
+
+external_boundary:
+  - "The overlay is optional and does not claim production telemetry completeness, retention, tuned thresholds, notification delivery, or real-traffic SLO attainment. Production receiver/storage, Alertmanager on-call endpoint, Grafana token, release approval, and live traffic evidence remain external."
+  - "No production, remote host, credential, sudo, Docker-group, registry, or third-party state was changed."

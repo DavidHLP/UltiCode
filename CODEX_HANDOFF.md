@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 22 DONE, 20 TODO. `P2-SC-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, and `P2-TLS-001` are closed in the repository with their available owner checks green.
+Current count: 24 DONE, 18 TODO. `P2-DEPLOY-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, and `P2-OBS-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -158,8 +158,8 @@ Current count: 22 DONE, 20 TODO. `P2-SC-001` is the active implementation task; 
 - `P2-BACKUP-001`: DONE — Back up and restore all data owners
 - `P2-REDIS-001`: DONE — Materialize and rotate Redis ACL safely
 - `P2-TLS-001`: DONE — Provide production TLS and HSTS profile
-- `P2-SC-001`: TODO — Verify immutable signed image supply chain
-- `P2-OBS-001`: TODO — Operate metrics traces alerts and SLOs
+- `P2-SC-001`: DONE — Verify immutable signed image supply chain
+- `P2-OBS-001`: DONE — Operate metrics traces alerts and SLOs
 - `P2-DEPLOY-001`: TODO — Enforce release rollback and config integrity
 - `P3-SCHED-001`: TODO — Isolate critical scheduler executors
 - `P3-LEASE-001`: TODO — Fence singleton jobs across replicas
@@ -589,13 +589,13 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed P2-SC-001 implementation checkpoint: `80326f1`; the previous P2-TLS-001 implementation is `bb01971`.
-- Current active task: `P2-OBS-001`.
+- Last committed P2-OBS-001 implementation checkpoint: `7320923`; the previous P2-SC-001 implementation is `80326f1`.
+- Current active task: `P2-DEPLOY-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P2-SC-001 as complete and points to `P2-OBS-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P2-OBS-001 as complete and points to `P2-DEPLOY-001`.
 
 ## 17. Handoff stop condition
 
@@ -763,3 +763,25 @@ documentation contracts, shell syntax, diff check, and Graphify pass. The local 
 registry push, OIDC signing, attestation publication, remote vulnerability verification, release promotion, production deployment,
 and exception approval remain external; no production, remote, credential, sudo, Docker-group, or third-party state was changed. The
 next repository task is `P2-OBS-001`.
+
+## 27. Completed checkpoint — P2-OBS-001
+
+P2-OBS-001 is repository-complete in `7320923` (`feat(observability): add runnable telemetry control plane`). The opt-in
+`docker-compose.observability.yml` provides loopback-only, digest-pinned OpenTelemetry Collector, Prometheus, Alertmanager, Grafana,
+Tempo, and Loki services. Prometheus scrapes all HTTP Owner Actuator endpoints and the Collector's Prometheus exporter; Search and
+Judge keep `web-application-type=none` and export Micrometer metrics over OTLP. Service logging includes `traceId`/`spanId`, and the
+Grafana Loki datasource links log trace IDs to Tempo.
+
+Prometheus loads the existing Worker SLO rules plus service/HTTP/RPC/reconciliation alerts. Alertmanager routes warning/critical
+alerts to a deployment-owned receiver, Grafana provisions an immutable overview dashboard, and
+`observability-release-annotation.sh` validates the full image manifest before posting a release/environment marker without printing
+the API token. The Runbook records initial availability/latency/worker/reconciliation/backup/stream/security/scheduler/JVM/pool
+formulas, windows, budgets, thresholds, and recovery actions. Search's stable finalName also fixes the release matrix artifact path
+that previously made its Docker build fail after Maven succeeded.
+
+The observability contract passes dashboard JSON, merged Compose, Prometheus `promtool`, Alertmanager `amtool`, Collector validation,
+release annotation guards, Search/Judge compile, and the Search worker Docker build. A disposable six-container overlay smoke reached
+running state and cleaned its exact project/volumes/network. Architecture/documentation/supply-chain/YAML/XML/shell/diff gates and
+Graphify pass; 108 SQL files still lack the optional `tree_sitter_sql` parser. Production telemetry storage/receiver, on-call webhook,
+Grafana token, threshold tuning, release approval, and real-traffic SLO evidence remain external. The next repository task is
+`P2-DEPLOY-001`.

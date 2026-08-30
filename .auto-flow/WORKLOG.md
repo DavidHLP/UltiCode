@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P2-OBS-001 completed in `7320923`: added the optional digest-pinned Collector/Prometheus/Alertmanager/Grafana/Tempo/Loki overlay, worker OTLP metrics, trace/span log correlation, SLO formulas/budgets, alert routes, dashboard, release annotation, and recovery Runbook; fixed Search artifact naming; observability contract, disposable six-container smoke, Search/Judge compile, Search Docker build, architecture/docs, shell/diff, and Graphify gates pass. Production telemetry/on-call authority remains external. Next task is P2-DEPLOY-001.
+
 - 2026-08-31: P2-SC-001 completed in `80326f1`: production bases/infrastructure and external Actions are immutable; Docker Publish emits SBOM/scan/digest/signature/provenance evidence; host deploy and rollback fail closed on a shared nine-service digest policy. Workflow/YAML, synthetic Compose, three Docker builds, architecture/docs, shell/diff, and Graphify gates pass; local Cosign/Trivy, registry promotion, and production deployment remain external. Next task is P2-OBS-001.
 
 - 2026-08-31: P2-TLS-001 completed in `bb01971`: both frontend gateways now have an explicit production certificate overlay, HTTP-to-HTTPS redirect, TLS1.2/1.3, scheme-aware HSTS, HTTPS healthchecks, and Secure cookie/CORS/JWKS alignment; temporary-cert Nginx/architecture/docs gates pass. Next task is P2-SC-001; real certificate/edge authority remains external.

@@ -802,7 +802,7 @@ architecture_remediation_20260830:
       priority: P2
       scope: "Observability"
       dependencies: [P1-SUB-004, P1-NOT-001]
-      status: TODO
+      status: DONE
       affected_modules: ["infrastructure/observability", "docker/prometheus", "services metrics", "runbooks"]
       acceptance_criteria:
         - "Collector scrape trace/log correlation dashboards alerts routing and release annotations are runnable"
@@ -811,10 +811,11 @@ architecture_remediation_20260830:
         - "Observability config validation"
         - "Metric/alert contract tests"
         - "Local smoke when runtime available"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p2-obs-001-green.result"
+      commit: 7320923
       blocked_by: []
-      notes: "Unconfirmed targets are labeled initial engineering goals"
+      notes: "Opt-in digest-pinned observability overlay, owner scrape, worker OTLP metrics, trace/log correlation, dashboard, alert routing, release annotation, SLO/runbook formulas, and disposable configuration/container contracts pass; production telemetry authority and threshold tuning remain external"
     - id: P2-DEPLOY-001
       title: "Enforce release rollback and config integrity"
       priority: P2

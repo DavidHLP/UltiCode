@@ -130,6 +130,19 @@ class JwtTokenProviderTest {
             assertThatThrownBy(() -> properties.validateSecret())
                     .isInstanceOf(IllegalStateException.class);
         }
+
+        @Test
+        @DisplayName("rejects insecure cookies outside an explicit local profile")
+        void rejectsInsecureCookiesWithoutLocalProfile() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret(SECRET);
+            properties.getCookie().getAccessToken().setSecure(false);
+            properties.getCookie().getRefreshToken().setSecure(false);
+
+            assertThatThrownBy(properties::validateSecret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Secure");
+        }
     }
 
     @Nested

@@ -63,3 +63,10 @@
 
 - Decision: extend .auto-flow, services/docs/SERVICES_ISSUES.md, owner migration manifest, Streams/Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, and architecture gates. Do not create a parallel task system or replacement architecture.
 - Affected tasks: all architecture_remediation_20260830 tasks.
+
+### Isolate registry identities by workload
+
+- Context: production registry clients previously inherited one shared Nacos username/password and the Compose override could silently run standalone.
+- Decision: keep dev explicitly standalone in the dev namespace; require a production cluster peer list and non-empty namespace; provision one registry user/role per Dubbo workload with only config/service read-write permissions, while the built-in Nacos account stays disabled.
+- Consequences: a service credential or registry permission can be rotated independently; live Nacos account provisioning and registration smoke remain environment-gated and are not performed by repository work.
+- Affected tasks: P0-SEC-008, P3-IDENTITY-001.

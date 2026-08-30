@@ -537,7 +537,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/Nacos"
       dependencies: [CTX-001]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["services application config", "compose", "scripts"]
       acceptance_criteria:
         - "Each service receives explicit least-privilege registry credentials and identity metadata"
@@ -547,6 +547,8 @@ architecture_remediation_20260830:
         - "Nacos/Dubbo config architecture tests"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-008-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-008-green.result"
+      commit: b689e73
       blocked_by: []
       notes: "P3 adds workload mTLS; no real Nacos accounts are changed"
     - id: P1-SUB-001

@@ -1,0 +1,37 @@
+task: P0-SEC-008
+status: PASS_WITH_EXTERNAL_GATE
+commit: b689e73
+checks:
+  - command: "rtk ./scripts/test/nacos-security-contract.sh"
+    result: PASS
+    detail: "Production Nacos is cluster-only with a required peer list, default account disabled, explicit per-service credentials, application names, and required namespace; local development remains explicit standalone/dev."
+  - command: "rtk ./scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Architecture, documentation, DevStack, Redis ACL, SSH identity, and Nacos security contracts pass."
+  - command: "rtk bash scripts/dev/docs-contract-test.sh"
+    result: PASS
+  - command: "rtk bash -n scripts/test/nacos-security-contract.sh scripts/test/dubbo-nacos-smoke.sh scripts/dev/devstack-manifest.sh scripts/dev/init-env.sh scripts/dev/up.sh scripts/security/bootstrap-nacos-user.sh"
+    result: PASS
+  - command: "rtk node --check ecosystem.config.cjs"
+    result: PASS
+  - command: "rtk python3 -c 'yaml.safe_load(...)'"
+    result: PASS
+    detail: "Base, development, and production Compose YAML parse successfully."
+  - command: "rtk docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null"
+    result: PASS
+  - command: "rtk docker compose --env-file <synthetic non-secret test env> -f docker-compose.yml -f docker-compose.prod.yml config --format json"
+    result: PASS
+    detail: "Production interpolation succeeds with required non-secret test values; the rendered config asserts cluster mode, required NACOS_SERVERS, unique application names, prod namespace, and six distinct registry bindings."
+  - command: "rtk ./scripts/dev/init-env.sh --output /tmp/ulticode-p0-sec-008.env --force"
+    result: PASS
+    detail: "Generated per-service Nacos credentials and explicit dev namespace; generated password lengths were checked without printing values. The tracked Redis ACL artifact was restored after the disposable generation check."
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "Repository graph synchronized after the configuration and script changes."
+external_gate:
+  - command: "Disposable Nacos/Dubbo registration smoke"
+    result: BLOCKED_EXTERNAL
+    detail: "Docker daemon access is unavailable (current user is not in group docker; /var/run/docker.sock is root:docker 0660), and no native Nacos runtime is installed. No production Nacos account, credential, or host state was changed."
+red:
+  evidence: ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-008-red.result"
+  result: "The pre-change contract failed because production defaulted to standalone mode and reused shared NACOS_USERNAME/NACOS_PASSWORD registry credentials."

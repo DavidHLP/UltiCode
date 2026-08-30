@@ -157,6 +157,13 @@
 - Consequences: configuration, rule syntax, dashboard JSON, container startup, and annotation input guards are locally testable without enabling the overlay by default. The overlay is not a claim of production SLO attainment and must not expose management endpoints or secrets publicly.
 - Affected tasks: P2-OBS-001, P2-SC-001, P2-DEPLOY-001, P3-SCHED-001, P3-LEASE-001.
 
+## P2-DEPLOY-001: make release and rollback state explicit before mutation
+
+- Context: host-deploy verified images only near the final Compose step, had no source/schema/artifact descriptor, and host-health could print individual successes without a system-level outcome; tag rollback did not prove schema compatibility.
+- Decision: require source commit and canonical migration manifest checksum inputs, run local/remote image and Compose preflight before owner migration/ACL/sandbox changes, atomically record a secret-free `PENDING_HEALTH` deployment descriptor after `pull/up`, and let host-health mark `HEALTHY` only when every allowlisted service passes. Rollback requires the prior descriptor and matching schema checksum, while skipping migrations remains mandatory.
+- Consequences: incompatible or partially healthy releases fail closed and leave an auditable commit/schema/digest trail; a host must expose a Git checkout or source-commit marker and deployment-owned schema checksum. No schema downgrade, remote host mutation, production rollback, or migration authority is inferred locally.
+- Affected tasks: P2-DEPLOY-001, P2-MIG-001, P2-SC-001, P2-TLS-001, P3-GRACE-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

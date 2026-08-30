@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 24 DONE, 18 TODO. `P2-DEPLOY-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, and `P2-OBS-001` are closed in the repository with their available owner checks green.
+Current count: 25 DONE, 17 TODO. `P3-SCHED-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, and `P2-DEPLOY-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -160,7 +160,7 @@ Current count: 24 DONE, 18 TODO. `P2-DEPLOY-001` is the active implementation ta
 - `P2-TLS-001`: DONE — Provide production TLS and HSTS profile
 - `P2-SC-001`: DONE — Verify immutable signed image supply chain
 - `P2-OBS-001`: DONE — Operate metrics traces alerts and SLOs
-- `P2-DEPLOY-001`: TODO — Enforce release rollback and config integrity
+- `P2-DEPLOY-001`: DONE — Enforce release rollback and config integrity
 - `P3-SCHED-001`: TODO — Isolate critical scheduler executors
 - `P3-LEASE-001`: TODO — Fence singleton jobs across replicas
 - `P3-GRACE-001`: TODO — Drain services safely on termination
@@ -589,13 +589,13 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed P2-OBS-001 implementation checkpoint: `7320923`; the previous P2-SC-001 implementation is `80326f1`.
-- Current active task: `P2-DEPLOY-001`.
+- Last committed P2-DEPLOY-001 implementation checkpoint: `60784a5`; the previous P2-OBS-001 implementation is `7320923`.
+- Current active task: `P3-SCHED-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P2-OBS-001 as complete and points to `P2-DEPLOY-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P2-DEPLOY-001 as complete and points to `P3-SCHED-001`.
 
 ## 17. Handoff stop condition
 
@@ -785,3 +785,21 @@ running state and cleaned its exact project/volumes/network. Architecture/docume
 Graphify pass; 108 SQL files still lack the optional `tree_sitter_sql` parser. Production telemetry storage/receiver, on-call webhook,
 Grafana token, threshold tuning, release approval, and real-traffic SLO evidence remain external. The next repository task is
 `P2-DEPLOY-001`.
+
+## 28. Completed checkpoint — P2-DEPLOY-001
+
+P2-DEPLOY-001 is repository-complete in `60784a5` (`feat(deploy): enforce release and rollback integrity`). The shared host-deploy
+action now validates the immutable image manifest, approved source commit, canonical migration manifest checksum, required deployment
+files, merged production Compose configuration, and registry evidence before owner migrations, Redis ACL materialization, Judge sandbox
+provisioning, or Compose mutation. Successful `pull/up` writes only an atomic, secret-free `PENDING_HEALTH` descriptor containing the
+commit, schema checksum, service scope, image manifest, and timestamp.
+
+Host-health now checks production frontend HTTPS ports, validates every deployable service, persists `HEALTHY` or `FAILED`, and emits a
+system-level summary; any partial service failure returns non-zero and is never reported as system success. Rollback requires a prior
+descriptor and matching canonical schema checksum, continues to use `skip_migrations=true`, and refuses absent or incompatible schema
+state. Owner migration and backup Flyway defaults are digest-pinned, and CD deploy/rollback pass explicit source/schema inputs.
+
+The deployment-integrity contract passes source/schema/image preflight, descriptor JSON traceability, rollback compatibility and mismatch
+rejection, atomic health updates, preflight ordering, HTTPS health, and partial/system summary assertions. Full architecture/docs/P2-SC/
+P2-OBS/YAML/shell/diff gates and Graphify pass. No remote SSH deployment, production migration/rollback, database downgrade, credential
+rotation, registry mutation, or host checkout mutation was executed. The next repository task is `P3-SCHED-001`.

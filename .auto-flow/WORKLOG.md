@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P2-DEPLOY-001 completed in `60784a5`: host-deploy now preflights source/schema/digest/Compose integrity before migrations/ACL/sandbox/Compose mutation; atomic descriptors and schema-compatible rollback are enforced; host-health requires HTTPS and full system PASS. Disposable contract, full architecture/docs, shell/diff, and Graphify gates pass; remote/production execution remains external. Next task is P3-SCHED-001.
+
 - 2026-08-31: P2-OBS-001 completed in `7320923`: added the optional digest-pinned Collector/Prometheus/Alertmanager/Grafana/Tempo/Loki overlay, worker OTLP metrics, trace/span log correlation, SLO formulas/budgets, alert routes, dashboard, release annotation, and recovery Runbook; fixed Search artifact naming; observability contract, disposable six-container smoke, Search/Judge compile, Search Docker build, architecture/docs, shell/diff, and Graphify gates pass. Production telemetry/on-call authority remains external. Next task is P2-DEPLOY-001.
 
 - 2026-08-31: P2-SC-001 completed in `80326f1`: production bases/infrastructure and external Actions are immutable; Docker Publish emits SBOM/scan/digest/signature/provenance evidence; host deploy and rollback fail closed on a shared nine-service digest policy. Workflow/YAML, synthetic Compose, three Docker builds, architecture/docs, shell/diff, and Graphify gates pass; local Cosign/Trivy, registry promotion, and production deployment remain external. Next task is P2-OBS-001.

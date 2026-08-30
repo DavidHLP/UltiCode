@@ -1,0 +1,22 @@
+task: P2-DEPLOY-001
+status: GREEN
+commit: 60784a5
+date: 2026-08-31
+
+implementation:
+  - "host-deploy now validates the nine-service immutable image manifest, approved source commit, canonical migration manifest checksum, required deployment files, merged production Compose config, and registry evidence before owner migrations, Redis ACL materialization, sandbox provisioning, or Compose mutation."
+  - "Successful pull/up atomically records a secret-free PENDING_HEALTH descriptor containing deployment commit, schema checksum, service scope, image manifest, and timestamp."
+  - "host-health verifies production frontend HTTPS ports, checks every allowlisted service, persists HEALTHY/FAILED descriptor state, emits a system-level PASS/FAILED summary, and returns non-zero for any partial service failure."
+  - "Rollback requires a prior descriptor and matching canonical schema checksum, keeps skip_migrations=true, and refuses missing or incompatible schema state; owner migration and backup Flyway defaults are digest-pinned."
+
+validation:
+  - "scripts/test/deployment-integrity-contract.sh: PASS; source/schema/image preflight, descriptor JSON traceability, rollback compatibility, schema mismatch rejection, atomic health update, preflight ordering, HTTPS health, and partial/system summary assertions pass."
+  - "deployment-integrity.sh schema-checksum returned a 64-character SHA-256; a valid local preflight/record/check-rollback/mark-health rehearsal passed in an ignored temporary directory and cleaned up."
+  - "All GitHub workflow and composite action YAML parsed with PyYAML: PASS."
+  - "scripts/test/supply-chain-contract.sh and scripts/test/observability-contract.sh: PASS."
+  - "scripts/dev/architecture-contract-test.sh: PASS, including migration, backup, Redis, TLS, supply-chain, observability, deployment-integrity, and documentation gates."
+  - "bash -n on changed shell scripts and git diff --check: PASS; actionlint is not installed locally."
+  - "graphify update .: PASS; 27850 nodes, 82929 edges, 877 communities; known tree_sitter_sql warning remains limited to SQL extraction."
+
+external_boundary:
+  - "No remote SSH deployment, production migration, production rollback, database downgrade, credential rotation, registry mutation, or host checkout mutation was executed. A real deployment host must provide the approved source commit, schema checksum, descriptor path, Cosign/Trivy tools, and secret-store values."

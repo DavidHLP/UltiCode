@@ -64,7 +64,7 @@ No staging or production application is assumed by repository completion.
 | Production images permit `latest`; tag-to-digest, signature, provenance and SBOM/scan gates are absent | `P2-SC-001`, `P2-DEPLOY-001` | Dockerfiles, Compose and GitHub workflows/actions | immutable action/image checks, build, SBOM, scan, signature/provenance verification | `80326f1` | Locally Validated; registry/production authority external |
 | External GitHub Actions use mutable major tags | `P2-SC-001` | `.github/workflows` | full-SHA architecture gate and YAML parse | `80326f1` | Locally Validated |
 | Instrumentation exists but Collector/scrape/dashboard/routing/SLO operation is incomplete | `P2-OBS-001` | observability Compose/config, metrics, dashboards, alerts, runbooks | config validation, metric/alert contract tests and local smoke when runtime exists | `7320923` | Locally Validated; production telemetry/threshold authority external |
-| Deploy/rollback/config state is not fully artifact/schema/digest traceable | `P2-DEPLOY-001` | deploy/health/rollback actions, release manifest | config fail-closed, smoke, incompatible rollback denial, partial-system reporting tests | pending | TODO |
+| Deploy/rollback/config state is not fully artifact/schema/digest traceable | `P2-DEPLOY-001` | deploy/health/rollback actions, release manifest | config fail-closed, smoke, incompatible rollback denial, partial-system reporting tests | `60784a5` | Locally Validated; remote/production execution external |
 
 ## P3 resilience and scale
 

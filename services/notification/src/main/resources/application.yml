@@ -152,7 +152,15 @@ management:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
       timeout: 5s
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_OTLP_METRICS_ENABLED:false}
+        url: ${MANAGEMENT_OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+        step: ${MANAGEMENT_OTLP_METRICS_STEP:30s}
 
 logging:
   level:
     com.ulticode: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"

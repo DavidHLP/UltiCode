@@ -11,7 +11,12 @@ rule_files:
   - /etc/prometheus/rules/worker-slo-alerts.yml
 ```
 
-Production compose — add to the `prometheus` service:
+The repository overlay `docker-compose.observability.yml` supplies Prometheus,
+Alertmanager, Grafana, Tempo, Loki, and the OpenTelemetry Collector. Combine it
+with the base plus environment Compose file and opt in with `--profile
+observability`; it binds host ports to loopback only.
+
+The Prometheus service mounts the rules:
 
 ```yaml
 volumes:
@@ -20,4 +25,5 @@ volumes:
 
 Reload: `kill -HUP <prometheus-pid>` or `curl -X POST http://prometheus:9090/-/reload`.
 
-Validate: `docker run --rm -v "$PWD/docker/prometheus:/rules:ro" prom/prometheus:latest promtool check rules /rules/worker-slo-alerts.yml`
+Validate: `./scripts/test/observability-contract.sh` (it uses the pinned
+Prometheus and Alertmanager digests and validates the Collector config).

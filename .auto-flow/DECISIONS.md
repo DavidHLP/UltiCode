@@ -150,6 +150,13 @@
 - Consequences: release artifacts are traceable and a missing/mismatched proof blocks pull/start; registry signing, promotion, signer identity/issuer configuration, exception approval, and production execution remain external trust-boundary responsibilities. Local dev-only tags and the locally built sandbox remain outside the nine-service registry manifest.
 - Affected tasks: P2-SC-001, P2-DEPLOY-001, P2-OBS-001.
 
+## P2-OBS-001: ship an opt-in observability control plane around existing seams
+
+- Context: owner Actuator/Micrometer endpoints, OTLP tracing dependencies, Worker SLO meters, alert rules, and runbooks existed, but there was no runnable repository overlay for scraping, trace/log storage, dashboarding, alert routing, or release markers; Search/Judge intentionally have no HTTP surface.
+- Decision: provide a loopback-only `docker-compose.observability.yml` with digest-pinned OpenTelemetry Collector, Prometheus, Alertmanager, Grafana, Tempo, and Loki; scrape HTTP owner metrics, export web-less worker metrics over Micrometer OTLP, add trace/span IDs to service logs, and publish Grafana release annotations from an immutable release manifest. Keep production receiver/notification endpoints, telemetry retention, threshold tuning, and live traffic evidence external.
+- Consequences: configuration, rule syntax, dashboard JSON, container startup, and annotation input guards are locally testable without enabling the overlay by default. The overlay is not a claim of production SLO attainment and must not expose management endpoints or secrets publicly.
+- Affected tasks: P2-OBS-001, P2-SC-001, P2-DEPLOY-001, P3-SCHED-001, P3-LEASE-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

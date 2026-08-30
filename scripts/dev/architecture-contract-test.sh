@@ -393,6 +393,7 @@ contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
 contains .github/workflows/_docker.yml 'supply-chain-contract.sh'
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
+bash "$ROOT_DIR/scripts/test/observability-contract.sh"
 contains apps/console/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains apps/management/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains infrastructure/nginx/includes/tls-listener.prod.conf 'listen 8443 ssl;'

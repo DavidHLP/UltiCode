@@ -395,7 +395,7 @@ flowchart LR
 | 邮件 | SMTP 管道，默认关闭；写 email log 后同步发 SMTP | 改 intent/outbox + worker；Auth 的密码重置邮件不依赖 App RPC |
 | 搜索 | MeiliSearch 可选，失败回退 DB | 保留在 App；由 Owner event 更新索引 |
 | AI | 当前未发现 AI/LLM/向量能力 | 不为不存在的能力引入服务或组件 |
-| 监控 | Actuator/Micrometer/Prometheus registry，自定义 DB/Redis/Queue inspector；生产 Compose 强制透传外部 OTLP/HTTP collector 地址 | 仓库提供 instrumentation/rules/runbook；collector、Prometheus rule loading、真实 trace/SLO report 由外部运营平台承接 |
+| 监控 | Actuator/Micrometer/Prometheus registry，自定义 DB/Redis/Queue inspector；生产 Compose 强制透传外部 OTLP/HTTP collector 地址 | 仓库提供 instrumentation/rules/runbook，并提供 opt-in 的 digest-pinned Prometheus/Alertmanager/Grafana/Tempo/Loki/OTel overlay；真实 telemetry storage/receiver、阈值调优和 SLO report 仍由外部运营平台承接 |
 
 ##### 2.6 配置、Filter、异常与数据库访问横切面
 
@@ -1453,6 +1453,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 - [ ] Dubbo Triple Provider/Consumer 有 timeout、deadline、版本和健康指标。
 - [ ] OpenTelemetry 串起 Gateway→HTTP→Dubbo→outbox/event。
 - [ ] Prometheus 抓取每服务 metrics；敏感 management endpoint 不公开。
+- [x] P2-OBS-001 提供 loopback-only 的可选 observability overlay、owner scrape、worker OTLP metrics、trace/log correlation、dashboard、alert route 和 release annotation 合同；真实生产 receiver/通知与阈值调优仍外部负责。
 - [ ] 监控 outbox oldest age/retry/dead、inbox duplicate、lease expired、stale verdict、RPC p99/error。
 - [ ] Redis key prefix、credential、容量和 eviction policy 按服务规划。
 - [ ] WebSocket 多实例前完成 sticky/broadcast/relay 方案和断连事件。

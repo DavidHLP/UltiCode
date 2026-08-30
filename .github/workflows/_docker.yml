@@ -30,6 +30,9 @@ jobs:
       - name: Validate immutable supply-chain contract
         run: bash scripts/test/supply-chain-contract.sh
 
+      - name: Validate observability control plane
+        run: bash scripts/test/observability-contract.sh
+
   docker-verify:
     name: Docker Build (${{ matrix.service.name }})
     needs: load-matrix

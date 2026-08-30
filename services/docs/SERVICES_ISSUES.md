@@ -75,7 +75,7 @@ Do not close SVC-003 or contract the App schema until the external owner registr
 
 ### SVC-009 可观测运营证据
 
-现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；生产 Compose 要求为全部 backend 显式提供外部 OTLP collector 地址。仓库只提供 instrumentation、rules 和加载说明，不内置 collector/Prometheus 运营平台，也不能生成真实流量下的端到端 trace、阈值调优和 SLO 报表。
+现状：OTel、Prometheus、Worker SLO 指标、告警规则、Runbook 和故障演练入口已接线；可选 `docker-compose.observability.yml` 提供固定镜像的 Collector、Prometheus、Alertmanager、Grafana、Tempo、Loki overlay，生产 Compose 要求为全部 backend 显式提供外部 OTLP collector 地址。仓库可以验证配置、scrape、规则、路由、dashboard 和 release annotation 接线，但不能替代真实生产 telemetry storage/receiver、阈值调优和 SLO 报表。
 
 触发条件：首次真实生产流量可用于 HTTP → Dubbo → Redis Streams 链路验证，并能执行积压、PEL、DLQ 与 last-success 恢复演练。操作入口见 [`WORKER_SLO_RUNBOOK.md`](WORKER_SLO_RUNBOOK.md)。
 

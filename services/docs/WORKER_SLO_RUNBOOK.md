@@ -125,8 +125,9 @@ redis-cli ... XLEN "judge:{judge-stream}:dlq"
 redis-cli -h $REDIS_HOST -p $REDIS_PORT --user ulticode-notification --pass "$NOTIFICATION_REDIS_PASSWORD" XINFO GROUPS stream:integration
 psql "$NOTIFICATION_DB_URL" -c "select event_id, event_type, left(payload::text,200), created_at from consumer_inbox where consumer_group='App-Notification' order by created_at desc limit 20;"
 
-# Prometheus metrics (per service)
-curl -s http://localhost:9107/actuator/prometheus | grep -E 'search_worker|judge_streams|notification_inbox'
+# Owner Prometheus metrics and web-less worker OTLP metrics (Collector exporter)
+curl -s 'http://localhost:9090/api/v1/query?query=up' | jq .
+curl -s http://localhost:9464/metrics | grep -E 'search_worker|judge_streams|notification_inbox'
 ```
 
 ## 7. Verification checklist (for this runbook)

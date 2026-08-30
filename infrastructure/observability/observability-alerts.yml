@@ -1,0 +1,68 @@
+groups:
+  - name: ulticode-service-slo
+    interval: 30s
+    rules:
+      - alert: OwnerMetricsTargetDown
+        expr: up{job="ulticode-owners"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          owner: "{{ $labels.owner }}"
+        annotations:
+          summary: "{{ $labels.owner }} metrics endpoint is down"
+          description: "Prometheus cannot scrape the {{ $labels.owner }} owner metrics endpoint for 5m. Check /health/ready and container health."
+          runbook: services/docs/OBSERVABILITY_RUNBOOK.md#owner-readiness
+
+      - alert: OwnerHttp5xxRateHigh
+        expr: |
+          (
+            sum by (application) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            clamp_min(sum by (application) (rate(http_server_requests_seconds_count[5m])), 1)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.application }} HTTP 5xx rate exceeds 5%"
+          description: "Initial target: keep HTTP 5xx below 5% for a 10m window; correlate with trace and release annotations before rollback."
+          runbook: services/docs/OBSERVABILITY_RUNBOOK.md#http-slo
+
+      - alert: OwnerHttpP99LatencyHigh
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (application, le) (rate(http_server_requests_seconds_bucket[5m]))
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.application }} HTTP p99 latency exceeds 1s"
+          description: "Initial target: HTTP p99 below 1s for a 10m window; inspect route, RPC, DB, and trace latency before changing capacity."
+          runbook: services/docs/OBSERVABILITY_RUNBOOK.md#http-slo
+
+      - alert: ReconciliationFailuresDetected
+        expr: increase(reconciliation_failures_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Owner reconciliation failures detected"
+          description: "A reconciliation run failed in the last 15m. Inspect persisted failure detail, owner facts, lock state, and the trace id."
+          runbook: services/docs/OBSERVABILITY_RUNBOOK.md#reconciliation-slo
+
+      - alert: RpcProviderErrorRateHigh
+        expr: |
+          (
+            sum by (application) (rate(dubbo_provider_requests_total{result=~"error|failed"}[5m]))
+            /
+            clamp_min(sum by (application) (rate(dubbo_provider_requests_total[5m])), 1)
+          ) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.application }} Dubbo provider error rate exceeds 2%"
+          description: "Initial target: keep provider errors below 2% for 10m; correlate consumer timeout, Nacos, and downstream owner health."
+          runbook: services/docs/OBSERVABILITY_RUNBOOK.md#rpc-slo

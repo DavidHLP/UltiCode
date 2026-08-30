@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: local
+    platform: ulticode
+
+rule_files:
+  - /etc/prometheus/rules/worker-slo-alerts.yml
+  - /etc/prometheus/rules/observability-alerts.yml
+
+scrape_configs:
+  - job_name: ulticode-owners
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - backend-auth:9101
+        labels:
+          owner: auth
+      - targets:
+          - backend-admin:9102
+        labels:
+          owner: admin
+      - targets:
+          - backend-app:9103
+        labels:
+          owner: app
+      - targets:
+          - backend-submission:9106
+        labels:
+          owner: submission
+      - targets:
+          - backend-notification:9105
+        labels:
+          owner: notification
+
+  # Search and Judge are web-application-type=none workers. Their OTLP
+  # Micrometer metrics are converted to a scrape endpoint by the Collector.
+  - job_name: ulticode-otel-metrics
+    static_configs:
+      - targets:
+          - otel-collector:9464

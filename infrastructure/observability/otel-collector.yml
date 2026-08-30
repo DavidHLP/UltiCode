@@ -1,0 +1,58 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  filelog:
+    include:
+      - /var/log/ulticode/*.log
+    start_at: end
+    include_file_path: true
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: ${env:OBS_ENVIRONMENT}
+        action: upsert
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    namespace: ulticode
+    resource_to_telemetry_conversion:
+      enabled: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/tempo]
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/loki]

@@ -42,6 +42,7 @@
 !/docker-compose.prod.yml
 !/docker-compose.ci.yml
 !/docker-compose.gateway-test.yml
+!/docker-compose.observability.yml
 !/.env.example
 !/.env.test.example
 !/.auto-flow/**

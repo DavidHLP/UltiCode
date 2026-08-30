@@ -76,6 +76,10 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+        </dependency>
         <!-- Review 2026-08-25 P1: same OTel tracing set as auth/admin/app-web.
              The worker has no HTTP surface (web-application-type=none); the
              bridge + OTLP exporter cover the Dubbo/Redis Streams paths. -->

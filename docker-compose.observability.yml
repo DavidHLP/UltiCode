@@ -1,0 +1,89 @@
+# Optional observability overlay. It does not start by default and does not
+# publish any application/data service port. Use with the base + environment
+# Compose files and --profile observability.
+services:
+  otel-collector:
+    profiles: [observability]
+    image: otel/opentelemetry-collector-contrib@sha256:af0f72b2d2493fc17f06cf3bc136548240cd7ebb2c8b1c8a7be6f3eb03068389
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    environment:
+      OBS_ENVIRONMENT: ${OBS_ENVIRONMENT:-local}
+    volumes:
+      - ./infrastructure/observability/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+      - ${OBSERVABILITY_LOG_DIR:-./.local/observability/logs}:/var/log/ulticode:ro
+    ports:
+      - "127.0.0.1:${OTEL_GRPC_PORT:-4317}:4317"
+      - "127.0.0.1:${OTEL_HTTP_PORT:-4318}:4318"
+
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./infrastructure/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/worker-slo-alerts.yml:/etc/prometheus/rules/worker-slo-alerts.yml:ro
+      - ./infrastructure/observability/observability-alerts.yml:/etc/prometheus/rules/observability-alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+
+  alertmanager:
+    profiles: [observability]
+    image: prom/alertmanager@sha256:e13b6ed5cb929eeaee733479dce55e10eb3bc2e9c4586c705a4e8da41e5eacf5
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./infrastructure/observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+
+  tempo:
+    profiles: [observability]
+    image: grafana/tempo@sha256:ef4384fce6e8ad22b95b243d8fc165628cda655376fd50e7850536ad89d71d50
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./infrastructure/observability/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+
+  loki:
+    profiles: [observability]
+    image: grafana/loki@sha256:09a53b4a4ff81ffcd8f13886df19d33fac7a8d3aaf952e3c7e66cbade5b2fc31
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./infrastructure/observability/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+
+  grafana:
+    profiles: [observability]
+    image: grafana/grafana@sha256:a0f881232a6fb71a0554a47d0fe2203b6888fe77f4cefb7ea62bed7eb54e13c3
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000/}
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+      - alertmanager
+    volumes:
+      - ./infrastructure/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  tempo_data:
+  loki_data:
+  grafana_data:

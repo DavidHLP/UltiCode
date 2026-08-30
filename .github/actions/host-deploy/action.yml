@@ -8,6 +8,9 @@ inputs:
   ssh_key:
     description: 'Private SSH key for the deploy host'
     required: true
+  known_hosts:
+    description: 'Environment-pinned known_hosts entries for the deploy host'
+    required: true
   host:
     required: true
   port:
@@ -70,17 +73,29 @@ runs:
   steps:
     - name: Install SSH key
       shell: bash
+      env:
+        DEPLOY_KEY: ${{ inputs.ssh_key }}
+        DEPLOY_KNOWN_HOSTS: ${{ inputs.known_hosts }}
+        DEPLOY_HOST: ${{ inputs.host }}
+        DEPLOY_PORT: ${{ inputs.port }}
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ inputs.ssh_key }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
-        ssh-keyscan -H ${{ inputs.host }} >> ~/.ssh/known_hosts 2>/dev/null || true
+        set -euo pipefail
+        [[ -n "$DEPLOY_KEY" ]] || { echo "::error::deploy SSH key is empty" >&2; exit 1; }
+        [[ -n "$DEPLOY_KNOWN_HOSTS" ]] || { echo "::error::deploy known_hosts is empty" >&2; exit 1; }
+        install -d -m 700 ~/.ssh
+        printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+        printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+        host_lookup="$DEPLOY_HOST"
+        [[ "$DEPLOY_PORT" == "22" ]] || host_lookup="[$DEPLOY_HOST]:$DEPLOY_PORT"
+        ssh-keygen -F "$host_lookup" -f ~/.ssh/known_hosts >/dev/null \
+          || { echo "::error::known_hosts has no pinned key for $host_lookup" >&2; exit 1; }
 
     - name: Run database migrations
       if: ${{ inputs.skip_migrations != 'true' }}
       shell: bash
       run: |
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
         $SSH_CMD "cd ${{ inputs.path }} && \
                   docker run --rm --network host \
                     -e FLYWAY_URL='jdbc:mysql://${{ inputs.db_host }}:${{ inputs.db_port }}/${{ inputs.db_name }}?allowPublicKeyRetrieval=true&useSSL=true' \
@@ -96,7 +111,7 @@ runs:
       # Idempotent, so rollback can safely reuse it.
       shell: bash
       run: |
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
         $SSH_CMD "cd ${{ inputs.path }} && \
                   export SANDBOX_HOST_DIR=\"\${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}\" && \
                   sudo -n install -d -o 1000 -g 1000 \"\$SANDBOX_HOST_DIR/workspace\" && \
@@ -107,7 +122,7 @@ runs:
     - name: Pull and deploy services
       shell: bash
       run: |
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
 
         # Login to GHCR on remote
         $SSH_CMD "echo ${{ inputs.github_token }} | docker login ${{ inputs.registry }} -u ${{ inputs.actor }} --password-stdin"

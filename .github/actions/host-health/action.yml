@@ -7,6 +7,9 @@ description: >-
 inputs:
   ssh_key:
     required: true
+  known_hosts:
+    description: 'Environment-pinned known_hosts entries for the deploy host'
+    required: true
   host:
     required: true
   port:
@@ -40,10 +43,17 @@ runs:
   steps:
     - name: Install SSH key
       shell: bash
+      env:
+        DEPLOY_KEY: ${{ inputs.ssh_key }}
+        DEPLOY_KNOWN_HOSTS: ${{ inputs.known_hosts }}
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ inputs.ssh_key }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
+        set -euo pipefail
+        [[ -n "$DEPLOY_KEY" ]] || { echo "::error::health SSH key is empty" >&2; exit 1; }
+        [[ -n "$DEPLOY_KNOWN_HOSTS" ]] || { echo "::error::health known_hosts is empty" >&2; exit 1; }
+        install -d -m 700 ~/.ssh
+        printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+        printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
 
     - name: Check service health
       shell: bash
@@ -55,8 +65,13 @@ runs:
         INTERVAL: ${{ inputs.interval_seconds }}
         SERVICES: ${{ inputs.services }}
       run: |
-        set -u
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${USER}@${HOST} -p ${PORT}"
+        set -euo pipefail
+        [[ -s ~/.ssh/known_hosts ]] || { echo "::error::known_hosts is empty" >&2; exit 1; }
+        host_lookup="${HOST}"
+        [[ "${PORT}" == "22" ]] || host_lookup="[${HOST}]:${PORT}"
+        ssh-keygen -F "$host_lookup" -f ~/.ssh/known_hosts >/dev/null \
+          || { echo "::error::known_hosts has no pinned key for $host_lookup" >&2; exit 1; }
+        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${USER}@${HOST} -p ${PORT}"
 
         check_one() {
           local name="$1" mode="$2" port="$3" path_="$4"

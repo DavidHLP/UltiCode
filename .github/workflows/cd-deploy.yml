@@ -67,6 +67,7 @@ jobs:
         uses: ./.github/actions/host-deploy
         with:
           ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           host: ${{ secrets.DEPLOY_HOST }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           user: ${{ secrets.DEPLOY_USER }}
@@ -88,6 +89,7 @@ jobs:
         uses: ./.github/actions/host-health
         with:
           ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           host: ${{ secrets.DEPLOY_HOST }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           user: ${{ secrets.DEPLOY_USER }}

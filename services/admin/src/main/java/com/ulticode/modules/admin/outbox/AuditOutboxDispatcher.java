@@ -26,7 +26,8 @@ public class AuditOutboxDispatcher {
     private final AuditOutboxMapper auditOutboxMapper;
     private final AuditOutboxProcessor auditOutboxProcessor;
 
-    @Scheduled(fixedDelayString = "${audit.outbox.dispatcher.interval-ms:2000}", initialDelayString = "5000")
+    @Scheduled(scheduler = "adminAuditScheduler",
+            fixedDelayString = "${audit.outbox.dispatcher.interval-ms:2000}", initialDelayString = "5000")
     public int dispatch() {
         // Recover rows where JVM/DB died after claim() but before processor completed.
         auditOutboxMapper.reclaimStaleClaimed();

@@ -48,7 +48,8 @@ public class SearchWorkerReadinessHeartbeat {
     }
 
     /** Re-proves dependencies and refreshes the marker; skips the write on any failure. */
-    @Scheduled(fixedDelayString = "${search.worker.heartbeat-interval-ms:10000}",
+    @Scheduled(scheduler = "searchHeartbeatScheduler",
+            fixedDelayString = "${search.worker.heartbeat-interval-ms:10000}",
                initialDelayString = "${search.worker.heartbeat-initial-delay-ms:5000}")
     public void beat() {
         if (!dependenciesUp()) {

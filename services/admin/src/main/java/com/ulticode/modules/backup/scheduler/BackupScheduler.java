@@ -22,7 +22,7 @@ public class BackupScheduler {
      * Scheduled backup task that runs at 2 AM daily
      * Creates a full backup of the database
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(scheduler = "adminBackupScheduler", cron = "0 0 2 * * ?")
     public void scheduledBackup() {
         log.info("Starting scheduled backup...");
         try {

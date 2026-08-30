@@ -51,6 +51,8 @@ contains PROJECT_DOCUMENTATION.md \
   'Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams'
 contains PROJECT_DOCUMENTATION.md \
   '#### Submission read owner cutover 与 schema contraction'
+contains services/docs/SCHEDULER_RUNBOOK.md 'P3-SCHED-001'
+contains services/docs/SCHEDULER_RUNBOOK.md 'ThreadPoolTaskScheduler'
 
 not_contains CONTEXT.md 'the App runtime role'
 contains CONTEXT.md 'User Directory View'

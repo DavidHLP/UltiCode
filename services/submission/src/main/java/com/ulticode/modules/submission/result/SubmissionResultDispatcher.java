@@ -36,7 +36,8 @@ public class SubmissionResultDispatcher {
 
     private final SubmissionResultOutboxMapper resultMapper;
     private final ResultEventPublisher resultEventPublisher;
-    @Scheduled(fixedDelayString = "${result.outbox.dispatcher.interval-ms:3000}",
+    @Scheduled(scheduler = "submissionResultOutboxScheduler",
+            fixedDelayString = "${result.outbox.dispatcher.interval-ms:3000}",
                initialDelayString = "5000")
     public int dispatch() {
         resultMapper.reclaimStaleClaimed();

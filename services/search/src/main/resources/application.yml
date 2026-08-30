@@ -51,6 +51,9 @@ search:
     ready-file: ${SEARCH_READY_FILE:}
     heartbeat-interval-ms: ${SEARCH_HEARTBEAT_INTERVAL_MS:10000}
     heartbeat-initial-delay-ms: ${SEARCH_HEARTBEAT_INITIAL_DELAY_MS:5000}
+    scheduler:
+      consume-pool-size: ${SEARCH_CONSUME_SCHEDULER_POOL_SIZE:1}
+      heartbeat-pool-size: ${SEARCH_HEARTBEAT_SCHEDULER_POOL_SIZE:1}
 
 meilisearch:
   host: ${MEILI_HOST:http://localhost:7700}

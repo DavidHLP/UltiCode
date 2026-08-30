@@ -261,6 +261,9 @@ jobs:
       - name: Validate production TLS profile
         run: bash scripts/test/tls-profile-contract.sh
 
+      - name: Validate isolated scheduler executors
+        run: bash scripts/test/scheduler-contract.sh
+
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.
   # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh

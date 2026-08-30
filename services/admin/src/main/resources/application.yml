@@ -45,6 +45,10 @@ app:
     submission-dubbo-cutover: ${APP_FEATURES_SUBMISSION_DUBBO_CUTOVER:false}
 
 admin:
+  scheduler:
+    audit-pool-size: ${ADMIN_AUDIT_SCHEDULER_POOL_SIZE:2}
+    reconciliation-pool-size: ${ADMIN_RECONCILIATION_SCHEDULER_POOL_SIZE:1}
+    backup-pool-size: ${ADMIN_BACKUP_SCHEDULER_POOL_SIZE:1}
   audit:
     inbox:
       enabled: ${ADMIN_AUDIT_INBOX_ENABLED:true}

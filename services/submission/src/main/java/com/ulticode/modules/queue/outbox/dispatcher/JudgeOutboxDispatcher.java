@@ -69,7 +69,8 @@ public class JudgeOutboxDispatcher {
      * The transaction covers claim + markSent so a crash between the two
      * does not leave rows stranded in PENDING after they were dispatched.
      */
-    @Scheduled(fixedDelayString = "${judge.outbox.dispatcher.interval-ms:2000}",
+    @Scheduled(scheduler = "submissionJudgeOutboxScheduler",
+            fixedDelayString = "${judge.outbox.dispatcher.interval-ms:2000}",
             initialDelayString = "${judge.outbox.dispatcher.initial-delay-ms:15000}")
     @Transactional
     public void dispatch() {

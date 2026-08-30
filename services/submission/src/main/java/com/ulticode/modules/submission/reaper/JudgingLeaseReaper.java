@@ -36,7 +36,8 @@ public class JudgingLeaseReaper {
 
     private volatile TransactionTemplate rowTransactionTemplate;
 
-    @Scheduled(fixedDelayString = "${judge.reaper.interval-ms:5000}",
+    @Scheduled(scheduler = "submissionLeaseRecoveryScheduler",
+            fixedDelayString = "${judge.reaper.interval-ms:5000}",
             initialDelayString = "${judge.reaper.initial-delay-ms:10000}")
     public int recoverExpiredLeases() {
         if (!featureFlags.isUseGenerationFence()

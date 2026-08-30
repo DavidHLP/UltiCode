@@ -86,7 +86,7 @@ public class OwnerReconciler {
     private static final List<ReconciliationPair> RECONCILIATION_PAIRS = List.of();
 
 
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(scheduler = "adminReconciliationScheduler", cron = "0 0 2 * * *")
     @Transactional
     public void scheduledReconciliation() {
         runReconciliation();

@@ -44,6 +44,13 @@ app:
     judge-queue:
       use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}
 
+submission:
+  scheduler:
+    judge-outbox-pool-size: ${SUBMISSION_JUDGE_OUTBOX_SCHEDULER_POOL_SIZE:1}
+    result-outbox-pool-size: ${SUBMISSION_RESULT_OUTBOX_SCHEDULER_POOL_SIZE:1}
+    created-outbox-pool-size: ${SUBMISSION_CREATED_OUTBOX_SCHEDULER_POOL_SIZE:1}
+    lease-recovery-pool-size: ${SUBMISSION_LEASE_RECOVERY_SCHEDULER_POOL_SIZE:1}
+
 security:
   internal-delegation:
     public-key: ${INTERNAL_DELEGATION_PUBLIC_KEY:}

@@ -164,6 +164,13 @@
 - Consequences: incompatible or partially healthy releases fail closed and leave an auditable commit/schema/digest trail; a host must expose a Git checkout or source-commit marker and deployment-owned schema checksum. No schema downgrade, remote host mutation, production rollback, or migration authority is inferred locally.
 - Affected tasks: P2-DEPLOY-001, P2-MIG-001, P2-SC-001, P2-TLS-001, P3-GRACE-001.
 
+## P3-SCHED-001: isolate critical scheduled work with bounded owner-local pools
+
+- Context: Admin reconciliation, backup, audit staging/dispatch, Submission outbox/recovery, and Search consume/heartbeat tasks could share a default single scheduler or an insufficient common pool; a blocking dependency could therefore delay independent recovery.
+- Decision: bind each affected `@Scheduled` method to an explicit owner-local `ThreadPoolTaskScheduler` with a default pool of 1 (Admin audit 2), configurable only from 1–16, 30-second graceful shutdown, periodic-task cancellation on close, and Micrometer active/queued/completed/rejected metrics. Preserve existing claims, leases, PEL, and retry semantics.
+- Consequences: blocking/saturation is visible and cannot starve another named path; increasing a pool requires metric evidence. The repository proves independent progress and rejection locally, while production load, JVM sizing, and cross-replica lease behavior remain external/follow-up concerns.
+- Affected tasks: P3-SCHED-001, P3-LEASE-001, P3-GRACE-001, P2-OBS-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

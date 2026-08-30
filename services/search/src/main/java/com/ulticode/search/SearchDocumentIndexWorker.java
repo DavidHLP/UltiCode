@@ -164,7 +164,8 @@ public class SearchDocumentIndexWorker {
     private final TypeReference<Map<String, Object>> payloadType = new TypeReference<>() {
     };
 
-    @Scheduled(fixedDelayString = "${search.worker.interval-ms:2000}",
+    @Scheduled(scheduler = "searchConsumeScheduler",
+            fixedDelayString = "${search.worker.interval-ms:2000}",
                initialDelayString = "5000")
     public int consume() {
         if (!ensureGroup()) {

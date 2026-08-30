@@ -89,7 +89,8 @@ public class AdminAuditIntegrationInboxBridge {
                 AdminAuditIntegrationInboxBridge::rejectPoison);
     }
 
-    @Scheduled(fixedDelayString = "${admin.audit.inbox.interval-ms:2000}",
+    @Scheduled(scheduler = "adminAuditScheduler",
+            fixedDelayString = "${admin.audit.inbox.interval-ms:2000}",
             initialDelayString = "5000")
     public int consume() {
         int staged = stage();

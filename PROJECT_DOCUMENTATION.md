@@ -391,7 +391,7 @@ flowchart LR
 | 判题队列 | Normal dev-lite/dev-full 使用 Redis Streams `JudgeQueue`、generation fence、lease/reaper、`judge_outbox`；legacy Redisson `RQueue` 仅作显式 rollback seam | 保留 wire/ACK/NACK/回滚兼容；不引入新 MQ |
 | 文件 | 用户上传走 App 的 `FileStoragePort`（`com.ulticode.app.storage`）：默认 `app.storage.type=local` 保持旧行为（`uploads/avatars/`、URL `/uploads/avatars/...`）；`app.storage.type=s3` 切换到 S3 兼容对象存储（路径风格 endpoint + 手写 SigV4，无新增依赖，配置见 application.yml `app.storage.*` / `APP_STORAGE_*`），使 App 副本可水平扩展。未设置自定义头像时 Console 使用确定性的本地 SVG fallback；备份仍写本地目录 | 对象存储为多副本部署的推荐模式；备份由 Admin/Ops 管理；Admin 侧头像适配器仍是本地写，待复用同一 Port |
 | Async | 成就、关注、备份使用 `@Async`，未见显式业务线程池 | 跨服务改 durable event；服务内配置有界线程池 |
-| Scheduled | Contest、judge worker/outbox/reaper、backup、notification ledger、WS flush 等共用调度池 | 每个任务归 Owner；多副本使用 CAS/lease/Redisson lock 防重复 |
+| Scheduled | Contest、judge worker/outbox/reaper、backup、notification ledger、WS flush 等由各 Owner 管理 | Admin audit/reconciliation/backup、Submission outbox/recovery、Search consume/heartbeat 使用显式有界 scheduler；多副本使用 CAS/lease/Redisson lock 防重复 |
 | 邮件 | SMTP 管道，默认关闭；写 email log 后同步发 SMTP | 改 intent/outbox + worker；Auth 的密码重置邮件不依赖 App RPC |
 | 搜索 | MeiliSearch 可选，失败回退 DB | 保留在 App；由 Owner event 更新索引 |
 | AI | 当前未发现 AI/LLM/向量能力 | 不为不存在的能力引入服务或组件 |
@@ -1325,7 +1325,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 ##### 11.4 WebSocket、调度、备份与判题
 
 - App 单实例迁移期可继续 SimpleBroker；多实例前使用粘性会话 + Redis broadcast bridge，或按负载证明引入 broker relay；
-- 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；
+- 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；P3-SCHED-001 为 Admin、Submission、Search 关键任务分配有界 executor（默认 1，Admin audit 2，最大 16），暴露 active/queued/completed/rejection 指标并在关闭时等待不超过 30 秒；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；暴露 direct Submission owner write/fence provider，默认端口为内部 HTTP `9106`、Dubbo `20886`；provider 直接写 Submission schema，App 仅通过 `APP_SUBMISSION_ROUTING_MODE=remote` 访问该 owner。

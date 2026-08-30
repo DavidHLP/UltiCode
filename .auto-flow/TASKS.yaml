@@ -517,7 +517,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/SSH"
       dependencies: [CTX-001]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: [".github/actions/host-deploy", ".github/workflows"]
       acceptance_criteria:
         - "No disabled host-key checking or automatic unknown-key acceptance remains"
@@ -527,6 +527,9 @@ architecture_remediation_20260830:
         - "Static forbidden-pattern test"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-007-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-007-green.result"
+        - "Deployment and rollback callers pass environment-pinned known_hosts; strict SSH is enforced and unknown keys are never auto-accepted"
+      commit: 8baac1c
       blocked_by: []
       notes: "No production known_hosts mutation is executed locally"
     - id: P0-SEC-008

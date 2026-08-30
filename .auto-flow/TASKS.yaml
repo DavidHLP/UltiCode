@@ -556,7 +556,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Submission/Writer"
       dependencies: [P0-SEC-003, P0-SEC-005]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["app", "submission", "submission-api", "judge-runtime"]
       acceptance_criteria:
         - "All production mutations write only Submission owner with idempotent intake/outbox/fence semantics"
@@ -567,7 +567,8 @@ architecture_remediation_20260830:
         - "Duplicate-writer negative gate"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-001-red.result"
-      commit: null
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-001-green.result"
+      commit: d4a493b92
       blocked_by: []
       notes: "Repository cutover authorized; production traffic cutover remains external"
     - id: P1-SUB-002
@@ -575,7 +576,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Submission/Rejudge"
       dependencies: [P1-SUB-001]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["admin", "submission", "submission-api", "app"]
       acceptance_criteria:
         - "Admin expresses intent only and calls backend-submission"
@@ -585,7 +586,8 @@ architecture_remediation_20260830:
         - "Provider/reference architecture gate"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-002-red.result"
-      commit: null
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-002-green.result"
+      commit: 3a8f931
       blocked_by: []
       notes: "Remove App compatibility provider production references"
     - id: P1-SUB-003

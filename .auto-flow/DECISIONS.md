@@ -70,3 +70,10 @@
 - Decision: keep dev explicitly standalone in the dev namespace; require a production cluster peer list and non-empty namespace; provision one registry user/role per Dubbo workload with only config/service read-write permissions, while the built-in Nacos account stays disabled.
 - Consequences: a service credential or registry permission can be rotated independently; live Nacos account provisioning and registration smoke remain environment-gated and are not performed by repository work.
 - Affected tasks: P0-SEC-008, P3-IDENTITY-001.
+
+### Route Admin rejudge through the Submission owner
+
+- Context: Admin rejudge still had an App provider, a local Admin service fallback, and a legacy RejudgePolicy contract; that left authorization, generation fencing, and judge-task ownership split across services.
+- Decision: Admin sends an authenticated `RejudgeCommand`/`BatchRejudgeCommand` only to group=`backend-submission`. The owner verifies the RS256 delegated assertion and Redis replay claim, atomically claims the command receipt, performs the generation/lease transition, and writes the non-shadow judge outbox in the owner transaction. Retain the notification boolean only for wire compatibility; notification delivery belongs to the later Notification/Audit event work.
+- Consequences: duplicate successful commands replay without re-mutation, in-flight duplicates conflict, changed payloads conflict, stale terminal/Judging races fail or expire safely, and App no longer has a rejudge writer/provider. Live Nacos/Dubbo/Redis/MySQL registration and traffic proof remain external.
+- Affected tasks: P1-SUB-001, P1-SUB-002, P1-SUB-003, P1-AUDIT-001.

@@ -1,0 +1,35 @@
+task: P1-SUB-002
+status: PASS_WITH_EXTERNAL_GATE
+commit: 3a8f931
+checks:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin,submission -am test -B"
+    result: PASS
+    detail: "Full Admin/Submission reactor tests completed with 205 reports, 680 tests, 0 failures, 0 errors, and 3 skipped."
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl submission -am -Dtest=InternalDelegationAssertionVerifierTest,SubmissionRejudgeServiceTest,SubmissionCommandReceiptExecutorTest,SubmissionAdministrationProviderTest,BackendSubmissionApplicationTest -Dsurefire.failIfNoSpecifiedTests=false test -B"
+    result: PASS
+    detail: "Owner delegation, transition, durable receipt, provider, and boot-boundary tests pass."
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl app/app-web -am -Dtest=BackendAppApplicationTest,SubmissionPortWiringTest,RemoteSubmissionWritePortTest -Dsurefire.failIfNoSpecifiedTests=false test -B"
+    result: PASS
+    detail: "App no longer exposes the deleted rejudge provider and still passes the owner-only intake boundary checks."
+  - command: "rtk ./scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Owner provider, RS256 audience binding, lease-attempt invalidation, receipt claim, and stale App compatibility gates pass."
+  - command: "rtk bash scripts/dev/docs-contract-test.sh"
+    result: PASS
+  - command: "rtk node --check ecosystem.config.cjs"
+    result: PASS
+  - command: "rtk python3 -c 'yaml.safe_load(...)'"
+    result: PASS
+    detail: "Base, development, production Compose, and Submission owner application YAML parse successfully."
+  - command: "rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "Repository graph refreshed after the rejudge ownership cutover."
+external_gate:
+  - command: "Live Nacos/Dubbo/Redis/MySQL registration, owner migration, and traffic observation"
+    result: BLOCKED_EXTERNAL
+    detail: "Docker daemon access is unavailable (current user is not in group docker; /var/run/docker.sock is root:docker 0660). No production or remote state was changed. Full cross-owner audit outbox remains the separately tracked P1-AUDIT-001 task."
+red:
+  evidence: ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-002-red.result"
+  result: "The pre-change Admin cutover test found the rejudge Dubbo reference bound to backend-app and a local Admin fallback."

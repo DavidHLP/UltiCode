@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-MIG-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-BACKUP-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 18 DONE, 24 TODO. `P2-MIG-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, and `P1-SEAM-001` are closed in the repository with their available owner checks green.
+Current count: 19 DONE, 23 TODO. `P2-BACKUP-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, and `P2-MIG-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -154,7 +154,7 @@ Current count: 18 DONE, 24 TODO. `P2-MIG-001` is the active implementation task;
 - `P1-DATA-001`: DONE — Retire legacy data and compatibility contracts
 - `P1-AUDIT-001`: DONE — Remove cross-owner audit database writes
 - `P1-SEAM-001`: DONE — Remove shallow and migration-only seams
-- `P2-MIG-001`: TODO — Execute owner migration manifest in CD
+- `P2-MIG-001`: DONE — Execute owner migration manifest in CD
 - `P2-BACKUP-001`: TODO — Back up and restore all data owners
 - `P2-REDIS-001`: TODO — Materialize and rotate Redis ACL safely
 - `P2-TLS-001`: TODO — Provide production TLS and HSTS profile
@@ -590,12 +590,12 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P2-MIG-001`.
+- Current active task: `P2-BACKUP-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P1-SEAM-001 as complete and points to `P2-MIG-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P2-MIG-001 as complete and points to `P2-BACKUP-001`.
 
 ## 17. Handoff stop condition
 
@@ -651,12 +651,12 @@ reclaim, duplicate absorption, exponential retry, and DEAD/poison handling; `Aud
 audit-log key so a replay cannot create a second row. Actor, target, timestamp, map shape, and field lengths are revalidated at the
 Admin trust boundary.
 
-Forward Auth/App migrations create the local outboxes and revoke their historical `admin.audit_outbox` INSERT grants after the local
-table exists; the Admin migration creates `consumer_inbox`. The disposable MySQL contract verifies both local writes and cross-owner
-write rejection. Targeted Maven tests pass 27/27, architecture/documentation gates pass, Compose and shell checks pass, and Graphify
-refreshes to 27723 nodes / 82664 edges / 886 communities. The missing `tree_sitter_sql` parser warning remains recorded; direct
-migration contract checks cover the new SQL. No production migration, traffic switch, deployment, credential rotation, or remote
-mutation was executed. The next repository task is `P1-SEAM-001`.
+Forward Auth/App migrations create the local outboxes and the Admin migration creates `consumer_inbox`; a later privileged post-owner
+migration revokes the historical `admin.audit_outbox` INSERT grants only after all owner outboxes exist. The disposable MySQL contract
+verifies both local writes and cross-owner write rejection. Targeted Maven tests pass 27/27, architecture/documentation gates pass,
+Compose and shell checks pass, and Graphify refreshes to 27723 nodes / 82664 edges / 886 communities. The missing `tree_sitter_sql`
+parser warning remains recorded; direct migration contract checks cover the new SQL. No production migration, traffic switch,
+deployment, credential rotation, or remote mutation was executed. The next repository task is `P1-SEAM-001`.
 
 ## 21. Completed checkpoint — P1-SEAM-001
 
@@ -675,4 +675,21 @@ The clean affected reactor passes 717 reports / 4732 tests / 0 failures / 0 erro
 gate, disposable audit migration contract, architecture/documentation gates, shell syntax/diff checks, and Graphify pass. Graphify
 refreshes to 27715 nodes / 82672 edges / 871 communities; 107 SQL files lack `tree_sitter_sql`, so migration/script evidence uses
 direct source checks. No production migration, traffic switch, deployment, credential rotation, or remote mutation was executed.
-The next repository task is `P2-MIG-001`.
+The next repository task is `P2-BACKUP-001`.
+
+## 22. Completed checkpoint — P2-MIG-001
+
+P2-MIG-001 is repository-complete in `3f204c1`, `c1ef9d0`, and `a5a0008`. CD now invokes the host-locked ordered owner manifest:
+`shared → Auth → Admin → App → Notification → Submission → post-owner controls`. The manifest validates fixed owner schemas and
+runtime-account separation, records config/migration checksums in secret-free human/JSON reports, retries Flyway failures within a
+bounded limit without automatic `repair`, and represents rollback through `skip_migrations=true` without schema downgrade.
+
+The Auth/App owner migrations only create owner-local audit outboxes. A separate `flyway-post-owner.conf` chain uses the shared
+privileged identity after all five owners exist to revoke the historical Admin audit INSERT grants and assert the boundary. Local
+`up.sh`, baseline generation/validation/adoption, and the disposable audit contract all execute or account for this phase. The
+Submission backfill range predicate was also corrected so an empty lower bound plus an upper bound emits valid SQL instead of `1=1s.id`.
+
+Manifest contract, scoped-owner migration safety integration, baseline generation/validation/adoption, architecture/documentation/YAML/
+shell/diff gates, and Graphify pass. The generated baseline is current at 172 per-schema tables and contains no Flyway history tables.
+No production migration, remote deployment, traffic switch, credential rotation, sudo, Docker-group, or remote mutation was executed.
+The next repository task is `P2-BACKUP-001`.

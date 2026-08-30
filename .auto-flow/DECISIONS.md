@@ -112,8 +112,15 @@
 
 - Context: Auth and App previously wrote the Admin schema's `audit_outbox` directly, leaving a cross-owner database write grant and putting event claim/dispatch state in the wrong Owner.
 - Decision: Auth and App write local audit outboxes in their business transactions; their local dispatchers publish versioned `AuditRecorded` envelopes to `stream:integration`. Admin stages only accepted App/Auth events into the fixed `Admin-Audit` consumer inbox and inserts `audit_logs` idempotently by event id.
-- Consequences: Redis/XADD failure is retryable through owner-local claim fencing; duplicate, disorder, malformed, and handler-failure paths use the existing inbox dedup/lease/retry/DEAD machinery. Forward Auth/App migrations create local tables and revoke the historical Admin-table INSERT grants without editing applied migrations.
+- Consequences: Redis/XADD failure is retryable through owner-local claim fencing; duplicate, disorder, malformed, and handler-failure paths use the existing inbox dedup/lease/retry/DEAD machinery. Forward Auth/App migrations create only local tables; a separate privileged post-owner migration revokes the historical Admin-table INSERT grants after all owner outboxes exist, so scoped owner migration accounts never need cross-owner privileges.
 - Affected tasks: P1-AUDIT-001, P1-SEAM-001, P2-MIG-001.
+
+## P2-MIG-001: execute ordered owner migrations in CD
+
+- Context: production CD previously ran one shared Flyway chain and could not prove owner order, account/schema separation, concurrent-run handling, retry behavior, or rollback compatibility.
+- Decision: use one host-locked manifest in the fixed order `shared -> auth -> admin -> app -> notification -> submission -> post-owner`; use a separate Submission migration account, bounded retry without automatic repair, secret-free JSON/human reports, and a post-owner privileged chain for cross-schema grant cleanup.
+- Consequences: owner-scoped migrations remain limited to their own schemas, while baseline generation/adoption and local startup apply the same post-owner control; rollback is represented by `skip_migrations=true` and never performs schema downgrade. Production migration and remote deployment remain external.
+- Affected tasks: P2-MIG-001, P2-BACKUP-001.
 
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 

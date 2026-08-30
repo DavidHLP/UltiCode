@@ -2,7 +2,7 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P2-MIG-001
+active_task: P2-BACKUP-001
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -17,6 +17,7 @@ outputs:
   - "P1-DATA-001 Submission read owner cutover and guarded legacy contraction committed as 0aa0569; focused 184-test suite, API compatibility, architecture/docs, and disposable contraction gates pass"
   - "P1-AUDIT-001 owner-local audit outboxes and Admin durable inbox committed as f223b88; targeted tests, disposable grant migration, and architecture/docs gates pass"
   - "P1-SEAM-001 dead App API seams removed and live ranking contract hardened in efc12eb; clean affected reactor, contract compatibility, architecture/docs, and Graphify gates pass"
+  - "P2-MIG-001 ordered owner migration manifest implemented in 3f204c1 with post-owner privilege cleanup and baseline parity follow-up in c1ef9d0/a5a0008; disposable safety, baseline adoption, architecture/docs, and Graphify gates pass"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -32,7 +33,7 @@ evidence:
   - "P1-DATA-001 evidence: p1-data-001-green.result; repository owner-read cutover and contraction rehearsal pass; production migration/traffic/backup authority remains external"
   - "P1-AUDIT-001 evidence: p1-audit-001-green.result; owner-local outbox/inbox, idempotency/retry/DLQ, migration grant revocation, and architecture gates pass"
   - "P1-SEAM-001 evidence: p1-seam-001-green.result; dead-contract inventory, affected reactor, API compatibility, architecture/docs, and Graphify pass"
-next_goal: "Execute owner migration manifest in CD"
+next_goal: "Back up and restore all data owners"
 next_skill: agent-architecture-audit
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers: []

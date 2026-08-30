@@ -58,7 +58,7 @@ No staging or production application is assumed by repository completion.
 
 | Original finding | Task IDs | Implementation surfaces | Required validation | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
-| Production CD does not execute the Owner migration manifest | `P2-MIG-001` | host-deploy, owner migration scripts/configs | fresh/upgrade/checksum/dependency/wrong-owner/schema/partial/retry/concurrency tests | pending | TODO |
+| Production CD does not execute the Owner migration manifest | `P2-MIG-001` | host-deploy, owner migration scripts/configs, post-owner controls, baseline tooling | fresh/upgrade/checksum/dependency/wrong-owner/schema/partial/retry/concurrency tests | `3f204c1`, `c1ef9d0`, `a5a0008` | Locally Validated; production execution external |
 | Backup covers only Admin datasource; full five-Owner restore is unproven | `P2-BACKUP-001` | backup manifest/ports/scripts/runbook/metrics | five-owner backup integrity and temporary restore drill with checksums/reconciliation/smoke | pending | TODO |
 | Production edge TLS/HSTS and JWKS/cookie transport are not an executable profile | `P2-TLS-001` | Nginx/Compose/secret mounts/config tests | HTTPS-only/HSTS/Secure-cookie/JWKS consistency tests | pending | TODO |
 | Production images permit `latest`; tag-to-digest, signature, provenance and SBOM/scan gates are absent | `P2-SC-001`, `P2-DEPLOY-001` | Dockerfiles, Compose and GitHub workflows/actions | immutable action/image checks, build, SBOM, scan, signature/provenance verification | pending | TODO |

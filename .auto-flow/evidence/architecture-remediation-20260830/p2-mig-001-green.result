@@ -1,0 +1,35 @@
+task: P2-MIG-001
+status: PASS_WITH_EXTERNAL_GATE
+implementation_commits:
+  - 3f204c1
+  - c1ef9d0
+  - a5a0008
+checks:
+  - command: "rtk bash scripts/test/owner-migration-manifest-contract.sh"
+    result: PASS
+    detail: "Required-variable, owner order/schema/checksum, bounded retry, secret-free report, flock contention, and rollback compatibility checks pass"
+  - command: "rtk bash scripts/dev/owner-migration-safety-integration-test.sh"
+    result: PASS
+    detail: "Scoped Auth/App owner migrations, privileged post-owner cross-grant cleanup, soft-deleted profile preservation, Submission backfill/parity/cutover/rollback, and table/global/role/routine grant isolation pass"
+  - command: "rtk bash init-db/scripts/generate-baseline.sh"
+    result: PASS
+    detail: "Disposable full migration produces 4621-line, 172-table, 6-schema baseline; Flyway histories are excluded"
+  - command: "rtk bash init-db/scripts/validate-baseline.sh"
+    result: PASS
+    detail: "Per-schema baseline and incremental migration table sets both contain 172 tables"
+  - command: "rtk bash init-db/scripts/baseline-adopt.sh"
+    result: PASS
+    detail: "Disposable baseline adoption baselines shared, post-owner, and five owner histories, then validates parity"
+  - command: "rtk bash scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Architecture/docs contracts, audit boundary, migration manifest, post-owner, baseline, and prior contraction checks pass"
+  - command: "rtk bash scripts/dev/docs-contract-test.sh; workflow YAML parse; bash -n; rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "27742 nodes, 82714 edges, 937 communities; 108 SQL files lack tree_sitter_sql and remain covered by direct migration checks"
+review:
+  result: "Manual diff review completed; formal two-axis review subagents could not launch because the agent thread limit was reached"
+external_gates:
+  - "No production migration, remote deploy, traffic switch, credential rotation, sudo, Docker-group, or remote mutation was executed"
+  - "Production migration authority and staging/production runtime evidence remain external"

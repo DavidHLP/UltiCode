@@ -708,7 +708,7 @@ architecture_remediation_20260830:
       priority: P2
       scope: "Delivery/Migration"
       dependencies: [P1-DATA-001]
-      status: TODO
+      status: DONE
       affected_modules: [".github/actions", "scripts/dev", "init-db/scripts", "init-db/flyway configs"]
       acceptance_criteria:
         - "CD preflight validates manifest order owner checksum dependencies datasource account and schema under a reliable lock"
@@ -717,10 +717,11 @@ architecture_remediation_20260830:
         - "Migration preflight suite"
         - "Owner migration safety integration"
         - "Workflow syntax"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p2-mig-001-green.result"
+      commit: a5a0008
       blocked_by: []
-      notes: "Production migrations are not executed locally"
+      notes: "CD/local ordered manifest, privileged post-owner grant cleanup, baseline parity/adoption, retry/lock/report contracts, and disposable owner safety integration pass; production migrations are not executed locally"
     - id: P2-BACKUP-001
       title: "Back up and restore all data owners"
       priority: P2

@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P2-MIG-001 completed in `3f204c1`, `c1ef9d0`, and `a5a0008`: CD/local ordered owner migrations now finish with a privileged post-owner grant cleanup; baseline generation/adoption excludes and baselines its separate history; disposable scoped-owner, cutover, rollback, baseline, architecture/docs, and Graphify gates pass. Next task is P2-BACKUP-001; production migration remains external.
+
 - 2026-08-26: Recovered existing Garden task ledger and protected unrelated dirty worktree changes.
 - 2026-08-26: Audited AppSidebar, SidebarNav, Calendars, NavUser, SidebarListSections, and shared sidebar-menu contract.
 - 2026-08-26: Implemented shared Garden shell/row/group/list/user/dropdown styles and removed per-section width/color overrides.

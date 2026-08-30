@@ -219,7 +219,20 @@ for stale_jwt in \
 done
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
-replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
+# P0-SEC-005: transport assertions are RS256-only. Private signing material
+# stays in Admin; every verifier receives only public key material.
+for delegation_source in services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java services/app/app-web/src/main/java/com/ulticode/app/security/InternalDelegationAssertionVerifier.java services/notification/src/main/java/com/ulticode/notification/security/InternalDelegationAssertionVerifier.java; do
+  not_contains "$delegation_source" 'Keys.hmacShaKeyFor'
+done
+contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Jwts.SIG.RS256'
+contains services/admin/src/main/resources/application.yml 'INTERNAL_DELEGATION_PRIVATE_KEY'
+contains services/admin/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY'
+for delegation_config in services/auth/src/main/resources/application.yml services/app/app-web/src/main/resources/application.yml services/notification/src/main/resources/application.yml; do
+  not_contains "$delegation_config" 'INTERNAL_DELEGATION_SECRET'
+  contains "$delegation_config" 'INTERNAL_DELEGATION_PUBLIC_KEY'
+done
+not_contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_SECRET'
+contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY'
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"
 contains docker/redis/generate-users-acl.sh '~stream:integration'

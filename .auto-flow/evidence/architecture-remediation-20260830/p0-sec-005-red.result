@@ -1,0 +1,10 @@
+task: P0-SEC-005
+status: RED
+check:
+  command: "rtk ./scripts/dev/architecture-contract-test.sh"
+  exit: 1
+  failure: "services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java still contains Keys.hmacShaKeyFor"
+  interpretation: "The repository still uses symmetric HMAC delegation signing; implementation must replace it with separate RS256 private/public key paths and no fallback."
+syntax:
+  command: "rtk bash -n scripts/dev/architecture-contract-test.sh"
+  result: PASS

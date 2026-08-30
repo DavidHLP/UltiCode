@@ -376,6 +376,12 @@ contains scripts/dev/up.sh 'migrate-post-owner.sh'
 contains scripts/dev/migrate-post-owner.sh 'flyway-post-owner.conf'
 contains init-db/scripts/generate-baseline.sh 'flyway_post_owner_history'
 contains init-db/scripts/validate-baseline.sh 'flyway_post_owner_history'
+contains scripts/runbooks/owner-backup-restore.sh 'OWNER_SCHEMAS=(auth admin app notification submission)'
+contains scripts/runbooks/owner-backup-restore.sh 'openssl enc -aes-256-cbc -salt -pbkdf2'
+contains scripts/runbooks/owner-backup-restore.sh 'flock -n'
+contains scripts/runbooks/owner-backup-restore.sh 'rto_seconds'
+contains .github/workflows/_backend.yml 'owner-backup-restore-contract.sh'
+bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
 contains .github/actions/host-deploy/action.yml 'MIGRATION_DB_PASSWORD'
 contains .github/actions/host-deploy/action.yml "inputs.skip_migrations != 'true'"

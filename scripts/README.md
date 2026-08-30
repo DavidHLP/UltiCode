@@ -61,6 +61,7 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 - `owner-schema-contraction.sh` — read-only owner parity/grant proof by default; `contract --execute` requires backup, writer-quiescence, and contraction confirmations before the destructive step.
 - `owner-migration-manifest.sh` — CD migration seam: validates owner order/config/account/schema/checksums, takes a host lock, runs shared plus owner and post-owner Flyway chains with bounded retry, and writes JSON/human reports.
 - `migrate-post-owner.sh` — local privileged post-owner Flyway chain for cross-schema controls that cannot run under an owner-scoped migration account.
+- `owner-backup-restore.sh` — external Ops backup boundary for `ulticode` plus all five owner schemas; creates encrypted checksum/metadata manifests, verifies retention, and runs a disposable restore drill.
 
 ## scripts/test/ — standalone smoke suites
 
@@ -70,6 +71,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 `SMOKE_USERNAME`/`SMOKE_PASSWORD`; legacy names are still accepted.
 - `audit-owner-boundary-contract.sh` — disposable MySQL proof for owner-local audit outboxes, Admin inbox creation, and post-owner cross-owner grant revocation.
 - `owner-migration-manifest-contract.sh` — fast manifest validation/retry/lock/rollback-report contract without a production database.
+- `owner-backup-restore-contract.sh` — disposable encrypted six-schema backup, Flyway-history validation, checksum reconciliation, smoke, RPO/RTO, lock, wrong-key, and retention contract.
 
 ## Other
 

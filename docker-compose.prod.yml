@@ -22,6 +22,8 @@
 #   NOTIFICATION_NACOS_USERNAME/PASSWORD, JUDGE_NACOS_USERNAME/PASSWORD
 #   DUBBO_NAMESPACE, NACOS_SERVERS, NACOS_AUTH_TOKEN,
 #   NACOS_AUTH_IDENTITY_KEY, NACOS_AUTH_IDENTITY_VALUE
+#   External owner backup runbook: BACKUP_DB_HOST/PORT/NAME/USER/PASSWORD and
+#   BACKUP_ENCRYPTION_KEY are supplied only to the Ops job, never this app stack.
 #   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
 #
 # Image tag usage:

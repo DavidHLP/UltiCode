@@ -102,6 +102,33 @@ direct global `RELOAD` capability (or the explicitly supported literal global
 need global `GRANT OPTION` because their owner grants include `GRANT USAGE ON
 *.*`. Arbitrary non-root global capability lists do not satisfy the preflight.
 
+## Owner backup and restore drill (P2-BACKUP-001)
+
+The external Ops runbook `scripts/runbooks/owner-backup-restore.sh` archives the
+shared control schema plus `auth`, `admin`, `app`, `notification`, and
+`submission`. It requires a dedicated `BACKUP_DB_*` credential and a
+32-byte `BACKUP_ENCRYPTION_KEY`; the key is passed through the OpenSSL
+environment, never argv or the generated manifest. Each encrypted archive has
+a secret-free manifest, dump SHA-256 list, table row/checksum snapshot, and
+Flyway migration metadata. `flock` serializes backup, restore-drill, and prune;
+retention deletes only matching `owner-backup-*.json`/`.tar.gz.enc` pairs.
+
+```bash
+BACKUP_DB_HOST=... BACKUP_DB_PORT=3306 BACKUP_DB_NAME=ulticode \
+BACKUP_DB_USER=... BACKUP_DB_PASSWORD=... BACKUP_ENCRYPTION_KEY=... \
+OWNER_BACKUP_DIR=/var/lib/ulticode/backup \
+./scripts/runbooks/owner-backup-restore.sh backup
+./scripts/runbooks/owner-backup-restore.sh verify
+./scripts/runbooks/owner-backup-restore.sh restore-drill
+```
+
+`restore-drill` restores only into a disposable MySQL container, validates all
+six Flyway histories, reconciles table row/checksum snapshots, runs a schema
+count/`SELECT 1` smoke check, and writes measured `rpo_seconds` and
+`rto_seconds` under the report directory. It never restores into the live
+database; production backup/restore authority and off-host key/retention
+storage remain external.
+
 For a pre-created bootstrap-only table with no owner history, the only
 supported adoption path is an explicit DEV-LOCAL command with
 `DEV_LOCAL_OWNER_BASELINE=true` and

@@ -831,6 +831,12 @@ local outbox 已创建后执行。每次执行生成不含密码的 JSON 与人�
 `skip_migrations=true`，不执行 schema downgrade。CI/本地只验证 manifest 与 disposable/fake migration 合约，真实生产
 迁移仍需单独授权。
 
+P2-BACKUP-001 的外部 Ops 入口是 `scripts/runbooks/owner-backup-restore.sh`：它归档 `ulticode` control schema 与 Auth、Admin、App、
+Notification、Submission 五个 Owner，生成 OpenSSL 加密归档及不含密钥的 manifest、dump SHA-256、表行数/checksum 和 Flyway
+history metadata；backup、restore-drill、prune 共享 `flock`，retention 只删除匹配的归档/manifest 对。`restore-drill` 只在一次性
+MySQL 容器中恢复，执行六条 Flyway validate、表 checksum reconciliation、schema/查询 smoke，并记录 measured RPO/RTO；真实
+off-host backup、密钥托管、保留策略和生产 restore authority 仍是外部门禁。
+
 P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
 consumer 和 WebSocket consumer 均实现并调用完整契约。保留的 `SubmissionWritePort`/provider 是明确标注的 N-1

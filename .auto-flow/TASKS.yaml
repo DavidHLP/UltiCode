@@ -457,7 +457,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/JWT"
       dependencies: [CTX-001]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["platform/web-security", "app", "admin", "notification", "auth", "compose"]
       acceptance_criteria:
         - "One shared verifier/filter implementation enforces issuer audience time type algorithm kid JWK strength and authority mapping"
@@ -466,8 +466,11 @@ architecture_remediation_20260830:
         - "JWT/JWKS focused tests"
         - "Resource-owner security tests"
         - "Production config contract"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-004-green.result"
+        - "Shared JWT/JWKS tests, architecture gate, and isolated Auth/Admin/App/Notification owner security suites pass"
+        - "Full owner reactor is externally blocked only by existing Redis integration tests on unavailable localhost:26379"
+      commit: 828a941
       blocked_by: []
       notes: "Delete duplicate resource-server implementations after all consumers migrate"
     - id: P0-SEC-005

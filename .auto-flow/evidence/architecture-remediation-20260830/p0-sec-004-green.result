@@ -1,0 +1,29 @@
+task: P0-SEC-004
+status: PASS_WITH_EXTERNAL_GATE
+commit: 828a941
+checks:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl platform/web-security -am test -B"
+    result: PASS
+    scope: "Shared JWT verifier, JWKS provider, shared filter, architecture test"
+  - command: "rtk ./scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    scope: "Shared implementation ownership, stale-owner deletion, production HTTPS JWKS contract"
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl auth -am -Dtest=AuthSecurityConfigContractTest,BackendAuthApplicationTest test -B"
+    result: PASS
+    scope: "Auth adapter and boot wiring"
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin -am -Dtest=AdminRouteAuthorizationContractTest,BackendAdminApplicationTest,AdminSettingsControllerTest test -B"
+    result: PASS
+    scope: "Admin route and controller security wiring"
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl app/app-web -am -Dtest=AppRouteAuthorizationContractTest,BackendAppApplicationTest test -B"
+    result: PASS
+    scope: "App route and boot wiring"
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl notification -am -Dtest=NotificationRouteAuthorizationContractTest test -B"
+    result: PASS
+    scope: "Notification route wiring"
+external_gate:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl auth,admin,app/app-web,notification -am test -B"
+    result: BLOCKED_EXTERNAL
+    detail: "Existing JudgeStreamRedisIntegrationTest cannot connect to localhost:26379; Docker daemon access is unavailable. This is an environment gate, not a JWT failure."
+notes:
+  - "All owner security-specific suites were isolated and green."
+  - "Production Compose now points resource owners at HTTPS backend-auth JWKS with RS256 and an allowlisted host; TLS provisioning remains P2-TLS-001."

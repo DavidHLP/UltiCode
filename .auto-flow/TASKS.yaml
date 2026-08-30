@@ -632,7 +632,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Notification"
       dependencies: [P0-SEC-003]
-      status: TODO
+      status: DONE
       affected_modules: ["notification", "notification-api", "app", "admin"]
       acceptance_criteria:
         - "Notification owner is the only persistence writer and publishes authoritative reconciliation facts"
@@ -641,10 +641,11 @@ architecture_remediation_20260830:
         - "Notification owner tests"
         - "Event/inbox integration tests"
         - "Single-writer architecture gate"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-not-001-green.result"
+      commit: 0ff5a53
       blocked_by: []
-      notes: "Production observation remains external"
+      notes: "Notification owner persistence/reconciliation and event delivery are repository-green; production observation and cutover remain external"
     - id: P1-DATA-001
       title: "Retire legacy data and compatibility contracts"
       priority: P1

@@ -91,3 +91,10 @@
 - Decision: expose grouped `SubmissionUserReferenceCountDTO` facts through `SubmissionReconciliationReadPort` with a 500-row page cap; run a nightly full scan and an explicit caller-watermarked incremental scan; use the existing owner boundaries and a connection-scoped MySQL advisory lock.
 - Consequences: busy replicas return an unpersisted `SKIPPED`; invalid owner pages and lock/owner failures persist actionable `FAILED` records and increment metrics. App retains only a wire-compatible zero placeholder until the later contract-contraction task. Docker-backed integration remains external.
 - Affected tasks: P1-SUB-004, P1-DATA-001, P1-AUDIT-001.
+
+### Move Notification persistence and reconciliation to the Notification owner
+
+- Context: App still carried Notification-owned persistence/reconciliation reads, while event delivery already had the Streams, Inbox, and ledger seams needed to keep intent publication separate from durable delivery.
+- Decision: expose bounded full/incremental grouped Notification facts through `NotificationReconciliationReadPort`, validate pages in the Notification owner, and consume them from Admin through a `backend-notification` Dubbo adapter. Remove App Notification SQL and runtime implementations while retaining App intent publishing and WebSocket push relay seams.
+- Consequences: Notification is the sole owner of notification rows, preferences, and delivery-ledger state; duplicate Redis events are absorbed by Inbox/idempotency, and Admin fails closed on unavailable, malformed, unordered, or oversized owner facts. Production observation and cutover remain external.
+- Affected tasks: P1-NOT-001, P1-DATA-001, P1-AUDIT-001.

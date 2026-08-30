@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-NOT-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-DATA-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -64,11 +64,10 @@ Repository work may make production actions executable and verifiable, but must 
 - OS: Arch Linux, x86_64.
 - Working Java: Zulu `17.0.20.1` via mise.
 - Avoid the obsolete local Java `17.0.2`; it fails in JVM cgroup-v2 processor discovery before application assertions.
-- Docker CLI and Compose exist, but daemon access is blocked:
-  - current UID is not in group `docker`;
-  - `/var/run/docker.sock` is `root:docker` mode `0660`;
-  - no native Redis is installed;
-  - Docker/Testcontainers runtime checks are `BLOCKED_EXTERNAL`, never PASS.
+- Docker CLI and Compose are available, and authorized local Docker/Testcontainers execution is available for repository verification:
+  - Notification owner Docker-backed integration passed after the authorized execution context was restored;
+  - no sudo, Docker-group, host, credential, production, or remote mutation was performed;
+  - production traffic, migration, and cutover evidence remains external and is never inferred from repository tests.
 - Java/TypeScript LSP references were unavailable in this harness. Codebase Memory, graph tools, and direct source were used as fallback.
 - Codebase Memory project: `UltiCode`.
 - Graphify exists and must be refreshed after changes.
@@ -135,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 14 DONE, 28 TODO. `P1-NOT-001` is the active implementation task; `P1-SUB-004` is closed in the repository with an external Docker-backed integration gate.
+Current count: 15 DONE, 27 TODO. `P1-DATA-001` is the active implementation task; `P1-SUB-004` and `P1-NOT-001` are closed in the repository with their available owner integration checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -151,7 +150,7 @@ Current count: 14 DONE, 28 TODO. `P1-NOT-001` is the active implementation task;
 - `P1-SUB-002`: DONE — Route Admin rejudge to Submission owner
 - `P1-SUB-003`: DONE — Build resumable Submission backfill verification
 - `P1-SUB-004`: DONE — Move Submission reconciliation to owner facts
-- `P1-NOT-001`: TODO — Complete Notification owner persistence cutover
+- `P1-NOT-001`: DONE — Complete Notification owner persistence cutover
 - `P1-DATA-001`: TODO — Retire legacy data and compatibility contracts
 - `P1-AUDIT-001`: TODO — Remove cross-owner audit database writes
 - `P1-SEAM-001`: TODO — Remove shallow and migration-only seams
@@ -188,7 +187,7 @@ The session’s broader execution checklist has two completed categories and sev
 
 - DONE — Persist task graph and baseline evidence
 - DONE — Unify HTTP and internal security modules
-- IN PROGRESS — Complete Submission, Notification, and Audit cutovers
+- IN PROGRESS — Retire legacy data/contracts after the completed Submission and Notification owner cutovers
 - PENDING — Automate production migration, backup, and Redis materialization
 - PENDING — Harden supply chain, observability, and release controls
 - PENDING — Implement scheduler resilience, Streams handling, and graceful shutdown
@@ -372,6 +371,8 @@ d4a493b92 refactor(submission): enforce owner-only intake
 73d9f78e2 feat(migration): add resumable Submission backfill
 28563d0ee chore(checkpoint): close Submission backfill task
 8a521d7 refactor(submission): move reconciliation to owner facts
+a29236739 refactor(notification): move reconciliation to owner facts
+0ff5a53 test(notification): verify owner persistence cutover
 ```
 
 ## 10. Important verification evidence already obtained
@@ -492,7 +493,7 @@ The implementation commit is clean; the follow-on `.auto-flow` checkpoint record
 3. Focused tests cover full paging, incremental watermark propagation, invalid/duplicate/ordered facts, busy leases, lock/owner failures, actionable metrics/details, and App's removed Submission SQL.
 4. `OwnerReconcilerIT` and Submission owner integration are wired for real grouped full/incremental facts but remain Docker-blocked in this host.
 5. Repository documentation, task/evidence ledgers, and Graphify were updated after green repository checks.
-6. Continue immediately with `P1-NOT-001` (Notification owner persistence cutover).
+6. P1-NOT-001 is complete; continue immediately with `P1-DATA-001` (legacy data and compatibility contract retirement).
 
 ## 12. Completed execution sequence and next task
 
@@ -520,7 +521,7 @@ The affected reactor command exits 0 with 711 fresh Surefire suites, 2404 tests,
 
 ### Step F — documentation, graph, commit, checkpoint
 
-`PROJECT_DOCUMENTATION.md`, `services/docs/SERVICES_ISSUES.md`, `.auto-flow/TASKS.yaml`, evidence, worklog, decisions, resume state, and this handoff were updated. Graphify exits 0 with 27410 nodes, 81471 edges, and 869 communities; the existing missing `tree_sitter_sql` warning for 101 SQL files is recorded. Continue with `P1-NOT-001`.
+`PROJECT_DOCUMENTATION.md`, `services/docs/SERVICES_ISSUES.md`, `.auto-flow/TASKS.yaml`, evidence, worklog, decisions, resume state, and this handoff were updated. Graphify exits 0 with 27410 nodes, 81471 edges, and 869 communities; the existing missing `tree_sitter_sql` warning for 101 SQL files is recorded. Continue with `P1-DATA-001`.
 
 ## 13. Decisions and tradeoffs already made
 
@@ -556,14 +557,7 @@ Do not introduce Kubernetes, Service Mesh, Kafka, Seata, a new MQ, five independ
 
 ### Docker/Testcontainers
 
-Current blocker:
-
-```text
-current user not in docker group
-/var/run/docker.sock owner root:docker, mode 0660
-```
-
-Do not mutate group membership or use sudo. Unblock only through an externally authorized re-login/newgrp, rootless Docker, or authorized remote Docker context. Then rerun the specific blocked checks.
+Authorized local Docker/Testcontainers execution is available. The Notification owner integration rerun passed after the execution context was restored. Do not mutate group membership or use sudo; production and remote state remain outside this repository task.
 
 ### Production/remote evidence
 
@@ -595,10 +589,10 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed P1-SUB-004 implementation checkpoint: `8a521d7`, green for targeted compile, focused tests, affected-module tests, architecture/docs/diff gates, and Graphify.
-- Current active task: `P1-NOT-001`.
-- Current P1-SUB-004 owner integration remains `BLOCKED_EXTERNAL` at Docker/Testcontainers initialization; no runtime or production evidence is fabricated.
-- `.auto-flow` task/evidence/worklog/decision/resume state records the completed task and exact verification totals.
+- Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
+- Current active task: `P1-DATA-001`.
+- P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P1-NOT-001 as complete and points to the next task.
 
 ## 17. Handoff stop condition
 
@@ -613,4 +607,17 @@ P1-SUB-004 is complete in the repository when:
 - architecture/docs/diff/Graphify gates pass;
 - implementation, evidence, task status, handoff, and local commits are updated together.
 
-Those conditions are met by `8a521d7` plus the follow-on `.auto-flow` checkpoint. Continue immediately to P1-NOT-001; Docker-only runtime evidence remains external.
+Those conditions are met by `8a521d7` plus the follow-on `.auto-flow` checkpoint. P1-NOT-001 is also complete by `a292367` and `0ff5a53`; continue immediately to P1-DATA-001. Production-only migration and traffic evidence remains external.
+
+## 18. Completed checkpoint — P1-NOT-001
+
+The Notification persistence cutover is complete in the repository. `a292367` implements the owner-facts/API/provider/adapter path; `0ff5a53` adds the final verification coverage and single-writer gate.
+
+- Notification owns local persistence for notifications, preferences, and the delivery ledger, and publishes bounded grouped reconciliation facts with a 500-row full/incremental cursor contract.
+- Admin `OwnerReconciler` consumes Submission and Notification owner facts through their owner-specific Dubbo adapters, validates page boundaries/order/counts, and fails closed with metrics and persisted actionable details.
+- App reconciliation no longer queries Notification-owned tables. App retains only the intentional intent/event publishing and WebSocket push-relay seams; its Notification persistence/runtime implementation is absent.
+- Focused affected tests pass 50/50. Notification owner integration passes 11/11, including the 7-test delivery-ledger mapper suite, 2-test reconciliation provider suite, and 2-test Redis Streams → Inbox → delivery suite.
+- Architecture contract, documentation contract, and `git diff --check` pass. The first owner IT caught `Long.class` versus primitive `long` constructor mapping; both Submission and Notification mappers use `long.class`, and the corrected integration rerun passes.
+- Production traffic observation, migration, and cutover remain external; no production, remote, credential, sudo, or Docker-group mutation was performed.
+
+The next repository task is `P1-DATA-001` — retire legacy data and compatibility contracts only after the completed owner cutovers remain compatibility-safe.

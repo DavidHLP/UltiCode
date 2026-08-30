@@ -1,14 +1,14 @@
 # Resume
 
 - Objective: implement the user-authorized microservice architecture remediation across P0-P3, repository delivery controls, verification, two reviews, local commits, and truthful external blockers.
-- Active task: P1-NOT-001 Notification owner persistence cutover; P0-SEC-001 through P1-SUB-004 are complete, with live Redis/Nacos/Dubbo/MySQL migration/runtime integration externally blocked.
+- Active task: P1-DATA-001 legacy data and compatibility contract retirement; P0-SEC-001 through P1-NOT-001 are repository-complete, while production migration, traffic, and cutover evidence remains external.
 - Branch: fix/architecture-remediation from main@8b4012b3d13678eaec38a82980c8e3558123b5a8; origin/main is one commit behind the baseline.
 - Scope: the 42 tasks under architecture_remediation_20260830 in .auto-flow/TASKS.yaml.
 - Invariants: retain five Data Owners, two Workers, Submission Owner, Streams adapters, Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, contract gate, owner migration manifest, idempotency, and user work.
 - Explicit exclusions: Kubernetes, Service Mesh, Kafka, Seata, further App service split, and five independent database clusters.
 - Authority: repository code/config/migration/scripts/tests/docs/local commits are authorized; push, production data, production deploy, production credential rotation, sudo/group mutation, and production account changes are not.
 - Baseline static gates: architecture/docs/migration-preflight/Compose dev/Compose prod all exit 0; evidence is under .auto-flow/evidence/architecture-remediation-20260830/.
-- Docker blocker: current user lacks group docker; docker version/info exit 1 on /var/run/docker.sock root:docker 0660. Do not rerun Docker-dependent gates until re-login/newgrp or another non-mutating compatible context exists.
+- Docker/Testcontainers: authorized local execution is available; the P1-NOT-001 Notification owner integration passed. Do not mutate group membership or use sudo; production and remote state remain out of scope.
 - Maven baseline: clean compile/test/verify all exit 0; 809 Surefire reports, 2739 tests, 0 failures, 0 errors, 20 skipped. Coverage summary is persisted in maven-summary.json.
 - Completed P0-SEC-001: full cookie attributes, Secure-by-default startup guard, exclusive local-profile exception; GREEN `ef10d92c7272`, Auth 240/240.
 - Completed P0-SEC-002: shared stateless double-submit CSRF across Auth/App/Admin/Notification, protected refresh/logout, bearer-only exemption, browser hard-reload/refresh support; GREEN `8f061dfdfa5c`, owner reactor 2466 tests.
@@ -18,6 +18,7 @@
 - Completed P1-SUB-001: App Submission intake is owner-only; local mutation/fence/rejudge/outbox compatibility code is deleted; GREEN d4a493b92.
 - Completed P1-SUB-002: Admin rejudge is owner-routed with RS256 delegated identity, owner CAS/lease transitions, durable command receipts, and owner judge outbox; GREEN 3a8f931. Live owner runtime remains Docker-blocked.
 - Completed P1-SUB-003: resumable insert-only Submission backfill with checkpoint resume, failure export, parity/writer gate, and cutover sequencing; GREEN 73d9f78. Disposable MySQL rehearsal remains Docker-blocked.
-- Completed P1-SUB-004: Submission reconciliation now consumes bounded owner facts with explicit full/incremental modes, multi-replica advisory locking, failure metrics/details, and no App submissions SQL; GREEN 8a521d7. Owner integration remains Docker-blocked.
-- Next: complete Notification owner persistence cutover, then continue Audit, resilience, delivery, and final review gates.
+- Completed P1-SUB-004: Submission reconciliation now consumes bounded owner facts with explicit full/incremental modes, multi-replica advisory locking, failure metrics/details, and no App submissions SQL; GREEN 8a521d7. Owner integration passed in the authorized Docker context.
+- Completed P1-NOT-001: Notification owns notification persistence and reconciliation facts; App retains only intent/event and push relay seams; Redis Streams, Inbox, and delivery ledger integration passed. Implementation a292367; verification follow-up 0ff5a53.
+- Next: retire legacy data and compatibility contracts in P1-DATA-001, then continue Audit, resilience, delivery, and final review gates.
 - Delivery: local Conventional Commits only; no push.

@@ -435,7 +435,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/Authorization"
       dependencies: [P0-SEC-002]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["platform/web-security", "app", "admin", "notification"]
       acceptance_criteria:
         - "No broad anyRequest permitAll remains"
@@ -443,8 +443,13 @@ architecture_remediation_20260830:
       validation_commands:
         - "Anonymous USER ADMIN route matrix"
         - "Security architecture tests"
-      evidence: []
-      commit: null
+      evidence:
+        - "RED 07dd95f23394: seven assertions exposed anonymous, USER, ADMIN, and unmatched-route permitAll gaps"
+        - "App route inventory covered 185 graph routes plus source fallback for public code-run"
+        - "GREEN App 12/12, Admin 5/5, Notification 4/4, App boot/health 6/6"
+        - "Affected owner reactor 664 fresh reports / 2222 tests / 0 failures / 0 errors / 16 skipped"
+        - "No anyRequest permitAll remains; architecture/docs/shell gates PASS; Graphify 27497 nodes / 82101 edges"
+      commit: "RED 07dd95f23394; GREEN 2974c28880f4"
       blocked_by: []
       notes: "Actuator and OpenAPI exposure remain environment-scoped"
     - id: P0-SEC-004
@@ -452,7 +457,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/JWT"
       dependencies: [CTX-001]
-      status: TODO
+      status: IN_PROGRESS
       affected_modules: ["platform/web-security", "app", "admin", "notification", "auth", "compose"]
       acceptance_criteria:
         - "One shared verifier/filter implementation enforces issuer audience time type algorithm kid JWK strength and authority mapping"

@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-AUDIT-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-SEAM-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -82,7 +82,7 @@ Repository work may make production actions executable and verifiable, but must 
 - Use parameterized SQL/MyBatis annotations.
 - Cross-service privileged writes use explicit contracts and signed delegated identity.
 - Audit identity comes from authenticated/delegated principals, never request-carried identity.
-- Audit writes remain owner-local; full cross-owner audit outbox work is P1-AUDIT-001.
+- Audit writes remain owner-local; P1-AUDIT-001 is repository-complete through owner outboxes, Admin inbox, and forward grant revocation.
 - Access/refresh tokens remain HttpOnly cookies; refresh tokens remain hash-only and database-backed.
 - WebSocket auth remains access-cookie-only.
 - `/admin/**` and privileged methods require `ADMIN` or `SUPER_ADMIN`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 16 DONE, 26 TODO. `P1-AUDIT-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, and `P1-DATA-001` are closed in the repository with their available owner checks green.
+Current count: 17 DONE, 25 TODO. `P1-SEAM-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, and `P1-AUDIT-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -152,7 +152,7 @@ Current count: 16 DONE, 26 TODO. `P1-AUDIT-001` is the active implementation tas
 - `P1-SUB-004`: DONE — Move Submission reconciliation to owner facts
 - `P1-NOT-001`: DONE — Complete Notification owner persistence cutover
 - `P1-DATA-001`: DONE — Retire legacy data and compatibility contracts
-- `P1-AUDIT-001`: TODO — Remove cross-owner audit database writes
+- `P1-AUDIT-001`: DONE — Remove cross-owner audit database writes
 - `P1-SEAM-001`: TODO — Remove shallow and migration-only seams
 - `P2-MIG-001`: TODO — Execute owner migration manifest in CD
 - `P2-BACKUP-001`: TODO — Back up and restore all data owners
@@ -590,10 +590,11 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P1-AUDIT-001`.
+- Current active task: `P1-SEAM-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P1-DATA-001 as complete and points to `P1-AUDIT-001`.
+- P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P1-AUDIT-001 as complete and points to `P1-SEAM-001`.
 
 ## 17. Handoff stop condition
 
@@ -634,4 +635,24 @@ P1-DATA-001 is repository-complete in `0aa0569` (`refactor(submission): complete
 - Graphify refreshed successfully: 27651 nodes, 82362 edges, 867 communities. The tool still reports 103 SQL files without `tree_sitter_sql`; direct source checks cover the excluded SQL/scripts.
 - The standard quick gate reaches the existing Judge Redis integration but remains `BLOCKED_EXTERNAL` because the host stack's ACL credentials for `localhost:26379` do not match; no production migration, traffic switch, deployment, credential rotation, or remote mutation was performed.
 
-The next repository task is `P1-AUDIT-001` — remove cross-owner audit database writes. Physical legacy-table contraction remains an explicitly authorized external operation.
+At that checkpoint the next repository task was `P1-AUDIT-001` — remove cross-owner audit database writes; it is now complete in section 20. Physical legacy-table contraction remains an explicitly authorized external operation.
+
+## 20. Completed checkpoint — P1-AUDIT-001
+
+P1-AUDIT-001 is repository-complete in `f223b88` (`refactor(audit): remove cross-owner audit writes`). Auth and App now write
+owner-local `audit_outbox` rows in their business transactions; their local dispatchers claim, publish `AuditRecorded` envelopes to
+`stream:integration`, retry failed XADDs, and fence late workers by claim owner. The old `admin.audit_outbox` write path is no longer
+referenced by either producer.
+
+Admin now owns the incoming `Admin-Audit` consumer group. The bridge validates event envelope fields and accepted owners, stages the
+payload in Admin-local `consumer_inbox`, and acknowledges Redis only after durable staging. The shared `InboxConsumer` provides lease
+reclaim, duplicate absorption, exponential retry, and DEAD/poison handling; `AuditLogMapper.insertIfAbsent` uses the event id as the
+audit-log key so a replay cannot create a second row. Actor, target, timestamp, map shape, and field lengths are revalidated at the
+Admin trust boundary.
+
+Forward Auth/App migrations create the local outboxes and revoke their historical `admin.audit_outbox` INSERT grants after the local
+table exists; the Admin migration creates `consumer_inbox`. The disposable MySQL contract verifies both local writes and cross-owner
+write rejection. Targeted Maven tests pass 27/27, architecture/documentation gates pass, Compose and shell checks pass, and Graphify
+refreshes to 27723 nodes / 82664 edges / 886 communities. The missing `tree_sitter_sql` parser warning remains recorded; direct
+migration contract checks cover the new SQL. No production migration, traffic switch, deployment, credential rotation, or remote
+mutation was executed. The next repository task is `P1-SEAM-001`.

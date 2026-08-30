@@ -107,3 +107,10 @@
 - Decision: keep physical contraction separate from ordinary Flyway. The shared chain creates only durable `owner_contraction_proof`; the confirmation-, backup-, quiescence-, parity-, checksum-, and grant-gated contraction history performs the explicit legacy-table drop. Production migration and traffic authority remain external.
 - Consequences: repository checks prove normal ownership and a disposable upgrade-shaped contraction, while `consumer_inbox`, `app_command_receipt`, applied migrations, and rollback authority remain preserved.
 - Affected tasks: P1-SUB-004, P1-NOT-001, P1-DATA-001, P1-AUDIT-001.
+
+## P1-AUDIT-001: move audit writes behind owner-local outboxes
+
+- Context: Auth and App previously wrote the Admin schema's `audit_outbox` directly, leaving a cross-owner database write grant and putting event claim/dispatch state in the wrong Owner.
+- Decision: Auth and App write local audit outboxes in their business transactions; their local dispatchers publish versioned `AuditRecorded` envelopes to `stream:integration`. Admin stages only accepted App/Auth events into the fixed `Admin-Audit` consumer inbox and inserts `audit_logs` idempotently by event id.
+- Consequences: Redis/XADD failure is retryable through owner-local claim fencing; duplicate, disorder, malformed, and handler-failure paths use the existing inbox dedup/lease/retry/DEAD machinery. Forward Auth/App migrations create local tables and revoke the historical Admin-table INSERT grants without editing applied migrations.
+- Affected tasks: P1-AUDIT-001, P1-SEAM-001, P2-MIG-001.

@@ -1,7 +1,7 @@
 # Resume
 
 - Objective: implement the user-authorized microservice architecture remediation across P0-P3, repository delivery controls, verification, two reviews, local commits, and truthful external blockers.
-- Active task: P1-AUDIT-001 cross-owner audit database-write removal; P0-SEC-001 through P1-DATA-001 are repository-complete, while production migration, traffic, and cutover evidence remains external.
+- Active task: P1-SEAM-001 shallow and migration-only seam removal; P0-SEC-001 through P1-AUDIT-001 are repository-complete, while production migration, traffic, and cutover evidence remains external.
 - Branch: fix/architecture-remediation from main@8b4012b3d13678eaec38a82980c8e3558123b5a8; origin/main is one commit behind the baseline.
 - Scope: the 42 tasks under architecture_remediation_20260830 in .auto-flow/TASKS.yaml.
 - Invariants: retain five Data Owners, two Workers, Submission Owner, Streams adapters, Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, contract gate, owner migration manifest, idempotency, and user work.
@@ -21,5 +21,6 @@
 - Completed P1-SUB-004: Submission reconciliation now consumes bounded owner facts with explicit full/incremental modes, multi-replica advisory locking, failure metrics/details, and no App submissions SQL; GREEN 8a521d7. Owner integration passed in the authorized Docker context.
 - Completed P1-NOT-001: Notification owns notification persistence and reconciliation facts; App retains only intent/event and push relay seams; Redis Streams, Inbox, and delivery ledger integration passed. Implementation a292367; verification follow-up 0ff5a53.
 - Completed P1-DATA-001: normal App Submission reads use backend-submission bounded facts; local mapper/projection implementations are explicit legacy-rollback only; exact legacy grants/table contraction is confirmation-, backup-, quiescence-, proof-, and owner-parity-gated. GREEN 0aa0569; focused 184-test suite, API compatibility, architecture/docs, and disposable MySQL contraction gates pass.
-- Next: remove cross-owner audit database writes in P1-AUDIT-001, then continue resilience, delivery, and final review gates. Production physical contraction and traffic evidence remain external.
+- Completed P1-AUDIT-001: Auth/App write owner-local audit outboxes; Admin consumes `AuditRecorded` through `Admin-Audit` consumer_inbox with idempotent audit-log insert, lease/retry/DLQ handling, and forward grant revocation. GREEN f223b88; targeted tests, disposable MySQL migration contract, architecture/docs, and Graphify pass.
+- Next: remove shallow and migration-only seams in P1-SEAM-001, then continue resilience, delivery, and final review gates. Production physical contraction and traffic evidence remain external.
 - Delivery: local Conventional Commits only; no push.

@@ -1,0 +1,26 @@
+task: P1-AUDIT-001
+status: PASS_WITH_EXTERNAL_GATE
+implementation_commit: f223b88
+checks:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl auth,admin,app/app-web -am -Dtest=... test -B"
+    result: PASS
+    detail: "27 selected tests, 0 failures, 0 errors, 0 skipped; includes Auth/App context, local sink/dispatcher, Admin event consumer/bridge, and owner manifest tests"
+  - command: "rtk scripts/test/audit-owner-boundary-contract.sh"
+    result: PASS
+    detail: "Disposable MySQL creates Auth/App local audit_outbox and Admin consumer_inbox, revokes historical admin.audit_outbox INSERT grants, and rejects cross-owner inserts"
+  - command: "rtk scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Architecture/docs contracts, migration preflight, prior contraction contract, and the P1-AUDIT boundary contract pass"
+  - command: "rtk env HEALTH_REDIS_PASSWORD=health-only docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config"
+    result: PASS
+    detail: "Development Compose configuration parses without changing .env"
+  - command: "rtk bash -n changed scripts; rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "27723 nodes, 82664 edges, 886 communities; 106 SQL files lack tree_sitter_sql and remain covered by direct migration/script checks"
+summary: "Auth/App audit writes are owner-local, Admin consumes AuditRecorded through a durable idempotent inbox, and the historical cross-owner audit grant is revoked by forward migrations."
+external_gates:
+  - "No production migration, traffic switch, deployment, credential rotation, remote mutation, sudo, Docker-group, or account mutation was executed."
+  - "Live owner-service Redis/MySQL/Nacos traffic evidence remains external; the repository verification and disposable migration contract pass."
+  - "The standard quick gate's pre-existing localhost:26379 Judge Redis ACL mismatch remains external and was not bypassed."

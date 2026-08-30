@@ -670,7 +670,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Audit"
       dependencies: [P0-SEC-006]
-      status: TODO
+      status: DONE
       affected_modules: ["auth", "app", "admin", "platform/integration-inbox", "init-db/migrations"]
       acceptance_criteria:
         - "Each owner writes local audit outbox and Admin consumes idempotent events"
@@ -679,10 +679,11 @@ architecture_remediation_20260830:
         - "Audit outbox/inbox tests"
         - "Migration grant tests"
         - "Cross-schema write architecture gate"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-audit-001-green.result"
+      commit: f223b88
       blocked_by: []
-      notes: "Preserve existing claim fencing"
+      notes: "Owner-local audit outboxes, Admin durable inbox, idempotency/retry/DLQ, and grant revocation are repository-green; live traffic and production migration remain external"
     - id: P1-SEAM-001
       title: "Remove shallow and migration-only seams"
       priority: P1

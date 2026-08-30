@@ -233,6 +233,14 @@ for delegation_config in services/auth/src/main/resources/application.yml servic
 done
 not_contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_SECRET'
 contains services/auth/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY'
+not_contains services/admin/src/main/resources/application.yml 'INTERNAL_DELEGATION_SECRET'
+not_contains services/admin/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_SECRET'
+not_contains docker-compose.prod.yml 'INTERNAL_DELEGATION_SECRET='
+contains docker-compose.prod.yml 'INTERNAL_DELEGATION_PRIVATE_KEY='
+contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY='
+contains docker-compose.prod.yml 'INTERNAL_DELEGATION_PUBLIC_KEY='
+contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_PUBLIC_KEY='
+replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"
 contains docker/redis/generate-users-acl.sh '~stream:integration'

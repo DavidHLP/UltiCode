@@ -2,47 +2,66 @@ package com.ulticode.auth.security;
 
 import com.ulticode.auth.api.command.ActorDelegation;
 import com.ulticode.common.security.DelegationAssertionContract;
+import com.ulticode.websecurity.jwt.DelegationAssertionReplayGuard;
+import com.ulticode.websecurity.jwt.DelegationAssertionVerifierSupport;
+import com.ulticode.websecurity.jwt.RsaKeyMaterial;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import javax.crypto.SecretKey;
+import java.security.interfaces.RSAPublicKey;
+import java.time.Clock;
 import org.apache.dubbo.rpc.RpcContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/** Verifies signed Admin identity assertions on Auth-owned write RPCs. */
+/** Verifies RS256 Admin identity assertions on Auth-owned write RPCs. */
 @Component
 public class InternalDelegationAssertionVerifier {
 
     private static final String BOOTSTRAP_ACTOR_TYPE = "BOOTSTRAP";
     private static final String BOOTSTRAP_ACTOR_ID = "bootstrap";
-    private static final Duration CLOCK_SKEW = Duration.ofSeconds(5);
-    private static final Duration MAX_ASSERTION_LIFETIME = Duration.ofMinutes(1);
 
-    private final String secret;
-    private final String bootstrapSecret;
+    private final RSAPublicKey publicKey;
+    private final String keyId;
+    private final RSAPublicKey bootstrapPublicKey;
+    private final String bootstrapKeyId;
     private final String expectedIssuer;
     private final String expectedAudience;
+    private final DelegationAssertionReplayGuard replayGuard;
+    private final Clock clock;
 
     public InternalDelegationAssertionVerifier(
-            @Value("${security.internal-delegation.secret:${jwt.secret:}}") String secret,
-            @Value("${security.internal-delegation.bootstrap-secret:}") String bootstrapSecret,
+            @Value("${security.internal-delegation.public-key:}") String publicKeyBase64,
+            @Value("${security.internal-delegation.key-id:}") String keyId,
+            @Value("${security.internal-delegation.bootstrap-public-key:}") String bootstrapPublicKeyBase64,
+            @Value("${security.internal-delegation.bootstrap-key-id:}") String bootstrapKeyId,
             @Value("${security.internal-delegation.issuer:" + DelegationAssertionContract.ISSUER + "}") String expectedIssuer,
-            @Value("${security.internal-delegation.audience:backend-auth}") String expectedAudience) {
-        this.secret = secret;
-        this.bootstrapSecret = bootstrapSecret;
+            @Value("${security.internal-delegation.audience:backend-auth}") String expectedAudience,
+            DelegationAssertionReplayGuard replayGuard) {
+        this(publicKeyBase64, keyId, bootstrapPublicKeyBase64, bootstrapKeyId,
+                expectedIssuer, expectedAudience, replayGuard, Clock.systemUTC());
+    }
+
+    InternalDelegationAssertionVerifier(
+            String publicKeyBase64,
+            String keyId,
+            String bootstrapPublicKeyBase64,
+            String bootstrapKeyId,
+            String expectedIssuer,
+            String expectedAudience,
+            DelegationAssertionReplayGuard replayGuard,
+            Clock clock) {
+        this.publicKey = loadOptionalPublicKey(publicKeyBase64, "delegation");
+        this.keyId = keyId;
+        this.bootstrapPublicKey = loadOptionalPublicKey(bootstrapPublicKeyBase64, "bootstrap delegation");
+        this.bootstrapKeyId = bootstrapKeyId;
         this.expectedIssuer = expectedIssuer;
         this.expectedAudience = expectedAudience;
+        this.replayGuard = replayGuard;
+        this.clock = clock;
     }
 
     /** Verify the current Dubbo caller's assertion for the requested actor. */
     public boolean isTrusted(ActorDelegation actor) {
-        boolean bootstrap = actor != null
-                && BOOTSTRAP_ACTOR_TYPE.equalsIgnoreCase(actor.actorType());
+        boolean bootstrap = actor != null && BOOTSTRAP_ACTOR_TYPE.equalsIgnoreCase(actor.actorType());
         if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
                 || actor.delegatorId() == null || actor.delegatorId().isBlank()
                 || !actor.actorId().equals(actor.delegatorId())
@@ -53,51 +72,45 @@ public class InternalDelegationAssertionVerifier {
 
         String assertion = RpcContext.getServerAttachment().getAttachment(
                 DelegationAssertionContract.ATTACHMENT_KEY);
-        String verificationSecret = bootstrap ? bootstrapSecret : secret;
-        if (assertion == null || assertion.isBlank()
-                || verificationSecret == null || verificationSecret.isBlank()) {
+        RSAPublicKey verificationKey = bootstrap ? bootstrapPublicKey : publicKey;
+        String verificationKeyId = bootstrap ? bootstrapKeyId : keyId;
+        if (assertion == null || assertion.isBlank() || verificationKey == null) {
             return false;
         }
 
         try {
-            SecretKey key = Keys.hmacShaKeyFor(verificationSecret.getBytes(StandardCharsets.UTF_8));
-            Claims claims = Jwts.parser()
-                    .verifyWith(key)
-                    .requireIssuer(expectedIssuer)
-                    .requireAudience(expectedAudience)
-                    .build()
-                    .parseSignedClaims(assertion)
-                    .getPayload();
-
-            Instant now = Instant.now();
-            Date issuedAt = claims.getIssuedAt();
-            Date expiration = claims.getExpiration();
+            Claims claims = DelegationAssertionVerifierSupport.verify(
+                    assertion, verificationKey, verificationKeyId, expectedIssuer, expectedAudience, clock);
             String actorService = claims.get(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class);
             String actorType = claims.get(DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class);
             boolean bootstrapClaim = Boolean.TRUE.equals(
                     claims.get(DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class));
-
-            if (claims.getId() == null || claims.getId().isBlank()
-                    || issuedAt == null || expiration == null
-                    || !"backend-admin".equals(actorService)
+            if (!"backend-admin".equals(actorService)
                     || actorType == null || !actorType.equalsIgnoreCase(actor.actorType())
                     || !actor.actorId().equals(claims.getSubject())
                     || bootstrap != bootstrapClaim) {
                 return false;
             }
-
-            Instant issued = issuedAt.toInstant();
-            Instant expires = expiration.toInstant();
-            return !issued.isAfter(now.plus(CLOCK_SKEW))
-                    && expires.isAfter(now)
-                    && !expires.isAfter(issued.plus(MAX_ASSERTION_LIFETIME));
+            return replayGuard != null
+                    && replayGuard.claim(expectedAudience, claims.getId(),
+                    DelegationAssertionVerifierSupport.MAX_ASSERTION_LIFETIME);
         } catch (RuntimeException exception) {
             return false;
         }
     }
 
     private static boolean isAdminRole(String actorType) {
-        return "ADMIN".equalsIgnoreCase(actorType)
-                || "SUPER_ADMIN".equalsIgnoreCase(actorType);
+        return "ADMIN".equalsIgnoreCase(actorType) || "SUPER_ADMIN".equalsIgnoreCase(actorType);
+    }
+
+    private static RSAPublicKey loadOptionalPublicKey(String encoded, String label) {
+        if (encoded == null || encoded.isBlank()) {
+            return null;
+        }
+        try {
+            return RsaKeyMaterial.loadPublicKey(encoded);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("Invalid " + label + " public key", exception);
+        }
     }
 }

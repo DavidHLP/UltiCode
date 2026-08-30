@@ -1,4 +1,4 @@
-package com.ulticode.app.security;
+package com.ulticode.notification.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,6 +20,7 @@ class InternalDelegationAssertionVerifierTest {
 
     private static final String KEY_ID = "admin-delegation-v1";
     private static final String ACTOR_ID = "admin-1";
+    private static final String AUDIENCE = "backend-notification";
 
     private KeyPair keyPair;
     private InternalDelegationAssertionVerifier verifier;
@@ -31,7 +32,7 @@ class InternalDelegationAssertionVerifierTest {
                 encode(keyPair.getPublic()),
                 KEY_ID,
                 DelegationAssertionContract.ISSUER,
-                DelegationAssertionContract.AUDIENCE,
+                AUDIENCE,
                 (audience, jti, ttl) -> true,
                 java.time.Clock.systemUTC());
     }
@@ -44,46 +45,40 @@ class InternalDelegationAssertionVerifierTest {
 
     @Test
     void acceptsFreshSignedRs256AssertionBoundToActor() {
-        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20));
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), AUDIENCE);
 
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isTrue();
     }
 
     @Test
-    void rejectsMissingExpiredOrMismatchedAssertion() {
+    void rejectsWrongAudienceExpiredAndBootstrapAssertions() {
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), "backend-app");
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion(ACTOR_ID, Instant.now().minusSeconds(1));
+        putAssertion(ACTOR_ID, Instant.now().minusSeconds(1), AUDIENCE);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion("other-admin", Instant.now().plusSeconds(20));
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), AUDIENCE, true);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
     }
 
     @Test
     void rejectsLongLivedAndNonSelfDelegation() {
-        putAssertion(ACTOR_ID, Instant.now().plusSeconds(120));
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(120), AUDIENCE);
         assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
 
-        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20));
+        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), AUDIENCE);
         assertThat(verifier.isTrusted(new ActorDelegation(
                 "ADMIN", ACTOR_ID, "different-delegator", "test"))).isFalse();
     }
 
-    @Test
-    void rejectsAssertionIssuedForDifferentOwner() {
-        putAssertion(ACTOR_ID, Instant.now().plusSeconds(20), "backend-notification");
-
-        assertThat(verifier.isTrusted(actor("ADMIN", ACTOR_ID))).isFalse();
-    }
-
-    private void putAssertion(String subject, Instant expiresAt) {
-        putAssertion(subject, expiresAt, DelegationAssertionContract.AUDIENCE);
-    }
-
     private void putAssertion(String subject, Instant expiresAt, String audience) {
+        putAssertion(subject, expiresAt, audience, false);
+    }
+
+    private void putAssertion(String subject, Instant expiresAt, String audience, boolean bootstrap) {
         Instant issuedAt = Instant.now();
-        String assertion = Jwts.builder()
+        var builder = Jwts.builder()
                 .id(UUID.randomUUID().toString())
                 .subject(subject)
                 .claim(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, "backend-admin")
@@ -91,8 +86,11 @@ class InternalDelegationAssertionVerifierTest {
                 .issuer(DelegationAssertionContract.ISSUER)
                 .audience().add(audience).and()
                 .issuedAt(Date.from(issuedAt))
-                .expiration(Date.from(expiresAt))
-                .header().keyId(KEY_ID).and()
+                .expiration(Date.from(expiresAt));
+        if (bootstrap) {
+            builder.claim(DelegationAssertionContract.BOOTSTRAP_CLAIM, true);
+        }
+        String assertion = builder.header().keyId(KEY_ID).and()
                 .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
                 .compact();
         RpcContext.getServerAttachment().setAttachment(

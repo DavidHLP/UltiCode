@@ -172,9 +172,11 @@ management:
       timeout: 5s
 security:
   internal-delegation:
-    secret: ${INTERNAL_DELEGATION_SECRET:${JWT_SECRET:}}
-    # Only the explicit one-shot bootstrap command may set this; no normal fallback.
-    bootstrap-secret: ${BOOTSTRAP_DELEGATION_SECRET:}
+    # Base64-encoded X509 public key; Auth never receives Admin private material.
+    public-key: ${INTERNAL_DELEGATION_PUBLIC_KEY:}
+    key-id: ${INTERNAL_DELEGATION_KEY_ID:}
+    bootstrap-public-key: ${BOOTSTRAP_DELEGATION_PUBLIC_KEY:}
+    bootstrap-key-id: ${BOOTSTRAP_DELEGATION_KEY_ID:}
     issuer: ${INTERNAL_DELEGATION_ISSUER:backend-admin}
     audience: ${INTERNAL_DELEGATION_AUDIENCE:backend-auth}
 

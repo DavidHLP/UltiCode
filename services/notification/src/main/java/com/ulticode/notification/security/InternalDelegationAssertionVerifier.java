@@ -2,49 +2,49 @@ package com.ulticode.notification.security;
 
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.security.DelegationAssertionContract;
+import com.ulticode.websecurity.jwt.DelegationAssertionReplayGuard;
+import com.ulticode.websecurity.jwt.DelegationAssertionVerifierSupport;
+import com.ulticode.websecurity.jwt.RsaKeyMaterial;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import javax.crypto.SecretKey;
+import java.security.interfaces.RSAPublicKey;
+import java.time.Clock;
 import org.apache.dubbo.rpc.RpcContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/**
- * Verifies the signed Admin-to-App delegation assertion carried by Dubbo.
- *
- * <p>Dubbo attachments are attacker-controlled transport input. Only the
- * signature and the bound issuer, audience, deadline, jti, service, actor and
- * self-delegation claims make the assertion authoritative.
- */
+/** Verifies RS256 Admin identity assertions on Notification-owned RPCs. */
 @Component
 public class InternalDelegationAssertionVerifier {
 
-    private static final Duration CLOCK_SKEW = Duration.ofSeconds(5);
-    private static final Duration MAX_ASSERTION_LIFETIME = Duration.ofMinutes(1);
+    private final RSAPublicKey publicKey;
+    private final String keyId;
+    private final String expectedIssuer;
+    private final String expectedAudience;
+    private final DelegationAssertionReplayGuard replayGuard;
+    private final Clock clock;
 
-    @Value("${security.internal-delegation.secret:${jwt.secret:}}")
-    private String secret;
-
-    @Value("${security.internal-delegation.issuer:" + DelegationAssertionContract.ISSUER + "}")
-    private String expectedIssuer;
-
-    @Value("${security.internal-delegation.audience:" + DelegationAssertionContract.AUDIENCE + "}")
-    private String expectedAudience;
-
-    /** Spring constructor. */
-    public InternalDelegationAssertionVerifier() {
+    public InternalDelegationAssertionVerifier(
+            @Value("${security.internal-delegation.public-key:}") String publicKeyBase64,
+            @Value("${security.internal-delegation.key-id:}") String keyId,
+            @Value("${security.internal-delegation.issuer:" + DelegationAssertionContract.ISSUER + "}") String expectedIssuer,
+            @Value("${security.internal-delegation.audience:backend-notification}") String expectedAudience,
+            DelegationAssertionReplayGuard replayGuard) {
+        this(publicKeyBase64, keyId, expectedIssuer, expectedAudience, replayGuard, Clock.systemUTC());
     }
 
-    /** Focused-test constructor. */
-    InternalDelegationAssertionVerifier(String secret, String expectedIssuer, String expectedAudience) {
-        this.secret = secret;
+    InternalDelegationAssertionVerifier(
+            String publicKeyBase64,
+            String keyId,
+            String expectedIssuer,
+            String expectedAudience,
+            DelegationAssertionReplayGuard replayGuard,
+            Clock clock) {
+        this.publicKey = loadOptionalPublicKey(publicKeyBase64);
+        this.keyId = keyId;
         this.expectedIssuer = expectedIssuer;
         this.expectedAudience = expectedAudience;
+        this.replayGuard = replayGuard;
+        this.clock = clock;
     }
 
     /**
@@ -60,42 +60,37 @@ public class InternalDelegationAssertionVerifier {
 
         String assertion = RpcContext.getServerAttachment().getAttachment(
                 DelegationAssertionContract.ATTACHMENT_KEY);
-        if (assertion == null || assertion.isBlank() || secret == null || secret.isBlank()) {
+        if (assertion == null || assertion.isBlank() || publicKey == null) {
             return false;
         }
 
         try {
-            SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-            Claims claims = Jwts.parser()
-                    .verifyWith(key)
-                    .requireIssuer(expectedIssuer)
-                    .requireAudience(expectedAudience)
-                    .build()
-                    .parseSignedClaims(assertion)
-                    .getPayload();
-
-            Instant now = Instant.now();
-            Date issuedAt = claims.getIssuedAt();
-            Date expiration = claims.getExpiration();
+            Claims claims = DelegationAssertionVerifierSupport.verify(
+                    assertion, publicKey, keyId, expectedIssuer, expectedAudience, clock);
             String actorService = claims.get(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class);
             String actorType = claims.get(DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class);
-
-            if (claims.getId() == null || claims.getId().isBlank()
-                    || issuedAt == null || expiration == null
-                    || actorService == null
-                    || !DelegationAssertionContract.ISSUER.equals(actorService)
+            if (!"backend-admin".equals(actorService)
                     || actorType == null || !actorType.equalsIgnoreCase(actor.actorType())
-                    || !actor.actorId().equals(claims.getSubject())) {
+                    || !actor.actorId().equals(claims.getSubject())
+                    || Boolean.TRUE.equals(claims.get(DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class))) {
                 return false;
             }
-
-            Instant issued = issuedAt.toInstant();
-            Instant expires = expiration.toInstant();
-            return !issued.isAfter(now.plus(CLOCK_SKEW))
-                    && expires.isAfter(now)
-                    && !expires.isAfter(issued.plus(MAX_ASSERTION_LIFETIME));
+            return replayGuard != null
+                    && replayGuard.claim(expectedAudience, claims.getId(),
+                    DelegationAssertionVerifierSupport.MAX_ASSERTION_LIFETIME);
         } catch (RuntimeException exception) {
             return false;
+        }
+    }
+
+    private static RSAPublicKey loadOptionalPublicKey(String encoded) {
+        if (encoded == null || encoded.isBlank()) {
+            return null;
+        }
+        try {
+            return RsaKeyMaterial.loadPublicKey(encoded);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("Invalid delegation public key", exception);
         }
     }
 }

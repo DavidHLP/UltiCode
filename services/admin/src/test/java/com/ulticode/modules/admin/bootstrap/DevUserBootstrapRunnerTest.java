@@ -129,7 +129,8 @@ class DevUserBootstrapRunnerTest {
             .withProperty("DEV_SEED_ADMIN_EMAIL", "admin@localhost.test")
             .withProperty("DEV_SEED_ADMIN_PASSWORD", "admin123")
             .withProperty("DEV_SEED_ADMIN_ROLE", "ADMIN")
-            .withProperty("BOOTSTRAP_DELEGATION_SECRET", "bootstrap-secret");
+            .withProperty("BOOTSTRAP_DELEGATION_PRIVATE_KEY", "test-private-key")
+            .withProperty("BOOTSTRAP_DELEGATION_KEY_ID", "test-kid");
     environment.setActiveProfiles("dev");
     return environment;
   }

@@ -43,7 +43,7 @@ if [[ -e "$OUTPUT_FILE" && "$FORCE" != true ]]; then
   exit 0
 fi
 
-for command in openssl; do
+for command in openssl base64 sha256sum; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command not found: $command" >&2
     exit 1
@@ -56,6 +56,22 @@ random_hex() {
 
 random_base64() {
   openssl rand -base64 "$1" | tr -d '\r\n'
+}
+
+rsa_private_key() {
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null \
+    | openssl pkcs8 -topk8 -nocrypt -outform DER 2>/dev/null \
+    | base64 -w0
+}
+
+rsa_public_key() {
+  printf '%s' "$1" | base64 -d \
+    | openssl pkey -inform DER -pubout -outform DER 2>/dev/null \
+    | base64 -w0
+}
+
+rsa_key_id() {
+  printf '%s' "$1" | base64 -d | sha256sum | cut -c1-16
 }
 
 db_password="db_$(random_hex 18)"
@@ -73,8 +89,12 @@ nacos_password="Nacos!$(random_hex 18)"
 nacos_auth_token="$(random_base64 48)"
 nacos_identity_key="dev_$(random_hex 12)"
 nacos_identity_value="$(random_hex 24)"
-internal_delegation_secret="internal_$(random_hex 32)"
-bootstrap_delegation_secret="bootstrap_$(random_hex 32)"
+internal_delegation_private_key="$(rsa_private_key)"
+internal_delegation_public_key="$(rsa_public_key "$internal_delegation_private_key")"
+internal_delegation_key_id="$(rsa_key_id "$internal_delegation_public_key")"
+bootstrap_delegation_private_key="$(rsa_private_key)"
+bootstrap_delegation_public_key="$(rsa_public_key "$bootstrap_delegation_private_key")"
+bootstrap_delegation_key_id="$(rsa_key_id "$bootstrap_delegation_public_key")"
 nacos_db_password="nacos_db_$(random_hex 24)"
 meili_master_key="meili_$(random_base64 32)"
 auth_db_password="auth_$(random_hex 18)"
@@ -163,8 +183,12 @@ JUDGE_REDIS_PASSWORD="$judge_redis_password"
 OPS_REDIS_PASSWORD="$ops_redis_password"
 
 JWT_SECRET="$jwt_secret"
-INTERNAL_DELEGATION_SECRET="$internal_delegation_secret"
-BOOTSTRAP_DELEGATION_SECRET="$bootstrap_delegation_secret"
+INTERNAL_DELEGATION_PRIVATE_KEY="$internal_delegation_private_key"
+INTERNAL_DELEGATION_PUBLIC_KEY="$internal_delegation_public_key"
+INTERNAL_DELEGATION_KEY_ID="$internal_delegation_key_id"
+BOOTSTRAP_DELEGATION_PRIVATE_KEY="$bootstrap_delegation_private_key"
+BOOTSTRAP_DELEGATION_PUBLIC_KEY="$bootstrap_delegation_public_key"
+BOOTSTRAP_DELEGATION_KEY_ID="$bootstrap_delegation_key_id"
 JWT_COOKIE_SECURE=false
 CORS_ALLOWED_ORIGINS=http://localhost:9002,http://localhost:9003,http://127.0.0.1:9002,http://127.0.0.1:9003
 FRONTEND_URL=http://localhost:9002
@@ -260,7 +284,9 @@ chmod 600 "$OUTPUT_FILE"
 ACL_FILE="$ROOT_DIR/docker/redis/users.acl"
 if [[ -f "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
   # shellcheck disable=SC1090
+  set -a
   source "$OUTPUT_FILE"
+  set +a
   "$ROOT_DIR/docker/redis/generate-users-acl.sh" > "$ACL_FILE"
   chmod 644 "$ACL_FILE"
   echo "Re-rendered Redis ACL file: $ACL_FILE"

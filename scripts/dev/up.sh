@@ -26,7 +26,9 @@ capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION
   SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD \
   DEV_LOCAL_SEED_DATA_ENABLED DEV_LOCAL_SEED_ALLOW_REMOTE APP_DB_USER \
   APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE \
-  BOOTSTRAP_DELEGATION_SECRET
+  INTERNAL_DELEGATION_PRIVATE_KEY INTERNAL_DELEGATION_PUBLIC_KEY \
+  INTERNAL_DELEGATION_KEY_ID BOOTSTRAP_DELEGATION_PRIVATE_KEY \
+  BOOTSTRAP_DELEGATION_PUBLIC_KEY BOOTSTRAP_DELEGATION_KEY_ID
 
 # ===== 参数解析 =====
 SKIP_INSTALL=false
@@ -431,11 +433,9 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   # AccountManagementService 创建/恢复 admin (check=false: 容器可启动, 调用期才需要 provider)。
   # 所以 bootstrap 前必须先拉起 ulticode-auth 并等待其 Dubbo provider 注册到 Nacos。
   echo "Starting ulticode-auth first (admin provisioning uses Dubbo RPC to backend-auth)..."
-  # Older generated .env files predate the one-shot bootstrap secret. Keep the
-  # secret ephemeral in that case; use it only while Auth serves this bootstrap.
-  if [[ -z "${BOOTSTRAP_DELEGATION_SECRET:-}" ]]; then
-    BOOTSTRAP_DELEGATION_SECRET="$(openssl rand -hex 32)"
-    export BOOTSTRAP_DELEGATION_SECRET
+  if [[ -z "${INTERNAL_DELEGATION_PRIVATE_KEY:-}" || -z "${INTERNAL_DELEGATION_KEY_ID:-}" || -z "${BOOTSTRAP_DELEGATION_PRIVATE_KEY:-}" || -z "${BOOTSTRAP_DELEGATION_KEY_ID:-}" ]]; then
+    echo "Generated .env lacks the Admin delegation key pair; run scripts/dev/init-env.sh --force before bootstrap." >&2
+    exit 1
   fi
   (
     cd "$ROOT_DIR"
@@ -485,7 +485,10 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD" \
     DUBBO_PROTOCOL_PORT=-1 \
     APP_DEV_USERS_ENABLED=true \
-    BOOTSTRAP_DELEGATION_SECRET="$BOOTSTRAP_DELEGATION_SECRET" \
+    INTERNAL_DELEGATION_PRIVATE_KEY="$INTERNAL_DELEGATION_PRIVATE_KEY" \
+    INTERNAL_DELEGATION_KEY_ID="$INTERNAL_DELEGATION_KEY_ID" \
+    BOOTSTRAP_DELEGATION_PRIVATE_KEY="$BOOTSTRAP_DELEGATION_PRIVATE_KEY" \
+    BOOTSTRAP_DELEGATION_KEY_ID="$BOOTSTRAP_DELEGATION_KEY_ID" \
     DEV_SEED_ADMIN_USERNAME="$DEV_SEED_ADMIN_USERNAME" \
     DEV_SEED_ADMIN_EMAIL="$DEV_SEED_ADMIN_EMAIL" \
     DEV_SEED_ADMIN_PASSWORD="$DEV_SEED_ADMIN_PASSWORD" \
@@ -509,9 +512,8 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
       exit "$bootstrap_rc"
       ;;
   esac
-  # The normal long-lived Auth process does not need the one-shot verifier
-  # secret; do not carry it into the final PM2 environment or dump.
-  unset BOOTSTRAP_DELEGATION_SECRET
+  # The bootstrap key is handed only to the short-lived provisioning JVM;
+  # no legacy symmetric bootstrap secret is exported by this launcher.
 else
   echo "Skipping dev-admin bootstrap (--skip-bootstrap / --quick / --frontend-only)."
 fi

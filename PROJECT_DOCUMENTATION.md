@@ -83,7 +83,7 @@ Judge 执行库归属，而不是 App 私有业务包。`RunSubmissionDTO`、`Ru
 公共类型，也不因此新增进程或持久化依赖。
 
 生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。`up.sh --rebuild` 在启动后端前执行 services 反应堆 `-DskipTests install`,用于刷新 `~/.m2`(PM2 以单模块 spring-boot:run 启动各服务并从本地仓库解析兄弟模块,源码接口变更后不重新 install 会命中旧 jar);启动前还会做服务端口占用预检(监听者不属于对应 PM2 app 时 fail fast),并在加载 `.env` 后丢弃遗留的通用 `SERVER_PORT`,端口一律以 `ecosystem.config.cjs` 为准。完整 DEV-LOCAL 启动在 Owner migration 后通过 `init-db/scripts/app-owner-seed.sh` 分域、幂等导入 App problemset/forum/contest/solution 与 global-ranking seed；该 Adapter 按领域组分别处理空/完整/部分状态，不进入生产 Compose/Owner Flyway 主链。Contest 事务同时导入竞赛和全球排名 canonical fixtures，只使用 App Owner 表与 fixture ID，不通过运行时跨 Owner 查询用户。
-启动前 `up.sh` 还会用当前 `.env` 重渲染挂载给 Redis 的 `docker/redis/users.acl`，避免凭据轮换后 healthcheck 使用旧 hash；旧生成 `.env` 缺少一次性 `BOOTSTRAP_DELEGATION_SECRET` 时只在 Admin bootstrap 阶段生成内存值，常驻 PM2 进程和 dump 不保留该 secret。
+- 启动前 up.sh 会用当前 .env 重渲染挂载给 Redis 的 docker/redis/users.acl，避免凭据轮换后 healthcheck 使用旧 hash；本地环境生成器同时创建独立的 Admin/Bootstrap RS256 委托密钥对。私钥只进入 Admin bootstrap/PM2 进程，不写入 Git 或日志。
 
 ##### 2.2 Contract Seam
 
@@ -896,7 +896,7 @@ sequenceDiagram
 
 ##### 7.3 JWT 签发和本地验证
 
-**过渡期：** 为降低第一次 Auth 切流风险，可在 Legacy 与新 Auth 并存的短窗口保留现有 HMAC。App/Admin 若要离线验签就必须持有同一 secret，也因此在密码学上同样具备签发能力；这是明确接受且有删除日期的临时风险。该 secret 必须使用最小分发范围，且在 App/Admin 正式独立切流前完成非对称迁移。
+**当前实现：** Admin 的普通委托和 bootstrap 委托分别使用独立 RS256 私钥；Auth、App、Notification 只接收对应的 X509 公钥和 `kid`，不存在 HMAC 或 `JWT_SECRET` 回退。assertion 的 issuer、audience、subject、actor、`kid`、`jti`、`iat`、`exp` 和一次性 Redis claim 均 fail closed。
 
 **目标态：** Auth 使用非对称签名（优先 RS256/EdDSA，结合团队库支持裁决），通过 JWKS 发布公钥；Gateway/App/Admin 只持公钥缓存。access claims 至少包含：
 
@@ -935,7 +935,7 @@ Auth 是 `users.role`、`role_permissions`、`user_permissions` 的唯一 Owner�
 - **End-user delegation**：代表谁执行。HTTP ingress 验证后，Consumer filter 转发原始 audience 合法的短期 access assertion，或由 Auth 签发极短期 internal assertion；Provider 必须验证签名、audience、deadline、jti 和 actor service。
 
 Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 attachment；业务 request 中的 `userId/role` 只能是目标数据，不能作为审计 actor。审计记录 `subjectUserId`、`actorServiceId`、delegationId、traceId；身份传播丢失必须 fail closed，不能静默记成 `system`。
-实现约束：Admin Dubbo consumer filter 从目标 Application URL 读取服务名并仅为 `backend-app`、`backend-auth`、`backend-notification` 签发目标 audience；Auth、App、Notification 的高风险 Provider 在 durable receipt/数据库写入前验证签名 assertion。缺少目标、签名或 audience 时 fail closed。管理员 bootstrap 不复用普通 actor：仅在显式启用的一次性 runner 中提供 `BOOTSTRAP_DELEGATION_SECRET`，签发绑定 `backend-auth` 的 `BOOTSTRAP` assertion，Auth 只允许 create/update/reset/changeState provisioning 操作；普通签发 gate 默认关闭，Auth 未配置该专用 secret 时拒绝 bootstrap claim。Bootstrap 的管理员计数、identity、email-conflict 与 restore preflight 查询在 provider 缺失、RPC 异常或非 `ACCOUNT_NOT_FOUND` 错误时均 fail closed；只有 Auth 明确返回 `ACCOUNT_NOT_FOUND` 才视为空结果。管理员计数按 `ADMIN`+`SUPER_ADMIN` 角色（active 且未 banned）过滤，不把普通用户计入。`changePassword` 是纯自助操作：actor 必须是目标账号本身（进程内 `USER` 路径依赖 engine 的当前密码校验；admin 自助改密跨 Dubbo 边界，必须携带已验证的 delegation assertion），任何 actor 不得替其他账号调用。
+- 实现约束：Admin Dubbo consumer filter 从目标 Application URL 读取服务名，仅为 `backend-app`、`backend-auth`、`backend-notification` 签发目标 audience。Auth、App、Notification 的高风险 Provider 在 durable receipt/数据库写入前验证 RS256 assertion；Admin 只持有普通/Bootstrap 私钥，其他服务只持有公钥。缺少目标、签名、`kid`、audience 或 replay claim 时 fail closed。Bootstrap 仅由显式启用的一次性 runner 使用独立 `BOOTSTRAP_DELEGATION_PRIVATE_KEY`，Auth 只允许受限 provisioning 操作。
 
 ##### 7.7 CSRF、WebSocket 与 Auth 可用性
 
@@ -945,7 +945,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 - CONNECT 优先本地 JWT + account-state cache；cache 缺失/高风险时才查询 Auth。Auth 状态事件让 App 主动断开被禁用账号会话。
 - Auth 不可用时，已有且未撤销的短期 access token仍可访问普通 App；登录/refresh/fresh authorization 和缺少可信状态的 WebSocket CONNECT fail closed。
 - /admin/event-replay 的 replay、DLQ list、purge、reroute 方法均在 Controller 方法级要求 `ADMIN|SUPER_ADMIN`；App 的 HTTP filter 不得被视为该资源的唯一授权层。
-- Production Compose 不再默认使用 `dev` Dubbo namespace；它要求显式 `DUBBO_NAMESPACE`、RS256 private key、internal delegation secret 和 Nacos 专用数据库账号。Nacos bootstrap 在新 MySQL volume 初始化时创建最小权限账号。
+- Production Compose 不再默认使用 `dev` Dubbo namespace；它要求显式 `DUBBO_NAMESPACE`、RS256 access-token key、Admin delegation private keys、Auth/App/Notification delegation public keys 和 Nacos 专用数据库账号。Nacos bootstrap 在新 MySQL volume 初始化时创建最小权限账号。
 
 #### 8. Transaction Analysis
 

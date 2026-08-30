@@ -8,14 +8,18 @@ import static org.mockito.Mockito.when;
 
 import com.ulticode.common.security.DelegationAssertionContract;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import java.io.InputStream;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import javax.crypto.SecretKey;
-import org.apache.dubbo.rpc.Filter;
 import org.apache.dubbo.common.URL;
+import org.apache.dubbo.rpc.Filter;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
@@ -31,7 +35,8 @@ class DelegationAssertionFilterSpiTest {
 
     private static final String DESCRIPTOR =
             "META-INF/dubbo/org.apache.dubbo.rpc.Filter";
-    private static final String SECRET = "01234567890123456789012345678901";
+    private static final String KEY_ID = "admin-delegation-v1";
+    private static final String BOOTSTRAP_KEY_ID = "bootstrap-delegation-v1";
 
     @AfterEach
     void clearContext() {
@@ -41,7 +46,7 @@ class DelegationAssertionFilterSpiTest {
     }
 
     @Test
-    void filterIsRegisteredAsDubboSpiAndCanEmitARealSignedAssertion() throws Exception {
+    void filterIsRegisteredAsDubboSpiAndEmitsRs256Assertion() throws Exception {
         try (InputStream stream = getClass().getClassLoader().getResourceAsStream(DESCRIPTOR)) {
             assertThat(stream).isNotNull();
             String descriptor = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
@@ -49,12 +54,14 @@ class DelegationAssertionFilterSpiTest {
                     "delegationAssertionConsumer=" + DelegationAssertionConsumerFilter.class.getName());
         }
 
+        KeyPair keyPair = rsaKeyPair();
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
                         "admin-1", "",
                         List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
         DelegationAssertionSigner signer = new DelegationAssertionSigner();
-        ReflectionTestUtils.setField(signer, "secret", SECRET);
+        ReflectionTestUtils.setField(signer, "privateKeyBase64", encode(keyPair.getPrivate()));
+        ReflectionTestUtils.setField(signer, "keyId", KEY_ID);
         ReflectionTestUtils.setField(signer, "issuer", DelegationAssertionContract.ISSUER);
         ReflectionTestUtils.setField(signer, "ttlSeconds", 30L);
 
@@ -74,17 +81,17 @@ class DelegationAssertionFilterSpiTest {
             String assertion = RpcContext.getClientAttachment().getAttachment(
                     DelegationAssertionContract.ATTACHMENT_KEY);
             assertThat(assertion).isNotBlank();
-            SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-            Claims claims = Jwts.parser()
-                    .verifyWith(key)
+            Jws<Claims> signed = Jwts.parser()
+                    .verifyWith(keyPair.getPublic())
                     .requireIssuer(DelegationAssertionContract.ISSUER)
                     .requireAudience(DelegationAssertionContract.AUDIENCE)
                     .build()
-                    .parseSignedClaims(assertion)
-                    .getPayload();
-            assertThat(claims.getSubject()).isEqualTo("admin-1");
-            assertThat(claims.getId()).isNotBlank();
-            assertThat(claims.get(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class))
+                    .parseSignedClaims(assertion);
+            assertThat(signed.getHeader().getAlgorithm()).isEqualTo("RS256");
+            assertThat(signed.getHeader().getKeyId()).isEqualTo(KEY_ID);
+            assertThat(signed.getPayload().getSubject()).isEqualTo("admin-1");
+            assertThat(signed.getPayload().getId()).isNotBlank();
+            assertThat(signed.getPayload().get(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class))
                     .isEqualTo("backend-admin");
             return mock(Result.class);
         });
@@ -95,9 +102,11 @@ class DelegationAssertionFilterSpiTest {
     }
 
     @Test
-    void bootstrapInvocationUsesOnlyScopedBootstrapAssertion() throws Exception {
+    void bootstrapInvocationUsesOnlySeparateScopedRs256Key() throws Exception {
+        KeyPair bootstrapKeyPair = rsaKeyPair();
         DelegationAssertionSigner signer = new DelegationAssertionSigner();
-        ReflectionTestUtils.setField(signer, "bootstrapSecret", SECRET);
+        ReflectionTestUtils.setField(signer, "bootstrapPrivateKeyBase64", encode(bootstrapKeyPair.getPrivate()));
+        ReflectionTestUtils.setField(signer, "bootstrapKeyId", BOOTSTRAP_KEY_ID);
         assertThat(signer.issueForBootstrap("backend-auth")).isNull();
         ReflectionTestUtils.setField(signer, "developmentBootstrapEnabled", true);
         ReflectionTestUtils.setField(signer, "issuer", DelegationAssertionContract.ISSUER);
@@ -124,17 +133,18 @@ class DelegationAssertionFilterSpiTest {
         when(invoker.invoke(any())).thenAnswer(ignored -> {
             String assertion = RpcContext.getClientAttachment().getAttachment(
                     DelegationAssertionContract.ATTACHMENT_KEY);
-            Claims claims = Jwts.parser()
-                    .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+            Jws<Claims> signed = Jwts.parser()
+                    .verifyWith(bootstrapKeyPair.getPublic())
                     .requireIssuer(DelegationAssertionContract.ISSUER)
                     .requireAudience("backend-auth")
                     .build()
-                    .parseSignedClaims(assertion)
-                    .getPayload();
-            assertThat(claims.getSubject()).isEqualTo("bootstrap");
-            assertThat(claims.get(DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class))
+                    .parseSignedClaims(assertion);
+            assertThat(signed.getHeader().getAlgorithm()).isEqualTo("RS256");
+            assertThat(signed.getHeader().getKeyId()).isEqualTo(BOOTSTRAP_KEY_ID);
+            assertThat(signed.getPayload().getSubject()).isEqualTo("bootstrap");
+            assertThat(signed.getPayload().get(DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class))
                     .isEqualTo("BOOTSTRAP");
-            assertThat(claims.get(DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class))
+            assertThat(signed.getPayload().get(DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class))
                     .isTrue();
             return mock(Result.class);
         });
@@ -142,5 +152,15 @@ class DelegationAssertionFilterSpiTest {
         filter.invoke(invoker, invocation);
         assertThat(RpcContext.getClientAttachment().getAttachment(
                 DelegationAssertionContract.ATTACHMENT_KEY)).isNull();
+    }
+
+    private static KeyPair rsaKeyPair() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        return generator.generateKeyPair();
+    }
+
+    private static String encode(PrivateKey key) {
+        return Base64.getEncoder().encodeToString(key.getEncoded());
     }
 }

@@ -122,6 +122,13 @@
 - Consequences: owner-scoped migrations remain limited to their own schemas, while baseline generation/adoption and local startup apply the same post-owner control; rollback is represented by `skip_migrations=true` and never performs schema downgrade. Production migration and remote deployment remain external.
 - Affected tasks: P2-MIG-001, P2-BACKUP-001.
 
+## P2-BACKUP-001: keep complete owner backup outside the Admin HTTP path
+
+- Context: the Admin backup API and `BackupProcessPort` dump only the service datasource, while the target topology has five data owners and requires restore evidence.
+- Decision: use an external Ops runbook to archive `ulticode` plus `auth`, `admin`, `app`, `notification`, and `submission`; encrypt with an operator-supplied 32-byte key, record secret-free archive/table/migration metadata, serialize with `flock`, and restore only into a disposable MySQL drill target.
+- Consequences: checksum reconciliation, Flyway validation, smoke, retention, and measured RPO/RTO are executable locally; production off-host storage, key management, and restore authority remain external. The existing Admin HTTP backup surface remains compatible and is not expanded into a cross-owner business-data API.
+- Affected tasks: P2-BACKUP-001, P3-LEASE-001, P2-OBS-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

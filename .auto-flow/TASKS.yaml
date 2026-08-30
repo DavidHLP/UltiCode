@@ -727,7 +727,7 @@ architecture_remediation_20260830:
       priority: P2
       scope: "Backup/Restore"
       dependencies: [P2-MIG-001]
-      status: TODO
+      status: DONE
       affected_modules: ["admin backup module", "scripts/runbooks", "compose", "observability"]
       acceptance_criteria:
         - "A manifest covers five owner schemas, data, migration metadata, integrity, encryption/retention and singleton execution"
@@ -735,10 +735,11 @@ architecture_remediation_20260830:
       validation_commands:
         - "Backup unit/integration tests"
         - "Disposable restore drill"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p2-backup-001-green.result"
+      commit: 4423fae
       blocked_by: []
-      notes: "Docker denial may block drill and must be recorded externally"
+      notes: "Encrypted five-owner plus control-schema archive, migration metadata/checksum manifest, singleton lock, retention, and disposable restore drill pass; production backup storage/key/restore authority remain external"
     - id: P2-REDIS-001
       title: "Materialize and rotate Redis ACL safely"
       priority: P2

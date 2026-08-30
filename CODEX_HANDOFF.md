@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-BACKUP-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-REDIS-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 19 DONE, 23 TODO. `P2-BACKUP-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, and `P2-MIG-001` are closed in the repository with their available owner checks green.
+Current count: 20 DONE, 22 TODO. `P2-REDIS-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, and `P2-BACKUP-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -155,7 +155,7 @@ Current count: 19 DONE, 23 TODO. `P2-BACKUP-001` is the active implementation ta
 - `P1-AUDIT-001`: DONE — Remove cross-owner audit database writes
 - `P1-SEAM-001`: DONE — Remove shallow and migration-only seams
 - `P2-MIG-001`: DONE — Execute owner migration manifest in CD
-- `P2-BACKUP-001`: TODO — Back up and restore all data owners
+- `P2-BACKUP-001`: DONE — Back up and restore all data owners
 - `P2-REDIS-001`: TODO — Materialize and rotate Redis ACL safely
 - `P2-TLS-001`: TODO — Provide production TLS and HSTS profile
 - `P2-SC-001`: TODO — Verify immutable signed image supply chain
@@ -590,12 +590,12 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P2-BACKUP-001`.
+- Current active task: `P2-REDIS-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P2-MIG-001 as complete and points to `P2-BACKUP-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P2-BACKUP-001 as complete and points to `P2-REDIS-001`.
 
 ## 17. Handoff stop condition
 
@@ -692,4 +692,17 @@ Submission backfill range predicate was also corrected so an empty lower bound p
 Manifest contract, scoped-owner migration safety integration, baseline generation/validation/adoption, architecture/documentation/YAML/
 shell/diff gates, and Graphify pass. The generated baseline is current at 172 per-schema tables and contains no Flyway history tables.
 No production migration, remote deployment, traffic switch, credential rotation, sudo, Docker-group, or remote mutation was executed.
-The next repository task is `P2-BACKUP-001`.
+The next repository task is `P2-REDIS-001`.
+
+## 23. Completed checkpoint — P2-BACKUP-001
+
+P2-BACKUP-001 is repository-complete in `4423fae`. The external Ops runbook
+`scripts/runbooks/owner-backup-restore.sh` archives the `ulticode` control schema and all five data owners (`auth`, `admin`, `app`,
+`notification`, `submission`) into an OpenSSL-encrypted artifact. Its secret-free manifest records archive integrity, retention,
+owner coverage, table row/checksum snapshots, and Flyway migration metadata; `flock` serializes backup, restore-drill, and prune.
+
+`restore-drill` decrypts and checks the archive, restores only into a fresh disposable MySQL container, validates all six Flyway histories,
+reconciles every archived table row/checksum, runs schema/`SELECT 1` smoke checks, and emits measured `rpo_seconds`/`rto_seconds` evidence.
+The disposable contract also proves wrong-key rejection and retention pruning. Architecture/documentation/YAML/shell/diff gates and
+Graphify pass. Production off-host backup storage, key management, and restore authority remain external; no production or remote
+mutation was executed. The next repository task is `P2-REDIS-001`.

@@ -1,0 +1,22 @@
+task: P2-BACKUP-001
+status: PASS_WITH_EXTERNAL_GATE
+implementation_commit: 4423fae
+checks:
+  - command: "rtk bash scripts/test/owner-backup-restore-contract.sh"
+    result: PASS
+    detail: "Disposable baseline-backed six-schema archive, OpenSSL encryption, secret-free manifest, wrong-key rejection, singleton lock, retention pruning, fresh-container restore, six Flyway validations, table checksum reconciliation, smoke, and measured RPO/RTO all pass"
+  - command: "rtk bash scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Architecture/docs contracts plus the owner backup/restore contract pass"
+  - command: "rtk bash scripts/dev/docs-contract-test.sh"
+    result: PASS
+  - command: "rtk bash -n scripts/runbooks/owner-backup-restore.sh scripts/test/owner-backup-restore-contract.sh scripts/dev/architecture-contract-test.sh"
+    result: PASS
+  - command: "rtk workflow YAML parse; rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "27779 nodes, 82802 edges, 882 communities; 108 SQL files lack tree_sitter_sql and remain covered by direct migration checks"
+external_gates:
+  - "No production backup, restore, off-host key provisioning, remote deployment, or retention-policy mutation was executed"
+  - "Production backup storage, key management, and restore authority remain external"

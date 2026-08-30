@@ -1,7 +1,7 @@
 # Resume
 
 - Objective: implement the user-authorized microservice architecture remediation across P0-P3, repository delivery controls, verification, two reviews, local commits, and truthful external blockers.
-- Active task: P2-BACKUP-001 back up and restore all data owners; P0-SEC-001 through P2-MIG-001 are repository-complete, while production migration, traffic, and cutover evidence remains external.
+- Active task: P2-REDIS-001 materialize and rotate Redis ACL safely; P0-SEC-001 through P2-BACKUP-001 are repository-complete, while production migration, traffic, and cutover evidence remains external.
 - Branch: fix/architecture-remediation from main@8b4012b3d13678eaec38a82980c8e3558123b5a8; origin/main is one commit behind the baseline.
 - Scope: the 42 tasks under architecture_remediation_20260830 in .auto-flow/TASKS.yaml.
 - Invariants: retain five Data Owners, two Workers, Submission Owner, Streams adapters, Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, contract gate, owner migration manifest, idempotency, and user work.
@@ -23,6 +23,7 @@
 - Completed P1-DATA-001: normal App Submission reads use backend-submission bounded facts; local mapper/projection implementations are explicit legacy-rollback only; exact legacy grants/table contraction is confirmation-, backup-, quiescence-, proof-, and owner-parity-gated. GREEN 0aa0569; focused 184-test suite, API compatibility, architecture/docs, and disposable MySQL contraction gates pass.
 - Completed P1-AUDIT-001: Auth/App write owner-local audit outboxes; Admin consumes `AuditRecorded` through `Admin-Audit` consumer_inbox with idempotent audit-log insert, lease/retry/DLQ handling, and forward grant revocation. GREEN f223b88; targeted tests, disposable MySQL migration contract, architecture/docs, and Graphify pass.
 - Completed P1-SEAM-001: removed unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger App API types; removed the only runtime-throwing ranking default method; retained real transport, health, rollback, and N-1 seams with documentation. GREEN efc12eb; clean affected reactor, API compatibility, architecture/docs, and Graphify pass.
-- Next: implement P2-BACKUP-001 for five-owner backup/restore integrity and a temporary restore drill, then continue resilience, delivery, and final review gates. Production physical contraction and traffic evidence remain external.
+- Next: implement P2-REDIS-001 for runtime ACL materialization and dual-credential rotation/rollback, then continue resilience, delivery, and final review gates. Production physical contraction and traffic evidence remain external.
+- Completed P2-BACKUP-001: the external owner backup runbook archives all five owners plus `ulticode`, verifies encryption/checksums/Flyway metadata, and passes the disposable restore drill in `4423fae`; production storage/key/restore authority remain external.
 - Completed P2-MIG-001: the CD/local ordered owner manifest, privileged post-owner audit-grant cleanup, retry/lock/report contracts, baseline parity/adoption, and disposable safety integration pass in `3f204c1`, `c1ef9d0`, and `a5a0008`.
 - Delivery: local Conventional Commits only; no push.

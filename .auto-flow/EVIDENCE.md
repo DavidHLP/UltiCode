@@ -1,5 +1,7 @@
 # Services Issues Evidence
 
+- P2-BACKUP-001 validation: `4423fae` adds the external owner backup/restore runbook and disposable contract. Encrypted six-schema archive, secret-free manifest, checksum and Flyway metadata, wrong-key rejection, singleton lock, retention, fresh-container restore, migration validation, checksum reconciliation, smoke, RPO/RTO, architecture/docs/YAML/shell/diff, and Graphify all pass; production storage/key/restore authority remains external. Evidence: `p2-backup-001-green.result`.
+
 - P2-MIG-001 validation: `3f204c1`, `c1ef9d0`, and `a5a0008` add the CD/local ordered owner migration manifest, post-owner privileged cross-grant cleanup, retry/lock/report contracts, baseline parity/adoption handling, and the bounded Submission backfill predicate fix. Manifest contract, owner safety integration, baseline generation/validation/adoption, architecture/docs/YAML/shell/diff gates, and Graphify pass; production migration and remote deployment remain external. Evidence: `p2-mig-001-green.result`.
 
 - 2026-08-28 recovery started at `main@c3ceb69136b1678fde13461472ce191227a08167`; business worktree clean before control-plane updates.

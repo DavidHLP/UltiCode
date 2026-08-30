@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P2-BACKUP-001 completed in `4423fae`: added the external five-owner plus control-schema encrypted backup manifest, Flyway/checksum/reconciliation/smoke restore drill, measured RPO/RTO report, singleton lock, wrong-key rejection, and retention pruning. Next task is P2-REDIS-001; production backup storage/key/restore authority remains external.
+
 - 2026-08-31: P2-MIG-001 completed in `3f204c1`, `c1ef9d0`, and `a5a0008`: CD/local ordered owner migrations now finish with a privileged post-owner grant cleanup; baseline generation/adoption excludes and baselines its separate history; disposable scoped-owner, cutover, rollback, baseline, architecture/docs, and Graphify gates pass. Next task is P2-BACKUP-001; production migration remains external.
 
 - 2026-08-26: Recovered existing Garden task ledger and protected unrelated dirty worktree changes.

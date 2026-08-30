@@ -16,7 +16,7 @@ Start here; do not restart discovery from scratch.
    - `/home/david/Projects/UltiCode/AGENTS.md`
    - `/home/david/Projects/UltiCode/services/AGENTS.md` for backend work
    - the nearest nested `AGENTS.md` for any other subtree touched
-3. Preserve the dirty worktree. The P1-SUB-004 implementation is committed; any remaining `.auto-flow`/handoff metadata is active checkpoint work, not disposable output.
+3. Preserve the dirty worktree. The P1-SUB-004 implementation and its handoff metadata are committed; treat any new changes as user work, not disposable output.
 4. Every shell command must be prefixed with `rtk`.
 5. Use Zulu Java 17 for Maven:
 
@@ -59,7 +59,7 @@ Repository work may make production actions executable and verifiable, but must 
 - Last committed P1-SUB-004 implementation checkpoint:
   - `8a521d7`
   - `refactor(submission): move reconciliation to owner facts`
-- Follow-on `.auto-flow` and handoff checkpoint metadata is intentionally dirty until the checkpoint commit.
+- `.auto-flow` and handoff checkpoint metadata is committed in `b29c634`.
 - `git diff --check` currently passes.
 - OS: Arch Linux, x86_64.
 - Working Java: Zulu `17.0.20.1` via mise.

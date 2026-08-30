@@ -196,6 +196,29 @@ contains services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityC
   '.anyRequest().denyAll()'
 contains services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java \
   '.anyRequest().authenticated()'
+for shared_jwt in \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/AccessTokenVerifier.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/AccessTokenClaims.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/JwtAuthenticationFilter.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/JwksPublicKeyProvider.java \
+  services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/ResourceServerJwtVerifier.java; do
+  [[ -f "$ROOT_DIR/$shared_jwt" ]] || fail "missing shared JWT security source: $shared_jwt"
+done
+for stale_jwt in \
+  services/auth/src/main/java/com/ulticode/auth/security/jwt/JwtAuthenticationFilter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/jwt/JwtAuthenticationFilter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/jwt/JwksPublicKeyProvider.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifier.java \
+  services/admin/src/main/java/com/ulticode/admin/security/jwt/JwtAuthenticationFilter.java \
+  services/admin/src/main/java/com/ulticode/admin/security/jwt/JwksPublicKeyProvider.java \
+  services/admin/src/main/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifier.java \
+  services/notification/src/main/java/com/ulticode/notification/security/jwt/JwtAuthenticationFilter.java \
+  services/notification/src/main/java/com/ulticode/notification/security/jwt/JwksPublicKeyProvider.java \
+  services/notification/src/main/java/com/ulticode/notification/security/jwt/ResourceServerJwtVerifier.java; do
+  [[ ! -e "$ROOT_DIR/$stale_jwt" ]] || fail "stale owner-local JWT security source remains: $stale_jwt"
+done
+contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
+not_contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
 replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"

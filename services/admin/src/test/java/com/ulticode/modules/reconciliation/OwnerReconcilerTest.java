@@ -130,6 +130,74 @@ class OwnerReconcilerTest {
     }
 
     @Test
+    @DisplayName("Notification owner failures persist a failed reconciliation")
+    void notificationOwnerUnavailableFailsClosed() {
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(null);
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("\"child\":\"submissions\"", "\"mode\":\"FULL\"");
+        assertThat(run.getDetail()).contains("\"error\":");
+    }
+
+    @Test
+    @DisplayName("Notification owner pages advance with a monotonic cursor")
+    void notificationOwnerFactsAdvanceCursorAcrossPages() {
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE))
+                .thenReturn(notificationReferences(0, NotificationReconciliationReadPort.MAX_PAGE_SIZE));
+        when(notificationPort.findUserReferenceCounts("user-0499", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE))
+                .thenReturn(List.of(new NotificationUserReferenceCountDTO("user-0500", 2L)));
+        when(authService.existingUserIds(any()))
+                .thenReturn(RpcResult.success(Set.of(), "t-system"));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("COMPLETED");
+        assertThat(run.getDetail()).contains("\"child\":\"notifications\"", "\"orphans\":502");
+        verify(notificationPort).findUserReferenceCounts(
+                "user-0499", null, NotificationReconciliationReadPort.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    @DisplayName("unordered Notification owner facts fail closed")
+    void unorderedNotificationFactsFailClosed() {
+        when(authService.countAuthOrphans())
+                .thenReturn(RpcResult.success(AuthReconciliationOrphanCounts.ZERO, "t-system"));
+        when(submissionPort.findUserReferenceCounts("", null,
+                SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
+        when(notificationPort.findUserReferenceCounts("", null,
+                NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of(
+                new NotificationUserReferenceCountDTO("user-2", 1L),
+                new NotificationUserReferenceCountDTO("user-1", 1L)));
+        when(appPort.countOrphans()).thenReturn(ReconciliationOrphanCounts.ZERO);
+        when(auditMapper.auditPerformerIds(any(Integer.class), any(Integer.class)))
+                .thenReturn(List.of());
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("\"child\":\"submissions\"", "\"error\":");
+    }
+
+    @Test
     @DisplayName("a busy replica skips without creating a run record")
     void busyReplicaSkipsWithoutPersisting() {
         when(runMapper.tryAcquireLease(any())).thenReturn(0);
@@ -356,6 +424,13 @@ class OwnerReconcilerTest {
     private static List<SubmissionUserReferenceCountDTO> references(int start, int count) {
         return IntStream.range(start, start + count)
                 .mapToObj(index -> new SubmissionUserReferenceCountDTO(
+                        "user-%04d".formatted(index), 1L))
+                .toList();
+    }
+
+    private static List<NotificationUserReferenceCountDTO> notificationReferences(int start, int count) {
+        return IntStream.range(start, start + count)
+                .mapToObj(index -> new NotificationUserReferenceCountDTO(
                         "user-%04d".formatted(index), 1L))
                 .toList();
     }

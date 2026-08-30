@@ -11,9 +11,8 @@ import java.util.Map;
  *
  * <p><b>Status: active.</b> Constructed by
  * {@code ContestLifecycleServiceImpl#sendContestReminder} for every T-24h /
- * T-1h contest-start reminder; the notification-owner dispatcher
- * ({@code com.ulticode.modules.notification.dispatcher.NotificationDispatcher},
- * moved with the NOTIFY-006 extraction) then fans out to the InApp, Email,
+ * T-1h contest-start reminder; the notification-owner dispatcher (moved with
+ * the NOTIFY-006 extraction) then fans out to the InApp, Email,
  * and WebSocket channels with ledger-backed idempotency.
  *
  * <p>The {@code reminderType} is one of {@code "24h"} / {@code "1h"}; it is part

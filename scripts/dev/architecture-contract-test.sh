@@ -309,6 +309,12 @@ not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliat
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'submissionUserCounts'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'notifications'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'notificationUserCounts'
+app_java="$ROOT_DIR/services/app/app-web/src/main/java"
+if grep -REn --include='*.java' \
+  'INSERT[[:space:]]+INTO[[:space:]]+`?(notifications|notification_preferences|notification_delivery_ledger)|UPDATE[[:space:]]+`?(notifications|notification_preferences|notification_delivery_ledger)|DELETE[[:space:]]+FROM[[:space:]]+`?(notifications|notification_preferences|notification_delivery_ledger)|com\.ulticode\.modules\.notification\.(channel|consumer|dispatcher|ledger|mapper|service)([^[:alnum:]_]|$)|com\.ulticode\.modules\.notification\.entity\.(Notification|NotificationPreference)([^[:alnum:]_]|$)|com\.ulticode\.modules\.notification\.dto([^[:alnum:]_]|$)' \
+  "$app_java" >/dev/null; then
+  fail "App contains Notification-owned persistence or runtime implementation references"
+fi
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'

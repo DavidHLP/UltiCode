@@ -13,11 +13,11 @@ import java.util.List;
 public interface CurrentSessionQuery {
 
     /**
-     * Loads the authenticated user's safe projection and issues the CSRF token
-     * required by the current browser session.
+     * Loads the authenticated user's safe identity projection. Browser CSRF
+     * state stays at the HTTP boundary because it is carried by a cookie.
      *
      * @param accountId the authenticated principal's account id
-     * @return safe user projection plus the CSRF token
+     * @return safe user projection
      */
     CurrentUser currentUser(String accountId);
 
@@ -37,7 +37,6 @@ public interface CurrentSessionQuery {
             String role,
             boolean active,
             boolean banned,
-            LocalDateTime joinedAt,
-            String csrfToken) {
+            LocalDateTime joinedAt) {
     }
 }

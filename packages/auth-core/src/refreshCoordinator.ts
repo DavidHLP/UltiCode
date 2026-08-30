@@ -5,9 +5,8 @@
  * the backend's rotate-lock (`RefreshTokenService.revokeIfActive`) killing
  * tab2/tab3's refresh.
  *
- * CSRF sync seam: refresh response body contains a new csrfToken — we
- * sync it into the manager so the first write after refresh doesn't
- * trigger a 403 → /auth/me round-trip.
+ * The refresh request itself carries the current double-submit CSRF header,
+ * then the response replaces both session cookies and the in-memory token.
  */
 import { rawAxios } from './rawAxios';
 import type { CsrfTokenManager } from './csrf';
@@ -39,16 +38,17 @@ export function createRefreshAccessToken(
     if (inFlight) return inFlight;
     inFlight = (async () => {
       try {
+        const csrfToken = csrfManager.getToken();
+        if (!csrfToken) {
+          throw new Error('CSRF token is required to refresh the browser session');
+        }
         const { data } = await rawAxios.post<ResultEnvelope<RefreshResponse>>(
           '/auth/refresh',
+          undefined,
+          { headers: { 'X-CSRF-Token': csrfToken } },
         );
-        // `data` is the raw Result envelope; csrfToken lives in
-        // `data.data`, NOT at the top level. Reading `data.csrfToken`
-        // (the old code) always saw undefined, so the csrfManager was
-        // never updated after refresh — every subsequent write carried a
-        // stale CSRF value whose Redis grace (5min) eventually expired,
-        // producing a 403 and a forced logout. This is the root cause of
-        // the "前台不会续约，到点必须重新登录" symptom.
+        // rawAxios returns the untouched Result envelope; synchronize the
+        // rotated double-submit cookie value from its nested payload.
         const inner = data?.data;
         if (inner && typeof inner.csrfToken === 'string') {
           csrfManager.refreshFromResponse(inner);

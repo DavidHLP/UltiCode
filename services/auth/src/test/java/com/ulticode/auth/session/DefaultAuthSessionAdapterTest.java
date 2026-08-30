@@ -2,7 +2,6 @@ package com.ulticode.auth.session;
 
 import com.ulticode.auth.account.AuthAccountRecord;
 import com.ulticode.auth.refreshtoken.service.RefreshTokenService;
-import com.ulticode.auth.security.csrf.CsrfService;
 import com.ulticode.auth.security.jwt.JwtProperties;
 import com.ulticode.auth.security.jwt.JwtTokenProvider;
 import java.time.LocalDateTime;
@@ -27,8 +26,6 @@ class DefaultAuthSessionAdapterTest {
     @Mock
     private RefreshTokenService refreshTokenService;
 
-    @Mock
-    private CsrfService csrfService;
 
     private JwtProperties jwtProperties;
     private DefaultAuthSessionAdapter adapter;
@@ -44,8 +41,7 @@ class DefaultAuthSessionAdapterTest {
         jwtProperties.getCookie().getRefreshToken().setSecure(true);
         jwtProperties.getCookie().getRefreshToken().setSameSite("Lax");
         jwtProperties.getCookie().getRefreshToken().setDomain("example.test");
-        adapter = new DefaultAuthSessionAdapter(
-                jwtTokenProvider, jwtProperties, refreshTokenService, csrfService);
+        adapter = new DefaultAuthSessionAdapter(jwtTokenProvider, jwtProperties, refreshTokenService);
         cookieAdapter = new SessionCookieAdapter();
     }
 
@@ -64,8 +60,9 @@ class DefaultAuthSessionAdapterTest {
         assertThat(cookie(headers, "refresh_token"))
                 .contains("refresh_token=refresh", "Path=/", "Domain=example.test", "Max-Age=604800",
                         "Secure", "HttpOnly", "SameSite=Lax");
+        String csrfToken = session.response().getCsrfToken();
         assertThat(cookie(headers, "csrf_token"))
-                .contains("csrf_token=csrf", "Path=/", "Domain=example.test", "Max-Age=900",
+                .contains("csrf_token=" + csrfToken, "Path=/", "Domain=example.test", "Max-Age=900",
                         "Secure", "SameSite=Lax")
                 .doesNotContain("HttpOnly");
     }
@@ -75,7 +72,6 @@ class DefaultAuthSessionAdapterTest {
         AuthAccountRecord account = account();
         when(jwtTokenProvider.generateAccessToken("user-1", "alice", "USER"))
                 .thenReturn("new-access");
-        when(csrfService.generateToken("user-1")).thenReturn("new-csrf");
         AuthSession session = adapter.completeRefresh(account, "new-refresh");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -103,7 +99,7 @@ class DefaultAuthSessionAdapterTest {
     void loginReturnsUserAndCookiePolicyAsData() {
         AuthSession session = completeLogin();
 
-        assertThat(session.response().getCsrfToken()).isEqualTo("csrf");
+        assertThat(session.response().getCsrfToken()).matches("[0-9a-f-]{36}");
         assertThat(session.response().getUser().id()).isEqualTo("user-1");
         assertThat(session.cookies()).extracting(CookieMutation::name)
                 .containsExactly("access_token", "refresh_token", "csrf_token");
@@ -125,7 +121,6 @@ class DefaultAuthSessionAdapterTest {
         when(jwtTokenProvider.generateAccessToken("user-1", "alice", "USER"))
                 .thenReturn("access");
         when(refreshTokenService.createToken("user-1")).thenReturn("refresh");
-        when(csrfService.generateToken("user-1")).thenReturn("csrf");
         return adapter.completeLogin(account);
     }
 

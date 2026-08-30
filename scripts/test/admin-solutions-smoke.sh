@@ -60,12 +60,6 @@ call_no_csrf() {
   echo "$code"
 }
 
-# refresh CSRF from X-New-CSRF-Token response header
-refresh_csrf() {
-  local v
-  v=$(grep -i '^x-new-csrf-token:' "$HEADERS_JAR" | awk '{print $2}' | tr -d '\r\n')
-  [ -n "$v" ] && CSRF="$v"
-}
 
 # log <step> <status> <extra>
 log() {
@@ -137,13 +131,11 @@ log "detail-missing" "$([ "$code" = "404" ] && grep -q '"code":50401' $ARTIFACT_
 # ===== 4. POST /admin/solutions/{id}/flag =====
 echo "$SEP 4. POST /admin/solutions/sol-s-002/flag $SEP"
 code=$(call POST "/admin/solutions/sol-s-002/flag" '{"reason":"contains PII"}' $ARTIFACT_DIR/uc-4.json)
-refresh_csrf
-log "flag-success" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code newCsrfLen=${#CSRF}"
+log "flag-success" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code csrfLen=${#CSRF}"
 python3 -c "import json; d=json.load(open('$ARTIFACT_DIR/uc-4.json')); v=d.get('data') or {}; print('isFlagged=',v.get('isFlagged'),'flaggedReason=',v.get('flaggedReason'),'flaggedAt=',v.get('flaggedAt'))"
 
 # 4b. flag with empty reason (validation)
 code=$(call POST "/admin/solutions/sol-s-003/flag" '{}' $ARTIFACT_DIR/uc-4b.json)
-refresh_csrf
 log "flag-empty-reason" "$([ "$code" = "400" ] && echo OK || echo NOTE)" "code=$code body=$(head -c200 $ARTIFACT_DIR/uc-4b.json)"
 
 # 4c. flag missing CSRF
@@ -160,56 +152,46 @@ log "flag-no-auth" "$([ "$code" = "401" -o "$code" = "403" ] && echo OK || echo 
 # ===== 5. POST /admin/solutions/{id}/unflag =====
 echo "$SEP 5. POST /admin/solutions/sol-s-002/unflag $SEP"
 code=$(call POST "/admin/solutions/sol-s-002/unflag" "" $ARTIFACT_DIR/uc-5.json)
-refresh_csrf
-log "unflag" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code newCsrfLen=${#CSRF}"
+log "unflag" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code csrfLen=${#CSRF}"
 python3 -c "import json; d=json.load(open('$ARTIFACT_DIR/uc-5.json')); v=d.get('data') or {}; print('isFlagged=',v.get('isFlagged'),'flaggedReason=',v.get('flaggedReason'),'flaggedAt=',v.get('flaggedAt'))"
 
 # 5b. unflag when not flagged
 code=$(call POST "/admin/solutions/sol-s-001/unflag" "" $ARTIFACT_DIR/uc-5b.json)
-refresh_csrf
 log "unflag-when-clean" "$([ "$code" = "200" ] && echo OK || echo NOTE)" "code=$code body=$(head -c200 $ARTIFACT_DIR/uc-5b.json)"
 
 # ===== 6. POST /admin/solutions/bulk =====
 echo "$SEP 6a. bulk action=publish $SEP"
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-001","sol-s-002"],"action":"publish"}' $ARTIFACT_DIR/uc-6a.json)
-refresh_csrf
 log "bulk-publish" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code"
 cat $ARTIFACT_DIR/uc-6a.json; echo
 
 # 6b. bulk unpublish
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-001"],"action":"unpublish"}' $ARTIFACT_DIR/uc-6b.json)
-refresh_csrf
 log "bulk-unpublish" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code"
 cat $ARTIFACT_DIR/uc-6b.json; echo
 
 # 6c. bulk unflag (after re-flagging)
 code=$(call POST "/admin/solutions/sol-s-002/flag" '{"reason":"bulk test"}' $ARTIFACT_DIR/uc-6c0.json)
-refresh_csrf
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-002"],"action":"unflag"}' $ARTIFACT_DIR/uc-6c.json)
-refresh_csrf
 log "bulk-unflag" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code"
 cat $ARTIFACT_DIR/uc-6c.json; echo
 
 # 6d. bulk action=flag  (BUG-Q2: should now be 400, not 200 + per-row failure)
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-002"],"action":"flag"}' $ARTIFACT_DIR/uc-6d.json)
-refresh_csrf
 log "bulk-flag-unsupported" "$([ "$code" = "400" ] && echo OK || echo FAIL)" "code=$code"
 cat $ARTIFACT_DIR/uc-6d.json; echo
 
 # 6e. bulk action=garbage  (BUG-Q3: should now be 400, not 200 + per-row failure)
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-002"],"action":"dropdb"}' $ARTIFACT_DIR/uc-6e.json)
-refresh_csrf
 log "bulk-garbage-action" "$([ "$code" = "400" ] && echo OK || echo FAIL)" "code=$code"
 cat $ARTIFACT_DIR/uc-6e.json; echo
 
 # 6f. bulk empty ids (validation)
 code=$(call POST "/admin/solutions/bulk" '{"ids":[],"action":"publish"}' $ARTIFACT_DIR/uc-6f.json)
-refresh_csrf
 log "bulk-empty-ids" "$([ "$code" = "400" ] && echo OK || echo NOTE)" "code=$code body=$(head -c200 $ARTIFACT_DIR/uc-6f.json)"
 
 # 6g. bulk with one bad id  (BUG-Q4: existing → success:true, missing → success:false)
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-003","sol-NOPE-999"],"action":"publish"}' $ARTIFACT_DIR/uc-6g.json)
-refresh_csrf
 log "bulk-mixed-ids" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code"
 python3 -c "
 import json
@@ -222,7 +204,6 @@ cat $ARTIFACT_DIR/uc-6g.json; echo
 
 # 6h. bulk delete
 code=$(call POST "/admin/solutions/bulk" '{"ids":["sol-s-005"],"action":"delete"}' $ARTIFACT_DIR/uc-6h.json)
-refresh_csrf
 log "bulk-delete" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code"
 cat $ARTIFACT_DIR/uc-6h.json; echo
 
@@ -286,7 +267,6 @@ for i in $(seq 1 35); do
   payload='{"reason":"rl-toggle"}'; ep="flag"
   rc=$(call POST "/admin/solutions/${RL_TARGET}/${ep}" "$payload" $ARTIFACT_DIR/uc-rl-$i.json 2>/dev/null)
   if [ "$rc" = "429" ]; then RL_HIT=$((RL_HIT+1)); elif [ "$rc" = "200" ]; then RL_OK=$((RL_OK+1)); fi
-  refresh_csrf 2>/dev/null
 done
 log "rate-limit" "$([ "$RL_HIT" -ge 1 ] && [ "$RL_OK" -ge 25 ] && echo OK || echo NOTE)" "ok=$RL_OK hit429=$RL_HIT"
 # cleanup rate-limit counter for sol-s-003 + DB flag

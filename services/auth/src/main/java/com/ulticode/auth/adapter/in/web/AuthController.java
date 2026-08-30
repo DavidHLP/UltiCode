@@ -1,5 +1,8 @@
 package com.ulticode.auth.adapter.in.web;
 
+import static com.ulticode.websecurity.csrf.CookieCsrfFilter.CSRF_TOKEN_COOKIE;
+import static com.ulticode.websecurity.csrf.CookieCsrfFilter.REFRESH_TOKEN_COOKIE;
+
 import com.ulticode.auth.dto.AuthUserVO;
 import com.ulticode.auth.dto.LoginDTO;
 import com.ulticode.auth.dto.LoginResponse;
@@ -18,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,8 +42,6 @@ public class AuthController {
     private final AuthenticationWorkflow authenticationWorkflow;
     private final SessionCookieAdapter sessionCookieAdapter;
     private final CurrentSessionQuery currentSessionQuery;
-
-    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     @PostMapping("/login")
     @RateLimit(limit = 10, period = 60, key = "auth:login:ip:{ip}")
@@ -74,8 +76,10 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public Result<UserWithCsrfVO> getCurrentUser(Principal principal) {
-        return Result.success(toUserWithCsrf(currentUser(principal)));
+    public Result<UserWithCsrfVO> getCurrentUser(
+            Principal principal,
+            @CookieValue(name = CSRF_TOKEN_COOKIE, required = false) String csrfToken) {
+        return Result.success(toUserWithCsrf(currentUser(principal), csrfToken));
     }
 
     @GetMapping("/permissions")
@@ -94,7 +98,7 @@ public class AuthController {
         return principal.getName();
     }
 
-    private UserWithCsrfVO toUserWithCsrf(CurrentSessionQuery.CurrentUser currentUser) {
+    private UserWithCsrfVO toUserWithCsrf(CurrentSessionQuery.CurrentUser currentUser, String csrfToken) {
         AuthUserVO userVO = new AuthUserVO(
                 currentUser.accountId(),
                 currentUser.username(),
@@ -108,7 +112,7 @@ public class AuthController {
 
         UserWithCsrfVO response = new UserWithCsrfVO();
         response.setUser(userVO);
-        response.setCsrfToken(currentUser.csrfToken());
+        response.setCsrfToken(csrfToken);
         return response;
     }
 

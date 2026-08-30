@@ -17,10 +17,8 @@ import { createAuthStore } from '@/shared/auth-core/src'
  * {@code router/index.ts} can satisfy the seam's lazy-loader contract
  * without falling back to {@code fetchUser} (unconditional refetch).
  *
- * <p>The CSRF contract documented here previously (anonymous-only
- * exemption, "must logout before re-login") still holds — it is enforced
- * by the server's CsrfValidationFilter and the shared
- * {@code csrfManager.refreshFromResponse} calls inside the factory.
+ * <p>Cookie-authenticated unsafe methods are protected by the shared server
+ * CookieCsrfFilter and the auth-core token/header lifecycle.
  */
 export const useAuthStore = defineStore('auth', () => {
   const internals = createAuthStore(authApi)

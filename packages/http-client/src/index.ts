@@ -269,7 +269,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   )
   service.interceptors.request.use(csrfInterceptors.requestInterceptor)
   service.interceptors.response.use(
-    csrfInterceptors.responseInterceptor,
+    undefined,
     csrfInterceptors.errorInterceptor,
   )
 

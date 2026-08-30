@@ -169,6 +169,18 @@ not_contains services/admin/src/main/java/com/ulticode/admin/security/jwt/Accoun
 
 # Security and repair regressions: keep the executable boundaries aligned with
 # the source-level fixes so future migrations cannot silently reopen them.
+for csrf_config in \
+  services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java \
+  services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
+  services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java; do
+  contains "$csrf_config" 'new CookieCsrfFilter()'
+done
+for stale_csrf in \
+  services/auth/src/main/java/com/ulticode/auth/security/csrf/CsrfValidationFilter.java \
+  services/auth/src/main/java/com/ulticode/auth/security/csrf/CsrfService.java; do
+  [[ ! -e "$ROOT_DIR/$stale_csrf" ]] || fail "stale Auth-only CSRF implementation remains: $stale_csrf"
+done
 replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"

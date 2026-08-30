@@ -5,7 +5,6 @@ import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.error.AuthBusinessException;
 import com.ulticode.auth.error.AuthErrorCode;
 import com.ulticode.auth.permission.service.PermissionService;
-import com.ulticode.auth.security.csrf.CsrfService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +22,6 @@ import java.util.List;
 public class DefaultCurrentSessionQuery implements CurrentSessionQuery {
 
     private final AuthAccountQueryPort accountQueryPort;
-    private final CsrfService csrfService;
     private final PermissionService permissionService;
 
     @Override
@@ -38,8 +36,7 @@ public class DefaultCurrentSessionQuery implements CurrentSessionQuery {
                 account.role(),
                 account.active(),
                 account.banned(),
-                account.joinedAt(),
-                csrfService.generateToken(account.accountId())
+                account.joinedAt()
         );
     }
 

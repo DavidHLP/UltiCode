@@ -1,16 +1,18 @@
 package com.ulticode.auth.session;
 
+import static com.ulticode.websecurity.csrf.CookieCsrfFilter.CSRF_TOKEN_COOKIE;
+
 import com.ulticode.auth.account.AuthAccountRecord;
 import com.ulticode.auth.dto.AuthUserVO;
 import com.ulticode.auth.dto.LoginResponse;
 import com.ulticode.auth.refreshtoken.service.RefreshTokenService;
-import com.ulticode.auth.security.csrf.CsrfService;
 import com.ulticode.auth.security.jwt.JwtProperties;
 import com.ulticode.auth.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Default session issuer for JWT, CSRF, and refresh-session state.
@@ -22,24 +24,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DefaultAuthSessionAdapter implements AuthSessionPort {
 
-    /**
-     * Non-HttpOnly CSRF sentinel cookie. The frontend reads this from
-     * {@code document.cookie} to detect whether a session exists after a hard
-     * page refresh because the access token cookie is HttpOnly. Without this
-     * sentinel the auth-core session store skips the {@code /auth/me} bootstrap.
-     */
-    private static final String CSRF_TOKEN_COOKIE = "csrf_token";
-
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
     private final RefreshTokenService refreshTokenService;
-    private final CsrfService csrfService;
 
     @Override
     public AuthSession completeLogin(AuthAccountRecord account) {
         String accessToken = jwtTokenProvider.generateAccessToken(account.id(), account.username(), account.role());
         String refreshToken = refreshTokenService.createToken(account.id());
-        String csrfToken = csrfService.generateToken(account.id());
+        String csrfToken = newCsrfToken();
 
         return new AuthSession(
                 loginResponse(account, csrfToken),
@@ -54,7 +47,7 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
     @Override
     public AuthSession completeRefresh(AuthAccountRecord account, String rotatedRefreshToken) {
         String accessToken = jwtTokenProvider.generateAccessToken(account.id(), account.username(), account.role());
-        String csrfToken = csrfService.generateToken(account.id());
+        String csrfToken = newCsrfToken();
 
         return new AuthSession(
                 loginResponse(account, csrfToken),
@@ -76,6 +69,10 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
                         csrfCookie("", 0)
                 )
         );
+    }
+
+    private static String newCsrfToken() {
+        return UUID.randomUUID().toString();
     }
 
     private CookieMutation accessCookie(String value, int maxAgeSeconds) {

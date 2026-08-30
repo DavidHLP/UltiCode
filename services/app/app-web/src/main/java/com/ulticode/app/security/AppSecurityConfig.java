@@ -1,6 +1,7 @@
 package com.ulticode.app.security;
 
 import com.ulticode.app.security.jwt.JwtAuthenticationFilter;
+import com.ulticode.websecurity.csrf.CookieCsrfFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,7 +34,8 @@ public class AppSecurityConfig {
                         "/api/v1/app/health/ready").permitAll()
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(new CookieCsrfFilter(), JwtAuthenticationFilter.class);
         return http.build();
     }
 }

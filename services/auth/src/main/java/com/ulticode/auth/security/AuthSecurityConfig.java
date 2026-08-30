@@ -1,10 +1,8 @@
 package com.ulticode.auth.security;
 
-import com.ulticode.auth.security.csrf.CsrfService;
-import com.ulticode.auth.security.csrf.CsrfValidationFilter;
 import com.ulticode.auth.security.jwt.JwtAuthenticationFilter;
+import com.ulticode.websecurity.csrf.CookieCsrfFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -19,17 +17,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Spring Security configuration for the auth service.
  *
- * <p>Scope is intentionally narrower than backend-legacy's
- * {@code com.ulticode.common.config.SecurityConfig}: backend-auth only
- * owns the authentication surface, so cross-service rules
- * ({@code /admin/**}, public endpoint registry, public sample run) are
- * not relevant here. The Strangler Fig contract keeps backend-legacy's
- * SecurityConfig unchanged until Phase 4 cutover.
- *
- * <p>CSRF validation is wired only when a {@link CsrfService} bean is
- * available. The service depends on {@code RedisTemplate}, which is
- * excluded from the unit-test slice; the filter is therefore absent in
- * tests and present at runtime.
+ * <p>Cookie-authenticated unsafe methods use the shared double-submit
+ * {@link CookieCsrfFilter}. Bearer-only traffic remains outside browser CSRF,
+ * while refresh and logout remain protected even without a valid access token.
  */
 @Configuration
 @EnableWebSecurity
@@ -41,10 +31,7 @@ public class AuthSecurityConfig {
     private final AuthAuthenticationEntryPoint authAuthenticationEntryPoint;
 
     @Bean
-    public SecurityFilterChain authSecurityFilterChain(
-            HttpSecurity http, ObjectProvider<CsrfService> csrfServiceProvider) throws Exception {
-        CsrfService csrfService = csrfServiceProvider.getIfAvailable();
-
+    public SecurityFilterChain authSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authAuthenticationEntryPoint))
@@ -67,10 +54,8 @@ public class AuthSecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        if (csrfService != null) {
-            http.addFilterAfter(new CsrfValidationFilter(csrfService), JwtAuthenticationFilter.class);
-        }
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new CookieCsrfFilter(), JwtAuthenticationFilter.class);
         return http.build();
     }
 

@@ -1,5 +1,8 @@
 package com.ulticode.auth.security.jwt;
 
+import static com.ulticode.websecurity.csrf.CookieCsrfFilter.ACCESS_TOKEN_COOKIE;
+import static com.ulticode.websecurity.csrf.CookieCsrfFilter.REFRESH_TOKEN_COOKIE;
+
 import jakarta.annotation.PostConstruct;
 import java.util.Objects;
 import lombok.Data;
@@ -81,6 +84,11 @@ public class JwtProperties implements EnvironmentAware {
         validateCookie("refresh-token", refresh.getName(), refresh.isHttpOnly(), refresh.isSecure(),
                 refresh.getSameSite(), refresh.getPath(), refresh.getMaxAge());
 
+        if (!ACCESS_TOKEN_COOKIE.equals(access.getName())
+                || !REFRESH_TOKEN_COOKIE.equals(refresh.getName())) {
+            throw new IllegalStateException(
+                    "JWT cookie names must remain access_token and refresh_token for shared authentication filters");
+        }
         if ((!access.isSecure() || !refresh.isSecure()) && !insecureCookiesAllowed()) {
             throw new IllegalStateException(
                     "JWT cookies must use Secure outside the dev, test, or ci profiles");

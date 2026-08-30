@@ -6,6 +6,7 @@ import com.ulticode.auth.error.AuthWebExceptionHandler;
 import com.ulticode.auth.service.AuthenticationWorkflow;
 import com.ulticode.auth.service.CurrentSessionQuery;
 import com.ulticode.auth.session.SessionCookieAdapter;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,7 +47,8 @@ class AuthControllerCurrentSessionContractTest {
     void currentUserMapsSafeProjectionAndCsrfTokenToExistingHttpShape() throws Exception {
         when(currentSessionQuery.currentUser("user-1")).thenReturn(currentUser());
 
-        mockMvc.perform(get("/auth/me").principal(USER_PRINCIPAL))
+        mockMvc.perform(get("/auth/me").principal(USER_PRINCIPAL)
+                        .cookie(new Cookie("csrf_token", "csrf-1")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.user.id").value("user-1"))
@@ -113,8 +115,7 @@ class AuthControllerCurrentSessionContractTest {
                 "USER",
                 true,
                 false,
-                LocalDateTime.of(2026, 8, 6, 12, 0),
-                "csrf-1"
+                LocalDateTime.of(2026, 8, 6, 12, 0)
         );
     }
 }

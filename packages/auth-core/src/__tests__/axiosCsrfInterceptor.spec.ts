@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type {
-  InternalAxiosRequestConfig,
-  AxiosResponse,
-  AxiosError,
-} from "axios";
+import type { InternalAxiosRequestConfig, AxiosError } from "axios";
 import { createCsrfAxiosInterceptor } from "../axiosCsrfInterceptor";
 import type { CsrfTokenManager } from "../csrf";
 
@@ -140,61 +136,6 @@ describe("axiosCsrfInterceptor", () => {
     });
   });
 
-  describe("responseInterceptor", () => {
-    beforeEach(() => {
-      interceptors = createCsrfAxiosInterceptor(mockCsrfManager);
-    });
-
-    it("should capture x-new-csrf-token from 2xx responses", () => {
-      const response = {
-        headers: {
-          "x-new-csrf-token": "new-refreshed-token",
-        },
-      } as unknown as AxiosResponse;
-
-      interceptors.responseInterceptor(response);
-
-      expect(mockCsrfManager.refreshFromResponse).toHaveBeenCalledWith({
-        csrfToken: "new-refreshed-token",
-      });
-    });
-
-    it("should NOT capture from non-2xx responses", () => {
-      const response = {
-        status: 400,
-        headers: {
-          "x-new-csrf-token": "some-token",
-        },
-      } as unknown as AxiosResponse;
-
-      interceptors.responseInterceptor(response);
-
-      expect(mockCsrfManager.refreshFromResponse).toHaveBeenCalled();
-    });
-
-    it("should NOT call refreshFromResponse when header is missing", () => {
-      const response = {
-        headers: {},
-      } as unknown as AxiosResponse;
-
-      interceptors.responseInterceptor(response);
-
-      expect(mockCsrfManager.refreshFromResponse).not.toHaveBeenCalled();
-    });
-
-    it("should ignore non-string x-new-csrf-token", () => {
-      const response = {
-        headers: {
-          "x-new-csrf-token": ["array-token"] as unknown,
-        },
-      } as unknown as AxiosResponse;
-
-      interceptors.responseInterceptor(response);
-
-      expect(mockCsrfManager.refreshFromResponse).not.toHaveBeenCalled();
-    });
-  });
-
   describe("errorInterceptor", () => {
     beforeEach(() => {
       interceptors = createCsrfAxiosInterceptor(mockCsrfManager);
@@ -224,6 +165,7 @@ describe("axiosCsrfInterceptor", () => {
       } as never);
 
       const result = await interceptors.errorInterceptor(error);
+      expect(originalConfig.headers["X-CSRF-Token"]).toBe("fresh-csrf-token");
 
       expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
       expect(rawAxios.request).toHaveBeenCalledTimes(1);

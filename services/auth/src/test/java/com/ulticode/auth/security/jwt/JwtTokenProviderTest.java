@@ -177,6 +177,18 @@ class JwtTokenProviderTest {
 
             properties.validateSecret();
         }
+
+        @Test
+        @DisplayName("rejects authentication cookie-name drift")
+        void rejectsAuthenticationCookieNameDrift() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret(SECRET);
+            properties.getCookie().getAccessToken().setName("custom_access");
+
+            assertThatThrownBy(properties::validateSecret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("access_token");
+        }
     }
 
     @Nested

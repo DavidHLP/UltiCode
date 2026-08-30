@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // CSRF Token Manager
 // ---------------------------------------------------------------------------
-// Manages the CSRF token in memory, survives page refreshes via the
-// `refreshFromResponse` helper that extracts the token from API responses.
+// Keeps the latest token in memory and falls back to the client-readable
+// csrf_token cookie after a hard page reload.
 //
 // Usage:
 //   const csrf = createCsrfTokenManager();
@@ -11,6 +11,16 @@
 //   csrf.clearToken();
 //   csrf.refreshFromResponse({ csrfToken: 'new-token' });
 // ---------------------------------------------------------------------------
+
+function readCsrfCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const prefix = 'csrf_token=';
+  for (const segment of document.cookie.split(';')) {
+    const cookie = segment.trim();
+    if (cookie.startsWith(prefix)) return cookie.slice(prefix.length) || null;
+  }
+  return null;
+}
 
 /**
  * Factory function that creates an isolated CSRF token manager.
@@ -27,12 +37,14 @@
  * csrf.refreshFromResponse(await fetch('/api/auth/me').then(r => r.json()));
  * csrf.getToken();   // latest token from the response
  */
-export function createCsrfTokenManager(): CsrfTokenManager {
+export function createCsrfTokenManager(
+  readToken: () => string | null = readCsrfCookie,
+): CsrfTokenManager {
   let token: string | null = null;
 
   return {
     getToken(): string | null {
-      return token;
+      return token ?? readToken();
     },
 
     setToken(newToken: string): void {

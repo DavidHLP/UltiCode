@@ -33,6 +33,7 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
     _resetRefreshCoordinator();
     vi.mocked(rawAxios.post).mockReset();
     csrf = createCsrfTokenManager();
+    csrf.setToken("current-token");
   });
 
   it("T3: shares a single in-flight refresh across N concurrent calls", async () => {
@@ -59,7 +60,11 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
     await Promise.all([p1, p2, p3]);
 
     expect(rawAxios.post).toHaveBeenCalledTimes(1);
-    expect(rawAxios.post).toHaveBeenCalledWith("/auth/refresh");
+    expect(rawAxios.post).toHaveBeenCalledWith(
+      "/auth/refresh",
+      undefined,
+      { headers: { "X-CSRF-Token": "current-token" } },
+    );
   });
 
   it("T3b: clears in-flight after completion so the next 401 can refresh again", async () => {
@@ -95,13 +100,36 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
     expect(csrf.getToken()).toBe("keep-me");
   });
 
+  it("T4c: falls back to the csrf cookie source after a hard reload", async () => {
+    vi.mocked(rawAxios.post).mockResolvedValue({
+      data: { code: 0, data: { csrfToken: "fresh" } },
+    });
+    const fromCookie = createCsrfTokenManager(() => "cookie-token");
+
+    await createRefreshAccessToken(fromCookie)();
+
+    expect(rawAxios.post).toHaveBeenCalledWith(
+      "/auth/refresh",
+      undefined,
+      { headers: { "X-CSRF-Token": "cookie-token" } },
+    );
+  });
+
+  it("T4d: fails before refresh when neither memory nor cookie has a CSRF token", async () => {
+    const missing = createCsrfTokenManager(() => null);
+
+    await expect(createRefreshAccessToken(missing)()).rejects.toThrow(
+      "CSRF token is required",
+    );
+    expect(rawAxios.post).not.toHaveBeenCalled();
+  });
+
   // Regression: /auth/refresh returns Result<LoginResponse> = {code, data:{...}}.
   // rawAxios has NO interceptors, so the coordinator sees this raw envelope.
   // A prior bug read csrfToken from the envelope top level (data.csrfToken),
-  // which is always undefined — so csrfManager was never updated after refresh,
-  // every subsequent write carried a stale CSRF, and its 5-minute Redis grace
-  // expiry forced a logout. This test pins the real backend shape so neither
-  // the coordinator nor these mocks can silently drift back.
+  // which is always undefined. The next browser mutation then presents a
+  // stale header against the rotated csrf_token cookie and is rejected.
+  // This test pins the real backend shape so neither side can drift.
   it("T4-regression: reads csrfToken from Result envelope data.data, not top level", async () => {
     vi.mocked(rawAxios.post).mockResolvedValueOnce({
       data: { code: 0, data: { csrfToken: "enveloped-token" } },

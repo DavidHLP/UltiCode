@@ -872,16 +872,15 @@ sequenceDiagram
     participant G as Gateway
     participant A as backend-auth
     participant DB as Auth DB
-    participant R as Redis
 
     C->>G: POST /auth/login + credentials
     G->>A: HTTP（清理伪造 identity headers）
     A->>DB: 验证 credential/account state
     A->>DB: 本地事务写 refresh session/hash
-    A->>R: 生成/兼容 CSRF state
+    A->>A: 生成随机 double-submit CSRF token
     A-->>C: HttpOnly access/refresh cookies + CSRF token
 
-    C->>G: POST /auth/refresh + refresh cookie
+    C->>G: POST /auth/refresh + refresh/csrf cookies + X-CSRF-Token
     G->>A: HTTP
     A->>DB: revokeIfActive(old) + insert(new) 同事务
     A-->>C: new access/refresh cookies
@@ -890,6 +889,7 @@ sequenceDiagram
 - 登录、注册、OAuth callback、refresh、logout 全部发生在 `backend-auth`；
 - refresh 只接受 refresh HttpOnly cookie，任何服务都不能接受 access token 作为 refresh credential；
 - Auth 通过完整的 cookie policy 统一签发 login、refresh、logout 和 OAuth state header：access/refresh 保持 HttpOnly，SameSite/Path/可选 Domain 在删除时原样复用；Secure 默认开启，仅 `dev`、`test`、`ci` profile 可显式设置 `JWT_COOKIE_SECURE=false`，其他 profile 在启动时 fail closed；
+- Auth、App、Admin、Notification 的 cookie-auth unsafe methods 统一经过 `CookieCsrfFilter`：header 与 `csrf_token` cookie 恒定时间比较；Bearer-only 与 safe methods 不进入浏览器 CSRF；refresh/logout 即使没有有效 access token 也必须通过 CSRF 校验；
 - 保留 hash-only、条件旋转和 revoke-all；中期补 session family、parent/replacedBy 和 reuse detection；
 - DB 提交与 HTTP Set-Cookie 无法成为一个事务。失败语义要明确：cookie 写入失败时允许重新登录/恢复 session，而不是引入分布式事务。
 
@@ -939,7 +939,7 @@ Dubbo attachment 不是信任边界。Provider 丢弃客户端可控的同名 at
 ##### 7.7 CSRF、WebSocket 与 Auth 可用性
 
 - Access/refresh 继续放 HttpOnly cookie。浏览器 mutation 继续要求 CSRF；service-to-service bearer/mTLS ingress 必须与浏览器 CSRF filter 分离。
-- 兼容期可共用专用 Redis CSRF namespace；目标可评估签名 double-submit token，避免跨服务同步 Auth，但必须独立安全评审。
+- CSRF 采用无服务端状态的 double-submit contract；Auth 登录/refresh 同时返回并写入随机 token，`/auth/me` 回显当前 cookie 供硬刷新恢复，Owner 不再共享 Redis CSRF namespace；
 - WebSocket 归 App：只从 `access_token` cookie 获取 token，不接受 query、URL 或客户端 STOMP token；本地统一 JWT validator。
 - CONNECT 优先本地 JWT + account-state cache；cache 缺失/高风险时才查询 Auth。Auth 状态事件让 App 主动断开被禁用账号会话。
 - Auth 不可用时，已有且未撤销的短期 access token仍可访问普通 App；登录/refresh/fresh authorization 和缺少可信状态的 WebSocket CONNECT fail closed。

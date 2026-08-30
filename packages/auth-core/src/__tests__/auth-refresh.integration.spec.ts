@@ -96,7 +96,11 @@ describe("auth-refresh integration — T6 regression (10-minute hang)", () => {
     await errorInterceptor(error);
 
     expect(rawAxios.post).toHaveBeenCalledTimes(1);
-    expect(rawAxios.post).toHaveBeenCalledWith("/auth/refresh");
+    expect(rawAxios.post).toHaveBeenCalledWith(
+      "/auth/refresh",
+      undefined,
+      { headers: { "X-CSRF-Token": "stale-csrf-from-login" } },
+    );
     expect(rawAxios.request).toHaveBeenCalledTimes(1);
     expect(csrf.getToken()).toBe("fresh-csrf");
     expect(onFailure).not.toHaveBeenCalled();

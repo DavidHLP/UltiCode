@@ -1,6 +1,7 @@
 package com.ulticode.notification.security;
 
 import com.ulticode.notification.security.jwt.JwtAuthenticationFilter;
+import com.ulticode.websecurity.csrf.CookieCsrfFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -26,7 +27,8 @@ public class NotificationSecurityConfig {
                                 "/api/v1/notification/health",
                                 "/api/v1/notification/health/ready").permitAll()
                         .anyRequest().permitAll())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new CookieCsrfFilter(), JwtAuthenticationFilter.class);
         return http.build();
     }
 }

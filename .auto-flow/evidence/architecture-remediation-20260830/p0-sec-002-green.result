@@ -1,0 +1,26 @@
+task=P0-SEC-002
+phase=GREEN
+red_commit=6426cfb8497c
+shared_matrix=CookieCsrfFilterTest 14/14
+focused_backend=39/39
+owner_reactor_command=cd services && source ../.env && REDIS_USERNAME=ulticode-ops REDIS_PASSWORD=$OPS_REDIS_PASSWORD SPRING_PROFILES_ACTIVE=test ./mvnw -pl auth,admin,app/app-web,notification -am test -B
+owner_reactor_exit=0
+owner_fresh_reports=726
+owner_tests=2466
+owner_failures=0
+owner_errors=0
+owner_skipped=16
+auth_core_typecheck=PASS
+auth_core_tests=71/71
+http_client_typecheck=PASS
+http_client_tests=10/10
+console_typecheck=PASS
+console_tests=592/592
+management_typecheck=PASS
+management_tests=425/425
+architecture_contract=PASS
+documentation_contract=PASS
+shell_syntax=PASS
+graphify_update=PASS; 27463 nodes; 81999 edges
+note=The first owner reactor run omitted the repository Redis ACL credentials and failed only in JudgeStreamRedisIntegrationTest with Redis NOAUTH. The supervised rerun loaded the private local env without printing secrets and passed.
+degraded=[Java and TypeScript LSP references unavailable; Codebase Memory plus direct source used]

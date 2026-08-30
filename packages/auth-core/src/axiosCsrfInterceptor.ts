@@ -1,14 +1,10 @@
 /**
  * Unified CSRF interceptor for axios.
  *
- * Combines request attachment, response token capture, and error retry logic
- * into a single interceptor set driven by a CsrfTokenManager.
+ * Combines request attachment and bounded auth/CSRF retries into one
+ * interceptor set driven by a CsrfTokenManager.
  */
-import type {
-  InternalAxiosRequestConfig,
-  AxiosResponse,
-  AxiosError,
-} from 'axios';
+import type { InternalAxiosRequestConfig, AxiosError } from 'axios';
 
 import type { CsrfTokenManager } from './csrf';
 import { triggerAuthFailure } from './auth-failure';
@@ -30,14 +26,12 @@ interface ConfigWithCsrfMeta {
 
 export interface CsrfInterceptors {
   requestInterceptor: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig;
-  responseInterceptor: (response: AxiosResponse) => AxiosResponse;
   errorInterceptor: (error: AxiosError) => Promise<unknown>;
 }
 
 /**
  * Creates axios interceptors that handle CSRF token lifecycle:
  * - Request: attaches X-CSRF-Token for state-changing methods
- * - Response: captures x-new-csrf-token header to refresh token
  * - Error (401): refreshes access token via /auth/refresh (deduped),
  *   then replays the original request once. If refresh itself fails,
  *   triggers onAuthFailure (console/management handle the UX).
@@ -70,18 +64,6 @@ export function createCsrfAxiosInterceptor(
       }
     }
     return config;
-  }
-
-  /**
-   * Capture rotated CSRF token from response headers.
-   * Backend sends x-new-csrf-token after each state-changing request.
-   */
-  function responseInterceptor(response: AxiosResponse): AxiosResponse {
-    const newToken = response.headers['x-new-csrf-token'];
-    if (newToken && typeof newToken === 'string') {
-      csrfManager.refreshFromResponse({ csrfToken: newToken });
-    }
-    return response;
   }
 
   /**
@@ -150,9 +132,10 @@ export function createCsrfAxiosInterceptor(
           // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET)
           const refreshUrl = baseURL ? `${baseURL}/auth/me` : '/auth/me';
           const meResponse = await rawAxios.get<{ csrfToken?: string }>(refreshUrl);
-
-          if (meResponse.data?.csrfToken) {
-            csrfManager.refreshFromResponse(meResponse.data);
+          const refreshedToken = meResponse.data?.csrfToken;
+          if (refreshedToken) {
+            csrfManager.refreshFromResponse({ csrfToken: refreshedToken });
+            config.headers['X-CSRF-Token'] = refreshedToken;
           }
 
           // Retry original request once with fresh token via rawAxios —
@@ -176,7 +159,6 @@ export function createCsrfAxiosInterceptor(
 
   return {
     requestInterceptor,
-    responseInterceptor,
     errorInterceptor,
   };
 }

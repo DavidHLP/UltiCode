@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.mock.env.MockEnvironment;
 
 /**
  * Unit tests for {@link JwtTokenProvider}.
@@ -138,10 +139,43 @@ class JwtTokenProviderTest {
             properties.setSecret(SECRET);
             properties.getCookie().getAccessToken().setSecure(false);
             properties.getCookie().getRefreshToken().setSecure(false);
+            MockEnvironment production = new MockEnvironment();
+            production.setActiveProfiles("prod");
+            properties.setEnvironment(production);
 
             assertThatThrownBy(properties::validateSecret)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Secure");
+        }
+
+        @Test
+        @DisplayName("rejects insecure cookies when a production profile is mixed with dev")
+        void rejectsInsecureCookiesInMixedProductionProfile() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret(SECRET);
+            properties.getCookie().getAccessToken().setSecure(false);
+            properties.getCookie().getRefreshToken().setSecure(false);
+            MockEnvironment mixed = new MockEnvironment();
+            mixed.setActiveProfiles("dev", "prod");
+            properties.setEnvironment(mixed);
+
+            assertThatThrownBy(properties::validateSecret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Secure");
+        }
+
+        @Test
+        @DisplayName("allows insecure cookies only in an explicit local profile")
+        void allowsInsecureCookiesInDevProfile() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret(SECRET);
+            properties.getCookie().getAccessToken().setSecure(false);
+            properties.getCookie().getRefreshToken().setSecure(false);
+            MockEnvironment development = new MockEnvironment();
+            development.setActiveProfiles("dev");
+            properties.setEnvironment(development);
+
+            properties.validateSecret();
         }
     }
 

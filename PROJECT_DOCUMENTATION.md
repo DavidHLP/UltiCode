@@ -54,7 +54,7 @@ UltiCode 已经完成从单体 JVM 到多进程 Owner/Worker 拓扑的骨架迁�
 
 - 开发环境使用显式 Owner schema/account 配置；生产物理切换和外部 authority 不属于本项目；
 - Submission read 通过 bounded batch facts seam 组合，事件化 read projection 仍是未来可选能力；
-- App 保留 local/remote Submission 与显式 legacy rollback seam，但正常 dev-lite/dev-full 使用 Judge Streams；
+- App 保留显式 `legacy-rollback` Submission seam；正常 dev-lite/dev-full 的 Submission reads 通过 owner facts，Judge 仍使用 Judge Streams；
 - Admin 查询已收敛为粗粒度 query slices，不再作为拆分更多进程的理由；
 - DevStack manifest、源码/POM/config/Compose/PM2 和文档由 executable contract checks 持续对账。
 
@@ -357,7 +357,7 @@ flowchart LR
 | 登录 | `AuthController` → `AuthenticationWorkflow` → `AuthAccountPort` → `AuthSessionPort` → JWT/refresh/CSRF | Auth 目前仍以 `users` 作为账号表 |
 | 注册 | `AuthController` → `AuthenticationWorkflow.register` → `AuthAccountPort` + `refresh_tokens` | 账号和刷新会话应在 Auth 本地事务内，profile 后续事件化 |
 | 管理员创建题目 | `AdminProblemController` → `ProblemService.createProblem` → Problem/Detail/Version mappers | Admin Controller 可保留，写事务必须由 App 的 Problem Owner 执行 |
-| 普通提交 | App request boundary → immutable `SubmissionFactsSnapshot` → Submission `SubmissionWritePort` → local submission tables + judge outbox | Submission Owner 不再在写事务内同步回访 Problem/Auth；read enrichment 仍是后续 projection 任务 |
+| 普通提交 | App request boundary → immutable `SubmissionFactsSnapshot` → Submission `SubmissionIntakePort` → Submission-owner tables + judge outbox | Submission Owner 不再在写事务内同步回访 Problem/Auth；read enrichment 通过 bounded owner facts |
 | 比赛提交 | Contest Controller → Contest Service → SubmissionWritePort → Submission/Outbox → ContestSubmissionPort | 当前存在 Contest↔Submission 回访；目标需资格同步、记录事件化 |
 | 审核动作 | Moderation Controller → Moderation Service → moderation tables + App 内容表 + `users` ban fields | 当前仍是兼容混合写路径；目标拆为 Admin/App/Auth Owner 事件化协作 |
 | 搜索 | Search Projection → MeiliSearch 或四个 SearchSource → Problem/Forum/Solution/User mappers | 目标应由 App 拥有搜索索引，不做四路远程串行查询 |
@@ -483,7 +483,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 
 - 一个 HTTP 请求最多进入一个业务 Provider 单跳；Provider 不再同步调用第三个服务完成同一业务命令；
 - Admin Dashboard 等组合读优先使用 Admin 自有事件投影；确需实时数据时，从 Admin 并行调用少量批量 RPC，而不是逐行 N+1；
-- App Submission 的 write、fence、user-read 三条兼容路径共享同一个 `SubmissionRoutingProperties` migration seam；`dev-lite/local` 只解析本地实现，`remote` 只有在 cutover gate 通过后解析远程 adapter，旧本地路径保留为 rollback。
+- App Submission 的 write、fence、user-read 与统计/Contest read 共享 owner contract；正常运行只解析远程 owner adapters，`legacy-rollback` 才解析本地兼容实现，所有本地实现均保留明确的 rollback 条件。
 - Gateway 只做路由、TLS、header 清理、基础限流和 trace，不是唯一安全边界；四个服务都验证自己的 JWT/服务身份；
 - Auth 下线时，未过期 access token 仍可被 App/Admin 本地验证；登录、刷新和高风险 fresh-auth 操作 fail closed。
 
@@ -600,7 +600,7 @@ WebSocket endpoint/realtime relay 仍是 `backend-app` 内的独立 package；`b
 | HTTP / Ports | 无业务 HTTP API；内部 boot/actuator 端口 `9106`，Dubbo Triple `20886`，均只在 internal network |
 | Rollback | 当前 artifact 不含 App-local writer。回滚必须部署上一已验证 artifact 并执行 `submission-schema-cutover.sh rollback`；不得在当前版本通过配置重新产生第二 writer |
 
-Owner-only intake cutover：App 的 local writer、mutation router、fence adapters、judge/result dispatchers、shadow comparator 与 lease reaper 已删除。`RemoteSubmissionWritePort` 无条件捕获 App-owned request facts，再调用 `backend-submission` 的 `SubmissionIntakePort`；`APP_SUBMISSION_ROUTING_MODE` 只保留给临时 read projection。Judge verdict/fence/reaper/outbox 全部由 Judge/Submission runtime 直接使用 owner contract。
+Owner-only intake cutover：App 的 local writer、mutation router、fence adapters、judge/result dispatchers、shadow comparator 与 lease reaper 已删除。`RemoteSubmissionWritePort` 无条件捕获 App-owned request facts，再调用 `backend-submission` 的 `SubmissionIntakePort`；正常 Submission reads 通过 owner facts，只有显式 `legacy-rollback` 才激活临时本地 read projection。Judge verdict/fence/reaper/outbox 全部由 Judge/Submission runtime 直接使用 owner contract。
 ##### 4.5.2 Writer behavior decision matrix (P1-SUB-001)
 
 | ID | Owner decision | Regression evidence |
@@ -626,7 +626,7 @@ Owner-only intake cutover：App 的 local writer、mutation router、fence adapt
 | W19 | fenced verdict rejects stale generation/attempt | `DefaultSubmissionWritePortIT.fencedVerdictRejectsStaleGeneration` |
 | W20 | terminal verdict writes one generation-idempotent result outbox | `DefaultSubmissionWritePortIT.fencedVerdictAcceptsCurrentGeneration` |
 
-Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component. Live traffic observation remains external. Admin rejudge is now owner-routed per P1-SUB-002; App-local reads remain tracked by P1-SUB-003/004 and SVC-003.
+Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component and direct App Submission reads. Live traffic observation remains external. Admin rejudge is owner-routed per P1-SUB-002; normal App reads are owner-routed per P1-DATA-001 and local readers remain only as rollback seams.
 
 ##### 4.5.3 Admin rejudge ownership (P1-SUB-002)
 
@@ -819,7 +819,8 @@ Interface；回滚顺序相反。混合版本窗口和 consumer drain 完成前�
 write/fence/read/rejudge/admin contracts、DTO 与 lifecycle events 位于 `backend-submission-api`，Notification
 admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。当前
 Submission mutation 窄 Interface 与 owner 内部的 deprecated 1.0.0 compatibility provider 并存；App
-不再提供 Submission mutation/rejudge provider，`APP_SUBMISSION_ROUTING_MODE` 只选择临时 read projection，失败只走既有 grant/watermark/reconciliation runbook。
+不再提供 Submission mutation/rejudge provider，正常 Submission reads 使用 owner facts，`APP_SUBMISSION_ROUTING_MODE`
+仅作为兼容配置保留，显式 `legacy-rollback` 才允许临时本地 read projection。
 
 Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
@@ -837,6 +838,23 @@ Admin 在同一事务/数据库连接内使用 `GET_LOCK`/`RELEASE_LOCK` 防止�
 返回不落库的 `SKIPPED`；锁查询异常、owner facts 响应为 null、乱序/重复/负数或越界时失败闭环，持久化 `FAILED`
 记录、模式与可行动错误，并递增失败指标。App 的 reconciliation mapper 不再读取 `submissions`；
 `ReconciliationOrphanCounts.submissions` 暂作为 wire-compatible 零占位，待后续合同收缩。
+
+#### Submission read owner cutover 与 schema contraction
+
+P1-DATA-001 完成了 App 正常读路径的 owner cutover：用户列表/详情、统计、Problem submission counts、用户标签统计、
+Contest submission projection 与 FINISHING drain check 均通过 `backend-submission` 的 bounded facts seam 读取
+Submission 状态，App 只保留 Contest/Problem/Tag 自有关系表；App `SubmissionMapper` 及其 local adapters 只在
+显式 `app.runtime.mode=legacy-rollback` 下装配。Submission owner 同时通过窄 provider 暴露状态/generation、用户
+accepted problem ids、Problem counts 与统计聚合，避免跨 schema SQL join。
+
+物理退役仍是独立、显式的外部执行步骤：共享 migration 只创建 `owner_contraction_proof` 控制表，
+`scripts/runbooks/owner-schema-contraction.sh preflight` 校验 source/owner rows、column shape、checksum 和
+App legacy DML grant 为零并记录 proof；带 `OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION`、
+`OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM=I_HAVE_VERIFIED_OWNER_CONTRACTION_BACKUP`、
+`OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM=I_HAVE_QUIESCED_OWNER_WRITERS`、backup reference 与 `--execute` 的
+`contract` 才撤销精确 legacy-table grants 并调用独立 `flyway-contraction.conf` 历史，删除已证明的
+Submission/Notification legacy tables。schema/global/column grant 残留会 fail-closed。迁移不修改 applied migration，
+也不删除 `consumer_inbox`/`app_command_receipt`；删除后的恢复依赖执行窗口前的 verified backup，仓库不声明生产切流已经完成。
 
 允许内容：接口、request/response DTO、枚举、稳定错误码、trace/idempotency metadata。禁止内容：Entity、Mapper、ServiceImpl、Repository、MyBatis annotation、Spring Security context、数据库字段泄漏。
 

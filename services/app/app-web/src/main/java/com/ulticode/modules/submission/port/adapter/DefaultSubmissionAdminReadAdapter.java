@@ -46,6 +46,8 @@ import java.util.stream.Collectors;
  */
 @Component
 @Primary
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class DefaultSubmissionAdminReadAdapter implements SubmissionAdminReadPort {
 

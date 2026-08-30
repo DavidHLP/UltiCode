@@ -58,6 +58,7 @@ tokens. Each keeps its own REVOKE/drain semantics; shared primitives come from
 Checkpoint and failure artifacts default under `.local/migration-audit/`; the
 execute path requires explicit backfill and all-writers quiesce confirmations.
 - `submission-backfill-contract.sh` — executable fake-MySQL rehearsal for dry-run checkpoint resume, failure export, and insert-free behavior.
+- `owner-schema-contraction.sh` — read-only owner parity/grant proof by default; `contract --execute` requires backup, writer-quiescence, and contraction confirmations before the destructive step.
 
 ## scripts/test/ — standalone smoke suites
 

@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Production adapter for {@link ProblemSubmissionStatsPort}, backed by
@@ -18,6 +20,8 @@ import java.util.List;
  * the submission module; the problem projections depend on the port.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class ProblemSubmissionStatsMapperAdapter implements ProblemSubmissionStatsPort {
 
@@ -56,7 +60,38 @@ public class ProblemSubmissionStatsMapperAdapter implements ProblemSubmissionSta
     }
 
     @Override
-    public List<ProblemDifficultyCompletion> countProblemCompletionByDifficulty() {
+    public Map<Long, Long> countByProblemIds(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> result = new LinkedHashMap<>();
+        for (Long problemId : problemIds) {
+            Long count = submissionMapper.selectCount(
+                    new LambdaQueryWrapper<Submission>().eq(Submission::getProblemId, problemId));
+            result.put(problemId, count == null ? 0L : count);
+        }
+        return result;
+    }
+
+    @Override
+    public Map<Long, Long> countAcceptedByProblemIds(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> result = new LinkedHashMap<>();
+        for (Long problemId : problemIds) {
+            Long count = submissionMapper.selectCount(
+                    new LambdaQueryWrapper<Submission>()
+                            .eq(Submission::getProblemId, problemId)
+                            .eq(Submission::getStatus, "Accepted"));
+            result.put(problemId, count == null ? 0L : count);
+        }
+        return result;
+    }
+
+    @Override
+    public List<ProblemDifficultyCompletion> countProblemCompletionByDifficulty(
+            Map<Long, String> difficultyByProblemId) {
         return submissionMapper.countProblemCompletionByDifficulty();
     }
 

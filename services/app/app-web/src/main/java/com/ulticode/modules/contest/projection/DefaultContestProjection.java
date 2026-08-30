@@ -61,6 +61,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultContestProjection implements ContestProjection {
 
+    private static final int MAX_CONTEST_SUBMISSIONS = 100;
+
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
@@ -277,12 +279,12 @@ public class DefaultContestProjection implements ContestProjection {
         if (contestProblem == null) {
             throw new BusinessException(ContestErrorCode.PROBLEM_NOT_FOUND);
         }
-        List<String> submissionIds = contestSubmissionMapper
-                .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
-                .stream()
-                .map(s -> s.getId())
-                .toList();
-        return submissionProjection.toVOs(submissionIds);
+        if (userId == null || userId.isBlank()) {
+            return List.of();
+        }
+        return submissionProjection.toVOs(contestSubmissionMapper
+                .findSubmissionIdsByContestProblemAndUser(
+                        contestId, contestProblem.getId(), userId, MAX_CONTEST_SUBMISSIONS));
     }
 
     @Override

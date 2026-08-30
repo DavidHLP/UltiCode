@@ -46,4 +46,15 @@ class SubmissionRoutingPropertiesTest {
                 .hasMessageContaining("local")
                 .hasMessageContaining("remote");
     }
+
+    @Test
+    @DisplayName("normal owner reads reject an unproven local route")
+    void normalOwnerReadRequiresCutover() {
+        SubmissionRoutingProperties properties = new SubmissionRoutingProperties();
+
+        assertThatThrownBy(() -> properties.selectOwnerRead(
+                () -> "local", () -> "remote", "user-read"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cutover-complete");
+    }
 }

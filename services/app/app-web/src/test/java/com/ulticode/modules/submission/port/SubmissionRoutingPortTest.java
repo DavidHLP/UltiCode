@@ -27,17 +27,23 @@ class SubmissionRoutingPortTest {
     private RemoteSubmissionUserQueryAdapter remoteUserQuery;
 
     @Mock
+    private ObjectProvider<LocalSubmissionUserQueryAdapter> localUserQueryProvider;
+
+    @Mock
     private ObjectProvider<RemoteSubmissionUserQueryAdapter> remoteUserQueryProvider;
 
     @Test
-    @DisplayName("local mode keeps user reads in App")
+    @DisplayName("explicit legacy rollback keeps user reads in App")
     void localModeUsesLocalUserQuery() {
         SubmissionRoutingProperties properties = properties(SubmissionRoutingProperties.LOCAL);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                properties, "runtimeMode", "legacy-rollback");
+        when(localUserQueryProvider.getIfAvailable()).thenReturn(localUserQuery);
         when(localUserQuery.aggregateDates("user-1", 2026))
                 .thenReturn(java.util.List.of("2026-08-20"));
 
         SubmissionUserQueryPort routing = new SubmissionUserQueryRoutingPort(
-                localUserQuery, remoteUserQueryProvider, properties);
+                localUserQueryProvider, remoteUserQueryProvider, properties);
 
         assertThat(routing.aggregateDates("user-1", 2026)).containsExactly("2026-08-20");
         verify(localUserQuery).aggregateDates("user-1", 2026);
@@ -53,7 +59,7 @@ class SubmissionRoutingPortTest {
                 .thenReturn(java.util.List.of("2026-08-20"));
 
         SubmissionUserQueryPort routing = new SubmissionUserQueryRoutingPort(
-                localUserQuery, remoteUserQueryProvider, properties);
+                localUserQueryProvider, remoteUserQueryProvider, properties);
 
         assertThat(routing.aggregateDates("user-1", 2026)).containsExactly("2026-08-20");
         verify(remoteUserQuery).aggregateDates("user-1", 2026);

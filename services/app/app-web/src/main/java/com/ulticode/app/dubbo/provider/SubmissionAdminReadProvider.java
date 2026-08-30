@@ -23,6 +23,8 @@ import java.util.List;
  * one primary local implementation plus this RPC export.
  */
 @DubboService(group = "backend-app", version = "1.0.0")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionAdminReadProvider implements SubmissionAdminReadPort {
 

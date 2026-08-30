@@ -105,6 +105,34 @@ Credentials belong in the local `.env`/CI secret store, never in this directory
 or `.auto-flow`. The shared migration chain without `MIGRATION_SCHEMA` retains
 the historical `DB_*` contract.
 
+## Owner schema contraction (P1-DATA-001)
+
+Normal `migrate` never scans `migrations/contraction/`. After App readers are
+on Submission-owner facts, run the read-only proof first:
+
+```bash
+./scripts/runbooks/owner-schema-contraction.sh preflight
+```
+
+The explicit destructive step requires owner parity/checksum proof, zero App
+DML grants on the legacy tables, a verified backup, and both confirmations:
+
+```bash
+OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION \
+OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM=I_HAVE_VERIFIED_OWNER_CONTRACTION_BACKUP \
+OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM=I_HAVE_QUIESCED_OWNER_WRITERS \
+OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE=verified-backup-id \
+./scripts/runbooks/owner-schema-contraction.sh contract --execute
+```
+
+The backup reference and the two confirmations are recorded in the proof table;
+the runbook revokes only exact legacy-table grants and refuses schema/global
+privileges or non-empty column grants. This invokes the separate
+`flyway-contraction.conf` history and does not edit an applied migration. It
+retires only the proven Submission/Notification legacy tables;
+`consumer_inbox` and `app_command_receipt` remain. There is no in-place
+rollback—the recovery authority is the verified pre-window backup.
+
 ## Creating a Migration
 
 Use an increasing timestamp:

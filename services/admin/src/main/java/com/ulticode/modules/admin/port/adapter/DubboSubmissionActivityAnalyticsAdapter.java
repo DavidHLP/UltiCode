@@ -14,13 +14,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Admin consumer adapter for App-owned submission activity analytics.
+ * Admin consumer adapter for Submission-owner activity analytics.
  */
 @Primary
 @Component
 public class DubboSubmissionActivityAnalyticsAdapter implements SubmissionActivityAnalyticsPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
 

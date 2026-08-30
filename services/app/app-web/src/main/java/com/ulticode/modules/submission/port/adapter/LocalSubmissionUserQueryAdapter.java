@@ -28,6 +28,8 @@ import java.util.List;
  * returns {@code null} and the controller maps both to HTTP semantics.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class LocalSubmissionUserQueryAdapter implements SubmissionUserQueryPort {
 

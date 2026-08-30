@@ -87,7 +87,7 @@ module.exports = {
         APP_SEARCH_BACKFILL_ENABLED: process.env.APP_SEARCH_BACKFILL_ENABLED || 'false',
         SEARCH_WORKER_ENABLED: process.env.SEARCH_WORKER_ENABLED || 'false',
         MEILISEARCH_ENABLED: process.env.MEILISEARCH_ENABLED || 'false',
-        APP_SUBMISSION_ROUTING_MODE: process.env.APP_SUBMISSION_ROUTING_MODE || 'local',
+    APP_SUBMISSION_ROUTING_MODE: process.env.APP_SUBMISSION_ROUTING_MODE || 'remote',
         SUBMISSION_CUTOVER_COMPLETE: process.env.SUBMISSION_CUTOVER_COMPLETE || 'false',
         DUBBO_APPLICATION_NAME: 'backend-app',
         DUBBO_NAMESPACE: process.env.DUBBO_NAMESPACE,

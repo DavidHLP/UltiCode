@@ -47,8 +47,8 @@ assert_file_contains services/submission/src/main/resources/application.yml 'use
 assert_file_contains services/judge/src/main/resources/application.yml 'use-port: ${APP_FEATURES_JUDGE_QUEUE_USE_PORT:true}'
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'mode: ${APP_SEARCH_READ_MODE:database}'
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'fallback-to-database: ${APP_SEARCH_FALLBACK_TO_DATABASE:false}'
-assert_file_contains .env.example 'APP_SUBMISSION_ROUTING_MODE=local'
-assert_file_contains scripts/dev/init-env.sh 'APP_SUBMISSION_ROUTING_MODE=local'
+assert_file_contains .env.example 'APP_SUBMISSION_ROUTING_MODE=remote'
+assert_file_contains scripts/dev/init-env.sh 'APP_SUBMISSION_ROUTING_MODE=remote'
 assert_file_contains scripts/dev/up.sh 'source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"'
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_CONTEST_DUBBO_CUTOVER: process.env.APP_FEATURES_CONTEST_DUBBO_CUTOVER || 'true'"
 assert_file_contains ecosystem.config.cjs "APP_RUNTIME_MODE: process.env.APP_RUNTIME_MODE || 'dev-lite'"
@@ -75,7 +75,7 @@ fi
   unset SUBMISSION_CUTOVER_COMPLETE APP_SEARCH_BACKFILL_ENABLED
   devstack_apply_mode dev-lite
   [[ "$APP_RUNTIME_MODE" == dev-lite ]]
-  [[ "$APP_SUBMISSION_ROUTING_MODE" == local ]]
+  [[ "$APP_SUBMISSION_ROUTING_MODE" == remote ]]
   [[ "$APP_FEATURES_USE_JUDGE_OUTBOX" == true ]]
   [[ "$APP_FEATURES_USE_GENERATION_FENCE" == true ]]
   [[ "$APP_FEATURES_JUDGE_QUEUE_USE_PORT" == true ]]

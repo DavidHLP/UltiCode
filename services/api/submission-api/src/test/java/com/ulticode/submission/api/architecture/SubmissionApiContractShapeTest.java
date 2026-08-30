@@ -9,6 +9,7 @@ import com.ulticode.submission.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.submission.api.dto.CreateSubmissionDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.dto.SubmissionAdjudicationFact;
 import com.ulticode.submission.api.dto.SubmissionDetailVO;
 import com.ulticode.submission.api.dto.SubmissionFactsSnapshot;
 import com.ulticode.submission.api.dto.SubmissionHistoryDTO;
@@ -25,6 +26,7 @@ import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
+import com.ulticode.submission.api.service.SubmissionAdjudicationReadPort;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.submission.api.service.SubmissionAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionFencePort;
@@ -51,6 +53,7 @@ class SubmissionApiContractShapeTest {
             SubmissionActivityAnalyticsPort.class,
             SubmissionAdminReadPort.class,
             SubmissionAdministrationService.class,
+            SubmissionAdjudicationReadPort.class,
             SubmissionReconciliationReadPort.class,
             SubmissionAnalyticsPort.class,
             SubmissionFencePort.class,
@@ -84,6 +87,7 @@ class SubmissionApiContractShapeTest {
                 BatchRejudgeCommand.class, RejudgeCommand.class,
                 BatchRejudgeResultDTO.class, CreateSubmissionDTO.class,
                 SubmissionAdminQueryDTO.class, SubmissionAdminRowDTO.class,
+                SubmissionAdjudicationFact.class,
                 SubmissionDetailVO.class, SubmissionHistoryDTO.class,
                 SubmissionFactsSnapshot.class,
                 SubmissionListItemVO.class, SubmissionQueryDTO.class,

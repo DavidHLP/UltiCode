@@ -11,7 +11,7 @@ import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,7 +28,7 @@ import java.util.List;
  * {@code ProblemFactsPort} batch seam — no cross-owner JOIN (DEC-011).
  */
 @Component
-@ConditionalOnProperty(prefix = "app.submission.routing", name = "mode", havingValue = "remote")
+@ConditionalOnExpression("'${app.runtime.mode:dev-lite}' != 'legacy-rollback'")
 public class RemoteSubmissionUserQueryAdapter implements SubmissionUserQueryPort {
 
     @DubboReference(group = "backend-submission", version = "1.1.0",

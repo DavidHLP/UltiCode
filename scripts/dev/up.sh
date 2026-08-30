@@ -74,7 +74,8 @@ Options:
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   --mode <dev-lite|dev-full|legacy-rollback>
-                       dev-lite=local/DB search/no Search worker；dev-full=remote/indexed/Search worker；
+                       dev-lite=remote owner reads/DB search/no Search worker（需 cutover marker）；
+                       dev-full=remote owner reads/indexed/Search worker；
                        legacy-rollback=App 本地写+兼容消费旧 RQueue（不启动 Judge worker）；默认 dev-lite
   -h, --help           显示此帮助
 

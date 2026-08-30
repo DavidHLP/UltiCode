@@ -27,6 +27,8 @@ import java.util.Objects;
  */
 @Slf4j
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class DefaultSubmissionPerformanceStats implements SubmissionPerformanceStats {
 

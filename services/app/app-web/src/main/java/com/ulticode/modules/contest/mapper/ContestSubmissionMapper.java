@@ -2,7 +2,6 @@ package com.ulticode.modules.contest.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.contest.entity.ContestSubmission;
-import com.ulticode.modules.submission.entity.Submission;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -32,19 +31,16 @@ public interface ContestSubmissionMapper extends BaseMapper<ContestSubmission> {
             + "WHERE c.is_visible = 1 AND c.is_deleted = 0")
     long countTotal();
 
-    @Select("""
-            SELECT s.*
-            FROM contest_submissions cs
-            JOIN submissions s ON s.id = cs.submission_id
-            WHERE cs.contest_id = #{contestId}
-              AND cs.contest_problem_id = #{contestProblemId}
-              AND s.user_id = #{userId}
-            ORDER BY cs.submitted_at DESC
-            """)
-    List<Submission> findSubmissionsByContestProblemAndUser(
+    @Select("SELECT cs.submission_id FROM contest_submissions cs "
+            + "JOIN contest_participants cp ON cp.id = cs.participant_id "
+            + "AND cp.contest_id = cs.contest_id "
+            + "WHERE cs.contest_id = #{contestId} AND cs.contest_problem_id = #{contestProblemId} "
+            + "AND cp.user_id = #{userId} ORDER BY cs.submitted_at DESC LIMIT #{limit}")
+    List<String> findSubmissionIdsByContestProblemAndUser(
             @Param("contestId") String contestId,
             @Param("contestProblemId") String contestProblemId,
-            @Param("userId") String userId
+            @Param("userId") String userId,
+            @Param("limit") int limit
     );
 
     /**

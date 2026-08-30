@@ -5,8 +5,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.submission.api.dto.LanguageCountDTO;
 import com.ulticode.submission.api.dto.LanguageStatsDTO;
+import com.ulticode.submission.api.dto.DailyActiveUserCount;
+import com.ulticode.submission.api.dto.HourlyActiveUserCount;
 import com.ulticode.submission.api.dto.MonthlySubmissionStatsDTO;
+import com.ulticode.submission.api.dto.ProblemTrend;
+import com.ulticode.submission.api.dto.SubmissionDateCountDTO;
+import com.ulticode.submission.api.dto.SubmissionAdjudicationFact;
+import com.ulticode.submission.api.dto.TopActiveUserCount;
 import com.ulticode.submission.api.dto.WeeklyProgressDTO;
+import com.ulticode.submission.api.dto.WeeklyActiveUserCount;
 import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.UserBestStats;
 import com.ulticode.common.dto.DashboardBucketCount;
@@ -98,8 +105,8 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
                                     @Param("runtimeDistBinsJson") String runtimeDistBinsJson,
                                     @Param("memoryDistBinsJson") String memoryDistBinsJson);
 
-    /** Read the source generation under the same row lock used by rejudge. */
-    @Select("SELECT generation FROM submissions WHERE id = #{id} FOR UPDATE")
+    /** Read the source generation for stale-event validation. */
+    @Select("SELECT generation FROM submissions WHERE id = #{id}")
     Long findGenerationForUpdate(@Param("id") String id);
 
     /**
@@ -152,6 +159,136 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "WHERE created_at >= #{startDate} AND created_at < #{endDate}")
     long countDistinctUsersInRange(@Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
+
+    /** Distinct accepted problems solved by a user. */
+    @Select("SELECT COUNT(DISTINCT problem_id) FROM submissions "
+            + "WHERE user_id = #{userId} AND status = 'Accepted'")
+    Long countAcceptedProblemsByUserId(@Param("userId") String userId);
+
+    /** Total submissions made by a user. */
+    @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId}")
+    Long countByUserId(@Param("userId") String userId);
+
+    /** Alias retained for the profile statistics contract. */
+    @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId}")
+    Long countTotalSubmissionsByUserId(@Param("userId") String userId);
+
+    /** Acceptance percentage for a user, or null when no rows exist. */
+    @Select("SELECT SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) * 100.0 "
+            + "/ NULLIF(COUNT(*), 0) FROM submissions WHERE user_id = #{userId}")
+    Double calculateAcceptanceRateByUserId(@Param("userId") String userId);
+
+    /** Global rank by accepted-submission count, matching the legacy contract. */
+    @Select("SELECT COUNT(*) + 1 FROM submissions s1 "
+            + "WHERE s1.user_id != #{userId} AND s1.status = 'Accepted' "
+            + "AND (SELECT COUNT(*) FROM submissions s2 WHERE s2.user_id = #{userId} "
+            + "AND s2.status = 'Accepted') < (SELECT COUNT(*) FROM submissions s3 "
+            + "WHERE s3.user_id = s1.user_id AND s3.status = 'Accepted')")
+    Integer findGlobalRankByUserId(@Param("userId") String userId);
+
+    /** Accepted problem ids used to enrich user statistics with App-owned difficulty facts. */
+    @Select("SELECT DISTINCT problem_id FROM submissions "
+            + "WHERE user_id = #{userId} AND status = 'Accepted' AND problem_id IS NOT NULL")
+    List<Long> findAcceptedProblemIdsByUserId(@Param("userId") String userId);
+
+    /** Total submission counts for a bounded set of App-owned problem ids. */
+    @ConstructorArgs({
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "count", javaType = Long.class)
+    })
+    @Select("<script>"
+            + "SELECT problem_id, COUNT(*) AS count FROM submissions "
+            + "WHERE problem_id IN "
+            + "<foreach collection='problemIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}</foreach> GROUP BY problem_id"
+            + "</script>")
+    List<ProblemSubmissionCount> countByProblemIds(@Param("problemIds") List<Long> problemIds);
+
+    /** Accepted submission counts for a bounded set of App-owned problem ids. */
+    @Select("<script>"
+            + "SELECT problem_id, COUNT(*) AS count FROM submissions "
+            + "WHERE status = 'Accepted' AND problem_id IN "
+            + "<foreach collection='problemIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}</foreach> GROUP BY problem_id"
+            + "</script>")
+    List<ProblemSubmissionCount> countAcceptedByProblemIds(@Param("problemIds") List<Long> problemIds);
+
+    /** Daily submission counts for a user in a calendar year. */
+    @Select("SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS date, COUNT(*) AS count "
+            + "FROM submissions WHERE user_id = #{userId} AND YEAR(created_at) = #{year} "
+            + "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d') ORDER BY date")
+    List<SubmissionDateCountDTO> findSubmissionCountsByDate(
+            @Param("userId") String userId, @Param("year") Integer year);
+
+    /** Daily active-user aggregation. */
+    @Select("SELECT DATE(created_at) AS date, COUNT(DISTINCT user_id) AS count "
+            + "FROM submissions WHERE created_at >= #{startDate} AND created_at < #{endDate} "
+            + "GROUP BY DATE(created_at) ORDER BY date")
+    List<DailyActiveUserCount> countDailyActiveUsers(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /** Weekly active-user aggregation. */
+    @Select("SELECT YEARWEEK(created_at, 3) AS year_week, "
+            + "ANY_VALUE(DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))) AS week_start, "
+            + "COUNT(DISTINCT user_id) AS count FROM submissions "
+            + "WHERE created_at >= #{startDate} GROUP BY YEARWEEK(created_at, 3) "
+            + "ORDER BY year_week")
+    List<WeeklyActiveUserCount> countWeeklyActiveUsers(
+            @Param("startDate") LocalDateTime startDate);
+
+    /** Hourly active-user aggregation. */
+    @Select("SELECT HOUR(created_at) AS hour, COUNT(DISTINCT user_id) AS count "
+            + "FROM submissions WHERE created_at >= #{startDate} "
+            + "GROUP BY HOUR(created_at) ORDER BY hour")
+    List<HourlyActiveUserCount> countActiveUsersByHour(
+            @Param("startDate") LocalDateTime startDate);
+
+    /** Top active users in a bounded analysis window. */
+    @Select("SELECT user_id, COUNT(*) AS submission_count, MAX(created_at) AS last_active "
+            + "FROM submissions WHERE created_at >= #{startDate} GROUP BY user_id "
+            + "ORDER BY submission_count DESC, user_id ASC LIMIT #{limit}")
+    List<TopActiveUserCount> findTopActiveUsers(
+            @Param("startDate") LocalDateTime startDate, @Param("limit") int limit);
+
+    /** Accepted counts grouped by problem for owner-side cross-owner enrichment. */
+    @ConstructorArgs({
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "accepted_count", javaType = Long.class)
+    })
+    @Select("SELECT problem_id, COUNT(*) AS accepted_count FROM submissions "
+            + "WHERE status = 'Accepted' AND problem_id IS NOT NULL "
+            + "GROUP BY problem_id")
+    List<ProblemAcceptanceCount> countAcceptedByProblem();
+
+    /** Submission trend counts in a bounded window. */
+    @Select("SELECT problem_id, COUNT(*) AS attempt_count, "
+            + "SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_count "
+            + "FROM submissions WHERE created_at >= #{startDate} GROUP BY problem_id "
+            + "ORDER BY attempt_count DESC LIMIT #{limit}")
+    List<ProblemTrend> findTrendingProblems(
+            @Param("startDate") LocalDateTime startDate, @Param("limit") int limit);
+
+    /** Current status/generation facts for a bounded contest drain check. */
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = String.class),
+            @Arg(column = "generation", javaType = Long.class),
+            @Arg(column = "status", javaType = String.class)
+    })
+    @Select("<script>"
+            + "SELECT id, generation, status FROM submissions WHERE id IN "
+            + "<foreach collection='submissionIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}</foreach>"
+            + "</script>")
+    List<SubmissionAdjudicationFact> findAdjudicationFactsByIds(
+            @Param("submissionIds") java.util.Collection<String> submissionIds);
+
+    /** Mapper-only row for grouping accepted submissions by App-owned problem facts. */
+    record ProblemAcceptanceCount(Long problemId, Long acceptedCount) {
+    }
+
+    record ProblemSubmissionCount(Long problemId, Long count) {
+    }
 
     /** Submission dashboard date buckets owned by the Submission schema. */
     @Select("""

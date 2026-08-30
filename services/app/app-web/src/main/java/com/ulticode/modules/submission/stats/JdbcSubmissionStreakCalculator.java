@@ -21,6 +21,8 @@ import org.springframework.stereotype.Component;
  * infrastructure collaborators, not business services).
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class JdbcSubmissionStreakCalculator implements SubmissionStreakCalculator {
 

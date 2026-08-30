@@ -86,7 +86,7 @@ contains services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUs
 contains services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReadPort.java \
   'List<SubmissionVO> toVOs(Collection<String> submissionIds)'
 contains services/app/app-web/src/main/java/com/ulticode/modules/contest/projection/DefaultContestProjection.java \
-  'return submissionProjection.toVOs(submissionIds)'
+  'submissionProjection.toVOs(contestSubmissionMapper'
 contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
   'app.runtime.mode:dev-lite'
 contains services/app/app-web/src/test/resources/application.yml 'use-judge-outbox: true'
@@ -278,6 +278,7 @@ bash "$ROOT_DIR/scripts/test/redis-acl-contract.sh"
 bash "$ROOT_DIR/scripts/test/ssh-host-identity-contract.sh"
 bash "$ROOT_DIR/scripts/test/nacos-security-contract.sh"
 bash "$ROOT_DIR/scripts/test/submission-backfill-contract.sh"
+bash "$ROOT_DIR/scripts/test/owner-schema-contraction-contract.sh"
 contains services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksController.java 'public Map<String, Object> getJwks()'
 contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'backend-auth'
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
@@ -315,6 +316,95 @@ if grep -REn --include='*.java' \
   "$app_java" >/dev/null; then
   fail "App contains Notification-owned persistence or runtime implementation references"
 fi
+
+# P1-DATA-001: all normal Submission reads cross the owner contract. The
+# local mapper/adapters remain only behind the explicit legacy rollback mode.
+for contraction_file in \
+  init-db/flyway-contraction.conf \
+  init-db/migrations/V20260830200000__Create_Owner_Contraction_Proof.sql \
+  init-db/migrations/contraction/V20260830200100__Retire_Legacy_Owner_Tables.sql \
+  scripts/runbooks/owner-schema-contraction.sh \
+  scripts/test/owner-schema-contraction-contract.sh \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionAdjudicationReadPort.java \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/dto/SubmissionAdjudicationFact.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdjudicationReadProvider.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/ProblemSubmissionStatsProvider.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/RemoteSubmissionAdjudicationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteProblemSubmissionStatsAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionStreakAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionUserStatsAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/RemoteSubmissionGenerationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/LocalSubmissionAdjudicationReadAdapter.java; do
+  [[ -f "$ROOT_DIR/$contraction_file" ]] || fail "missing P1-DATA source: $contraction_file"
+done
+contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdjudicationReadProvider.java \
+  '@DubboService(group = "backend-submission", version = "1.0.0")'
+contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/ProblemSubmissionStatsProvider.java \
+  '@DubboService(group = "backend-submission", version = "1.1.0")'
+not_contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/ProblemSubmissionStatsProvider.java \
+  'ProblemFactsPort'
+not_contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/ProblemSubmissionStatsProvider.java \
+  '@DubboReference'
+contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionUserStatsProvider.java \
+  '@DubboService(group = "backend-submission", version = "1.1.0")'
+contains services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/RemoteSubmissionAdjudicationReadAdapter.java \
+  'backend-submission'
+contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteProblemSubmissionStatsAdapter.java \
+  'backend-submission'
+contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionUserQueryRoutingPort.java \
+  'selectOwnerRead'
+contains services/app/app-web/src/main/java/com/ulticode/app/config/LegacySubmissionMapperScanConfig.java \
+  '@MapperScan(value = "com.ulticode.modules.submission.mapper"'
+not_contains services/app/app-web/src/main/java/com/ulticode/app/config/MapperScanConfig.java \
+  'com.ulticode.modules.submission.mapper'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java \
+  'FROM submissions'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/problem/mapper/ProblemTagRelationMapper.java \
+  'JOIN submissions'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/contest/mapper/ContestAdjudicationReceiptMapper.java \
+  'JOIN submissions'
+not_contains services/app/app-web/src/main/java/com/ulticode/modules/notification/intent/SubmissionCompletedIntent.java \
+  'import com.ulticode.modules.submission.entity.Submission'
+mapfile -t app_submission_sql_sources < <(grep -RIl --include='*.java' \
+  -E 'FROM[[:space:]]+submissions|JOIN[[:space:]]+submissions|INSERT[[:space:]]+INTO[[:space:]]+submissions|UPDATE[[:space:]]+submissions|DELETE[[:space:]]+FROM[[:space:]]+submissions' \
+  "$app_java" || true)
+for app_submission_sql_source in "${app_submission_sql_sources[@]}"; do
+  [[ "$app_submission_sql_source" == "$app_java/com/ulticode/modules/submission/mapper/SubmissionMapper.java" ]] \
+    || fail "normal App source contains direct Submission SQL: $app_submission_sql_source"
+done
+contains services/app/app-web/src/main/resources/application.yml \
+  'mode: ${APP_SUBMISSION_ROUTING_MODE:remote}'
+contains scripts/dev/migrate.sh \
+  'OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION'
+contains scripts/dev/migrate.sh \
+  'OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM=I_HAVE_VERIFIED_OWNER_CONTRACTION_BACKUP'
+contains scripts/dev/migrate.sh \
+  'OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM=I_HAVE_QUIESCED_OWNER_WRITERS'
+contains scripts/dev/migrate.sh 'flyway-contraction.conf'
+contains scripts/runbooks/owner-schema-contraction.sh 'PRECHECK PASS'
+contains scripts/runbooks/owner-schema-contraction.sh 'CONTRACT PASS'
+contains scripts/runbooks/owner-schema-contraction.sh 'OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE'
+contains init-db/migrations/contraction/V20260830200100__Retire_Legacy_Owner_Tables.sql 'backup_confirmed'
+contains init-db/migrations/contraction/V20260830200100__Retire_Legacy_Owner_Tables.sql 'writers_quiesced_at'
+contains scripts/test/owner-schema-contraction-contract.sh 'forward contraction and owner preservation: PASS'
+legacy_route="'\${app.runtime.mode:dev-lite}' == 'legacy-rollback'"
+for local_submission_source in \
+  services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/LocalSubmissionAdjudicationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionGenerationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/DefaultSubmissionAdminReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/ProblemSubmissionStatsMapperAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionActivityAnalyticsMapperAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionAnalyticsMapperAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionStreakAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionUserStatsMapperAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/projection/DefaultSubmissionProjection.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/DefaultSubmissionPerformanceStats.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/JdbcSubmissionStreakCalculator.java; do
+  contains "$local_submission_source" "$legacy_route"
+done
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'
 not_contains docker-compose.prod.yml 'DUBBO_NAMESPACE:-dev'

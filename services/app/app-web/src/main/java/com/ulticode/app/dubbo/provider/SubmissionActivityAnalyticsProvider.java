@@ -16,6 +16,8 @@ import java.util.List;
  * Dubbo provider for App-owned submission activity analytics.
  */
 @DubboService(group = "backend-app", version = "1.0.0")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionActivityAnalyticsProvider implements SubmissionActivityAnalyticsPort {
 

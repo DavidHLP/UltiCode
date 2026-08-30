@@ -20,26 +20,24 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Single App user-read route; selects local or remote without ever
- * registering two active {@link SubmissionUserQueryPort} beans.
+ * Single App user-read route; normal boot uses the Submission owner and the
+ * local projection exists only for explicit legacy rollback.
  *
- * <p>SPLIT-004 slice-8: mirrors the write/fence routing wrappers. The local
- * adapter is always available; the remote adapter is conditionally active
- * only when {@code app.submission.routing.mode=remote}. This wrapper is
- * {@code @Primary} so {@code SubmissionController} resolves exactly one
- * bean in every mode — App boots in remote mode too.
+ * <p>The wrapper remains the one injected App bean. It resolves only the
+ * active conditional adapter, so normal owner mode and rollback mode cannot
+ * silently perform a dual read.
  */
 @Component
 @Primary
 @RequiredArgsConstructor
 public class SubmissionUserQueryRoutingPort implements SubmissionUserQueryPort {
 
-    private final LocalSubmissionUserQueryAdapter local;
+    private final ObjectProvider<LocalSubmissionUserQueryAdapter> local;
     private final ObjectProvider<RemoteSubmissionUserQueryAdapter> remote;
     private final SubmissionRoutingProperties routing;
 
     private SubmissionUserQueryPort delegate() {
-        return routing.select(local, remote::getIfAvailable, "user-read");
+        return routing.selectOwnerRead(local::getIfAvailable, remote::getIfAvailable, "user-read");
     }
 
     @Override

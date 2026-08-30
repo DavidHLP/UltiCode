@@ -14,6 +14,10 @@ spring:
 app:
   runtime:
     mode: dev-lite
+  submission:
+    routing:
+      mode: remote
+      cutover-complete: true
   features:
     use-judge-outbox: true
     use-generation-fence: true

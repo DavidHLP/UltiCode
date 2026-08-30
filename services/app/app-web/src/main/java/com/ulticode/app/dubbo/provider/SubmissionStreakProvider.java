@@ -9,6 +9,8 @@ import org.apache.dubbo.config.annotation.DubboService;
  * Dubbo provider for submission streak reads owned by App.
  */
 @DubboService(group = "backend-app", version = "1.0.0")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionStreakProvider implements SubmissionStreakPort {
 

@@ -60,8 +60,20 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsReadPo
         long successfulAttempts = problemSubmissionStats.countAcceptedSince(startDate);
         double overallRate = totalAttempts > 0 ? successfulAttempts * 100.0 / totalAttempts : 0.0;
 
+        List<Problem> publishedProblems = problemMapper.selectList(
+                new LambdaQueryWrapper<Problem>()
+                        .eq(Problem::getIsDeleted, false)
+                        .eq(Problem::getIsPublished, true));
+        publishedProblems = publishedProblems == null ? List.of() : publishedProblems;
+        Map<Long, String> difficultyByProblemId = publishedProblems.stream()
+                .filter(problem -> problem != null && problem.getId() != null
+                        && problem.getDifficulty() != null)
+                .collect(Collectors.toMap(Problem::getId, Problem::getDifficulty,
+                        (left, right) -> left));
+
         List<ProblemCompletionReportDTO.DifficultyStats> byDifficulty = new ArrayList<>();
-        List<ProblemDifficultyCompletion> diffStats = problemSubmissionStats.countProblemCompletionByDifficulty();
+        List<ProblemDifficultyCompletion> diffStats = problemSubmissionStats
+                .countProblemCompletionByDifficulty(difficultyByProblemId);
         Map<String, ProblemDifficultyCompletion> diffMap = (diffStats == null ? List.<ProblemDifficultyCompletion>of() : diffStats)
                 .stream()
                 .collect(Collectors.toMap(ProblemDifficultyCompletion::getDifficulty, row -> row));
@@ -86,13 +98,19 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsReadPo
                             new LambdaQueryWrapper<ProblemTagRelation>()
                                     .eq(ProblemTagRelation::getTagId, tag.getId()));
                     List<ProblemTagRelation> safeRelations = relations == null ? List.of() : relations;
-                    int solvedProblems = 0;
-                    for (ProblemTagRelation relation : safeRelations) {
-                        if (problemSubmissionStats.countAcceptedByProblemId(relation.getProblemId()) > 0) {
-                            solvedProblems++;
-                        }
-                    }
-                    int totalProblems = safeRelations.size();
+                    List<Long> relationProblemIds = safeRelations.stream()
+                            .map(ProblemTagRelation::getProblemId)
+                            .filter(java.util.Objects::nonNull)
+                            .distinct()
+                            .toList();
+                    Map<Long, Long> acceptedCounts = relationProblemIds.isEmpty()
+                            ? Map.of()
+                            : problemSubmissionStats.countAcceptedByProblemIds(relationProblemIds);
+                    Map<Long, Long> safeAcceptedCounts = acceptedCounts == null ? Map.of() : acceptedCounts;
+                    int solvedProblems = (int) relationProblemIds.stream()
+                            .filter(problemId -> safeAcceptedCounts.getOrDefault(problemId, 0L) > 0)
+                            .count();
+                    int totalProblems = relationProblemIds.size();
                     double rate = totalProblems > 0 ? solvedProblems * 100.0 / totalProblems : 0.0;
                     return new ProblemCompletionReportDTO.TagStats(
                             tag.getId(), tag.getLabel(), totalProblems, solvedProblems, rate);
@@ -115,15 +133,24 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsReadPo
                     rate));
         }
 
-        List<Problem> publishedProblems = problemMapper.selectList(
-                new LambdaQueryWrapper<Problem>().eq(Problem::getStatus, "PUBLISHED"));
+        List<Problem> hardestCandidates = publishedProblems.stream().limit(10).toList();
+        List<Long> hardestProblemIds = hardestCandidates.stream()
+                .map(Problem::getId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        Map<Long, Long> hardestAttemptsResult = hardestProblemIds.isEmpty()
+                ? Map.of() : problemSubmissionStats.countByProblemIds(hardestProblemIds);
+        Map<Long, Long> hardestAcceptedResult = hardestProblemIds.isEmpty()
+                ? Map.of() : problemSubmissionStats.countAcceptedByProblemIds(hardestProblemIds);
+        final Map<Long, Long> hardestAttempts = hardestAttemptsResult == null
+                ? Map.of() : hardestAttemptsResult;
+        final Map<Long, Long> hardestAccepted = hardestAcceptedResult == null
+                ? Map.of() : hardestAcceptedResult;
         List<ProblemCompletionReportDTO.HardestProblem> hardestProblems =
-                (publishedProblems == null ? List.<Problem>of() : publishedProblems)
-                        .stream()
-                        .limit(10)
+                hardestCandidates.stream()
                         .map(problem -> {
-                            long attemptsForProblem = problemSubmissionStats.countByProblemId(problem.getId());
-                            long acceptedCount = problemSubmissionStats.countAcceptedByProblemId(problem.getId());
+                            long attemptsForProblem = hardestAttempts.getOrDefault(problem.getId(), 0L);
+                            long acceptedCount = hardestAccepted.getOrDefault(problem.getId(), 0L);
                             double rate = attemptsForProblem > 0
                                     ? acceptedCount * 100.0 / attemptsForProblem : 0.0;
                             return new ProblemCompletionReportDTO.HardestProblem(

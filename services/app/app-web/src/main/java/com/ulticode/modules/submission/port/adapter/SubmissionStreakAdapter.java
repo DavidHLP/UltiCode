@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Primary
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionStreakAdapter implements SubmissionStreakPort {
 

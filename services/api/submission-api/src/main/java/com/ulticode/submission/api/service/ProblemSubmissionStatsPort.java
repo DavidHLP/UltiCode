@@ -5,6 +5,7 @@ import com.ulticode.submission.api.dto.ProblemTrend;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Read port for submission-derived problem statistics.
@@ -23,8 +24,15 @@ public interface ProblemSubmissionStatsPort {
     /** Accepted submissions for a problem. */
     long countAcceptedByProblemId(Long problemId);
 
-    /** Per-difficulty problem completion (total vs. solved). */
-    List<ProblemDifficultyCompletion> countProblemCompletionByDifficulty();
+    /** Total submissions grouped by problem id in one bounded owner read. */
+    Map<Long, Long> countByProblemIds(List<Long> problemIds);
+
+    /** Accepted submissions grouped by problem id in one bounded owner read. */
+    Map<Long, Long> countAcceptedByProblemIds(List<Long> problemIds);
+
+    /** Completion by the supplied App-owned problem difficulty facts. */
+    List<ProblemDifficultyCompletion> countProblemCompletionByDifficulty(
+            Map<Long, String> difficultyByProblemId);
 
     /** Top attempted problems over the window with their accepted counts. */
     List<ProblemTrend> findTrendingProblems(LocalDateTime from, int limit);

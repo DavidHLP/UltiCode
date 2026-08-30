@@ -25,6 +25,9 @@ public interface SubmissionUserStatsPort {
     /** Global rank by accepted-submission count, or {@code null} when unranked. */
     Integer findGlobalRankByUserId(String userId);
 
+    /** Accepted problem ids for the user, used to join with App-owned tags. */
+    List<Long> findAcceptedProblemIdsByUserId(String userId);
+
     /** Accepted-problem counts grouped by difficulty for the user. */
     List<DifficultyCountDTO> countAcceptedProblemsByDifficulty(String userId);
 

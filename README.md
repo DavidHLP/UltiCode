@@ -313,10 +313,10 @@ cd UltiCode
 顺序应用五条 Owner migration 链，设置并探测本地 Owner 账号，再启动最小后端运行集；
 随后仅在 DEV-LOCAL 中为 App Owner 分域、幂等导入题目、题单、分类、论坛、竞赛、全球排名和题解种子数据；已有完整数据
 会被保留，部分缺失数据会 fail-closed。可用 `--skip-seed-data` 跳过该步骤。
-它强制 Submission 使用本地兼容路径、Search 使用确定性的数据库读，并不启动 Search
-worker。需要远程 Submission/cutover seam 或 MeiliSearch indexed read 时必须显式运行
-`./scripts/dev/up.sh --mode dev-full`；该模式会启动 Search worker，并先满足
-`SUBMISSION_CUTOVER_COMPLETE=true`。两种 mode 的 route、Judge flags、Search read
+它不启动 Search worker，但 Submission 读路径也必须使用 owner route，并先满足
+`SUBMISSION_CUTOVER_COMPLETE=true`；Search 仍使用确定性的数据库读。需要
+MeiliSearch indexed read 时必须显式运行
+`./scripts/dev/up.sh --mode dev-full`；该模式会额外启动 Search worker。两种 mode 的 route、Judge flags、Search read
 policy、worker role、readiness 和 failure gates 由
 `scripts/dev/devstack-manifest.sh` 统一声明；`up.sh` 只消费这份 manifest。
 App 的 `APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED` 默认关闭；legacy RQueue
@@ -437,6 +437,14 @@ MIGRATION_SCHEMA=notification ./scripts/dev/migrate.sh migrate
 # NOTIFICATION_SOURCE_SCHEMA=app NOTIFICATION_APP_DB_USER=app_rw \
 #   NOTIFICATION_CUTOVER_CONFIRM=I_UNDERSTAND_NOTIFICATION_ROLLBACK \
 #   ./scripts/runbooks/notification-schema-cutover.sh rollback --execute
+
+# P1-DATA-001: verify owner parity/checksums and App grant absence (read-only)
+./scripts/runbooks/owner-schema-contraction.sh preflight
+# OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION \
+#   OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM=I_HAVE_VERIFIED_OWNER_CONTRACTION_BACKUP \
+#   OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM=I_HAVE_QUIESCED_OWNER_WRITERS \
+#   OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE=verified-backup-id \
+#   ./scripts/runbooks/owner-schema-contraction.sh contract --execute
 ```
 
 迁移文件命名：`V{N}__{description}.sql`，**唯一真源**在 `init-db/migrations/`。

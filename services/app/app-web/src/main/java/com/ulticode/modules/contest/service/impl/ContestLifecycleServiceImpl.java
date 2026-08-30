@@ -16,6 +16,9 @@ import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.RatingCalculationService;
 import com.ulticode.app.api.service.ContestNotificationPort;
+import com.ulticode.submission.api.dto.SubmissionAdjudicationFact;
+import com.ulticode.submission.api.service.SubmissionAdjudicationReadPort;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link ContestLifecycleService}. Owns every time-driven
@@ -59,6 +67,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContestLifecycleServiceImpl implements ContestLifecycleService {
 
+    private static final int SUBMISSION_FACT_BATCH_SIZE = 100;
+
     private final ContestMapper contestMapper;
     private final ContestParticipantTransitions participantTransitions;
     private final ContestCascadeMapper contestCascadeMapper;
@@ -70,6 +80,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     private final ContestNotificationPort contestNotificationPort;
     private final RatingCalculationService ratingService;
     private final ContestAdjudicationReceiptMapper adjudicationReceiptMapper;
+    private final SubmissionAdjudicationReadPort submissionAdjudicationReadPort;
 
     @Override
     @Transactional
@@ -369,7 +380,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         // pending or has a terminal user verdict without its receipt. The
         // parent lock serializes this drain check with adjudication; FINISHING
         // remains retryable until the judge pipeline has drained.
-        if (adjudicationReceiptMapper.countUnadjudicatedRealSubmissions(contest.getId()) > 0) {
+        if (countUnadjudicatedRealSubmissions(contest.getId()) > 0) {
             return;
         }
 
@@ -400,5 +411,66 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         if (transitioned == 0) {
             return;
         }
+    }
+
+    /**
+     * Combines App-owned contest associations/receipts with current
+     * Submission-owner status and generation facts. No App SQL may join the
+     * Submission-owned table.
+     */
+    private long countUnadjudicatedRealSubmissions(String contestId) {
+        List<String> submissionIds = adjudicationReceiptMapper
+                .findRealSubmissionIdsByContestId(contestId);
+        if (submissionIds == null || submissionIds.isEmpty()) {
+            return 0L;
+        }
+        submissionIds = submissionIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+        if (submissionIds.isEmpty()) {
+            return 0L;
+        }
+        List<SubmissionAdjudicationFact> facts = new ArrayList<>();
+        List<ContestAdjudicationReceiptMapper.ReceiptGeneration> receipts = new ArrayList<>();
+        for (int start = 0; start < submissionIds.size(); start += SUBMISSION_FACT_BATCH_SIZE) {
+            List<String> batch = submissionIds.subList(start,
+                    Math.min(start + SUBMISSION_FACT_BATCH_SIZE, submissionIds.size()));
+            facts.addAll(safeList(submissionAdjudicationReadPort.findByIds(batch)));
+            receipts.addAll(safeList(adjudicationReceiptMapper
+                    .findReceiptGenerationsBySubmissionIds(batch)));
+        }
+        Map<String, SubmissionAdjudicationFact> factById = facts
+                .stream()
+                .filter(fact -> fact != null && fact.submissionId() != null)
+                .collect(Collectors.toMap(SubmissionAdjudicationFact::submissionId,
+                        fact -> fact, (left, right) -> right, HashMap::new));
+        Set<String> adjudicated = receipts
+                .stream()
+                .filter(receipt -> receipt != null && receipt.submissionId() != null
+                        && receipt.generation() != null)
+                .map(receipt -> receipt.submissionId() + "\u0000" + receipt.generation())
+                .collect(Collectors.toSet());
+
+        long pending = 0L;
+        for (String submissionId : submissionIds) {
+            SubmissionAdjudicationFact fact = factById.get(submissionId);
+            if (fact == null || fact.generation() == null) {
+                pending++;
+            } else if (awaitsAdjudication(fact.status())
+                    && !adjudicated.contains(submissionId + "\u0000" + fact.generation())) {
+                pending++;
+            }
+        }
+        return pending;
+    }
+
+    private static <T> List<T> safeList(List<T> values) {
+        return values == null ? List.of() : values;
+    }
+
+    private static boolean awaitsAdjudication(String wireStatus) {
+        SubmissionStatus status = SubmissionStatus.fromDbName(wireStatus);
+        return status == null || status.getKind() != SubmissionStatus.Kind.TERMINAL_INFRA;
     }
 }

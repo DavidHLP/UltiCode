@@ -12,6 +12,7 @@ import com.ulticode.submission.api.dto.LanguageStatsDTO;
 import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.submission.api.dto.SubmissionDateCountDTO;
+import com.ulticode.submission.api.dto.SubmissionAdjudicationFact;
 import com.ulticode.submission.api.dto.TopActiveUserCount;
 import com.ulticode.submission.api.dto.UserBestStats;
 import com.ulticode.submission.api.dto.WeeklyActiveUserCount;
@@ -29,6 +30,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +41,25 @@ import java.util.Optional;
  */
 @Mapper
 public interface SubmissionMapper extends BaseMapper<Submission> {
+
+    /** Rollback-only local equivalent of the Submission-owner accepted-id read. */
+    @Select("SELECT DISTINCT problem_id FROM submissions "
+            + "WHERE user_id = #{userId} AND status = 'Accepted' AND problem_id IS NOT NULL")
+    List<Long> findAcceptedProblemIdsByUserId(@Param("userId") String userId);
+
+    /** Rollback-only local equivalent of the owner adjudication fact read. */
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = String.class),
+            @Arg(column = "generation", javaType = Long.class),
+            @Arg(column = "status", javaType = String.class)
+    })
+    @Select("<script>"
+            + "SELECT id, generation, status FROM submissions WHERE id IN "
+            + "<foreach collection='submissionIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}</foreach>"
+            + "</script>")
+    List<SubmissionAdjudicationFact> findAdjudicationFactsByIds(
+            @Param("submissionIds") Collection<String> submissionIds);
 
     /**
      * Find submissions by user ID with pagination.

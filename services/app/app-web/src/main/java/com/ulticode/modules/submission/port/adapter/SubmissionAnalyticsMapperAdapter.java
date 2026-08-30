@@ -18,6 +18,8 @@ import java.util.List;
  * the codebase depends on the port.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionAnalyticsMapperAdapter implements SubmissionAnalyticsPort {
 

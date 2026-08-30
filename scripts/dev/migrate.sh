@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 COMMAND="${1:-migrate}"
 case "$COMMAND" in
-  migrate|validate|info|repair|baseline)
+  migrate|validate|info|repair|baseline|contract)
     ;;
   *)
     echo "Unsupported Flyway command: $COMMAND" >&2
@@ -19,7 +19,11 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 # Preserve explicit caller-provided migration values while loading .env.
 capture_env_vars MIGRATION_SCHEMA MIGRATION_DB_HOST MIGRATION_DB_PORT \
   MIGRATION_DB_NAME MIGRATION_DB_USER MIGRATION_DB_PASSWORD \
-  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT
+  MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT \
+  OWNER_SCHEMA_CONTRACTION_CONFIRM OWNER_CONTRACTION_APP_USER OWNER_CONTRACTION_APP_HOST \
+  OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM \
+  OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE \
+  MAVEN_BIN MAVEN_POM
 
 load_env_file
 
@@ -28,6 +32,7 @@ load_env_file
 # connection.
 apply_env_overrides
 MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+MAVEN_BIN="${MAVEN_BIN:-mvn}"
 fail_preflight() {
   echo "Migration preflight failed: $*" >&2
   exit 1
@@ -359,6 +364,21 @@ if [[ -n "${NOTIFICATION_DB_NAME:-}" && "$NOTIFICATION_DB_NAME" != "notification
   exit 1
 fi
 
+if [[ "$COMMAND" == "contract" ]]; then
+  [[ -z "${MIGRATION_SCHEMA:-}" ]] \
+    || fail_preflight "contract uses the shared ulticode schema; unset MIGRATION_SCHEMA"
+  [[ "$DB_NAME" == "ulticode" ]] \
+    || fail_preflight "contract requires DB_NAME=ulticode"
+  [[ "${OWNER_SCHEMA_CONTRACTION_CONFIRM:-}" == "I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION" ]] \
+    || fail_preflight "contract requires OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION"
+  [[ "${OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM:-}" == "I_HAVE_VERIFIED_OWNER_CONTRACTION_BACKUP" ]] \
+    || fail_preflight "contract requires OWNER_SCHEMA_CONTRACTION_BACKUP_CONFIRM=I_HAVE_VERIFIED_OWNER_CONTRACTION_BACKUP"
+  [[ "${OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM:-}" == "I_HAVE_QUIESCED_OWNER_WRITERS" ]] \
+    || fail_preflight "contract requires OWNER_SCHEMA_CONTRACTION_QUIESCE_CONFIRM=I_HAVE_QUIESCED_OWNER_WRITERS"
+  [[ "${OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE:-}" =~ ^[A-Za-z0-9._:/-]{1,255}$ ]] \
+    || fail_preflight "contract requires OWNER_SCHEMA_CONTRACTION_BACKUP_REFERENCE"
+fi
+
 if [[ -n "${SUBMISSION_DB_NAME:-}" && "$SUBMISSION_DB_NAME" != "submission" ]]; then
   echo "SUBMISSION_DB_NAME must be 'submission' with flyway-submission.conf; arbitrary owner database names are not supported by this migration set." >&2
   exit 1
@@ -370,6 +390,8 @@ run_flyway_config() {
   local config_file="$1"
   local flyway_command="$2"
   local baseline_args=()
+  local contract_args=()
+  local maven_file_args=()
   if [[ -n "${MIGRATION_SCHEMA:-}" && -f "flyway-${MIGRATION_SCHEMA}.conf" ]]; then
     config_file="flyway-${MIGRATION_SCHEMA}.conf"
   fi
@@ -379,9 +401,20 @@ run_flyway_config() {
       "-Dflyway.baselineDescription=DEV-LOCAL owner schema bootstrap"
     )
   fi
-  mvn "flyway:$flyway_command" \
+  if [[ "$config_file" == "flyway-contraction.conf" && "$flyway_command" == "migrate" ]]; then
+    contract_args=(
+      "-Dflyway.placeholders.contraction_confirmed=true"
+      "-Dflyway.placeholders.backup_confirmed=true"
+      "-Dflyway.placeholders.quiesce_confirmed=true"
+      "-Dflyway.placeholders.app_db_user=${OWNER_CONTRACTION_APP_USER:-app_rw}"
+      "-Dflyway.placeholders.app_db_host=${OWNER_CONTRACTION_APP_HOST:-%}"
+    )
+  fi
+  [[ -n "${MAVEN_POM:-}" ]] && maven_file_args=(-f "$MAVEN_POM")
+  "$MAVEN_BIN" "${maven_file_args[@]}" "flyway:$flyway_command" \
     -Dflyway.configFiles="$config_file" \
     "${baseline_args[@]}" \
+    "${contract_args[@]}" \
     --no-transfer-progress \
     -B
 }
@@ -409,7 +442,9 @@ owner_baseline_if_needed() {
 
 # 仅保留既有主库迁移的自愈行为。owner schema 的历史漂移必须显式处理，
 # 不能自动 repair 后继续，否则可能把版本冲突伪装成成功。
-if [[ "$COMMAND" == "baseline" ]]; then
+if [[ "$COMMAND" == "contract" ]]; then
+  run_flyway_config "flyway-contraction.conf" migrate
+elif [[ "$COMMAND" == "baseline" ]]; then
   run_flyway baseline
 elif [[ "$COMMAND" == "migrate" ]]; then
   if [[ -n "${MIGRATION_SCHEMA:-}" ]]; then

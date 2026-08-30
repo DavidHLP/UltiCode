@@ -15,7 +15,6 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RankingService;
-import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,13 +114,14 @@ class DefaultContestProjectionVisibilityTest {
         when(contestProblemMapper.findByContestIdAndProblemId("running", 7L))
                 .thenReturn(contestProblem);
 
-        Submission first = new Submission();
-        first.setId("submission-1");
-        Submission second = new Submission();
-        second.setId("submission-2");
-        when(contestSubmissionMapper.findSubmissionsByContestProblemAndUser(
-                "running", "cp-1", "user-1")).thenReturn(List.of(first, second));
-        when(submissionProjection.toVOs(any())).thenReturn(List.of(new SubmissionVO(), new SubmissionVO()));
+        when(contestSubmissionMapper.findSubmissionIdsByContestProblemAndUser(
+                "running", "cp-1", "user-1", 100))
+                .thenReturn(List.of("submission-1", "submission-2"));
+        SubmissionVO first = new SubmissionVO();
+        first.setUserId("user-1");
+        SubmissionVO second = new SubmissionVO();
+        second.setUserId("user-1");
+        when(submissionProjection.toVOs(any())).thenReturn(List.of(first, second));
 
         assertThat(projection.getContestProblemSubmissions("running", 7L, "user-1"))
                 .hasSize(2);

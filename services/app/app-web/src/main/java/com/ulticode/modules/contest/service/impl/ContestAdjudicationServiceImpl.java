@@ -117,8 +117,8 @@ public class ContestAdjudicationServiceImpl implements ContestAdjudicationServic
         ContestSubmission candidate = csOpt.get();
 
         // Contest deletion locks the parent before removing any child rows.
-        // Acquire that same lock first, then lock the submission, so judging
-        // and deletion cannot deadlock or create post-cascade receipts.
+        // Acquire that same App-side lock first. The owner generation read
+        // below is a stale-event guard, not a lock held across the RPC.
         Contest contest = loadContest(candidate.getContestId(), event);
         if (contest == null) {
             return;
@@ -130,6 +130,10 @@ public class ContestAdjudicationServiceImpl implements ContestAdjudicationServic
         ContestSubmission cs = csOpt.get();
 
         long generation = event.getGeneration() > 0 ? event.getGeneration() : 1L;
+        // Submission owner commits the fenced terminal verdict before
+        // publishing this event and rejects rejudge for contest submissions;
+        // this read therefore drops stale/duplicate events without pretending
+        // to hold an owner-row lock across the RPC boundary.
         Long currentGeneration = submissionGenerationReadPort.findGenerationForUpdate(event.getSubmissionId());
         if (currentGeneration == null || currentGeneration.longValue() != generation) {
             return;

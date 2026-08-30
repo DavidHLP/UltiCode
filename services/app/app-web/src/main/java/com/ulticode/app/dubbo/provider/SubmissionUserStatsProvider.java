@@ -12,7 +12,9 @@ import java.util.List;
 /**
  * Dubbo provider for per-user submission statistics owned by App.
  */
-@DubboService(group = "backend-app", version = "1.0.0")
+@DubboService(group = "backend-app", version = "1.1.0")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionUserStatsProvider implements SubmissionUserStatsPort {
 
@@ -41,6 +43,11 @@ public class SubmissionUserStatsProvider implements SubmissionUserStatsPort {
     @Override
     public Integer findGlobalRankByUserId(String userId) {
         return delegate.findGlobalRankByUserId(userId);
+    }
+
+    @Override
+    public List<Long> findAcceptedProblemIdsByUserId(String userId) {
+        return delegate.findAcceptedProblemIdsByUserId(userId);
     }
 
     @Override

@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class DefaultSubmissionProjection implements SubmissionProjection {
 

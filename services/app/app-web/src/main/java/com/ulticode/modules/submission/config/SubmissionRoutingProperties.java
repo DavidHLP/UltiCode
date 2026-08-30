@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.function.Supplier;
 
-/** Selects the temporary App-local or owner read projection during backfill. */
+/** Gates the owner read route and the explicit legacy rollback projection. */
 @Configuration
 @ConfigurationProperties(prefix = "app.submission.routing")
 public class SubmissionRoutingProperties {
@@ -17,6 +17,9 @@ public class SubmissionRoutingProperties {
     private String mode = LOCAL;
 
     private boolean cutoverComplete;
+
+    @org.springframework.beans.factory.annotation.Value("${app.runtime.mode:dev-lite}")
+    private String runtimeMode = "dev-lite";
 
     public String getMode() {
         return mode;
@@ -38,20 +41,24 @@ public class SubmissionRoutingProperties {
         this.cutoverComplete = cutoverComplete;
     }
 
-    /**
-     * Selects one read implementation. Intake and verdict mutations no longer
-     * use this migration seam and always execute in backend-submission.
-     */
-    public <T> T select(T local, Supplier<T> remoteSupplier, String operation) {
-        if (!isRemote()) {
-            return local;
-        }
-        T remote = remoteSupplier.get();
-        if (remote == null) {
+    /** Selects the owner read route; local is available only for explicit rollback. */
+    public <T> T selectOwnerRead(
+            Supplier<T> localSupplier, Supplier<T> remoteSupplier, String operation) {
+        if (!"legacy-rollback".equals(runtimeMode) && (!isRemote() || !cutoverComplete)) {
             throw new IllegalStateException(
-                    "Remote Submission " + operation + " route is enabled but unavailable");
+                    "Submission owner " + operation
+                            + " route requires app.submission.routing.mode=remote and "
+                            + "app.submission.routing.cutover-complete=true");
         }
-        return remote;
+        T selected = "legacy-rollback".equals(runtimeMode)
+                ? localSupplier.get()
+                : remoteSupplier.get();
+        if (selected == null) {
+            throw new IllegalStateException(
+                    ("legacy-rollback".equals(runtimeMode) ? "Local" : "Remote")
+                            + " Submission " + operation + " route is unavailable");
+        }
+        return selected;
     }
 
     @PostConstruct

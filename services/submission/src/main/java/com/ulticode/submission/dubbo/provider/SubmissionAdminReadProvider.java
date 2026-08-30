@@ -37,10 +37,9 @@ import java.util.stream.Collectors;
  * <p>SPLIT-004 slice-5: copy of the App-owned provider with the problem-title
  * search pre-fetch routed through {@link ProblemTitleLookupPort} (Dubbo to
  * {@code backend-app}), never reading problem tables (DEC-011). Pagination,
- * filter and sort semantics mirror the legacy admin adapter exactly. The App
- * provider (group=backend-app) remains the active Admin route until the
- * read-routing cutover slice; this provider is the capability, not the
- * switch.
+ * filter and sort semantics mirror the legacy admin adapter exactly. Normal
+ * Admin reads route to this Submission-owner provider; the App provider is
+ * retained only for explicit legacy rollback.
  */
 @DubboService(group = "backend-submission", version = "1.0.0")
 @RequiredArgsConstructor

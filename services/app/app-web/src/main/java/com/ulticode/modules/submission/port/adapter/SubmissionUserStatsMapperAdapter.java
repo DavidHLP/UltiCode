@@ -18,6 +18,8 @@ import java.util.List;
  */
 @Component
 @Primary
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionUserStatsMapperAdapter implements SubmissionUserStatsPort {
 
@@ -46,6 +48,11 @@ public class SubmissionUserStatsMapperAdapter implements SubmissionUserStatsPort
     @Override
     public Integer findGlobalRankByUserId(String userId) {
         return submissionMapper.findGlobalRankByUserId(userId);
+    }
+
+    @Override
+    public List<Long> findAcceptedProblemIdsByUserId(String userId) {
+        return submissionMapper.findAcceptedProblemIdsByUserId(userId);
     }
 
     @Override

@@ -25,7 +25,7 @@
 
 Ordinary and contest intake now always use App's `RemoteSubmissionWritePort` and execute in `backend-submission`. The App-local writer, mutation router, fence adapters, judge/result dispatchers, shadow comparator, and lease reaper are deleted; write ownership is no longer selected by `APP_SUBMISSION_ROUTING_MODE`.
 
-P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. Remaining contraction work: App still owns temporary submission read projections and the App submission mapper retains compatibility read/mutation methods until the bounded-read cutover. Admin rejudge and the new reconciliation provider's live registration, database, and traffic evidence remain external.
+P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads through Submission-owner facts; App local Submission projections and mapper access remain only behind explicit `legacy-rollback`. The repository proof is complete, while owner registration, database grants, traffic observation, backup and physical contraction remain external.
 
 Evidence:
 
@@ -47,9 +47,9 @@ Retirement gates:
 | --- | --- | --- |
 | Intake/outbox/fence | App mutation implementation deleted; owner tests and duplicate-writer gate are authoritative | Live registration/traffic observation remains external; rollback uses a prior verified artifact plus the data runbook, not a second current writer |
 | Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Live Nacos/Dubbo/Redis/target-database observation remains external; full cross-owner audit outbox is P1-AUDIT-001 |
-| User reads | Local/remote read routing remains; reconciliation itself now consumes Submission owner facts | P1-DATA-001 must switch all remaining Submission reads to bounded owner facts before App read tables/contracts are removed |
+| User reads | Normal user/contest/admin/statistics/generation reads use bounded Submission-owner facts; local adapters are rollback-only | Production registration/traffic observation and the explicit contraction runbook must complete before App legacy tables/contracts are removed |
 
-Do not close SVC-003 or contract the App schema until all Submission reads use owner facts and the bounded-read/backfill evidence is complete.
+Do not close SVC-003 or contract the App schema until the external owner registration/traffic, backup, and bounded-read evidence is complete; the repository-side route gate is now covered by P1-DATA-001.
 
 ## DEFERRED
 

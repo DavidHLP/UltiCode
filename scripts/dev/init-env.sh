@@ -154,8 +154,9 @@ NOTIFICATION_DB_USER=notification_rw
 NOTIFICATION_DB_PASSWORD="$notification_db_password"
 
 # The local PM2 stack provisions all five Owner accounts from this file. The
-# direct Submission route remains cutover-gated; dev-lite forces the local
-# compatibility route and dev-full requires the explicit cutover flag.
+# normal Submission reads use the owner route; the explicit legacy-rollback
+# mode is the only local compatibility route and both normal modes require
+# the completed data/grant cutover marker.
 SUBMISSION_DB_HOST=localhost
 SUBMISSION_DB_PORT=23306
 SUBMISSION_DB_NAME=submission
@@ -163,7 +164,7 @@ SUBMISSION_DB_USER=submission_rw
 SUBMISSION_DB_PASSWORD="$submission_db_password"
 SUBMISSION_MIGRATION_DB_USER=migration_submission
 SUBMISSION_MIGRATION_DB_PASSWORD="$submission_migration_password"
-APP_SUBMISSION_ROUTING_MODE=local
+APP_SUBMISSION_ROUTING_MODE=remote
 # Exact App runtime account used by the submission cutover grant gate.
 SUBMISSION_APP_DB_USER=app_rw
 SUBMISSION_APP_DB_HOST=%

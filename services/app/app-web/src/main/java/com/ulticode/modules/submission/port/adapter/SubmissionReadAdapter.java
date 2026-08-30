@@ -24,6 +24,8 @@ import java.util.Map;
  * when the submission is not found, matching the port contract.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionReadAdapter implements SubmissionReadPort {
 

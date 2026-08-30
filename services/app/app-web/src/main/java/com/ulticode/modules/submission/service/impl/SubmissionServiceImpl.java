@@ -46,6 +46,8 @@ import java.util.Optional;
  * @author ulticode
  */
 @Service
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+        "'${app.runtime.mode:dev-lite}' == 'legacy-rollback'")
 @RequiredArgsConstructor
 public class SubmissionServiceImpl implements SubmissionService {
 

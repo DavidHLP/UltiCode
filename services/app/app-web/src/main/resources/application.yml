@@ -52,12 +52,9 @@ app:
     mode: ${APP_RUNTIME_MODE:dev-lite}
   submission:
     routing:
-      # Intake is always delegated to backend-submission. This remaining mode
-      # selects only the temporary App-local versus owner read projection while
-      # historical rows are backfilled and verified. Contest intake uses the
-      # explicit submitContest command; App updates contest_submissions only by
-      # consuming the owner's durable SubmissionCreated event.
-      mode: ${APP_SUBMISSION_ROUTING_MODE:local}
+      # Normal App/API boot reads Submission through backend-submission. The
+      # local projection is reserved for the explicit legacy-rollback mode.
+      mode: ${APP_SUBMISSION_ROUTING_MODE:remote}
       # Owner-read startup remains gated until data/grant cutover verification.
       cutover-complete: ${SUBMISSION_CUTOVER_COMPLETE:false}
   search:

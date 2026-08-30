@@ -3,10 +3,14 @@ package com.ulticode.modules.contest.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.contest.entity.ContestAdjudicationReceipt;
 import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Arg;
+import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -31,26 +35,30 @@ public interface ContestAdjudicationReceiptMapper extends BaseMapper<ContestAdju
                        @Param("verdict") String verdict,
                        @Param("accepted") boolean accepted);
 
-    /**
-     * Count real contest submissions that still need a user-code verdict to be
-     * adjudicated for the current submission generation. Infrastructure errors
-     * are intentionally excluded because they do not change contest scoring.
-     */
-    @Select("SELECT COUNT(*) FROM contest_submissions cs "
+    /** Find real contest submission ids; status/generation belong to Submission. */
+    @Select("SELECT cs.submission_id FROM contest_submissions cs "
             + "JOIN contest_participants cp ON cp.id = cs.participant_id "
-            + "AND cp.contest_id = cs.contest_id AND cp.is_virtual = 0 "
-            + "JOIN submissions s ON s.id = cs.submission_id "
-            + "LEFT JOIN contest_adjudication_receipts r "
-            + "ON r.submission_id = s.id AND r.generation = s.generation "
-            + "WHERE cs.contest_id = #{contestId} AND r.id IS NULL "
-            + "AND s.status IN ('Pending', 'Judging', 'Accepted', "
-            + "'Presentation Error', 'Wrong Answer', 'Time Limit Exceeded', "
-            + "'Memory Limit Exceeded', 'Output Limit Exceeded', 'Runtime Error', "
-            + "'Compile Error')")
-    long countUnadjudicatedRealSubmissions(@Param("contestId") String contestId);
+            + "AND cp.contest_id = cs.contest_id "
+            + "WHERE cs.contest_id = #{contestId} AND cp.is_virtual = 0")
+    List<String> findRealSubmissionIdsByContestId(@Param("contestId") String contestId);
+
+    /** Read local adjudication generations for a bounded set of submission ids. */
+    @ConstructorArgs({
+            @Arg(column = "submission_id", javaType = String.class),
+            @Arg(column = "generation", javaType = Long.class)
+    })
+    @Select("<script>SELECT submission_id, generation FROM contest_adjudication_receipts "
+            + "WHERE submission_id IN "
+            + "<foreach collection='submissionIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}</foreach></script>")
+    List<ReceiptGeneration> findReceiptGenerationsBySubmissionIds(
+            @Param("submissionIds") Collection<String> submissionIds);
+
+    record ReceiptGeneration(String submissionId, Long generation) {
+    }
 
     /**
-     * Read the newest receipt while the caller holds the submission row lock.
+     * Read the newest local receipt generation for the adjudication fence.
      */
     @Select("SELECT generation FROM contest_adjudication_receipts "
             + "WHERE submission_id = #{submissionId} "

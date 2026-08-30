@@ -15,6 +15,8 @@ import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.RatingCalculationService;
 import com.ulticode.app.api.service.ContestNotificationPort;
+import com.ulticode.submission.api.dto.SubmissionAdjudicationFact;
+import com.ulticode.submission.api.service.SubmissionAdjudicationReadPort;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -74,6 +76,7 @@ class ContestLifecycleServiceImplTest {
     @Mock private RatingCalculationService ratingService;
     @Mock private ContestNotificationPort contestNotificationPort;
     @Mock private ContestAdjudicationReceiptMapper adjudicationReceiptMapper;
+    @Mock private SubmissionAdjudicationReadPort submissionAdjudicationReadPort;
 
     private ContestLifecycleServiceImpl service;
 
@@ -85,7 +88,7 @@ class ContestLifecycleServiceImplTest {
                 contestMapper, participantTransitions, contestCascadeMapper,
                 rankingCacheEvictor, clock, contestClock, contestStatusPushPort,
                 contestRankingMarkDirtyPort, contestNotificationPort, ratingService,
-                adjudicationReceiptMapper);
+                adjudicationReceiptMapper, submissionAdjudicationReadPort);
     }
 
     /** P0-2: batchStartParticipants crosses the seam and returns its count. */
@@ -190,8 +193,12 @@ class ContestLifecycleServiceImplTest {
         when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
         when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
         when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
-        when(adjudicationReceiptMapper.countUnadjudicatedRealSubmissions(CONTEST_ID))
-                .thenReturn(1L);
+        when(adjudicationReceiptMapper.findRealSubmissionIdsByContestId(CONTEST_ID))
+                .thenReturn(List.of("submission-1"));
+        when(submissionAdjudicationReadPort.findByIds(any()))
+                .thenReturn(List.of(new SubmissionAdjudicationFact("submission-1", 1L, "Pending")));
+        when(adjudicationReceiptMapper.findReceiptGenerationsBySubmissionIds(any()))
+                .thenReturn(List.of());
 
         service.tick(NOW);
 
@@ -199,6 +206,76 @@ class ContestLifecycleServiceImplTest {
                 .finishStartedReal(anyString(), any(LocalDateTime.class));
         verify(ratingService, never()).calculateAndUpdate(anyString());
         verify(contestMapper, never()).tryFinalizeFinished(anyString(), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("tick: terminal owner fact with a matching receipt allows finalization")
+    void tick_finishingTerminalFactWithReceipt_finalizes() {
+        Contest finishing = newContest(ContestStatus.FINISHING.name());
+        finishing.setActualEndTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
+        when(adjudicationReceiptMapper.findRealSubmissionIdsByContestId(CONTEST_ID))
+                .thenReturn(List.of("submission-1"));
+        when(submissionAdjudicationReadPort.findByIds(any()))
+                .thenReturn(List.of(new SubmissionAdjudicationFact("submission-1", 1L, "Accepted")));
+        when(adjudicationReceiptMapper.findReceiptGenerationsBySubmissionIds(any()))
+                .thenReturn(List.of(new ContestAdjudicationReceiptMapper.ReceiptGeneration(
+                        "submission-1", 1L)));
+        when(participantTransitions.finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class)))
+                .thenReturn(0);
+        when(contestMapper.tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+
+        service.tick(NOW);
+
+        verify(ratingService).calculateAndUpdate(CONTEST_ID);
+        verify(contestMapper).tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("tick: terminal user verdict without a receipt remains retryable")
+    void tick_finishingTerminalFactWithoutReceipt_waits() {
+        Contest finishing = newContest(ContestStatus.FINISHING.name());
+        finishing.setActualEndTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
+        when(adjudicationReceiptMapper.findRealSubmissionIdsByContestId(CONTEST_ID))
+                .thenReturn(List.of("submission-1"));
+        when(submissionAdjudicationReadPort.findByIds(any()))
+                .thenReturn(List.of(new SubmissionAdjudicationFact("submission-1", 1L, "Wrong Answer")));
+        when(adjudicationReceiptMapper.findReceiptGenerationsBySubmissionIds(any()))
+                .thenReturn(List.of());
+
+        service.tick(NOW);
+
+        verify(ratingService, never()).calculateAndUpdate(anyString());
+        verify(contestMapper, never()).tryFinalizeFinished(anyString(), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("tick: infrastructure owner verdict does not block finalization")
+    void tick_finishingInfrastructureFact_doesNotWaitForReceipt() {
+        Contest finishing = newContest(ContestStatus.FINISHING.name());
+        finishing.setActualEndTime(NOW.minusMinutes(1));
+        when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.findByStatus(ContestStatus.FINISHING.name())).thenReturn(List.of(finishing));
+        when(adjudicationReceiptMapper.findRealSubmissionIdsByContestId(CONTEST_ID))
+                .thenReturn(List.of("submission-1"));
+        when(submissionAdjudicationReadPort.findByIds(any()))
+                .thenReturn(List.of(new SubmissionAdjudicationFact("submission-1", 1L, "Sandbox Error")));
+        when(adjudicationReceiptMapper.findReceiptGenerationsBySubmissionIds(any()))
+                .thenReturn(List.of());
+        when(participantTransitions.finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class)))
+                .thenReturn(0);
+        when(contestMapper.tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+
+        service.tick(NOW);
+
+        verify(ratingService).calculateAndUpdate(CONTEST_ID);
+        verify(contestMapper).tryFinalizeFinished(eq(CONTEST_ID), any(LocalDateTime.class));
     }
 
     @Test

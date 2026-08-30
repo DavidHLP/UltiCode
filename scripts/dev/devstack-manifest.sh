@@ -115,7 +115,7 @@ devstack_required_vars() {
       "${owner_prefix}_DB_PASSWORD"
   done
   printf '%s\n' SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
-  if [[ "$mode" == dev-full ]]; then
+  if [[ "$mode" != legacy-rollback ]]; then
     printf '%s\n' APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE
   fi
 }
@@ -141,13 +141,13 @@ devstack_validate_environment() {
     echo "Local PM2 requires SUBMISSION_DB_USER=submission_rw; provision custom production accounts outside up.sh." >&2
     return 1
   }
-  if [[ "$prepare_owner" != true && "$mode" == dev-full ]]; then
+  if [[ "$prepare_owner" != true && "$mode" != legacy-rollback ]]; then
     [[ "$APP_SUBMISSION_ROUTING_MODE" == remote ]] || {
-      echo "dev-full requires APP_SUBMISSION_ROUTING_MODE=remote." >&2
+      echo "$mode requires APP_SUBMISSION_ROUTING_MODE=remote." >&2
       return 1
     }
     [[ "$SUBMISSION_CUTOVER_COMPLETE" == true ]] || {
-      echo "dev-full requires SUBMISSION_CUTOVER_COMPLETE=true; run the cutover gate first." >&2
+      echo "$mode requires SUBMISSION_CUTOVER_COMPLETE=true; run the cutover gate first." >&2
       return 1
     }
   fi
@@ -157,8 +157,8 @@ devstack_apply_mode() {
   case "$1" in
     dev-lite)
       APP_RUNTIME_MODE=dev-lite
-      APP_SUBMISSION_ROUTING_MODE=local
-      SUBMISSION_CUTOVER_COMPLETE=false
+      APP_SUBMISSION_ROUTING_MODE=remote
+      SUBMISSION_CUTOVER_COMPLETE="${SUBMISSION_CUTOVER_COMPLETE:-false}"
       APP_FEATURES_USE_JUDGE_OUTBOX=true
       APP_FEATURES_USE_GENERATION_FENCE=true
       APP_FEATURES_JUDGE_QUEUE_USE_PORT=true

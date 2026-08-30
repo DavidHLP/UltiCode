@@ -232,7 +232,7 @@ class DefaultProblemProjectionTest {
             when(problemMapper.selectPage(any(Page.class), any())).thenReturn(page);
             // batch-fetch helpers must return empty lists (mock default is null → NPE)
             when(problemMapper.selectTagsByProblemIds(any())).thenReturn(List.of());
-            when(problemMapper.countSubmissionsByProblemIds(any())).thenReturn(List.of());
+            when(problemSubmissionStats.countByProblemIds(any())).thenReturn(Map.of());
             when(problemMapper.countSolutionsByProblemIds(any())).thenReturn(List.of());
 
             ProblemQueryDTO query = new ProblemQueryDTO();
@@ -353,7 +353,7 @@ class DefaultProblemProjectionTest {
             when(problemMapper.selectOne(any(Wrapper.class))).thenReturn(problem);
             // batch-fetch helpers return empty → defaults applied (no NPE)
             when(problemMapper.selectTagsByProblemIds(any())).thenReturn(List.of());
-            when(problemMapper.countSubmissionsByProblemIds(any())).thenReturn(List.of());
+            when(problemSubmissionStats.countByProblemIds(any())).thenReturn(Map.of());
             when(problemMapper.countSolutionsByProblemIds(any())).thenReturn(List.of());
 
             ProblemVO vo = projection.findRandomPublished();

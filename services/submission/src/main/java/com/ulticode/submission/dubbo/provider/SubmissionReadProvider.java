@@ -25,9 +25,9 @@ import java.util.Objects;
  * ({@link SubmissionProjection}, P0-1 hidden-case filter), then user and
  * problem summaries are enriched through the App/Auth-owned seams
  * ({@link ProblemFactsPort}) — never
- * reading user or problem tables (DEC-011). The App provider
- * (group=backend-app) remains the active route until the read-routing
- * cutover slice; this provider is the capability, not the switch.
+ * reading user or problem tables (DEC-011). Normal App and Contest reads
+ * route to this owner provider; the App-local projection is retained only
+ * for explicit legacy rollback.
  */
 @DubboService(group = "backend-submission", version = "1.0.0")
 @RequiredArgsConstructor

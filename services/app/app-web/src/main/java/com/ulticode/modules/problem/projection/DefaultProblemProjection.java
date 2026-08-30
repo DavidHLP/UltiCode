@@ -656,12 +656,7 @@ public class DefaultProblemProjection implements ProblemProjection {
         if (problemIds == null || problemIds.isEmpty()) {
             return Map.of();
         }
-        return problemMapper.countSubmissionsByProblemIds(problemIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        ProblemMapper.ProblemCountDTO::problemId,
-                        ProblemMapper.ProblemCountDTO::count
-                ));
+        return problemSubmissionStats.countByProblemIds(problemIds);
     }
 
     private Map<Long, Long> batchFetchSolutionCounts(List<Long> problemIds) {

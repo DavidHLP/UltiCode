@@ -169,6 +169,11 @@ cd services
 
 `ProblemTitleLookupPort` 是新增的 App provider / Submission consumer Seam，发布顺序固定为 **App provider first → Submission consumer second**；回滚顺序固定为 **Submission consumer first → App provider second**。旧 App 不提供该 FQCN，因此禁止选择性先部署新 Submission；该顺序由架构门禁与发布交接共同保留，真实混合版本运行证据仍归 SVC-010。
 
+P1-DATA-001 新增的 Submission user-stat batch fields 与 Problem-stat batch read 属于
+wire-incompatible Interface additions，provider/reference 使用 version `1.1.0`；新的
+`SubmissionAdjudicationReadPort` 是独立的 `1.0.0` provider。旧的
+`SubmissionWritePort` 1.0.0 仍按本节的 N-1 窗口保留，不因本次 read cutover 删除。
+
 豁免流程：原则上 `excludes` 不开放业务豁免；确需豁免（合成/桥接噪音除外）必须在 PR 中说明理由、影响面、回滚计划，并由 Owner 负责人批准后在 `pom` 的 `<parameter><excludes>` 中按 `package.Class#method` 精确列出，禁止通配 `*`。
 
 ## 5. 基线 tag 约定

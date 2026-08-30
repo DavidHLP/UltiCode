@@ -16,8 +16,7 @@ import java.util.List;
 
 /**
  * Dubbo consumer adapter registering {@link SubmissionAdminReadPort} as a
- * local admin bean, backed by the {@code backend-app} provider
- * ({@code com.ulticode.app.dubbo.provider.SubmissionAdminReadProvider}).
+ * local admin bean, backed by the {@code backend-submission} provider.
  *
  * <p>Admin services keep depending on the entity-free port contract; this
  * adapter is the only local bean of that type. Read references use the
@@ -27,7 +26,7 @@ import java.util.List;
 @Component
 public class DubboSubmissionAdminReadAdapter implements SubmissionAdminReadPort {
 
-    @DubboReference(group = "${app.submission.admin.read-group:backend-app}", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionAdminReadPort submissionAdminReadPort;
 

@@ -11,13 +11,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Admin consumer adapter for App-owned per-user submission statistics.
+ * Admin consumer adapter for Submission-owner per-user statistics.
  */
 @Primary
 @Component
 public class DubboSubmissionUserStatsAdapter implements SubmissionUserStatsPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-submission", version = "1.1.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionUserStatsPort submissionUserStatsPort;
 
@@ -44,6 +44,11 @@ public class DubboSubmissionUserStatsAdapter implements SubmissionUserStatsPort 
     @Override
     public Integer findGlobalRankByUserId(String userId) {
         return submissionUserStatsPort.findGlobalRankByUserId(userId);
+    }
+
+    @Override
+    public List<Long> findAcceptedProblemIdsByUserId(String userId) {
+        return submissionUserStatsPort.findAcceptedProblemIdsByUserId(userId);
     }
 
     @Override

@@ -78,19 +78,6 @@ public interface ProblemMapper extends BaseMapper<Problem> {
             @Arg(column = "count", javaType = Long.class)
     })
     @Select("<script>" +
-            "SELECT problem_id, COUNT(*) as count FROM submissions " +
-            "WHERE problem_id IN " +
-            "<foreach collection='problemIds' item='id' open='(' separator=',' close=')'>" +
-            "#{id}</foreach>" +
-            " GROUP BY problem_id" +
-            "</script>")
-    List<ProblemCountDTO> countSubmissionsByProblemIds(@Param("problemIds") List<Long> problemIds);
-
-    @ConstructorArgs({
-            @Arg(column = "problem_id", javaType = Long.class),
-            @Arg(column = "count", javaType = Long.class)
-    })
-    @Select("<script>" +
             "SELECT problem_id, COUNT(*) as count FROM solutions " +
             "WHERE problem_id IN " +
             "<foreach collection='problemIds' item='id' open='(' separator=',' close=')'>" +

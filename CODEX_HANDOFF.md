@@ -589,13 +589,13 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P2-SC-001`.
+- Last committed P2-SC-001 implementation checkpoint: `80326f1`; the previous P2-TLS-001 implementation is `bb01971`.
+- Current active task: `P2-OBS-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P2-TLS-001 as complete and points to `P2-SC-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P2-SC-001 as complete and points to `P2-OBS-001`.
 
 ## 17. Handoff stop condition
 
@@ -741,4 +741,25 @@ with Nginx syntax and exercises HTTP 301, HTTPS 200, and HSTS. Architecture/
 documentation/YAML/shell/diff gates and Graphify pass. Real certificates,
 domains, edge port ownership, and production rollout remain external; no
 remote or production state was changed. The next repository task is
-`P2-SC-001`.
+`P2-OBS-001`.
+
+## 26. Completed checkpoint — P2-SC-001
+
+P2-SC-001 is repository-complete in `80326f1` (`feat(ci): enforce immutable image supply chain`). Production Dockerfile bases and
+Compose infrastructure images are digest-pinned. The nine deployable services now require an explicit
+`NAME=registry/path/service@sha256:digest` manifest; production Compose has no tag or `latest` fallback, and rollback/deploy use the
+same shared policy before any Compose pull/up. The policy validates service names and image paths, then fails closed on an unexpected
+resolved digest, missing Cosign keyless signature, missing SPDX/SLSA attestations, missing Trivy, HIGH/CRITICAL findings, or an expired
+exception allowlist.
+
+Docker Publish pins every external Action to a full commit SHA, emits BuildKit SBOM and maximum provenance attestations, runs pinned
+Trivy, signs the immutable image with keyless Cosign, attests and verifies SPDX/SLSA predicates, and uploads a digest release manifest
+with SBOM/provenance/scan reports. CD deploy and rollback accept the manifest rather than mutable tags; rollback also retains an explicit
+nine-service allowlist. The new contract exercises valid/invalid manifests, expiry rejection, fake runtime verification, production
+Compose/Dockerfile/action checks, and release/deploy wiring.
+
+Workflow YAML, synthetic production Compose config, representative Console/Management/Backend Auth Docker builds, architecture and
+documentation contracts, shell syntax, diff check, and Graphify pass. The local host has Docker but no Cosign or Trivy binaries, so
+registry push, OIDC signing, attestation publication, remote vulnerability verification, release promotion, production deployment,
+and exception approval remain external; no production, remote, credential, sudo, Docker-group, or third-party state was changed. The
+next repository task is `P2-OBS-001`.

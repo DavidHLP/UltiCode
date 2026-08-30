@@ -61,3 +61,10 @@ The complete finding-to-task matrix is maintained in docs/architecture/remediati
 - P3 resilience and HA: P3-SCHED-001, P3-LEASE-001, P3-GRACE-001, P3-RES-001, P3-STREAM-001, P3-SCALE-001, P3-HA-001, P3-IDENTITY-001, P3-NET-001, P3-JUDGE-001.
 - Architecture/testing/closure: ARCH-CONTRACT-001, ARCH-DUBBO-001, TEST-COV-001, REVIEW-001, REVIEW-002, CLOSURE-001.
 - Explicit ADR deferrals: Kubernetes, Service Mesh, Kafka, Seata, further App service split, and five independent database clusters.
+
+### P2-SC-001 immutable signed image supply chain
+
+- Production Dockerfile bases and Compose infrastructure images are digest-pinned; nine deployable services require an explicit digest manifest.
+- Every external GitHub Action is pinned to a full commit SHA; Docker Publish emits BuildKit SBOM/provenance, a pinned Trivy report, Cosign signature/attestations, and an immutable release manifest.
+- Deploy and rollback validate the manifest locally and run digest/signature/SPDX/SLSA/Trivy verification on the target host before Compose pull/up. Exceptions require a non-empty ignorefile and future UTC expiry.
+- Contract, synthetic Compose config, three representative container builds, architecture/docs/YAML/shell/diff, and Graphify passed. Real registry/OIDC, promotion, and production host authority remain external.

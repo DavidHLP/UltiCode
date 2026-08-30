@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P2-SC-001 completed in `80326f1`: production bases/infrastructure and external Actions are immutable; Docker Publish emits SBOM/scan/digest/signature/provenance evidence; host deploy and rollback fail closed on a shared nine-service digest policy. Workflow/YAML, synthetic Compose, three Docker builds, architecture/docs, shell/diff, and Graphify gates pass; local Cosign/Trivy, registry promotion, and production deployment remain external. Next task is P2-OBS-001.
+
 - 2026-08-31: P2-TLS-001 completed in `bb01971`: both frontend gateways now have an explicit production certificate overlay, HTTP-to-HTTPS redirect, TLS1.2/1.3, scheme-aware HSTS, HTTPS healthchecks, and Secure cookie/CORS/JWKS alignment; temporary-cert Nginx/architecture/docs gates pass. Next task is P2-SC-001; real certificate/edge authority remains external.
 
 - 2026-08-31: P2-REDIS-001 completed in `e15c34c`: removed tracked Redis ACL hashes, materialized an atomic runtime ACL directory, added dual-password overlap/finalize/rollback/drift-check with Redis ACL LOAD and singleton lock, and passed disposable Redis/architecture/docs/Graphify gates. Next task is P2-TLS-001; production secret-store rotation remains external.

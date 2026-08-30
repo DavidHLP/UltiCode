@@ -1,0 +1,27 @@
+task: P2-SC-001
+status: GREEN
+commit: 80326f1
+date: 2026-08-31
+
+implementation:
+  - "Production Compose accepts nine explicit *_IMAGE_REF=registry/path/service@sha256:digest values and pins MySQL, Redis, Nacos, and MeiliSearch infrastructure images."
+  - "Services and both frontend Dockerfiles use digest-pinned base images; CI external Actions use full commit SHAs."
+  - "docker-publish enables BuildKit SBOM/provenance, runs pinned Trivy, signs with keyless Cosign, attests SPDX/SLSA predicates, verifies them, and uploads a digest release manifest plus reports."
+  - "host-deploy and rollback validate the same manifest; the remote host verifies digest, signature, SPDX, SLSA provenance, and HIGH/CRITICAL vulnerability policy before Compose pull/up."
+  - "Vulnerability exceptions require a non-empty Trivy ignorefile and a future UTC expiry; missing tools or evidence fail closed."
+
+validation:
+  - "scripts/test/supply-chain-contract.sh: PASS; valid, tagged, duplicate, expired-exception, fake-runtime, production Compose, Dockerfile, Action-pin, publish, deploy, and rollback assertions pass."
+  - "All GitHub workflow YAML parsed with PyYAML: PASS."
+  - "docker compose -f docker-compose.yml -f docker-compose.prod.yml config with synthetic non-secret image/config values: PASS; no service started."
+  - "Console production Docker build with pinned Node/Nginx bases: PASS; local image id sha256:820e0f6bcbf7972e5d5c0ef68866d786721bbbaeab5337637267b4f90d665670."
+  - "Management production Docker build with pinned Node/Nginx bases: PASS; local image id sha256:716f920f47f7ea525b865aa13ce6d462b43c3f18f46db10f7b6cbe7a8ca51c20."
+  - "Backend Auth production Docker build with pinned Temurin bases and Maven package: PASS; local image id sha256:04668e294644be8fef6ded56de9c99f49ec1a1bb7a7ffbbd7537d6aebcec3443."
+  - "scripts/dev/architecture-contract-test.sh: PASS; existing migration/backup/Redis/TLS gates plus supply-chain contract pass."
+  - "bash -n on changed shell scripts and git diff --check: PASS."
+  - "bash scripts/dev/docs-contract-test.sh: PASS."
+  - "graphify update .: PASS; 27814 nodes, 82872 edges, 897 communities."
+
+external_boundary:
+  - "The local host has Docker but no cosign or trivy binaries; the real registry push, keyless signing/OIDC, attestation publication, remote vulnerability verification, release promotion, and production deployment remain external and are not reported as locally executed."
+  - "No production, remote host, credential, sudo, Docker-group, registry, or third-party state was changed."

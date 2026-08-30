@@ -783,7 +783,7 @@ architecture_remediation_20260830:
       priority: P2
       scope: "CI/SupplyChain"
       dependencies: [P0-SEC-007]
-      status: TODO
+      status: DONE
       affected_modules: ["Dockerfiles", "compose", ".github/workflows"]
       acceptance_criteria:
         - "Production base/actions/images are immutable; latest fallback is forbidden"
@@ -792,10 +792,11 @@ architecture_remediation_20260830:
         - "Workflow/action syntax"
         - "Container build"
         - "SBOM/vulnerability/signature verification"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p2-sc-001-green.result"
+      commit: 80326f1
       blocked_by: []
-      notes: "Use one scanner and a time-bounded exception allowlist"
+      notes: "Digest-pinned bases/infrastructure/actions, nine-service release manifest, BuildKit SBOM/provenance, pinned Trivy, Cosign signature/attestations, fail-closed deploy/rollback verifier, and expiring exception contract pass; registry/production authority remains external"
     - id: P2-OBS-001
       title: "Operate metrics traces alerts and SLOs"
       priority: P2

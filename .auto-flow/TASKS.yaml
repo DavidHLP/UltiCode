@@ -478,7 +478,7 @@ architecture_remediation_20260830:
       priority: P0
       scope: "Security/Delegation"
       dependencies: [P0-SEC-004]
-      status: IN_PROGRESS
+      status: DONE
       affected_modules: ["platform/common", "platform/web-security", "admin", "auth", "app", "notification", "compose"]
       acceptance_criteria:
         - "Admin/bootstrap issuers use separate asymmetric private keys; verifiers hold only public keys"
@@ -488,6 +488,9 @@ architecture_remediation_20260830:
         - "Compose secret-boundary contract"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-005-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-005-green.result"
+        - "RS256 signer/verifier, separate bootstrap key, scoped jti replay claim, launcher generation, and production secret-boundary checks pass"
+      commit: 05285c5
       blocked_by: []
       notes: "Private keys are injected and never committed or logged"
     - id: P0-SEC-006

@@ -35,18 +35,13 @@ on:
         required: false
         type: boolean
         default: false
-      image_tag:
-        description: 'Default image tag for services without a per-service override'
-        required: false
-        type: string
-        default: 'latest'
-      service_tags:
+      image_refs:
         description: >-
-          Optional per-service tag overrides, one NAME=value per line
-          (e.g. BACKEND_AUTH_IMAGE_TAG=sha-abc1234). See docker-compose.prod.yml.
-        required: false
+          Required nine-line immutable release manifest with
+          NAME=registry/path/service@sha256:digest entries. Obtain it from the
+          Docker Publish supply-chain artifacts.
+        required: true
         type: string
-        default: ''
 
 concurrency:
   group: deploy-${{ github.event.inputs.environment }}
@@ -60,7 +55,7 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Deploy to host
         id: deploy
@@ -72,9 +67,9 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           user: ${{ secrets.DEPLOY_USER }}
           path: ${{ secrets.DEPLOY_PATH }}
-          image_tag: ${{ github.event.inputs.image_tag || 'latest' }}
+          image_refs: ${{ github.event.inputs.image_refs }}
           services: ${{ github.event.inputs.services }}
-          service_tags: ${{ github.event.inputs.service_tags }}
+          supply_chain_identity: ${{ secrets.SUPPLY_CHAIN_CERT_IDENTITY }}
           skip_migrations: ${{ github.event.inputs.skip_migrations }}
           registry: ghcr.io
           github_token: ${{ secrets.GITHUB_TOKEN }}

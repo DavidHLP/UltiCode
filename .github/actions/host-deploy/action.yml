@@ -2,8 +2,8 @@ name: 'Host deploy (SSH + compose)'
 description: >-
   Shared deploy mechanics for cd-deploy/cd-rollback: install the SSH key,
   optionally run the ordered owner migration manifest, provision judge-sandbox prerequisites,
-  then pull and `docker compose up` with the given image tag on the host,
-  optionally restricted to a subset of services with per-service tags.
+  verify the signed immutable image manifest, then pull and `docker compose up`
+  on the host, optionally restricted to a subset of services.
 inputs:
   ssh_key:
     description: 'Private SSH key for the deploy host'
@@ -21,10 +21,10 @@ inputs:
   path:
     description: 'Deploy directory on the host'
     required: true
-  image_tag:
+  image_refs:
     description: >-
-      Default image tag applied to every service that has no per-service
-      override (see service_tags).
+      Newline-separated NAME=registry/path/service@sha256:digest entries for
+      all nine deployable services. Every entry is verified before Compose.
     required: true
   services:
     description: >-
@@ -33,12 +33,20 @@ inputs:
       the whole stack.
     required: false
     default: ''
-  service_tags:
+  supply_chain_identity:
     description: >-
-      Optional newline-separated NAME=value exports applied on the host
-      before compose runs, for per-service tags, e.g.
-      "BACKEND_AUTH_IMAGE_TAG=sha-abc1234". Names must be valid shell env
-      identifiers; values must not contain whitespace.
+      Exact keyless Cosign certificate identity allowed to sign release images.
+    required: true
+  supply_chain_issuer:
+    description: 'OIDC issuer allowed for release image signatures'
+    required: false
+    default: 'https://token.actions.githubusercontent.com'
+  supply_chain_exception_file:
+    description: 'Optional remote Trivy ignorefile; it must have a future expiry timestamp'
+    required: false
+    default: ''
+  supply_chain_exception_expires_at:
+    description: 'UTC expiry for the optional Trivy ignorefile (YYYY-MM-DDTHH:MM:SSZ)'
     required: false
     default: ''
   skip_migrations:
@@ -212,53 +220,69 @@ runs:
 
     - name: Pull and deploy services
       shell: bash
+      env:
+        IMAGE_REF_LIST: ${{ inputs.image_refs }}
+        COSIGN_CERT_IDENTITY: ${{ inputs.supply_chain_identity }}
+        COSIGN_CERT_ISSUER: ${{ inputs.supply_chain_issuer }}
+        SUPPLY_CHAIN_EXCEPTION_FILE: ${{ inputs.supply_chain_exception_file }}
+        SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT: ${{ inputs.supply_chain_exception_expires_at }}
+        GITHUB_TOKEN_VALUE: ${{ inputs.github_token }}
+        DEPLOY_ACTOR: ${{ inputs.actor }}
+        DEPLOY_REGISTRY: ${{ inputs.registry }}
+        DEPLOY_SERVICES: ${{ inputs.services }}
       run: |
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        [[ -n "$IMAGE_REF_LIST" ]] || { echo "::error::image_refs is required" >&2; exit 1; }
+        [[ -n "$COSIGN_CERT_IDENTITY" ]] || { echo "::error::supply_chain_identity is required" >&2; exit 1; }
+        IMAGE_REF_LIST="$IMAGE_REF_LIST" \
+          "$GITHUB_WORKSPACE/scripts/runbooks/image-reference-policy.sh" validate
 
-        # Login to GHCR on remote
-        $SSH_CMD "echo ${{ inputs.github_token }} | docker login ${{ inputs.registry }} -u ${{ inputs.actor }} --password-stdin"
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
 
-        # Build the remote export chain: global IMAGE_TAG plus any validated
-        # per-service tag overrides (docker-compose.prod.yml resolves each
-        # service as <SERVICE>_IMAGE_TAG -> IMAGE_TAG -> latest).
-        EXPORTS="export IMAGE_TAG=${{ inputs.image_tag }}"
-        TAG_LINES="${{ inputs.service_tags }}"
+        # Turn the validated manifest into shell assignments. The same
+        # assignments feed the remote verifier and Compose, so no tag fallback
+        # or independently parsed service override can bypass the policy.
+        EXPORTS=""
         while IFS= read -r pair; do
-          pair="$(printf '%s' "$pair" | tr -d '[:space:]')"
-          [ -z "$pair" ] && continue
-          case "$pair" in
-            *=*) ;;
-            *) echo "::error::Invalid service_tags entry (missing '='): ${pair}" ; exit 1 ;;
-          esac
+          [[ -z "$pair" ]] && continue
           NAME="${pair%%=*}"
           VALUE="${pair#*=}"
-          case "$NAME" in
-            [A-Za-z_]*) ;;
-            *) echo "::error::Invalid service_tags entry (bad name): ${pair}" ; exit 1 ;;
-          esac
-          case "$NAME" in
-            *[!A-Za-z0-9_]*) echo "::error::Invalid service_tags entry (bad name): ${pair}" ; exit 1 ;;
-          esac
-          case "$VALUE" in
-            *[!A-Za-z0-9_./:-]*) echo "::error::Invalid service_tags entry (bad value): ${VALUE}" ; exit 1 ;;
-          esac
-          EXPORTS="$EXPORTS && export $pair"
-        done <<< "$TAG_LINES"
+          EXPORTS+=" $(shell_quote "$NAME")=$(shell_quote "$VALUE")"
+        done <<< "$IMAGE_REF_LIST"
+        REMOTE_ENV="$EXPORTS"
+        REMOTE_ENV+=" COSIGN_CERT_IDENTITY=$(shell_quote "$COSIGN_CERT_IDENTITY")"
+        REMOTE_ENV+=" COSIGN_CERT_ISSUER=$(shell_quote "$COSIGN_CERT_ISSUER")"
+        REMOTE_ENV+=" SUPPLY_CHAIN_EXCEPTION_FILE=$(shell_quote "$SUPPLY_CHAIN_EXCEPTION_FILE")"
+        REMOTE_ENV+=" SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT=$(shell_quote "$SUPPLY_CHAIN_EXCEPTION_EXPIRES_AT")"
+
+        # Keep the registry token on the SSH stdin stream; it is not embedded
+        # in the remote command or echoed into the workflow log.
+        printf '%s\n' "$GITHUB_TOKEN_VALUE" | "${SSH_CMD[@]}" \
+          "docker login $(shell_quote "$DEPLOY_REGISTRY") -u $(shell_quote "$DEPLOY_ACTOR") --password-stdin"
+
+        # Verify every supplied digest, its Cosign signature, its SPDX SBOM,
+        # its SLSA provenance, and its HIGH/CRITICAL vulnerability result on
+        # the deployment host before any image is started.
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        remote_command+=" $REMOTE_ENV ./scripts/runbooks/image-reference-policy.sh verify &&"
 
         # Optional selective rollout/rollback: restrict pull/up to an explicit
         # allowlisted subset instead of reconciling the whole stack.
         TARGETS=""
-        if [ -n "${{ inputs.services }}" ] && [ "${{ inputs.services }}" != "all" ]; then
-          for svc in $(printf '%s' "${{ inputs.services }}" | tr ',' ' ' | xargs); do
+        if [ -n "$DEPLOY_SERVICES" ] && [ "$DEPLOY_SERVICES" != "all" ]; then
+          for svc in $(printf '%s' "$DEPLOY_SERVICES" | tr ',' ' ' | xargs); do
             case "$svc" in
-              *[!A-Za-z0-9_.-]*) echo "::error::Invalid service name: ${svc}" ; exit 1 ;;
+              backend-auth|backend-admin|backend-app|backend-submission|backend-notification|backend-search|backend-judge|console|management) ;;
+              *) echo "::error::Invalid deployable service: ${svc}" >&2; exit 1 ;;
             esac
             TARGETS="$TARGETS $svc"
           done
         fi
 
-        # Pull and deploy with the tag exports in the same remote shell session;
-        # empty TARGETS keeps the previous whole-stack behaviour.
-        $SSH_CMD "cd ${{ inputs.path }} && $EXPORTS && \
-                  docker compose -f docker-compose.yml -f docker-compose.prod.yml pull$TARGETS && \
-                  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans$TARGETS"
+        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml pull$TARGETS &&"
+        remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans$TARGETS"
+        "${SSH_CMD[@]}" "$remote_command"

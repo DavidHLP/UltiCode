@@ -26,31 +26,30 @@
 #   NACOS_AUTH_IDENTITY_KEY, NACOS_AUTH_IDENTITY_VALUE
 #   External owner backup runbook: BACKUP_DB_HOST/PORT/NAME/USER/PASSWORD and
 #   BACKUP_ENCRYPTION_KEY are supplied only to the Ops job, never this app stack.
-#   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
+#   BACKEND_*_IMAGE_REF, CONSOLE_IMAGE_REF, MANAGEMENT_IMAGE_REF (immutable
+#   registry references supplied by the approved release manifest)
 #
-# Image tag usage:
-#   export IMAGE_TAG=sha-abc1234  (or 'latest')
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-#
-# Per-service independent release: every deployable service also accepts its
-# own tag variable, which wins over the global IMAGE_TAG:
-#   BACKEND_AUTH_IMAGE_TAG, BACKEND_ADMIN_IMAGE_TAG, BACKEND_APP_IMAGE_TAG,
-#   BACKEND_SUBMISSION_IMAGE_TAG, BACKEND_SEARCH_IMAGE_TAG,
-#   BACKEND_NOTIFICATION_IMAGE_TAG, BACKEND_JUDGE_IMAGE_TAG,
-#   CONSOLE_IMAGE_TAG, MANAGEMENT_IMAGE_TAG
-# Resolution order per service: <SERVICE>_IMAGE_TAG -> IMAGE_TAG -> latest.
-# Example — upgrade only auth without touching anything else:
-#   export BACKEND_AUTH_IMAGE_TAG=sha-abc1234
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull backend-auth
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-auth
-#
-# The cd-deploy.yml workflow sets IMAGE_TAG via:
-#   env.IMAGE_TAG = github.event.inputs.image_tag || 'latest'
+# Every production service receives a complete immutable image reference from
+# the release manifest. The host-deploy action validates the same nine-line
+# IMAGE_REF_LIST before Compose is allowed to pull or start anything.
+# Example:
+#   BACKEND_AUTH_IMAGE_REF=ghcr.io/example/ulticode/backend-auth@sha256:<digest>
+#   CONSOLE_IMAGE_REF=ghcr.io/example/ulticode/console@sha256:<digest>
+# Registry signing, release promotion, and the production approval remain
+# external trust-boundary decisions; missing or unverified evidence fails shut.
 
 services:
+  mysql:
+    image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6
+
+  redis:
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+
+  meilisearch:
+    image: getmeili/meilisearch@sha256:bbdb723dbf83ae431ad5c10bf4970a517ca1fce1dcda9bdb99691576e963a6e5
+
   nacos:
-    image: nacos/nacos-server:v2.3.2
+    image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8
     container_name: ulticode-nacos
     restart: unless-stopped
     deploy:
@@ -90,7 +89,7 @@ services:
         max-file: "5"
 
   backend-auth:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-auth:${BACKEND_AUTH_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_AUTH_IMAGE_REF:?BACKEND_AUTH_IMAGE_REF is required}"
     container_name: ulticode-backend-auth
     restart: unless-stopped
     expose:
@@ -168,7 +167,7 @@ services:
         max-size: "50m"
         max-file: "5"
   backend-admin:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-admin:${BACKEND_ADMIN_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_ADMIN_IMAGE_REF:?BACKEND_ADMIN_IMAGE_REF is required}"
     container_name: ulticode-backend-admin
     restart: unless-stopped
     expose:
@@ -239,7 +238,7 @@ services:
         max-size: "50m"
         max-file: "5"
   backend-app:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-app:${BACKEND_APP_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_APP_IMAGE_REF:?BACKEND_APP_IMAGE_REF is required}"
     container_name: ulticode-backend-app
     restart: unless-stopped
     expose:
@@ -327,7 +326,7 @@ services:
       - ${AVATAR_UPLOAD_VOL:-app_uploads}:/data/uploads/avatars
 
   backend-submission:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-submission:${BACKEND_SUBMISSION_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_SUBMISSION_IMAGE_REF:?BACKEND_SUBMISSION_IMAGE_REF is required}"
     container_name: ulticode-backend-submission
     restart: unless-stopped
     expose:
@@ -391,7 +390,7 @@ services:
         max-file: "5"
 
   backend-search:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-search:${BACKEND_SEARCH_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_SEARCH_IMAGE_REF:?BACKEND_SEARCH_IMAGE_REF is required}"
     container_name: ulticode-backend-search
     restart: unless-stopped
     expose:
@@ -446,7 +445,7 @@ services:
         max-file: "5"
 
   backend-notification:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-notification:${BACKEND_NOTIFICATION_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_NOTIFICATION_IMAGE_REF:?BACKEND_NOTIFICATION_IMAGE_REF is required}"
     container_name: ulticode-backend-notification
     restart: unless-stopped
     expose:
@@ -524,7 +523,7 @@ services:
         max-file: "5"
 
   backend-judge:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend-judge:${BACKEND_JUDGE_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${BACKEND_JUDGE_IMAGE_REF:?BACKEND_JUDGE_IMAGE_REF is required}"
     container_name: ulticode-backend-judge
     restart: unless-stopped
     expose:
@@ -554,7 +553,7 @@ services:
       # Review 2026-08-25 P0: readiness marker proves the Redis Streams dependency.
       - JUDGE_READY_FILE=/tmp/judge-worker-ready
       - SANDBOX_ENABLED=${SANDBOX_ENABLED:-true}
-      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-ulticode-sandbox:latest}
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:?SANDBOX_IMAGE is required}
       - SANDBOX_MEMORY=${SANDBOX_MEMORY:-256m}
       - SANDBOX_CPUS=${SANDBOX_CPUS:-1.0}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-10}
@@ -618,7 +617,7 @@ services:
         max-file: "5"
 
   console:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/console:${CONSOLE_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${CONSOLE_IMAGE_REF:?CONSOLE_IMAGE_REF is required}"
     container_name: ulticode-console
     restart: unless-stopped
     ports:
@@ -653,7 +652,7 @@ services:
         max-file: "3"
 
   management:
-    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/management:${MANAGEMENT_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: "${MANAGEMENT_IMAGE_REF:?MANAGEMENT_IMAGE_REF is required}"
     container_name: ulticode-management
     restart: unless-stopped
     ports:

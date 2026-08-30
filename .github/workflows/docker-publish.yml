@@ -15,6 +15,8 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  id-token: write
+  attestations: write
 
 env:
   REGISTRY: ghcr.io
@@ -29,7 +31,7 @@ jobs:
       matrix: ${{ steps.m.outputs.matrix }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Read services matrix
         id: m
@@ -49,10 +51,10 @@ jobs:
         service: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       - name: Resolve service release version
         id: svcver
@@ -79,7 +81,7 @@ jobs:
           echo "Service version: ${VERSION:-<none (non-Maven image)>}"
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -87,16 +89,16 @@ jobs:
 
       - name: Extract metadata (tags, labels)
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}
           tags: |
             type=sha
-            type=raw,value=latest
             type=raw,value=v${{ steps.svcver.outputs.version }},enable=${{ steps.svcver.outputs.version != '' }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v7
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: ${{ matrix.service.dockerfile }}
@@ -111,5 +113,89 @@ jobs:
             INSTALL_DOCKER_CLI=${{ matrix.service.install_docker_cli || false }}
             SERVICE_HEALTHCHECK=${{ matrix.service.healthcheck || true }}
             SERVICE_VERSION=${{ steps.svcver.outputs.version }}
+          sbom: true
+          provenance: mode=max
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v2.5.3
+
+      - name: Scan pushed image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          format: json
+          output: ${{ runner.temp }}/${{ matrix.service.name }}.trivy.json
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          version: v0.74.0
+
+      - name: Sign image and attest SBOM/provenance
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          SIGNER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yml@refs/heads/main
+          SIGNER_ISSUER: https://token.actions.githubusercontent.com
+          SBOM_PATH: ${{ runner.temp }}/${{ matrix.service.name }}.spdx.json
+          PROVENANCE_PATH: ${{ runner.temp }}/${{ matrix.service.name }}.provenance.json
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Build did not emit an immutable image digest"
+            exit 1
+          }
+          trivy image --format spdx-json --output "$SBOM_PATH" "$IMAGE_REF"
+          jq -e . "$SBOM_PATH" >/dev/null
+          jq -n \
+            --arg subject "$IMAGE_REF" \
+            --arg source "https://github.com/${{ github.repository }}@${{ github.sha }}" \
+            --arg workflow "${{ github.workflow_ref }}" \
+            '{buildType:"https://slsa.dev/provenance/v1", builder:{id:$workflow}, invocation:{configSource:{uri:$source}}, subject:[{name:$subject,digest:{sha256:($subject|split("@sha256:")[1])}}]}' \
+            > "$PROVENANCE_PATH"
+          cosign sign --yes "$IMAGE_REF"
+          cosign attest --yes --type spdxjson --predicate "$SBOM_PATH" "$IMAGE_REF"
+          cosign attest --yes --type slsaprovenance --predicate "$PROVENANCE_PATH" "$IMAGE_REF"
+          cosign verify \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$SIGNER_ISSUER" \
+            "$IMAGE_REF" >/dev/null
+          cosign verify-attestation \
+            --type spdxjson \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$SIGNER_ISSUER" \
+            "$IMAGE_REF" >/dev/null
+          cosign verify-attestation \
+            --type slsaprovenance \
+            --certificate-identity "$SIGNER_IDENTITY" \
+            --certificate-oidc-issuer "$SIGNER_ISSUER" \
+            "$IMAGE_REF" >/dev/null
+
+      - name: Publish immutable release manifest
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}@${{ steps.build.outputs.digest }}
+          SERVICE: ${{ matrix.service.name }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_REF" =~ @sha256:[0-9a-f]{64}$ ]] || exit 1
+          manifest_dir="$RUNNER_TEMP/supply-chain"
+          mkdir -p "$manifest_dir"
+          variable="${SERVICE^^}_IMAGE_REF"
+          variable="${variable//-/_}"
+          printf '%s=%s\n' "$variable" "$IMAGE_REF" > "$manifest_dir/${SERVICE}.image-ref"
+          cp "$RUNNER_TEMP/${SERVICE}.spdx.json" "$manifest_dir/${SERVICE}.spdx.json"
+          cp "$RUNNER_TEMP/${SERVICE}.provenance.json" "$manifest_dir/${SERVICE}.provenance.json"
+          cp "$RUNNER_TEMP/${SERVICE}.trivy.json" "$manifest_dir/${SERVICE}.trivy.json"
+          jq -n --arg service "$SERVICE" --arg image "$IMAGE_REF" \
+            '{service:$service,image_ref:$image}' > "$manifest_dir/${SERVICE}.release.json"
+
+      - name: Upload immutable release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: supply-chain-${{ matrix.service.name }}
+          path: ${{ runner.temp }}/supply-chain/
+          if-no-files-found: error
+          retention-days: 30

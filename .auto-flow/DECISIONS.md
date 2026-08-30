@@ -143,6 +143,13 @@
 - Consequences: Auth production explicitly requires Secure cookies and production CORS/frontend origins; resource owners use HTTPS Auth JWKS. Certificate files, domain/edge port ownership, and rotation remain external and are never committed.
 - Affected tasks: P2-TLS-001, P0-SEC-004, P2-SC-001.
 
+## P2-SC-001: make image delivery immutable and evidence-bearing
+
+- Context: production Compose allowed tag and `latest` fallbacks, Dockerfiles and external Actions were mutable, and release/deploy paths did not prove image digest, SBOM, vulnerability, signature, or provenance state.
+- Decision: require a nine-service `NAME=registry/path/service@sha256:digest` manifest, pin production bases/infrastructure and every external Action, publish BuildKit SBOM/provenance plus Trivy and Cosign evidence, and run one shared fail-closed policy before deployment or rollback. Vulnerability exceptions require a non-empty ignorefile and future UTC expiry.
+- Consequences: release artifacts are traceable and a missing/mismatched proof blocks pull/start; registry signing, promotion, signer identity/issuer configuration, exception approval, and production execution remain external trust-boundary responsibilities. Local dev-only tags and the locally built sandbox remain outside the nine-service registry manifest.
+- Affected tasks: P2-SC-001, P2-DEPLOY-001, P2-OBS-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

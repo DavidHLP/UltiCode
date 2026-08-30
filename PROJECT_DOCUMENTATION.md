@@ -848,6 +848,13 @@ P2-TLS-001 将两个前端 gateway 的 production listener 作为显式 profile�
 resource owners 使用 HTTPS Auth JWKS；healthcheck 走 HTTPS。证书替换需在 secret mount 内原子切换 `fullchain.pem`/`privkey.pem` 后重建
 两个 frontend 容器并验证健康状态，失败时保留旧 mount；真实证书、域名和 edge 端口 authority 仍需外部执行。
 
+P2-SC-001 将生产交付收敛到不可变供应链：`services/Dockerfile` 与两个前端 Dockerfile 的基础镜像、生产 Compose 的基础设施镜像均使用
+digest；生产九个可部署服务只接受 `*_IMAGE_REF=registry/path/service@sha256:digest`，不再存在 tag 或 `latest` 回退。
+`scripts/runbooks/image-reference-policy.sh` 是部署与回滚共用的 fail-closed 边界，逐个 pull 后核对 resolved digest、Cosign keyless
+signature、SPDX SBOM、SLSA provenance 和 Trivy HIGH/CRITICAL 结果；漏洞例外必须同时提供非空 ignorefile 与未来 UTC 过期时间。
+`docker-publish.yml` 生成 BuildKit SBOM/provenance、Trivy 报告、Cosign 签名/attestations 及不可变 release manifest，外部 Actions 全部锁定
+到 commit SHA。registry signing、release promotion、Cosign identity/issuer、生产部署主机与真实漏洞例外审批仍属于外部信任边界。
+
 P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
 consumer 和 WebSocket consumer 均实现并调用完整契约。保留的 `SubmissionWritePort`/provider 是明确标注的 N-1

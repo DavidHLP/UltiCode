@@ -523,7 +523,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | Docker | `services/**`、`apps/**`、Dockerfile / Compose 输入 | 多阶段构建验证 |
 | Integration | 定时 / 手动 | Testcontainers（MySQL 9.1 + Redis 7） |
 | CD Deploy | `workflow_dispatch` | 滚动发布到指定环境 |
-| CD Rollback | `workflow_dispatch` | 一键回滚到指定 image tag |
+| CD Rollback | `workflow_dispatch` | 按已批准的九服务 immutable digest manifest 回滚，远端先校验签名/SBOM/provenance/漏洞策略 |
 
 部署 Runbook 见 [`scripts/dev/up.sh`](scripts/dev/up.sh) 与 [`scripts/dev/doctor.sh`](scripts/dev/doctor.sh)。
 

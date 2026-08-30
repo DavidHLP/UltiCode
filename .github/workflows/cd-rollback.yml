@@ -1,13 +1,16 @@
-# Manual rollback to a previously published sha-<tag>. Verifies every image
-# exists in GHCR first, then reuses the same host mechanics as cd-deploy
+# Manual rollback to a previously approved immutable release manifest. The
+# host policy verifies every digest and its evidence before reusing the same
+# host mechanics as cd-deploy
 # (.github/actions/host-deploy with migrations skipped) and health checks.
 name: CD Rollback
 
 on:
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: 'Image tag to roll back to (e.g., sha-abc1234)'
+      image_refs:
+        description: >-
+          Required nine-line immutable release manifest with
+          NAME=registry/path/service@sha256:digest entries.
         required: true
         type: string
       services:
@@ -27,60 +30,47 @@ permissions:
   packages: read
 
 jobs:
-  verify-tag:
-    name: Verify image tag exists in GHCR
+  verify-images:
+    name: Verify immutable image references
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check tag existence
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Validate immutable release manifest
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.event.inputs.image_tag }}
-          SELECTED: ${{ github.event.inputs.services }}
+          IMAGE_REF_LIST: ${{ github.event.inputs.image_refs }}
+        run: scripts/runbooks/image-reference-policy.sh validate
+
+      - name: Validate deployable service selection
+        env:
+          SELECTED_SERVICES: ${{ github.event.inputs.services }}
         run: |
-          OWNER="${{ github.repository_owner }}"
-          REPO="${{ github.repository }}"
+          set -euo pipefail
           ALL=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-search" "backend-judge" "console" "management")
-
-          if [ -z "$SELECTED" ] || [ "$SELECTED" = "all" ]; then
-            SERVICES=("${ALL[@]}")
-          else
-            SERVICES=()
-            for SVC in $(printf '%s' "$SELECTED" | tr ',' ' ' | xargs); do
-              OK=""
-              for KNOWN in "${ALL[@]}"; do [ "$SVC" = "$KNOWN" ] && OK=1 && break; done
-              if [ -z "$OK" ]; then
-                echo "::error::Unknown service '${SVC}'. Valid: ${ALL[*]}"
-                exit 1
-              fi
-              SERVICES+=("$SVC")
-            done
+          if [[ "$SELECTED_SERVICES" == "all" || -z "$SELECTED_SERVICES" ]]; then
+            exit 0
           fi
-
-          for SVC in "${SERVICES[@]}"; do
-            echo "Checking ${SVC}:${TAG}..."
-            RESPONSE=$(curl -sf -H "Authorization: token ${GH_TOKEN}" \
-              "https://api.github.com/orgs/${OWNER}/packages/container/${REPO##*/}%2F${SVC}/versions?per_page=100" 2>/dev/null || echo "[]")
-
-            if echo "$RESPONSE" | jq -r '.[].metadata.container.tags[]' 2>/dev/null | grep -qx "$TAG"; then
-              echo "  Tag ${TAG} found for ${SVC}"
-            else
-              echo "::error::Tag ${TAG} not found in GHCR for ${SVC}. Available recent tags:"
-              echo "$RESPONSE" | jq -r '.[].metadata.container.tags[]' 2>/dev/null | grep '^sha-' | head -10
-              exit 1
-            fi
+          for service in $(printf '%s' "$SELECTED_SERVICES" | tr ',' ' ' | xargs); do
+            case " ${ALL[*]} " in
+              *" $service "*) ;;
+              *) echo "::error::Unknown deployable service: $service" >&2; exit 1 ;;
+            esac
           done
-          echo "All service images verified for tag ${TAG}"
+
+      # The remote host performs registry-backed verification immediately
+      # before pull/up, against the same manifest supplied to this job.
 
   rollback:
-    name: Rollback to ${{ github.event.inputs.image_tag }}
+    name: Rollback selected services
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: verify-tag
+    needs: verify-images
     environment: production
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Roll back on host
         uses: ./.github/actions/host-deploy
@@ -91,8 +81,9 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           user: ${{ secrets.DEPLOY_USER }}
           path: ${{ secrets.DEPLOY_PATH }}
-          image_tag: ${{ github.event.inputs.image_tag }}
+          image_refs: ${{ github.event.inputs.image_refs }}
           services: ${{ github.event.inputs.services }}
+          supply_chain_identity: ${{ secrets.SUPPLY_CHAIN_CERT_IDENTITY }}
           skip_migrations: 'true'
           registry: ghcr.io
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -110,4 +101,4 @@ jobs:
       - name: Notify failure
         if: failure()
         run: |
-          echo "::error::Rollback to ${{ github.event.inputs.image_tag }} failed. Check logs for details."
+          echo "::error::Rollback failed. Check immutable image verification and host logs for details."

@@ -1,6 +1,6 @@
 # UltiCode 项目统一文档
 
-更新时间：2026-08-28
+更新时间：2026-08-30
 
 本文是项目临时工程说明的汇总入口。Services 架构问题、评审 Finding、修复状态和生产触发条件只在 [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) 维护；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
 
@@ -890,6 +890,7 @@ sequenceDiagram
 - refresh 只接受 refresh HttpOnly cookie，任何服务都不能接受 access token 作为 refresh credential；
 - Auth 通过完整的 cookie policy 统一签发 login、refresh、logout 和 OAuth state header：access/refresh 保持 HttpOnly，SameSite/Path/可选 Domain 在删除时原样复用；Secure 默认开启，仅 `dev`、`test`、`ci` profile 可显式设置 `JWT_COOKIE_SECURE=false`，其他 profile 在启动时 fail closed；
 - Auth、App、Admin、Notification 的 cookie-auth unsafe methods 统一经过 `CookieCsrfFilter`：header 与 `csrf_token` cookie 恒定时间比较；Bearer-only 与 safe methods 不进入浏览器 CSRF；refresh/logout 即使没有有效 access token 也必须通过 CSRF 校验；
+- HTTP authorization 默认 fail closed：App 只对列入 `AppSecurityConfig` 的只读 catalog 与 code-run/view 端点开放匿名访问，当前用户及未匹配路径要求认证，`/admin/**`、`/moderation/**`、`/monitoring/**` 另有角色门禁；Admin 只公开 health，`/admin/**` 同时要求 ADMIN/SUPER_ADMIN route 与 `@PreAuthorize` method guard，未知路径 deny-all；Notification 只公开 health，其余路径必须认证；
 - 保留 hash-only、条件旋转和 revoke-all；中期补 session family、parent/replacedBy 和 reuse detection；
 - DB 提交与 HTTP Set-Cookie 无法成为一个事务。失败语义要明确：cookie 写入失败时允许重新登录/恢复 session，而不是引入分布式事务。
 

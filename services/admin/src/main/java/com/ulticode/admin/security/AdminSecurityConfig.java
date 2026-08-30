@@ -39,7 +39,8 @@ public class AdminSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/api/v1/admin/health",
                         "/api/v1/admin/health/ready").permitAll()
-                .anyRequest().permitAll()
+                .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .anyRequest().denyAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new CookieCsrfFilter(), JwtAuthenticationFilter.class);

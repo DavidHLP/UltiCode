@@ -26,7 +26,7 @@ public class NotificationSecurityConfig {
                         .requestMatchers("/actuator/health", "/api/v1/health",
                                 "/api/v1/notification/health",
                                 "/api/v1/notification/health/ready").permitAll()
-                        .anyRequest().permitAll())
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(new CookieCsrfFilter(), JwtAuthenticationFilter.class);
         return http.build();

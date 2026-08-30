@@ -4,6 +4,7 @@ import com.ulticode.app.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.websecurity.csrf.CookieCsrfFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,8 +32,29 @@ public class AppSecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/api/v1/health",
-                        "/api/v1/app/health/ready").permitAll()
-                .anyRequest().permitAll()
+                        "/api/v1/app/health", "/api/v1/app/health/ready").permitAll()
+                .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/moderation/reports").authenticated()
+                .requestMatchers("/moderation/**").hasAnyRole("MODERATOR", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/monitoring/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET,
+                        "/achievements/my", "/achievements/points", "/achievements/user/me/**",
+                        "/contest/user/**", "/contest/*/participation", "/contest/*/virtual/session",
+                        "/contest/*/problems/*/submissions", "/forum/me/**",
+                        "/problem-lists/problems/*/user-lists", "/problems/*/note",
+                        "/problems/*/submissions/**", "/submissions/**", "/users/me/**",
+                        "/users/*/follow/status", "/vote/**", "/subscriptions/**",
+                        "/bookmarks/**", "/edge-operations/**").authenticated()
+                .requestMatchers(HttpMethod.GET,
+                        "/achievements", "/achievements/*", "/achievements/user/*",
+                        "/contest/**", "/forum/**", "/problem-lists/overview",
+                        "/problem-lists/*/overview", "/problems", "/problems/random",
+                        "/problems/slug/*", "/problems/*", "/problems/*/adjacent",
+                        "/search", "/solution-topics/**", "/api/problems/*/solutions",
+                        "/api/solutions/**", "/users", "/users/**").permitAll()
+                .requestMatchers(HttpMethod.POST,
+                        "/problems/*/submissions/run", "/api/views/solution/*").permitAll()
+                .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(new CookieCsrfFilter(), JwtAuthenticationFilter.class);

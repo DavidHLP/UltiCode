@@ -181,6 +181,21 @@ for stale_csrf in \
   services/auth/src/main/java/com/ulticode/auth/security/csrf/CsrfService.java; do
   [[ ! -e "$ROOT_DIR/$stale_csrf" ]] || fail "stale Auth-only CSRF implementation remains: $stale_csrf"
 done
+for route_config in \
+  services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
+  services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java \
+  services/app/app-web/src/test/java/com/ulticode/app/security/AppTestSecurityConfig.java; do
+  not_contains "$route_config" '.anyRequest().permitAll()'
+done
+contains services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
+  '.anyRequest().authenticated()'
+contains services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  '.requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")'
+contains services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
+  '.anyRequest().denyAll()'
+contains services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java \
+  '.anyRequest().authenticated()'
 replay_controller="$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules/event/replay/EventReplayController.java"
 replay_annotations="$(grep -c '@PreAuthorize' "$replay_controller" || true)"
 [[ "$replay_annotations" -eq 6 ]] || fail "EventReplayController must protect all six operations"

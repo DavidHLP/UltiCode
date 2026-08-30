@@ -10,18 +10,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Test-only security configuration for the backend-app service shell.
+ * Test-only health policy for the backend-app boot smoke.
  *
- * <p>In production, the backend-app module runs inside the legacy monolith context where
- * {@code com.ulticode.common.config.SecurityConfig} (JWT + method security + full authorization
- * rules) protects all routes. That config lives in backend-legacy, which is NOT on the
- * backend-app test classpath. Without this test config, Spring Boot's default auto-configured
- * security kicks in (form login), blocking the health endpoint that
- * {@link com.ulticode.BackendAppApplicationTest} asserts on.
- *
- * <p>This config mirrors the production public-surface: the app health endpoint is public
- * (it is registered in {@code PublicEndpointRegistry} in production). The test does not exercise
- * authenticated routes, so permitAll is sufficient for the context-load smoke test.
+ * <p>The production chain lives in {@link AppSecurityConfig}. Controller slices
+ * disable filters explicitly; this fallback exposes only the two health probes
+ * used by {@code BackendAppApplicationTest} and denies every other route.
  */
 @TestConfiguration
 public class AppTestSecurityConfig {
@@ -30,9 +23,13 @@ public class AppTestSecurityConfig {
     SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health", "/api/v1/app/health",
+                        "/api/v1/app/health/ready").permitAll()
+                .anyRequest().denyAll());
         return http.build();
     }
+
     @Bean
     @ConditionalOnMissingBean
     JwksPublicKeyProvider testJwksPublicKeyProvider() {

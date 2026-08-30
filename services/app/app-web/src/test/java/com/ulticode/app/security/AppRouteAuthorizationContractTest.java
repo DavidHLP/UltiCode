@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.ulticode.app.security.jwt.JwtAuthenticationFilter;
 import com.ulticode.app.security.jwt.ResourceServerJwtVerifier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -28,9 +30,10 @@ class AppRouteAuthorizationContractTest {
     @MockBean
     private ResourceServerJwtVerifier jwtVerifier;
 
-    @Test
-    void anonymousCanReadExplicitPublicCatalog() throws Exception {
-        mockMvc.perform(get("/problems/1"))
+    @ParameterizedTest
+    @ValueSource(strings = {"/problems/1", "/contest/1", "/forum/posts", "/users/user-1/profile"})
+    void anonymousCanReadExplicitPublicCatalog(String path) throws Exception {
+        mockMvc.perform(get(path))
                 .andExpect(status().isOk());
     }
 
@@ -43,6 +46,30 @@ class AppRouteAuthorizationContractTest {
     @Test
     void anonymousCannotReachUnmatchedAppRoute() throws Exception {
         mockMvc.perform(get("/private-probe"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void authenticatedUserCanReachDefaultProtectedAppRoute() throws Exception {
+        mockMvc.perform(get("/private-probe").with(user("user-1").roles("USER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void anonymousCannotReachCurrentUserRoute() throws Exception {
+        mockMvc.perform(get("/submissions"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void authenticatedUserCanCreateModerationReport() throws Exception {
+        mockMvc.perform(post("/moderation/reports").with(user("user-1").roles("USER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void anonymousCannotCreateModerationReport() throws Exception {
+        mockMvc.perform(post("/moderation/reports"))
                 .andExpect(status().isForbidden());
     }
 
@@ -60,12 +87,13 @@ class AppRouteAuthorizationContractTest {
 
     @RestController
     static class ProbeController {
-        @GetMapping({"/problems/1", "/private-probe", "/admin/probe"})
+        @GetMapping({"/problems/1", "/contest/1", "/forum/posts", "/users/user-1/profile",
+                "/submissions", "/private-probe", "/admin/probe"})
         String read() {
             return "ok";
         }
 
-        @PostMapping("/problems/1/submissions/run")
+        @PostMapping({"/problems/1/submissions/run", "/moderation/reports"})
         String run() {
             return "ok";
         }

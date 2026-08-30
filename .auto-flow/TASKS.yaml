@@ -689,7 +689,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Architecture/Seams"
       dependencies: [P1-DATA-001, P1-AUDIT-001]
-      status: TODO
+      status: DONE
       affected_modules: ["api modules", "app", "admin", "submission", "notification"]
       acceptance_criteria:
         - "Every external seam has a real production role and owner or is merged/moved/retired"
@@ -698,10 +698,11 @@ architecture_remediation_20260830:
         - "ArchUnit dependency rules"
         - "Provider/reference inventory diff"
         - "Contract compatibility"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-seam-001-green.result"
+      commit: efc12eb
       blocked_by: []
-      notes: "Do not create a giant replacement interface"
+      notes: "Dead App API seams removed; real transport, owner, health, rollback, and N-1 compatibility seams remain documented without a giant facade"
     - id: P2-MIG-001
       title: "Execute owner migration manifest in CD"
       priority: P2

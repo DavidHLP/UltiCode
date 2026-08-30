@@ -1,0 +1,25 @@
+task: P1-SEAM-001
+status: PASS_WITH_EXTERNAL_GATE
+implementation_commit: efc12eb
+checks:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw clean test -pl api/app-api,admin,app/app-web -am -B"
+    result: PASS
+    detail: "717 fresh Surefire reports, 4732 tests, 0 failures, 0 errors, 38 skipped"
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -P contract-compat -pl api/app-api -am verify -B"
+    result: PASS
+    detail: "App API contract compatibility gate passes after dead-contract removal"
+  - command: "Production-only API interface inventory and direct source reference scan"
+    result: PASS
+    detail: "No remaining public API interface is unreferenced by production code; retained SubmissionWritePort, JudgeEnqueuePort, ModerationContentActionPort, and QueueHealthProbePort have concrete production roles"
+  - command: "rtk scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Architecture/docs contracts, App API dead-contract absence checks, audit boundary, migration preflight, and prior contraction contract pass"
+  - command: "rtk bash -n changed scripts; rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "27715 nodes, 82672 edges, 871 communities; 107 SQL files lack tree_sitter_sql and remain covered by direct migration/script checks"
+summary: "Removed unused Follow ingestion/payload, Judge execution, and generic Achievement trigger App API types; made live-ranking pagination a required implementation method; documented and retained only real compatibility/health seams."
+external_gates:
+  - "No production migration, traffic switch, deployment, credential rotation, remote mutation, sudo, Docker-group, or account mutation was executed."
+  - "Production mixed-version client inventory and live provider/reference traffic remain external; the repository contract gate is green."

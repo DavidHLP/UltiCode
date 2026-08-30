@@ -114,3 +114,10 @@
 - Decision: Auth and App write local audit outboxes in their business transactions; their local dispatchers publish versioned `AuditRecorded` envelopes to `stream:integration`. Admin stages only accepted App/Auth events into the fixed `Admin-Audit` consumer inbox and inserts `audit_logs` idempotently by event id.
 - Consequences: Redis/XADD failure is retryable through owner-local claim fencing; duplicate, disorder, malformed, and handler-failure paths use the existing inbox dedup/lease/retry/DEAD machinery. Forward Auth/App migrations create local tables and revoke the historical Admin-table INSERT grants without editing applied migrations.
 - Affected tasks: P1-AUDIT-001, P1-SEAM-001, P2-MIG-001.
+
+## P1-SEAM-001: prune dead contracts without collapsing real boundaries
+
+- Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.
+- Decision: remove only the production-unreferenced types and make the live-ranking page method abstract; retain contracts with concrete callers/providers, explicit health/rollback roles, or the documented Submission N-1 compatibility window.
+- Consequences: the App API surface is smaller and no normal provider can silently compile while failing at runtime. Contract/API compatibility and affected clean reactor tests remain the guard; mixed-version external consumer inventory is still required before production rollout.
+- Affected tasks: P1-SEAM-001, P2-MIG-001, ARCH-CONTRACT-001, ARCH-DUBBO-001.

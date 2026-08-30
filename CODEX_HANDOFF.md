@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-SEAM-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-MIG-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 17 DONE, 25 TODO. `P1-SEAM-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, and `P1-AUDIT-001` are closed in the repository with their available owner checks green.
+Current count: 18 DONE, 24 TODO. `P2-MIG-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, and `P1-SEAM-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -153,7 +153,7 @@ Current count: 17 DONE, 25 TODO. `P1-SEAM-001` is the active implementation task
 - `P1-NOT-001`: DONE — Complete Notification owner persistence cutover
 - `P1-DATA-001`: DONE — Retire legacy data and compatibility contracts
 - `P1-AUDIT-001`: DONE — Remove cross-owner audit database writes
-- `P1-SEAM-001`: TODO — Remove shallow and migration-only seams
+- `P1-SEAM-001`: DONE — Remove shallow and migration-only seams
 - `P2-MIG-001`: TODO — Execute owner migration manifest in CD
 - `P2-BACKUP-001`: TODO — Back up and restore all data owners
 - `P2-REDIS-001`: TODO — Materialize and rotate Redis ACL safely
@@ -590,11 +590,12 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P1-SEAM-001`.
+- Current active task: `P2-MIG-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P1-AUDIT-001 as complete and points to `P1-SEAM-001`.
+- P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P1-SEAM-001 as complete and points to `P2-MIG-001`.
 
 ## 17. Handoff stop condition
 
@@ -656,3 +657,22 @@ write rejection. Targeted Maven tests pass 27/27, architecture/documentation gat
 refreshes to 27723 nodes / 82664 edges / 886 communities. The missing `tree_sitter_sql` parser warning remains recorded; direct
 migration contract checks cover the new SQL. No production migration, traffic switch, deployment, credential rotation, or remote
 mutation was executed. The next repository task is `P1-SEAM-001`.
+
+## 21. Completed checkpoint — P1-SEAM-001
+
+P1-SEAM-001 is repository-complete in `efc12eb` (`refactor(api): prune dead app seams`). A production-only contract inventory found
+four App API types with no live caller/provider path: Follow ingestion plus its payload, Judge execution, and the generic Achievement
+trigger. They were removed together with their stale cross-type Javadocs. The remaining contest Achievement port has a real App caller
+and adapter, while FollowEventPublisher remains the live follow-to-notification seam.
+
+`ContestLiveRankingReadPort.readLiveRankingPage` is now an abstract required method. Its App owner adapter, App Dubbo provider, Admin
+Dubbo consumer adapter, Admin service, and App WebSocket caller all have concrete paths; the old default implementation that silently
+compiled and then threw `UnsupportedOperationException` is gone. The existing Submission N-1 compatibility contract/provider,
+wire-compatible reconciliation zero fields, and shell health endpoints remain because each has a documented compatibility or runtime
+role; P1-SEAM did not replace them with a broad facade.
+
+The clean affected reactor passes 717 reports / 4732 tests / 0 failures / 0 errors / 38 skipped. The App API contract compatibility
+gate, disposable audit migration contract, architecture/documentation gates, shell syntax/diff checks, and Graphify pass. Graphify
+refreshes to 27715 nodes / 82672 edges / 871 communities; 107 SQL files lack `tree_sitter_sql`, so migration/script evidence uses
+direct source checks. No production migration, traffic switch, deployment, credential rotation, or remote mutation was executed.
+The next repository task is `P2-MIG-001`.

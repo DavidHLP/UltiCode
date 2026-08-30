@@ -98,3 +98,12 @@
 - Decision: expose bounded full/incremental grouped Notification facts through `NotificationReconciliationReadPort`, validate pages in the Notification owner, and consume them from Admin through a `backend-notification` Dubbo adapter. Remove App Notification SQL and runtime implementations while retaining App intent publishing and WebSocket push relay seams.
 - Consequences: Notification is the sole owner of notification rows, preferences, and delivery-ledger state; duplicate Redis events are absorbed by Inbox/idempotency, and Admin fails closed on unavailable, malformed, unordered, or oversized owner facts. Production observation and cutover remain external.
 - Affected tasks: P1-NOT-001, P1-DATA-001, P1-AUDIT-001.
+
+## P1-DATA-001: contract all normal Submission reads before physical contraction
+
+- Decision: route normal App user, contest, Problem-statistics, user-tag, generation, and Admin Submission reads through provider-owned Submission facts; keep local mapper/projection adapters only behind explicit `legacy-rollback`.
+- Decision: publish newly added user-stat and Problem-stat wire methods at Submission contract version `1.1.0`; keep the deprecated broad mutation contract/provider for its existing N-1 compatibility window.
+- Decision: make difficulty aggregation one-way: App supplies its local problem-id/difficulty facts to Submission, and Submission returns owner-only counts without a reverse App RPC/N+1 loop.
+- Decision: keep physical contraction separate from ordinary Flyway. The shared chain creates only durable `owner_contraction_proof`; the confirmation-, backup-, quiescence-, parity-, checksum-, and grant-gated contraction history performs the explicit legacy-table drop. Production migration and traffic authority remain external.
+- Consequences: repository checks prove normal ownership and a disposable upgrade-shaped contraction, while `consumer_inbox`, `app_command_receipt`, applied migrations, and rollback authority remain preserved.
+- Affected tasks: P1-SUB-004, P1-NOT-001, P1-DATA-001, P1-AUDIT-001.

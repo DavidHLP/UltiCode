@@ -651,7 +651,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Data/Contract"
       dependencies: [P1-SUB-004, P1-NOT-001]
-      status: TODO
+      status: DONE
       affected_modules: ["app", "submission", "notification", "api modules", "init-db/migrations"]
       acceptance_criteria:
         - "Readers writers reconciliation and admin operations use owners before contraction"
@@ -660,10 +660,11 @@ architecture_remediation_20260830:
         - "Fresh/upgrade migration tests"
         - "Contract compatibility gate"
         - "Legacy-reference negative scan"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-data-001-green.result"
+      commit: 0aa0569
       blocked_by: []
-      notes: "Destructive production migration is External Execution Required"
+      notes: "Repository owner-read cutover, compatibility gates, and contraction rehearsal are green; destructive production migration, backup, traffic drain, and live owner registration remain External Execution Required"
     - id: P1-AUDIT-001
       title: "Remove cross-owner audit database writes"
       priority: P1

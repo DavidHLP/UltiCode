@@ -837,7 +837,8 @@ P1-SUB-004 将 Submission 孤儿对账收敛到 owner facts：`OwnerReconciler.r
 Admin 在同一事务/数据库连接内使用 `GET_LOCK`/`RELEASE_LOCK` 防止多副本重叠。锁明确返回 busy 时只
 返回不落库的 `SKIPPED`；锁查询异常、owner facts 响应为 null、乱序/重复/负数或越界时失败闭环，持久化 `FAILED`
 记录、模式与可行动错误，并递增失败指标。App 的 reconciliation mapper 不再读取 `submissions`；
-`ReconciliationOrphanCounts.submissions` 暂作为 wire-compatible 零占位，待后续合同收缩。
+`ReconciliationOrphanCounts.submissions` 暂作为 wire-compatible 零占位；移除它需要单独的 app-api 版本窗口，不与本次
+Submission/Notification 数据收缩混在同一次滚动发布中。
 
 #### Submission read owner cutover 与 schema contraction
 

@@ -2,7 +2,7 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P1-DATA-001
+active_task: P1-AUDIT-001
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -14,6 +14,7 @@ outputs:
   - "P1-SUB-003 resumable backfill verification committed as 73d9f78; fake-MySQL checkpoint/parity/failure contract passes and disposable runtime is Docker-blocked"
   - "P1-SUB-004 Submission reconciliation owner-facts cutover committed as 8a521d7; focused/affected suites and architecture/docs gates pass, Docker-backed integration is blocked"
   - "P1-NOT-001 Notification owner persistence cutover committed as a292367 with verification follow-up 0ff5a53; focused 50-test and Notification integration 11-test gates pass"
+  - "P1-DATA-001 Submission read owner cutover and guarded legacy contraction committed as 0aa0569; focused 184-test suite, API compatibility, architecture/docs, and disposable contraction gates pass"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -26,7 +27,8 @@ evidence:
   - "P1-SUB-003 evidence: p1-sub-003-green.result; commit 73d9f78; target backfill rehearsal remains Docker-blocked"
   - "P1-SUB-004 evidence: p1-sub-004-green.result; commit 8a521d7; owner integration remains BLOCKED_EXTERNAL on Docker daemon access"
   - "P1-NOT-001 evidence: p1-not-001-green.result; implementation a292367 and verification follow-up 0ff5a53; Docker-backed owner checks pass in the authorized context"
-next_goal: "Retire legacy data and compatibility contracts"
-next_skill: migration
+  - "P1-DATA-001 evidence: p1-data-001-green.result; repository owner-read cutover and contraction rehearsal pass; production migration/traffic/backup authority remains external"
+next_goal: "Remove cross-owner audit database writes"
+next_skill: agent-architecture-audit
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers: []

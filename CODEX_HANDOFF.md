@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-DATA-001`.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-AUDIT-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 15 DONE, 27 TODO. `P1-DATA-001` is the active implementation task; `P1-SUB-004` and `P1-NOT-001` are closed in the repository with their available owner integration checks green.
+Current count: 16 DONE, 26 TODO. `P1-AUDIT-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, and `P1-DATA-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -151,7 +151,7 @@ Current count: 15 DONE, 27 TODO. `P1-DATA-001` is the active implementation task
 - `P1-SUB-003`: DONE — Build resumable Submission backfill verification
 - `P1-SUB-004`: DONE — Move Submission reconciliation to owner facts
 - `P1-NOT-001`: DONE — Complete Notification owner persistence cutover
-- `P1-DATA-001`: TODO — Retire legacy data and compatibility contracts
+- `P1-DATA-001`: DONE — Retire legacy data and compatibility contracts
 - `P1-AUDIT-001`: TODO — Remove cross-owner audit database writes
 - `P1-SEAM-001`: TODO — Remove shallow and migration-only seams
 - `P2-MIG-001`: TODO — Execute owner migration manifest in CD
@@ -440,7 +440,7 @@ The committed implementation moves Submission orphan reconciliation away from Ap
   - persist mode and error details in run JSON;
   - increment reconciliation run/failure/skip metrics;
   - return SKIPPED without persisting when another replica holds the lease.
-- App `ReconciliationOrphanCounts.submissions` remains a wire-compatible zero placeholder until contract contraction in P1-DATA-001.
+- App `ReconciliationOrphanCounts.submissions` remains a wire-compatible zero placeholder; removal needs a separately versioned app-api compatibility window.
 - App reconciliation mapper should contain no SQL against `submissions`.
 - Architecture gate now rejects App reconciliation `submissions` SQL and requires the new owner adapter/lock/incremental method.
 
@@ -547,7 +547,7 @@ Insert-only missing rows. Same-key field conflict fails closed and writes an act
 
 ### Reconciliation owner boundary
 
-Submission orphan facts must come from `backend-submission`, not App SQL. App’s old DTO field may remain a zero placeholder until P1-DATA-001 contracts it away safely.
+Submission orphan facts must come from `backend-submission`, not App SQL. App’s old DTO field remains a wire-compatible zero placeholder; removing it requires a separately versioned app-api window.
 
 ### No speculative infrastructure
 
@@ -590,9 +590,10 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P1-SUB-004 implementation checkpoint: `8a521d7`; P1-NOT-001 implementation is `a292367` with verification follow-up `0ff5a53`.
-- Current active task: `P1-DATA-001`.
+- Current active task: `P1-AUDIT-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P1-NOT-001 as complete and points to the next task.
+- P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P1-DATA-001 as complete and points to `P1-AUDIT-001`.
 
 ## 17. Handoff stop condition
 
@@ -620,4 +621,17 @@ The Notification persistence cutover is complete in the repository. `a292367` im
 - Architecture contract, documentation contract, and `git diff --check` pass. The first owner IT caught `Long.class` versus primitive `long` constructor mapping; both Submission and Notification mappers use `long.class`, and the corrected integration rerun passes.
 - Production traffic observation, migration, and cutover remain external; no production, remote, credential, sudo, or Docker-group mutation was performed.
 
-The next repository task is `P1-DATA-001` — retire legacy data and compatibility contracts only after the completed owner cutovers remain compatibility-safe.
+At that checkpoint the next repository task was `P1-DATA-001`; it is now complete in section 19.
+
+## 19. Completed checkpoint — P1-DATA-001
+
+P1-DATA-001 is repository-complete in `0aa0569` (`refactor(submission): complete owner read contraction`). Normal App Submission user/contest/admin/statistics/generation reads now use `backend-submission` bounded facts; local Submission mappers/projections remain only behind explicit `legacy-rollback`. Contest and Problem reads no longer issue App SQL joins against `submissions`, and the API additions use the `1.1.0` Submission read contract where required.
+
+- Added `SubmissionAdjudicationReadPort`, owner status/generation facts, batch total/accepted problem counts, accepted-problem ids, and remote/local conditional adapters.
+- Added the separate owner contraction proof table and `flyway-contraction.conf`; the runbook records parity/checksum, backup reference, writer-quiescence, and App privilege proof before revoking exact table grants and invoking the destructive history. Schema/global/column privilege residue fails closed.
+- `rtk mise exec java@zulu-17.68.203.0 -- ./mvnw ... test -B`: 29 fresh reports, 184 tests, 0 failures, 0 errors, 0 skipped.
+- Normal and explicit legacy-rollback App context tests pass; Submission API contract compatibility passes; architecture/docs/negative-scan, shell syntax, `git diff --check`, and the disposable MySQL contraction contract pass.
+- Graphify refreshed successfully: 27651 nodes, 82362 edges, 867 communities. The tool still reports 103 SQL files without `tree_sitter_sql`; direct source checks cover the excluded SQL/scripts.
+- The standard quick gate reaches the existing Judge Redis integration but remains `BLOCKED_EXTERNAL` because the host stack's ACL credentials for `localhost:26379` do not match; no production migration, traffic switch, deployment, credential rotation, or remote mutation was performed.
+
+The next repository task is `P1-AUDIT-001` — remove cross-owner audit database writes. Physical legacy-table contraction remains an explicitly authorized external operation.

@@ -9,6 +9,7 @@ import io.jsonwebtoken.Claims;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import org.apache.dubbo.rpc.RpcContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ public class InternalDelegationAssertionVerifier {
     private final DelegationAssertionReplayGuard replayGuard;
     private final Clock clock;
 
+    @Autowired
     public InternalDelegationAssertionVerifier(
             @Value("${security.internal-delegation.public-key:}") String publicKeyBase64,
             @Value("${security.internal-delegation.key-id:}") String keyId,

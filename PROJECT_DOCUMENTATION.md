@@ -823,6 +823,12 @@ Submission mutation 窄 Interface 与 owner 内部的 deprecated 1.0.0 compatibi
 不再提供 Submission mutation/rejudge provider，正常 Submission reads 使用 owner facts，`APP_SUBMISSION_ROUTING_MODE`
 仅作为兼容配置保留，显式 `legacy-rollback` 才允许临时本地 read projection。
 
+P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
+trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
+consumer 和 WebSocket consumer 均实现并调用完整契约。保留的 `SubmissionWritePort`/provider 是明确标注的 N-1
+兼容窗口，`ReconciliationOrphanCounts` 中的 zero fields 是已记录的 wire-compatibility 窗口；它们不是新的正常业务
+入口。Shell health controller 仍承担 `/api/v1/{app,admin}/health` 兼容健康检查，不以 placeholder 代替业务能力。
+
 Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
 mapping。`JudgeTestCaseDetailCodec` 仍是独立的 execution-side serializer，不与持久化 codec 合并。

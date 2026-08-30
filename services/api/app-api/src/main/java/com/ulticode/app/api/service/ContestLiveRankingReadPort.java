@@ -37,18 +37,11 @@ public interface ContestLiveRankingReadPort {
      * participant count as {@code total} and assigns ranks as
      * {@code offset + index + 1} so pagination is stable and complete.
      *
-     * <p>The default throws so existing implementors keep compiling; owner,
-     * Dubbo provider, and admin consumer adapters override with the real
-     * paginated read.
-     *
      * @param contestId the contest id (must not be {@code null} or blank)
      * @param page      1-based page number
      * @param limit     page size (clamped to the platform hard cap)
      * @return paginated live ranking entries sorted by score (desc), then
      *         penalty (asc); never {@code null}; possibly empty
      */
-    default PageResult<ContestRankingEntryDTO> readLiveRankingPage(String contestId, int page, int limit) {
-        throw new UnsupportedOperationException(
-                "readLiveRankingPage is not implemented by this ContestLiveRankingReadPort");
-    }
+    PageResult<ContestRankingEntryDTO> readLiveRankingPage(String contestId, int page, int limit);
 }

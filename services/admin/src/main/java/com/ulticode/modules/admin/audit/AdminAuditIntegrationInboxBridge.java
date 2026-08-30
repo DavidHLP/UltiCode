@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
@@ -62,7 +63,7 @@ public class AdminAuditIntegrationInboxBridge {
     private final UuidGenerator uuidGenerator;
     private final InboxConsumer inboxConsumer;
     private final String redisConsumerName = GROUP + ":" + UUID.randomUUID();
-    private boolean groupReady;
+    private final AtomicBoolean groupReady = new AtomicBoolean();
 
     @Autowired
     public AdminAuditIntegrationInboxBridge(
@@ -81,7 +82,9 @@ public class AdminAuditIntegrationInboxBridge {
         this.objectMapper = objectMapper;
         this.uuidGenerator = uuidGenerator;
         this.inboxConsumer = new InboxConsumer(inboxMapper, GROUP, transactionTemplate);
-        this.inboxConsumer.registerHandlerWithEventId(EVENT_TYPE, auditEventConsumer::consume);
+        this.inboxConsumer.registerHandlerWithEventId(EVENT_TYPE,
+                (eventId, payload) -> auditEventConsumer.consume(eventId,
+                        objectMapper.convertValue(payload, AdminAuditRecordedPayload.class)));
         this.inboxConsumer.registerHandler(POISON_EVENT_TYPE,
                 AdminAuditIntegrationInboxBridge::rejectPoison);
     }
@@ -234,17 +237,17 @@ public class AdminAuditIntegrationInboxBridge {
     }
 
     private boolean ensureGroup() {
-        if (groupReady) {
+        if (groupReady.get()) {
             return true;
         }
         try {
             redisTemplate.opsForStream().createGroup(
                     STREAM_KEY, ReadOffset.from("0-0"), GROUP);
-            groupReady = true;
+            groupReady.set(true);
             return true;
         } catch (RuntimeException e) {
             if (groupExists()) {
-                groupReady = true;
+                groupReady.set(true);
                 return true;
             }
             log.debug("Admin audit stream group unavailable: {}", e.getMessage());

@@ -21,28 +21,28 @@ public class AdminAuditEventConsumer {
 
     private final AuditLogMapper auditLogMapper;
 
-    public void consume(String eventId, Map<String, Object> payload) {
+    public void consume(String eventId, AdminAuditRecordedPayload payload) {
         String safeEventId = requiredText(eventId, "eventId", 40);
         if (payload == null) {
             throw new IllegalArgumentException("Audit event payload must be an object");
         }
-        String auditId = requiredText(payload.get("auditId"), "auditId", 40);
+        String auditId = requiredText(payload.auditId(), "auditId", 40);
         if (!safeEventId.equals(auditId)) {
             throw new IllegalArgumentException("Audit event id does not match payload auditId");
         }
 
         AuditLog auditLog = new AuditLog();
         auditLog.setId(safeEventId);
-        auditLog.setPerformerId(requiredText(payload.get("performerId"), "performerId", 40));
-        auditLog.setUserId(optionalText(payload.get("userId"), "userId", 40));
-        auditLog.setAction(requiredText(payload.get("action"), "action", 64));
-        auditLog.setEntityType(requiredText(payload.get("entityType"), "entityType", 64));
-        auditLog.setEntityId(requiredText(payload.get("entityId"), "entityId", 64));
-        auditLog.setOldValues(optionalMap(payload.get("oldValues"), "oldValues"));
-        auditLog.setNewValues(optionalMap(payload.get("newValues"), "newValues"));
-        auditLog.setIpAddress(optionalText(payload.get("ipAddress"), "ipAddress", 45, "unknown"));
-        auditLog.setUserAgent(optionalText(payload.get("userAgent"), "userAgent", 255));
-        auditLog.setCreatedAt(parseCreatedAt(payload.get("createdAt")));
+        auditLog.setPerformerId(requiredText(payload.performerId(), "performerId", 40));
+        auditLog.setUserId(optionalText(payload.userId(), "userId", 40));
+        auditLog.setAction(requiredText(payload.action(), "action", 64));
+        auditLog.setEntityType(requiredText(payload.entityType(), "entityType", 64));
+        auditLog.setEntityId(requiredText(payload.entityId(), "entityId", 64));
+        auditLog.setOldValues(optionalMap(payload.oldValues(), "oldValues"));
+        auditLog.setNewValues(optionalMap(payload.newValues(), "newValues"));
+        auditLog.setIpAddress(optionalText(payload.ipAddress(), "ipAddress", 45, "unknown"));
+        auditLog.setUserAgent(optionalText(payload.userAgent(), "userAgent", 255));
+        auditLog.setCreatedAt(parseCreatedAt(payload.createdAt()));
 
         auditLogMapper.insertIfAbsent(auditLog);
     }

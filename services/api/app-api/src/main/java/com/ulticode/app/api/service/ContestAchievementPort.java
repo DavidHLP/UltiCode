@@ -4,9 +4,9 @@ package com.ulticode.app.api.service;
  * Contest-specific achievement trigger port consumed by backend-app contest
  * service after the family relocated from backend-legacy.
  *
- * <p>The generic {@link AchievementTriggerPort} covers submission-side triggers;
- * this port covers the contest-participation milestone trigger that contest
- * code fires when a user registers.
+ * <p>This port covers the contest-participation milestone trigger that contest
+ * code fires when a user registers. Submission verdict triggers stay inside
+ * the achievement consumer and do not need a second public App contract.
  *
  * <p>P7-RELOCATE-CONTEST-001: replaces direct
  * {@code com.ulticode.modules.achievement.service.AchievementTriggerService}

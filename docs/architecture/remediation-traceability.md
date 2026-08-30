@@ -50,7 +50,7 @@ No staging or production application is assumed by repository completion.
 | Notification ownership is incomplete in reconciliation and compatibility persistence/read paths | `P1-NOT-001` | Notification Owner, App intents, Notification facts, Admin reconciliation | single-writer, read/delivery/retry state and zero-diff tests | pending | TODO |
 | Nightly reconciliation scans `app.notifications` | `P1-NOT-001` | Notification reconciliation provider and Admin aggregator | no App notification SQL; owner unavailable/partial behavior | pending | TODO |
 | Legacy tables, fields and compatibility contracts must be retired only after expand/migrate/verify/cutover proof | `P1-DATA-001` | new forward migrations, contracts, App/Owner code | fresh/upgrade/compatibility/negative reference gates | pending | TODO |
-| Auth/App write `admin.audit_outbox` across Owner schemas | `P1-AUDIT-001` | owner-local outboxes, integration stream, Admin inbox, grant migration | duplicate/disorder/retry/DLQ tests and no cross-schema write/grant gate | pending | TODO |
+| Auth/App write `admin.audit_outbox` across Owner schemas | `P1-AUDIT-001` | owner-local outboxes, integration stream, Admin inbox, grant migration | duplicate/disorder/retry/DLQ tests and no cross-schema write/grant gate | f223b88 | DONE |
 | Pass-through, mock-only, unused and migration-only seams remain | `P1-SEAM-001`, `ARCH-DUBBO-001` | API modules, providers, references and adapters | caller/provider inventory and architecture rules | pending | TODO |
 | `app-api` owns 78/106 interfaces and mixes multiple Owner/internal/migration contracts | `ARCH-CONTRACT-001`, `ARCH-DUBBO-001` | API modules/POMs/contract tests | no cycles; owner/consumer/transport/lifecycle classification; japicmp | pending | TODO |
 

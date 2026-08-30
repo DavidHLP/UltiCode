@@ -34,18 +34,10 @@ class AdminAuditEventConsumerTest {
     void appliesValidOwnerAuditEventWithEventIdAsPrimaryKey() {
         when(auditLogMapper.insertIfAbsent(any(AuditLog.class))).thenReturn(1);
 
-        consumer.consume("audit-event-1", Map.ofEntries(
-                Map.entry("auditId", "audit-event-1"),
-                Map.entry("performerId", "admin-1"),
-                Map.entry("userId", "user-1"),
-                Map.entry("action", "UPDATE_CONTEST"),
-                Map.entry("entityType", "CONTEST"),
-                Map.entry("entityId", "contest-1"),
-                Map.entry("oldValues", Map.of("title", "old")),
-                Map.entry("newValues", Map.of("title", "new")),
-                Map.entry("ipAddress", "127.0.0.1"),
-                Map.entry("userAgent", "test-agent"),
-                Map.entry("createdAt", "2026-08-31T10:15:30")));
+        consumer.consume("audit-event-1", new AdminAuditRecordedPayload(
+                "audit-event-1", "admin-1", "user-1", "UPDATE_CONTEST", "CONTEST", "contest-1",
+                Map.of("title", "old"), Map.of("title", "new"), "127.0.0.1", "test-agent",
+                "2026-08-31T10:15:30"));
 
         ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
         verify(auditLogMapper).insertIfAbsent(captor.capture());
@@ -61,26 +53,18 @@ class AdminAuditEventConsumerTest {
     void acceptsDuplicateInsertAsAnIdempotentReplay() {
         when(auditLogMapper.insertIfAbsent(any(AuditLog.class))).thenReturn(0);
 
-        consumer.consume("audit-event-2", Map.of(
-                "auditId", "audit-event-2",
-                "performerId", "admin-1",
-                "action", "READ_CONTEST",
-                "entityType", "CONTEST",
-                "entityId", "contest-1",
-                "createdAt", "2026-08-31T10:15:30"));
+        consumer.consume("audit-event-2", new AdminAuditRecordedPayload(
+                "audit-event-2", "admin-1", null, "READ_CONTEST", "CONTEST", "contest-1",
+                null, null, null, null, "2026-08-31T10:15:30"));
 
         verify(auditLogMapper).insertIfAbsent(any(AuditLog.class));
     }
 
     @Test
     void rejectsMismatchedEventIdBeforeWriting() {
-        assertThatThrownBy(() -> consumer.consume("audit-event-3", Map.of(
-                "auditId", "different-id",
-                "performerId", "admin-1",
-                "action", "READ_CONTEST",
-                "entityType", "CONTEST",
-                "entityId", "contest-1",
-                "createdAt", "2026-08-31T10:15:30")))
+        assertThatThrownBy(() -> consumer.consume("audit-event-3", new AdminAuditRecordedPayload(
+                "different-id", "admin-1", null, "READ_CONTEST", "CONTEST", "contest-1",
+                null, null, null, null, "2026-08-31T10:15:30")))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(auditLogMapper, never()).insertIfAbsent(any(AuditLog.class));

@@ -7,6 +7,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MYSQL_CONTAINER="ulticode-audit-boundary-test-mysql-$$"
 ROOT_PASSWORD="$(openssl rand -hex 16)"
+AUTH_PASSWORD="$(openssl rand -hex 16)"
+APP_PASSWORD="$(openssl rand -hex 16)"
 
 cleanup() {
   docker rm -f "$MYSQL_CONTAINER" >/dev/null 2>&1 || true
@@ -46,10 +48,15 @@ CREATE DATABASE admin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE TABLE admin.audit_outbox (
   id VARCHAR(40) NOT NULL PRIMARY KEY,
-  performer_id VARCHAR(40) NOT NULL
+  performer_id VARCHAR(40) NOT NULL,
+  action VARCHAR(60) NOT NULL
 );
-CREATE USER 'auth_rw'@'%' IDENTIFIED BY 'auth-boundary-test';
-CREATE USER 'app_rw'@'%' IDENTIFIED BY 'app-boundary-test';
+CREATE TABLE admin.audit_logs (
+  id VARCHAR(40) NOT NULL PRIMARY KEY,
+  action VARCHAR(60) NOT NULL
+);
+CREATE USER 'auth_rw'@'%' IDENTIFIED BY '$AUTH_PASSWORD';
+CREATE USER 'app_rw'@'%' IDENTIFIED BY '$APP_PASSWORD';
 GRANT USAGE ON *.* TO 'auth_rw'@'%';
 GRANT USAGE ON *.* TO 'app_rw'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON auth.* TO 'auth_rw'@'%';
@@ -61,6 +68,8 @@ FLUSH PRIVILEGES;
 
 docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
   mysql -uroot admin < "$ROOT_DIR/init-db/migrations/admin/V20260831100200__Create_Admin_Audit_Inbox.sql"
+docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
+  mysql -uroot admin < "$ROOT_DIR/init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql"
 docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
   mysql -uroot auth < "$ROOT_DIR/init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql"
 docker exec -i -e MYSQL_PWD="$ROOT_PASSWORD" "$MYSQL_CONTAINER" \
@@ -74,18 +83,18 @@ for account in auth_rw app_rw; do
   }
 done
 
-mysql_owner auth_rw auth-boundary-test auth \
+mysql_owner auth_rw "$AUTH_PASSWORD" auth \
   "INSERT INTO audit_outbox (id, performer_id, action, entity_type, entity_id) VALUES ('auth-audit-1', 'u-1', 'TEST', 'USER', 'u-1')"
-mysql_owner app_rw app-boundary-test app \
+mysql_owner app_rw "$APP_PASSWORD" app \
   "INSERT INTO audit_outbox (id, performer_id, action, entity_type, entity_id) VALUES ('app-audit-1', 'u-1', 'TEST', 'USER', 'u-1')"
 
-if mysql_owner auth_rw auth-boundary-test auth \
+if mysql_owner auth_rw "$AUTH_PASSWORD" auth \
     "INSERT INTO admin.audit_outbox (id, performer_id) VALUES ('cross-auth', 'u-1')" \
     >/dev/null 2>&1; then
   echo 'auth_rw can still write admin.audit_outbox' >&2
   exit 1
 fi
-if mysql_owner app_rw app-boundary-test app \
+if mysql_owner app_rw "$APP_PASSWORD" app \
     "INSERT INTO admin.audit_outbox (id, performer_id) VALUES ('cross-app', 'u-1')" \
     >/dev/null 2>&1; then
   echo 'app_rw can still write admin.audit_outbox' >&2

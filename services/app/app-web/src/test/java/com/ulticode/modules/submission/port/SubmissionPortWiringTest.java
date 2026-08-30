@@ -1,17 +1,23 @@
 package com.ulticode.modules.submission.port;
 
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
+import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.port.adapter.RemoteSubmissionWritePort;
+import com.ulticode.modules.submission.service.CodeExecutionService;
+import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
-import com.ulticode.app.api.service.VerdictResolvePort;
-import com.ulticode.modules.submission.config.FeatureFlagsProperties;
-import com.ulticode.modules.submission.service.CodeExecutionService;
-import com.ulticode.modules.submission.service.VerdictResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +36,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("Submission port wiring: app-api interface ↔ backend-app impl")
 class SubmissionPortWiringTest {
 
+    @Test
+    @DisplayName("App exposes only the remote Submission-owner intake adapter")
+    void appHasNoLocalSubmissionMutationImplementation() {
+        var classes = new ClassFileImporter()
+                .withImportOption(new ImportOption.DoNotIncludeTests())
+                .importPackages("com.ulticode.modules.submission");
+
+        List<String> intakeImplementations = classes.stream()
+                .filter(javaClass -> !javaClass.isInterface())
+                .filter(javaClass -> javaClass.isAssignableTo(SubmissionIntakePort.class))
+                .map(javaClass -> javaClass.getName())
+                .sorted()
+                .toList();
+        List<String> localMutationImplementations = classes.stream()
+                .filter(javaClass -> !javaClass.isInterface())
+                .filter(javaClass -> javaClass.isAssignableTo(SubmissionVerdictWritePort.class)
+                        || javaClass.isAssignableTo(SubmissionFencePort.class))
+                .map(javaClass -> javaClass.getName())
+                .sorted()
+                .toList();
+
+        assertThat(intakeImplementations).containsExactly(RemoteSubmissionWritePort.class.getName());
+        assertThat(localMutationImplementations).isEmpty();
+    }
     @Test
     @DisplayName("DefaultSubmissionFencePort implements app-api SubmissionFencePort")
     void fencePortWiring() {

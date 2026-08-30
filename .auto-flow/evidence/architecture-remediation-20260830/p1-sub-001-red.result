@@ -1,0 +1,8 @@
+task: P1-SUB-001
+status: RED
+check:
+  command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl app/app-web -am -Dtest=SubmissionPortWiringTest -Dsurefire.failIfNoSpecifiedTests=false test -B"
+  exit: 1
+  tests: "7 run, 1 failure, 0 errors, 0 skipped"
+  failure: "App contains three SubmissionIntakePort implementations: DefaultSubmissionWritePort, SubmissionWriteRoutingPort, and RemoteSubmissionWritePort; expected only the remote Submission-owner adapter."
+  interpretation: "The App module still owns a local writer and a local/remote mutation router, so single-writer ownership is configuration-dependent instead of structural."

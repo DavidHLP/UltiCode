@@ -556,7 +556,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Submission/Writer"
       dependencies: [P0-SEC-003, P0-SEC-005]
-      status: TODO
+      status: IN_PROGRESS
       affected_modules: ["app", "submission", "submission-api", "judge-runtime"]
       acceptance_criteria:
         - "All production mutations write only Submission owner with idempotent intake/outbox/fence semantics"
@@ -565,7 +565,8 @@ architecture_remediation_20260830:
         - "Submission contract and owner tests"
         - "App architecture tests"
         - "Duplicate-writer negative gate"
-      evidence: []
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-001-red.result"
       commit: null
       blocked_by: []
       notes: "Repository cutover authorized; production traffic cutover remains external"

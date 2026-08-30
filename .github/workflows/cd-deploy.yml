@@ -79,11 +79,19 @@ jobs:
           registry: ghcr.io
           github_token: ${{ secrets.GITHUB_TOKEN }}
           actor: ${{ github.actor }}
-          db_host: ${{ secrets.DB_HOST }}
-          db_port: ${{ secrets.DB_PORT }}
-          db_name: ${{ secrets.DB_NAME }}
-          db_user: ${{ secrets.DB_USER }}
-          db_password: ${{ secrets.DB_PASSWORD }}
+          # Owner migration credentials are separate from every runtime account.
+          migration_db_host: ${{ secrets.MIGRATION_DB_HOST }}
+          migration_db_port: ${{ secrets.MIGRATION_DB_PORT }}
+          migration_db_name: ${{ secrets.MIGRATION_DB_NAME }}
+          migration_db_user: ${{ secrets.MIGRATION_DB_USER }}
+          migration_db_password: ${{ secrets.MIGRATION_DB_PASSWORD }}
+          submission_migration_db_user: ${{ secrets.SUBMISSION_MIGRATION_DB_USER }}
+          submission_migration_db_password: ${{ secrets.SUBMISSION_MIGRATION_DB_PASSWORD }}
+          auth_db_user: ${{ secrets.AUTH_DB_USER }}
+          admin_db_user: ${{ secrets.ADMIN_DB_USER }}
+          app_db_user: ${{ secrets.APP_DB_USER }}
+          notification_db_user: ${{ secrets.NOTIFICATION_DB_USER }}
+          submission_db_user: ${{ secrets.SUBMISSION_DB_USER }}
 
       - name: Health check all services
         uses: ./.github/actions/host-health

@@ -249,6 +249,9 @@ jobs:
             -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
             -user=root -password=root -locations="filesystem:/flyway/sql/*.sql" validate
 
+      - name: Validate owner migration manifest contract
+        run: bash scripts/test/owner-migration-manifest-contract.sh
+
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.
   # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh

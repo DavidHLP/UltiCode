@@ -360,6 +360,22 @@ contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql 'RE
 contains init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql 'MODIFY COLUMN `action` VARCHAR(64) NOT NULL'
 bash "$ROOT_DIR/scripts/test/audit-owner-boundary-contract.sh"
 
+# P2-MIG-001: CD must execute the same ordered owner-manifest seam that local
+# migration documentation describes; rollback must keep the schema untouched.
+contains scripts/runbooks/owner-migration-manifest.sh \
+  'OWNER_MIGRATION_ORDER=(auth admin app notification submission)'
+contains scripts/runbooks/owner-migration-manifest.sh 'flock -n'
+contains scripts/runbooks/owner-migration-manifest.sh 'no repair is attempted'
+contains scripts/runbooks/owner-migration-manifest.sh 'skip_migrations=true preserves schema'
+contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
+contains .github/actions/host-deploy/action.yml 'MIGRATION_DB_PASSWORD'
+contains .github/actions/host-deploy/action.yml "inputs.skip_migrations != 'true'"
+contains .github/workflows/cd-deploy.yml 'migration_db_user:'
+contains .github/workflows/cd-deploy.yml 'submission_migration_db_password:'
+contains .github/workflows/cd-rollback.yml "skip_migrations: 'true'"
+contains .github/workflows/_backend.yml 'owner-migration-manifest-contract.sh'
+bash "$ROOT_DIR/scripts/test/owner-migration-manifest-contract.sh"
+
 # P1-SEAM-001: public App contracts must not retain dead ingestion/execution
 # types or a default method that only throws at runtime.
 for retired_app_contract in \

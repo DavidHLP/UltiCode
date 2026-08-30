@@ -75,6 +75,15 @@ database. Run it before owner-specific migration; owner Flyway configs set
 `flyway.createSchemas=false`, and the owner preflight intentionally fails closed
 when the target schema is absent.
 
+CD uses `scripts/runbooks/owner-migration-manifest.sh migrate` on the deployment
+host. It validates the fixed `auth → admin → app → notification → submission`
+order, owner Flyway config/schema alignment, runtime-account separation, and
+manifest checksums; a host `flock` serializes runs. Shared and owner Flyway
+failures get one bounded retry without automatic `repair`, and each run writes a
+machine JSON report plus a human log. Rollback passes `skip_migrations=true` so
+the prior schema remains compatible; production migration is not executed by
+repository verification.
+
 `scripts/dev/up.sh` first runs the shared schema bootstrap, then applies the
 deterministic Owner manifest (`auth`, `admin`, `app`, `notification`,
 `submission`) through the corresponding `flyway-*.conf` files. It keeps the

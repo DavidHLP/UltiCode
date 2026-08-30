@@ -1,7 +1,7 @@
 name: 'Host deploy (SSH + compose)'
 description: >-
   Shared deploy mechanics for cd-deploy/cd-rollback: install the SSH key,
-  optionally run Flyway migrations, provision judge-sandbox prerequisites,
+  optionally run the ordered owner migration manifest, provision judge-sandbox prerequisites,
   then pull and `docker compose up` with the given image tag on the host,
   optionally restricted to a subset of services with per-service tags.
 inputs:
@@ -53,21 +53,62 @@ inputs:
     required: true
   actor:
     required: true
-  db_host:
+  migration_db_host:
+    description: 'Privileged migration datasource host; required when migrations run'
     required: false
     default: ''
-  db_port:
+  migration_db_port:
+    description: 'Privileged migration datasource port; required when migrations run'
     required: false
     default: ''
-  db_name:
+  migration_db_name:
+    description: 'Shared migration database name; required when migrations run'
     required: false
     default: ''
-  db_user:
+  migration_db_user:
+    description: 'Privileged migration account; never use an owner runtime account'
     required: false
     default: ''
-  db_password:
+  migration_db_password:
+    description: 'Privileged migration account password'
     required: false
     default: ''
+  submission_migration_db_user:
+    description: 'Separate privileged Submission migration account'
+    required: false
+    default: ''
+  submission_migration_db_password:
+    description: 'Separate privileged Submission migration account password'
+    required: false
+    default: ''
+  auth_db_user:
+    description: 'Auth runtime account name used by migration preflight'
+    required: false
+    default: ''
+  admin_db_user:
+    description: 'Admin runtime account name used by migration preflight'
+    required: false
+    default: ''
+  app_db_user:
+    description: 'App runtime account name used by migration preflight'
+    required: false
+    default: ''
+  notification_db_user:
+    description: 'Notification runtime account name used by migration preflight'
+    required: false
+    default: ''
+  submission_db_user:
+    description: 'Submission runtime account name used by migration preflight'
+    required: false
+    default: ''
+  migration_report_dir:
+    description: 'Remote directory for machine and human migration reports'
+    required: false
+    default: '.local/migration-audit'
+  migration_lock_file:
+    description: 'Remote lock file used to serialize owner migration runs'
+    required: false
+    default: '.local/migration-audit/owner-migrations.lock'
 runs:
   using: 'composite'
   steps:
@@ -91,18 +132,55 @@ runs:
         ssh-keygen -F "$host_lookup" -f ~/.ssh/known_hosts >/dev/null \
           || { echo "::error::known_hosts has no pinned key for $host_lookup" >&2; exit 1; }
 
-    - name: Run database migrations
+    - name: Run ordered owner database migrations
       if: ${{ inputs.skip_migrations != 'true' }}
       shell: bash
+      env:
+        MIGRATION_DB_HOST: ${{ inputs.migration_db_host }}
+        MIGRATION_DB_PORT: ${{ inputs.migration_db_port }}
+        MIGRATION_DB_NAME: ${{ inputs.migration_db_name }}
+        MIGRATION_DB_USER: ${{ inputs.migration_db_user }}
+        MIGRATION_DB_PASSWORD: ${{ inputs.migration_db_password }}
+        SUBMISSION_MIGRATION_DB_USER: ${{ inputs.submission_migration_db_user }}
+        SUBMISSION_MIGRATION_DB_PASSWORD: ${{ inputs.submission_migration_db_password }}
+        AUTH_DB_USER: ${{ inputs.auth_db_user }}
+        ADMIN_DB_USER: ${{ inputs.admin_db_user }}
+        APP_DB_USER: ${{ inputs.app_db_user }}
+        NOTIFICATION_DB_USER: ${{ inputs.notification_db_user }}
+        SUBMISSION_DB_USER: ${{ inputs.submission_db_user }}
+        MIGRATION_REPORT_DIR: ${{ inputs.migration_report_dir }}
+        MIGRATION_LOCK_FILE: ${{ inputs.migration_lock_file }}
       run: |
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
-        $SSH_CMD "cd ${{ inputs.path }} && \
-                  docker run --rm --network host \
-                    -e FLYWAY_URL='jdbc:mysql://${{ inputs.db_host }}:${{ inputs.db_port }}/${{ inputs.db_name }}?allowPublicKeyRetrieval=true&useSSL=true' \
-                    -e FLYWAY_USER='${{ inputs.db_user }}' \
-                    -e FLYWAY_PASSWORD='${{ inputs.db_password }}' \
-                    -v \$(pwd)/init-db/migrations:/flyway/sql:ro \
-                    flyway/flyway:10.17.0 -connectRetries=10 migrate"
+        set -euo pipefail
+        for required in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
+          MIGRATION_DB_USER MIGRATION_DB_PASSWORD SUBMISSION_MIGRATION_DB_USER \
+          SUBMISSION_MIGRATION_DB_PASSWORD AUTH_DB_USER ADMIN_DB_USER APP_DB_USER \
+          NOTIFICATION_DB_USER SUBMISSION_DB_USER; do
+          [[ -n "${!required}" ]] || { echo "::error::$required is required for owner migrations" >&2; exit 1; }
+        done
+
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        remote_command+=" MIGRATION_DB_HOST=$(shell_quote "$MIGRATION_DB_HOST")"
+        remote_command+=" MIGRATION_DB_PORT=$(shell_quote "$MIGRATION_DB_PORT")"
+        remote_command+=" MIGRATION_DB_NAME=$(shell_quote "$MIGRATION_DB_NAME")"
+        remote_command+=" MIGRATION_DB_USER=$(shell_quote "$MIGRATION_DB_USER")"
+        remote_command+=" MIGRATION_DB_PASSWORD=$(shell_quote "$MIGRATION_DB_PASSWORD")"
+        remote_command+=" SUBMISSION_MIGRATION_DB_USER=$(shell_quote "$SUBMISSION_MIGRATION_DB_USER")"
+        remote_command+=" SUBMISSION_MIGRATION_DB_PASSWORD=$(shell_quote "$SUBMISSION_MIGRATION_DB_PASSWORD")"
+        remote_command+=" AUTH_DB_NAME=auth AUTH_DB_USER=$(shell_quote "$AUTH_DB_USER")"
+        remote_command+=" ADMIN_DB_NAME=admin ADMIN_DB_USER=$(shell_quote "$ADMIN_DB_USER")"
+        remote_command+=" APP_DB_NAME=app APP_DB_USER=$(shell_quote "$APP_DB_USER")"
+        remote_command+=" NOTIFICATION_DB_NAME=notification NOTIFICATION_DB_USER=$(shell_quote "$NOTIFICATION_DB_USER")"
+        remote_command+=" SUBMISSION_DB_NAME=submission SUBMISSION_DB_USER=$(shell_quote "$SUBMISSION_DB_USER")"
+        remote_command+=" OWNER_MIGRATION_REPORT_DIR=$(shell_quote "$MIGRATION_REPORT_DIR")"
+        remote_command+=" OWNER_MIGRATION_LOCK_FILE=$(shell_quote "$MIGRATION_LOCK_FILE")"
+        remote_command+=" ./scripts/runbooks/owner-migration-manifest.sh migrate"
+        "${SSH_CMD[@]}" "$remote_command"
 
     - name: Provision sandbox prerequisites on host
       # The judge worker healthcheck requires the sandbox image and seccomp

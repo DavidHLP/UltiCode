@@ -15,15 +15,13 @@ import java.util.List;
 /**
  * Default session issuer for JWT, CSRF, and refresh-session state.
  *
- * <p>This class preserves the existing cookie policy as data. The actual
+ * <p>This class preserves the configured cookie policy as data. The actual
  * Servlet mutation is performed by {@link SessionCookieAdapter}.</p>
  */
 @Component
 @RequiredArgsConstructor
 public class DefaultAuthSessionAdapter implements AuthSessionPort {
 
-    private static final String ACCESS_TOKEN_COOKIE = "access_token";
-    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
     /**
      * Non-HttpOnly CSRF sentinel cookie. The frontend reads this from
      * {@code document.cookie} to detect whether a session exists after a hard
@@ -46,12 +44,9 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         return new AuthSession(
                 loginResponse(account, csrfToken),
                 List.of(
-                        CookieMutation.set(ACCESS_TOKEN_COOKIE, accessToken,
-                                (int) (jwtProperties.getAccessTokenExpiration() / 1000), true),
-                        CookieMutation.set(REFRESH_TOKEN_COOKIE, refreshToken,
-                                (int) (jwtProperties.getRefreshTokenExpiration() / 1000), true),
-                        CookieMutation.set(CSRF_TOKEN_COOKIE, csrfToken,
-                                (int) (jwtProperties.getAccessTokenExpiration() / 1000), false)
+                        accessCookie(accessToken, accessConfig().getMaxAge()),
+                        refreshCookie(refreshToken, refreshConfig().getMaxAge()),
+                        csrfCookie(csrfToken, accessConfig().getMaxAge())
                 )
         );
     }
@@ -64,12 +59,9 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         return new AuthSession(
                 loginResponse(account, csrfToken),
                 List.of(
-                        CookieMutation.set(ACCESS_TOKEN_COOKIE, accessToken,
-                                (int) (jwtProperties.getAccessTokenExpiration() / 1000), true),
-                        CookieMutation.set(REFRESH_TOKEN_COOKIE, rotatedRefreshToken,
-                                (int) (jwtProperties.getRefreshTokenExpiration() / 1000), true),
-                        CookieMutation.set(CSRF_TOKEN_COOKIE, csrfToken,
-                                (int) (jwtProperties.getAccessTokenExpiration() / 1000), false)
+                        accessCookie(accessToken, accessConfig().getMaxAge()),
+                        refreshCookie(rotatedRefreshToken, refreshConfig().getMaxAge()),
+                        csrfCookie(csrfToken, accessConfig().getMaxAge())
                 )
         );
     }
@@ -79,11 +71,37 @@ public class DefaultAuthSessionAdapter implements AuthSessionPort {
         return new AuthSession(
                 null,
                 List.of(
-                        CookieMutation.clear(ACCESS_TOKEN_COOKIE, true),
-                        CookieMutation.clear(REFRESH_TOKEN_COOKIE, true),
-                        CookieMutation.clear(CSRF_TOKEN_COOKIE, false)
+                        accessCookie("", 0),
+                        refreshCookie("", 0),
+                        csrfCookie("", 0)
                 )
         );
+    }
+
+    private CookieMutation accessCookie(String value, int maxAgeSeconds) {
+        JwtProperties.AccessTokenCookie config = accessConfig();
+        return new CookieMutation(config.getName(), value, maxAgeSeconds, config.isHttpOnly(),
+                config.isSecure(), config.getSameSite(), config.getPath(), config.getDomain());
+    }
+
+    private CookieMutation refreshCookie(String value, int maxAgeSeconds) {
+        JwtProperties.RefreshTokenCookie config = refreshConfig();
+        return new CookieMutation(config.getName(), value, maxAgeSeconds, config.isHttpOnly(),
+                config.isSecure(), config.getSameSite(), config.getPath(), config.getDomain());
+    }
+
+    private CookieMutation csrfCookie(String value, int maxAgeSeconds) {
+        JwtProperties.AccessTokenCookie config = accessConfig();
+        return new CookieMutation(CSRF_TOKEN_COOKIE, value, maxAgeSeconds, false,
+                config.isSecure(), config.getSameSite(), config.getPath(), config.getDomain());
+    }
+
+    private JwtProperties.AccessTokenCookie accessConfig() {
+        return jwtProperties.getCookie().getAccessToken();
+    }
+
+    private JwtProperties.RefreshTokenCookie refreshConfig() {
+        return jwtProperties.getCookie().getRefreshToken();
     }
 
     private LoginResponse loginResponse(AuthAccountRecord account, String csrfToken) {

@@ -54,9 +54,9 @@ class AuthControllerSessionContractTest {
         AuthSession session = new AuthSession(
                 body,
                 List.of(
-                        CookieMutation.set("access_token", "access", 900, true),
-                        CookieMutation.set("refresh_token", "refresh", 604800, true),
-                        CookieMutation.set("csrf_token", "csrf", 900, false)
+                        new CookieMutation("access_token", "access", 900, true, true, "Lax", "/", null),
+                        new CookieMutation("refresh_token", "refresh", 604800, true, true, "Lax", "/", null),
+                        new CookieMutation("csrf_token", "csrf", 900, false, true, "Lax", "/", null)
                 )
         );
         when(authenticationWorkflow.login("alice", "Secret123")).thenReturn(session);

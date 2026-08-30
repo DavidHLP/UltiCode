@@ -5,6 +5,8 @@ import java.util.Objects;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 @ConfigurationProperties(prefix = "jwt")
-public class JwtProperties {
+public class JwtProperties implements EnvironmentAware {
 
     /**
      * Secret key for signing JWT tokens.
@@ -41,10 +43,17 @@ public class JwtProperties {
      */
     private String audience = "ulticode-api";
 
+    private transient Environment environment;
+
+    @Override
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
+
     /**
-     * Validate JWT secret at application startup.
-     * - Refuses to start if secret is null, empty, or blank
-     * - Warns if secret is shorter than 32 characters (insecure for HS256)
+     * Validate JWT and cookie policy at application startup.
+     * - Refuses to start if secret is null, empty, blank, or shorter than 32 characters
+     * - Refuses insecure authentication cookies outside exclusive dev, test, or ci profiles
      */
     @PostConstruct
     public void validateSecret() {
@@ -56,7 +65,67 @@ public class JwtProperties {
             throw new IllegalStateException(
                     "JWT secret must be at least 32 characters for HS256");
         }
-        log.info("JWT secret validated successfully (length: {} chars)", secret.length());
+        validateCookiePolicy();
+        log.info("JWT secret and cookie policy validated successfully");
+    }
+
+    private void validateCookiePolicy() {
+        CookieConfig cookieConfig = Objects.requireNonNull(cookie, "JWT cookie configuration must not be null");
+        AccessTokenCookie access = Objects.requireNonNull(
+                cookieConfig.getAccessToken(), "Access-token cookie configuration must not be null");
+        RefreshTokenCookie refresh = Objects.requireNonNull(
+                cookieConfig.getRefreshToken(), "Refresh-token cookie configuration must not be null");
+
+        validateCookie("access-token", access.getName(), access.isHttpOnly(), access.isSecure(),
+                access.getSameSite(), access.getPath(), access.getMaxAge());
+        validateCookie("refresh-token", refresh.getName(), refresh.isHttpOnly(), refresh.isSecure(),
+                refresh.getSameSite(), refresh.getPath(), refresh.getMaxAge());
+
+        if ((!access.isSecure() || !refresh.isSecure()) && !insecureCookiesAllowed()) {
+            throw new IllegalStateException(
+                    "JWT cookies must use Secure outside the dev, test, or ci profiles");
+        }
+    }
+
+    private boolean insecureCookiesAllowed() {
+        if (environment == null) {
+            return false;
+        }
+        String[] activeProfiles = environment.getActiveProfiles();
+        if (activeProfiles.length == 0) {
+            return false;
+        }
+        for (String profile : activeProfiles) {
+            if (!"dev".equals(profile) && !"test".equals(profile) && !"ci".equals(profile)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void validateCookie(String label, String name, boolean httpOnly, boolean secure,
+            String sameSite, String path, int maxAge) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalStateException(label + " cookie name must not be blank");
+        }
+        if (!httpOnly) {
+            throw new IllegalStateException(label + " cookie must be HttpOnly");
+        }
+        if (path == null || !path.startsWith("/")) {
+            throw new IllegalStateException(label + " cookie path must start with '/'");
+        }
+        if (maxAge <= 0) {
+            throw new IllegalStateException(label + " cookie max-age must be positive");
+        }
+        boolean sameSiteKnown = "Strict".equalsIgnoreCase(sameSite)
+                || "Lax".equalsIgnoreCase(sameSite)
+                || "None".equalsIgnoreCase(sameSite);
+        if (!sameSiteKnown) {
+            throw new IllegalStateException(label + " cookie SameSite must be Strict, Lax, or None");
+        }
+        if ("None".equalsIgnoreCase(sameSite) && !secure) {
+            throw new IllegalStateException(label + " cookie SameSite=None requires Secure");
+        }
     }
 
     /**
@@ -133,6 +202,11 @@ public class JwtProperties {
         private String path = "/";
 
         /**
+         * Optional shared cookie domain. Empty keeps host-only cookies.
+         */
+        private String domain;
+
+        /**
          * Cookie max age in seconds.
          * Default: 15 minutes (900 seconds)
          */
@@ -165,6 +239,11 @@ public class JwtProperties {
          * Cookie path
          */
         private String path = "/";
+
+        /**
+         * Optional shared cookie domain. Empty keeps host-only cookies.
+         */
+        private String domain;
 
         /**
          * Cookie max age in seconds.

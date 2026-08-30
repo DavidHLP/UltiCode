@@ -45,7 +45,7 @@ class OAuthControllerContractTest {
         when(oauthLoginWorkflow.begin("github"))
                 .thenReturn(new OAuthLoginWorkflow.OAuthAuthorization(
                         "https://github.example/authorize?state=state-1",
-                        new CookieMutation("oauth_state_github", "state-1", 300, true, true, "/auth")));
+                        new CookieMutation("oauth_state_github", "state-1", 300, true, true, "Lax", "/auth", null)));
 
         mockMvc.perform(get("/auth/oauth/github/auth-url"))
                 .andExpect(status().isOk())
@@ -71,10 +71,10 @@ class OAuthControllerContractTest {
                 .thenReturn(new OAuthLoginWorkflow.OAuthCompletion(
                         loginResponse,
                         List.of(
-                                new CookieMutation("oauth_state_google", "", 0, true, true, "/auth"),
-                                CookieMutation.set("access_token", "access", 900, true),
-                                CookieMutation.set("refresh_token", "refresh", 604800, true),
-                                CookieMutation.set("csrf_token", "csrf-google", 900, false))));
+                                new CookieMutation("oauth_state_google", "", 0, true, true, "Lax", "/auth", null),
+                                new CookieMutation("access_token", "access", 900, true, true, "Lax", "/", null),
+                                new CookieMutation("refresh_token", "refresh", 604800, true, true, "Lax", "/", null),
+                                new CookieMutation("csrf_token", "csrf-google", 900, false, true, "Lax", "/", null))));
 
         mockMvc.perform(get("/auth/oauth/GoOgLe/callback")
                         .param("code", "code-1")
@@ -113,7 +113,7 @@ class OAuthControllerContractTest {
         when(oauthLoginWorkflow.complete(eq("github"), eq("code-1"), eq("bad-state"), eq(null)))
                 .thenThrow(new OAuthLoginWorkflow.OAuthCallbackFailure(
                         original,
-                        new CookieMutation("oauth_state_github", "", 0, true, true, "/auth")));
+                        new CookieMutation("oauth_state_github", "", 0, true, true, "Lax", "/auth", null)));
 
         mockMvc.perform(get("/auth/oauth/github/callback")
                         .param("code", "code-1")

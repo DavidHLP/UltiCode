@@ -297,11 +297,11 @@ class OAuthLoginWorkflowTest {
     }
 
     private static CookieMutation stateCookie(String provider, String state) {
-        return new CookieMutation("oauth_state_" + provider, state, 300, true, true, "/auth");
+        return new CookieMutation("oauth_state_" + provider, state, 300, true, true, "Lax", "/auth", null);
     }
 
     private static CookieMutation clearCookie(String provider) {
-        return new CookieMutation("oauth_state_" + provider, "", 0, true, true, "/auth");
+        return new CookieMutation("oauth_state_" + provider, "", 0, true, true, "Lax", "/auth", null);
     }
 
     private static AuthSession mockSession(String csrfToken) {
@@ -311,9 +311,9 @@ class OAuthLoginWorkflowTest {
                         .user(new AuthUserVO("fixed-uuid-1234", "octocat", "octocat", "", "USER", true, false, ""))
                         .build(),
                 List.of(
-                        CookieMutation.set("access_token", "access", 900, true),
-                        CookieMutation.set("refresh_token", "refresh", 604800, true),
-                        CookieMutation.set("csrf_token", csrfToken, 900, false))
+                        new CookieMutation("access_token", "access", 900, true, true, "Lax", "/", null),
+                        new CookieMutation("refresh_token", "refresh", 604800, true, true, "Lax", "/", null),
+                        new CookieMutation("csrf_token", csrfToken, 900, false, true, "Lax", "/", null))
         );
     }
 

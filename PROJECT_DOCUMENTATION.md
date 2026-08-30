@@ -889,6 +889,7 @@ sequenceDiagram
 
 - 登录、注册、OAuth callback、refresh、logout 全部发生在 `backend-auth`；
 - refresh 只接受 refresh HttpOnly cookie，任何服务都不能接受 access token 作为 refresh credential；
+- Auth 通过完整的 cookie policy 统一签发 login、refresh、logout 和 OAuth state header：access/refresh 保持 HttpOnly，SameSite/Path/可选 Domain 在删除时原样复用；Secure 默认开启，仅 `dev`、`test`、`ci` profile 可显式设置 `JWT_COOKIE_SECURE=false`，其他 profile 在启动时 fail closed；
 - 保留 hash-only、条件旋转和 revoke-all；中期补 session family、parent/replacedBy 和 reuse detection；
 - DB 提交与 HTTP Set-Cookie 无法成为一个事务。失败语义要明确：cookie 写入失败时允许重新登录/恢复 session，而不是引入分布式事务。
 

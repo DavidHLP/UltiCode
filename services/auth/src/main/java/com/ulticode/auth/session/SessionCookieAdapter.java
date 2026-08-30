@@ -1,10 +1,10 @@
 package com.ulticode.auth.session;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.stereotype.Component;
 
 /**
  * Applies workflow-owned cookie mutations at the HTTP boundary.
@@ -30,11 +30,15 @@ public class SessionCookieAdapter {
         if (mutation == null) {
             return;
         }
-        Cookie cookie = new Cookie(mutation.name(), mutation.value());
-        cookie.setHttpOnly(mutation.httpOnly());
-        cookie.setSecure(mutation.secure());
-        cookie.setPath(mutation.path());
-        cookie.setMaxAge(mutation.maxAgeSeconds());
-        response.addCookie(cookie);
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(mutation.name(), mutation.value())
+                .httpOnly(mutation.httpOnly())
+                .secure(mutation.secure())
+                .sameSite(mutation.sameSite())
+                .path(mutation.path())
+                .maxAge(mutation.maxAgeSeconds());
+        if (mutation.domain() != null) {
+            builder.domain(mutation.domain());
+        }
+        response.addHeader(HttpHeaders.SET_COOKIE, builder.build().toString());
     }
 }

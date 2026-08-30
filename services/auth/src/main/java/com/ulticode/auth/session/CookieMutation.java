@@ -14,22 +14,36 @@ public record CookieMutation(
         int maxAgeSeconds,
         boolean httpOnly,
         boolean secure,
-        String path) {
+        String sameSite,
+        String path,
+        String domain) {
 
     public CookieMutation {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(value, "value");
+        Objects.requireNonNull(sameSite, "sameSite");
         Objects.requireNonNull(path, "path");
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("name must not be blank");
+        }
         if (maxAgeSeconds < 0) {
             throw new IllegalArgumentException("maxAgeSeconds must not be negative");
         }
-    }
-
-    public static CookieMutation set(String name, String value, int maxAgeSeconds, boolean httpOnly) {
-        return new CookieMutation(name, value, maxAgeSeconds, httpOnly, false, "/");
-    }
-
-    public static CookieMutation clear(String name, boolean httpOnly) {
-        return new CookieMutation(name, "", 0, httpOnly, false, "/");
+        if (!path.startsWith("/")) {
+            throw new IllegalArgumentException("path must start with '/'");
+        }
+        if ("strict".equalsIgnoreCase(sameSite)) {
+            sameSite = "Strict";
+        } else if ("lax".equalsIgnoreCase(sameSite)) {
+            sameSite = "Lax";
+        } else if ("none".equalsIgnoreCase(sameSite)) {
+            sameSite = "None";
+        } else {
+            throw new IllegalArgumentException("sameSite must be Strict, Lax, or None");
+        }
+        if ("None".equals(sameSite) && !secure) {
+            throw new IllegalArgumentException("SameSite=None requires Secure");
+        }
+        domain = domain == null || domain.isBlank() ? null : domain;
     }
 }

@@ -120,16 +120,18 @@ jwt:
     access-token:
       name: access_token
       http-only: true
-      secure: ${JWT_COOKIE_SECURE:false}
+      secure: ${JWT_COOKIE_SECURE:true}
       same-site: lax
       path: /
+      domain: ${JWT_COOKIE_DOMAIN:}
       max-age: 900 # 15 minutes in seconds
     refresh-token:
       name: refresh_token
       http-only: true
-      secure: ${JWT_COOKIE_SECURE:false}
+      secure: ${JWT_COOKIE_SECURE:true}
       same-site: lax
       path: /
+      domain: ${JWT_COOKIE_DOMAIN:}
       max-age: 604800 # 7 days in seconds
 
 # MyBatis-Plus Configuration

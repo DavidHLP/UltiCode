@@ -40,8 +40,10 @@ class DefaultAuthSessionAdapterTest {
         jwtProperties.setSecret("01234567890123456789012345678901");
         jwtProperties.getCookie().getAccessToken().setSecure(true);
         jwtProperties.getCookie().getAccessToken().setSameSite("Lax");
+        jwtProperties.getCookie().getAccessToken().setDomain("example.test");
         jwtProperties.getCookie().getRefreshToken().setSecure(true);
         jwtProperties.getCookie().getRefreshToken().setSameSite("Lax");
+        jwtProperties.getCookie().getRefreshToken().setDomain("example.test");
         adapter = new DefaultAuthSessionAdapter(
                 jwtTokenProvider, jwtProperties, refreshTokenService, csrfService);
         cookieAdapter = new SessionCookieAdapter();
@@ -57,13 +59,13 @@ class DefaultAuthSessionAdapterTest {
         List<String> headers = response.getHeaders(HttpHeaders.SET_COOKIE);
         assertThat(headers).hasSize(3);
         assertThat(cookie(headers, "access_token"))
-                .contains("access_token=access", "Path=/", "Max-Age=900",
+                .contains("access_token=access", "Path=/", "Domain=example.test", "Max-Age=900",
                         "Secure", "HttpOnly", "SameSite=Lax");
         assertThat(cookie(headers, "refresh_token"))
-                .contains("refresh_token=refresh", "Path=/", "Max-Age=604800",
+                .contains("refresh_token=refresh", "Path=/", "Domain=example.test", "Max-Age=604800",
                         "Secure", "HttpOnly", "SameSite=Lax");
         assertThat(cookie(headers, "csrf_token"))
-                .contains("csrf_token=csrf", "Path=/", "Max-Age=900",
+                .contains("csrf_token=csrf", "Path=/", "Domain=example.test", "Max-Age=900",
                         "Secure", "SameSite=Lax")
                 .doesNotContain("HttpOnly");
     }
@@ -90,8 +92,8 @@ class DefaultAuthSessionAdapterTest {
         cookieAdapter.apply(adapter.clearSession(), response);
 
         List<String> headers = response.getHeaders(HttpHeaders.SET_COOKIE);
-        assertThat(headers).hasSize(3).allSatisfy(header ->
-                assertThat(header).contains("Max-Age=0", "Path=/", "Secure", "SameSite=Lax"));
+        assertThat(headers).hasSize(3).allSatisfy(header -> assertThat(header)
+                .contains("Max-Age=0", "Path=/", "Domain=example.test", "Secure", "SameSite=Lax"));
         assertThat(cookie(headers, "access_token")).contains("HttpOnly");
         assertThat(cookie(headers, "refresh_token")).contains("HttpOnly");
         assertThat(cookie(headers, "csrf_token")).doesNotContain("HttpOnly");
@@ -111,7 +113,9 @@ class DefaultAuthSessionAdapterTest {
                     assertThat(cookie.maxAgeSeconds()).isEqualTo(900);
                     assertThat(cookie.httpOnly()).isTrue();
                     assertThat(cookie.secure()).isTrue();
+                    assertThat(cookie.sameSite()).isEqualTo("Lax");
                     assertThat(cookie.path()).isEqualTo("/");
+                    assertThat(cookie.domain()).isEqualTo("example.test");
                 });
         assertThat(session.cookies().get(2).httpOnly()).isFalse();
     }

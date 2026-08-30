@@ -75,7 +75,7 @@ public class OAuthStateModule implements OAuthStatePort {
 
     @Override
     public CookieMutation clearStateCookie(String provider) {
-        return new CookieMutation(cookieName(provider), "", 0, true, isSecure(), STATE_COOKIE_PATH);
+        return stateCookie(provider, "", 0);
     }
 
     private StringRedisTemplate requireRedis() {
@@ -91,19 +91,19 @@ public class OAuthStateModule implements OAuthStatePort {
     }
 
     private CookieMutation stateCookie(String provider, String state) {
-        return new CookieMutation(cookieName(provider), state, (int) OAUTH_STATE_TTL.toSeconds(),
-                true, isSecure(), STATE_COOKIE_PATH);
+        return stateCookie(provider, state, (int) OAUTH_STATE_TTL.toSeconds());
+    }
+
+    private CookieMutation stateCookie(String provider, String state, int maxAgeSeconds) {
+        JwtProperties.AccessTokenCookie config = jwtProperties.getCookie().getAccessToken();
+        return new CookieMutation(cookieName(provider), state, maxAgeSeconds, true,
+                config.isSecure(), config.getSameSite(), STATE_COOKIE_PATH, config.getDomain());
     }
 
     private String cookieName(String provider) {
         return "oauth_state_" + provider;
     }
 
-    private boolean isSecure() {
-        return jwtProperties.getCookie() != null
-                && jwtProperties.getCookie().getAccessToken() != null
-                && jwtProperties.getCookie().getAccessToken().isSecure();
-    }
 
     private static boolean constantTimeEquals(String a, String b) {
         if (a == null || b == null) {

@@ -77,3 +77,10 @@
 - Decision: Admin sends an authenticated `RejudgeCommand`/`BatchRejudgeCommand` only to group=`backend-submission`. The owner verifies the RS256 delegated assertion and Redis replay claim, atomically claims the command receipt, performs the generation/lease transition, and writes the non-shadow judge outbox in the owner transaction. Retain the notification boolean only for wire compatibility; notification delivery belongs to the later Notification/Audit event work.
 - Consequences: duplicate successful commands replay without re-mutation, in-flight duplicates conflict, changed payloads conflict, stale terminal/Judging races fail or expire safely, and App no longer has a rejudge writer/provider. Live Nacos/Dubbo/Redis/MySQL registration and traffic proof remain external.
 - Affected tasks: P1-SUB-001, P1-SUB-002, P1-SUB-003, P1-AUDIT-001.
+
+### Make Submission backfill resumable and cutover-verifiable
+
+- Context: the original Submission cutover copied all rows in one statement and required an empty owner target, so it could not resume a partial migration or explain a same-key owner conflict before revoking App grants.
+- Decision: make dry-run the default; process each owner table in primary-key batches with a schema-bound checkpoint, append-only failure export, insert-only target writes, NULL-safe field conflict detection, and no overwrite of existing owner rows. Require explicit backfill/quiesce confirmations for writes. Gate cutover on zero source/target count, checksum, missing/extra-key, field, and writer differences; cutover no longer performs an implicit full-table copy.
+- Consequences: a partial backfill resumes from the last completed boundary and a conflicting newer owner row fails closed with an actionable artifact. Disposable MySQL/Redis rehearsal is wired but remains environment-blocked until Docker access is available.
+- Affected tasks: P1-SUB-003, P1-SUB-004, P1-DATA-001.

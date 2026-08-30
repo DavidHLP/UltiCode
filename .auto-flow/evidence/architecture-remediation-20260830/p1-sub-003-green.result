@@ -1,0 +1,27 @@
+task: P1-SUB-003
+status: PASS_WITH_EXTERNAL_GATE
+commit: 73d9f78
+checks:
+  - command: "rtk ./scripts/test/submission-backfill-contract.sh"
+    result: PASS
+    detail: "Fake-MySQL rehearsal executes dry-run batching, separate checkpoint resume, insert-free behavior, parity checks, execute confirmation rejection, conflict failure export, and newer-owner protection."
+  - command: "rtk bash scripts/dev/migrate-owner-preflight-test.sh"
+    result: PASS
+    detail: "Existing owner migration transport/privilege/preflight suite remains green."
+  - command: "rtk ./scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "The backfill contract is wired into the architecture gate; DevStack, Redis ACL, SSH identity, Nacos, docs, and owner seam checks pass."
+  - command: "rtk bash -n scripts/runbooks/submission-schema-cutover.sh scripts/dev/owner-migration-safety-integration-test.sh scripts/test/submission-backfill-contract.sh scripts/dev/architecture-contract-test.sh"
+    result: PASS
+  - command: "rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "Repository graph refreshed after the runbook and rehearsal changes."
+external_gate:
+  - command: "owner-migration-safety-integration-test.sh"
+    result: BLOCKED_EXTERNAL
+    detail: "Disposable MySQL/Redis rehearsal is wired to run after a backfill and verify phase, but Docker daemon access is unavailable (current user is not in group docker; /var/run/docker.sock is root:docker 0660). No production or remote state was changed."
+red:
+  evidence: null
+  result: "P1-SUB-003 was executable repository work without a separate failing test artifact; the new fake-MySQL contract supplies the regression proof and the disposable runtime rehearsal remains externally blocked."

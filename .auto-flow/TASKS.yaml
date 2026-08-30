@@ -595,7 +595,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Submission/Data"
       dependencies: [P1-SUB-001]
-      status: TODO
+      status: DONE
       affected_modules: ["init-db/scripts", "scripts/runbooks", "submission"]
       acceptance_criteria:
         - "Dry-run batch checkpoint resume idempotency and failure export are executable"
@@ -603,8 +603,9 @@ architecture_remediation_20260830:
       validation_commands:
         - "Backfill script tests"
         - "Disposable MySQL rehearsal"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-003-green.result"
+      commit: 73d9f78
       blocked_by: []
       notes: "Real target backfill is external unless authorized environment exists"
     - id: P1-SUB-004

@@ -28,8 +28,8 @@ notes:
   - "Commits: f60550053 fix(dev) gate hardening; fdbeda0c7 feat(design) Garden adoption (33 files)"
   - "scripts/dev/architecture-contract-test.sh intentionally excluded from the gate: pre-existing devstack readiness subtest mismatch unrelated to design"
 
-  follow_up:
-    objective: "Unify console sider visual language"
+follow_up:
+  objective: "Unify console sider visual language"
   status: complete
   tasks:
     - id: G-5
@@ -333,3 +333,753 @@ services_issues_20260828:
         - "graphify update: 27545 nodes / 80685 edges / exit 0; Codebase Memory moderate: 43719 nodes / 188931 edges"
       commits: []
       notes: "No commit/push/deploy authorization. SVC-003-GATE remains an independent external blocker reported by completion audit."
+architecture_remediation_20260830:
+  objective: "Implement and verify the complete microservice architecture remediation without applying unauthorized production operations"
+  status: IN_PROGRESS
+  branch: fix/architecture-remediation
+  baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
+  source:
+    - "User-attached architecture remediation directive, 2026-08-30"
+    - "services/docs/SERVICES_ISSUES.md"
+  tasks:
+
+    - id: CTX-001
+      title: "Rebuild remediation context and baseline evidence"
+      priority: P0
+      scope: "Context"
+      dependencies: []
+      status: DONE
+      affected_modules: ["repository", "services", "compose", "ci"]
+      acceptance_criteria:
+        - "Capture branch, HEAD, status, upstream, topology, existing task state, and exact baseline exits"
+        - "Preserve user work and classify Docker availability once"
+      validation_commands:
+        - "./scripts/dev/architecture-contract-test.sh"
+        - "bash ./scripts/dev/docs-contract-test.sh"
+        - "./scripts/dev/test.sh quick"
+      evidence:
+        - "Git baseline main@8b4012b3d13678eaec38a82980c8e3558123b5a8, origin/main behind by one local commit, clean before task-control changes"
+        - "Remediation branch fix/architecture-remediation created"
+        - "Architecture/docs/migration-preflight/Compose dev/prod exits 0"
+        - "Maven clean compile exit 0 in 14s; clean test exit 0 in 86s; clean verify exit 0 in 86s"
+        - "Surefire 809 reports / 2739 tests / 0 failures / 0 errors / 20 skipped"
+        - "Docker daemon BLOCKED_EXTERNAL: user lacks docker group; version/info exit 1; Compose CLI works"
+      commit: null
+      blocked_by: []
+      notes: "Read-only baseline; Docker denial becomes BLOCKED_EXTERNAL, never PASS"
+    - id: TRACE-001
+      title: "Map every finding to implementation evidence"
+      priority: P0
+      scope: "Traceability"
+      dependencies: [CTX-001]
+      status: DONE
+      affected_modules: [".auto-flow", "docs/architecture", "services/docs"]
+      acceptance_criteria:
+        - "Every original finding maps to tasks, files, acceptance criteria, validation, evidence, and commits"
+        - "No duplicate issue registry or unmapped finding remains"
+      validation_commands:
+        - "Documentation contract"
+        - "Traceability completeness check"
+      evidence:
+        - "Traceability matrix maps all 42 tasks; validation reports unmapped=[]"
+        - "Deferred-platform ADR covers all six explicit non-implementations, triggers, alternatives, costs, and review conditions"
+        - "Documentation contract exit 0"
+      commit: null
+      blocked_by: []
+      notes: "SERVICES_ISSUES remains canonical issue registry; traceability links rather than duplicates findings"
+    - id: P0-SEC-001
+      title: "Enforce shared secure cookie policy"
+      priority: P0
+      scope: "Security/Cookie"
+      dependencies: [CTX-001]
+      status: IN_PROGRESS
+      affected_modules: ["platform/web-security", "auth"]
+      acceptance_criteria:
+        - "Actual login refresh logout Set-Cookie headers include required Secure HttpOnly SameSite Path and lifetime"
+        - "Production rejects insecure cookie policy; clear uses identical attributes"
+      validation_commands:
+        - "Focused MockMvc Set-Cookie tests"
+        - "Auth module tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Local HTTP exception must be explicit profile-only"
+    - id: P0-SEC-002
+      title: "Apply cookie-auth CSRF across owners"
+      priority: P0
+      scope: "Security/CSRF"
+      dependencies: [P0-SEC-001]
+      status: TODO
+      affected_modules: ["platform/web-security", "auth", "app", "admin", "notification", "packages/auth-core"]
+      acceptance_criteria:
+        - "Cookie-auth mutations require valid CSRF in every HTTP owner"
+        - "Bearer-only requests and safe methods follow explicit policy; refresh/logout remain protected without valid access token"
+      validation_commands:
+        - "Cross-owner MockMvc CSRF matrix"
+        - "Frontend auth-core tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No global CSRF disable or broad ignore"
+    - id: P0-SEC-003
+      title: "Make HTTP route authorization fail closed"
+      priority: P0
+      scope: "Security/Authorization"
+      dependencies: [P0-SEC-002]
+      status: TODO
+      affected_modules: ["platform/web-security", "app", "admin", "notification"]
+      acceptance_criteria:
+        - "No broad anyRequest permitAll remains"
+        - "Public paths are exact allowlists; unmatched paths deny or authenticate; admin routes have route and method checks"
+      validation_commands:
+        - "Anonymous USER ADMIN route matrix"
+        - "Security architecture tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Actuator and OpenAPI exposure remain environment-scoped"
+    - id: P0-SEC-004
+      title: "Unify JWT and JWKS resource security"
+      priority: P0
+      scope: "Security/JWT"
+      dependencies: [CTX-001]
+      status: TODO
+      affected_modules: ["platform/web-security", "app", "admin", "notification", "auth", "compose"]
+      acceptance_criteria:
+        - "One shared verifier/filter implementation enforces issuer audience time type algorithm kid JWK strength and authority mapping"
+        - "Production rejects HTTP JWKS and supports bounded rotation/cache/failure behavior"
+      validation_commands:
+        - "JWT/JWKS focused tests"
+        - "Resource-owner security tests"
+        - "Production config contract"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Delete duplicate resource-server implementations after all consumers migrate"
+    - id: P0-SEC-005
+      title: "Replace symmetric internal delegation signing"
+      priority: P0
+      scope: "Security/Delegation"
+      dependencies: [P0-SEC-004]
+      status: TODO
+      affected_modules: ["platform/common", "platform/web-security", "admin", "auth", "app", "notification", "compose"]
+      acceptance_criteria:
+        - "Admin/bootstrap issuers use separate asymmetric private keys; verifiers hold only public keys"
+        - "Issuer audience scope subject kid jti iat expiry and replay paths fail closed; no HS256 fallback"
+      validation_commands:
+        - "Delegation signer/verifier tests"
+        - "Compose secret-boundary contract"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Private keys are injected and never committed or logged"
+    - id: P0-SEC-006
+      title: "Restrict Redis principals by exact commands"
+      priority: P0
+      scope: "Security/Redis"
+      dependencies: [CTX-001]
+      status: TODO
+      affected_modules: ["docker/redis", "scripts/dev", "services Redis clients"]
+      acceptance_criteria:
+        - "Business principals use command allowlists and key/channel patterns"
+        - "FLUSHDB FLUSHALL CONFIG SHUTDOWN MODULE DEBUG and cross-owner access are denied; health can only PING"
+      validation_commands:
+        - "Disposable Redis ACL integration tests"
+        - "ACL generator contract tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "P2 handles runtime materialization and rotation"
+    - id: P0-SEC-007
+      title: "Verify SSH host identity in deployment"
+      priority: P0
+      scope: "Security/SSH"
+      dependencies: [CTX-001]
+      status: TODO
+      affected_modules: [".github/actions/host-deploy", ".github/workflows"]
+      acceptance_criteria:
+        - "No disabled host-key checking or automatic unknown-key acceptance remains"
+        - "Per-environment known_hosts is required, private keys remain masked, rotation fails closed"
+      validation_commands:
+        - "Workflow syntax"
+        - "Static forbidden-pattern test"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No production known_hosts mutation is executed locally"
+    - id: P0-SEC-008
+      title: "Isolate Nacos service credentials and modes"
+      priority: P0
+      scope: "Security/Nacos"
+      dependencies: [CTX-001]
+      status: TODO
+      affected_modules: ["services application config", "compose", "scripts"]
+      acceptance_criteria:
+        - "Each service receives explicit least-privilege registry credentials and identity metadata"
+        - "Production rejects default credentials and standalone mode while dev remains explicit"
+      validation_commands:
+        - "Compose config profiles"
+        - "Nacos/Dubbo config architecture tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "P3 adds workload mTLS; no real Nacos accounts are changed"
+    - id: P1-SUB-001
+      title: "Establish Submission owner-only mutation path"
+      priority: P1
+      scope: "Submission/Writer"
+      dependencies: [P0-SEC-003, P0-SEC-005]
+      status: TODO
+      affected_modules: ["app", "submission", "submission-api", "judge-runtime"]
+      acceptance_criteria:
+        - "All production mutations write only Submission owner with idempotent intake/outbox/fence semantics"
+        - "All twenty writer differences have explicit tests and decisions; App local writer is removed"
+      validation_commands:
+        - "Submission contract and owner tests"
+        - "App architecture tests"
+        - "Duplicate-writer negative gate"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Repository cutover authorized; production traffic cutover remains external"
+    - id: P1-SUB-002
+      title: "Route Admin rejudge to Submission owner"
+      priority: P1
+      scope: "Submission/Rejudge"
+      dependencies: [P1-SUB-001]
+      status: TODO
+      affected_modules: ["admin", "submission", "submission-api", "app"]
+      acceptance_criteria:
+        - "Admin expresses intent only and calls backend-submission"
+        - "Owner validates transitions, idempotency, judge task, audit, events, duplicate and concurrent requests"
+      validation_commands:
+        - "Admin/Submission rejudge tests"
+        - "Provider/reference architecture gate"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Remove App compatibility provider production references"
+    - id: P1-SUB-003
+      title: "Build resumable Submission backfill verification"
+      priority: P1
+      scope: "Submission/Data"
+      dependencies: [P1-SUB-001]
+      status: TODO
+      affected_modules: ["init-db/scripts", "scripts/runbooks", "submission"]
+      acceptance_criteria:
+        - "Dry-run batch checkpoint resume idempotency and failure export are executable"
+        - "Unexplained count/checksum/field/writer differences gate cutover at zero without overwriting newer owner rows"
+      validation_commands:
+        - "Backfill script tests"
+        - "Disposable MySQL rehearsal"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Real target backfill is external unless authorized environment exists"
+    - id: P1-SUB-004
+      title: "Move Submission reconciliation to owner facts"
+      priority: P1
+      scope: "Submission/Reconciliation"
+      dependencies: [P1-SUB-003]
+      status: TODO
+      affected_modules: ["submission-api", "submission", "admin", "app"]
+      acceptance_criteria:
+        - "Nightly full/incremental reconciliation consumes Submission-owner bounded facts and is multi-replica safe"
+        - "No App submissions SQL remains; failures emit metrics and actionable records"
+      validation_commands:
+        - "Owner facts contract tests"
+        - "Reconciliation integration tests"
+        - "Forbidden SQL architecture gate"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Do not add cross-owner joins"
+    - id: P1-NOT-001
+      title: "Complete Notification owner persistence cutover"
+      priority: P1
+      scope: "Notification"
+      dependencies: [P0-SEC-003]
+      status: TODO
+      affected_modules: ["notification", "notification-api", "app", "admin"]
+      acceptance_criteria:
+        - "Notification owner is the only persistence writer and publishes authoritative reconciliation facts"
+        - "App legacy mutation/read persistence and production compatibility calls are removed; delivery/read/retry state remains consistent"
+      validation_commands:
+        - "Notification owner tests"
+        - "Event/inbox integration tests"
+        - "Single-writer architecture gate"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Production observation remains external"
+    - id: P1-DATA-001
+      title: "Retire legacy data and compatibility contracts"
+      priority: P1
+      scope: "Data/Contract"
+      dependencies: [P1-SUB-004, P1-NOT-001]
+      status: TODO
+      affected_modules: ["app", "submission", "notification", "api modules", "init-db/migrations"]
+      acceptance_criteria:
+        - "Readers writers reconciliation and admin operations use owners before contraction"
+        - "New forward migration removes obsolete grants/schema only after compatibility proofs; no applied migration changes"
+      validation_commands:
+        - "Fresh/upgrade migration tests"
+        - "Contract compatibility gate"
+        - "Legacy-reference negative scan"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Destructive production migration is External Execution Required"
+    - id: P1-AUDIT-001
+      title: "Remove cross-owner audit database writes"
+      priority: P1
+      scope: "Audit"
+      dependencies: [P0-SEC-006]
+      status: TODO
+      affected_modules: ["auth", "app", "admin", "platform/integration-inbox", "init-db/migrations"]
+      acceptance_criteria:
+        - "Each owner writes local audit outbox and Admin consumes idempotent events"
+        - "No cross-schema transaction/write or non-owner grant remains; duplicate disorder retry and DLQ are covered"
+      validation_commands:
+        - "Audit outbox/inbox tests"
+        - "Migration grant tests"
+        - "Cross-schema write architecture gate"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Preserve existing claim fencing"
+    - id: P1-SEAM-001
+      title: "Remove shallow and migration-only seams"
+      priority: P1
+      scope: "Architecture/Seams"
+      dependencies: [P1-DATA-001, P1-AUDIT-001]
+      status: TODO
+      affected_modules: ["api modules", "app", "admin", "submission", "notification"]
+      acceptance_criteria:
+        - "Every external seam has a real production role and owner or is merged/moved/retired"
+        - "No unused provider/reference or placeholder interface remains; retained seams have documented leverage"
+      validation_commands:
+        - "ArchUnit dependency rules"
+        - "Provider/reference inventory diff"
+        - "Contract compatibility"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Do not create a giant replacement interface"
+    - id: P2-MIG-001
+      title: "Execute owner migration manifest in CD"
+      priority: P2
+      scope: "Delivery/Migration"
+      dependencies: [P1-DATA-001]
+      status: TODO
+      affected_modules: [".github/actions", "scripts/dev", "init-db/scripts", "init-db/flyway configs"]
+      acceptance_criteria:
+        - "CD preflight validates manifest order owner checksum dependencies datasource account and schema under a reliable lock"
+        - "Fresh upgrade failure retry concurrency and rollback compatibility produce machine/human reports without secret logging"
+      validation_commands:
+        - "Migration preflight suite"
+        - "Owner migration safety integration"
+        - "Workflow syntax"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Production migrations are not executed locally"
+    - id: P2-BACKUP-001
+      title: "Back up and restore all data owners"
+      priority: P2
+      scope: "Backup/Restore"
+      dependencies: [P2-MIG-001]
+      status: TODO
+      affected_modules: ["admin backup module", "scripts/runbooks", "compose", "observability"]
+      acceptance_criteria:
+        - "A manifest covers five owner schemas, data, migration metadata, integrity, encryption/retention and singleton execution"
+        - "Temporary restore drill runs migration verify, checksums, reconciliation and smoke with measured RPO/RTO evidence"
+      validation_commands:
+        - "Backup unit/integration tests"
+        - "Disposable restore drill"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Docker denial may block drill and must be recorded externally"
+    - id: P2-REDIS-001
+      title: "Materialize and rotate Redis ACL safely"
+      priority: P2
+      scope: "Delivery/Redis"
+      dependencies: [P0-SEC-006]
+      status: TODO
+      affected_modules: ["docker/redis", "compose", ".github/actions/host-deploy", "scripts"]
+      acceptance_criteria:
+        - "Tracked policy contains no credential verifier; runtime ACL is atomically generated outside Git and drift-checked"
+        - "Dual-credential overlap rotation and rollback are executable and validated"
+      validation_commands:
+        - "ACL materialization tests"
+        - "Disposable Redis rotation test"
+        - "Compose config"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No real production Redis credentials are changed"
+    - id: P2-TLS-001
+      title: "Provide production TLS and HSTS profile"
+      priority: P2
+      scope: "Delivery/TLS"
+      dependencies: [P0-SEC-001, P0-SEC-004]
+      status: TODO
+      affected_modules: ["infrastructure/nginx", "compose", "deployment docs/tests"]
+      acceptance_criteria:
+        - "Production edge requires HTTPS, redirects/rejects HTTP, emits HSTS and aligns Secure cookies/JWKS"
+        - "Certificates are secret mounts with documented rotation and config tests"
+      validation_commands:
+        - "Nginx config test"
+        - "Production profile security test"
+        - "Compose config"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No certificate or real endpoint is provisioned locally"
+    - id: P2-SC-001
+      title: "Verify immutable signed image supply chain"
+      priority: P2
+      scope: "CI/SupplyChain"
+      dependencies: [P0-SEC-007]
+      status: TODO
+      affected_modules: ["Dockerfiles", "compose", ".github/workflows"]
+      acceptance_criteria:
+        - "Production base/actions/images are immutable; latest fallback is forbidden"
+        - "Build emits SBOM scan digest signature and provenance; deploy/rollback verify approved digest and fail on policy"
+      validation_commands:
+        - "Workflow/action syntax"
+        - "Container build"
+        - "SBOM/vulnerability/signature verification"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Use one scanner and a time-bounded exception allowlist"
+    - id: P2-OBS-001
+      title: "Operate metrics traces alerts and SLOs"
+      priority: P2
+      scope: "Observability"
+      dependencies: [P1-SUB-004, P1-NOT-001]
+      status: TODO
+      affected_modules: ["infrastructure/observability", "docker/prometheus", "services metrics", "runbooks"]
+      acceptance_criteria:
+        - "Collector scrape trace/log correlation dashboards alerts routing and release annotations are runnable"
+        - "Owner migration backup reconciliation streams Dubbo security scheduler Judge JVM/pools have formulas windows initial targets budgets and runbooks"
+      validation_commands:
+        - "Observability config validation"
+        - "Metric/alert contract tests"
+        - "Local smoke when runtime available"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Unconfirmed targets are labeled initial engineering goals"
+    - id: P2-DEPLOY-001
+      title: "Enforce release rollback and config integrity"
+      priority: P2
+      scope: "Delivery"
+      dependencies: [P2-MIG-001, P2-SC-001, P2-TLS-001]
+      status: TODO
+      affected_modules: [".github/actions", "compose", "scripts/runbooks"]
+      acceptance_criteria:
+        - "Required configuration and secrets fail closed; releases are commit/digest/schema traceable and smoke-tested"
+        - "Rollback refuses incompatible schema/artifact and never reports partial service success as system success"
+      validation_commands:
+        - "Deploy action tests"
+        - "Compose profiles"
+        - "Rollback rehearsal without production mutation"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No push or production deploy without separate authorization"
+    - id: P3-SCHED-001
+      title: "Isolate critical scheduler executors"
+      priority: P3
+      scope: "Resilience/Scheduler"
+      dependencies: [P1-SUB-004]
+      status: TODO
+      affected_modules: ["submission", "search", "admin"]
+      acceptance_criteria:
+        - "Heartbeat, consume, recovery, maintenance and health work use bounded isolated executors with justified sizes and clean shutdown"
+        - "Blocking/saturation/rejection cannot starve independent recovery and emits metrics"
+      validation_commands:
+        - "Scheduler blocking/saturation tests"
+        - "Module tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No unbounded executor"
+    - id: P3-LEASE-001
+      title: "Fence singleton jobs across replicas"
+      priority: P3
+      scope: "Resilience/Lease"
+      dependencies: [P3-SCHED-001]
+      status: TODO
+      affected_modules: ["platform/common", "admin", "submission", "migration/backup"]
+      acceptance_criteria:
+        - "Backup reconciliation migration and singleton jobs acquire expiring fenced leases"
+        - "Clock skew pause partition crash duplicate runner and lost-lease stale completion are tested"
+      validation_commands:
+        - "Two-runner lease integration tests"
+        - "Lost-lease tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Reuse existing claim/CAS for non-singleton outbox jobs"
+    - id: P3-GRACE-001
+      title: "Drain services safely on termination"
+      priority: P3
+      scope: "Resilience/Shutdown"
+      dependencies: [P3-SCHED-001]
+      status: TODO
+      affected_modules: ["all services", "compose"]
+      acceptance_criteria:
+        - "SIGTERM stops new HTTP/RPC/stream claims, drains bounded in-flight work, preserves PEL/releases leases, flushes telemetry and closes clients"
+        - "Termination grace is configured and duplicate/loss regressions pass"
+      validation_commands:
+        - "SIGTERM integration tests"
+        - "Compose stop-grace config"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No fake shutdown test that only inspects configuration"
+    - id: P3-RES-001
+      title: "Bound retries circuits and dependency concurrency"
+      priority: P3
+      scope: "Resilience/RPC"
+      dependencies: [P0-SEC-004]
+      status: TODO
+      affected_modules: ["platform/common", "all Dubbo/HTTP consumers"]
+      acceptance_criteria:
+        - "Every synchronous dependency has one timeout/retry/circuit/bulkhead/fallback budget"
+        - "Only idempotent calls auto-retry; mutations use idempotency; fallbacks never claim false success"
+      validation_commands:
+        - "Timeout/refusal/slow/open-half-open/recovery/saturation tests"
+        - "Rpc policy architecture tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Prefer minimal existing-stack library/configuration"
+    - id: P3-STREAM-001
+      title: "Prove stream crash replay and compatibility"
+      priority: P3
+      scope: "Resilience/Streams"
+      dependencies: [P0-SEC-006, P3-GRACE-001]
+      status: TODO
+      affected_modules: ["platform/integration-inbox", "judge-runtime", "search", "notification", "app", "submission"]
+      acceptance_criteria:
+        - "Group ack PEL claim retry backoff DLQ poison idempotency version disorder and schema compatibility are explicit"
+        - "Crash/duplicate/shutdown/replay tests prove no lost or duplicate business effects and audit replay"
+      validation_commands:
+        - "Redis Streams integration suite"
+        - "Worker crash/restart tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Deepen existing adapters; no Kafka"
+    - id: P3-SCALE-001
+      title: "Validate two-instance service operation"
+      priority: P3
+      scope: "Scale"
+      dependencies: [P3-LEASE-001, P3-GRACE-001]
+      status: TODO
+      affected_modules: ["compose", "services configs", "health scripts"]
+      acceptance_criteria:
+        - "Production compose has no fixed container names or local session coupling and supports two instances"
+        - "Real registration/distribution/removal/rolling restart and one-instance failure are tested"
+      validation_commands:
+        - "Multi-instance Compose test profile"
+        - "Dubbo registration/load distribution tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Docker unavailability becomes BLOCKED_EXTERNAL"
+    - id: P3-HA-001
+      title: "Provide truthful stateful HA profiles"
+      priority: P3
+      scope: "HA"
+      dependencies: [P3-SCALE-001, P2-BACKUP-001]
+      status: TODO
+      affected_modules: ["compose", "database/redis/nacos/meilisearch configs", "runbooks"]
+      acceptance_criteria:
+        - "Shared HA MySQL, Redis and Nacos reference profiles preserve owner accounts and document real failover behavior"
+        - "At least one feasible failover drill/reconnect/brain-split check runs; unsupported MeiliSearch HA uses truthful recovery plan"
+      validation_commands:
+        - "HA config validation"
+        - "Failover drill where environment permits"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No five independent DB clusters, Kubernetes, or invented product capability"
+    - id: P3-IDENTITY-001
+      title: "Authenticate Dubbo workloads with mTLS"
+      priority: P3
+      scope: "Security/mTLS"
+      dependencies: [P0-SEC-005, P0-SEC-008]
+      status: TODO
+      affected_modules: ["platform/web-security", "services Dubbo config", "compose"]
+      acceptance_criteria:
+        - "Production Triple uses per-service mTLS identities with SAN/caller policy aligned to delegation audience"
+        - "Unknown expired wrong-SAN and unauthorized service certificates fail; keys are secret mounts with rotation"
+      validation_commands:
+        - "TLS config tests"
+        - "Wrong-certificate integration tests"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No real certificates are committed or rotated"
+    - id: P3-NET-001
+      title: "Restrict service network reachability"
+      priority: P3
+      scope: "Security/Network"
+      dependencies: [P3-IDENTITY-001]
+      status: TODO
+      affected_modules: ["compose", "infrastructure/nginx", "network contract tests"]
+      acceptance_criteria:
+        - "Ingress app data observability and Judge networks expose only required paths"
+        - "Admin/data planes are not public; dev exceptions cannot enter prod"
+      validation_commands:
+        - "Compose network topology test"
+        - "Forbidden reachability tests where runtime permits"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No broad all-service network by default"
+    - id: P3-JUDGE-001
+      title: "Remove production Docker socket trust"
+      priority: P3
+      scope: "Security/Judge"
+      dependencies: [P3-IDENTITY-001, P3-NET-001]
+      status: TODO
+      affected_modules: ["judge", "judge-runtime", "compose", "runbooks"]
+      acceptance_criteria:
+        - "Production cannot mount docker.sock and uses isolated remote/rootless TLS sandbox runtime"
+        - "Dev-only socket profile is explicit; sandbox CPU memory PID file timeout network readonly seccomp controls and trusted result channel are tested"
+      validation_commands:
+        - "Prod forbidden-socket gate"
+        - "Sandbox config/security tests"
+        - "Remote runtime smoke when available"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No host group or production runtime mutation"
+    - id: ARCH-CONTRACT-001
+      title: "Align contracts with bounded owners"
+      priority: P3
+      scope: "Architecture/Contracts"
+      dependencies: [P1-SEAM-001]
+      status: TODO
+      affected_modules: ["api modules", "services poms", "architecture tests"]
+      acceptance_criteria:
+        - "All contracts are classified by owner consumer transport lifecycle and moved to focused modules without cycles"
+        - "Migration compatibility contracts are removed while stable compatibility gate remains"
+      validation_commands:
+        - "Maven dependency graph"
+        - "Contract shape/japicmp"
+        - "ArchUnit"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Contract split does not create new services"
+    - id: ARCH-DUBBO-001
+      title: "Prune provider and reference sprawl"
+      priority: P3
+      scope: "Architecture/Dubbo"
+      dependencies: [ARCH-CONTRACT-001]
+      status: TODO
+      affected_modules: ["app", "admin", "all providers/adapters"]
+      acceptance_criteria:
+        - "Every provider/reference is a real domain capability or is removed/merged/moved"
+        - "Pure pass-through compatibility layers are deleted without creating a giant facade; future growth is gated"
+      validation_commands:
+        - "Provider/reference inventory"
+        - "Call-chain and ArchUnit checks"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Preserve facades with permission aggregation transaction cache or semantic value"
+    - id: ARCH-SEC-001
+      title: "Forbid duplicate security implementations"
+      priority: P0
+      scope: "Architecture/Security"
+      dependencies: [P0-SEC-004, P0-SEC-002]
+      status: TODO
+      affected_modules: ["platform/web-security", "all services architecture tests"]
+      acceptance_criteria:
+        - "Only the shared security implementation owns JWT/JWKS/filter/CSRF logic"
+        - "Architecture gate rejects service-local copies and forbidden production patterns"
+      validation_commands:
+        - "Security ArchUnit tests"
+        - "architecture-contract-test.sh"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Service-specific route policy remains declarative configuration"
+    - id: TEST-COV-001
+      title: "Enforce real non-regression coverage gates"
+      priority: P3
+      scope: "Testing/Coverage"
+      dependencies: [ARCH-SEC-001, P1-DATA-001]
+      status: TODO
+      affected_modules: ["all service poms", "tests", "ci"]
+      acceptance_criteria:
+        - "All configured gates are nonzero and not below remediated baselines; critical security/migration/idempotency code has explicit thresholds"
+        - "Negative fixture proves gate failure; no business-code exclusion inflation or skipped tests"
+      validation_commands:
+        - "mvn clean verify"
+        - "JaCoCo report/gate negative fixture"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Changed-code 80/70 only if reliably supported; module non-regression is mandatory"
+    - id: REVIEW-001
+      title: "Run first full standards and spec review"
+      priority: P3
+      scope: "Review"
+      dependencies: [TEST-COV-001, P3-JUDGE-001, P2-DEPLOY-001]
+      status: TODO
+      affected_modules: ["all changed files"]
+      acceptance_criteria:
+        - "Every changed file and full context is reviewed for standards and supplied spec"
+        - "Findings classify Confirmed False Positive Already Addressed Out of Scope; every Confirmed item is fixed"
+      validation_commands:
+        - "Three-dot diff from 8b4012b3d13678eaec38a82980c8e3558123b5a8"
+        - "Affected tests after fixes"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Separate Standards and Spec findings"
+    - id: REVIEW-002
+      title: "Run independent final implementation review"
+      priority: P3
+      scope: "Review"
+      dependencies: [REVIEW-001]
+      status: TODO
+      affected_modules: ["all final files"]
+      acceptance_criteria:
+        - "Final implementation is reread independently, not merely checked against round-one findings"
+        - "Confirmed findings are zero after fixes and affected/full gates rerun"
+      validation_commands:
+        - "Final standards/spec/security review"
+        - "Full verification"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "Required before final commit sequence closes"
+    - id: CLOSURE-001
+      title: "Close tasks commits evidence and final report"
+      priority: P3
+      scope: "Closure"
+      dependencies: [REVIEW-002]
+      status: TODO
+      affected_modules: [".auto-flow", "docs", "git"]
+      acceptance_criteria:
+        - "Traceability tasks commits checkpoint Git and final report agree with no unexplained status"
+        - "All repository tasks are DONE or genuine BLOCKED_EXTERNAL; production/staging claims remain truthful"
+      validation_commands:
+        - "Full Maven/Compose/security/migration gates"
+        - "git diff/status/commit reachability"
+        - "graphify update"
+      evidence: []
+      commit: null
+      blocked_by: []
+      notes: "No push or production apply without separate authorization"

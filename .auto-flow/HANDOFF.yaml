@@ -1,16 +1,19 @@
-outcome: blocked
+outcome: in_progress
+objective: "Implement and verify architecture remediation P0-P3 in the repository"
+branch: fix/architecture-remediation
+baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
+active_task: P0-SEC-001
 outputs:
-  - "All repository-actionable Services issues implemented/reclassified and verified"
-  - "Formal Standards/Spec/Security Reviews: Confirmed=0"
-  - "SVC-003-GATE remains blocked_external; compatibility code retained"
+  - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
+  - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
+  - "P0-SEC-001 actual Set-Cookie regression is RED on missing Secure and SameSite"
 evidence:
-  - "verify: 2714 tests; all *IT: 233 tests; zero failures/errors"
-  - "quick/N-1/Compose/architecture/docs/YAML/diff/graph/coverage gates passed"
-next_goal: "Collect real SVC-003 14-day observation, drain, error-budget, checksum, and target rollback evidence"
-next_skill: none
-reason: "All safe in-repository work is complete; the only unfinished Task requires an external continuous environment and evidence that cannot be fabricated locally"
-alternatives:
-  - skill: run-development-loop
-    when: "SVC-003 external observation evidence becomes available"
+  - ".auto-flow/evidence/architecture-remediation-20260830"
+next_goal: "Commit baseline and RED checkpoints, then make the shared cookie policy GREEN"
+next_skill: springboot-tdd
+reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers:
-  - "SVC-003 external observation environment and evidence"
+  - id: DOCKER-ENV
+    status: BLOCKED_EXTERNAL
+    detail: "Current user is not in docker group; daemon socket is root:docker 0660"
+    unblock: "Re-login/newgrp after external group grant, or provide an authorized rootless/remote Docker context; then run ./scripts/dev/test.sh quick"

@@ -1,0 +1,31 @@
+{
+  "commands": {
+    "maven-clean-compile": "maven-clean-compile exit=0 duration_seconds=14",
+    "maven-clean-test": "maven-clean-test exit=0 duration_seconds=86",
+    "maven-clean-verify": "maven-clean-verify exit=0 duration_seconds=86"
+  },
+  "surefire": {
+    "reports": 809,
+    "tests": 2739,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 20
+  },
+  "jacoco": [
+    {
+      "module": "admin",
+      "line": 62.0,
+      "branch": 47.9
+    },
+    {
+      "module": "notification",
+      "line": 55.9,
+      "branch": 39.4
+    },
+    {
+      "module": "app/app-web",
+      "line": 54.1,
+      "branch": 42.4
+    }
+  ]
+}

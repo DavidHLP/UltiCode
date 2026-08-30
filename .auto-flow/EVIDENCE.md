@@ -25,3 +25,13 @@
 - Final N-1: temporary `origin/main@4e8e9ff80` app/submission API baseline install exit 0; current package and japicmp contract-compat exit 0; temporary worktree removed.
 - Final static/runtime config: architecture/docs/DevStack contracts, bash syntax, Compose dev/prod config, 3 YAML files, and `git diff --check` exit 0.
 - Graphs: final Graphify update 27545 nodes / 80685 edges / exit 0; current Codebase Memory generation indexed 43719 nodes / 188931 edges. Key new paths metadata_match with no recorded gaps; scripts remain excluded and were read directly.
+
+## Architecture remediation 2026-08-30
+
+- Git baseline: branch main, HEAD 8b4012b3d13678eaec38a82980c8e3558123b5a8, origin/main 9672a9765, ahead 1, clean worktree; remediation branch fix/architecture-remediation created before implementation.
+- Task graph: .auto-flow/TASKS.yaml parses as YAML with 42 unique current tasks, all required fields, allowed statuses, and CTX-001 as the only IN_PROGRESS task.
+- Static baseline: architecture contract, documentation contract, owner migration preflight, Compose dev config, and Compose prod config all exit 0. Logs are in .auto-flow/evidence/architecture-remediation-20260830/.
+- Docker baseline: CLI 29.7.2 and Compose 5.5.0 available; daemon access denied because uid 1000 is not in group docker and /var/run/docker.sock is root:docker mode 0660. docker version/info exit 1; Docker-dependent gates are not PASS.
+- Maven baseline: clean compile exit 0 in 14s; clean test exit 0 in 86s; clean verify exit 0 in 86s. Surefire: 809 reports / 2739 tests / 0 failures / 0 errors / 20 skipped. JaCoCo line/branch: Admin 62.0%/47.9%, Notification 55.9%/39.4%, App Web 54.1%/42.4%.
+- P0-SEC-001 RED: focused Auth test ran 4 tests with 4 assertion failures because emitted Set-Cookie headers lack Secure and SameSite=Lax; no setup or execution errors.
+- [降级执行] Java LSP references were unavailable for CookieMutation, SessionCookieAdapter, and JwtProperties. Codebase Memory and direct-source reads supplied caller/implementation evidence instead.

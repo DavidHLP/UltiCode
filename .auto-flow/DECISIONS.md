@@ -48,3 +48,18 @@
 - Alternatives: Build speculative HA/isolation/event/SLO infrastructure or fabricate observation history (rejected: violates the issue registry and current project scope).
 - Consequences: The development branch reaches the strongest honest state; Objective closure is blocked only if the user interprets externally-triggered entries as requiring unavailable production evidence.
 - Affected tasks: SVC-003-GATE, SVC-007-010-GATES.
+
+## Architecture remediation execution decisions (2026-08-30)
+
+### Treat the new directive as repository-cutover authority, not production-cutover evidence
+
+- Context: the prior SVC-003 decision retained compatibility until external 14-day evidence; the new user directive explicitly authorizes repository implementation, migrations, tests, CI/CD, ADRs, and local commits while forbidding unapproved production actions.
+- Decision: remove repository compatibility writers and legacy ownership only after new automated backfill/reconciliation/rollback proofs pass. Mark real traffic observation, real production migration, credential rotation, HA failover, and production deployment as external; never describe repository completion as production application.
+- Alternatives: retain all compatibility code indefinitely (rejected by the explicit clean-cutover task); fabricate production evidence (forbidden); execute production actions without authority (forbidden).
+- Consequences: the repository can converge to the target architecture and produce executable runbooks while production application remains separately gated.
+- Affected tasks: P1-SUB-001 through P1-DATA-001, P2-MIG-001, CLOSURE-001.
+
+### Reuse existing control planes and deep modules
+
+- Decision: extend .auto-flow, services/docs/SERVICES_ISSUES.md, owner migration manifest, Streams/Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, and architecture gates. Do not create a parallel task system or replacement architecture.
+- Affected tasks: all architecture_remediation_20260830 tasks.

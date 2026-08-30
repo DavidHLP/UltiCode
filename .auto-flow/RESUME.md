@@ -1,13 +1,15 @@
 # Resume
 
-- Objective: close every repository-actionable item in `services/docs/SERVICES_ISSUES.md`, preserve evidence-based external trigger boundaries, and reach a verified Services terminal state.
-- Active task: none ready; `SVC-003-GATE` is `blocked_external`.
-- Scope: SVC-001..010, their contracts/callers/config/workflows/tests/docs, and objective-level Services validation.
-- Invariants: preserve Owner/single-writer boundaries, fail-closed Judge/security behavior, bounded batch reads, compatibility rollback seams until their recorded gates pass, the development-only environment boundary, and prior completed `.auto-flow` history.
-- Delivery authority: local reversible implementation and validation only; no commit, push, merge, release, deploy, production data, or third-party mutation was authorized.
-- Protected worktree: business worktree was clean at `main@c3ceb69136b1678fde13461472ce191227a08167`; existing `.auto-flow` Garden history is retained.
-- Repository result: every actionable SVC task and objective Review/Validation gate passed; Standards/Spec/Security Confirmed Findings = 0.
-- Validation: verify 2714 tests and all `*IT` 233 tests passed with zero failures/errors; quick, N-1 compatibility, Compose, architecture/docs/YAML/diff and graph gates passed.
-- Blocker: SVC-003 requires a real continuous environment and 14-day write/fence/read observation, zero local activity, drain/error-budget/checksum evidence, and verified target rollback. Development rehearsal cannot satisfy it.
-- Next: when that external evidence exists, rerun SVC-003-GATE; until then keep local/remote routing, App-local writer/outbox/reaper/read adapters, legacy rollback and deprecated compatibility provider.
-- Delivery: no commit/push/deploy was authorized; business changes remain verified and uncommitted. `.auto-flow` stays excluded from delivery.
+- Objective: implement the user-authorized microservice architecture remediation across P0-P3, repository delivery controls, verification, two reviews, local commits, and truthful external blockers.
+- Active task: P0-SEC-001 shared secure-cookie policy; a focused HTTP-header regression is RED.
+- Branch: fix/architecture-remediation from main@8b4012b3d13678eaec38a82980c8e3558123b5a8; origin/main is one commit behind the baseline.
+- Scope: the 42 tasks under architecture_remediation_20260830 in .auto-flow/TASKS.yaml.
+- Invariants: retain five Data Owners, two Workers, Submission Owner, Streams adapters, Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, contract gate, owner migration manifest, idempotency, and user work.
+- Explicit exclusions: Kubernetes, Service Mesh, Kafka, Seata, further App service split, and five independent database clusters.
+- Authority: repository code/config/migration/scripts/tests/docs/local commits are authorized; push, production data, production deploy, production credential rotation, sudo/group mutation, and production account changes are not.
+- Baseline static gates: architecture/docs/migration-preflight/Compose dev/Compose prod all exit 0; evidence is under .auto-flow/evidence/architecture-remediation-20260830/.
+- Docker blocker: current user lacks group docker; docker version/info exit 1 on /var/run/docker.sock root:docker 0660. Do not rerun Docker-dependent gates until re-login/newgrp or another non-mutating compatible context exists.
+- Maven baseline: clean compile/test/verify all exit 0; 809 Surefire reports, 2739 tests, 0 failures, 0 errors, 20 skipped. Coverage summary is persisted in maven-summary.json.
+- Degraded tooling: Java LSP references were unavailable, so exported-symbol impact discovery uses Codebase Memory plus direct source.
+- Next: commit the baseline/traceability checkpoint and the P0-SEC-001 RED checkpoint, then implement the minimum shared cookie policy.
+- Delivery: local Conventional Commits only; no push.

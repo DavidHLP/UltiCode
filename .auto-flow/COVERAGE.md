@@ -50,3 +50,14 @@ Delivery authority excludes commit, push, merge, release, deploy, production dat
 - Formal Review: Standards 0, Spec 0, Security 0 Confirmed Findings.
 - Validation: reactor verify 2714 tests; `*IT` 233 tests; zero failures/errors. Supported quick, N-1 compatibility, architecture/docs/DevStack, Compose dev/prod, YAML, graph, coverage and diff gates passed.
 - Delivery: verified dirty worktree, no commit/push/deploy authorization.
+
+## Architecture remediation 2026-08-30
+
+The complete finding-to-task matrix is maintained in docs/architecture/remediation-traceability.md. The canonical finding text and lifecycle remain in services/docs/SERVICES_ISSUES.md; this coverage section links execution rather than duplicating the registry.
+
+- P0 browser and internal security: P0-SEC-001..008 and ARCH-SEC-001.
+- P1 owner cutovers and data seams: P1-SUB-001..004, P1-NOT-001, P1-DATA-001, P1-AUDIT-001, P1-SEAM-001.
+- P2 production control plane: P2-MIG-001, P2-BACKUP-001, P2-REDIS-001, P2-TLS-001, P2-SC-001, P2-OBS-001, P2-DEPLOY-001.
+- P3 resilience and HA: P3-SCHED-001, P3-LEASE-001, P3-GRACE-001, P3-RES-001, P3-STREAM-001, P3-SCALE-001, P3-HA-001, P3-IDENTITY-001, P3-NET-001, P3-JUDGE-001.
+- Architecture/testing/closure: ARCH-CONTRACT-001, ARCH-DUBBO-001, TEST-COV-001, REVIEW-001, REVIEW-002, CLOSURE-001.
+- Explicit ADR deferrals: Kubernetes, Service Mesh, Kafka, Seata, further App service split, and five independent database clusters.

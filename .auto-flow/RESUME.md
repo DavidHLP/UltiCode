@@ -1,7 +1,7 @@
 # Resume
 
 - Objective: implement the user-authorized microservice architecture remediation across P0-P3, repository delivery controls, verification, two reviews, local commits, and truthful external blockers.
-- Active task: P1-SUB-004 Submission reconciliation to owner facts; P0-SEC-001 through P1-SUB-003 are complete, with live Redis/Nacos/Dubbo/MySQL migration/runtime integration externally blocked.
+- Active task: P1-NOT-001 Notification owner persistence cutover; P0-SEC-001 through P1-SUB-004 are complete, with live Redis/Nacos/Dubbo/MySQL migration/runtime integration externally blocked.
 - Branch: fix/architecture-remediation from main@8b4012b3d13678eaec38a82980c8e3558123b5a8; origin/main is one commit behind the baseline.
 - Scope: the 42 tasks under architecture_remediation_20260830 in .auto-flow/TASKS.yaml.
 - Invariants: retain five Data Owners, two Workers, Submission Owner, Streams adapters, Inbox, Worker SLO, AdminUserEnricher, BackupProcessPort, contract gate, owner migration manifest, idempotency, and user work.
@@ -18,5 +18,6 @@
 - Completed P1-SUB-001: App Submission intake is owner-only; local mutation/fence/rejudge/outbox compatibility code is deleted; GREEN d4a493b92.
 - Completed P1-SUB-002: Admin rejudge is owner-routed with RS256 delegated identity, owner CAS/lease transitions, durable command receipts, and owner judge outbox; GREEN 3a8f931. Live owner runtime remains Docker-blocked.
 - Completed P1-SUB-003: resumable insert-only Submission backfill with checkpoint resume, failure export, parity/writer gate, and cutover sequencing; GREEN 73d9f78. Disposable MySQL rehearsal remains Docker-blocked.
-- Next: move Submission reconciliation to owner facts, then continue Notification, Audit, resilience, delivery, and final review gates.
+- Completed P1-SUB-004: Submission reconciliation now consumes bounded owner facts with explicit full/incremental modes, multi-replica advisory locking, failure metrics/details, and no App submissions SQL; GREEN 8a521d7. Owner integration remains Docker-blocked.
+- Next: complete Notification owner persistence cutover, then continue Audit, resilience, delivery, and final review gates.
 - Delivery: local Conventional Commits only; no push.

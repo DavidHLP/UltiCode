@@ -1,0 +1,31 @@
+task: P1-SUB-004
+status: PASS_WITH_EXTERNAL_GATE
+commit: 8a521d7
+checks:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin,submission,app/app-web -am test-compile -B"
+    result: PASS
+    detail: "Targeted test compilation passed after changing the single Submission orphan result from addAll to add."
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin,submission,app/app-web -am -Dtest=OwnerReconcilerTest,DefaultAppReconciliationReadPortTest,SubmissionReconciliationReadProviderTest,SubmissionProviderContractTest,SubmissionApiContractShapeTest -Dsurefire.failIfNoSpecifiedTests=false test -B"
+    result: PASS
+    detail: "Focused Surefire reports total 32 tests, 0 failures, 0 errors, and 0 skipped; nested OwnerReconciler reports were summed."
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin,submission,app/app-web -am test -B"
+    result: PASS
+    detail: "Fresh Surefire XML from the affected reactor totals 711 suites, 2404 tests, 0 failures, 0 errors, and 19 skipped."
+  - command: "rtk ./scripts/dev/architecture-contract-test.sh"
+    result: PASS
+    detail: "Owner provider/mapper/adapter, incremental and lease seams, and the App submissions-SQL prohibition pass along with existing architecture contracts."
+  - command: "rtk bash scripts/dev/docs-contract-test.sh"
+    result: PASS
+    detail: "Documentation contract passes after the reconciliation owner-facts section and SVC-003 status update."
+  - command: "rtk git diff --check"
+    result: PASS
+  - command: "rtk graphify update ."
+    result: PASS
+    detail: "Graph refreshed to 27410 nodes, 81471 edges, and 869 communities. The environment reported the existing tree_sitter_sql-missing warning for 101 SQL files."
+external_gate:
+  - command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin,submission -am -Dtest=OwnerReconcilerIT,SubmissionAdminReadProviderIT -Dsurefire.failIfNoSpecifiedTests=false test -B"
+    result: BLOCKED_EXTERNAL
+    detail: "Testcontainers could not start because Docker access is denied: /var/run/docker.sock is root:docker 0660 and the current user is not in group docker. The run stopped before source assertions; no production or remote state was changed."
+red:
+  evidence: null
+  result: "The WIP resumed from the documented compiler error; no separate red artifact was required."

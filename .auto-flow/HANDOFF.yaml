@@ -2,7 +2,7 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P1-SUB-004
+active_task: P1-NOT-001
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -12,6 +12,7 @@ outputs:
   - "P1-SUB-001 owner-only intake committed as d4a493b92; App/Submission owner suite and duplicate-writer gate pass"
   - "P1-SUB-002 Admin rejudge owner cutover committed as 3a8f931; owner receipt/CAS/security and App boundary suites pass"
   - "P1-SUB-003 resumable backfill verification committed as 73d9f78; fake-MySQL checkpoint/parity/failure contract passes and disposable runtime is Docker-blocked"
+  - "P1-SUB-004 Submission reconciliation owner-facts cutover committed as 8a521d7; focused/affected suites and architecture/docs gates pass, Docker-backed integration is blocked"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -22,7 +23,8 @@ evidence:
   - "P1-SUB-001 evidence: p1-sub-001-red.result + p1-sub-001-green.result; commit d4a493b92"
   - "P1-SUB-002 evidence: p1-sub-002-red.result + p1-sub-002-green.result; commit 3a8f931; live owner runtime remains Docker-blocked"
   - "P1-SUB-003 evidence: p1-sub-003-green.result; commit 73d9f78; target backfill rehearsal remains Docker-blocked"
-next_goal: "Move Submission reconciliation to owner facts"
+  - "P1-SUB-004 evidence: p1-sub-004-green.result; commit 8a521d7; owner integration remains BLOCKED_EXTERNAL on Docker daemon access"
+next_goal: "Complete Notification owner persistence cutover"
 next_skill: migration
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers:

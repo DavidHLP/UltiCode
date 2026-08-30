@@ -84,3 +84,10 @@
 - Decision: make dry-run the default; process each owner table in primary-key batches with a schema-bound checkpoint, append-only failure export, insert-only target writes, NULL-safe field conflict detection, and no overwrite of existing owner rows. Require explicit backfill/quiesce confirmations for writes. Gate cutover on zero source/target count, checksum, missing/extra-key, field, and writer differences; cutover no longer performs an implicit full-table copy.
 - Consequences: a partial backfill resumes from the last completed boundary and a conflicting newer owner row fails closed with an actionable artifact. Disposable MySQL/Redis rehearsal is wired but remains environment-blocked until Docker access is available.
 - Affected tasks: P1-SUB-003, P1-SUB-004, P1-DATA-001.
+
+### Move Submission reconciliation to owner facts
+
+- Context: App reconciliation still queried the Submission-owned `submissions` table, while the scheduled Admin scan had no multi-replica lease or explicit incremental watermark.
+- Decision: expose grouped `SubmissionUserReferenceCountDTO` facts through `SubmissionReconciliationReadPort` with a 500-row page cap; run a nightly full scan and an explicit caller-watermarked incremental scan; use the existing owner boundaries and a connection-scoped MySQL advisory lock.
+- Consequences: busy replicas return an unpersisted `SKIPPED`; invalid owner pages and lock/owner failures persist actionable `FAILED` records and increment metrics. App retains only a wire-compatible zero placeholder until the later contract-contraction task. Docker-backed integration remains external.
+- Affected tasks: P1-SUB-004, P1-DATA-001, P1-AUDIT-001.

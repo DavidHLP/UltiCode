@@ -16,7 +16,7 @@ Start here; do not restart discovery from scratch.
    - `/home/david/Projects/UltiCode/AGENTS.md`
    - `/home/david/Projects/UltiCode/services/AGENTS.md` for backend work
    - the nearest nested `AGENTS.md` for any other subtree touched
-3. Preserve the dirty worktree. It is active P1-SUB-004 work, not disposable output.
+3. Preserve the dirty worktree. The P1-SUB-004 implementation is committed; any remaining `.auto-flow`/handoff metadata is active checkpoint work, not disposable output.
 4. Every shell command must be prefixed with `rtk`.
 5. Use Zulu Java 17 for Maven:
 
@@ -24,8 +24,8 @@ Start here; do not restart discovery from scratch.
    rtk mise exec java@zulu-17.68.203.0 -- ./mvnw ...
    ```
 
-6. Fix the current one-line compilation blocker first, then rerun targeted compile. Do not redesign or revert the current reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-SUB-004`.
+6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
+7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P1-NOT-001`.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -56,11 +56,10 @@ Repository work may make production actions executable and verifiable, but must 
 - Repository: `/home/david/Projects/UltiCode`
 - Branch: `fix/architecture-remediation`
 - Baseline: `main@8b4012b3d13678eaec38a82980c8e3558123b5a8`
-- Last committed checkpoint before current dirty WIP:
-  - `28563d0eeffadcf2f80915b7b68c2c178156c139`
-  - `chore(checkpoint): close Submission backfill task`
-- No staged changes at handoff creation time.
-- Dirty worktree contains active P1-SUB-004 implementation.
+- Last committed P1-SUB-004 implementation checkpoint:
+  - `8a521d7`
+  - `refactor(submission): move reconciliation to owner facts`
+- Follow-on `.auto-flow` and handoff checkpoint metadata is intentionally dirty until the checkpoint commit.
 - `git diff --check` currently passes.
 - OS: Arch Linux, x86_64.
 - Working Java: Zulu `17.0.20.1` via mise.
@@ -136,7 +135,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 13 DONE, 29 TODO. `P1-SUB-004` is the active implementation task, although `.auto-flow/TASKS.yaml` still records it as TODO until its implementation/evidence checkpoint is complete.
+Current count: 14 DONE, 28 TODO. `P1-NOT-001` is the active implementation task; `P1-SUB-004` is closed in the repository with an external Docker-backed integration gate.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -151,7 +150,7 @@ Current count: 13 DONE, 29 TODO. `P1-SUB-004` is the active implementation task,
 - `P1-SUB-001`: DONE — Establish Submission owner-only mutation path
 - `P1-SUB-002`: DONE — Route Admin rejudge to Submission owner
 - `P1-SUB-003`: DONE — Build resumable Submission backfill verification
-- `P1-SUB-004`: TODO / ACTIVE WIP — Move Submission reconciliation to owner facts
+- `P1-SUB-004`: DONE — Move Submission reconciliation to owner facts
 - `P1-NOT-001`: TODO — Complete Notification owner persistence cutover
 - `P1-DATA-001`: TODO — Retire legacy data and compatibility contracts
 - `P1-AUDIT-001`: TODO — Remove cross-owner audit database writes
@@ -372,6 +371,7 @@ d4a493b92 refactor(submission): enforce owner-only intake
 82cfcf077 chore(checkpoint): close Submission owner tasks
 73d9f78e2 feat(migration): add resumable Submission backfill
 28563d0ee chore(checkpoint): close Submission backfill task
+8a521d7 refactor(submission): move reconciliation to owner facts
 ```
 
 ## 10. Important verification evidence already obtained
@@ -397,6 +397,7 @@ d4a493b92 refactor(submission): enforce owner-only intake
   - newer-owner protection PASS;
   - execute confirmation rejection PASS.
 - Current architecture gate includes Redis ACL, SSH identity, Nacos security, backfill contract, documentation drift, and ownership assertions.
+- P1-SUB-004: implementation commit `8a521d7`; focused 32 tests and affected reactor 711 suites/2404 tests pass with zero failures/errors, architecture/docs/diff/Graphify gates pass, and Docker-backed owner integration is BLOCKED_EXTERNAL.
 
 ### Runtime gates that were not run
 
@@ -405,7 +406,7 @@ d4a493b92 refactor(submission): enforce owner-only intake
 - Disposable MySQL/Redis owner migration/backfill rehearsal: Docker-blocked.
 - Production traffic/cutover/HA/failover/SLO evidence: external and not fabricated.
 
-## 11. Current dirty worktree — P1-SUB-004
+## 11. Completed checkpoint — P1-SUB-004
 
 ### Task acceptance criteria
 
@@ -418,7 +419,7 @@ From `.auto-flow/TASKS.yaml`:
 
 ### Current intended design
 
-The dirty WIP is moving Submission orphan reconciliation away from App:
+The committed implementation moves Submission orphan reconciliation away from App:
 
 - New Submission API DTO:
   - `SubmissionUserReferenceCountDTO(accountId, rowCount)`
@@ -430,7 +431,7 @@ The dirty WIP is moving Submission orphan reconciliation away from App:
 - Submission owner mapper groups `submissions.user_id` locally and pages by account ID.
 - Submission owner Dubbo provider validates cursor, page size, ordering, duplicates, nulls, and row counts.
 - Admin adapter references group `backend-submission`.
-- `OwnerReconciler` is being changed to:
+- `OwnerReconciler` now:
   - use Submission-owner facts for Submission orphan scans;
   - retain App facts only for App-owned children;
   - expose full and incremental entry points;
@@ -442,9 +443,9 @@ The dirty WIP is moving Submission orphan reconciliation away from App:
 - App reconciliation mapper should contain no SQL against `submissions`.
 - Architecture gate now rejects App reconciliation `submissions` SQL and requires the new owner adapter/lock/incremental method.
 
-### Dirty worktree files
+### Implementation checkpoint files
 
-Modified:
+Committed in `8a521d7`:
 
 ```text
 scripts/dev/architecture-contract-test.sh
@@ -462,7 +463,7 @@ services/submission/src/test/java/com/ulticode/submission/dubbo/provider/Submiss
 services/submission/src/test/java/com/ulticode/submission/provider/SubmissionProviderContractTest.java
 ```
 
-Untracked active WIP:
+Additional committed files:
 
 ```text
 services/admin/src/main/java/com/ulticode/modules/reconciliation/port/adapter/DubboSubmissionReconciliationReadAdapter.java
@@ -473,163 +474,53 @@ services/submission/src/main/java/com/ulticode/submission/dubbo/provider/Submiss
 services/submission/src/test/java/com/ulticode/submission/dubbo/provider/SubmissionReconciliationReadProviderTest.java
 ```
 
-No WIP files are staged.
+The implementation commit is clean; the follow-on `.auto-flow` checkpoint records task status and evidence.
 
-### Current compile status
+### Completed verification status
 
-Latest command:
+- Targeted `test-compile` exits 0 with Zulu 17.
+- Focused owner-facts/contract tests: 32 tests, 0 failures, 0 errors, 0 skipped.
+- Affected reactor: 711 fresh Surefire suites, 2404 tests, 0 failures, 0 errors, 19 skipped.
+- Architecture contract, documentation contract, and `git diff --check` exit 0.
+- Graphify update exits 0 with 27410 nodes, 81471 edges, and 869 communities; the environment still lacks `tree_sitter_sql` for 101 SQL files.
+- Owner integration command reaches Testcontainers and is `BLOCKED_EXTERNAL` because Docker socket access is denied; it is not a source PASS.
 
-```bash
-cd /home/david/Projects/UltiCode/services
-rtk mise exec java@zulu-17.68.203.0 -- ./mvnw \
-  -pl admin,submission,app/app-web -am test-compile -B
-```
+### Completed follow-ups and next task
 
-Result: exit 1.
+1. `OwnerReconciler` has one nightly scheduler, valid escaped JSON details, explicit full/incremental entry points, and a transaction-scoped advisory lease.
+2. `SKIPPED` is documented as an in-memory status and is returned only for a busy lease; lock errors persist `FAILED` when the database remains writable.
+3. Focused tests cover full paging, incremental watermark propagation, invalid/duplicate/ordered facts, busy leases, lock/owner failures, actionable metrics/details, and App's removed Submission SQL.
+4. `OwnerReconcilerIT` and Submission owner integration are wired for real grouped full/incremental facts but remain Docker-blocked in this host.
+5. Repository documentation, task/evidence ledgers, and Graphify were updated after green repository checks.
+6. Continue immediately with `P1-NOT-001` (Notification owner persistence cutover).
 
-Current first compilation blocker:
+## 12. Completed execution sequence and next task
 
-```text
-services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java
-line around 139:
-OrphanDetectionResult cannot be converted to Collection<? extends OrphanDetectionResult>
-```
-
-Exact current bug:
-
-```java
-orphanResults.addAll(submissionOrphans(createdSince));
-```
-
-`submissionOrphans` returns one `OrphanDetectionResult`, so the immediate fix is:
-
-```java
-orphanResults.add(submissionOrphans(createdSince));
-```
-
-After this one-line fix, rerun the same `test-compile`; additional compilation/test issues may surface because the WIP has not reached a green checkpoint.
-
-Latest compile log:
-
-```text
-~/.local/share/rtk/tee/1788089296_mise_exe_4e4091.log
-```
-
-### Known WIP follow-ups after compile advances
-
-1. Ensure `OwnerReconciler` has only one scheduled method and valid JSON serialization. The duplicate scheduler was already removed, but verify source after compile.
-2. Update `ReconciliationRun` status Javadoc if `SKIPPED` remains a supported in-memory status.
-3. Decide and prove the “nightly full/incremental” acceptance precisely:
-   - current WIP schedules a nightly full run;
-   - it exposes an explicit incremental method with a caller-supplied watermark;
-   - if acceptance requires a scheduled incremental run, add a bounded schedule and durable successful watermark instead of inventing an untracked `now-minus-X` heuristic.
-4. MySQL advisory locks are connection-scoped. Keep acquire/work/release inside one Spring transaction/SqlSession in production. The current `@Transactional` boundary is intended to ensure this; verify with the real Admin IT when Docker is available.
-5. Ensure `OwnerReconcilerIT` direct MyBatis invocation uses one session for lock acquire/release.
-6. Ensure failure details are valid JSON and include mode plus actionable exception type/message without exposing secrets.
-7. Replace the mocked `MeterRegistry` with `SimpleMeterRegistry` or explicit counter mocks if tests must prove failure/skip metrics.
-8. Add/retain tests proving:
-   - full Submission owner scan;
-   - incremental watermark propagation;
-   - bounded pages and monotonic cursor;
-   - invalid/duplicate/out-of-order owner facts fail closed;
-   - busy advisory lock produces SKIPPED and no persisted run;
-   - failed owner RPC persists FAILED with an actionable error detail and increments failure metric;
-   - App no longer queries `submissions` for reconciliation;
-   - Submission owner integration returns grouped full and incremental facts.
-9. Run `git diff --check` before any commit.
-10. Update `PROJECT_DOCUMENTATION.md`, `services/docs/SERVICES_ISSUES.md`, `.auto-flow` evidence/status/worklog/decisions, and Graphify only after the implementation and tests are green.
-
-## 12. Exact next execution sequence
-
-Use this order.
+The handoff sequence is complete for P1-SUB-004. The implementation commit is `8a521d7`; the task/evidence/ledger checkpoint advances the next agent to P1-NOT-001.
 
 ### Step A — fix and compile
 
-```bash
-cd /home/david/Projects/UltiCode
-# Edit OwnerReconciler: addAll(...) -> add(...)
-cd services
-rtk mise exec java@zulu-17.68.203.0 -- ./mvnw \
-  -pl admin,submission,app/app-web -am test-compile -B
-```
+The documented `OwnerReconciler` `addAll` type error was fixed with `add`; the Zulu 17 targeted `test-compile` exits 0.
 
-Completion criterion: test compilation exits 0. Fix each real compiler error at the responsible source; do not suppress or delete the owner-facts behavior.
+### Step B — focused unit/contract tests
 
-### Step B — run focused unit/contract tests
+The focused owner-facts command exits 0 with 32 tests, 0 failures, 0 errors, and 0 skipped after nested reports are summed.
 
-Suggested focused command after compile succeeds:
+### Step C — integration tests
 
-```bash
-cd /home/david/Projects/UltiCode/services
-rtk mise exec java@zulu-17.68.203.0 -- ./mvnw \
-  -pl admin,submission,app/app-web -am \
-  -Dtest=OwnerReconcilerTest,DefaultAppReconciliationReadPortTest,SubmissionReconciliationReadProviderTest,SubmissionProviderContractTest,SubmissionApiContractShapeTest \
-  -Dsurefire.failIfNoSpecifiedTests=false test -B
-```
-
-Completion criterion: all focused tests pass and protect the observable owner-boundary behavior.
-
-### Step C — run integration tests when possible
-
-Relevant ITs:
-
-```bash
-cd /home/david/Projects/UltiCode/services
-rtk mise exec java@zulu-17.68.203.0 -- ./mvnw \
-  -pl admin,submission -am \
-  -Dtest=OwnerReconcilerIT,SubmissionAdminReadProviderIT \
-  -Dsurefire.failIfNoSpecifiedTests=false test -B
-```
-
-If Docker remains unavailable, record these as `BLOCKED_EXTERNAL`; do not call them PASS.
+`OwnerReconcilerIT`/`SubmissionAdminReadProviderIT` are wired for real MySQL-backed checks, but the command is `BLOCKED_EXTERNAL` at Testcontainers startup because the current user cannot access `/var/run/docker.sock`. It is not a PASS.
 
 ### Step D — static ownership gates
 
-```bash
-cd /home/david/Projects/UltiCode
-rtk ./scripts/dev/architecture-contract-test.sh
-rtk bash scripts/dev/docs-contract-test.sh
-rtk git diff --check
-```
-
-Completion criterion:
-
-- no App reconciliation SQL against `submissions`;
-- Admin adapter targets `backend-submission`;
-- owner provider and mapper exist;
-- full/incremental method exists;
-- multi-replica lease gate exists;
-- all existing architecture/docs/backfill/security gates pass.
+Architecture contract, documentation contract, and `git diff --check` all exit 0. The gates prove no App reconciliation `submissions` SQL, the `backend-submission` adapter/provider seam, bounded full/incremental methods, and the advisory lease.
 
 ### Step E — affected-module suite
 
-```bash
-cd /home/david/Projects/UltiCode/services
-rtk mise exec java@zulu-17.68.203.0 -- ./mvnw \
-  -pl admin,submission,app/app-web -am test -B
-```
+The affected reactor command exits 0 with 711 fresh Surefire suites, 2404 tests, 0 failures, 0 errors, and 19 skipped.
 
-Parse Surefire XML for exact report/test/failure/error/skipped totals before recording evidence.
+### Step F — documentation, graph, commit, checkpoint
 
-### Step F — documentation, graph, diff, commit, checkpoint
-
-1. Update `PROJECT_DOCUMENTATION.md` with the full/incremental owner-facts reconciliation route, lease, metrics, and external runtime blocker.
-2. Update `services/docs/SERVICES_ISSUES.md` SVC-003 retirement state.
-3. Run:
-
-   ```bash
-   rtk graphify update .
-   rtk git diff --check
-   ```
-
-4. Commit implementation with a Conventional Commit, likely:
-
-   ```text
-   refactor(submission): move reconciliation to owner facts
-   ```
-
-5. Create `.auto-flow/evidence/architecture-remediation-20260830/p1-sub-004-green.result` with exact commands/results and Docker external gates.
-6. Mark P1-SUB-004 DONE in `.auto-flow/TASKS.yaml`, add commit/evidence, advance handoff to P1-NOT-001, update evidence/worklog/decisions/resume, and make a checkpoint commit.
+`PROJECT_DOCUMENTATION.md`, `services/docs/SERVICES_ISSUES.md`, `.auto-flow/TASKS.yaml`, evidence, worklog, decisions, resume state, and this handoff were updated. Graphify exits 0 with 27410 nodes, 81471 edges, and 869 communities; the existing missing `tree_sitter_sql` warning for 101 SQL files is recorded. Continue with `P1-NOT-001`.
 
 ## 13. Decisions and tradeoffs already made
 
@@ -704,16 +595,14 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed implementation checkpoint: green for P1-SUB-003 static/fake-DB gates.
-- Current P1-SUB-004 dirty WIP: not green.
-- Current targeted `test-compile`: FAIL, one known source error at `OwnerReconciler` `addAll` vs `add`.
-- Current `git diff --check`: PASS.
-- No current WIP tests may be claimed as passing until rerun after compile succeeds.
-- Docker-dependent runtime gates remain `BLOCKED_EXTERNAL`.
+- Last committed P1-SUB-004 implementation checkpoint: `8a521d7`, green for targeted compile, focused tests, affected-module tests, architecture/docs/diff gates, and Graphify.
+- Current active task: `P1-NOT-001`.
+- Current P1-SUB-004 owner integration remains `BLOCKED_EXTERNAL` at Docker/Testcontainers initialization; no runtime or production evidence is fabricated.
+- `.auto-flow` task/evidence/worklog/decision/resume state records the completed task and exact verification totals.
 
 ## 17. Handoff stop condition
 
-The next agent should not stop after merely fixing compilation. P1-SUB-004 is complete only when:
+P1-SUB-004 is complete in the repository when:
 
 - Submission owner serves bounded full/incremental reconciliation facts;
 - Admin consumes those facts with no App `submissions` SQL;
@@ -724,4 +613,4 @@ The next agent should not stop after merely fixing compilation. P1-SUB-004 is co
 - architecture/docs/diff/Graphify gates pass;
 - implementation, evidence, task status, handoff, and local commits are updated together.
 
-Then continue immediately to P1-NOT-001 unless an actual external-only gate prevents repository work.
+Those conditions are met by `8a521d7` plus the follow-on `.auto-flow` checkpoint. Continue immediately to P1-NOT-001; Docker-only runtime evidence remains external.

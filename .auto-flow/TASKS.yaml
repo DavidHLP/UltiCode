@@ -613,7 +613,7 @@ architecture_remediation_20260830:
       priority: P1
       scope: "Submission/Reconciliation"
       dependencies: [P1-SUB-003]
-      status: TODO
+      status: DONE
       affected_modules: ["submission-api", "submission", "admin", "app"]
       acceptance_criteria:
         - "Nightly full/incremental reconciliation consumes Submission-owner bounded facts and is multi-replica safe"
@@ -622,10 +622,11 @@ architecture_remediation_20260830:
         - "Owner facts contract tests"
         - "Reconciliation integration tests"
         - "Forbidden SQL architecture gate"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-004-green.result"
+      commit: 8a521d7
       blocked_by: []
-      notes: "Do not add cross-owner joins"
+      notes: "Repository reconciliation is complete; Docker-backed integration remains BLOCKED_EXTERNAL. Do not add cross-owner joins"
     - id: P1-NOT-001
       title: "Complete Notification owner persistence cutover"
       priority: P1

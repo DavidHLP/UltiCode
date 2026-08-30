@@ -47,6 +47,10 @@
 			<groupId>com.ulticode</groupId>
 			<artifactId>backend-web-security</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-integration-inbox</artifactId>
+		</dependency>
 
 		<!-- MapStruct runtime dependency (previously transitive via backend-legacy) -->
 		<dependency>

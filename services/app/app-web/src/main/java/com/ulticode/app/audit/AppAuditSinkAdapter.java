@@ -12,11 +12,9 @@ import org.springframework.stereotype.Component;
  * App-local production adapter for {@link AuditSinkPort}
  * (P7-AUDIT-SINK-OWNER-BINDING-001).
  *
- * <p>Writes audit records into {@code admin.audit_outbox} within the caller's
- * local transaction using the App datasource, per the standing audit rule:
- * audit writes never cross Dubbo, so a rollback of the business transaction
- * also rolls back its audit rows. Insert-only; the single outbox dispatcher
- * remains in backend-admin.
+ * <p>Writes audit records into App's local {@code audit_outbox} within the
+ * caller's transaction. A local dispatcher publishes the committed row as an
+ * event; Admin never reads App tables.
  */
 @Slf4j
 @Component
@@ -47,9 +45,12 @@ public class AppAuditSinkAdapter implements AuditSinkPort {
         record.setIpAddress(ipAddress);
         record.setUserAgent(userAgent);
         record.setState("PENDING");
-        record.setCreatedAt(LocalDateTime.now(clock));
+        LocalDateTime createdAt = LocalDateTime.now(clock);
+        record.setCreatedAt(createdAt);
+        record.setAttempts(0);
+        record.setNextRetryAt(createdAt);
 
         appAuditOutboxMapper.insert(record);
-        log.debug("Audit record written to admin.audit_outbox: {} by {}", action, performerId);
+        log.debug("Audit record written to App audit_outbox: {} by {}", action, performerId);
     }
 }

@@ -44,6 +44,12 @@ app:
     contest-dubbo-cutover: ${APP_FEATURES_CONTEST_DUBBO_CUTOVER:false}
     submission-dubbo-cutover: ${APP_FEATURES_SUBMISSION_DUBBO_CUTOVER:false}
 
+admin:
+  audit:
+    inbox:
+      enabled: ${ADMIN_AUDIT_INBOX_ENABLED:true}
+      interval-ms: ${ADMIN_AUDIT_INBOX_INTERVAL_MS:2000}
+
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.ulticode.modules.admin.entity

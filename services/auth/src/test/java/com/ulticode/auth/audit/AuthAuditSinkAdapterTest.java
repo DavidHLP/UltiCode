@@ -30,7 +30,7 @@ class AuthAuditSinkAdapterTest {
     }
 
     @Test
-    @DisplayName("log inserts a PENDING record into admin.audit_outbox")
+    @DisplayName("log inserts a PENDING record into Auth audit_outbox")
     void log_insertsPendingRecordIntoOutbox() {
         adapter.log(
                 "performer-123",
@@ -60,10 +60,10 @@ class AuthAuditSinkAdapterTest {
     }
 
     @Test
-    @DisplayName("record targets the schema-qualified admin.audit_outbox table")
-    void record_targetsSchemaQualifiedAuditOutbox() {
+    @DisplayName("record targets the Auth-local audit_outbox table")
+    void record_targetsLocalAuditOutbox() {
         com.baomidou.mybatisplus.annotation.TableName tableName =
                 AuthAuditOutboxRecord.class.getAnnotation(com.baomidou.mybatisplus.annotation.TableName.class);
-        assertThat(tableName.value()).isEqualTo("admin.audit_outbox");
+        assertThat(tableName.value()).isEqualTo("audit_outbox");
     }
 }

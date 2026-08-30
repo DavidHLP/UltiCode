@@ -35,6 +35,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         basePackages = {
                 "com.ulticode.admin",
                 "com.ulticode.modules.admin",
+                "com.ulticode.modules.event.inbox",
                 "com.ulticode.modules.backup",
                 "com.ulticode.modules.reconciliation",
                 "com.ulticode.common"
@@ -43,6 +44,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @MapperScan({
         "com.ulticode.modules.admin.mapper",
         "com.ulticode.modules.admin.outbox.mapper",
+        "com.ulticode.modules.event.inbox",
         "com.ulticode.modules.backup.mapper",
         "com.ulticode.modules.reconciliation",
 })

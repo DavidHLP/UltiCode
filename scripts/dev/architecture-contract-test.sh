@@ -317,6 +317,46 @@ if grep -REn --include='*.java' \
   fail "App contains Notification-owned persistence or runtime implementation references"
 fi
 
+# P1-AUDIT-001: every producer writes only its owner-local audit outbox and
+# Admin consumes the event through a durable, idempotent inbox.
+for audit_source in \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxRecord.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxMapper.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditSinkAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxRecord.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxMapper.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditSinkAdapter.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditEventConsumer.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java \
+  services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java \
+  init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql \
+  init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql \
+  init-db/migrations/admin/V20260831100200__Create_Admin_Audit_Inbox.sql \
+  scripts/test/audit-owner-boundary-contract.sh; do
+  [[ -f "$ROOT_DIR/$audit_source" ]] || fail "missing P1-AUDIT source: $audit_source"
+done
+for owner_audit_source in \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxRecord.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxMapper.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditSinkAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxRecord.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxMapper.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditSinkAdapter.java \
+  services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java; do
+  not_contains "$owner_audit_source" 'admin.audit_outbox'
+done
+contains services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java 'stream:integration'
+contains services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java 'stream:integration'
+contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'Admin-Audit'
+contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'AuditRecorded'
+contains services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java 'ON DUPLICATE KEY UPDATE id = id'
+contains init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
+bash "$ROOT_DIR/scripts/test/audit-owner-boundary-contract.sh"
+
 # P1-DATA-001: all normal Submission reads cross the owner contract. The
 # local mapper/adapters remain only behind the explicit legacy rollback mode.
 for contraction_file in \

@@ -12,13 +12,11 @@ import org.springframework.stereotype.Component;
  * Auth-local production adapter for {@link AuditSinkPort}
  * (P7-AUDIT-SINK-OWNER-BINDING-001).
  *
- * <p>Writes audit records into {@code admin.audit_outbox} within the caller's
- * local transaction using the Auth datasource, per the standing audit rule:
- * audit writes never cross Dubbo, so a rollback of the business transaction
- * also rolls back its audit rows. Insert-only; the single outbox dispatcher
- * remains in backend-admin. Auth currently has no {@code @Audited} sites; this
- * adapter exists so the web-security {@code AuditAspect} wiring resolves and
- * future sites audit out of the box.
+ * <p>Writes audit records into Auth's local {@code audit_outbox} within the
+ * caller's transaction. A local dispatcher publishes the committed row as an
+ * event; Admin never reads Auth tables. Auth currently has no
+ * {@code @Audited} sites; this adapter keeps the shared aspect wiring ready
+ * for future owner-local audit calls.
  */
 @Slf4j
 @Component
@@ -49,9 +47,12 @@ public class AuthAuditSinkAdapter implements AuditSinkPort {
         record.setIpAddress(ipAddress);
         record.setUserAgent(userAgent);
         record.setState("PENDING");
-        record.setCreatedAt(LocalDateTime.now(clock));
+        LocalDateTime createdAt = LocalDateTime.now(clock);
+        record.setCreatedAt(createdAt);
+        record.setAttempts(0);
+        record.setNextRetryAt(createdAt);
 
         authAuditOutboxMapper.insert(record);
-        log.debug("Audit record written to admin.audit_outbox: {} by {}", action, performerId);
+        log.debug("Audit record written to Auth audit_outbox: {} by {}", action, performerId);
     }
 }

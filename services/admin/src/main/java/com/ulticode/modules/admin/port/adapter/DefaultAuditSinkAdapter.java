@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 /**
  * Production adapter for {@link AuditSinkPort} (P3-AUDIT-001).
  *
- * <p>Writes audit records into the `audit_outbox` table within the active
- * transaction. During coexistence, the single dispatcher remains in
- * backend-legacy until the producer and dispatcher cutover gates pass.
+ * <p>Writes Admin-owned audit records into the local {@code audit_outbox}
+ * table within the active transaction. Auth/App records arrive separately as
+ * {@code AuditRecorded} events through the Admin inbox.
  */
 @Slf4j
 @Component

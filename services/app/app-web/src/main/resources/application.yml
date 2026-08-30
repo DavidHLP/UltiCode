@@ -73,6 +73,11 @@ app:
       # Comma-separated index selection; blank = all four (problems,users,posts,solutions).
       indexes: ${APP_SEARCH_BACKFILL_INDEXES:}
       page-size: 500
+  audit:
+    outbox:
+      dispatcher:
+        enabled: ${APP_AUDIT_OUTBOX_DISPATCHER_ENABLED:true}
+        interval-ms: ${APP_AUDIT_OUTBOX_DISPATCHER_INTERVAL_MS:2000}
   monitoring:
     # P7-RELOCATE-MONITORING-001: slow-query threshold for SqlTimingInterceptor
     # + /monitoring/database.slowQueries (moved from backend-legacy application.yml).

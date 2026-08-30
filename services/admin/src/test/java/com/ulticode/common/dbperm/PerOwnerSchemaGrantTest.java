@@ -22,17 +22,17 @@ class PerOwnerSchemaGrantTest {
 
     private static final Set<String> AUTH_TABLES = Set.of(
         "users", "refresh_tokens", "password_resets", "role_permissions",
-        "user_permissions", "oauth_provider_identities"
+        "user_permissions", "oauth_provider_identities", "audit_outbox"
     );
 
     private static final Set<String> ADMIN_TABLES = Set.of(
-        "audit_logs", "system_settings", "moderation_queue", "moderation_actions",
-        "user_warnings", "backups"
+        "audit_logs", "audit_outbox", "consumer_inbox", "system_settings",
+        "moderation_queue", "moderation_actions", "user_warnings", "backups"
     );
 
     private static final Set<String> APP_TABLES = Set.of(
         "problems", "problem_details", "problem_examples", "problem_languages",
-        "problem_notes", "problem_lists",
+        "problem_notes", "problem_lists", "audit_outbox",
         "contests", "contest_problems", "contest_participants", "contest_announcements",
         "solutions",
         "solution_comments", "forum_posts", "forum_comments",

@@ -14,6 +14,10 @@ spring:
 app:
   runtime:
     mode: dev-lite
+  audit:
+    outbox:
+      dispatcher:
+        enabled: false
   submission:
     routing:
       mode: remote

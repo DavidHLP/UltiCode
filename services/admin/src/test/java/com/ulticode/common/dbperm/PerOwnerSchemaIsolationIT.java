@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <ul>
  *   <li>Owned-schema SELECT/INSERT/UPDATE/DELETE succeed.</li>
  *   <li>Cross-schema access returns MySQL error 1142 or 1044.</li>
- *   <li>{@code audit_outbox} append-only seam allows INSERT from auth_rw and app_rw.</li>
+ *   <li>Auth/App audit outboxes are owner-local; no cross-owner audit write is permitted.</li>
  *   <li>{@code information_schema} SCHEMA_PRIVILEGES + TABLE_PRIVILEGES match expected grant sets.</li>
  * </ul>
  */
@@ -107,6 +107,7 @@ class PerOwnerSchemaIsolationIT {
 
             stmt.execute("CREATE TABLE `auth`.`users` (id VARCHAR(40) PRIMARY KEY, username VARCHAR(120))");
             stmt.execute("CREATE TABLE `auth`.`refresh_tokens` (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40))");
+            stmt.execute("CREATE TABLE `auth`.`audit_outbox` (id VARCHAR(40) PRIMARY KEY, performer_id VARCHAR(40))");
 
             stmt.execute("CREATE TABLE `admin`.`audit_logs` (id VARCHAR(40) PRIMARY KEY, action VARCHAR(60))");
             stmt.execute("CREATE TABLE `admin`.`audit_outbox` (id VARCHAR(40) PRIMARY KEY, performer_id VARCHAR(40))");
@@ -114,6 +115,7 @@ class PerOwnerSchemaIsolationIT {
 
             stmt.execute("CREATE TABLE `app`.`problems` (id BIGINT PRIMARY KEY, title VARCHAR(255))");
             stmt.execute("CREATE TABLE `app`.`submissions` (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40))");
+            stmt.execute("CREATE TABLE `app`.`audit_outbox` (id VARCHAR(40) PRIMARY KEY, performer_id VARCHAR(40))");
             stmt.execute("CREATE TABLE `notification`.`delivery_ledger` (id VARCHAR(40) PRIMARY KEY, user_id VARCHAR(40))");
 
             stmt.execute("CREATE USER IF NOT EXISTS 'auth_rw'@'%'");
@@ -142,10 +144,6 @@ class PerOwnerSchemaIsolationIT {
             stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `admin`.* TO 'admin_rw'@'%'");
             stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `app`.* TO 'app_rw'@'%'");
             stmt.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON `notification`.* TO 'notification_rw'@'%'");
-
-            // Cross-domain outbox seam: append-only INSERT on audit_outbox ONLY
-            stmt.execute("GRANT INSERT ON `admin`.`audit_outbox` TO 'auth_rw'@'%'");
-            stmt.execute("GRANT INSERT ON `admin`.`audit_outbox` TO 'app_rw'@'%'");
 
             stmt.execute("FLUSH PRIVILEGES");
         }
@@ -225,11 +223,11 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("PERMITTED: INSERT on admin.audit_outbox (append-only outbox seam)")
-        void canAppendAuditOutbox() throws Exception {
+        @DisplayName("PERMITTED: INSERT/SELECT on auth.audit_outbox (owner-local)")
+        void canAppendLocalAuditOutbox() throws Exception {
             try (Connection c = connectAs("auth_rw", AUTH_RW_PW);
                  PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO `admin`.`audit_outbox` (id, performer_id) VALUES (?, ?)")) {
+                     "INSERT INTO `auth`.`audit_outbox` (id, performer_id) VALUES (?, ?)")) {
                 ps.setString(1, "ao-1");
                 ps.setString(2, "u-it-1");
                 assertThat(ps.executeUpdate()).isEqualTo(1);
@@ -237,7 +235,7 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("DENIED: SELECT on admin.audit_outbox (append-only, no read)")
+        @DisplayName("DENIED: SELECT on admin.audit_outbox (cross-schema)")
         void deniedSelectOnAuditOutbox() {
             assertThatThrownBy(() -> {
                 try (Connection c = connectAs("auth_rw", AUTH_RW_PW);
@@ -249,7 +247,7 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("DENIED: UPDATE/DELETE on admin.audit_outbox (append-only)")
+        @DisplayName("DENIED: UPDATE/DELETE on admin.audit_outbox (cross-schema)")
         void deniedMutationsOnAuditOutbox() {
             assertThatThrownBy(() -> {
                 try (Connection c = connectAs("auth_rw", AUTH_RW_PW);
@@ -268,12 +266,12 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("information_schema: auth_rw has 4 auth grants, 1 admin audit_outbox INSERT, 0 app")
+        @DisplayName("information_schema: auth_rw has 4 auth grants, 0 admin, 0 app")
         void authRw_schemaPrivilegeVerification() throws Exception {
             try (Connection c = connectAs("auth_rw", AUTH_RW_PW)) {
                 int[] grants = countGrants(c, "auth_rw");
                 assertThat(grants[0]).as("auth_rw should have SELECT/INSERT/UPDATE/DELETE on auth schema (4 rows)").isEqualTo(4);
-                assertThat(grants[1]).as("auth_rw should have only INSERT on admin.audit_outbox (1 row)").isEqualTo(1);
+                assertThat(grants[1]).as("auth_rw should have ZERO privileges on admin schema").isEqualTo(0);
                 assertThat(grants[2]).as("auth_rw should have ZERO privileges on app schema").isEqualTo(0);
                 assertThat(grants[3]).as("auth_rw should have ZERO privileges on notification schema").isEqualTo(0);
             }
@@ -394,11 +392,11 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("PERMITTED: INSERT on admin.audit_outbox (append-only outbox seam)")
-        void canAppendAuditOutbox() throws Exception {
+        @DisplayName("PERMITTED: INSERT/SELECT on app.audit_outbox (owner-local)")
+        void canAppendLocalAuditOutbox() throws Exception {
             try (Connection c = connectAs("app_rw", APP_RW_PW);
                  PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO `admin`.`audit_outbox` (id, performer_id) VALUES (?, ?)")) {
+                     "INSERT INTO `app`.`audit_outbox` (id, performer_id) VALUES (?, ?)")) {
                 ps.setString(1, "ao-2");
                 ps.setString(2, "u-it-app");
                 assertThat(ps.executeUpdate()).isEqualTo(1);
@@ -406,7 +404,7 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("DENIED: SELECT on admin.audit_outbox (append-only, no read)")
+        @DisplayName("DENIED: SELECT on admin.audit_outbox (cross-schema)")
         void deniedSelectOnAuditOutbox() {
             assertThatThrownBy(() -> {
                 try (Connection c = connectAs("app_rw", APP_RW_PW);
@@ -418,7 +416,7 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("DENIED: UPDATE/DELETE on admin.audit_outbox (append-only)")
+        @DisplayName("DENIED: UPDATE/DELETE on admin.audit_outbox (cross-schema)")
         void deniedMutationsOnAuditOutbox() {
             assertThatThrownBy(() -> {
                 try (Connection c = connectAs("app_rw", APP_RW_PW);
@@ -437,12 +435,12 @@ class PerOwnerSchemaIsolationIT {
         }
 
         @Test
-        @DisplayName("information_schema: app_rw has 0 auth, 1 admin audit_outbox INSERT, 4 app")
+        @DisplayName("information_schema: app_rw has 0 auth, 0 admin, 4 app")
         void appRw_schemaPrivilegeVerification() throws Exception {
             try (Connection c = connectAs("app_rw", APP_RW_PW)) {
                 int[] grants = countGrants(c, "app_rw");
                 assertThat(grants[0]).as("app_rw should have ZERO privileges on auth schema").isEqualTo(0);
-                assertThat(grants[1]).as("app_rw should have only INSERT on admin.audit_outbox (1 row)").isEqualTo(1);
+                assertThat(grants[1]).as("app_rw should have ZERO privileges on admin schema").isEqualTo(0);
                 assertThat(grants[2]).as("app_rw should have SELECT/INSERT/UPDATE/DELETE on app schema (4 rows)").isEqualTo(4);
                 assertThat(grants[3]).as("app_rw should have ZERO privileges on notification schema").isEqualTo(0);
             }

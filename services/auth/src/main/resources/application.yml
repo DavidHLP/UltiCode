@@ -68,6 +68,11 @@ spring:
             enable: true
 
 auth:
+  audit:
+    outbox:
+      dispatcher:
+        enabled: ${AUTH_AUDIT_OUTBOX_DISPATCHER_ENABLED:true}
+        interval-ms: ${AUTH_AUDIT_OUTBOX_DISPATCHER_INTERVAL_MS:2000}
   search:
     outbox:
       dispatcher:

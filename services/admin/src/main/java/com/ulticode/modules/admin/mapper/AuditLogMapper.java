@@ -5,12 +5,31 @@ import com.ulticode.modules.admin.entity.AuditLog;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface AuditLogMapper extends BaseMapper<AuditLog> {
+
+    /**
+     * Insert an incoming owner audit event once. The event id is also the
+     * Admin audit-log id, so retries after an inbox lease loss are harmless.
+     */
+    @Insert("""
+        INSERT INTO audit_logs
+          (id, performer_id, user_id, action, entity_type, entity_id,
+           old_values, new_values, ip_address, user_agent, created_at)
+        VALUES
+          (#{record.id}, #{record.performerId}, #{record.userId}, #{record.action},
+           #{record.entityType}, #{record.entityId},
+           #{record.oldValues, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+           #{record.newValues, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+           #{record.ipAddress}, #{record.userAgent}, #{record.createdAt})
+        ON DUPLICATE KEY UPDATE id = id
+        """)
+    int insertIfAbsent(@Param("record") AuditLog record);
 
     @Select("<script>"
         + "SELECT entity_type as entityType, COUNT(*) as count "

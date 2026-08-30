@@ -46,7 +46,7 @@ Retirement gates:
 | Seam | Repository state | Remaining external/next evidence |
 | --- | --- | --- |
 | Intake/outbox/fence | App mutation implementation deleted; owner tests and duplicate-writer gate are authoritative | Live registration/traffic observation remains external; rollback uses a prior verified artifact plus the data runbook, not a second current writer |
-| Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Live Nacos/Dubbo/Redis/target-database observation remains external; full cross-owner audit outbox is P1-AUDIT-001 |
+| Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Live Nacos/Dubbo/Redis/target-database observation remains external; audit delivery still depends on owner registration and runtime stream observation |
 | User reads | Normal user/contest/admin/statistics/generation reads use bounded Submission-owner facts; local adapters are rollback-only | Production registration/traffic observation and the explicit contraction runbook must complete before App legacy tables/contracts are removed |
 
 Do not close SVC-003 or contract the App schema until the external owner registration/traffic, backup, and bounded-read evidence is complete; the repository-side route gate is now covered by P1-DATA-001.

@@ -4,6 +4,12 @@
 server:
   port: 0
 
+auth:
+  audit:
+    outbox:
+      dispatcher:
+        enabled: false
+
 spring:
   application:
     name: backend-auth

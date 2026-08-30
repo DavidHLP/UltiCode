@@ -14,14 +14,14 @@ import java.util.Map;
  *
  * <p><strong>Seam justification:</strong>
  * <ul>
- *   <li>{@code DefaultAuditSinkAdapter} (in {@code modules/admin/port/adapter})
- *       delegates to the existing {@code AuditService}.</li>
+ *   <li>Each owner-local adapter writes its own audit outbox; Admin consumes
+ *       the resulting {@code AuditRecorded} event through a durable inbox.</li>
  *   <li>{@code InMemoryAuditSink} (in test sources) — no DB, no
  *       admin-mock noise; aspect tests assert what they emit.</li>
  * </ul>
  *
- * <p>Mirrors the proven {@code RateLimiter} seam: aspect depends on the
- * port, the port's storage adapter lives next to the data owner.
+ * <p>Mirrors the proven {@code RateLimiter} seam: the aspect depends on the
+ * port, and the port's storage adapter lives next to the data owner.
  *
  * @author ulticode
  */

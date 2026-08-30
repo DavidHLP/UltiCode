@@ -187,7 +187,7 @@ Auth owner。
 #### 权限与回滚
 
 - migration job 使用独立 direct-grant 高权限账号；runtime 使用 owner 专用账号；
-- runtime 账号不得拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式角色继承或未登记的其他 Owner 表 DML；唯一登记例外是 `auth_rw`/`app_rw` 对 `admin.audit_outbox` 的 append-only `INSERT`；
+- runtime 账号不得拥有 global/schema-wide `ALL`、`GRANT OPTION`、隐式角色继承或未登记的其他 Owner 表 DML；Auth/App 审计通过各自 owner-local `audit_outbox` 与 Admin inbox 事件 seam，不保留跨 schema 写权限；
 - 每次切换前后保存 rows/checksum/privilege snapshot；
 - 失败时先回滚 route/consumer 到上一 artifact，再按 manifest/copy/reconcile runbook 回写；不得 `DROP`、`TRUNCATE` 或重置共享 source；
 - 本地 TEST-TARGET/DEV-LOCAL 证据只能证明 rehearsal 与脚本契约；不得替代外部目标 authority、users/profile responsibility sign-off、physical cutover 或 production acceptance。
@@ -380,7 +380,7 @@ flowchart LR
 - Admin 直接写 Contest/Problem/Forum/Solution/Notification/User 等 Mapper；
 - Moderation 直接写内容表和 `users.is_banned`；
 - Submission 事务同时触达 Contest association 与 Redis judge queue；
-- Audit Aspect 在请求线程同步写 `audit_logs`，并依赖 SecurityContext 与 `AuditContext` ThreadLocal；
+- Audit Aspect 在请求线程调用 owner-local audit sink/outbox，Admin 通过事件 inbox 最终写入 `audit_logs`；仍依赖请求边界的 actor 捕获与 `AuditContext`；
 - Search、Dashboard 和多种 Projection 通过跨表 join/mapper fan-out 组装读模型。
 
 ##### 2.5 特殊能力现状
@@ -501,7 +501,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 |---|---|
 | Responsibility | 登录/注册/OAuth、密码与外部身份绑定、access token 签发、refresh rotation/revoke、账号 active/ban、角色与权限定义/授予、JWKS/key rotation、认证安全邮件 |
 | Owned Domain | Account、Credential、ExternalIdentity、RefreshSession、Role/Permission Assignment、Authorization Version |
-| Owned Tables | `users`（account/authz columns only）、`refresh_tokens`、`role_permissions`、`user_permissions`；`password_resets` 经数据核验后退役。Profile fields belong to App `user_profiles`; the later Auth contract migration `V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` removes the compatibility columns |
+| Owned Tables | `users`（account/authz columns only）、`refresh_tokens`、`role_permissions`、`user_permissions`、`audit_outbox`；`password_resets` 经数据核验后退役。Profile fields belong to App `user_profiles`; the later Auth contract migration `V20260820180000__Narrow_Auth_Users_To_Account_Ownership.sql` removes the compatibility columns |
 | Exposed HTTP API | `/auth/login`、`/auth/register`、`/auth/refresh`、`/auth/logout`、OAuth authorize/callback、forgot/reset password、JWKS；兼容期接管 `/users/me/password` 等凭证端点 |
 | Dubbo Provider | `IdentityQueryService`、`AccountAdministrationService`、`AuthorizationSnapshotService`；均为窄 DTO、批量优先 |
 | Dubbo Consumer | 原则上无业务同步 Consumer；安全邮件使用本服务 SMTP adapter，不调用 App EmailService |
@@ -516,7 +516,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 |---|---|
 | Responsibility | Management HTTP/BFF、审核队列与申诉、审计聚合、系统设置、运营公告、监控、备份、管理端读模型与工作流状态 |
 | Owned Domain | Moderation Case/Decision、Audit、System Operations/Settings、Backup Job、Admin Read Models |
-| Owned Tables | `appeals`、`audit_logs`、`moderation_actions`、`moderation_queue`、`reports`、`system_settings`、`system_announcements`/`system_announcement_reads`（若启用）、`user_bans`/`user_warnings`（治理记录）、`backups`（先补 migration） |
+| Owned Tables | `appeals`、`audit_logs`、`audit_outbox`、`consumer_inbox`、`moderation_actions`、`moderation_queue`、`reports`、`system_settings`、`system_announcements`/`system_announcement_reads`（若启用）、`user_bans`/`user_warnings`（治理记录）、`backups`（先补 migration） |
 | Exposed HTTP API | `/admin/**`；`/moderation/**` 中报告/申诉与审核端点按角色分别授权；`/monitoring/**`；管理端导出/备份 |
 | Dubbo Provider | 初期不强行创建无 Consumer 的 Provider；后续只有确有消费者的 `RuntimePolicyQueryService` 才进入 `backend-admin-api` |
 | Dubbo Consumer | Auth 的账号/角色/权限管理；App 的 Problem/Contest/Submission/Forum/Solution/Notification 管理命令与批量查询 |
@@ -531,7 +531,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 |---|---|
 | Responsibility | 普通用户 profile、题目、题单、题解、论坛、竞赛、互动、成就、订阅、WebSocket/实时排名、文件/头像；过渡期提供 Submission/Search facade |
 | Owned Domain | UserProfile、Problem、Contest、Solution、Forum、Engagement、Achievement、Subscription、Realtime；Submission/Judge Dispatch 迁至 `backend-submission`，Search index writes 迁至 `backend-search`；不包含 Notification 和 Judge 执行进程 |
-| Owned Tables | 除 Auth/Admin/Notification 明确列出的表外，现有 OJ/内容/互动表均归 App；详见 §5 |
+| Owned Tables | 除 Auth/Admin/Notification 明确列出的表外，现有 OJ/内容/互动表均归 App；App 另拥有本地 `audit_outbox`；详见 §5 |
 | Exposed HTTP API | `/users` profile、`/problems`、`/submissions`、`/contest`、`/solutions`、`/forum`、`/problem-lists`、`/bookmarks`、`/vote`、`/search`、`/i18n` read 等；WebSocket `/ws/**` |
 | Dubbo Provider | `ProblemAdministrationService`、`ContestAdministrationService`、`ContentModerationService`、批量管理查询 Contract；过渡期保留 Submission facade，最终由 `backend-submission` 提供 Submission read/write/fence contracts |
 | Dubbo Consumer | Auth identity snapshot 仅用于 cache miss、高风险状态或批量补偿；正常 HTTP 只本地验 JWT；不调用 Admin |
@@ -668,10 +668,11 @@ Backfill 只插入 target 缺失主键，不更新已有 owner 行。已有同�
 | `DailyRecommendation` | 仅 migration，生产 Java 未见映射 | App（R 候选） | App | 核数据后 R，否则 I |
 | `achievements` | achievement；submission/solution/follow 触发或读取 | App | App 内部 | I/E |
 | `appeals` | moderation R/W | Admin | App 用户入口 | Gateway 直达 Admin HTTP；I |
-| `audit_logs` | admin mapper；各域同步 audit sink | Admin | 各服务、Admin 查询 | 生产者 E，Admin I/Q |
+| `audit_logs` | Admin mapper；各 Owner audit event sink | Admin | 各服务、Admin 查询 | 生产者 E，Admin I/Q |
+| `audit_outbox` | Auth/App/Admin 请求事务内的 owner-local audit outbox | Auth/App/Admin（各自 schema） | Admin | 各 Owner I；Admin 通过事件 inbox 消费 |
 | `collection_items` | bookmark R/W；edgeoperations 读 | App | App | I |
 | `collections` | bookmark folder/service | App | App | I |
-| `consumer_inbox` | 集成事件暂存；App 过渡期仍写 App-* bindings | Notification | Notification、App（过渡） | Notification I；App 过渡期 C/Q/E |
+| `consumer_inbox` | 集成事件暂存；Admin-Audit 与 Notification 各自持有本地 inbox | Admin/Notification（各自 schema） | Admin、Notification、App（过渡） | 各 Owner I；按 group 消费 |
 | `contest_analytics` | 仅 migration，当前实时 projection 计算 | App（R 候选） | Admin analytics | R 或 App I + Admin Q/E |
 | `contest_announcements` | contest 读；admin 直接写 | App | Admin、WebSocket | Admin C/Q；App I/E |
 | `contest_participants` | contest R/W；admin analytics 读 | App | Admin | App I；Admin Q/投影 |
@@ -856,6 +857,21 @@ App legacy DML grant 为零并记录 proof；带 `OWNER_SCHEMA_CONTRACTION_CONFI
 `contract` 才撤销精确 legacy-table grants 并调用独立 `flyway-contraction.conf` 历史，删除已证明的
 Submission/Notification legacy tables。schema/global/column grant 残留会 fail-closed。迁移不修改 applied migration，
 也不删除 `consumer_inbox`/`app_command_receipt`；删除后的恢复依赖执行窗口前的 verified backup，仓库不声明生产切流已经完成。
+
+#### Audit owner-local outbox 与 Admin inbox
+
+P1-AUDIT-001 将 Auth/App 的审计写入收敛为各自 schema 内的 `audit_outbox`：请求事务只写本 Owner 的 outbox，提交后由
+`AuthAuditOutboxDispatcher` 或 `AppAuditOutboxDispatcher` 以 `AuditRecorded` 事件发布到共享 integration stream。
+Dispatcher 使用 claim-owner CAS、stale lease reclaim、失败退避和 DEAD 终态；Redis 投递不进入业务事务。
+
+Admin 以固定 `Admin-Audit` group 消费 `AuditRecorded`，先写 Admin-local `consumer_inbox`，再由共享 `InboxConsumer` 在
+事务内幂等写入 `audit_logs`。`(consumer,event_id)` inbox 唯一键、audit log 主键幂等插入、lease reclaim、指数重试和
+`IntegrationEventPoison`/DEAD 路径覆盖重复、乱序、暂时失败和坏消息。事件 payload 的 actor、目标、时间和长度在 Admin
+信任边界重新校验；不接受伪造的 Owner 或不匹配的 audit id。
+
+Auth/App 的 owner migration 在本地表创建后撤销旧的 `admin.audit_outbox` INSERT grant；已应用的历史 migration 保持不变，
+运行账号不再拥有跨 Owner 审计写入。Admin 自己的本地 `audit_outbox` 仍服务于 Admin 请求线程的事务绑定 sink，不与外部
+Owner 事件 inbox 混用。
 
 允许内容：接口、request/response DTO、枚举、稳定错误码、trace/idempotency metadata。禁止内容：Entity、Mapper、ServiceImpl、Repository、MyBatis annotation、Spring Security context、数据库字段泄漏。
 

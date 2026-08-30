@@ -66,6 +66,7 @@ Gateway baseline, moderation API, admin solutions, Dubbo/Nacos smoke. New
 smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 `smoke_require_credentials`, `smoke_login`). Credentials converge on
 `SMOKE_USERNAME`/`SMOKE_PASSWORD`; legacy names are still accepted.
+- `audit-owner-boundary-contract.sh` — disposable MySQL proof for owner-local audit outboxes, Admin inbox creation, and cross-owner grant revocation.
 
 ## Other
 

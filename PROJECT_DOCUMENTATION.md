@@ -842,6 +842,12 @@ P2-REDIS-001 将 Redis ACL 作为 runtime materialization：Compose 挂载 `REDI
 `materialize`、`prepare`（next+current overlap）、`finalize`、`rollback` 和 `drift-check`；运行中的 Redis 通过 ops ACL `ACL LOAD`
 重新读取目录内文件，状态/报告只保留 phase 与 SHA-256，不保留密码。生产 secret store、Redis 运行态和轮换 authority 仍需外部执行。
 
+P2-TLS-001 将两个前端 gateway 的 production listener 作为显式 profile：默认 dev overlay 仍只监听 HTTP `8080`，production Compose
+挂载不入 Git 的 `TLS_CERT_DIR` 到 `/etc/nginx/tls`，并覆盖 TLS listener include 以监听 `8443 ssl`、限制 TLS 1.2/1.3、HTTP
+301 到 HTTPS。shared security headers 用 scheme map 在 HTTPS 发送 HSTS（含静态资源），Auth production 显式启用 `JWT_COOKIE_SECURE=true`，
+resource owners 使用 HTTPS Auth JWKS；healthcheck 走 HTTPS。证书替换需在 secret mount 内原子切换 `fullchain.pem`/`privkey.pem` 后重建
+两个 frontend 容器并验证健康状态，失败时保留旧 mount；真实证书、域名和 edge 端口 authority 仍需外部执行。
+
 P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
 consumer 和 WebSocket consumer 均实现并调用完整契约。保留的 `SubmissionWritePort`/provider 是明确标注的 N-1

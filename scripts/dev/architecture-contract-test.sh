@@ -391,6 +391,13 @@ contains scripts/runbooks/owner-backup-restore.sh 'rto_seconds'
 contains .github/workflows/_backend.yml 'owner-backup-restore-contract.sh'
 contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
+contains apps/console/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
+contains apps/management/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
+contains infrastructure/nginx/includes/tls-listener.prod.conf 'listen 8443 ssl;'
+contains infrastructure/nginx/includes/security-headers.conf 'Strict-Transport-Security'
+contains docker-compose.prod.yml 'TLS_CERT_DIR'
+contains .github/workflows/_backend.yml 'tls-profile-contract.sh'
+bash "$ROOT_DIR/scripts/test/tls-profile-contract.sh"
 contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
 contains .github/actions/host-deploy/action.yml 'MIGRATION_DB_PASSWORD'
 contains .github/actions/host-deploy/action.yml "inputs.skip_migrations != 'true'"

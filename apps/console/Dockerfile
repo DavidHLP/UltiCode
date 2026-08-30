@@ -51,7 +51,7 @@ FROM nginx:alpine AS production
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
 
-# Copy nginx config (listen on 8080 since non-root cannot bind port 80).
+# Copy nginx config (listen on 8080/8443 since non-root cannot bind ports 80/443).
 # Drop the alpine default conf so only ours gets loaded.
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY apps/console/nginx.conf /etc/nginx/templates/default.conf.template
@@ -59,6 +59,7 @@ COPY apps/console/nginx.conf /etc/nginx/templates/default.conf.template
 # entrypoint renders them into the conf.d/includes path used by nginx.conf.
 COPY infrastructure/nginx/includes/security-headers.conf /etc/nginx/templates/includes/security-headers.conf.template
 COPY infrastructure/nginx/includes/backend-proxy.conf /etc/nginx/conf.d/includes/backend-proxy.conf
+COPY infrastructure/nginx/includes/tls-listener.conf /etc/nginx/conf.d/includes/tls-listener.conf
 
 # Grant write access to nginx runtime directories and conf.d (for envsubst)
 RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d && \

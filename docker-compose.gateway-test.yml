@@ -86,6 +86,7 @@ services:
       - ./infrastructure/nginx/includes/security-headers.conf:/etc/nginx/templates/includes/security-headers.conf.template:ro
       # backend-proxy.conf has no env vars; mount it directly.
       - ./infrastructure/nginx/includes/backend-proxy.conf:/etc/nginx/conf.d/includes/backend-proxy.conf:ro
+      - ./infrastructure/nginx/includes/tls-listener.conf:/etc/nginx/conf.d/includes/tls-listener.conf:ro
     networks:
       - gw-net
 

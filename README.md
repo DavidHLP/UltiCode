@@ -355,7 +355,7 @@ dev 数据库会自动创建固定管理员账号：
 | Arthas MCP | <http://localhost:8563/mcp> | STATELESS · Claude Code / IDE 直连 |
 
 > **端口暴露策略**：`docker-compose.yml` 不发布基础设施端口；`docker-compose.dev.yml` 仅绑定 `127.0.0.1`。
-> 生产 compose 进一步收紧，两个前端只绑 loopback，TLS 终止在外部网关。
+> 生产 compose 进一步收紧，两个前端只绑 loopback；HTTP 端口仅作 HTTPS redirect，TLS 证书从 secret mount 进入前端容器。
 
 ---
 

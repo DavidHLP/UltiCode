@@ -11,6 +11,8 @@
 #   SUBMISSION_REDIS_PASSWORD, SEARCH_REDIS_PASSWORD, NOTIFICATION_REDIS_PASSWORD,
 #   JUDGE_REDIS_PASSWORD, OPS_REDIS_PASSWORD, HEALTH_REDIS_PASSWORD
 #   (per-owner and health-only Redis credentials; ACL is materialized into REDIS_ACL_DIR)
+#   TLS_CERT_DIR (host secret directory containing fullchain.pem/privkey.pem),
+#   CORS_ALLOWED_ORIGINS, FRONTEND_URL
 #   JWT_SECRET (Auth refresh-token signing), JWT_RSA_PRIVATE_KEY (Auth access-token signing)
 #   INTERNAL_DELEGATION_PRIVATE_KEY, BOOTSTRAP_DELEGATION_PRIVATE_KEY (Admin-only signing keys)
 #   INTERNAL_DELEGATION_PUBLIC_KEY, BOOTSTRAP_DELEGATION_PUBLIC_KEY (verifier keys)
@@ -122,6 +124,7 @@ services:
       - REDIS_USERNAME=ulticode-auth
       - REDIS_PASSWORD=${AUTH_REDIS_PASSWORD:?AUTH_REDIS_PASSWORD is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_COOKIE_SECURE=true
       - JWT_RSA_ENABLED=true
       - JWT_RSA_PRIVATE_KEY=${JWT_RSA_PRIVATE_KEY:?JWT_RSA_PRIVATE_KEY is required}
       - INTERNAL_DELEGATION_PUBLIC_KEY=${INTERNAL_DELEGATION_PUBLIC_KEY:?INTERNAL_DELEGATION_PUBLIC_KEY is required}
@@ -137,7 +140,8 @@ services:
       - DUBBO_REGISTRY_USERNAME=${AUTH_NACOS_USERNAME:?AUTH_NACOS_USERNAME is required}
       - DUBBO_REGISTRY_PASSWORD=${AUTH_NACOS_PASSWORD:?AUTH_NACOS_PASSWORD is required}
       - SERVER_PORT=9101
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required for production}
       # SEARCH-003 gate: dispatch Auth user-document events to the search stream
       # (worker consumer is live in prod; see guide §11.5 enable order).
       - AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED=${AUTH_SEARCH_OUTBOX_DISPATCHER_ENABLED:-true}
@@ -209,7 +213,7 @@ services:
       # Review 2026-08-25 P2: keep backups on a persistent volume instead of
       # container-local /tmp so multi-replica or recreated instances agree.
       - BACKUP_DIR=${BACKUP_DIR:-/var/lib/ulticode/backup}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}
     depends_on:
       mysql:
         condition: service_healthy
@@ -290,7 +294,7 @@ services:
       - APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
       - APP_SEARCH_READ_MODE=indexed
       - APP_SEARCH_FALLBACK_TO_DATABASE=true
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9002,http://localhost:9003}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required for production}
       # SEARCH-003 gate: App /search reads MeiliSearch first with DB fallback
       # (guide §11.5); backfill runner is enabled via APP_SEARCH_BACKFILL_ENABLED.
       - SEARCH_WORKER_ENABLED=${SEARCH_WORKER_ENABLED:-true}
@@ -619,6 +623,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${CONSOLE_PORT:-9002}:8080"
+      - "127.0.0.1:${CONSOLE_HTTPS_PORT:-9443}:8443"
     depends_on:
       backend-auth:
         condition: service_healthy
@@ -634,10 +639,13 @@ services:
           memory: 256M
           cpus: "0.5"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      test: ["CMD", "wget", "--no-verbose", "--no-check-certificate", "--tries=1", "--spider", "https://localhost:8443/"]
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - ${TLS_CERT_DIR:?TLS_CERT_DIR is required}:/etc/nginx/tls:ro
+      - ./infrastructure/nginx/includes/tls-listener.prod.conf:/etc/nginx/conf.d/includes/tls-listener.conf:ro
     logging:
       driver: json-file
       options:
@@ -650,6 +658,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${MANAGEMENT_PORT:-9003}:8080"
+      - "127.0.0.1:${MANAGEMENT_HTTPS_PORT:-9444}:8443"
     depends_on:
       backend-auth:
         condition: service_healthy
@@ -665,10 +674,13 @@ services:
           memory: 256M
           cpus: "0.5"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      test: ["CMD", "wget", "--no-verbose", "--no-check-certificate", "--tries=1", "--spider", "https://localhost:8443/"]
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - ${TLS_CERT_DIR:?TLS_CERT_DIR is required}:/etc/nginx/tls:ro
+      - ./infrastructure/nginx/includes/tls-listener.prod.conf:/etc/nginx/conf.d/includes/tls-listener.conf:ro
     logging:
       driver: json-file
       options:

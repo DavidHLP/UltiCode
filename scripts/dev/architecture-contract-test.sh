@@ -412,6 +412,10 @@ contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilie
 contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'getChannel", Boolean.class'
 contains services/platform/rpc-resilience/src/main/resources/META-INF/dubbo/internal/org.apache.dubbo.rpc.Filter 'workload-mtls='
 bash "$ROOT_DIR/scripts/test/dubbo-mtls-contract.sh"
+contains .github/workflows/_backend.yml 'network-reachability-contract.sh'
+contains .github/workflows/_docker.yml 'network-reachability-contract.sh'
+contains scripts/test/network-reachability-contract.sh 'network-reachability-contract: PASS'
+bash "$ROOT_DIR/scripts/test/network-reachability-contract.sh"
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"

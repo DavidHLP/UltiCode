@@ -38,7 +38,7 @@ contains docker-compose.prod.yml 'healthcheck:'
 contains docker-compose.prod.yml 'expose:'
 contains docker-compose.prod.yml 'deploy:'
 contains docker-compose.yml 'networks:'
-contains docker-compose.yml 'infrastructure:'
+contains docker-compose.yml 'cache:'
 
 printf 'production Compose scale-safe service names and discovery references: PASS\n'
 printf 'production backend health/restart/resource declarations: PASS\n'

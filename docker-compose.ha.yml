@@ -62,7 +62,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infrastructure
+      - sql
 
   redis:
     profiles: [ha]
@@ -104,7 +104,7 @@ services:
       REDIS_HEALTH_USER: ulticode-health
       REDIS_HEALTH_PASSWORD: ${HEALTH_REDIS_PASSWORD:?HEALTH_REDIS_PASSWORD is required}
     networks:
-      - infrastructure
+      - cache
 
   redis-sentinel-1:
     profiles: [ha]
@@ -127,7 +127,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infrastructure
+      - cache
 
   redis-sentinel-2:
     profiles: [ha]
@@ -150,7 +150,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infrastructure
+      - cache
 
   redis-sentinel-3:
     profiles: [ha]
@@ -173,7 +173,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infrastructure
+      - cache
 
   nacos:
     profiles: [ha]
@@ -223,7 +223,9 @@ services:
       timeout: 5s
       retries: 15
     networks:
-      - infrastructure
+      - sql
+      - registry
+      - egress-nacos
 
   nacos-3:
     profiles: [ha]
@@ -254,7 +256,9 @@ services:
       timeout: 5s
       retries: 15
     networks:
-      - infrastructure
+      - sql
+      - registry
+      - egress-nacos
 
 volumes:
   mysql_ha_replica_data:

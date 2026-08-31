@@ -15,5 +15,11 @@ services:
       - "127.0.0.1:${NACOS_GRPC_PORT:-29848}:9848"
 
 networks:
-  infrastructure:
+  sql:
+    internal: false
+  cache:
+    internal: false
+  registry:
+    internal: false
+  search:
     internal: false

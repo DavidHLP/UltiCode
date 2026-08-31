@@ -37,6 +37,8 @@ jobs:
         run: bash scripts/test/deployment-integrity-contract.sh
       - name: Validate Dubbo mTLS identity policy
         run: bash scripts/test/dubbo-mtls-contract.sh
+      - name: Validate service network reachability policy
+        run: bash scripts/test/network-reachability-contract.sh
 
   docker-verify:
     name: Docker Build (${{ matrix.service.name }})

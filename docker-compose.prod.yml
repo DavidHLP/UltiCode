@@ -167,8 +167,13 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - default
-      - infrastructure
+      - edge
+      - sql
+      - cache
+      - registry
+      - rpc-auth
+      - observability
+      - egress-auth
     volumes:
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-auth:/run/secrets/dubbo:ro
     healthcheck:
@@ -255,8 +260,16 @@ services:
       - backup_data:/var/lib/ulticode/backup
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-admin:/run/secrets/dubbo:ro
     networks:
-      - default
-      - infrastructure
+      - edge
+      - sql
+      - cache
+      - registry
+      - rpc-auth
+      - rpc-app
+      - rpc-submission
+      - rpc-notification
+      - observability
+      - egress-admin
     healthcheck:
       # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
       test: ["CMD", "curl", "-f", "http://localhost:9102/api/v1/admin/health/ready"]
@@ -354,8 +367,17 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - default
-      - infrastructure
+      - edge
+      - sql
+      - cache
+      - registry
+      - rpc-auth
+      - rpc-app
+      - rpc-submission
+      - rpc-judge
+      - search
+      - observability
+      - egress-app
     healthcheck:
       # Readiness probe (review 2026-08-25 P0): verifies DB and Redis, 503 on failure.
       test: ["CMD", "curl", "-f", "http://localhost:9103/api/v1/app/health/ready"]
@@ -434,8 +456,14 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - default
-      - infrastructure
+      - sql
+      - cache
+      - registry
+      - rpc-auth
+      - rpc-app
+      - rpc-submission
+      - observability
+      - egress-submission
     volumes:
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-submission:/run/secrets/dubbo:ro
     healthcheck:
@@ -486,8 +514,10 @@ services:
       meilisearch:
         condition: service_healthy
     networks:
-      - default
-      - infrastructure
+      - cache
+      - search
+      - observability
+      - egress-search
     read_only: true
     tmpfs:
       # Writable home for the readiness heartbeat marker.
@@ -587,8 +617,14 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - default
-      - infrastructure
+      - edge
+      - sql
+      - cache
+      - registry
+      - rpc-auth
+      - rpc-notification
+      - observability
+      - egress-notification
     volumes:
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-notification:/run/secrets/dubbo:ro
     healthcheck:
@@ -679,8 +715,13 @@ services:
       nacos:
         condition: service_healthy
     networks:
-      - default
-      - infrastructure
+      - cache
+      - registry
+      - rpc-app
+      - rpc-submission
+      - rpc-judge
+      - observability
+      - egress-judge
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
@@ -739,6 +780,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - edge
     volumes:
       - ${TLS_CERT_DIR:?TLS_CERT_DIR is required}:/etc/nginx/tls:ro
       - ./infrastructure/nginx/includes/tls-listener.prod.conf:/etc/nginx/conf.d/includes/tls-listener.conf:ro
@@ -774,6 +817,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - edge
     volumes:
       - ${TLS_CERT_DIR:?TLS_CERT_DIR is required}:/etc/nginx/tls:ro
       - ./infrastructure/nginx/includes/tls-listener.prod.conf:/etc/nginx/conf.d/includes/tls-listener.conf:ro

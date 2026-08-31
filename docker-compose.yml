@@ -26,7 +26,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - infrastructure
+      - sql
 
   redis:
     image: redis:7-alpine
@@ -50,7 +50,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - infrastructure
+      - cache
 
   nacos:
     image: nacos/nacos-server:v2.3.2
@@ -84,7 +84,9 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infrastructure
+      - sql
+      - registry
+      - egress-nacos
 
   meilisearch:
     image: getmeili/meilisearch:v1.8
@@ -106,11 +108,46 @@ services:
       start_period: 10s
       retries: 3
     networks:
-      - default
-      - infrastructure
+      - search
 
 networks:
-  infrastructure:
+  edge:
+    internal: true
+  sql:
+    internal: true
+  cache:
+    internal: true
+  registry:
+    internal: true
+  rpc-auth:
+    internal: true
+  rpc-app:
+    internal: true
+  rpc-submission:
+    internal: true
+  rpc-notification:
+    internal: true
+  rpc-judge:
+    internal: true
+  search:
+    internal: true
+  egress-auth:
+    internal: false
+  egress-admin:
+    internal: false
+  egress-app:
+    internal: false
+  egress-submission:
+    internal: false
+  egress-search:
+    internal: false
+  egress-notification:
+    internal: false
+  egress-judge:
+    internal: false
+  egress-nacos:
+    internal: false
+  observability:
     internal: true
 
 volumes:

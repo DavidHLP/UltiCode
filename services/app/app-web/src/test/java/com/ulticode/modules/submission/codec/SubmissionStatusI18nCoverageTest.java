@@ -52,10 +52,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *       statusLabels block.</li>
  * </ul>
  * <p>
- * Skipped (with WARN log) if the test cannot locate a repo root that
- * contains both {@code apps/console/} and {@code apps/management/} -- e.g. when
- * running on a backend-only checkout. This keeps the test safe for CI
- * variants that don't ship the full repo.
+ * Fails closed if the test cannot locate a repo root that contains both
+ * {@code apps/console/} and {@code apps/management/}; a missing cross-stack
+ * fixture is a coverage failure, not a passing fallback.
  */
 @DisplayName("SubmissionStatus i18n cross-stack coverage (M1b)")
 class SubmissionStatusI18nCoverageTest {
@@ -78,20 +77,7 @@ class SubmissionStatusI18nCoverageTest {
     @TestFactory
     @DisplayName("each SubmissionStatus is translated in every (frontend, locale) pair")
     Stream<DynamicTest> everyStatusTranslatedEverywhere() throws IOException {
-        Path repoRoot = findRepoRoot();
-        if (repoRoot == null) {
-            return Stream.of(DynamicTest.dynamicTest(
-                    "SKIPPED -- repo root with apps/console/ + apps/management/ not found",
-                    () -> {
-                        // Visibility for CI log; intentionally no assertion.
-                        System.err.println(
-                                "[M1b WARN] repo root with apps/console/ + apps/management/ not found; "
-                                        + "SubmissionStatusI18nCoverageTest skipped. "
-                                        + "Set ULTICODE_ROOT or run from a full checkout.");
-                    }));
-        }
-
-        Map<LocaleFile, Set<String>> keysByFile = loadAllKeySets(repoRoot);
+        Map<LocaleFile, Set<String>> keysByFile = loadAllKeySets(requireRepoRoot());
 
         return Stream.of(LocaleFile.values())
                 .flatMap(lf -> {
@@ -117,11 +103,7 @@ class SubmissionStatusI18nCoverageTest {
     @Test
     @DisplayName("i18n key counts match enum count in every (frontend, locale) pair")
     void noMissingNorExtraKeys() throws IOException {
-        Path repoRoot = findRepoRoot();
-        if (repoRoot == null) {
-            return; // skip silently; the dynamic-test above already logs
-        }
-        Map<LocaleFile, Set<String>> keysByFile = loadAllKeySets(repoRoot);
+        Map<LocaleFile, Set<String>> keysByFile = loadAllKeySets(requireRepoRoot());
 
         for (LocaleFile lf : LocaleFile.values()) {
             // Each locale file is intrinsically one key style: console
@@ -236,6 +218,17 @@ class SubmissionStatusI18nCoverageTest {
             dir = parent;
         }
         return null;
+    }
+
+    private static Path requireRepoRoot() {
+        Path repoRoot = findRepoRoot();
+        if (repoRoot == null) {
+            throw new IllegalStateException(
+                    "SubmissionStatusI18nCoverageTest requires a repository root with "
+                            + "apps/console and apps/management; set ULTICODE_ROOT or run from "
+                            + "the full checkout");
+        }
+        return repoRoot;
     }
 
     private static boolean isRepoRoot(Path dir) {

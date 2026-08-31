@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints are `7743d88f`, `ef74edc`, `bfd1919`, and local verification hardening `cb40a226934ec501b788a1a673fe864d41d35ae0`; the local blocker follow-up is recorded in `.auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result`. No task remains active. External consumer-drain, production secret/failover, remote-runtime and production-authority limits are recorded as `BLOCKED_EXTERNAL` in the task ledger.
+Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints are `7743d88f`, `ef74edc`, `bfd1919`, and local verification hardening `cb40a226934ec501b788a1a673fe864d41d35ae0`; flow/evidence synchronization is committed in `fc31cf35eecbd48ee87392a3e7e0366975191c2b`. The local blocker follow-up is recorded in `.auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result`. No task remains active. External consumer-drain, production secret/failover, remote-runtime and production-authority limits are recorded as `BLOCKED_EXTERNAL` in the task ledger.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -177,7 +177,7 @@ Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints 
 - `TEST-COV-001`: DONE — Enforce real non-regression coverage gates (`ef74edc`, verification `cb40a226934ec501b788a1a673fe864d41d35ae0`; unified Compose run passes locally)
 - `REVIEW-001`: DONE — Run first full standards and spec review (`7743d88f`)
 - `REVIEW-002`: DONE — Run independent final implementation review (`bfd1919`)
-- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (checkpoint `4c53c34d`; follow-up `cb40a226934ec501b788a1a673fe864d41d35ae0`)
+- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (flow checkpoint `fc31cf35eecbd48ee87392a3e7e0366975191c2b`; implementation follow-up `cb40a226934ec501b788a1a673fe864d41d35ae0`)
 
 For exact dependencies, acceptance criteria, validation commands, and external notes, use the same task entries in `.auto-flow/TASKS.yaml`; do not invent alternate task IDs or a second task system.
 

@@ -1174,6 +1174,6 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/closure-001.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
-      commit: "4c53c34dc8cee40461338fc1748b5c2725dfaddb"
+      commit: "fc31cf35eecbd48ee87392a3e7e0366975191c2b"
       blocked_by: []
-      notes: "Repository-local blockers were rechecked and closed in the disposable evidence file; external production/remote/consumer authority remains recorded on the affected tasks. No push or production apply without separate authorization"
+      notes: "Repository-local blockers were rechecked and closed in the disposable evidence file; flow metadata/evidence synchronization is committed in fc31cf35eecbd48ee87392a3e7e0366975191c2b. External production/remote/consumer authority remains recorded on the affected tasks. No push or production apply without separate authorization"

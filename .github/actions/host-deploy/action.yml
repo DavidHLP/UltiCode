@@ -1,9 +1,9 @@
 name: 'Host deploy (SSH + compose)'
 description: >-
   Shared deploy mechanics for cd-deploy/cd-rollback: install the SSH key,
-  optionally run the ordered owner migration manifest, provision judge-sandbox prerequisites,
-  verify the signed immutable image manifest, then pull and `docker compose up`
-  on the host, optionally restricted to a subset of services.
+  verify release/Compose/remote sandbox integrity before any migration or ACL
+  mutation, optionally run the ordered owner migration manifest, then pull and
+  `docker compose up` on the host, optionally restricted to a service subset.
 inputs:
   ssh_key:
     description: 'Private SSH key for the deploy host'
@@ -222,6 +222,36 @@ runs:
         remote_command+=" $REMOTE_ENV docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet &&"
         remote_command+=" $REMOTE_ENV ./scripts/runbooks/image-reference-policy.sh verify"
         "${SSH_CMD[@]}" "$remote_command"
+    - name: Validate remote sandbox prerequisites
+      # Production Judge has no local Docker socket. The deployment host must
+      # provision the remote/rootless daemon, client bundle, shared workspace,
+      # seccomp profile and sandbox image before Compose starts the worker.
+      shell: bash
+      run: |
+        set -euo pipefail
+        shell_quote() { printf '%q' "$1"; }
+        SSH_CMD=(ssh -i ~/.ssh/deploy_key -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
+        remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
+        remote_command+=" set -a && . ./.env && set +a &&"
+        remote_command+=" : \"\${JUDGE_DOCKER_HOST:?JUDGE_DOCKER_HOST is required}\" &&"
+        remote_command+=" : \"\${JUDGE_DOCKER_CERT_DIR:?JUDGE_DOCKER_CERT_DIR is required}\" &&"
+        remote_command+=" : \"\${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required}\" &&"
+        remote_command+=" test -d \"\$JUDGE_DOCKER_CERT_DIR\" &&"
+        remote_command+=" test -f \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" && test -s \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" &&"
+        remote_command+=" test -f \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" && test -s \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" &&"
+        remote_command+=" test -f \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" && test -s \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" &&"
+        remote_command+=" test -d \"\$SANDBOX_HOST_DIR/workspace\" &&"
+        remote_command+=" test -w \"\$SANDBOX_HOST_DIR/workspace\" &&"
+        remote_command+=" case \"\$SANDBOX_HOST_DIR\" in /*) ;; *) echo 'SANDBOX_HOST_DIR must be absolute' >&2; exit 1;; esac &&"
+        remote_command+=" test -f \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && test -s \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" &&"
+        remote_command+=" security_options=\$(docker --host \"\$JUDGE_DOCKER_HOST\" --tlsverify --tlscacert \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" --tlscert \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" --tlskey \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" info --format '{{json .SecurityOptions}}') &&"
+        remote_command+=" case \"\$security_options\" in *rootless*) ;; *) echo 'remote Docker daemon is not proven rootless' >&2; exit 1;; esac &&"
+        remote_command+=" docker --host \"\$JUDGE_DOCKER_HOST\" --tlsverify --tlscacert \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" --tlscert \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" --tlskey \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" image inspect \"\$SANDBOX_IMAGE\" >/dev/null &&"
+        remote_command+=" echo 'remote sandbox prerequisites ready'"
+        "${SSH_CMD[@]}" "$remote_command"
 
     - name: Run ordered owner database migrations
       if: ${{ inputs.skip_migrations != 'true' }}
@@ -292,20 +322,6 @@ runs:
         remote_command+=" ./scripts/runbooks/redis-acl-rotation.sh materialize"
         "${SSH_CMD[@]}" "$remote_command"
 
-    - name: Provision sandbox prerequisites on host
-      # The judge worker healthcheck requires the sandbox image and seccomp
-      # profile to exist on the host; without this step a fresh host would
-      # fail the whole deploy (and unrelated rollbacks) with no hint.
-      # Idempotent, so rollback can safely reuse it.
-      shell: bash
-      run: |
-        SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts ${{ inputs.user }}@${{ inputs.host }} -p ${{ inputs.port }}"
-        $SSH_CMD "cd ${{ inputs.path }} && \
-                  export SANDBOX_HOST_DIR=\"\${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}\" && \
-                  sudo -n install -d -o 1000 -g 1000 \"\$SANDBOX_HOST_DIR/workspace\" && \
-                  sudo -n install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && \
-                  docker/sandbox/harness/build.sh && \
-                  echo 'sandbox prerequisites ready'"
 
     - name: Pull and deploy services
       shell: bash

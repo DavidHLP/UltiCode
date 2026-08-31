@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
  * Review 2026-08-25 P0: readiness heartbeat for the judge runtime.
  *
  * <p>The judge process has no HTTP surface, so its container probe combines
- * shell-level sandbox capability checks (docker socket + sandbox image) with
- * this marker: a lightweight scheduled ping proves the Redis Streams
+ * shell-level remote/rootless Docker TLS capability checks and the sandbox
+ * image with this marker: a lightweight scheduled ping proves the Redis Streams
  * dependency stays reachable and refreshes a timestamped marker file only
  * while it does. A stale marker makes the replica fail the Compose
  * {@code service_healthy} gate instead of faking health.</p>

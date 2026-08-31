@@ -416,6 +416,10 @@ contains .github/workflows/_backend.yml 'network-reachability-contract.sh'
 contains .github/workflows/_docker.yml 'network-reachability-contract.sh'
 contains scripts/test/network-reachability-contract.sh 'network-reachability-contract: PASS'
 bash "$ROOT_DIR/scripts/test/network-reachability-contract.sh"
+contains .github/workflows/_backend.yml 'judge-sandbox-contract.sh'
+contains .github/workflows/_docker.yml 'judge-sandbox-contract.sh'
+contains scripts/test/judge-sandbox-contract.sh 'judge-sandbox-contract: PASS'
+bash "$ROOT_DIR/scripts/test/judge-sandbox-contract.sh"
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"

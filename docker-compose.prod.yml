@@ -17,6 +17,8 @@
 #   DUBBO_MTLS_CERT_DIR (host directory with one subdirectory per Triple
 #     workload; each contains identity.crt, identity.key, and rotated
 #     trusted-callers.pem/trusted-services.pem bundles),
+#   JUDGE_DOCKER_HOST (remote/rootless TLS endpoint), JUDGE_DOCKER_CERT_DIR
+#   (host directory containing ca.pem/cert.pem/key.pem), SANDBOX_HOST_DIR
 #   CORS_ALLOWED_ORIGINS, FRONTEND_URL
 #   INTERNAL_DELEGATION_PRIVATE_KEY, BOOTSTRAP_DELEGATION_PRIVATE_KEY (Admin-only signing keys)
 #   Nacos control-plane bootstrap: NACOS_DB_USER, NACOS_DB_PASSWORD,
@@ -690,21 +692,18 @@ services:
       - SANDBOX_CPUS=${SANDBOX_CPUS:-1.0}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-10}
       - SANDBOX_PIDS_LIMIT=${SANDBOX_PIDS_LIMIT:-128}
-      # Review 2026-08-25 P0: the sandbox executor shells out to the docker
-      # CLI, which honors DOCKER_HOST/DOCKER_TLS_VERIFY/DOCKER_CERT_PATH.
-      # Point these at a dedicated (ideally rootless) sandbox daemon to stop
-      # trusting the local docker.sock; when JUDGE_DOCKER_HOST is set, also
-      # remove the socket mount via a compose override file (see
-      # PROJECT_DOCUMENTATION.md "Judge 沙箱执行节点隔离").
-      - DOCKER_HOST=${JUDGE_DOCKER_HOST:-}
-      - DOCKER_TLS_VERIFY=${JUDGE_DOCKER_TLS_VERIFY:-}
-      - DOCKER_CERT_PATH=${JUDGE_DOCKER_CERT_PATH:-}
-      # Operator-set profile wins; otherwise derive from the shared host dir.
-      - SANDBOX_SECCOMP_PROFILE=${SANDBOX_SECCOMP_PROFILE:-${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json}
-      # Redirect the JVM temp dir into the shared workspace so per-run sandbox
-      # job dirs are visible to the host daemon. Operator JVM options from the
-      # deployment .env are appended, not clobbered.
-      - JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/workspace ${JAVA_TOOL_OPTIONS:-}
+      # Production Judge uses a dedicated remote/rootless Docker daemon over
+      # mutually authenticated TLS; no host Docker socket is trusted.
+      - DOCKER_HOST=${JUDGE_DOCKER_HOST:?JUDGE_DOCKER_HOST is required for production sandbox}
+      - DOCKER_TLS_VERIFY=1
+      - DOCKER_CERT_PATH=/run/secrets/judge-docker
+      # The profile lives in the shared workspace root so the remote daemon
+      # resolves the same host path as the Judge worker.
+      - SANDBOX_SECCOMP_PROFILE=${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}/seccomp-profile.json
+      - SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}
+      # Preserve operator JVM options, but force the shared tempdir property
+      # last so remote daemon mounts always resolve on the shared workspace.
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:-} -Djava.io.tmpdir=${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}/workspace
     depends_on:
       backend-app:
         condition: service_healthy
@@ -729,21 +728,18 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    group_add:
-      - "${DOCKER_GID:-999}"
     volumes:
-      # Override JUDGE_DOCKER_SOCK for a rootless user socket; remove this
-      # mount entirely when JUDGE_DOCKER_HOST points at a remote daemon.
-      - ${JUDGE_DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
-      # The path is identical inside the worker and on the Docker host. The
-      # sandbox executor passes child-container mounts to the host daemon.
-      - ${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}:${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}
+      - ${JUDGE_DOCKER_CERT_DIR:?JUDGE_DOCKER_CERT_DIR is required for production sandbox}:/run/secrets/judge-docker:ro
+      # The path is shared with the remote sandbox daemon (for example via a
+      # deployment-owned shared filesystem), so child-container mounts resolve
+      # on both the Judge worker and the isolated daemon.
+      - ${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}:${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required for production sandbox}
       - ${DUBBO_MTLS_CERT_DIR:?DUBBO_MTLS_CERT_DIR is required}/backend-judge:/run/secrets/dubbo:ro
     healthcheck:
-      # Capability (docker socket + sandbox image) plus dependency readiness
+      # Capability (remote TLS daemon + sandbox image) plus dependency readiness
       # (review 2026-08-25 P0): the Redis heartbeat must have refreshed the
       # marker within the last two minutes.
-      test: ["CMD-SHELL", "docker info >/dev/null 2>&1 && docker image inspect $${SANDBOX_IMAGE} >/dev/null 2>&1 && find $${JUDGE_READY_FILE:-/tmp/judge-worker-ready} -mmin -2 | grep -q ."]
+      test: ["CMD-SHELL", "docker info >/dev/null 2>&1 && docker image inspect $${SANDBOX_IMAGE} >/dev/null 2>&1 && test -d \"$${SANDBOX_HOST_DIR}/workspace\" && test -w \"$${SANDBOX_HOST_DIR}/workspace\" && find $${JUDGE_READY_FILE:-/tmp/judge-worker-ready} -mmin -2 | grep -q ."]
       interval: 30s
       timeout: 10s
       start_period: 30s

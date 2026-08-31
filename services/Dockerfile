@@ -39,11 +39,11 @@ RUN apk add --no-cache curl \
 
 COPY --from=builder /app/service.jar ./app.jar
 
-# Pin the runtime user to uid/gid 1000: the judge worker (a) writes the
-# shared sandbox workspace provisioned on the Docker host for uid 1000
-# (README § Docker) and (b) launches sandbox child containers with
-# `--user 1000:1000` that mount the per-run job dir read-only — the dir is
-# created 0700 by the worker, so worker and sandbox user must be identical.
+# Pin the runtime user to uid/gid 1000: the judge worker writes the shared
+# sandbox workspace provisioned for uid 1000 and launches child containers
+# with `--user 1000:1000`. Per-run directories use explicit 0755 traversal
+# permissions so a rootless remote daemon can access the read-only bind mount;
+# source and input files remain read-only.
 RUN addgroup -S -g 1000 appgroup && adduser -S -u 1000 -G appgroup appuser
 USER appuser
 

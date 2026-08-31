@@ -39,6 +39,8 @@ jobs:
         run: bash scripts/test/dubbo-mtls-contract.sh
       - name: Validate service network reachability policy
         run: bash scripts/test/network-reachability-contract.sh
+      - name: Validate Judge sandbox isolation policy
+        run: bash scripts/test/judge-sandbox-contract.sh
 
   docker-verify:
     name: Docker Build (${{ matrix.service.name }})

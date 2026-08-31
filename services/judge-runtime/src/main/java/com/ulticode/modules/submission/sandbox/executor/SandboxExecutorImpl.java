@@ -282,6 +282,10 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     : dFormEnvelopeCodec.buildDBatchInputsJson(runCases, perCaseMs, effectiveMemoryLimitBytes(job));
 
             jobDir = Files.createTempDirectory("ulticode-sandbox-" + job.runId() + "-");
+            // Rootless remote daemons map child-container uid 1000 through a
+            // subordinate host range. Shared traversal permissions are required
+            // because the daemon cannot use the worker's private 0700 default.
+            Files.setPosixFilePermissions(jobDir, SHARED_WORKSPACE_POSIX);
             Path workspace = profile.materializeWorkspace(jobDir, job.code());
             writeInputJson(jobDir, inputJson);
             // Make input.json read-only too (matches the pre-M2a
@@ -311,7 +315,6 @@ public class SandboxExecutorImpl implements SandboxExecutor {
      *     --memory &lt;effective&gt; --cpus &lt;cpus&gt; --pids-limit &lt;N&gt;
      *     --tmpfs /tmp:rw,exec,size=64m --ulimit nofile=128:128
      *     --volume &lt;jobDir&gt;:/job:ro
-     *     --volume &lt;seccompDir&gt;:/seccomp-profile:ro
      *     &lt;profile.dockerCommand&gt;...
      * </pre>
      */
@@ -345,8 +348,10 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         cmd.add("/tmp:rw,exec,size=64m");
         cmd.add("--volume");
         cmd.add(workspace.toAbsolutePath() + ":/job:ro");
-        cmd.add("--volume");
-        cmd.add(resolveSeccompProfileDirectoryPath() + ":/seccomp-profile:ro");
+        cmd.add("--name");
+        cmd.add("ulticode-sandbox-" + job.runId());
+        cmd.add("--cidfile");
+        cmd.add(workspace.resolve(".container.cid").toAbsolutePath().toString());
         cmd.addAll(profile.dockerCommand(job, workspace));
         return cmd;
     }
@@ -503,6 +508,14 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             EnumSet.of(PosixFilePermission.OWNER_READ,
                        PosixFilePermission.GROUP_READ,
                        PosixFilePermission.OTHERS_READ);
+    private static final Set<PosixFilePermission> SHARED_WORKSPACE_POSIX =
+            EnumSet.of(PosixFilePermission.OWNER_READ,
+                       PosixFilePermission.OWNER_WRITE,
+                       PosixFilePermission.OWNER_EXECUTE,
+                       PosixFilePermission.GROUP_READ,
+                       PosixFilePermission.GROUP_EXECUTE,
+                       PosixFilePermission.OTHERS_READ,
+                       PosixFilePermission.OTHERS_EXECUTE);
 
     private void writeInputJson(Path jobDir, String inputJson) throws IOException {
         Files.writeString(jobDir.resolve("input.json"),
@@ -583,9 +596,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
     /**
      * Resolve the host-side seccomp profile path that gets passed to
-     * {@code docker run --security-opt seccomp=<path>} (read by the daemon)
-     * and mounted via {@code --volume <dir>:/seccomp-profile:ro}.
-     *
+     * {@code docker run --security-opt seccomp=<path>} (read by the daemon).
      * <p>The configured path is intentionally <b>relative</b> (no absolute
      * paths in config — portability/design-norm). It is treated as
      * <b>repository-root-relative</b> and re-rooted by walking up from the
@@ -665,13 +676,5 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         return direct.toString();
     }
 
-    private String resolveSeccompProfileDirectoryPath() {
-        String resolved = resolveSeccompProfileFilePath();
-        if (resolved.isEmpty()) {
-            return ".";
-        }
-        int idx = Math.max(resolved.lastIndexOf('/'), resolved.lastIndexOf('\\'));
-        return idx >= 0 ? resolved.substring(0, idx) : ".";
-    }
 
 }

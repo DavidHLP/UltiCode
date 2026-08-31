@@ -44,6 +44,7 @@
 !/docker-compose.gateway-test.yml
 !/docker-compose.observability.yml
 !/docker-compose.ha.yml
+!/docker-compose.judge-dev.yml
 !/.env.example
 !/.env.test.example
 !/.auto-flow/**

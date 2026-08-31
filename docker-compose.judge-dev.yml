@@ -1,0 +1,16 @@
+# Development-only Judge sandbox override.
+# Use only in an explicitly disposable environment layered after the service
+# definition: docker-compose.yml + docker-compose.prod.yml + this file.
+# Never include this file in a production deployment.
+services:
+  backend-judge:
+    profiles: [judge-socket]
+    environment:
+      - DOCKER_HOST=
+      - DOCKER_TLS_VERIFY=
+      - DOCKER_CERT_PATH=
+      - SANDBOX_SECCOMP_PROFILE=${SANDBOX_HOST_DIR:-/opt/ulticode/sandbox}/seccomp-profile.json
+    group_add:
+      - "${DOCKER_GID:-999}"
+    volumes:
+      - ${JUDGE_DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock

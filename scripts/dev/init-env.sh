@@ -259,11 +259,13 @@ SANDBOX_CPUS=1.0
 SANDBOX_TIMEOUT=10
 SANDBOX_PIDS_LIMIT=128
 SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json
-# Production Compose Judge Worker only; local PM2 uses the repository-relative
-# seccomp path above. Set these in the deployment host's .env when applicable.
+# Production Compose Judge Worker only: production uses a dedicated remote
+# rootless Docker daemon over TLS. Supply JUDGE_DOCKER_HOST and
+# JUDGE_DOCKER_CERT_DIR from the deployment secret/config store; init-env
+# deliberately does not generate or persist them.
+# Development-only socket profile (`docker-compose.judge-dev.yml`) uses this
+# local group id; production Compose never consumes it.
 SANDBOX_HOST_DIR=/opt/ulticode/sandbox
-# Production Compose Judge Worker only: compose prepends the -Djava.io.tmpdir
-# redirect to this value. Leave empty unless you need extra JVM flags.
 JAVA_TOOL_OPTIONS=
 DOCKER_GID=999
 # Repository-relative backup directory; deployment environments may override

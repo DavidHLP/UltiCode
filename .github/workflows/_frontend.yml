@@ -54,7 +54,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: apps/${{ matrix.app }}/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/${{ matrix.app }}/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -62,7 +64,7 @@ jobs:
         env:
           CI: "false"
           GITHUB_ACTIONS: "false"
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run lint
         if: steps.should-run.outputs.run == 'true'
@@ -97,7 +99,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: apps/${{ matrix.app }}/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/${{ matrix.app }}/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -105,7 +109,7 @@ jobs:
         env:
           CI: "false"
           GITHUB_ACTIONS: "false"
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run type-check
         if: steps.should-run.outputs.run == 'true'
@@ -140,7 +144,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: apps/${{ matrix.app }}/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/${{ matrix.app }}/pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -148,12 +154,12 @@ jobs:
         env:
           CI: "false"
           GITHUB_ACTIONS: "false"
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests
         if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
-        run: pnpm test
+        run: pnpm test:coverage
 
       - name: Audit production dependencies
         if: steps.should-run.outputs.run == 'true'
@@ -176,7 +182,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: packages/auth-core/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            packages/auth-core/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: packages/auth-core
@@ -184,7 +192,7 @@ jobs:
 
       - name: Test and type-check
         working-directory: packages/auth-core
-        run: pnpm test && pnpm type-check
+        run: pnpm test:coverage && pnpm type-check
 
   # --- i18n Check (management only) ---
   frontend-i18n-check:
@@ -203,14 +211,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-          cache-dependency-path: apps/management/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/management/pnpm-lock.yaml
 
       - name: Install dependencies
         working-directory: apps/management
         env:
           CI: "false"
           GITHUB_ACTIONS: "false"
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Run i18n completeness check
         working-directory: apps/management

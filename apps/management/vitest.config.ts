@@ -9,6 +9,19 @@ export default defineConfig({
     globals: true,
     root: fileURLToPath(new URL('./src', import.meta.url)),
     exclude: ['**/e2e/**', '**/node_modules/**', '**/packages/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['**/*.{js,jsx,ts,tsx,vue}'],
+      exclude: ['**/*.d.ts', '**/coverage/**', '**/__tests__/**', '**/*.spec.*', '**/*.test.*'],
+      reportsDirectory: '../coverage',
+      reporter: ['text', 'json-summary', 'lcov'],
+      thresholds: {
+        statements: 12,
+        branches: 8,
+        functions: 10,
+        lines: 12,
+      },
+    },
   },
   resolve: {
     alias: {

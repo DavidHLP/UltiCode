@@ -1,0 +1,1 @@
+ARCH-CONTRACT-001 RED baseline: the task ledger identified API contract ownership/classification as incomplete; prior architecture assessment reported app-api mixing owner/internal/migration contracts and no task-specific closure evidence for the focused API boundary/japicmp gate.

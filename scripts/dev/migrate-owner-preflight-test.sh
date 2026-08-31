@@ -781,6 +781,7 @@ rehearsal_conflict_output="$(run_expect_failure env \
   DEV_LOCAL_OBSERVATION_CONFIRM=I_UNDERSTAND_DEV_LOCAL_OBSERVATION_REHEARSAL \
   MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  REDIS_CONTAINER=ulticode-redis \
   "$ROOT_DIR/scripts/runbooks/dev-local-observation-rehearsal.sh" --skip-tests)"
 assert_contains "$rehearsal_conflict_output" "Configured monitoring target external-host:23306 is not a published endpoint"
 
@@ -793,6 +794,7 @@ monitoring_conflict_output="$(run_expect_failure env \
   MONITORING_DB_PASSWORD=secret \
   MIGRATION_MYSQL_CONTAINER=ulticode-mysql \
   MIGRATION_MYSQL_CONTAINER_PORT=3306 \
+  REDIS_CONTAINER=ulticode-redis \
   REDIS_PASSWORD=secret \
   "$ROOT_DIR/scripts/runbooks/dev-local-monitoring-baseline.sh" baseline)"
 assert_contains "$monitoring_conflict_output" "Configured monitoring target external-host:23306 is not a published endpoint"

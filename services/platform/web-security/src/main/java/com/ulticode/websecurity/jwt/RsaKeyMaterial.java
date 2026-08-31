@@ -47,6 +47,17 @@ public final class RsaKeyMaterial {
         }
     }
 
+    public static RSAPublicKey loadOptionalPublicKey(String encoded, String label) {
+        if (encoded == null || encoded.isBlank()) {
+            return null;
+        }
+        try {
+            return loadPublicKey(encoded);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("Invalid " + label + " public key", exception);
+        }
+    }
+
     private static byte[] decode(String encoded, String label) {
         if (encoded == null || encoded.isBlank()) {
             throw new IllegalArgumentException("RSA " + label + " key is required");

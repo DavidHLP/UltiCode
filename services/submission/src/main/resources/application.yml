@@ -116,6 +116,7 @@ dubbo:
   scan:
     base-packages: com.ulticode.submission
   consumer:
+    version: 1.0.0
     check: false
     timeout: 3000
     retries: 0

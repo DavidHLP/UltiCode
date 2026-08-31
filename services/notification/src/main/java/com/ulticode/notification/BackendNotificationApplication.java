@@ -1,8 +1,10 @@
 package com.ulticode.notification;
 
+import com.ulticode.websecurity.jwt.RedisDelegationAssertionReplayGuard;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /** Independent notification/email owner runtime. */
@@ -11,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.ulticode.modules.notification",
         "com.ulticode.modules.email"
 })
+@Import(RedisDelegationAssertionReplayGuard.class)
 @MapperScan({
         "com.ulticode.modules.notification.mapper",
         "com.ulticode.modules.notification.ledger.mapper",

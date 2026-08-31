@@ -76,6 +76,7 @@ class SubmissionApiContractShapeTest {
         assertThat(Arrays.stream(SubmissionVerdictWritePort.class.getDeclaredMethods())
                 .map(Method::getName)).allMatch(name -> name.startsWith("updateSubmissionResult"));
         assertThat(SubmissionWritePort.class.isAnnotationPresent(Deprecated.class)).isTrue();
+        assertThat(SubmissionAnalyticsPort.class.isAnnotationPresent(Deprecated.class)).isTrue();
     }
 
     @Test

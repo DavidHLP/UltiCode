@@ -11,6 +11,11 @@ TEST_MYSQL_IMAGE="${TEST_MYSQL_IMAGE:-mysql:8.0}"
 TEST_MYSQL_DB_NAME="${TEST_MYSQL_DB_NAME:-ulticode}"
 TEST_MYSQL_CONTAINER=""
 TEST_ENV_FILE=""
+if command -v mise >/dev/null 2>&1; then
+  MAVEN=(mise exec java@zulu-17.68.203.0 -- ./mvnw)
+else
+  MAVEN=(./mvnw)
+fi
 
 case "$MODE" in
   quick|full|integration)
@@ -68,6 +73,9 @@ done < <(find "$ROOT_DIR/scripts" -name '*.sh' -type f)
 # binaries), so it belongs in every gate, not just in migration-focused runs.
 echo "Running owner migration preflight tests..."
 "$ROOT_DIR/scripts/dev/migrate-owner-preflight-test.sh"
+
+echo "Running coverage gate contract..."
+"$ROOT_DIR/scripts/test/coverage-contract.sh"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
@@ -213,16 +221,16 @@ export MIGRATION_DB_PASSWORD="$MYSQL_ROOT_PASSWORD"
 MIGRATION_DB_NAME="$TEST_DB_NAME" "$ROOT_DIR/scripts/dev/migrate.sh" migrate
 
 echo "Running backend tests..."
-(cd "$ROOT_DIR/services" && ./mvnw test -B)
+(cd "$ROOT_DIR/services" && "${MAVEN[@]}" verify -B)
 
 echo "Running shared authentication tests..."
-(cd "$ROOT_DIR/packages/auth-core" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+(cd "$ROOT_DIR/packages/auth-core" && pnpm install --frozen-lockfile && pnpm test:coverage && pnpm type-check)
 
 echo "Running console tests..."
-(cd "$ROOT_DIR/apps/console" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+(cd "$ROOT_DIR/apps/console" && pnpm install --frozen-lockfile && pnpm test:coverage && pnpm type-check)
 
 echo "Running management tests..."
-(cd "$ROOT_DIR/apps/management" && pnpm install --frozen-lockfile && pnpm test && pnpm type-check)
+(cd "$ROOT_DIR/apps/management" && pnpm install --frozen-lockfile && pnpm test:coverage && pnpm type-check)
 
 
 if [[ "$MODE" == "full" ]]; then
@@ -241,7 +249,7 @@ if [[ "$MODE" == "integration" ]]; then
     docker build -t "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" "$ROOT_DIR/docker/sandbox"
   fi
   echo "Running Testcontainers and sandbox integration tests..."
-  (cd "$ROOT_DIR/services" && ./mvnw -Dtest='*IT,*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false test -B)
+  (cd "$ROOT_DIR/services" && "${MAVEN[@]}" -Dtest='*IT,*IntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false test -B)
   echo "Running owner migration safety integration test (disposable MySQL/Redis)..."
   "$ROOT_DIR/scripts/dev/owner-migration-safety-integration-test.sh"
 fi

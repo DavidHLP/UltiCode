@@ -27,6 +27,8 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+      - name: Validate API contract ownership boundary
+        run: bash scripts/test/api-contract-boundary-contract.sh
 
       - name: Determine baseline ref
         id: baseline
@@ -67,6 +69,7 @@ jobs:
             chmod +x /tmp/baseline/backend-spring/mvnw
           fi
       - name: Install baseline api contracts
+        id: baseline_contracts
         run: |
           set -euo pipefail
           baseline_root=/tmp/baseline
@@ -74,13 +77,39 @@ jobs:
             baseline_services="$baseline_root/services"
             baseline_projects=(
               api/auth-api
-              api/admin-api
               api/app-api
               api/submission-api
               api/notification-api
             )
+            present_projects=()
+            for project in "${baseline_projects[@]}"; do
+              if [[ -f "$baseline_services/$project/pom.xml" ]]; then
+                present_projects+=("$project")
+              fi
+            done
+            if (( ${#present_projects[@]} == 0 )); then
+              echo "has_standalone_contracts=false" >> "$GITHUB_OUTPUT"
+              echo "baseline has no standalone API contracts; compatibility comparison skipped"
+              exit 0
+            fi
+            if (( ${#present_projects[@]} != ${#baseline_projects[@]} )); then
+              echo "::error::Baseline has an incomplete standalone API contract set; compatibility comparison cannot run safely"
+              exit 1
+            fi
+            baseline_revision="$({
+              cd "$baseline_services"
+              ./mvnw help:evaluate -Dexpression=revision -q -DforceStdout
+            } | tail -n 1)"
+            if [[ ! "$baseline_revision" =~ ^[0-9A-Za-z][0-9A-Za-z.+_-]*$ ]]; then
+              echo "::error::Could not resolve a safe Maven revision from the standalone baseline POM"
+              exit 1
+            fi
+            echo "old_version=$baseline_revision" >> "$GITHUB_OUTPUT"
+            echo "has_standalone_contracts=true" >> "$GITHUB_OUTPUT"
+            echo "[contract] baseline API revision=$baseline_revision"
           elif [[ -d "$baseline_root/backend-spring" ]]; then
-            echo "::notice::Baseline ref is monolithic; no standalone API contracts to install"
+            echo "has_standalone_contracts=false" >> "$GITHUB_OUTPUT"
+            echo "baseline has no standalone API contracts; compatibility comparison skipped"
             exit 0
           else
             echo "::error::Baseline ref has no supported backend root"
@@ -88,21 +117,59 @@ jobs:
           fi
           cd "$baseline_services"
           ./mvnw -pl "$(IFS=,; echo "${baseline_projects[*]}")" -am \
-            -DskipTests install -B
+            -Drevision="${baseline_revision}" -DskipTests install -B
+
+      - name: Record skipped contract compatibility comparison
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts != 'true' }}
+        run: echo "baseline has no standalone API contracts; compatibility comparison skipped"
 
       - name: Build current api contracts
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' }}
         run: |
           set -euo pipefail
-          echo "[contract] building current api contracts (package, keeps baseline jars in local repo for oldVersion resolution)"
+          echo "[contract] building current api contracts at a distinct revision"
           cd services
-          ./mvnw -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am -DskipTests package -B
+          ./mvnw -Drevision=1.0.0-ci.${GITHUB_RUN_ID} \
+            -pl api/auth-api,api/app-api,api/submission-api,api/notification-api \
+            -am -DskipTests package -B
 
       - name: Run japicmp contract compat check
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' }}
         run: |
           set -euo pipefail
-          echo "[contract] running japicmp via profile contract-compat"
+          echo "[contract] running japicmp against installed baseline ${{ steps.baseline_contracts.outputs.old_version }}"
           cd services
-          ./mvnw -P contract-compat -pl api/auth-api,api/admin-api,api/app-api,api/submission-api,api/notification-api -am verify -B
+          ./mvnw -Drevision=1.0.0-ci.${GITHUB_RUN_ID} \
+            -Dcontract.compat.oldVersion="${{ steps.baseline_contracts.outputs.old_version }}" \
+            -P contract-compat \
+            -pl api/auth-api,api/app-api,api/submission-api,api/notification-api \
+            -am verify -B
+      - name: Assert japicmp compares distinct artifacts
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          reports = [
+              "services/api/auth-api/target/japicmp/contract-compat-check.xml",
+              "services/api/app-api/target/japicmp/contract-compat-check.xml",
+              "services/api/submission-api/target/japicmp/contract-compat-check.xml",
+              "services/api/notification-api/target/japicmp/contract-compat-check.xml",
+          ]
+          for report in reports:
+              root = ET.parse(report).getroot()
+              old_jar = root.attrib.get("oldJar", "").strip()
+              new_jar = root.attrib.get("newJar", "").strip()
+              old_version = root.attrib.get("oldVersion", "").strip()
+              missing = {"", "n.a.", "n/a", "na"}
+              if old_jar.lower() in missing or new_jar.lower() in missing or old_version.lower() in missing:
+                  raise SystemExit(
+                      f"japicmp baseline artifact/version is missing in {report}; compatibility comparison skipped unexpectedly"
+                  )
+              if old_jar == new_jar:
+                  raise SystemExit(f"japicmp self-comparison detected in {report}")
+          print("japicmp distinct-baseline guard: PASS")
+          PY
 
       - name: Upload japicmp reports
         if: always()

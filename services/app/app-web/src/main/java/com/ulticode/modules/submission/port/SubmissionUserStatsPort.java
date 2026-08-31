@@ -11,8 +11,7 @@ import java.util.List;
  * <p>The submission module owns this port. Cross-module consumers
  * (achievement, user, and admin projections) depend on it instead of
  * reaching into {@code SubmissionMapper} directly, keeping the submission
- * persistence implementation behind the module boundary. Mirrors the
- * existing {@link SubmissionAnalyticsPort} seam.
+ * persistence implementation behind the module boundary.
  */
 public interface SubmissionUserStatsPort {
 

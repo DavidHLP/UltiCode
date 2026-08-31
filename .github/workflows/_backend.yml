@@ -86,8 +86,11 @@ jobs:
       - name: Grant Maven wrapper execute permission
         run: chmod +x services/mvnw
 
+      - name: Validate coverage gate contract
+        run: bash scripts/test/coverage-contract.sh
+
       - name: Run tests with CI profile
-        run: cd services && ./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B
+        run: cd services && ./mvnw verify -Dspring.profiles.active=ci -Dtest='!*IT' -B
 
       - name: Upload test results on failure
         if: failure()
@@ -185,7 +188,7 @@ jobs:
           fi
 
       - name: Run tests with features-${{ matrix.features }} profile
-        run: cd services && ./mvnw test -Dspring.profiles.active=ci,features-${{ matrix.features }} -Dtest='!*IT' -B
+        run: cd services && ./mvnw verify -Dspring.profiles.active=ci,features-${{ matrix.features }} -Dtest='!*IT' -B
 
       - name: Upload test results on failure
         if: failure()
@@ -283,6 +286,9 @@ jobs:
 
       - name: Validate dependency resilience
         run: bash scripts/test/dependency-resilience-contract.sh
+
+      - name: Validate Dubbo provider and reference inventory
+        run: bash scripts/test/dubbo-provider-reference-contract.sh
 
       - name: Validate Redis Streams resilience
         run: bash scripts/test/stream-resilience-contract.sh

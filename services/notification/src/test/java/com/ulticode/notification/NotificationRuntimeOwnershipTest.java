@@ -5,8 +5,10 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import com.ulticode.notification.idempotency.entity.NotificationCommandReceiptEntity;
+import com.ulticode.websecurity.jwt.RedisDelegationAssertionReplayGuard;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,6 +24,14 @@ class NotificationRuntimeOwnershipTest {
                         "com.ulticode.notification",
                         "com.ulticode.modules.notification",
                         "com.ulticode.modules.email");
+    }
+
+    @Test
+    void bootImportsSharedDelegationReplayGuard() {
+        Import sharedImport = BackendNotificationApplication.class.getAnnotation(Import.class);
+
+        assertThat(sharedImport.value())
+                .containsExactly(RedisDelegationAssertionReplayGuard.class);
     }
 
     @Test

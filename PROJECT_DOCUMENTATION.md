@@ -74,7 +74,7 @@ UltiCode 已经完成从单体 JVM 到多进程 Owner/Worker 拓扑的骨架迁�
 
 `judge-runtime` 是 Judge 执行逻辑的共享依赖，不是第八个进程。
 
-共享模块是 `platform/*`、`api/*`、`integration-inbox`、`judge-config` 和 `judge-runtime`。`judge-config` 只承载 Submission/Judge 共用的 flag binding/命名模式校验，不是运行时进程；`services/pom.xml` reactor 已登记 platform、五个 API/Contract 方向、五个 Owner、两个 Worker 和 `judge-runtime`；不存在实际模块的 `backend-api` dependency-management 条目已移除。
+共享模块是 `platform/*`、`api/*`、`integration-inbox`、`judge-config` 和 `judge-runtime`。`judge-config` 只承载 Submission/Judge 共用的 flag binding/命名模式校验，不是运行时进程；`services/pom.xml` reactor 已登记 platform、四个 API/Contract 方向、五个 Owner、两个 Worker 和 `judge-runtime`；不存在实际模块的 `backend-api` dependency-management 条目已移除。
 
 `judge-runtime` 内的 `com.ulticode.modules.submission.sandbox` 与
 `com.ulticode.modules.queue.port` 通过 `package-info.java` 明确声明为共享
@@ -88,7 +88,18 @@ Judge 执行库归属，而不是 App 私有业务包。`RunSubmissionDTO`、`Ru
 
 ##### 2.2 Contract Seam
 
-Auth、Admin、App、Submission、Notification 的服务边界由各自 `api/*` 合同承载，包含接口、DTO、错误码和事件。`api/*` 不应包含 Entity、Mapper、Repository 或实现模块类型；既有 API contract/architecture tests 持续守住该边界。
+Auth、App、Submission、Notification 的服务边界由四个 `api/*` 合同承载，Admin 是这些合同的 Consumer，不拥有独立 Admin API 合同模块。合同包含接口、DTO、错误码和事件；`api/*` 不应包含 Entity、Mapper、Repository 或实现模块类型，既有 API contract/architecture tests 持续守住该边界。
+
+##### 2.2.1 覆盖率门禁
+
+`scripts/dev/test.sh quick/full` 会运行 `scripts/test/coverage-contract.sh`，并以 Maven
+`verify` 和前端 `test:coverage` 的真实执行结果作为门禁；只允许 Application/Configuration
+类排除。六个后端关键模块在 JaCoCo `verify` 阶段执行 bundle 及 security/idempotency
+package rules，Console、Management 和 `packages/auth-core` 使用 V8 provider、固定
+`coverage/` 报告目录及非零四维阈值；脚本还运行一个 100% bundle 阈值的负向 fixture，确认
+覆盖率不足会以非零退出。共享 bundle floor 由 `coverage.bundle.minimum` 提供；Submission
+因当前 source-inclusive 基线使用显式的 `coverage.bundle.submission.minimum`，不会覆写共享属性。
+报告是本地/CI 产物，不等同于生产流量覆盖证据。
 
 ##### 2.3 Submission 写入回访状态
 
@@ -106,7 +117,7 @@ App request -> Submission write -> App ProblemFacts / Auth UserExistence -> Subm
 
 ##### 3.1 Contract Module 作为主要边界
 
-Contract module 已成为发布和依赖边界：调用方依赖 provider-owned API，而不是跨 Owner 共享实现。Submission API 的 `SubmissionWritePort`、Notification contract、事件 envelope 及契约 shape tests 证明了这一方向。新 DTO 保持实现无关，避免 Entity/Mapper/Repository 泄漏。
+Contract module 已成为发布和依赖边界：调用方依赖 provider-owned API，而不是跨 Owner 共享实现。Submission API 的窄 mutation contracts、Notification contract、事件 envelope 及契约 shape tests 证明了这一方向。新 DTO 保持实现无关，避免 Entity/Mapper/Repository 泄漏。
 
 ##### 3.2 Submission 是边界最清晰的 Owner
 
@@ -217,7 +228,7 @@ Auth owner。
 > 参考 codebase-memory-mcp 的 pipeline 图结构（编排器 + `_` 前缀 reusable workflows + `ci-ok` 汇总上下文）。
 
 - **CI（`.github/workflows/ci.yml`）**：只做三件事——`dorny/paths-filter` 变更探测、按路径门禁调用可复用 workflow、`ci-ok` 汇总。分支保护只需依赖 `ci-ok` 一个稳定 context；矩阵/job 改名不再影响 required checks。被 path 过滤跳过的 stage 在 `ci-ok` 中视为通过；`changes` job 本身失败则硬失败。
-- **可复用子 workflow**：`_security.yml`（gitleaks，全量触发）、`_backend.yml`（build/test/features matrix/migrate-validate/baseline-parity/flyway-filename-lint）、`_frontend.yml`（lint/type-check/test/i18n/shared auth-core；per-app 门禁经显式 boolean inputs 传入）、`_docker.yml`（镜像构建验证）。新增门禁 = 新增一个 `_*.yml` + 编排器一个调用 job + 加入 `ci-ok.needs`。
+- **可复用子 workflow**：`_security.yml`（gitleaks，全量触发）、`_backend.yml`（build/test/features matrix/migrate-validate/baseline-parity/flyway-filename-lint/Dubbo provider-reference inventory）、`_contract.yml`（API owner boundary 与 japicmp compatibility）、`_frontend.yml`（lint/type-check/test/i18n/shared auth-core；per-app 门禁经显式 boolean inputs 传入）、`_docker.yml`（镜像构建验证）。新增门禁 = 新增一个 `_*.yml` + 编排器一个调用 job + 加入 `ci-ok.needs`。
 - **服务矩阵单一来源**：`.github/services-matrix.json` 同时驱动 `_docker.yml` 验证与 `docker-publish.yml` 发布；新增服务 = 新增一条 JSON 记录，两个 workflow 经 `load-matrix` job 读取。
 - **CD 复合动作**：`.github/actions/host-deploy/` 与 `.github/actions/host-health/` 由 `cd-deploy.yml`/`cd-rollback.yml` 共享；SSH 私钥通过 masked secret 写入临时文件，环境绑定的 `DEPLOY_KNOWN_HOSTS` 为必填，所有连接使用 `StrictHostKeyChecking=yes` 与显式 `UserKnownHostsFile`，不执行 `ssh-keyscan` 或 unknown-key 自动接受。回滚复用同一动作并设置 `skip_migrations: true`。
 - **顺带修复**：`_docker`/publish 使用规范 Dockerfile 路径 `apps/{console,management}/Dockerfile`（原 ci.yml 内为失效的 `./console/Dockerfile`）；i18n job 工作目录修正为 `apps/management`；auth-core 缓存路径修正为 `packages/auth-core/pnpm-lock.yaml`。
@@ -359,7 +370,7 @@ flowchart LR
 | 注册 | `AuthController` → `AuthenticationWorkflow.register` → `AuthAccountPort` + `refresh_tokens` | 账号和刷新会话应在 Auth 本地事务内，profile 后续事件化 |
 | 管理员创建题目 | `AdminProblemController` → `ProblemService.createProblem` → Problem/Detail/Version mappers | Admin Controller 可保留，写事务必须由 App 的 Problem Owner 执行 |
 | 普通提交 | App request boundary → immutable `SubmissionFactsSnapshot` → Submission `SubmissionIntakePort` → Submission-owner tables + judge outbox | Submission Owner 不再在写事务内同步回访 Problem/Auth；read enrichment 通过 bounded owner facts |
-| 比赛提交 | Contest Controller → Contest Service → SubmissionWritePort → Submission/Outbox → ContestSubmissionPort | 当前存在 Contest↔Submission 回访；目标需资格同步、记录事件化 |
+| 比赛提交 | Contest Controller → Contest Service → SubmissionIntakePort → Submission/Outbox → ContestSubmissionPort | 当前存在 Contest↔Submission 回访；目标需资格同步、记录事件化 |
 | 审核动作 | Moderation Controller → Moderation Service → moderation tables + App 内容表 + `users` ban fields | 当前仍是兼容混合写路径；目标拆为 Admin/App/Auth Owner 事件化协作 |
 | 搜索 | Search Projection → MeiliSearch 或四个 SearchSource → Problem/Forum/Solution/User mappers | 目标应由 App 拥有搜索索引，不做四路远程串行查询 |
 | WebSocket | access cookie → Handshake → STOMP interceptor → Redis blacklist → JWT → User DB → session principal | 目标在 App 本地验 JWT，以事件/cache 处理状态失效，避免每消息 Auth RPC |
@@ -519,7 +530,7 @@ backend-app  ──X──> backend-admin（使用事件或直接由 Gateway 路
 | Owned Domain | Moderation Case/Decision、Audit、System Operations/Settings、Backup Job、Admin Read Models |
 | Owned Tables | `appeals`、`audit_logs`、`audit_outbox`、`consumer_inbox`、`moderation_actions`、`moderation_queue`、`reports`、`system_settings`、`system_announcements`/`system_announcement_reads`（若启用）、`user_bans`/`user_warnings`（治理记录）、`backups`（先补 migration） |
 | Exposed HTTP API | `/admin/**`；`/moderation/**` 中报告/申诉与审核端点按角色分别授权；`/monitoring/**`；管理端导出/备份 |
-| Dubbo Provider | 初期不强行创建无 Consumer 的 Provider；后续只有确有消费者的 `RuntimePolicyQueryService` 才进入 `backend-admin-api` |
+| Dubbo Provider | 当前不预建无 Consumer 的 Provider；只有确认存在跨 owner 消费者且完成合同评审后，才新增 provider-owned API contract |
 | Dubbo Consumer | Auth 的账号/角色/权限管理；App 的 Problem/Contest/Submission/Forum/Solution/Notification 管理命令与批量查询 |
 | Events | `ModerationDecisionRecorded`、`SystemSettingsChanged`、`AnnouncementPublished`、`AuditRecorded`（消费各服务事件）、workflow retry/failure events |
 | External Dependencies | Admin MySQL、Redis（workflow lock/cache）、Nacos、Prometheus/OTel、受控备份存储与只读 backup credential |
@@ -579,7 +590,7 @@ Notification-owned 表。Notification 的 intent 消费仍经 `consumer_inbox`�
 |---|---|
 | Responsibility | 消费 Redis Streams judge queue，读取 Problem-owned facts/test cases，执行 Docker sandbox，调用 Submission-owned verdict/fence contract |
 | Owned Domain | 无业务表；仅拥有 Worker 运行状态、Streams consumer identity 和进程级指标 |
-| Dubbo Consumer | `ProblemFactsPort`、`ProblemJudgingCaseReadPort`、`ProblemExampleReadPort`、Submission owner 的 `SubmissionFencePort`、`SubmissionWritePort` |
+| Dubbo Consumer | `ProblemFactsPort`、`ProblemJudgingCaseReadPort`、`ProblemExampleReadPort`、Submission owner 的 `SubmissionFencePort`、`SubmissionVerdictWritePort` |
 | Broker Contract | `judge_outbox` 由 Submission 写入；`JudgeQueue` v2 envelope 携带 generation/attemptId；Streams PEL/reaper 支持 at-least-once，超过 `queue.max-delivery-attempts` 写入 `judge:{judge-stream}:dlq` |
 | Failure Boundary | Worker、Docker daemon、沙箱镜像故障不阻塞 App HTTP；结果写入失败保留 PEL，不能 ACK 未完成 job；DLQ 写入失败也保留 PEL 以便重试 |
 | Scaling | 按 CPU/Docker 并发独立扩容；Submission 只承担提交、Owner 事务和 durable result outbox |
@@ -788,15 +799,17 @@ Dubbo 已用于 Auth、Admin、App、Submission、Notification 的内部 Contrac
 ```text
 services/api/
 ├── auth-api
-├── admin-api
 ├── app-api
 ├── submission-api
 └── notification-api
 ```
 
-`backend-admin-api` 已加入 reactor。`backend-submission-api` 和
-`backend-notification-api` 已作为 provider-owned artifacts 加入 `services` reactor；包根分别为
-`com.ulticode.submission.api` 与 `com.ulticode.notification.api`，Dubbo identity 沿用
+四个 API 模块均为 provider-owned、implementation-free contracts。未落地且无消费者的
+Admin notification migration placeholder 已删除，不保留对应兼容壳；
+Admin 的内部通知服务仍属于 Admin owner，不因此创建跨 owner Dubbo contract。
+`backend-submission-api` 与 `backend-notification-api` 已作为 provider-owned artifacts 加入
+`services` reactor；包根分别为 `com.ulticode.submission.api` 与
+`com.ulticode.notification.api`，Dubbo identity 沿用
 `backend-submission`/`backend-notification`、version `1.0.0`。Contract 可依赖极小的
 `backend-common`，但不得依赖任何服务实现模块。
 
@@ -804,9 +817,10 @@ Wire-incompatible Submission contracts 以 version 门禁发布：`SubmissionFen
 （`currentGeneration` 由 `Optional<Long>` 改为可空 `Long`，避免 Dubbo 序列化 `Optional`）与新增
 `findByProblemId` 的 `SubmissionUserQueryPort` 的 provider/reference 均已升到 version `1.1.0`。
 Submission mutation 已拆为 `SubmissionIntakePort` 与 `SubmissionVerdictWritePort`；旧的
-`SubmissionWritePort` 1.0.0 只作为 deprecated 兼容 Interface/provider 保留，不再被仓库内业务
-consumer 注入。滚动顺序固定为 provider-first（Submission 同时暴露新旧）→ App/Judge 切换窄
-Interface；回滚顺序相反。混合版本窗口和 consumer drain 完成前不得删除旧 provider。
+`SubmissionWritePort` 1.0.0 仍只作为 deprecated API 类型保留，仓库内没有业务 consumer，
+其唯一 N-1 compatibility provider 仍由 Submission owner 注册。App 的重复 provider 已由
+ARCH-DUBBO-001 删除；任何外部 N-1 consumer drain 无法由本地源码证明，需外部 operator
+authority，因此仍是 `BLOCKED_EXTERNAL`；正常运行时只注册窄 Interface provider。
 新增 `ProblemTitleLookupPort` 采用 App-provider-first → Submission-consumer-second，回滚
 顺序相反；旧 App 不提供该 Interface，禁止先选择性发布新 Submission。
 
@@ -867,9 +881,11 @@ checksum、service scope、digest manifest 和状态，不含凭据。真实主�
 
 P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
-consumer 和 WebSocket consumer 均实现并调用完整契约。保留的 `SubmissionWritePort`/provider 是明确标注的 N-1
-兼容窗口，`ReconciliationOrphanCounts` 中的 zero fields 是已记录的 wire-compatibility 窗口；它们不是新的正常业务
-入口。Shell health controller 仍承担 `/api/v1/{app,admin}/health` 兼容健康检查，不以 placeholder 代替业务能力。
+consumer 和 WebSocket consumer 均实现并调用完整契约。`SubmissionWritePort` 仅作为 deprecated API 类型保留，
+其唯一 N-1 compatibility provider 仍由 Submission owner 注册，App 不再注册重复 provider；外部 consumer drain
+仍为 `BLOCKED_EXTERNAL`。`ReconciliationOrphanCounts` 中的 zero fields 是已记录的
+wire-compatibility 窗口；它们不是新的正常业务入口。Shell health controller 仍承担 `/api/v1/{app,admin}/health`
+兼容健康检查，不以 placeholder 代替业务能力。
 
 Submission 的 `SubmissionTestCaseDetailDTO`、`TestCaseDetailCodec` 与 `SubmissionStatusCatalog` 位于
 `backend-submission-api` 的纯 contract seam；App 与 backend-submission 只在各自 storage edge 做 Entity
@@ -1259,7 +1275,7 @@ repository root/
 └── services/
     ├── pom.xml                    # Maven parent/reactor
     ├── platform/{common,web-security,integration-inbox,judge-config}/
-    ├── api/{auth-api,admin-api,app-api,submission-api,notification-api}/
+    ├── api/{auth-api,app-api,submission-api,notification-api}/
     ├── judge-runtime/             # shared dependency, not an independent process
     ├── auth/                       # backend-auth Owner
     ├── admin/                      # backend-admin Owner

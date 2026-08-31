@@ -22,7 +22,6 @@ import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionReconciliationReadProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionActivityAnalyticsProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionAdjudicationReadProvider;
-import com.ulticode.submission.dubbo.provider.SubmissionAnalyticsProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionGenerationReadProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionStreakProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionUserStatsProvider;
@@ -30,7 +29,6 @@ import com.ulticode.submission.dubbo.provider.ProblemSubmissionStatsProvider;
 import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionAdjudicationReadPort;
-import com.ulticode.submission.api.service.SubmissionAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionGenerationReadPort;
 import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
@@ -69,8 +67,6 @@ class SubmissionProviderContractTest {
                 SubmissionActivityAnalyticsPort.class, "1.0.0");
         assertProvider(SubmissionAdjudicationReadProvider.class,
                 SubmissionAdjudicationReadPort.class, "1.0.0");
-        assertProvider(SubmissionAnalyticsProvider.class,
-                SubmissionAnalyticsPort.class, "1.0.0");
         assertProvider(SubmissionGenerationReadProvider.class,
                 SubmissionGenerationReadPort.class, "1.0.0");
         assertProvider(SubmissionStreakProvider.class,

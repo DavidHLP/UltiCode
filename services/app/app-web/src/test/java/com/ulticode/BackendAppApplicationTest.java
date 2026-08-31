@@ -217,10 +217,6 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.api.service.JudgeConfigPort judgeConfigPort;
     @MockBean
-    private com.ulticode.submission.api.service.SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
-    @MockBean
-    private com.ulticode.submission.api.service.SubmissionAnalyticsPort submissionAnalyticsPort;
-    @MockBean
     private com.ulticode.submission.api.service.SubmissionUserStatsPort submissionUserStatsPort;
     @MockBean
     private com.ulticode.submission.api.service.ProblemSubmissionStatsPort problemSubmissionStatsPort;

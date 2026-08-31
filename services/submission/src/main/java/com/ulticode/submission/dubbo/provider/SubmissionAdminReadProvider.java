@@ -38,8 +38,9 @@ import java.util.stream.Collectors;
  * search pre-fetch routed through {@link ProblemTitleLookupPort} (Dubbo to
  * {@code backend-app}), never reading problem tables (DEC-011). Pagination,
  * filter and sort semantics mirror the legacy admin adapter exactly. Normal
- * Admin reads route to this Submission-owner provider; the App provider is
- * retained only for explicit legacy rollback.
+ * Admin reads route to this Submission-owner provider; App no longer
+ * registers a duplicate provider, and rollback requires an older verified
+ * artifact rather than a second live provider.
  */
 @DubboService(group = "backend-submission", version = "1.0.0")
 @RequiredArgsConstructor

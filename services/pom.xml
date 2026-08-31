@@ -26,7 +26,6 @@
 		<module>platform/integration-inbox</module>
 		<module>platform/judge-config</module>
 		<module>api/auth-api</module>
-		<module>api/admin-api</module>
 		<module>api/submission-api</module>
 		<module>api/notification-api</module>
 		<module>api/app-api</module>
@@ -63,13 +62,19 @@
 		<lombok.version>1.18.46</lombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<japicmp.version>0.26.1</japicmp.version>
+		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
+		<!-- Submission has an explicit owner-specific floor because its current
+		     source-inclusive baseline is lower than the shared service floor. -->
+		<coverage.bundle.submission.minimum>0.25</coverage.bundle.submission.minimum>
+		<coverage.security.minimum>0.25</coverage.security.minimum>
+		<coverage.idempotency.minimum>0.50</coverage.idempotency.minimum>
 		<!-- Contract compat gate: old artifact to compare against.
-		     Default is the current reactor revision (self-compare, zero diff).
-		     Override via -Dcontract.compat.oldVersion=1.0.0 or a Maven version
-		     range like -Dcontract.compat.oldVersion=[0,1.0.0) to resolve the
-		     nearest old release from the local repo. CI resolves this from the
-		     baseline tag's installed artifacts; see services/docs/CONTRACT_COMPAT_GATE.md. -->
-		<contract.compat.oldVersion>${project.version}</contract.compat.oldVersion>
+							A baseline version is required explicitly; the sentinel below is
+							rejected by the contract-compat profile instead of allowing a
+							self-comparison.
+		     CI resolves this from the baseline tag's installed artifacts; see
+		     services/docs/CONTRACT_COMPAT_GATE.md. -->
+		<contract.compat.oldVersion>__missing_contract_baseline__</contract.compat.oldVersion>
 	</properties>
 
 	<dependencyManagement>
@@ -92,11 +97,6 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-app-api</artifactId>
-				<version>${revision}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.ulticode</groupId>
-				<artifactId>backend-admin-api</artifactId>
 				<version>${revision}</version>
 			</dependency>
 			<dependency>
@@ -276,6 +276,28 @@
 			<id>contract-compat</id>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-enforcer-plugin</artifactId>
+						<version>3.5.0</version>
+						<executions>
+							<execution>
+								<id>require-contract-baseline</id>
+								<phase>validate</phase>
+								<goals><goal>enforce</goal></goals>
+								<configuration>
+									<rules>
+										<requireProperty>
+											<property>contract.compat.oldVersion</property>
+											<message>Contract compatibility requires an explicit baseline revision</message>
+											<regex>^(?!__missing_contract_baseline__$).+$</regex>
+											<regexMessage>contract.compat.oldVersion must not use the missing-baseline sentinel</regexMessage>
+										</requireProperty>
+									</rules>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>com.github.siom79.japicmp</groupId>
 						<artifactId>japicmp-maven-plugin</artifactId>

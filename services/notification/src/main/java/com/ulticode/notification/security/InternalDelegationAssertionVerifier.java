@@ -5,7 +5,6 @@ import com.ulticode.common.security.DelegationAssertionContract;
 import com.ulticode.websecurity.jwt.DelegationAssertionReplayGuard;
 import com.ulticode.websecurity.jwt.DelegationAssertionVerifierSupport;
 import com.ulticode.websecurity.jwt.RsaKeyMaterial;
-import io.jsonwebtoken.Claims;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
 import org.apache.dubbo.rpc.RpcContext;
@@ -41,7 +40,7 @@ public class InternalDelegationAssertionVerifier {
             String expectedAudience,
             DelegationAssertionReplayGuard replayGuard,
             Clock clock) {
-        this.publicKey = loadOptionalPublicKey(publicKeyBase64);
+        this.publicKey = RsaKeyMaterial.loadOptionalPublicKey(publicKeyBase64, "delegation");
         this.keyId = keyId;
         this.expectedIssuer = expectedIssuer;
         this.expectedAudience = expectedAudience;
@@ -54,45 +53,22 @@ public class InternalDelegationAssertionVerifier {
      * Missing or malformed transport identity always fails closed.
      */
     public boolean isTrusted(ActorDelegation actor) {
-        if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
-                || actor.delegatorId() == null || actor.delegatorId().isBlank()
-                || !actor.actorId().equals(actor.delegatorId())) {
-            return false;
-        }
-
         String assertion = RpcContext.getServerAttachment().getAttachment(
                 DelegationAssertionContract.ATTACHMENT_KEY);
-        if (assertion == null || assertion.isBlank() || publicKey == null) {
-            return false;
-        }
-
-        try {
-            Claims claims = DelegationAssertionVerifierSupport.verify(
-                    assertion, publicKey, keyId, expectedIssuer, expectedAudience, clock);
-            String actorService = claims.get(DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class);
-            String actorType = claims.get(DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class);
-            if (!"backend-admin".equals(actorService)
-                    || actorType == null || !actorType.equalsIgnoreCase(actor.actorType())
-                    || !actor.actorId().equals(claims.getSubject())
-                    || Boolean.TRUE.equals(claims.get(DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class))) {
-                return false;
-            }
-            return replayGuard != null
-                    && replayGuard.claim(expectedAudience, claims.getId(),
-                    DelegationAssertionVerifierSupport.MAX_ASSERTION_LIFETIME);
-        } catch (RuntimeException exception) {
-            return false;
-        }
-    }
-
-    private static RSAPublicKey loadOptionalPublicKey(String encoded) {
-        if (encoded == null || encoded.isBlank()) {
-            return null;
-        }
-        try {
-            return RsaKeyMaterial.loadPublicKey(encoded);
-        } catch (RuntimeException exception) {
-            throw new IllegalStateException("Invalid delegation public key", exception);
-        }
+        return DelegationAssertionVerifierSupport.verifyTrusted(
+                actor == null ? null : actor.actorType(),
+                actor == null ? null : actor.actorId(),
+                actor == null ? null : actor.delegatorId(),
+                assertion,
+                publicKey,
+                keyId,
+                null,
+                null,
+                expectedIssuer,
+                expectedAudience,
+                replayGuard,
+                clock,
+                false,
+                false);
     }
 }

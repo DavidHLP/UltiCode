@@ -2,11 +2,13 @@ import { fileURLToPath } from "node:url";
 import { configDefaults, defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
+import Icons from "unplugin-icons/vite";
 
 export default defineConfig({
   plugins: [
     vue(),
     vueJsx(),
+    Icons({ compiler: "vue3", autoInstall: true }),
     // Mock virtual:pwa-register for tests
     {
       name: "virtual-pwa-register-mock",
@@ -39,6 +41,19 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**", "**/packages/**"],
     root: fileURLToPath(new URL("./src", import.meta.url)),
     globals: true,
+    coverage: {
+      provider: "v8",
+      include: ["**/*.{js,jsx,ts,tsx,vue}"],
+      exclude: ["**/*.d.ts", "**/coverage/**", "**/__tests__/**", "**/*.spec.*", "**/*.test.*"],
+      reportsDirectory: "../coverage",
+      reporter: ["text", "json-summary", "lcov"],
+      thresholds: {
+        statements: 22,
+        branches: 18,
+        functions: 17,
+        lines: 23,
+      },
+    },
   },
   resolve: {
     alias: {

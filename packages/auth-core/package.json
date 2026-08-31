@@ -30,6 +30,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "vitest --run",
+    "test:coverage": "vitest --run --coverage",
     "test:watch": "vitest"
   },
   "peerDependencies": {
@@ -41,6 +42,7 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.4",
     "typescript": "~5.9.3",
     "vitest": "^4.1.4",
     "vue": "^3.5.0"

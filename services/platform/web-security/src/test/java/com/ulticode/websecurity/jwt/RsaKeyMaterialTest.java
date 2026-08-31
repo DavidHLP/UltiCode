@@ -18,6 +18,9 @@ class RsaKeyMaterialTest {
                 .isEqualTo("RSA");
         assertThat(RsaKeyMaterial.loadPublicKey(encode(keyPair.getPublic())).getModulus())
                 .isEqualTo(((java.security.interfaces.RSAPublicKey) keyPair.getPublic()).getModulus());
+        assertThat(RsaKeyMaterial.loadOptionalPublicKey(
+                encode(keyPair.getPublic()), "delegation")).isNotNull();
+        assertThat(RsaKeyMaterial.loadOptionalPublicKey("", "delegation")).isNull();
     }
 
     @Test

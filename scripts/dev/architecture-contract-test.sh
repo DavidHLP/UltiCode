@@ -250,13 +250,20 @@ contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jw
 not_contains docker-compose.prod.yml 'JWT_JWKS_URI=http://backend-auth:9101/auth/jwks'
 # P0-SEC-005: transport assertions are RS256-only. Private signing material
 # stays in Admin; every verifier receives only public key material.
-for delegation_source in services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java services/app/app-web/src/main/java/com/ulticode/app/security/InternalDelegationAssertionVerifier.java services/notification/src/main/java/com/ulticode/notification/security/InternalDelegationAssertionVerifier.java services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java; do
+not_contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Keys.hmacShaKeyFor'
+for delegation_source in services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java services/app/app-web/src/main/java/com/ulticode/app/security/InternalDelegationAssertionVerifier.java services/notification/src/main/java/com/ulticode/notification/security/InternalDelegationAssertionVerifier.java services/submission/src/main/java/com/ulticode/submission/security/InternalDelegationAssertionVerifier.java; do
   not_contains "$delegation_source" 'Keys.hmacShaKeyFor'
+  contains "$delegation_source" 'DelegationAssertionVerifierSupport.verifyTrusted'
+  not_contains "$delegation_source" 'DelegationAssertionVerifierSupport.verify('
+  not_contains "$delegation_source" 'private static RSAPublicKey loadOptionalPublicKey'
 done
+contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java 'public static boolean verifyTrusted'
+contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/RsaKeyMaterial.java 'loadOptionalPublicKey'
+contains services/notification/src/main/java/com/ulticode/notification/BackendNotificationApplication.java 'RedisDelegationAssertionReplayGuard.class'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'Jwts.SIG.RS256'
 contains services/admin/src/main/resources/application.yml 'INTERNAL_DELEGATION_PRIVATE_KEY'
 contains services/admin/src/main/resources/application.yml 'BOOTSTRAP_DELEGATION_PRIVATE_KEY'
-for delegation_config in services/auth/src/main/resources/application.yml services/app/app-web/src/main/resources/application.yml services/notification/src/main/resources/application.yml; do
+for delegation_config in services/auth/src/main/resources/application.yml services/app/app-web/src/main/resources/application.yml services/notification/src/main/resources/application.yml services/submission/src/main/resources/application.yml; do
   not_contains "$delegation_config" 'INTERNAL_DELEGATION_SECRET'
   contains "$delegation_config" 'INTERNAL_DELEGATION_PUBLIC_KEY'
 done
@@ -532,10 +539,7 @@ legacy_route="'\${app.runtime.mode:dev-lite}' == 'legacy-rollback'"
 for local_submission_source in \
   services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/LocalSubmissionAdjudicationReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionGenerationReadAdapter.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/DefaultSubmissionAdminReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/ProblemSubmissionStatsMapperAdapter.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionActivityAnalyticsMapperAdapter.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionAnalyticsMapperAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionStreakAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionUserStatsMapperAdapter.java \
@@ -552,9 +556,15 @@ contains docker/initdb/02-nacos-user.sh 'NACOS_DB_USER'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.bootstrap-admin.enabled:false'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'app.dev-users.enabled:false'
 contains services/admin/src/main/java/com/ulticode/admin/security/DelegationAssertionSigner.java 'issueForBootstrap'
-contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'BOOTSTRAP_CLAIM'
+contains services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java 'DelegationAssertionContract.BOOTSTRAP_CLAIM'
 not_contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_SECRET='
 
+contains .github/workflows/_contract.yml 'api-contract-boundary-contract.sh'
+contains scripts/test/api-contract-boundary-contract.sh 'api-contract-boundary-contract: PASS'
+bash "$ROOT_DIR/scripts/test/api-contract-boundary-contract.sh"
+contains .github/workflows/_backend.yml 'dubbo-provider-reference-contract.sh'
+contains scripts/test/dubbo-provider-reference-contract.sh 'dubbo-provider-reference-contract: PASS'
+bash "$ROOT_DIR/scripts/test/dubbo-provider-reference-contract.sh"
 # Documentation-drift assertions live in docs-contract-test.sh; run it here so
 # existing callers of this script keep covering both halves of the contract.
 bash "$ROOT_DIR/scripts/dev/docs-contract-test.sh"

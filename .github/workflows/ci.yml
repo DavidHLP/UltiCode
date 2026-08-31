@@ -76,6 +76,10 @@ jobs:
             contract:
               - 'services/api/**'
               - 'services/pom.xml'
+              - 'services/docs/CONTRACT_COMPAT_GATE.md'
+              - 'scripts/test/api-contract-boundary-contract.sh'
+              - 'scripts/test/dubbo-provider-reference-contract.sh'
+              - '.github/workflows/ci.yml'
               - '.github/workflows/_contract.yml'
             docker:
               - 'services/**'

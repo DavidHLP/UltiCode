@@ -168,7 +168,7 @@
 UltiCode/
 ├── services/         # 后端 Maven reactor（platform · api · 5 Owners · 2 Workers · judge-runtime）
 │   ├── platform/     # 共享平台层（common · web-security）
-│   ├── api/          # Dubbo RPC 契约（auth-api · admin-api · app-api · submission-api · notification-api）
+│   ├── api/          # Dubbo RPC 契约（auth-api · app-api · submission-api · notification-api）
 │   ├── auth/         # Auth owner — 9101
 │   ├── admin/        # Admin owner — 9102
 │   ├── app/          # App owner — 9103（app-web boot 壳 + modules/ 私有领域）
@@ -250,7 +250,7 @@ UltiCode/
 共享 reactor 的主要模块：
 
 - `services/platform/common/`、`services/platform/web-security/`
-- `services/api/auth-api/`、`services/api/admin-api/`、`services/api/app-api/`
+- `services/api/auth-api/`、`services/api/app-api/`、`services/api/submission-api/`、`services/api/notification-api/`
 - `services/app/modules/contest/`、`services/app/modules/moderation/`（App 保留通知事件发布与非通知消费者）
 - `services/notification/`（通知与邮件运行时）
 - `services/app/modules/problem/`、`services/app/modules/submission/`
@@ -345,7 +345,7 @@ dev 数据库会自动创建固定管理员账号：
 | 用户前端 (Console) | <http://localhost:9002> | PWA · 支持 light/dark/compact 切换 |
 | 管理后台 (Management) | <http://localhost:9003> | 需 `admin` 角色 |
 | Auth API | <http://localhost:9101> | 认证 / 凭据 Owner |
-| Admin API | <http://localhost:9102> | 治理 / 管理 Owner |
+| Admin backend HTTP | <http://localhost:9102> | 治理 / 管理 Owner |
 | App API | <http://localhost:9103> | OJ / 用户业务 Owner |
 | Submission owner | 内部 HTTP `9106` / Dubbo `20886` | Submission 数据 Owner；写入使用 App 提供的 Facts Snapshot |
 | Notification API | <http://localhost:9105> | 通知 / 邮件 Owner |
@@ -407,12 +407,13 @@ pnpm --dir apps/management type-check
 pnpm --dir apps/management lint
 pnpm --dir apps/management test
 pnpm --dir apps/management validate:i18n-keys
+pnpm --dir apps/management test:coverage
 ```
 
 ### 共享包 (`packages/auth-core/`)
 
 ```bash
-pnpm --dir packages/auth-core test
+pnpm --dir packages/auth-core test:coverage
 pnpm --dir packages/auth-core type-check
 ```
 
@@ -493,7 +494,7 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml e
 ### 统一测试入口
 
 ```bash
-./scripts/dev/test.sh quick        # 后端 / shared / console / management 单元测试 + 类型检查
+./scripts/dev/test.sh quick        # 后端 verify/JaCoCo + shared/console/management coverage + 类型检查
 ./scripts/dev/test.sh full         # quick + 前端构建 + i18n 检查 + 依赖审计
 ./scripts/dev/test.sh integration  # quick + Testcontainers + Sandbox 集成测试
 ```
@@ -502,11 +503,11 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml e
 
 | 触碰面 | 跑这套 |
 |--------|--------|
-| 后端 | `(cd services && ./mvnw compile test -B)` |
+| 后端 | `(cd services && ./mvnw verify -B)`（含 JaCoCo bundle 与关键 package 门禁） |
 | 后端集成 | `(cd services && ./mvnw -Dtest='*IT' test -B)` |
-| Console | `pnpm --dir apps/console lint && pnpm --dir apps/console type-check && pnpm --dir apps/console test && pnpm --dir apps/console build` |
-| Management | `pnpm --dir apps/management lint && pnpm --dir apps/management type-check && pnpm --dir apps/management test && pnpm --dir apps/management validate:i18n-keys && pnpm --dir apps/management build` |
-| 共享包 | `pnpm --dir packages/auth-core test && pnpm --dir packages/auth-core type-check` |
+| Console | `pnpm --dir apps/console lint && pnpm --dir apps/console type-check && pnpm --dir apps/console test:coverage && pnpm --dir apps/console build` |
+| Management | `pnpm --dir apps/management lint && pnpm --dir apps/management type-check && pnpm --dir apps/management test:coverage && pnpm --dir apps/management validate:i18n-keys && pnpm --dir apps/management build` |
+| 共享包 | `pnpm --dir packages/auth-core test:coverage && pnpm --dir packages/auth-core type-check` |
 | 迁移 / 配置 | `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null` · `git diff --check` |
 
 ---
@@ -518,8 +519,8 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | Job | 触发条件 | 内容 |
 |-----|---------|------|
 | Backend | `services/**`, `init-db/migrations/**` | Maven 构建 + 单测 + Flyway 校验 |
-| Console | `apps/console/**`, `packages/**` | lint + type-check + test |
-| Management | `apps/management/**`, `packages/**` | lint + type-check + test + i18n 校验 |
+| Console | `apps/console/**`, `packages/**` | lint + type-check + test:coverage |
+| Management | `apps/management/**`, `packages/**` | lint + type-check + test:coverage + i18n 校验 |
 | Docker | `services/**`、`apps/**`、Dockerfile / Compose 输入 | 多阶段构建验证 |
 | Integration | 定时 / 手动 | Testcontainers（MySQL 9.1 + Redis 7） |
 | CD Deploy | `workflow_dispatch` | 按九服务 immutable digest manifest + schema checksum 发布，mutation 前做 commit/Compose/供应链 preflight |

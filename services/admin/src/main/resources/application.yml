@@ -141,8 +141,6 @@ dubbo:
     parameters:
       namespace: ${DUBBO_NAMESPACE:dev}
       group: DEFAULT_GROUP
-  scan:
-    base-packages: com.ulticode.admin.dubbo.provider
   consumer:
     check: false
     # P4-RPC-002: §6.4 global consumer defaults — fail-safe for writes.

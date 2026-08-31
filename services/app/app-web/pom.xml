@@ -289,7 +289,7 @@
 					</execution>
 					<execution>
 						<id>check</id>
-						<phase>test</phase>
+						<phase>verify</phase>
 						<goals>
 							<goal>check</goal>
 						</goals>
@@ -301,7 +301,35 @@
 										<limit>
 											<counter>INSTRUCTION</counter>
 											<value>COVEREDRATIO</value>
-											<minimum>0.00</minimum>
+											<minimum>${coverage.bundle.minimum}</minimum>
+										</limit>
+									</limits>
+								</rule>
+								<rule>
+									<element>PACKAGE</element>
+									<includes>
+										<include>com.ulticode.app.security</include>
+										<include>com.ulticode.app.security.*</include>
+									</includes>
+									<limits>
+										<limit>
+											<counter>INSTRUCTION</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>${coverage.security.minimum}</minimum>
+										</limit>
+									</limits>
+								</rule>
+								<rule>
+									<element>PACKAGE</element>
+									<includes>
+										<include>com.ulticode.app.idempotency</include>
+										<include>com.ulticode.app.idempotency.*</include>
+									</includes>
+									<limits>
+										<limit>
+											<counter>INSTRUCTION</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>${coverage.idempotency.minimum}</minimum>
 										</limit>
 									</limits>
 								</rule>

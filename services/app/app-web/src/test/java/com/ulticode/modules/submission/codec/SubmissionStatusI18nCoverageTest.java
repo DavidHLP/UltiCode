@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ul>
  * <p>
  * Skipped (with WARN log) if the test cannot locate a repo root that
- * contains both {@code console/} and {@code management/} -- e.g. when
+ * contains both {@code apps/console/} and {@code apps/management/} -- e.g. when
  * running on a backend-only checkout. This keeps the test safe for CI
  * variants that don't ship the full repo.
  */
@@ -81,11 +81,11 @@ class SubmissionStatusI18nCoverageTest {
         Path repoRoot = findRepoRoot();
         if (repoRoot == null) {
             return Stream.of(DynamicTest.dynamicTest(
-                    "SKIPPED -- repo root with console/ + management/ not found",
+                    "SKIPPED -- repo root with apps/console/ + apps/management/ not found",
                     () -> {
                         // Visibility for CI log; intentionally no assertion.
                         System.err.println(
-                                "[M1b WARN] repo root with console/ + management/ not found; "
+                                "[M1b WARN] repo root with apps/console/ + apps/management/ not found; "
                                         + "SubmissionStatusI18nCoverageTest skipped. "
                                         + "Set ULTICODE_ROOT or run from a full checkout.");
                     }));
@@ -194,10 +194,10 @@ class SubmissionStatusI18nCoverageTest {
     // --- file loading ---------------------------------------------------
 
     private enum LocaleFile {
-        CONSOLE_EN("console/src/i18n/locales/en-US/submission.ts", "console/en"),
-        CONSOLE_ZH("console/src/i18n/locales/zh-CN/submission.ts", "console/zh"),
-        MGMT_EN("management/src/i18n/locales/en-US/modules/submissions.ts", "mgmt/en"),
-        MGMT_ZH("management/src/i18n/locales/zh-CN/modules/submissions.ts", "mgmt/zh");
+        CONSOLE_EN("apps/console/src/i18n/locales/en-US/submission.ts", "console/en"),
+        CONSOLE_ZH("apps/console/src/i18n/locales/zh-CN/submission.ts", "console/zh"),
+        MGMT_EN("apps/management/src/i18n/locales/en-US/modules/submissions.ts", "mgmt/en"),
+        MGMT_ZH("apps/management/src/i18n/locales/zh-CN/modules/submissions.ts", "mgmt/zh");
 
         private final Path relativePath;
         private final String shortName;
@@ -213,7 +213,7 @@ class SubmissionStatusI18nCoverageTest {
 
     /**
      * Walk up from {@code user.dir} looking for a directory that contains
-     * both {@code console/} and {@code management/}. Returns null if no
+     * both {@code apps/console/} and {@code apps/management/}. Returns null if no
      * such root is found within 4 levels.
      */
     private static Path findRepoRoot() {
@@ -239,8 +239,8 @@ class SubmissionStatusI18nCoverageTest {
     }
 
     private static boolean isRepoRoot(Path dir) {
-        return Files.isDirectory(dir.resolve("console"))
-                && Files.isDirectory(dir.resolve("management"));
+        return Files.isDirectory(dir.resolve("apps/console"))
+                && Files.isDirectory(dir.resolve("apps/management"));
     }
 
     /**

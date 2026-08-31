@@ -128,14 +128,12 @@ public class BackendAppApiArchTest {
                             "jakarta..",
                             "lombok..",
                             "com.fasterxml.jackson.annotation..",
-                            "org.springframework.context..",
                             "io.swagger.v3.oas.annotations..")
                     .because("contract module may only depend on its "
                             + "own package, backend-common, the explicit "
                             + "Submission result payload seam, and standard "
                             + "annotation libraries (Lombok compile-time "
                             + "codegen, Jackson serialization annotations, "
-                            + "Spring ApplicationEvent for domain events, "
                             + "Swagger OpenAPI documentation); no "
                             + "impl/Entity/legacy leakage.");
 }

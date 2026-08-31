@@ -18,8 +18,7 @@ import java.util.List;
  *
  * <p>Provider lives in {@code backend-submission} and executes every query
  * inside the Submission owner; the Admin consumer depends only on this
- * entity-free contract. During the reversible read-route window an App
- * compatibility provider may remain registered separately. Pagination, filter and sort
+ * entity-free contract. Pagination, filter and sort
  * semantics mirror the legacy admin mapper adapter exactly (including
  * the problem-title search pre-fetch and the {@code createdAt} default
  * sort). Analytics (status / language counts) are part of this admin

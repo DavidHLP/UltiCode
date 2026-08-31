@@ -1,5 +1,6 @@
 package com.ulticode.websecurity.jwt;
 
+import com.ulticode.common.security.DelegationAssertionContract;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
@@ -77,5 +78,74 @@ public final class DelegationAssertionVerifierSupport {
             throw new IllegalArgumentException("Delegation assertion lifetime is invalid");
         }
         return claims;
+    }
+
+    /**
+     * Applies the shared actor, claim, and one-shot replay policy after the
+     * transport-specific owner has read its Rpc attachment.
+     */
+    public static boolean verifyTrusted(
+            String actorType,
+            String actorId,
+            String delegatorId,
+            String assertion,
+            PublicKey publicKey,
+            String keyId,
+            PublicKey bootstrapPublicKey,
+            String bootstrapKeyId,
+            String expectedIssuer,
+            String expectedAudience,
+            DelegationAssertionReplayGuard replayGuard,
+            Clock clock,
+            boolean allowBootstrap,
+            boolean requireAdminActor) {
+        boolean bootstrap = actorType != null && "BOOTSTRAP".equalsIgnoreCase(actorType);
+        if (actorType == null || actorType.isBlank()
+                || actorId == null || actorId.isBlank()
+                || delegatorId == null || delegatorId.isBlank()
+                || !actorId.equals(delegatorId)
+                || (bootstrap && (!allowBootstrap || !"bootstrap".equals(actorId)))
+                || (!bootstrap && requireAdminActor && !isAdminActor(actorType))) {
+            return false;
+        }
+
+        PublicKey verificationKey = bootstrap ? bootstrapPublicKey : publicKey;
+        String verificationKeyId = bootstrap ? bootstrapKeyId : keyId;
+        if (assertion == null || assertion.isBlank()
+                || verificationKey == null || verificationKeyId == null
+                || verificationKeyId.isBlank() || replayGuard == null) {
+            return false;
+        }
+
+        try {
+            Claims claims = verify(
+                    assertion,
+                    verificationKey,
+                    verificationKeyId,
+                    expectedIssuer,
+                    expectedAudience,
+                    clock);
+            String claimedActorService = claims.get(
+                    DelegationAssertionContract.ACTOR_SERVICE_CLAIM, String.class);
+            String claimedActorType = claims.get(
+                    DelegationAssertionContract.ACTOR_TYPE_CLAIM, String.class);
+            boolean bootstrapClaim = Boolean.TRUE.equals(claims.get(
+                    DelegationAssertionContract.BOOTSTRAP_CLAIM, Boolean.class));
+            if (!"backend-admin".equals(claimedActorService)
+                    || claimedActorType == null
+                    || !claimedActorType.equalsIgnoreCase(actorType)
+                    || !actorId.equals(claims.getSubject())
+                    || bootstrap != bootstrapClaim) {
+                return false;
+            }
+            return replayGuard.claim(expectedAudience, claims.getId(), MAX_ASSERTION_LIFETIME);
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private static boolean isAdminActor(String actorType) {
+        return "ADMIN".equalsIgnoreCase(actorType)
+                || "SUPER_ADMIN".equalsIgnoreCase(actorType);
     }
 }

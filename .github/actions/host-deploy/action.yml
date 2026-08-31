@@ -226,6 +226,8 @@ runs:
       # Production Judge has no local Docker socket. The deployment host must
       # provision the remote/rootless daemon, client bundle, shared workspace,
       # seccomp profile and sandbox image before Compose starts the worker.
+      env:
+        IMAGE_REF_LIST: ${{ inputs.image_refs }}
       shell: bash
       run: |
         set -euo pipefail
@@ -235,22 +237,7 @@ runs:
           -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
           "${{ inputs.user }}@${{ inputs.host }}" -p "${{ inputs.port }}")
         remote_command="cd $(shell_quote "${{ inputs.path }}") &&"
-        remote_command+=" set -a && . ./.env && set +a &&"
-        remote_command+=" : \"\${JUDGE_DOCKER_HOST:?JUDGE_DOCKER_HOST is required}\" &&"
-        remote_command+=" : \"\${JUDGE_DOCKER_CERT_DIR:?JUDGE_DOCKER_CERT_DIR is required}\" &&"
-        remote_command+=" : \"\${SANDBOX_HOST_DIR:?SANDBOX_HOST_DIR is required}\" &&"
-        remote_command+=" test -d \"\$JUDGE_DOCKER_CERT_DIR\" &&"
-        remote_command+=" test -f \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" && test -s \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" &&"
-        remote_command+=" test -f \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" && test -s \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" &&"
-        remote_command+=" test -f \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" && test -s \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" &&"
-        remote_command+=" test -d \"\$SANDBOX_HOST_DIR/workspace\" &&"
-        remote_command+=" test -w \"\$SANDBOX_HOST_DIR/workspace\" &&"
-        remote_command+=" case \"\$SANDBOX_HOST_DIR\" in /*) ;; *) echo 'SANDBOX_HOST_DIR must be absolute' >&2; exit 1;; esac &&"
-        remote_command+=" test -f \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" && test -s \"\$SANDBOX_HOST_DIR/seccomp-profile.json\" &&"
-        remote_command+=" security_options=\$(docker --host \"\$JUDGE_DOCKER_HOST\" --tlsverify --tlscacert \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" --tlscert \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" --tlskey \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" info --format '{{json .SecurityOptions}}') &&"
-        remote_command+=" case \"\$security_options\" in *rootless*) ;; *) echo 'remote Docker daemon is not proven rootless' >&2; exit 1;; esac &&"
-        remote_command+=" docker --host \"\$JUDGE_DOCKER_HOST\" --tlsverify --tlscacert \"\$JUDGE_DOCKER_CERT_DIR/ca.pem\" --tlscert \"\$JUDGE_DOCKER_CERT_DIR/cert.pem\" --tlskey \"\$JUDGE_DOCKER_CERT_DIR/key.pem\" image inspect \"\$SANDBOX_IMAGE\" >/dev/null &&"
-        remote_command+=" echo 'remote sandbox prerequisites ready'"
+        remote_command+=" IMAGE_REF_LIST=$(shell_quote "$IMAGE_REF_LIST") ENV_FILE=.env ./scripts/runbooks/judge-sandbox-preflight.sh"
         "${SSH_CMD[@]}" "$remote_command"
 
     - name: Run ordered owner database migrations

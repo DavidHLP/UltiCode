@@ -160,7 +160,8 @@ class DockerProcessRunner implements ProcessLifecycleRunner {
     private void cleanupTimedOutContainer(List<String> command, Path cidFile)
             throws InterruptedException {
         String containerRef = readContainerId(cidFile);
-        if (containerRef.isBlank()) {
+        boolean nameFallback = containerRef.isBlank();
+        if (nameFallback) {
             containerRef = findContainerName(command);
         }
         if (containerRef.isBlank()) {
@@ -168,6 +169,21 @@ class DockerProcessRunner implements ProcessLifecycleRunner {
             return;
         }
 
+        int attempts = nameFallback ? 3 : 1;
+        for (int attempt = 0; attempt < attempts; attempt++) {
+            if (removeContainer(command, containerRef)) {
+                return;
+            }
+            if (attempt + 1 < attempts) {
+                Thread.sleep(200);
+            }
+        }
+        LOG.warn("Docker sandbox cleanup failed after {} attempt(s) for {}",
+                attempts, containerRef);
+    }
+
+    private boolean removeContainer(List<String> command, String containerRef)
+            throws InterruptedException {
         Process cleanup;
         try {
             ProcessBuilder cleanupBuilder = new ProcessBuilder(
@@ -177,17 +193,15 @@ class DockerProcessRunner implements ProcessLifecycleRunner {
             cleanup = cleanupBuilder.start();
         } catch (IOException error) {
             LOG.warn("Docker sandbox cleanup could not start for {}", containerRef, error);
-            return;
+            return false;
         }
         try {
             if (!cleanup.waitFor(2, TimeUnit.SECONDS)) {
                 cleanup.destroyForcibly();
                 cleanup.waitFor(1, TimeUnit.SECONDS);
-                LOG.warn("Docker sandbox cleanup timed out for {}", containerRef);
-            } else if (cleanup.exitValue() != 0) {
-                LOG.warn("Docker sandbox cleanup failed for {} with exit code {}",
-                        containerRef, cleanup.exitValue());
+                return false;
             }
+            return cleanup.exitValue() == 0;
         } catch (InterruptedException interrupted) {
             cleanup.destroyForcibly();
             try {

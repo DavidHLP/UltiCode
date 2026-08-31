@@ -39,6 +39,10 @@ MANIFEST_CHECKSUM=""
 declare -A OWNER_CHECKSUMS=()
 declare -a MANIFEST_FILES=()
 POST_OWNER_CHECKSUM=""
+MYSQL_BIN="${OWNER_MIGRATION_MYSQL_BIN:-mysql}"
+MYSQL_CONTAINER="${OWNER_MIGRATION_MYSQL_CONTAINER:-}"
+MYSQL_CONTAINER_PORT="${OWNER_MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
+FENCED_LEASE_TTL_MS="${OWNER_FENCED_LEASE_TTL_MS:-1800000}"
 
 mkdir -p "$REPORT_DIR"
 
@@ -83,6 +87,10 @@ write_report() {
 
 finish() {
   local exit_code=$?
+  if [[ -n "${FENCED_LEASE_NAME:-}" ]] && ! fenced_lease_release; then
+    [[ -n "$ERROR_MESSAGE" ]] || ERROR_MESSAGE="unable to release the database fenced lease"
+    exit_code=1
+  fi
   if [[ "$exit_code" -eq 0 ]]; then
     STATUS="PASS"
   fi
@@ -165,6 +173,18 @@ validate_manifest() {
       || die "shared and Submission migration accounts must differ"
   fi
   [[ "$MAX_ATTEMPTS" =~ ^[1-5]$ ]] || die "OWNER_MIGRATION_MAX_ATTEMPTS must be 1..5"
+  if [[ "$COMMAND" == migrate ]]; then
+    if [[ -n "$MYSQL_CONTAINER" ]]; then
+      valid_port "$MYSQL_CONTAINER_PORT" || die "invalid OWNER_MIGRATION_MYSQL_CONTAINER_PORT"
+      command -v "$DOCKER_BIN" >/dev/null 2>&1 \
+        || die "docker is required for container-backed fenced lease"
+    else
+      command -v "$MYSQL_BIN" >/dev/null 2>&1 \
+        || die "mysql is required for the cross-replica fenced lease"
+    fi
+    fenced_lease_validate_ttl "$FENCED_LEASE_TTL_MS" \
+      || die "OWNER_FENCED_LEASE_TTL_MS must be between 1000ms and 24h"
+  fi
 
   local owner prefix runtime_user_var runtime_user db_name_var db_name migration_user dependency
   local config expected_location actual_schema migration_dir file index dependency_index
@@ -280,6 +300,26 @@ migrate_with_retry() {
   return 1
 }
 
+mysql_query_at() {
+  local schema="$1" sql="$2"
+  if [[ -n "$MYSQL_CONTAINER" ]]; then
+    "$DOCKER_BIN" exec -e "MYSQL_PWD=$MIGRATION_DB_PASSWORD" "$MYSQL_CONTAINER" \
+      "$MYSQL_BIN" --protocol=tcp -h 127.0.0.1 -P "$MYSQL_CONTAINER_PORT" \
+      --batch --skip-column-names -u "$MIGRATION_DB_USER" "$schema" -e "$sql"
+  else
+    MYSQL_PWD="$MIGRATION_DB_PASSWORD" "$MYSQL_BIN" --protocol=tcp \
+      -h "$MIGRATION_DB_HOST" -P "$MIGRATION_DB_PORT" \
+      --batch --skip-column-names -u "$MIGRATION_DB_USER" "$schema" -e "$sql"
+  fi
+}
+
+mysql_query() {
+  mysql_query_at "$1" "$2"
+}
+
+# shellcheck source=scripts/runbooks/lib/fenced-lease.sh
+source "$ROOT_DIR/scripts/runbooks/lib/fenced-lease.sh"
+
 run_migrations() {
   local lock_fd owner migration_user migration_password
   PHASE="lock"
@@ -291,18 +331,39 @@ run_migrations() {
   fi
   printf '[owner-migration] acquired lock=%s\n' "$LOCK_FILE" | tee -a "$HUMAN_REPORT"
 
+  # The shared chain creates admin.fenced_job_leases. Flyway's own history
+  # lock serializes this bootstrap phase; the fenced lease protects the owner
+  # and post-owner chains on every subsequent phase and host.
   migration_user="$MIGRATION_DB_USER"
   migration_password="$MIGRATION_DB_PASSWORD"
   migrate_with_retry shared "$migration_user" "$migration_password" "$MIGRATION_DB_NAME" \
     || die "shared Flyway migration failed after $MAX_ATTEMPTS attempt(s)"
+  if fenced_lease_acquire 'admin:owner-migration' "$FENCED_LEASE_TTL_MS"; then
+    :
+  else
+    local lease_status=$?
+    if [[ "$lease_status" == 75 ]]; then
+      STATUS="SKIPPED"
+      ERROR_MESSAGE="another owner migration run owns the database fenced lease"
+      exit 75
+    fi
+    die 'unable to acquire the database fenced lease'
+  fi
+  printf '[owner-migration] acquired fenced lease=admin:owner-migration token=%s\n' \
+    "$FENCED_LEASE_TOKEN" | tee -a "$HUMAN_REPORT"
   for owner in "${OWNER_MIGRATION_ORDER[@]}"; do
+    fenced_lease_renew "$FENCED_LEASE_TTL_MS" \
+      || die "owner migration fenced lease lost before $owner"
     migration_user="$(owner_migration_user "$owner")"
     migration_password="$(owner_migration_password "$owner")"
     migrate_with_retry "$owner" "$migration_user" "$migration_password" "$owner" \
       || die "$owner Flyway migration failed after $MAX_ATTEMPTS attempt(s)"
   done
+  fenced_lease_renew "$FENCED_LEASE_TTL_MS" \
+    || die 'owner migration fenced lease lost before post-owner'
   migrate_with_retry post-owner "$MIGRATION_DB_USER" "$MIGRATION_DB_PASSWORD" "$MIGRATION_DB_NAME" \
     || die "post-owner Flyway migration failed after $MAX_ATTEMPTS attempt(s)"
+  fenced_lease_assert || die 'owner migration fenced lease lost before completion'
   PHASE="complete"
 }
 

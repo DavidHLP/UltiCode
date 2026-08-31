@@ -2143,7 +2143,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 19:34:15
+-- Dump completed on 2026-08-30 23:55:41
 --
 -- Dumping schema: auth
 --
@@ -2401,7 +2401,7 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 19:34:15
+-- Dump completed on 2026-08-30 23:55:41
 --
 -- Dumping schema: admin
 --
@@ -2513,6 +2513,23 @@ CREATE TABLE `consumer_inbox` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `fenced_job_leases`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `fenced_job_leases` (
+  `lease_name` varchar(120) NOT NULL,
+  `fence_token` bigint NOT NULL,
+  `owner_token` varchar(120) DEFAULT NULL,
+  `leased_until` datetime(3) DEFAULT NULL,
+  `updated_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`lease_name`),
+  KEY `idx_fenced_job_leases_expiry` (`leased_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `moderation_actions`
 --
 
@@ -2556,6 +2573,7 @@ CREATE TABLE `reconciliation_runs` (
   `started_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `finished_at` datetime(3) DEFAULT NULL,
   `owner` varchar(20) NOT NULL COMMENT 'Auth/Admin/App/ALL',
+  `fence_token` bigint NOT NULL DEFAULT '0',
   `status` varchar(20) NOT NULL DEFAULT 'RUNNING' COMMENT 'RUNNING/COMPLETED/FAILED',
   `divergence_count` int NOT NULL DEFAULT '0',
   `orphan_count` int NOT NULL DEFAULT '0',
@@ -2614,7 +2632,7 @@ CREATE TABLE `user_warnings` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 19:34:15
+-- Dump completed on 2026-08-30 23:55:41
 --
 -- Dumping schema: app
 --
@@ -4207,7 +4225,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 19:34:15
+-- Dump completed on 2026-08-30 23:55:41
 --
 -- Dumping schema: notification
 --
@@ -4424,7 +4442,7 @@ CREATE TABLE `notifications` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 19:34:16
+-- Dump completed on 2026-08-30 23:55:41
 --
 -- Dumping schema: submission
 --
@@ -4618,4 +4636,4 @@ CREATE TABLE `submissions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 19:34:16
+-- Dump completed on 2026-08-30 23:55:41

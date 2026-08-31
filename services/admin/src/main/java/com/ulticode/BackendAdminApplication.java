@@ -37,6 +37,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
                 "com.ulticode.modules.admin",
                 "com.ulticode.modules.event.inbox",
                 "com.ulticode.modules.backup",
+                "com.ulticode.modules.lease",
                 "com.ulticode.modules.reconciliation",
                 "com.ulticode.common"
         }
@@ -46,6 +47,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.ulticode.modules.admin.outbox.mapper",
         "com.ulticode.modules.event.inbox",
         "com.ulticode.modules.backup.mapper",
+        "com.ulticode.modules.lease",
         "com.ulticode.modules.reconciliation",
 })
 @EnableAsync

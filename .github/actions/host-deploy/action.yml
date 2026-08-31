@@ -127,6 +127,18 @@ inputs:
     description: 'Remote lock file used to serialize owner migration runs'
     required: false
     default: '.local/migration-audit/owner-migrations.lock'
+  migration_mysql_bin:
+    description: 'Remote mysql client used for the cross-replica fenced migration lease'
+    required: false
+    default: 'mysql'
+  migration_mysql_container:
+    description: 'Optional MySQL container used instead of a host mysql client'
+    required: false
+    default: ''
+  migration_mysql_container_port:
+    description: 'MySQL port inside migration_mysql_container'
+    required: false
+    default: '3306'
 runs:
   using: 'composite'
   steps:
@@ -229,6 +241,9 @@ runs:
         SUBMISSION_DB_USER: ${{ inputs.submission_db_user }}
         MIGRATION_REPORT_DIR: ${{ inputs.migration_report_dir }}
         MIGRATION_LOCK_FILE: ${{ inputs.migration_lock_file }}
+        MIGRATION_MYSQL_BIN: ${{ inputs.migration_mysql_bin }}
+        MIGRATION_MYSQL_CONTAINER: ${{ inputs.migration_mysql_container }}
+        MIGRATION_MYSQL_CONTAINER_PORT: ${{ inputs.migration_mysql_container_port }}
       run: |
         set -euo pipefail
         for required in MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME \
@@ -258,6 +273,9 @@ runs:
         remote_command+=" SUBMISSION_DB_NAME=submission SUBMISSION_DB_USER=$(shell_quote "$SUBMISSION_DB_USER")"
         remote_command+=" OWNER_MIGRATION_REPORT_DIR=$(shell_quote "$MIGRATION_REPORT_DIR")"
         remote_command+=" OWNER_MIGRATION_LOCK_FILE=$(shell_quote "$MIGRATION_LOCK_FILE")"
+        remote_command+=" OWNER_MIGRATION_MYSQL_BIN=$(shell_quote "$MIGRATION_MYSQL_BIN")"
+        remote_command+=" OWNER_MIGRATION_MYSQL_CONTAINER=$(shell_quote "$MIGRATION_MYSQL_CONTAINER")"
+        remote_command+=" OWNER_MIGRATION_MYSQL_CONTAINER_PORT=$(shell_quote "$MIGRATION_MYSQL_CONTAINER_PORT")"
         remote_command+=" ./scripts/runbooks/owner-migration-manifest.sh migrate"
         "${SSH_CMD[@]}" "$remote_command"
 

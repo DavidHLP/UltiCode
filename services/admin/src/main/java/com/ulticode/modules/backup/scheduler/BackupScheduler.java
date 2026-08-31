@@ -1,12 +1,16 @@
 package com.ulticode.modules.backup.scheduler;
 
+import com.ulticode.common.lease.FencedLease;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.service.BackupService;
+import com.ulticode.modules.lease.FencedJobLeaseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * Scheduler for automated backup tasks
@@ -16,7 +20,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BackupScheduler {
 
+    private static final String BACKUP_LEASE = "admin:scheduled-backup";
+    private static final Duration BACKUP_LEASE_TTL = Duration.ofHours(2);
+
     private final BackupService backupService;
+    private final FencedJobLeaseService fencedJobLeaseService;
 
     /**
      * Scheduled backup task that runs at 2 AM daily
@@ -24,15 +32,32 @@ public class BackupScheduler {
      */
     @Scheduled(scheduler = "adminBackupScheduler", cron = "0 0 2 * * ?")
     public void scheduledBackup() {
+        FencedLease lease;
+        try {
+            lease = fencedJobLeaseService.tryAcquire(BACKUP_LEASE, BACKUP_LEASE_TTL);
+        } catch (RuntimeException e) {
+            log.error("Scheduled backup lease acquisition failed", e);
+            return;
+        }
+        if (lease == null) {
+            log.info("Scheduled backup skipped: another replica owns {}", BACKUP_LEASE);
+            return;
+        }
         log.info("Starting scheduled backup...");
         try {
             CreateBackupDTO dto = new CreateBackupDTO();
             dto.setType(BackupType.FULL);
             backupService.createBackup("system", dto);
-            log.info("Scheduled backup completed successfully");
+            log.info("Scheduled backup enqueued successfully");
         // broad catch: scheduler resilience -- log and continue
         } catch (Exception e) {
             log.error("Scheduled backup failed: {}", e.getMessage(), e);
+        } finally {
+            try {
+                fencedJobLeaseService.release(lease);
+            } catch (RuntimeException e) {
+                log.error("Scheduled backup lease release failed", e);
+            }
         }
     }
 }

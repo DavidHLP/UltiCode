@@ -76,6 +76,7 @@ runbook backup > "$TEST_DIR/backup.log"
 MANIFEST="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'owner-backup-*.json' -print -quit)"
 ARCHIVE="$(sed -n 's/^[[:space:]]*"archive": "\([^"]*\)".*/\1/p' "$MANIFEST")"
 [[ -s "$MANIFEST" && -s "$BACKUP_DIR/$ARCHIVE" ]]
+grep -Fq '"excluded_operational_tables": ["admin.fenced_job_leases"]' "$MANIFEST"
 ! grep -F "$ROOT_PASSWORD" "$MANIFEST" >/dev/null
 ! grep -F "$ENCRYPTION_KEY" "$MANIFEST" >/dev/null
 printf 'encrypted five-owner archive and secret-free manifest: PASS\n'
@@ -132,9 +133,7 @@ OLD_MANIFEST="$BACKUP_DIR/owner-backup-old.json"
 printf 'old archive\n' > "$OLD_ARCHIVE"
 printf '{\n  "archive": "owner-backup-old.tar.gz.enc"\n}\n' > "$OLD_MANIFEST"
 touch -d '3 days ago' "$OLD_ARCHIVE" "$OLD_MANIFEST"
-env ENV_FILE="$TEST_ENV" OWNER_BACKUP_DIR="$BACKUP_DIR" \
-  OWNER_BACKUP_LOCK_FILE="$LOCK_FILE" OWNER_BACKUP_RETENTION_DAYS=1 \
-  bash "$ROOT_DIR/scripts/runbooks/owner-backup-restore.sh" prune > "$TEST_DIR/prune.log"
+OWNER_BACKUP_RETENTION_DAYS=1 runbook prune > "$TEST_DIR/prune.log"
 [[ ! -e "$OLD_ARCHIVE" && ! -e "$OLD_MANIFEST" ]]
 printf 'retention pruning: PASS\n'
 

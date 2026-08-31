@@ -55,6 +55,8 @@ printf 'manifest order/schema/checksum report: PASS\n'
 
 FAKE_DOCKER="$TEST_DIR/fake-docker"
 FAKE_STATE="$TEST_DIR/docker-calls"
+FAKE_MYSQL="$TEST_DIR/fake-mysql"
+FAKE_LEASE_STATE="$TEST_DIR/lease-owner"
 cat >"$FAKE_DOCKER" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -69,7 +71,32 @@ printf '%s\n' "$calls" >"$FAKE_DOCKER_STATE"
 EOF
 chmod +x "$FAKE_DOCKER"
 
+cat >"$FAKE_MYSQL" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+sql=""
+while (($# > 0)); do
+  if [[ "$1" == -e && $# -ge 2 ]]; then
+    sql="$2"
+    shift 2
+  else
+    shift
+  fi
+done
+flat_sql="$(tr '\n' ' ' <<< "$sql")"
+if [[ "$flat_sql" == *"INSERT INTO fenced_job_leases"* ]]; then
+  owner="$(sed -n "s/.*VALUES[[:space:]]*('[^']*',[[:space:]]*1,[[:space:]]*'\([^']*\)'.*/\1/p" <<< "$flat_sql")"
+  printf '%s\n' "$owner" >"${FAKE_LEASE_STATE:?}"
+elif [[ "$flat_sql" == *"SELECT owner_token, fence_token"* ]]; then
+  printf '%s\t1\n' "$(<"${FAKE_LEASE_STATE:?}")"
+elif [[ "$flat_sql" == *"SELECT COUNT(*)"* ]]; then
+  printf '1\n'
+fi
+EOF
+chmod +x "$FAKE_MYSQL"
+
 env "${COMMON_ENV[@]}" DOCKER_BIN="$FAKE_DOCKER" FAKE_DOCKER_STATE="$FAKE_STATE" \
+  OWNER_MIGRATION_MYSQL_BIN="$FAKE_MYSQL" FAKE_LEASE_STATE="$FAKE_LEASE_STATE" \
   OWNER_MIGRATION_MAX_ATTEMPTS=2 OWNER_MIGRATION_REPORT_DIR="$TEST_DIR/retry" \
   bash "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh" migrate \
   >"$TEST_DIR/retry.log"
@@ -92,6 +119,7 @@ for _ in $(seq 1 20); do
 done
 set +e
 env "${COMMON_ENV[@]}" DOCKER_BIN="$FAKE_DOCKER" FAKE_DOCKER_STATE="$FAKE_STATE" \
+  OWNER_MIGRATION_MYSQL_BIN="$FAKE_MYSQL" FAKE_LEASE_STATE="$FAKE_LEASE_STATE" \
   OWNER_MIGRATION_LOCK_FILE="$LOCK_FILE" OWNER_MIGRATION_REPORT_DIR="$TEST_DIR/busy" \
   bash "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh" migrate \
   >"$TEST_DIR/busy.log" 2>&1

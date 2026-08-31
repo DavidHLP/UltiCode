@@ -62,6 +62,7 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 - `owner-migration-manifest.sh` — CD migration seam: validates owner order/config/account/schema/checksums, takes a host lock, runs shared plus owner and post-owner Flyway chains with bounded retry, and writes JSON/human reports.
 - `migrate-post-owner.sh` — local privileged post-owner Flyway chain for cross-schema controls that cannot run under an owner-scoped migration account.
 - `owner-backup-restore.sh` — external Ops backup boundary for `ulticode` plus all five owner schemas; creates encrypted checksum/metadata manifests, verifies retention, and runs a disposable restore drill.
+- `lib/fenced-lease.sh` — shared database-clock-backed owner/token/expiry protocol for synchronous singleton runbooks.
 - `redis-acl-rotation.sh` — runtime ACL materialization and `prepare`/`finalize`/`rollback` overlap rotation with atomic replacement and drift-check; state/report files contain only hashes and phase.
 - `image-reference-policy.sh` — shared production image policy: exact nine-service digest manifest, Cosign signature/SPDX/SLSA verification, Trivy HIGH/CRITICAL scan, and expiring exception gate.
 - `observability-release-annotation.sh` — publish a release/environment marker and immutable image manifest to Grafana without printing the API token.
@@ -83,6 +84,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 - `observability-contract.sh` — validate the optional Prometheus/Alertmanager/Collector/Grafana/Tempo/Loki overlay, rules, dashboard, and release annotation guard.
 - `deployment-integrity-contract.sh` — disposable descriptor/rollback/schema mismatch and host-health system-summary contract without remote mutation.
 - `scheduler-contract.sh` — bounded scheduler bindings plus independent-progress, rejection, metrics, and shutdown test.
+- `fenced-lease-contract.sh` — fenced lease wiring, deterministic clock/lost-lease tests, and MySQL two-runner/expiry integration test.
 - `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 
 ## Other

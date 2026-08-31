@@ -30,6 +30,10 @@ public class ReconciliationRun {
     /** Auth/Admin/App/ALL */
     private String owner;
 
+    /** Monotonic fencing token held when this run started. */
+    @TableField("fence_token")
+    private Long fenceToken;
+
     /** RUNNING/COMPLETED/FAILED/SKIPPED */
     private String status;
 

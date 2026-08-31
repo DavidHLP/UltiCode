@@ -2,6 +2,7 @@ package com.ulticode.modules.reconciliation;
 
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
+import com.ulticode.common.lease.FencedLease;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.common.error.BaseErrorCode;
@@ -13,6 +14,7 @@ import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.notification.api.dto.NotificationUserReferenceCountDTO;
 import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
+import com.ulticode.modules.lease.FencedJobLeaseService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -47,8 +49,8 @@ import java.util.stream.Collectors;
  *   <li>Notification: {@link NotificationReconciliationReadPort} (Dubbo) —
  *       bounded full/incremental notification user-reference facts;</li>
  *   <li>Admin: local {@code audit_logs.performer_id} orphan check and
- *       the {@code reconciliation_runs} persistence. A MySQL advisory lock
- *       prevents duplicate multi-replica runs.</li>
+ *       the {@code reconciliation_runs} persistence. A database-clock-backed
+ *       fenced lease prevents duplicate multi-replica runs.</li>
  * </ul>
  *
  * <p>Orphan semantics preserved: a child row is an orphan only if the
@@ -60,7 +62,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OwnerReconciler {
 
-    private static final String RECONCILIATION_LOCK = "ulticode:admin:reconciliation";
+    private static final String RECONCILIATION_LEASE = "admin:reconciliation";
     private static final int RECONCILIATION_PAGE_SIZE = SubmissionReconciliationReadPort.MAX_PAGE_SIZE;
     private static final int NOTIFICATION_RECONCILIATION_PAGE_SIZE =
             NotificationReconciliationReadPort.MAX_PAGE_SIZE;
@@ -72,6 +74,7 @@ public class OwnerReconciler {
     private final NotificationReconciliationReadPort notificationReconciliationReadPort;
     private final AuditOrphanMapper auditOrphanMapper;
     private final MeterRegistry meterRegistry;
+    private final FencedJobLeaseService fencedJobLeaseService;
 
     @DubboReference(group = "backend-auth", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
@@ -109,21 +112,15 @@ public class OwnerReconciler {
 
     private ReconciliationRun runReconciliationInternal(LocalDateTime createdSince) {
         String mode = createdSince == null ? "FULL" : "INCREMENTAL";
-        Integer leaseResult;
+        FencedLease lease;
         try {
-            leaseResult = runMapper.tryAcquireLease(RECONCILIATION_LOCK);
+            lease = fencedJobLeaseService.tryAcquire(RECONCILIATION_LEASE);
         } catch (RuntimeException exception) {
-            return persistFailure(mode, "GET_LOCK failed: " + failureReason(exception));
+            return persistFailure(mode, "FENCED_LEASE failed: " + failureReason(exception));
         }
-        if (leaseResult == null) {
-            return persistFailure(mode, "GET_LOCK returned NULL");
-        }
-        if (leaseResult != 0 && leaseResult != 1) {
-            return persistFailure(mode, "GET_LOCK returned unexpected result: " + leaseResult);
-        }
-        if (leaseResult == 0) {
+        if (lease == null) {
             incrementCounter("reconciliation.skipped", "reason", "lease_busy");
-            log.info("Reconciliation skipped: another replica owns {}", RECONCILIATION_LOCK);
+            log.info("Reconciliation skipped: another replica owns {}", RECONCILIATION_LEASE);
             return skippedRun(mode);
         }
 
@@ -134,6 +131,7 @@ public class OwnerReconciler {
             run.setRunId(runId);
             run.setStartedAt(startedAt);
             run.setOwner("ALL");
+            run.setFenceToken(lease.fenceToken());
             run.setStatus("RUNNING");
             run.setDivergenceCount(0);
             run.setOrphanCount(0);
@@ -177,15 +175,28 @@ public class OwnerReconciler {
 
             run.setFinishedAt(LocalDateTime.now());
             run.setDetail(buildDetailJson(mode, reconResults, orphanResults, failureReason));
-            runMapper.updateById(run);
+            if (!fencedJobLeaseService.renew(lease)) {
+                run.setStatus("FAILED");
+                incrementCounter("reconciliation.lease_lost", "mode", mode);
+                log.error("Reconciliation run {} lost fenced lease before completion", runId);
+                return run;
+            }
+            int updated = runMapper.updateByIdWhileLeaseHeld(
+                    run, lease.name(), lease.ownerToken(), lease.fenceToken());
+            if (updated != 1) {
+                run.setStatus("FAILED");
+                incrementCounter("reconciliation.lease_lost", "mode", mode);
+                log.error("Reconciliation run {} completion rejected by fenced lease", runId);
+                return run;
+            }
             incrementCounter("reconciliation.runs", "mode", mode, "status", run.getStatus());
             logReconciliationResults(reconResults, orphanResults, totalDivergence, totalOrphans);
             return run;
         } finally {
             try {
-                runMapper.releaseLease(RECONCILIATION_LOCK);
+                fencedJobLeaseService.release(lease);
             } catch (RuntimeException exception) {
-                log.error("Unable to release reconciliation lease {}", RECONCILIATION_LOCK, exception);
+                log.error("Unable to release reconciliation lease {}", RECONCILIATION_LEASE, exception);
             }
         }
     }

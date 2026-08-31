@@ -25,7 +25,7 @@ capture_env_vars \
   BACKUP_ENCRYPTION_KEY BACKUP_DIR OWNER_BACKUP_DIR OWNER_BACKUP_REPORT_DIR \
   OWNER_BACKUP_LOCK_FILE OWNER_BACKUP_RETENTION_DAYS BACKUP_MYSQL_CONTAINER \
   BACKUP_MYSQL_CONTAINER_PORT BACKUP_MYSQL_BIN BACKUP_MYSQLDUMP_BIN \
-  BACKUP_FLYWAY_IMAGE DOCKER_BIN OWNER_BACKUP_MANIFEST
+  BACKUP_FLYWAY_IMAGE DOCKER_BIN OWNER_BACKUP_MANIFEST OWNER_FENCED_LEASE_TTL_MS
 load_env_file
 apply_env_overrides
 
@@ -49,6 +49,7 @@ FLYWAY_IMAGE="${BACKUP_FLYWAY_IMAGE:-flyway/flyway@sha256:354e5d5aec18d8d9d57ede
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 ENCRYPTION_KEY="${BACKUP_ENCRYPTION_KEY:-}"
 MANIFEST_PATH="${OWNER_BACKUP_MANIFEST:-}"
+FENCED_LEASE_TTL_MS="${OWNER_FENCED_LEASE_TTL_MS:-1800000}"
 RUNTIME_TMP=""
 DRILL_CONTAINER=""
 
@@ -132,11 +133,19 @@ mysql_query() {
     "$DB_USER" "$DB_PASSWORD" "$1" "$2"
 }
 
+# shellcheck source=scripts/runbooks/lib/fenced-lease.sh
+source "$ROOT_DIR/scripts/runbooks/lib/fenced-lease.sh"
+
 mysqldump_at() {
   local container="$1" container_port="$2" host="$3" port="$4"
   local user="$5" password="$6" schema="$7"
   local -a command=("$MYSQLDUMP_BIN" --default-character-set=utf8mb4
     --single-transaction --routines --triggers --hex-blob --no-tablespaces --databases "$schema")
+  if [[ "$schema" == admin ]]; then
+    # Lease ownership is ephemeral control state. Restoring it could resurrect
+    # a dead replica's lock; the canonical migration recreates the empty table.
+    command+=(--ignore-table=admin.fenced_job_leases)
+  fi
   if [[ -n "$container" ]]; then
     "$DOCKER_BIN" exec -e "MYSQL_PWD=$password" "$container" \
       "${command[@]}"
@@ -157,9 +166,21 @@ acquire_lock() {
     exit 75
   fi
   printf '[owner-backup] acquired lock=%s\n' "$LOCK_FILE"
+  if fenced_lease_acquire "admin:owner-backup" "$FENCED_LEASE_TTL_MS"; then
+    :
+  else
+    local lease_status=$?
+    if [[ "$lease_status" == 75 ]]; then
+      echo '[owner-backup] SKIPPED: another replica owns admin:owner-backup' >&2
+      exit 75
+    fi
+    die 'unable to acquire the database fenced lease'
+  fi
+  printf '[owner-backup] acquired fenced lease=admin:owner-backup token=%s\n' "$FENCED_LEASE_TOKEN"
 }
 
 cleanup_runtime() {
+  fenced_lease_release || true
   if [[ -n "$DRILL_CONTAINER" ]]; then
     "$DOCKER_BIN" rm -f "$DRILL_CONTAINER" >/dev/null 2>&1 || true
   fi
@@ -194,6 +215,7 @@ table_checksum_snapshot() {
     while IFS= read -r table; do
       [[ -n "$table" ]] || continue
       [[ "$table" =~ ^[A-Za-z0-9_]+$ ]] || die "unsafe table name from MySQL metadata"
+      [[ "$schema" == admin && "$table" == fenced_job_leases ]] && continue
       rows="$(mysql_query "$schema" "SELECT COUNT(*) FROM \`$table\`;")"
       raw_checksum="$(mysql_query "$schema" "CHECKSUM TABLE \`$table\`;")" \
         || die "cannot checksum $schema.$table"
@@ -224,6 +246,7 @@ write_backup_manifest() {
     printf '  "retention_days": "%s",\n' "$RETENTION_DAYS"
     printf '  "owner_schemas": ["auth", "admin", "app", "notification", "submission"],\n'
     printf '  "control_schema": "ulticode",\n'
+    printf '  "excluded_operational_tables": ["admin.fenced_job_leases"],\n'
     printf '  "table_checksum_count": "%s",\n' "$table_count"
     printf '  "migration_metadata": "%s",\n' "$(json_escape "$metadata_file")"
     printf '  "backup_duration_seconds": "%s"\n' "$((completed_epoch - started_epoch))"
@@ -262,6 +285,8 @@ do_backup() {
   local schema dump_file digest
   : > "$work_dir/payload/checksums.sha256"
   for schema in "${ALL_SCHEMAS[@]}"; do
+    fenced_lease_renew "$FENCED_LEASE_TTL_MS" \
+      || die "fenced backup lease lost before dumping $schema"
     dump_file="$work_dir/payload/dumps/$schema.sql"
     if ! mysqldump_at "$MYSQL_CONTAINER" "$MYSQL_CONTAINER_PORT" "$DB_HOST" "$DB_PORT" \
         "$DB_USER" "$DB_PASSWORD" "$schema" > "$dump_file"; then
@@ -273,6 +298,8 @@ do_backup() {
   done
   history_snapshot "$work_dir/payload/migration-metadata.tsv"
   table_checksum_snapshot "$work_dir/payload/table-checksums.tsv"
+  fenced_lease_renew "$FENCED_LEASE_TTL_MS" \
+    || die 'fenced backup lease lost before archive creation'
   table_count="$(awk 'NR > 1 && NF >= 4 { count++ } END { print count + 0 }' "$work_dir/payload/table-checksums.tsv")"
 
   archive_name="owner-backup-$run_id.tar.gz.enc"
@@ -285,6 +312,7 @@ do_backup() {
     die "backup encryption failed"
   fi
   chmod 600 "$encrypted_archive"
+  fenced_lease_assert || die 'fenced backup lease lost before manifest publication'
   archive_sha="$(sha256sum "$encrypted_archive" | awk '{print $1}')"
   archive_bytes="$(wc -c < "$encrypted_archive")"
   completed_epoch="$(date +%s)"

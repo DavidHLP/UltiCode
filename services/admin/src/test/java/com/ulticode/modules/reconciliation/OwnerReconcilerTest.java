@@ -4,8 +4,10 @@ import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
+import com.ulticode.common.lease.FencedLease;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.lease.FencedJobLeaseService;
 import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.notification.api.dto.NotificationUserReferenceCountDTO;
@@ -24,6 +26,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +34,9 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,22 +60,31 @@ class OwnerReconcilerTest {
     @Mock private NotificationReconciliationReadPort notificationPort;
     @Mock private AuditOrphanMapper auditMapper;
     @Mock private ReconciliationQueryService authService;
+    @Mock private FencedJobLeaseService leaseService;
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+    private static final FencedLease LEASE = new FencedLease(
+            "admin:reconciliation", 1, "runner-a",
+            Instant.parse("2026-08-31T00:00:00Z"),
+            Instant.parse("2026-08-31T01:00:00Z"));
 
     private OwnerReconciler reconciler;
 
     @BeforeEach
     void setUp() {
         when(uuidGenerator.newId()).thenReturn("run-1");
-        when(runMapper.tryAcquireLease(any())).thenReturn(1);
-        when(runMapper.releaseLease(any())).thenReturn(1);
+        when(leaseService.tryAcquire(anyString())).thenReturn(LEASE);
+        when(leaseService.renew(any(FencedLease.class))).thenReturn(true);
+        when(leaseService.release(any(FencedLease.class))).thenReturn(true);
+        when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
+                anyString(), anyLong())).thenReturn(1);
         when(submissionPort.findUserReferenceCounts("", null,
                 SubmissionReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
         when(notificationPort.findUserReferenceCounts("", null,
                 NotificationReconciliationReadPort.MAX_PAGE_SIZE)).thenReturn(List.of());
         reconciler = new OwnerReconciler(
                 runMapper, uuidGenerator, appPort, submissionPort, notificationPort,
-                auditMapper, meterRegistry);
+                auditMapper, meterRegistry, leaseService);
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
     }
 
@@ -77,7 +92,8 @@ class OwnerReconcilerTest {
         ArgumentCaptor<ReconciliationRun> insertCaptor = ArgumentCaptor.forClass(ReconciliationRun.class);
         verify(runMapper).insert(insertCaptor.capture());
         ArgumentCaptor<ReconciliationRun> updateCaptor = ArgumentCaptor.forClass(ReconciliationRun.class);
-        verify(runMapper).updateById(updateCaptor.capture());
+        verify(runMapper).updateByIdWhileLeaseHeld(updateCaptor.capture(), anyString(),
+                anyString(), anyLong());
         return updateCaptor.getValue();
     }
     @Test
@@ -200,14 +216,16 @@ class OwnerReconcilerTest {
     @Test
     @DisplayName("a busy replica skips without creating a run record")
     void busyReplicaSkipsWithoutPersisting() {
-        when(runMapper.tryAcquireLease(any())).thenReturn(0);
+        when(leaseService.tryAcquire(anyString())).thenReturn(null);
 
         ReconciliationRun run = reconciler.runReconciliation();
 
         assertThat(run.getStatus()).isEqualTo("SKIPPED");
         verify(runMapper, never()).insert(any(ReconciliationRun.class));
         verify(runMapper, never()).updateById(any(ReconciliationRun.class));
-        verify(runMapper, never()).releaseLease(any());
+        verify(runMapper, never()).updateByIdWhileLeaseHeld(any(ReconciliationRun.class),
+                anyString(), anyString(), anyLong());
+        verify(leaseService, never()).release(any(FencedLease.class));
         assertThat(meterRegistry.counter("reconciliation.skipped", "reason", "lease_busy").count())
                 .isEqualTo(1.0);
     }
@@ -215,12 +233,12 @@ class OwnerReconcilerTest {
     @Test
     @DisplayName("lock acquisition errors persist FAILED instead of being skipped")
     void lockAcquisitionErrorPersistsFailure() {
-        when(runMapper.tryAcquireLease(any())).thenReturn(null);
+        when(leaseService.tryAcquire(anyString())).thenThrow(new IllegalStateException("db unavailable"));
 
         ReconciliationRun run = reconciler.runReconciliation();
 
         assertThat(run.getStatus()).isEqualTo("FAILED");
-        assertThat(run.getDetail()).contains("GET_LOCK returned NULL");
+        assertThat(run.getDetail()).contains("FENCED_LEASE failed: IllegalStateException: db unavailable");
         verify(runMapper).insert(any(ReconciliationRun.class));
         verify(runMapper).updateById(run);
         assertThat(meterRegistry.counter("reconciliation.failures", "mode", "FULL").count())
@@ -230,12 +248,38 @@ class OwnerReconcilerTest {
     @Test
     @DisplayName("lock acquisition exceptions persist FAILED instead of escaping")
     void lockAcquisitionExceptionPersistsFailure() {
-        when(runMapper.tryAcquireLease(any())).thenThrow(new IllegalStateException("db unavailable"));
+        when(leaseService.tryAcquire(anyString())).thenThrow(new IllegalStateException("db unavailable"));
 
         ReconciliationRun run = reconciler.runReconciliation();
 
         assertThat(run.getStatus()).isEqualTo("FAILED");
-        assertThat(run.getDetail()).contains("GET_LOCK failed: IllegalStateException: db unavailable");
+        assertThat(run.getDetail()).contains("FENCED_LEASE failed: IllegalStateException: db unavailable");
+    }
+
+    @Test
+    @DisplayName("lost lease never publishes a stale completion")
+    void lostLeaseRejectsCompletion() {
+        when(leaseService.renew(any(FencedLease.class))).thenReturn(false);
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        assertThat(run.getDetail()).contains("\"mode\":\"FULL\"");
+        verify(runMapper, never()).updateByIdWhileLeaseHeld(any(ReconciliationRun.class),
+                anyString(), anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("a superseding fence token rejects the old completion CAS")
+    void staleFenceTokenRejectsCompletionCas() {
+        when(runMapper.updateByIdWhileLeaseHeld(any(ReconciliationRun.class), anyString(),
+                anyString(), anyLong())).thenReturn(0);
+
+        ReconciliationRun run = reconciler.runReconciliation();
+
+        assertThat(run.getStatus()).isEqualTo("FAILED");
+        verify(runMapper).updateByIdWhileLeaseHeld(any(ReconciliationRun.class),
+                eq("admin:reconciliation"), eq("runner-a"), eq(1L));
     }
 
     @Test
@@ -390,7 +434,8 @@ class OwnerReconcilerTest {
 
             assertThat(run.getStatus()).isEqualTo("FAILED");
             assertThat(run.getDetail()).contains("IllegalStateException: dubbo down");
-            verify(runMapper).updateById(run);
+            verify(runMapper).updateByIdWhileLeaseHeld(any(ReconciliationRun.class),
+                    anyString(), anyString(), anyLong());
         }
 
         @Test

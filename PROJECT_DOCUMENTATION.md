@@ -825,7 +825,8 @@ Submission mutation 窄 Interface 与 owner 内部的 deprecated 1.0.0 compatibi
 
 P2-MIG-001 的 CD 迁移入口是 `scripts/runbooks/owner-migration-manifest.sh`：它固定 shared → Auth → Admin → App →
 Notification → Submission → post-owner controls 的顺序，校验每个 `flyway-*.conf` 的 owner schema/location、runtime
-account 分离、依赖与 config/migration checksum，在部署主机使用 `flock` 防止并发迁移，并对 Flyway 连接/升级失败做一次
+account 分离、依赖与 config/migration checksum，在部署主机使用 `flock` 作为本机快速门禁，并在 shared 阶段后取得
+`admin:owner-migration` 数据库 fenced lease 防止跨副本并发；owner/post-owner 阶段持续 renew/assert。它对 Flyway 连接/升级失败做一次
 有界重试而不自动 `repair`。跨 owner audit grant 只由 post-owner 阶段以 shared privileged identity 清理，且在所有
 local outbox 已创建后执行。每次执行生成不含密码的 JSON 与人读日志；rollback 继续由 `host-deploy` 传入
 `skip_migrations=true`，不执行 schema downgrade。CI/本地只验证 manifest 与 disposable/fake migration 合约，真实生产
@@ -833,7 +834,8 @@ local outbox 已创建后执行。每次执行生成不含密码的 JSON 与人�
 
 P2-BACKUP-001 的外部 Ops 入口是 `scripts/runbooks/owner-backup-restore.sh`：它归档 `ulticode` control schema 与 Auth、Admin、App、
 Notification、Submission 五个 Owner，生成 OpenSSL 加密归档及不含密钥的 manifest、dump SHA-256、表行数/checksum 和 Flyway
-history metadata；backup、restore-drill、prune 共享 `flock`，retention 只删除匹配的归档/manifest 对。`restore-drill` 只在一次性
+history metadata；backup、restore-drill、prune 共享 `flock` 与 `admin:owner-backup` 数据库 fenced lease，运行时
+`admin.fenced_job_leases` 不进入业务 checksum/恢复状态，retention 只删除匹配的归档/manifest 对。`restore-drill` 只在一次性
 MySQL 容器中恢复，执行六条 Flyway validate、表 checksum reconciliation、schema/查询 smoke，并记录 measured RPO/RTO；真实
 off-host backup、密钥托管、保留策略和生产 restore authority 仍是外部门禁。
 
@@ -880,11 +882,20 @@ P1-SUB-004 将 Submission 孤儿对账收敛到 owner facts：`OwnerReconciler.r
 的 Dubbo provider；provider 在 Submission owner 内以 `user_id` 分组并按 account-id 游标分页，单页上限
 为 500，`createdSince == null` 表示全量历史。
 
-Admin 在同一事务/数据库连接内使用 `GET_LOCK`/`RELEASE_LOCK` 防止多副本重叠。锁明确返回 busy 时只
+Admin 通过数据库时间、owner token 与单调 fence token 的 expiring lease 防止多副本重叠。lease 明确返回 busy 时只
 返回不落库的 `SKIPPED`；锁查询异常、owner facts 响应为 null、乱序/重复/负数或越界时失败闭环，持久化 `FAILED`
 记录、模式与可行动错误，并递增失败指标。App 的 reconciliation mapper 不再读取 `submissions`；
 `ReconciliationOrphanCounts.submissions` 暂作为 wire-compatible 零占位；移除它需要单独的 app-api 版本窗口，不与本次
 Submission/Notification 数据收缩混在同一次滚动发布中。
+
+#### Fenced singleton lease protocol
+
+P3-LEASE-001 将真正的 singleton 工作收敛到 Admin owner 的
+`admin.fenced_job_leases`：Reconciliation 完成写入带 owner/token/未过期 CAS，Admin scheduled backup 只允许一个副本
+enqueue，owner migration 在 shared Flyway bootstrap 后保护 owner/post-owner 链，外部 backup/restore/prune runbook 则以
+数据库 lease 跨主机协调、本机 `flock` 仅作快速 shortcut。lease 表是 ephemeral control state，不进入 backup 业务 checksum，
+避免恢复已死亡副本的 owner token。`FencedLease` common model 对 expiry、duplicate、clock-skew、pause/partition/crash
+和 stale completion 提供确定性测试；Submission outbox/reaper 保留现有 per-item claim/generation/attempt-id CAS，不套 global lock。
 
 #### Submission read owner cutover 与 schema contraction
 

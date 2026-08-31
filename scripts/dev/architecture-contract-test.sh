@@ -312,7 +312,7 @@ contains services/admin/src/main/java/com/ulticode/modules/reconciliation/port/a
 contains services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java 'NotificationServiceContract.DUBBO_GROUP'
 contains services/notification/src/main/java/com/ulticode/modules/notification/mapper/NotificationReconciliationReadMapper.java 'FROM notifications'
 contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'runIncrementalReconciliation'
-contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'tryAcquireLease'
+contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'fencedJobLeaseService.tryAcquire'
 contains services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java 'notificationOrphans'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/AppReconciliationReadMapper.java 'submissions'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/reconciliation/port/DefaultAppReconciliationReadPort.java 'submissionUserCounts'
@@ -393,11 +393,13 @@ contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
 contains .github/workflows/_docker.yml 'supply-chain-contract.sh'
 contains .github/workflows/_docker.yml 'deployment-integrity-contract.sh'
 contains .github/workflows/_backend.yml 'scheduler-contract.sh'
+contains .github/workflows/_backend.yml 'fenced-lease-contract.sh'
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"
 bash "$ROOT_DIR/scripts/test/deployment-integrity-contract.sh"
 bash "$ROOT_DIR/scripts/test/scheduler-contract.sh"
+bash "$ROOT_DIR/scripts/test/fenced-lease-contract.sh"
 contains apps/console/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains apps/management/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains infrastructure/nginx/includes/tls-listener.prod.conf 'listen 8443 ssl;'

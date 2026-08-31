@@ -10,6 +10,8 @@ import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.notification.api.service.NotificationReconciliationReadPort;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.uuid.FixedUuidGenerator;
+import com.ulticode.modules.lease.FencedJobLeaseMapper;
+import com.ulticode.modules.lease.FencedJobLeaseService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.mapping.Environment;
@@ -30,6 +32,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Clock;
 import java.util.List;
 import java.util.Set;
 
@@ -42,9 +45,10 @@ import static org.mockito.Mockito.when;
  * P7-RECON-AGGREGATOR-001: OwnerReconciler integration against a real
  * database — admin-local only.
  *
- * <p>Real SQL executes for the two admin-owned surfaces:
+ * <p>Real SQL executes for the three admin-owned surfaces:
  * <ul>
  *   <li>{@code reconciliation_runs} persistence (ReconciliationRunMapper);</li>
+ *   <li>{@code fenced_job_leases} acquisition/renewal/release (FencedJobLeaseMapper);</li>
  *   <li>{@code audit_logs.performer_id} orphan check (AuditOrphanMapper).</li>
  * </ul>
  * Auth and App facts come from faked owner ports/providers; Submission facts
@@ -70,6 +74,7 @@ class OwnerReconcilerIT {
     private static SqlSessionFactory sessionFactory;
     private static SqlSession session;
     private static ReconciliationRunMapper runMapper;
+    private static FencedJobLeaseMapper fencedJobLeaseMapper;
     private static AuditOrphanMapper auditOrphanMapper;
 
     @BeforeAll
@@ -83,11 +88,22 @@ class OwnerReconcilerIT {
                   `started_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
                   `finished_at` datetime(3) DEFAULT NULL,
                   `owner` varchar(20) NOT NULL,
+                  `fence_token` bigint NOT NULL DEFAULT 0,
                   `status` varchar(20) NOT NULL DEFAULT 'RUNNING',
                   `divergence_count` int NOT NULL DEFAULT 0,
                   `orphan_count` int NOT NULL DEFAULT 0,
                   `detail` text,
                   PRIMARY KEY (`run_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+                """);
+            stmt.execute("""
+                CREATE TABLE `fenced_job_leases` (
+                  `lease_name` varchar(120) NOT NULL,
+                  `fence_token` bigint NOT NULL,
+                  `owner_token` varchar(120) DEFAULT NULL,
+                  `leased_until` datetime(3) DEFAULT NULL,
+                  `updated_at` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                  PRIMARY KEY (`lease_name`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
                 """);
             stmt.execute("""
@@ -124,10 +140,12 @@ class OwnerReconcilerIT {
         mybatisConfiguration.setEnvironment(new Environment(
                 "test", new JdbcTransactionFactory(), dataSource));
         mybatisConfiguration.addMapper(ReconciliationRunMapper.class);
+        mybatisConfiguration.addMapper(FencedJobLeaseMapper.class);
         mybatisConfiguration.addMapper(AuditOrphanMapper.class);
         sessionFactory = new MybatisSqlSessionFactoryBuilder().build(mybatisConfiguration);
         session = sessionFactory.openSession(true);
         runMapper = session.getMapper(ReconciliationRunMapper.class);
+        fencedJobLeaseMapper = session.getMapper(FencedJobLeaseMapper.class);
         auditOrphanMapper = session.getMapper(AuditOrphanMapper.class);
     }
 
@@ -162,7 +180,8 @@ class OwnerReconcilerIT {
 
         OwnerReconciler reconciler = new OwnerReconciler(
                 runMapper, new FixedUuidGenerator("run-it-1"), appPort,
-                submissionPort, notificationPort, auditOrphanMapper, null);
+                submissionPort, notificationPort, auditOrphanMapper, null,
+                new FencedJobLeaseService(fencedJobLeaseMapper, Clock.systemUTC()));
         ReflectionTestUtils.setField(reconciler, "authQueryService", authService);
         return reconciler;
     }

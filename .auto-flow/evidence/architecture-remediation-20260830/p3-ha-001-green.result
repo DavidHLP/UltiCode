@@ -1,0 +1,4 @@
+HA Compose profile expansion: PASS (temporary dev Compose env and four operator-config fixtures)
+Redis restart/reconnect drill: PASS (authorized disposable redis:7-alpine container)
+Redis ACL contract: PASS (owner, replication, and Sentinel principals)
+HA profile contract: PASS

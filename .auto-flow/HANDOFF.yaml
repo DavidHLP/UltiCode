@@ -2,7 +2,7 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P3-HA-001
+active_task: P3-IDENTITY-001
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -29,6 +29,7 @@ outputs:
   - "P3-GRACE-001 graceful service drain in aa42a66; common DrainGate, ContextClosedEvent worker gates, Spring/Docker/Compose/PM2 shutdown budgets, readiness marker cleanup, real SIGTERM probe, affected worker tests, architecture/docs, and Graphify gates pass"
   - "P3-RES-001 bounded synchronous dependencies in e666ab5; common circuit/bulkhead guard, Dubbo cluster-filter SPI, bounded JWKS/OAuth/S3/MeiliSearch policies, fail-closed ban checks, targeted tests, architecture/docs, and Graphify gates pass"
   - "P3-STREAM-001 implementation committed as 4ebb418 with review follow-up 614d90f; shared envelope validation, typed Search tombstones, App/Notification poison staging, Search fail-closed PEL handling, Judge reclaim/poison tests and CI Redis gate pass; local real Redis remains external"
+  - "P3-HA-001 truthful stateful HA reference profile implemented in 9b7c628; generated Redis replication/Sentinel identities, required external config directives, static/dev Compose and disposable Redis restart/reconnect pass; production promotion/failover authority remains external"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -53,7 +54,8 @@ evidence:
   - "P3-RES-001 evidence: p3-res-001-green.result; timeout/refusal/open/half-open/recovery/saturation tests, RpcPolicy architecture tests, affected reactor compile, full architecture/docs/YAML/shell/diff, and Graphify pass; production fault injection and tuning remain external"
   - "P3-STREAM-001 evidence: p3-stream-001-red.result, p3-stream-001-green.result, and p3-stream-001-review-fix.result; focused Search 23/23, App/Notification 12/12, stream/architecture contracts PASS, local real Redis BLOCKED_EXTERNAL"
   - "P3-SCALE-001 evidence: p3-scale-001-red.result and p3-scale-001-green.result; scale contract, shell syntax, dev Compose and diff checks PASS; production merged expansion and real two-instance drill BLOCKED_EXTERNAL"
-next_goal: "Provide truthful stateful HA profiles"
+  - "P3-HA-001 evidence: p3-ha-001-red.result and p3-ha-001-green.result; HA static/dev profile, ACL principal/file checks, temporary Compose expansion, and Redis restart/reconnect PASS; production expansion/failover authority external"
+next_goal: "Authenticate Dubbo workloads with mTLS"
 next_skill: agent-architecture-audit
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers: []

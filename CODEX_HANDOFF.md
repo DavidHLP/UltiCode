@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 31 DONE, 11 TODO. `P3-HA-001` is the active implementation task; `P3-SCALE-001` is closed in `7833227`, `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`, and earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
+Current count: 32 DONE, 10 TODO. `P3-IDENTITY-001` is the active implementation task; `P3-HA-001` is closed in `9b7c628`, `P3-SCALE-001` is closed in `7833227`, and `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`. Earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -167,7 +167,7 @@ Current count: 31 DONE, 11 TODO. `P3-HA-001` is the active implementation task; 
 - `P3-RES-001`: DONE — Bound retries circuits and dependency concurrency
 - `P3-STREAM-001`: DONE — Prove stream crash replay and compatibility (`4ebb418`, review follow-up `614d90f`)
 - `P3-SCALE-001`: DONE — Validate two-instance service operation (`7833227`; runtime drill externally blocked)
-- `P3-HA-001`: TODO — Provide truthful stateful HA profiles
+- `P3-HA-001`: DONE — Provide truthful stateful HA profiles (`9b7c628`; production expansion/failover authority external)
 - `P3-IDENTITY-001`: TODO — Authenticate Dubbo workloads with mTLS
 - `P3-NET-001`: TODO — Restrict service network reachability
 - `P3-JUDGE-001`: TODO — Remove production Docker socket trust
@@ -895,4 +895,21 @@ The next repository task is `P3-SCALE-001`.
 
 `scale-topology-contract.sh` is wired into the architecture gate and backend workflow. It verifies fixed-name/network-mode absence, production service/discovery/health/restart/resource declarations, and reports the optional merged production expansion and two-instance registration/distribution/removal/rolling-restart/failure drill explicitly. Static scale checks, shell syntax, development Compose expansion, full architecture/documentation contracts, and `git diff --check` pass. Production merged expansion is blocked by missing approved image/TLS/delegation/Nacos/telemetry inputs; the real two-instance drill requires an approved disposable environment. No Docker stack, production, remote, credential, sudo, group-membership, or host mutation was performed.
 
-The stream review follow-up is `614d90f`: typed `D:T` Search tombstones close the version-zero resurrection edge, CI migration validation provides Redis for Judge integration tests, and the lease assertion now matches stable source lines. The next repository task is `P3-HA-001`.
+The stream review follow-up is `614d90f`: typed `D:T` Search tombstones close the version-zero resurrection edge, CI migration validation provides Redis for Judge integration tests, and the lease assertion now matches stable source lines.
+
+## 35. Completed checkpoint — P3-HA-001
+
+`P3-HA-001` is repository-complete in `9b7c628` (`fix(ha): wire Redis replica and Sentinel identities`). The non-default
+`docker-compose.ha.yml` `ha` profile adds a GTID/binlog MySQL primary with an asynchronous read-only replica, a Redis replica
+with three Sentinel processes, and Nacos primary/secondary cluster members sharing the Nacos database. Redis preserves the
+runtime-generated per-owner ACL and adds rotated `ulticode-replication`/`ulticode-sentinel` principals. The profile has no
+public ports, fixed container names, or tracked credentials.
+
+`ha-profile-contract.sh` is wired into the backend and architecture gates. It checks the external replica/Sentinel files for
+target, persistence, authentication, and quorum directives; synthetic dev Compose expansion, ACL/shell/YAML/documentation
+contracts, full architecture contract, Graphify, and `git diff --check` pass. The disposable Redis restart/reconnect drill
+passed. Production HA promotion/failover, secret-managed config, MySQL endpoint changes, Nacos peer reachability, Sentinel-aware
+application clients, and MeiliSearch recovery authority remain external. MeiliSearch is explicitly single-node derived data and
+recovers by restoring Owners, clearing the version ledger, and replaying backfill.
+
+The next repository task is `P3-IDENTITY-001`.

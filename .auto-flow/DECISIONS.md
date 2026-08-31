@@ -221,3 +221,10 @@
 - Decision: remove fixed names from base/prod Compose, keep backend discovery on service DNS, and resolve host-side targets through Compose service IDs or labels. Isolate disposable smoke projects before volume cleanup.
 - Consequences: replicas can be addressed without name collisions; production-like two-instance registration/failure evidence still requires an approved disposable environment and is not inferred from static checks.
 - Affected tasks: P3-SCALE-001, P3-HA-001, P3-NET-001.
+
+## P3-HA-001: provide stateful reference profiles without false failover claims
+
+- Context: MySQL, Redis and Nacos are shared stateful dependencies, while MeiliSearch is a derived index. The base/prod stack had no repeatable reference topology, but application clients and production authority do not yet support claiming transparent failover.
+- Decision: add a non-default `ha` Compose profile with a GTID/binlog MySQL primary plus read-only asynchronous replica, Redis replica plus three Sentinel processes using externally supplied config and runtime ACL identities (`ulticode-replication` and `ulticode-sentinel`), and Nacos primary plus two cluster members sharing `nacos_config`. Require replica/Sentinel auth, replication target, persistence and quorum directives in supplied config. Keep MySQL promotion, endpoint changes, Nacos peer validation and Sentinel-aware client rollout as explicit operator actions. Treat MeiliSearch as single-node derived data recovered from Owner restore, ledger reset and backfill.
+- Consequences: the repository has a concrete, secret-free stateful topology and disposable Redis restart/reconnect proof without changing default dev/prod behavior. Production failover, replication initialization, secret-managed files, client reconnection and RPO/RTO authority remain external; no five-cluster or Kubernetes expansion is introduced.
+- Affected tasks: P3-HA-001, P3-IDENTITY-001, P3-NET-001, P3-JUDGE-001.

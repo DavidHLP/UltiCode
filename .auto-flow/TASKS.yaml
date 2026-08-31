@@ -952,7 +952,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "HA"
       dependencies: [P3-SCALE-001, P2-BACKUP-001]
-      status: TODO
+      status: DONE
       affected_modules: ["compose", "database/redis/nacos/meilisearch configs", "runbooks"]
       acceptance_criteria:
         - "Shared HA MySQL, Redis and Nacos reference profiles preserve owner accounts and document real failover behavior"
@@ -960,10 +960,12 @@ architecture_remediation_20260830:
       validation_commands:
         - "HA config validation"
         - "Failover drill where environment permits"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "No five independent DB clusters, Kubernetes, or invented product capability"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-ha-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-ha-001-green.result"
+      commit: 9b7c628
+      blocked_by: ["Production HA Compose expansion/failover authority remains operator-provided; CI/static and disposable Redis proof are available"]
+      notes: "Non-default HA profile provides GTID/binlog MySQL primary/replica, Redis replica plus three Sentinel processes with generated owner, replication, and Sentinel ACL identities, and Nacos three-node cluster mode. External HA configs are checked for replication/auth/quorum directives; MySQL promotion and application endpoint changes remain manual; current clients are not claimed Sentinel-aware. MeiliSearch remains single-node derived data with owner restore and version-ledger reset/backfill recovery. Temporary dev Compose expansion, ACL contract, and disposable Redis restart/reconnect pass."
     - id: P3-IDENTITY-001
       title: "Authenticate Dubbo workloads with mTLS"
       priority: P3

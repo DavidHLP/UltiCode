@@ -87,7 +87,7 @@ No staging or production application is assumed by repository completion.
 | Establish nonzero, non-regressing JaCoCo gates and prove the gate fails negatively | `TEST-COV-001` | `clean verify`, reports, negative fixture | `.auto-flow/evidence/architecture-remediation-20260830/test-cov-001.result` | `ef74edc` | Locally Validated; unified Compose run external |
 | First complete Standards/Spec/Security review and fix all confirmed findings | `REVIEW-001` | fixed point `8b4012b3d...`, separate review records and reruns | `.auto-flow/evidence/architecture-remediation-20260830/review-001.result` | `7743d88f` | Locally Validated |
 | Second independent final review | `REVIEW-002` | reread final implementation; confirmed findings zero | `.auto-flow/evidence/architecture-remediation-20260830/review-002.result` | `bfd1919` | Locally Validated |
-| Align tasks, commits, evidence, Git and final report | `CLOSURE-001` | final task/YAML/docs/Git/verification checks | `.auto-flow/evidence/architecture-remediation-20260830/closure-001.result` | `bfd1919` | Locally Validated; final metadata checkpoint follows |
+| Align tasks, commits, evidence, Git and final report | `CLOSURE-001` | final task/YAML/docs/Git/verification checks | `.auto-flow/evidence/architecture-remediation-20260830/closure-001.result` | `4c53c34d` | Locally Validated |
 
 ## Explicitly deferred architecture expansion
 

@@ -177,7 +177,7 @@ Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints 
 - `TEST-COV-001`: DONE — Enforce real non-regression coverage gates (`ef74edc`; unified Compose run is `BLOCKED_EXTERNAL`)
 - `REVIEW-001`: DONE — Run first full standards and spec review (`7743d88f`)
 - `REVIEW-002`: DONE — Run independent final implementation review (`bfd1919`)
-- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (closure checkpoint follows)
+- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (checkpoint `4c53c34d`)
 
 For exact dependencies, acceptance criteria, validation commands, and external notes, use the same task entries in `.auto-flow/TASKS.yaml`; do not invent alternate task IDs or a second task system.
 

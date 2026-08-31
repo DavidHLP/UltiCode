@@ -87,6 +87,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 - `scheduler-contract.sh` — bounded scheduler bindings plus independent-progress, rejection, metrics, and shutdown test.
 - `fenced-lease-contract.sh` — fenced lease wiring, deterministic clock/lost-lease tests, and MySQL two-runner/expiry integration test.
 - `graceful-drain-contract.sh` — graceful Spring/Compose/PM2/PID1 configuration plus worker no-new-claim and SIGTERM probe.
+- `dependency-resilience-contract.sh` — Dubbo/direct-HTTP timeout, retry, circuit, bulkhead and fail-closed fallback wiring plus refusal/recovery tests.
 - `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 
 ## Other

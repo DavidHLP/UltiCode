@@ -1,11 +1,14 @@
 package com.ulticode.modules.search.backfill;
 
 import com.meilisearch.sdk.Client;
+import com.meilisearch.sdk.exceptions.MeilisearchException;
 import com.meilisearch.sdk.model.DocumentsQuery;
 import com.meilisearch.sdk.model.Results;
 import com.ulticode.modules.search.dto.SearchIndexType;
+import com.ulticode.common.resilience.DependencyGuard;
 import com.ulticode.modules.search.source.SearchDocumentChangedPublisher;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +63,8 @@ public class SearchBackfillRunner implements ApplicationRunner {
     private final Client meiliSearchClient;
     private final Clock clock;
     private final SearchBackfillProperties props;
+    private final DependencyGuard meiliSearchGuard =
+            new DependencyGuard(1, 5, Duration.ofSeconds(30));
 
     @Override
     public void run(ApplicationArguments args) {
@@ -125,26 +130,38 @@ public class SearchBackfillRunner implements ApplicationRunner {
 
     @SuppressWarnings("unchecked")
     private Map<String, Long> readExistingVersions(String indexName) {
-        Map<String, Long> versions = new HashMap<>();
-        int offset = 0;
-        Map[] results;
-        do {
-            Results<Map> page = meiliSearchClient.index(indexName).getDocuments(
-                    new DocumentsQuery()
-                            .setLimit(props.getPageSize())
-                            .setOffset(offset)
-                            .setFields(new String[]{"id", VERSION_FIELD}),
-                    Map.class);
-            results = page.getResults();
-            for (Map<String, Object> doc : results) {
-                Object id = doc.get("id");
-                if (id != null) {
-                    versions.put(String.valueOf(id), docVersion(doc));
-                }
+        DependencyGuard.Permit permit = meiliSearchGuard.acquire();
+        try (permit) {
+            try {
+                Map<String, Long> versions = new HashMap<>();
+                int offset = 0;
+                Map[] results;
+                do {
+                    Results<Map> page = meiliSearchClient.index(indexName).getDocuments(
+                            new DocumentsQuery()
+                                    .setLimit(props.getPageSize())
+                                    .setOffset(offset)
+                                    .setFields(new String[]{"id", VERSION_FIELD}),
+                            Map.class);
+                    results = page.getResults();
+                    for (Map<String, Object> doc : results) {
+                        Object id = doc.get("id");
+                        if (id != null) {
+                            versions.put(String.valueOf(id), docVersion(doc));
+                        }
+                    }
+                    offset += results.length;
+                } while (results != null && results.length > 0);
+                permit.success();
+                return versions;
+            } catch (MeilisearchException unavailable) {
+                permit.failure();
+                throw unavailable;
+            } catch (RuntimeException failure) {
+                permit.ignore();
+                throw failure;
             }
-            offset += results.length;
-        } while (results != null && results.length > 0);
-        return versions;
+        }
     }
 
     private long docVersion(Map<String, Object> doc) {

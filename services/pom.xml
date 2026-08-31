@@ -21,6 +21,7 @@
 
 	<modules>
 		<module>platform/common</module>
+		<module>platform/rpc-resilience</module>
 		<module>platform/web-security</module>
 		<module>platform/integration-inbox</module>
 		<module>platform/judge-config</module>
@@ -76,6 +77,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-common</artifactId>
+				<version>${revision}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-rpc-resilience</artifactId>
 				<version>${revision}</version>
 			</dependency>
 			<dependency>

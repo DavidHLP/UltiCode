@@ -1,5 +1,6 @@
 package com.ulticode.app.storage;
 
+import com.ulticode.common.resilience.DependencyGuard;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -27,18 +28,34 @@ import java.util.Optional;
 @ConditionalOnProperty(name = "app.storage.type", havingValue = StorageProperties.TYPE_S3)
 public class S3Storage implements FileStoragePort {
 
+    private static final int FAILURE_THRESHOLD = 5;
+    private static final Duration OPEN_DURATION = Duration.ofSeconds(30);
+    private static final int READ_ATTEMPTS = 2;
+
     private final StorageProperties properties;
     private final HttpClient httpClient;
+    private final DependencyGuard dependencyGuard;
 
     public S3Storage(StorageProperties properties) {
         this(properties, HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofMillis(properties.getS3().getConnectTimeoutMs()))
                 .build());
     }
 
     S3Storage(StorageProperties properties, HttpClient httpClient) {
+        this(properties, httpClient, new DependencyGuard(
+                properties.getS3().getMaxConcurrentRequests(),
+                FAILURE_THRESHOLD,
+                OPEN_DURATION));
+    }
+
+    S3Storage(
+            StorageProperties properties,
+            HttpClient httpClient,
+            DependencyGuard dependencyGuard) {
         this.properties = properties;
         this.httpClient = httpClient;
+        this.dependencyGuard = dependencyGuard;
     }
 
     @Override
@@ -112,6 +129,44 @@ public class S3Storage implements FileStoragePort {
 
     private HttpResponse<byte[]> exchange(String method, String key, byte[] body, String contentType)
             throws IOException, InterruptedException {
+        int maxAttempts = "GET".equals(method) ? READ_ATTEMPTS : 1;
+        IOException lastFailure = null;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            DependencyGuard.Permit permit;
+            try {
+                permit = dependencyGuard.acquire();
+            } catch (DependencyGuard.RejectedException rejected) {
+                throw new StorageException("Object store temporarily unavailable: "
+                        + rejected.reason(), rejected);
+            }
+            try (permit) {
+                HttpResponse<byte[]> response = sendOnce(method, key, body, contentType);
+                int status = response.statusCode();
+                if (status == 429 || status >= 500) {
+                    permit.failure();
+                    if (attempt < maxAttempts) {
+                        continue;
+                    }
+                } else {
+                    permit.success();
+                }
+                return response;
+            } catch (InterruptedException interrupted) {
+                permit.ignore();
+                throw interrupted;
+            } catch (IOException failure) {
+                permit.failure();
+                lastFailure = failure;
+                if (attempt == maxAttempts) {
+                    throw failure;
+                }
+            }
+        }
+        throw lastFailure == null ? new IOException("Object store request failed") : lastFailure;
+    }
+
+    private HttpResponse<byte[]> sendOnce(String method, String key, byte[] body, String contentType)
+            throws IOException, InterruptedException {
         StorageProperties.S3 s3 = properties.getS3();
         URI uri = URI.create(trimTrailingSlash(s3.getEndpoint()) + "/"
                 + s3.getBucket() + "/" + AwsSigV4Signer.encodeKeyPath(key));
@@ -130,7 +185,7 @@ public class S3Storage implements FileStoragePort {
                 s3.getAccessKey(), s3.getSecretKey(), s3.getRegion(), "s3", now);
 
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofMillis(s3.getRequestTimeoutMs()))
                 .header("x-amz-content-sha256", payloadHash)
                 .header("x-amz-date", headers.get("x-amz-date"))
                 .header("Authorization", authorization);

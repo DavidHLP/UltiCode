@@ -83,4 +83,25 @@ public final class RpcPolicy {
 
     /** Sandbox execution is never automatically retried. */
     public static final int EXECUTION_RETRIES = 0;
+
+    // ── Total logical-call and failure-isolation budgets ─────────
+
+    /** Two query attempts at most: the initial call plus one safe retry. */
+    public static final int QUERY_TOTAL_BUDGET_MS =
+            QUERY_TIMEOUT_MS * (QUERY_RETRIES + 1);
+
+    /** Mutations have one attempt only. */
+    public static final int WRITE_TOTAL_BUDGET_MS = WRITE_TIMEOUT_MS;
+
+    /** Long-running execution has one attempt only. */
+    public static final int EXECUTION_TOTAL_BUDGET_MS = EXECUTION_TIMEOUT_MS;
+
+    /** Fail-fast per-dependency logical-call bulkhead. */
+    public static final int MAX_CONCURRENT_CALLS = 32;
+
+    /** Consecutive transport failures required before opening the circuit. */
+    public static final int CIRCUIT_FAILURE_THRESHOLD = 5;
+
+    /** Open interval before exactly one half-open probe is admitted. */
+    public static final long CIRCUIT_OPEN_MS = 30_000L;
 }

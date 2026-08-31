@@ -88,6 +88,12 @@ public class StorageProperties {
          */
         private String publicBaseUrl;
 
+        private int connectTimeoutMs = 10_000;
+
+        private int requestTimeoutMs = 30_000;
+
+        private int maxConcurrentRequests = 16;
+
         public String getEndpoint() {
             return endpoint;
         }
@@ -135,6 +141,30 @@ public class StorageProperties {
         public void setPublicBaseUrl(String publicBaseUrl) {
             this.publicBaseUrl = publicBaseUrl;
         }
+
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+
+        public void setConnectTimeoutMs(int connectTimeoutMs) {
+            this.connectTimeoutMs = connectTimeoutMs;
+        }
+
+        public int getRequestTimeoutMs() {
+            return requestTimeoutMs;
+        }
+
+        public void setRequestTimeoutMs(int requestTimeoutMs) {
+            this.requestTimeoutMs = requestTimeoutMs;
+        }
+
+        public int getMaxConcurrentRequests() {
+            return maxConcurrentRequests;
+        }
+
+        public void setMaxConcurrentRequests(int maxConcurrentRequests) {
+            this.maxConcurrentRequests = maxConcurrentRequests;
+        }
     }
 
     @PostConstruct
@@ -154,6 +184,13 @@ public class StorageProperties {
                     || s3.secretKey == null || s3.secretKey.isBlank()) {
                 throw new IllegalStateException(
                         "app.storage.s3.access-key/secret-key are required when app.storage.type=s3.");
+            }
+            if (s3.connectTimeoutMs < 100 || s3.connectTimeoutMs > 30_000
+                    || s3.requestTimeoutMs < 100 || s3.requestTimeoutMs > 120_000) {
+                throw new IllegalStateException("S3 connect/request timeout is outside the supported range.");
+            }
+            if (s3.maxConcurrentRequests < 1 || s3.maxConcurrentRequests > 128) {
+                throw new IllegalStateException("S3 max concurrent requests must be between 1 and 128.");
             }
         }
     }

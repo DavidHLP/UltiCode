@@ -3,9 +3,11 @@ package com.ulticode.search;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meilisearch.sdk.Client;
+import com.meilisearch.sdk.exceptions.MeilisearchException;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
+import com.ulticode.common.resilience.DependencyGuard;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -86,6 +88,8 @@ public class SearchDocumentIndexWorker {
     /** Instance-unique consumer identity, resolved once at startup. */
     private final String consumerName;
     private final DrainGate drainGate = new DrainGate();
+    private final DependencyGuard meiliSearchGuard =
+            new DependencyGuard(8, 5, Duration.ofSeconds(30));
 
     private static final RedisScript<Long> ATOMIC_DEAD_LETTER_SCRIPT = RedisScript.of("""
             local marked = redis.call('SET', KEYS[3], '1', 'NX', 'EX', ARGV[10])
@@ -541,11 +545,13 @@ public class SearchDocumentIndexWorker {
                 Map<String, Object> doc = objectMapper.readValue(
                         objectMapper.writeValueAsString(document), payloadType);
                 doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
-                meiliSearchClient.index(index).addDocuments(objectMapper.writeValueAsString(doc));
+                String serializedDocument = objectMapper.writeValueAsString(doc);
+                executeMeili(() -> meiliSearchClient.index(index)
+                        .addDocuments(serializedDocument));
                 writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
                         String.valueOf(incomingVersion));
             } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
-                meiliSearchClient.index(index).deleteDocument(documentId);
+                executeMeili(() -> meiliSearchClient.index(index).deleteDocument(documentId));
                 writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
                         "-" + incomingVersion);
             } else {
@@ -554,6 +560,22 @@ public class SearchDocumentIndexWorker {
             return true;
         } finally {
             releaseDocumentLock(lockKey, lockToken);
+        }
+    }
+
+    private void executeMeili(Runnable operation) {
+        DependencyGuard.Permit permit = meiliSearchGuard.acquire();
+        try (permit) {
+            try {
+                operation.run();
+                permit.success();
+            } catch (MeilisearchException unavailable) {
+                permit.failure();
+                throw unavailable;
+            } catch (RuntimeException failure) {
+                permit.ignore();
+                throw failure;
+            }
         }
     }
 

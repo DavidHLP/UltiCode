@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /** Shared resource-server JWT/JWKS beans for App, Admin, and Notification. */
@@ -23,6 +24,8 @@ public class JwtResourceServerConfiguration {
             @Value("${jwt.jwks-json:}") String staticJwks,
             @Value("${jwt.jwks.cache-ttl-seconds:900}") long cacheTtlSeconds,
             @Value("${jwt.jwks.retry-backoff-seconds:30}") long retryBackoffSeconds,
+            @Value("${jwt.jwks.stale-if-error-seconds:300}") long staleIfErrorSeconds,
+            @Value("${jwt.jwks.http-timeout-ms:800}") int httpTimeoutMs,
             @Value("${jwt.jwks.allowed-hosts:localhost,127.0.0.1,::1,backend-auth}") String allowedHosts,
             Environment environment) {
         return new JwksPublicKeyProvider(
@@ -31,9 +34,20 @@ public class JwtResourceServerConfiguration {
                 staticJwks,
                 cacheTtlSeconds,
                 retryBackoffSeconds,
+                staleIfErrorSeconds,
                 allowedHosts,
                 environment,
-                RestClient.builder().build());
+                jwksRestClient(httpTimeoutMs));
+    }
+
+    static RestClient jwksRestClient(int timeoutMs) {
+        if (timeoutMs < 100 || timeoutMs > 5_000) {
+            throw new IllegalArgumentException("JWKS HTTP timeout must be between 100 and 5000 milliseconds");
+        }
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(timeoutMs);
+        requestFactory.setReadTimeout(timeoutMs);
+        return RestClient.builder().requestFactory(requestFactory).build();
     }
 
     @Bean

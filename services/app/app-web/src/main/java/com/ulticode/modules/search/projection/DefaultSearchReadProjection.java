@@ -3,8 +3,10 @@ package com.ulticode.modules.search.projection;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.Index;
 import com.meilisearch.sdk.SearchRequest;
+import com.meilisearch.sdk.exceptions.MeilisearchException;
 import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.meilisearch.sdk.model.Searchable;
+import com.ulticode.common.resilience.DependencyGuard;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
@@ -21,6 +23,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
 
 /**
  * Aggregator over the per-source {@link SearchSource} adapters. The
@@ -47,6 +50,8 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
     private final List<SearchSource> sources;
     private final Map<SearchIndexType, SearchSource> sourcesByType;
     private final SearchReadProperties readProperties;
+    private final DependencyGuard meiliSearchGuard =
+            new DependencyGuard(16, 5, Duration.ofSeconds(30));
 
     private Client meiliSearchClient;
 
@@ -110,10 +115,24 @@ public class DefaultSearchReadProjection implements SearchReadProjection {
         if (!isMeiliSearchAvailable()) {
             return indexedUnavailable(queryDTO, null);
         }
+        DependencyGuard.Permit permit;
         try {
-            return searchWithMeiliSearch(queryDTO);
-        } catch (Exception e) {
-            return indexedUnavailable(queryDTO, e);
+            permit = meiliSearchGuard.acquire();
+        } catch (DependencyGuard.RejectedException rejected) {
+            return indexedUnavailable(queryDTO, rejected);
+        }
+        try (permit) {
+            try {
+                SearchResponseVO response = searchWithMeiliSearch(queryDTO);
+                permit.success();
+                return response;
+            } catch (MeilisearchException unavailable) {
+                permit.failure();
+                return indexedUnavailable(queryDTO, unavailable);
+            } catch (RuntimeException failure) {
+                permit.ignore();
+                return indexedUnavailable(queryDTO, failure);
+            }
         }
     }
 

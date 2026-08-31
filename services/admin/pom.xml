@@ -28,6 +28,10 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
+			<artifactId>backend-rpc-resilience</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ulticode</groupId>
 			<artifactId>backend-admin-api</artifactId>
 		</dependency>
 		<!-- P7-APP-SUBSCRIPTION-001: SubscriptionReadPort for analytics read path. -->

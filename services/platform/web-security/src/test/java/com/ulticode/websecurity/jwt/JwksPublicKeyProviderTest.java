@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPublicKey;
+import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -13,6 +14,7 @@ import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -106,6 +108,52 @@ class JwksPublicKeyProviderTest {
         assertThat(provider.getKey("stable")).isNotNull();
         assertThat(loads).hasValue(2);
     }
+
+    @Test
+    void staleKeyFallbackExpiresAndFailsClosed() throws Exception {
+        MutableClock clock = new MutableClock(Instant.parse("2026-08-30T04:00:00Z"));
+        AtomicInteger loads = new AtomicInteger();
+        String document = jwks("stable", rsaKeyPair());
+        JwksPublicKeyProvider provider = new JwksPublicKeyProvider(
+                true, 60, 10, 5, clock, () -> {
+                    if (loads.incrementAndGet() == 1) {
+                        return document;
+                    }
+                    throw new IllegalStateException("outage");
+                });
+
+        assertThat(provider.getKey("stable")).isNotNull();
+        clock.advanceSeconds(61);
+        assertThat(provider.getKey("stable")).isNotNull();
+        clock.advanceSeconds(5);
+
+        assertThat(provider.getKey("stable")).isNull();
+    }
+
+    @Test
+    void jwksHttpClientEnforcesTotalReadTimeout() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/jwks", exchange -> {
+            try {
+                Thread.sleep(500L);
+                exchange.sendResponseHeaders(200, 0);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            } finally {
+                exchange.close();
+            }
+        });
+        server.start();
+        try {
+            String uri = "http://127.0.0.1:" + server.getAddress().getPort() + "/jwks";
+            assertThatThrownBy(() -> JwtResourceServerConfiguration
+                    .jwksRestClient(100)
+                    .get().uri(uri).retrieve().body(String.class))
+                    .isInstanceOf(RuntimeException.class);
+        } finally {
+            server.stop(0);
+        }
+    }
     @Test
     void staticJwksIsLoadedWithoutNetworkConfiguration() throws Exception {
         MockEnvironment production = new MockEnvironment();
@@ -117,6 +165,7 @@ class JwksPublicKeyProviderTest {
                 jwks("static", keyPair),
                 60,
                 10,
+                300,
                 "backend-auth",
                 production,
                 null);

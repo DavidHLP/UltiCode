@@ -108,7 +108,7 @@ dubbo:
     base-packages: com.ulticode.submission
   consumer:
     check: false
-    timeout: 5000
+    timeout: 3000
     retries: 0
   cloud:
     subscribed-services: ''

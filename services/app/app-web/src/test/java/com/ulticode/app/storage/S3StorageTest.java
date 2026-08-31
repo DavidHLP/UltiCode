@@ -20,8 +20,12 @@ import java.net.http.HttpHeaders;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.io.IOException;
+
+import com.ulticode.common.resilience.DependencyGuard;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -30,6 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,6 +99,7 @@ class S3StorageTest {
             HttpRequest sent = captor.getValue();
 
             assertThat(sent.method()).isEqualTo("PUT");
+            assertThat(sent.timeout()).contains(Duration.ofSeconds(30));
             assertThat(sent.uri())
                     .isEqualTo(URI.create("http://localhost:9000/ulticode/avatars/uuid.png"));
             assertThat(sent.headers().firstValue("Authorization"))
@@ -154,6 +162,46 @@ class S3StorageTest {
 
             verify(httpClient, org.mockito.Mockito.times(2))
                     .send(any(HttpRequest.class), any());
+        }
+
+        @Test
+        @DisplayName("GET retries one transport failure but PUT never auto-retries")
+        void retryBudgetDependsOnIdempotency() throws Exception {
+            when(response.statusCode()).thenReturn(200);
+            when(response.body()).thenReturn(new byte[]{7});
+            when(response.headers()).thenReturn(responseHeaders);
+            when(responseHeaders.firstValue("Content-Type")).thenReturn(Optional.empty());
+            doThrow(new IOException("reset"))
+                    .doReturn(response)
+                    .when(httpClient).send(any(HttpRequest.class), any());
+
+            assertThat(storage.get("avatars/read.png")).isPresent();
+            verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+
+            HttpClient writeClient = mock(HttpClient.class);
+            doThrow(new IOException("reset"))
+                    .when(writeClient).send(any(HttpRequest.class), any());
+            S3Storage writeStorage = new S3Storage(properties, writeClient);
+            assertThatThrownBy(() -> writeStorage.put(
+                    "avatars/write.png", new ByteArrayInputStream(new byte[]{1}), 1))
+                    .isInstanceOf(StorageException.class);
+            verify(writeClient, times(1)).send(any(HttpRequest.class), any());
+        }
+
+        @Test
+        @DisplayName("server failures open the circuit and later calls do not reach S3")
+        void serverFailureOpensCircuit() throws Exception {
+            respond(503, new byte[0], null);
+            S3Storage guarded = new S3Storage(properties, httpClient,
+                    new DependencyGuard(1, 1, Duration.ofSeconds(30)));
+
+            assertThatThrownBy(() -> guarded.get("avatars/a.png"))
+                    .isInstanceOf(StorageException.class);
+            assertThatThrownBy(() -> guarded.get("avatars/a.png"))
+                    .isInstanceOf(StorageException.class)
+                    .hasMessageContaining("temporarily unavailable");
+
+            verify(httpClient, times(1)).send(any(HttpRequest.class), any());
         }
     }
 

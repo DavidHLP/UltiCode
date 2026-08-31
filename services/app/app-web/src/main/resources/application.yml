@@ -112,6 +112,9 @@ app:
       # Optional public base URL returned to clients (CDN/fronting host);
       # defaults to {endpoint}/{bucket}.
       public-base-url: ${APP_STORAGE_S3_PUBLIC_BASE_URL:}
+      connect-timeout-ms: ${APP_STORAGE_S3_CONNECT_TIMEOUT_MS:10000}
+      request-timeout-ms: ${APP_STORAGE_S3_REQUEST_TIMEOUT_MS:30000}
+      max-concurrent-requests: ${APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS:16}
 
   features:
     # Explicit rollback-only seam. Normal App/API boot never owns Judge polling.
@@ -276,4 +279,6 @@ jwt:
   jwks:
     cache-ttl-seconds: ${JWT_JWKS_CACHE_TTL_SECONDS:900}
     retry-backoff-seconds: ${JWT_JWKS_RETRY_BACKOFF_SECONDS:30}
+    stale-if-error-seconds: ${JWT_JWKS_STALE_IF_ERROR_SECONDS:300}
+    http-timeout-ms: ${JWT_JWKS_HTTP_TIMEOUT_MS:800}
     allowed-hosts: ${JWT_JWKS_ALLOWED_HOSTS:localhost,127.0.0.1,::1,backend-auth}

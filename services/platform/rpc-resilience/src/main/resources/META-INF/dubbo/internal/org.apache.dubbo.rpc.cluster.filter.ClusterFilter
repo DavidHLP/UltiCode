@@ -1,0 +1,1 @@
+dependency-resilience=com.ulticode.rpc.resilience.DubboDependencyResilienceFilter

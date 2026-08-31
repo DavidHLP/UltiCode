@@ -17,9 +17,9 @@ public interface BanCheckPort {
     /**
      * @param userId the principal to check
      * @return {@code true} if the user is currently banned from posting
-     *         content; {@code false} otherwise (including when the user
-     *         does not exist or the RPC fails — ban check is
-     *         non-throwing by contract)
+     *         content; {@code false} only after Auth proves the user is not banned
+     * @throws com.ulticode.common.exception.BusinessException when Auth cannot
+     *         prove the ban state
      */
     boolean isBanned(String userId);
 }

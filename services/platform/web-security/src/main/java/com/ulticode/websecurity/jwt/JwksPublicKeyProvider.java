@@ -29,11 +29,13 @@ public final class JwksPublicKeyProvider {
     private final boolean enabled;
     private final long cacheTtlSeconds;
     private final long retryBackoffSeconds;
+    private final long staleIfErrorSeconds;
     private final Clock clock;
     private final Supplier<String> source;
 
     private volatile Map<String, RSAPublicKey> keyCache = Collections.emptyMap();
     private volatile Instant refreshAfter = Instant.EPOCH;
+    private volatile Instant staleAfter = Instant.EPOCH;
 
     public JwksPublicKeyProvider(
             boolean enabled,
@@ -41,10 +43,11 @@ public final class JwksPublicKeyProvider {
             String staticJwks,
             long cacheTtlSeconds,
             long retryBackoffSeconds,
+            long staleIfErrorSeconds,
             String allowedHosts,
             Environment environment,
             RestClient httpClient) {
-        this(enabled, cacheTtlSeconds, retryBackoffSeconds, Clock.systemUTC(),
+        this(enabled, cacheTtlSeconds, retryBackoffSeconds, staleIfErrorSeconds, Clock.systemUTC(),
                 source(enabled, jwksUri, staticJwks, allowedHosts, environment, httpClient));
         if (enabled && staticJwks != null && !staticJwks.isBlank()) {
             Map<String, RSAPublicKey> keys = parseKeys(staticJwks);
@@ -53,6 +56,7 @@ public final class JwksPublicKeyProvider {
             }
             keyCache = keys;
             refreshAfter = Instant.MAX;
+            staleAfter = Instant.MAX;
         }
     }
 
@@ -62,15 +66,30 @@ public final class JwksPublicKeyProvider {
             long retryBackoffSeconds,
             Clock clock,
             Supplier<String> source) {
+        this(enabled, cacheTtlSeconds, retryBackoffSeconds,
+                cacheTtlSeconds, clock, source);
+    }
+
+    JwksPublicKeyProvider(
+            boolean enabled,
+            long cacheTtlSeconds,
+            long retryBackoffSeconds,
+            long staleIfErrorSeconds,
+            Clock clock,
+            Supplier<String> source) {
         if (cacheTtlSeconds < 30 || cacheTtlSeconds > 3600) {
             throw new IllegalArgumentException("JWKS cache TTL must be between 30 and 3600 seconds");
         }
         if (retryBackoffSeconds < 1 || retryBackoffSeconds > cacheTtlSeconds) {
             throw new IllegalArgumentException("JWKS retry backoff must be between 1 second and the cache TTL");
         }
+        if (staleIfErrorSeconds < 0 || staleIfErrorSeconds > 3600) {
+            throw new IllegalArgumentException("JWKS stale-if-error must be between 0 and 3600 seconds");
+        }
         this.enabled = enabled;
         this.cacheTtlSeconds = cacheTtlSeconds;
         this.retryBackoffSeconds = retryBackoffSeconds;
+        this.staleIfErrorSeconds = staleIfErrorSeconds;
         this.clock = clock;
         this.source = source;
     }
@@ -85,6 +104,9 @@ public final class JwksPublicKeyProvider {
 
     private synchronized void ensureCacheFresh() {
         Instant now = clock.instant();
+        if (!now.isBefore(staleAfter) && !keyCache.isEmpty()) {
+            keyCache = Collections.emptyMap();
+        }
         if (now.isBefore(refreshAfter)) {
             return;
         }
@@ -95,7 +117,11 @@ public final class JwksPublicKeyProvider {
             }
             keyCache = refreshed;
             refreshAfter = now.plusSeconds(cacheTtlSeconds);
+            staleAfter = refreshAfter.plusSeconds(staleIfErrorSeconds);
         } catch (RuntimeException exception) {
+            if (!now.isBefore(staleAfter)) {
+                keyCache = Collections.emptyMap();
+            }
             refreshAfter = now.plusSeconds(retryBackoffSeconds);
         }
     }

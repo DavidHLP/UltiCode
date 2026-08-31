@@ -901,6 +901,10 @@ enqueue，owner migration 在 shared Flyway bootstrap 后保护 owner/post-owner
 
 P3-GRACE-001 将停止顺序固定为：先由 Spring `ContextClosedEvent` 让 HTTP/RPC provider 与 worker claimers 进入 draining，再停止有界 scheduler，等待在途 handler/数据库更新在 45 秒 phase 内完成，最后由 Spring 关闭 Redis/MySQL/Dubbo/MeiliSearch/OTel clients。Redis Streams 只有在 durable inbox/业务处理完成后才 ACK；被 SIGTERM 中断的 PEL entry、Inbox row lease、Submission outbox claim 或 judge lease 继续由既有 reaper/claim CAS 恢复。`scripts/test/graceful-drain-contract.sh` 同时覆盖配置、worker no-new-claim 和真实子进程 SIGTERM probe。
 
+#### Synchronous dependency resilience
+
+P3-RES-001 在不引入第三方 resilience stack 的前提下，以 common `DependencyGuard` 提供 fail-fast bulkhead、连续失败开路、30 秒 open window 与单 half-open probe。Dubbo `backend-rpc-resilience` cluster filter 自动覆盖 Admin/App/Notification/Submission/Judge 的所有 consumer reference：query 保持 800ms × 2 attempts，write 保持 3000ms × 1，Judge execution 保持 190s × 1；business/validation/authorization failure 不污染 circuit，open/saturation 不生成成功 fallback。共享 JWKS 增加 800ms HTTP timeout 和 300 秒 bounded stale-key window；OAuth、S3、App/Search MeiliSearch 调用使用相同 guard 形状，只有 GET/read 可有一个明确重试，Search 数据库 fallback 必须在 response semantics 标记 `fallback=true`。完整矩阵和故障响应见 `services/docs/DEPENDENCY_RESILIENCE_RUNBOOK.md`。
+
 #### Submission read owner cutover 与 schema contraction
 
 P1-DATA-001 完成了 App 正常读路径的 owner cutover：用户列表/详情、统计、Problem submission counts、用户标签统计、
@@ -1342,6 +1346,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 - App 单实例迁移期可继续 SimpleBroker；多实例前使用粘性会话 + Redis broadcast bridge，或按负载证明引入 broker relay；
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；P3-SCHED-001 为 Admin、Submission、Search 关键任务分配有界 executor（默认 1，Admin audit 2，最大 16），暴露 active/queued/completed/rejection 指标并在关闭时等待不超过 30 秒；
 - P3-GRACE-001 为 HTTP Owner 设置 `server.shutdown=graceful` 与 45 秒 Spring shutdown phase，为非 HTTP worker 设置相同生命周期边界；Stream/Inbox/outbox/reaper claimers 在 `ContextClosedEvent` 后通过 common `DrainGate` 拒绝新 claim，让当前 bounded batch 完成并保留 PEL/row lease 供恢复。Production Compose 的 Java/frontend/infrastructure stop grace 分别为 60/30 秒，PM2 kill timeout 与 Java 服务一致；真实流量 drain 与编排 authority 仍属外部证据；
+- P3-RES-001 统一同步依赖预算：Dubbo query/write/execution 分别为 800ms×2、3s×1、190s×1，cluster filter 对每个 service key 应用 32-call bulkhead、5 次 transport failure 开路、30 秒后单 half-open probe；JWKS/OAuth/S3/MeiliSearch 使用明确 timeout、零或一次幂等 retry、有界 stale/degraded fallback。所有 write 保持自动 retry=0，open/saturation 必须失败而不能伪造成功；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；暴露 direct Submission owner write/fence provider，默认端口为内部 HTTP `9106`、Dubbo `20886`；provider 直接写 Submission schema，App 仅通过 `APP_SUBMISSION_ROUTING_MODE=remote` 访问该 owner。

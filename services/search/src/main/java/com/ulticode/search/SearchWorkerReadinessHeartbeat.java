@@ -1,13 +1,16 @@
 package com.ulticode.search;
 
 import com.meilisearch.sdk.Client;
+import com.meilisearch.sdk.exceptions.MeilisearchException;
 import com.ulticode.common.lifecycle.DrainGate;
+import com.ulticode.common.resilience.DependencyGuard;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,6 +44,8 @@ public class SearchWorkerReadinessHeartbeat {
     private final Client meiliSearchClient;
     private final Path readyFile;
     private final DrainGate drainGate = new DrainGate();
+    private final DependencyGuard meiliSearchGuard =
+            new DependencyGuard(1, 5, Duration.ofSeconds(30));
 
     public SearchWorkerReadinessHeartbeat(
             StringRedisTemplate redisTemplate,
@@ -101,12 +106,27 @@ public class SearchWorkerReadinessHeartbeat {
             log.debug("Redis ping failed: {}", e.getMessage());
             return false;
         }
+        DependencyGuard.Permit permit;
         try {
-            meiliSearchClient.health();
-            return true;
-        } catch (Exception e) {
-            log.debug("MeiliSearch health check failed: {}", e.getMessage());
+            permit = meiliSearchGuard.acquire();
+        } catch (DependencyGuard.RejectedException rejected) {
+            log.debug("MeiliSearch health check rejected: {}", rejected.getMessage());
             return false;
+        }
+        try (permit) {
+            try {
+                meiliSearchClient.health();
+                permit.success();
+                return true;
+            } catch (MeilisearchException unavailable) {
+                permit.failure();
+                log.debug("MeiliSearch health check failed: {}", unavailable.getMessage());
+                return false;
+            } catch (RuntimeException failure) {
+                permit.ignore();
+                log.debug("MeiliSearch health check failed: {}", failure.getMessage());
+                return false;
+            }
         }
     }
 }

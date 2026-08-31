@@ -176,4 +176,6 @@ jwt:
   jwks:
     cache-ttl-seconds: ${JWT_JWKS_CACHE_TTL_SECONDS:900}
     retry-backoff-seconds: ${JWT_JWKS_RETRY_BACKOFF_SECONDS:30}
+    stale-if-error-seconds: ${JWT_JWKS_STALE_IF_ERROR_SECONDS:300}
+    http-timeout-ms: ${JWT_JWKS_HTTP_TIMEOUT_MS:800}
     allowed-hosts: ${JWT_JWKS_ALLOWED_HOSTS:localhost,127.0.0.1,::1,backend-auth}

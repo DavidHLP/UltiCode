@@ -4,6 +4,8 @@ import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -17,11 +19,9 @@ import org.springframework.stereotype.Component;
  * {@code UserMapper} directly. This adapter queries the auth service's
  * identity projection, which carries the {@code banned} flag.
  *
- * <p><b>Fail-safe:</b> if the RPC fails or returns null, the adapter
- * returns {@code false} (not banned). This matches the legacy contract:
- * ban check is non-throwing, and a transient RPC failure should not
- * block legitimate users. The aspect itself is the last line of
- * defense — if the aspect throws, the request is blocked.
+ * <p><b>Fail-closed:</b> only an explicit Auth response may return
+ * {@code false}. Unavailable, null or failed responses throw so a circuit-open
+ * dependency can never be interpreted as "not banned".
  *
  * <p>P7-RELOCATE-SOLUTION-001: required when backend-app stopped depending
  * on backend-legacy.
@@ -40,19 +40,24 @@ public class IdentityBanCheckAdapter implements BanCheckPort {
             return false;
         }
         if (identityQueryService == null) {
-            log.debug("IdentityQueryService not available; ban check skipped for user {}", userId);
-            return false;
+            throw unavailable(null);
         }
         try {
             RpcResult<UserIdentityDTO> result = identityQueryService.getIdentity(userId);
             if (result == null || !result.success() || result.data() == null) {
-                log.debug("Ban check RPC returned no data for user {}", userId);
-                return false;
+                throw unavailable(null);
             }
             return result.data().banned();
+        } catch (BusinessException exception) {
+            throw exception;
         } catch (Exception e) {
             log.warn("Ban check RPC failed for user {}: {}", userId, e.getMessage());
-            return false;
+            throw unavailable(e);
         }
+    }
+
+    private static BusinessException unavailable(Throwable cause) {
+        return new BusinessException(
+                BaseErrorCode.UNKNOWN_ERROR, "Unable to verify user ban status", cause);
     }
 }

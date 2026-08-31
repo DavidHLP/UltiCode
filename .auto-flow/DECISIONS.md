@@ -234,3 +234,9 @@
 - Decision: enable production-only Dubbo SSL/mTLS through env-configured paths and register one provider/consumer `workload-mtls` SPI filter in `backend-rpc-resilience`. Provider validates the TLS peer X509 SAN against the target's caller matrix; consumer validates the server SAN against the local reference group and caller's allowed target matrix. Both sides fail closed on missing/invalid/expired/unknown/mismatched certificates.
 - Consequences: no certificate or secret is stored in Git; production mounts `${DUBBO_MTLS_CERT_DIR}/<service>` read-only and external secret authority performs overlap rotation, rollout and old-material retirement. The repository proves policy, TLS handshake, transport extraction and ACL rotation with disposable fixtures; live Nacos/Dubbo registration remains external.
 - Affected tasks: P3-IDENTITY-001, P3-NET-001, P3-JUDGE-001.
+## P3-NET-001: segment service reachability by call graph
+
+- Context: the previous implicit default/infrastructure networks made backend, ingress, stateful infrastructure and worker planes broadly reachable, while external SMTP/OAuth/S3/OTLP/Nacos peer endpoints still need controlled egress.
+- Decision: define internal `edge`, `sql`, `cache`, `registry`, `search`, `observability` and five point-to-point Dubbo RPC networks. Attach only real callers/targets to each `rpc-*` network. Use one non-internal egress network per workload that needs external SMTP/OAuth/S3/OTLP or Nacos peers; never share a common egress bridge.
+- Consequences: production backends and stateful services publish no ports, frontends bind only loopback, dev opens only existing infrastructure mappings, and workers cannot use ingress/data/search networks accidentally. The repository contract proves membership and disposable allow/deny behavior; production firewall, DNS, peer and ingress authority remains external.
+- Affected tasks: P3-NET-001, P3-JUDGE-001.

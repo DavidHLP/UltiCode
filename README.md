@@ -461,20 +461,20 @@ docker compose --env-file .env \
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-生产 Judge Worker 还需要在 Docker 宿主机预置沙箱目录、seccomp 文件和沙箱镜像；Worker 通过 Docker socket 启动隔离子容器，socket 不对公网发布：
+生产 Judge Worker 必须使用部署拥有的 remote/rootless Docker daemon，通过双向 TLS 访问；生产 Compose 不挂载 `docker.sock`，也不加入 `DOCKER_GID`。`JUDGE_DOCKER_CERT_DIR` 由外部 secret store 提供 `ca.pem`、`cert.pem`、`key.pem`，`JUDGE_DOCKER_HOST` 指向 TLS endpoint；`SANDBOX_HOST_DIR` 是 Worker 与隔离 daemon 共同可见的 workspace，seccomp 文件和沙箱镜像也必须由部署环境预置：
 
 ```bash
+export JUDGE_DOCKER_HOST='tcp://sandbox-daemon.example.internal:2376'
+export JUDGE_DOCKER_CERT_DIR=/etc/ulticode/judge-docker
 export SANDBOX_HOST_DIR=/opt/ulticode/sandbox
-export DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
-sudo install -d -o 1000 -g 1000 "$SANDBOX_HOST_DIR/workspace"
-sudo install -o 1000 -g 1000 docker/sandbox/seccomp-profile.json "$SANDBOX_HOST_DIR/seccomp-profile.json"
-./docker/sandbox/harness/build.sh
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-app backend-notification backend-judge
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-> 部署主机 `.env` 必须设 `SANDBOX_ENABLED=true`（本地开发默认 `false` 的占位值会传入容器并禁用沙箱执行，所有判题将退化且无报错）。Worker 镜像固定以 uid/gid 1000 运行，与上面 `-o 1000 -g 1000` 的 workspace 属主及沙箱子容器的 `--user 1000:1000` 一致。
+`JUDGE_DOCKER_CERT_DIR` 不得提交到 Git。`scripts/test/judge-sandbox-contract.sh` 校验生产无 socket/GID fallback、TLS/certificate mount、沙箱资源/网络/只读/seccomp/result controls；设置 `JUDGE_REMOTE_SMOKE=1` 后才会用 operator 提供的 endpoint/cert/image 做只读远程 smoke。
 
-`SANDBOX_HOST_DIR` 必须是宿主机绝对路径，并在 Worker 容器内使用同一路径；否则 Docker daemon 无法看到 Worker 创建的作业目录。Docker socket 等同宿主机 Docker 管理权限，只应授予专用部署主机。
+开发若必须使用本机 daemon，只能在 disposable 环境显式叠加 `docker-compose.judge-dev.yml --profile judge-socket`；该文件不属于生产启动命令，且生产 Compose 的 remote variables 仍必须由调用环境满足。无需 socket 的默认开发路径不启用 Judge socket profile。
+
+`SANDBOX_HOST_DIR` 必须是 Worker 与 remote daemon 共同可见的绝对路径，且 workspace/seccomp/certificate files 必须按部署约定允许 UID 1000/remote rootless daemon 读取；否则 Docker daemon 无法看到 Worker 创建的作业目录或加载 TLS。远程 daemon 必须是 rootless 或等价的专用隔离节点，防火墙只允许 Judge client 与 sandbox endpoint 通信。
 
 ```bash
 # 直接进 MySQL（Compose 服务发现，容器默认 latin1，必须显式指定 utf8mb4）
@@ -594,7 +594,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 | `CORS_ALLOWED_ORIGINS` | 跨域白名单 | dev: `http://localhost:9002,http://localhost:9003` |
 | `NACOS_SERVER_ADDR` | Nacos 地址 | dev: `localhost:28848` |
 | `NACOS_USERNAME` / `NACOS_PASSWORD` | Nacos 鉴权 | dev profile 专用账号 |
-| `SANDBOX_HOST_DIR` / `DOCKER_GID` | 生产 Judge Worker 的 Docker socket / 沙箱工作目录 | 仅 Compose 部署；目录必须与宿主机路径一致 |
+| `JUDGE_DOCKER_HOST` / `JUDGE_DOCKER_CERT_DIR` / `SANDBOX_HOST_DIR` | 生产 Judge 的 remote/rootless Docker TLS endpoint、client bundle 与共享沙箱目录 | 仅 Compose 部署；真实证书由外部 secret store 提供 |
 | `FRONTEND_URL` | 邮件 / 回调拼接 | dev: `http://localhost:9002` |
 | `SPRING_PROFILES_ACTIVE` | Spring Profile | dev / prod |
 

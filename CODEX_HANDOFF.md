@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 33 DONE, 9 TODO. `P3-NET-001` is the active implementation task; `P3-IDENTITY-001` is closed in `8f190a7`, `P3-HA-001` is closed in `9b7c628`, `P3-SCALE-001` is closed in `7833227`, and `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`. Earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
+Current count: 34 DONE, 8 TODO. `P3-JUDGE-001` is the active implementation task; `P3-NET-001` is closed in `51efd26`, `P3-IDENTITY-001` is closed in `8f190a7`, `P3-HA-001` is closed in `9b7c628`, `P3-SCALE-001` is closed in `7833227`, and `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`. Earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -169,7 +169,7 @@ Current count: 33 DONE, 9 TODO. `P3-NET-001` is the active implementation task; 
 - `P3-SCALE-001`: DONE — Validate two-instance service operation (`7833227`; runtime drill externally blocked)
 - `P3-HA-001`: DONE — Provide truthful stateful HA profiles (`9b7c628`; production expansion/failover authority external)
 - `P3-IDENTITY-001`: DONE — Authenticate Dubbo workloads with mTLS (`8f190a7`; production certificate/registry rollout external)
-- `P3-NET-001`: TODO — Restrict service network reachability
+- `P3-NET-001`: DONE — Restrict service network reachability (`51efd26`; production expansion/firewall/DNS/ingress authority external)
 - `P3-JUDGE-001`: TODO — Remove production Docker socket trust
 - `ARCH-CONTRACT-001`: TODO — Align contracts with bounded owners
 - `ARCH-DUBBO-001`: TODO — Prune provider and reference sprawl
@@ -919,3 +919,9 @@ The next repository task is `P3-NET-001`.
 `P3-IDENTITY-001` is repository-complete in `8f190a7` (`feat(security): enforce Dubbo workload mTLS`). All six Triple workloads now carry production-configurable SSL/mTLS paths and independent service identity configuration. The shared `backend-rpc-resilience` SPI filter validates provider caller SANs against the delegation audience and consumer server SANs against the local reference target; missing/expired/unknown/wrong-SAN/unauthorized peers fail closed. Auth now packages the filter artifact, production Compose mounts per-service material read-only, and CI runs the mTLS contract on both backend and Docker-triggered changes.
 
 `dubbo-mtls-contract.sh` passes certificate policy, wrong-SAN/unknown/expired/unauthorized trust and authorized/unauthorized TLS handshakes. The Maven policy/SPI/transport-session test passes 7/7; ACL rotation covers replication/Sentinel identities. Full architecture/docs/shell/diff and Graphify gates pass. Production certificate provisioning, secret rotation, Nacos/Dubbo registration and rollout remain external. The next repository task is `P3-NET-001`.
+
+## 37. Completed checkpoint — P3-NET-001
+
+`P3-NET-001` is repository-complete in `51efd26` (`feat(security): restrict service network reachability`). Base/dev/prod/HA/observability Compose no longer rely on implicit default/infrastructure all-to-all connectivity. Internal `edge`, `sql`, `cache`, `registry`, `search`, `observability` and five point-to-point Dubbo RPC networks follow the actual owner/caller graph; each external-dependent workload receives its own non-internal egress network so SMTP/OAuth/S3/OTLP/Nacos peer traffic does not create shared lateral access. Production backends and stateful infrastructure publish no ports, and frontends remain loopback-bound.
+
+`network-reachability-contract.sh` passes static membership, forbidden path, port, loopback, HA and observability checks plus the disposable Docker allow/deny drill. Production Compose expansion with required secrets, firewall policy, DNS, Nacos peer and ingress authority remain external. The next repository task is `P3-JUDGE-001`.

@@ -67,11 +67,11 @@ Do not close SVC-003 or contract the App schema until the external owner registr
 
 触发条件：出现真实多节点生产环境、明确可用性 SLO，且单机维护窗口不再可接受。届时再实施无状态多副本、反向代理和有状态组件 HA。
 
-### SVC-008 Judge 节点级强隔离
+### SVC-008 可观测的 Judge 节点隔离
 
-现状：已支持 `DOCKER_HOST`、TLS 与可覆盖 socket 路径，但默认仍挂载本机 Docker socket。
+现状：生产 Compose 已禁止 `docker.sock`、`DOCKER_GID` 与本机 socket fallback，要求 `JUDGE_DOCKER_HOST` 指向专用 remote/rootless Docker daemon、`DOCKER_TLS_VERIFY=1`、只读 client certificate bundle 与共享 sandbox workspace；开发 socket 仅在显式 `docker-compose.judge-dev.yml --profile judge-socket` 下启用。
 
-触发条件：Judge 进入对外多租户生产，或沙箱逃逸进入必须缓解的威胁模型。届时使用专用 Judge 节点、远程 rootless daemon、证书轮换和网络隔离，并移除本机 socket。
+触发条件：需要真实生产远程 daemon/证书轮换/节点故障演练时，由部署 authority 提供 endpoint、TLS material、rootless 证明和 shared workspace，并运行 `JUDGE_REMOTE_SMOKE=1`。仓库只证明配置边界、沙箱约束和 disposable contract，不替代生产节点授权。
 
 ### SVC-009 可观测运营证据
 

@@ -1,0 +1,6 @@
+P3-NET-001 GREEN:
+- Static service/caller-target membership, internal-network, backend/infra port, loopback frontend, HA and observability checks: PASS (`bash scripts/test/network-reachability-contract.sh`).
+- Disposable Docker allow/deny network reachability drill: PASS; authorized path resolved and isolated path failed. This is not production firewall evidence.
+- Production Compose expansion: BLOCKED_EXTERNAL when `NET_COMPOSE_ENV_FILE` is unset; production credentials/variables were not fabricated. Base/dev expansion with local `.env` is also blocked by missing `HEALTH_REDIS_PASSWORD`.
+- Full architecture contract: PASS; documentation contract: PASS; shell syntax: PASS; `git diff --check`: PASS; Graphify update: PASS.
+- Production firewall/DNS/Nacos peer/ingress authority remains external; no production network or data was modified.

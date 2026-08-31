@@ -306,7 +306,7 @@ services_issues_20260828:
       rollback: "Documentation/control-plane only"
       evidence:
         - "SVC-007: single-host/fixed-container/standalone stateful topology matches current scope; no multi-node/SLO trigger"
-        - "SVC-008: remote Docker host/TLS/seccomp controls exist; default socket remains until multi-tenant/threat-model trigger"
+        - "SVC-008: production Docker socket/GID fallback is removed; remote Docker host/TLS/seccomp controls and explicit dev socket profile exist; real rootless endpoint/credential/workspace proof remains external"
         - "SVC-009: seven backends require explicit external OTLP endpoint with a per-service gate; Compose dev/prod config exit 0; Review Confirmed=0"
         - "SVC-009 external remainder: no real traffic trace, tuned SLO report, or backlog/PEL/DLQ/last-success live drill"
         - "SVC-010: tags v1.2..v3.0 all predate services matrix; no current mixed-version deploy/rollback history"
@@ -990,18 +990,20 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Security/Network"
       dependencies: [P3-IDENTITY-001]
-      status: TODO
-      affected_modules: ["compose", "infrastructure/nginx", "network contract tests"]
+      status: DONE
+      affected_modules: ["base/dev/prod/HA/observability Compose", "network contract tests", "architecture/docs/CI gates"]
       acceptance_criteria:
         - "Ingress app data observability and Judge networks expose only required paths"
         - "Admin/data planes are not public; dev exceptions cannot enter prod"
       validation_commands:
         - "Compose network topology test"
         - "Forbidden reachability tests where runtime permits"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "No broad all-service network by default"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-net-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-net-001-green.result"
+      commit: 51efd26
+      blocked_by: ["Production merged Compose expansion and firewall/DNS/Nacos peer/ingress authority require external production variables and operator validation"]
+      notes: "Base/prod no longer use implicit default/infrastructure all-to-all networking. Internal sql/cache/registry/rpc/search/observability networks follow the real call graph; per-workload egress networks preserve SMTP/OAuth/S3/OTLP/Nacos peer paths without shared lateral egress. Static topology and disposable allow/deny Docker checks pass; production expansion remains external when required secrets are unavailable."
     - id: P3-JUDGE-001
       title: "Remove production Docker socket trust"
       priority: P3

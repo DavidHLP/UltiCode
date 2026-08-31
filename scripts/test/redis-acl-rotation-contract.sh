@@ -33,6 +33,12 @@ for prefix in "${PASSWORD_PREFIXES[@]}"; do
   printf -v "$next_var" '%s' "$(openssl rand -hex 24)"
   export "$current_var" "$next_var"
 done
+for current_var in REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD; do
+  next_var="${current_var}_NEXT"
+  printf -v "$current_var" '%s' "$(openssl rand -hex 24)"
+  printf -v "$next_var" '%s' "$(openssl rand -hex 24)"
+  export "$current_var" "$next_var"
+done
 
 run_rotation() {
   local action="$1" expected_phase="${2:-}"
@@ -139,6 +145,11 @@ printf 'rotation singleton lock: PASS\n'
 
 for prefix in "${PASSWORD_PREFIXES[@]}"; do
   current_var="${prefix}_REDIS_PASSWORD"
+  next_var="${current_var}_NEXT"
+  ! grep -F "${!current_var}" "$ACL_FILE" "$STATE_FILE" "$REPORT_FILE" >/dev/null
+  ! grep -F "${!next_var}" "$ACL_FILE" "$STATE_FILE" "$REPORT_FILE" >/dev/null
+done
+for current_var in REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD; do
   next_var="${current_var}_NEXT"
   ! grep -F "${!current_var}" "$ACL_FILE" "$STATE_FILE" "$REPORT_FILE" >/dev/null
   ! grep -F "${!next_var}" "$ACL_FILE" "$STATE_FILE" "$REPORT_FILE" >/dev/null

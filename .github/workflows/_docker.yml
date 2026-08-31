@@ -35,6 +35,8 @@ jobs:
 
       - name: Validate deployment integrity control plane
         run: bash scripts/test/deployment-integrity-contract.sh
+      - name: Validate Dubbo mTLS identity policy
+        run: bash scripts/test/dubbo-mtls-contract.sh
 
   docker-verify:
     name: Docker Build (${{ matrix.service.name }})

@@ -405,6 +405,13 @@ bash "$ROOT_DIR/scripts/test/scale-topology-contract.sh"
 contains .github/workflows/_backend.yml 'ha-profile-contract.sh'
 contains scripts/test/ha-profile-contract.sh 'HA profile contract: PASS'
 bash "$ROOT_DIR/scripts/test/ha-profile-contract.sh"
+contains .github/workflows/_backend.yml 'dubbo-mtls-contract.sh'
+contains .github/workflows/_docker.yml 'dubbo-mtls-contract.sh'
+contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'DUBBO_MTLS_ALLOWED_CALLERS'
+contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'h2StreamChannel'
+contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'getChannel", Boolean.class'
+contains services/platform/rpc-resilience/src/main/resources/META-INF/dubbo/internal/org.apache.dubbo.rpc.Filter 'workload-mtls='
+bash "$ROOT_DIR/scripts/test/dubbo-mtls-contract.sh"
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"

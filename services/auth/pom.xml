@@ -27,6 +27,11 @@
 			<artifactId>backend-common</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-rpc-resilience</artifactId>
+		</dependency>
+
 		<!-- P1-API-001: provider-owned auth contract. -->
 		<dependency>
 			<groupId>com.ulticode</groupId>

@@ -107,9 +107,8 @@ acquire_lock() {
 }
 
 render_phase() {
-  local phase="$1" output_file="$2" prefix primary_var next_var previous_var current_value next_value
-  for prefix in "${PASSWORD_PREFIXES[@]}"; do
-    primary_var="${prefix}_REDIS_PASSWORD"
+  local phase="$1" output_file="$2" primary_var next_var previous_var current_value next_value
+  for primary_var in "${PASSWORD_VARS[@]}"; do
     next_var="${primary_var}_NEXT"
     previous_var="${primary_var}_PREVIOUS"
     current_value="${!primary_var}"

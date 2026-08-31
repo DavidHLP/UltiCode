@@ -138,9 +138,18 @@ dubbo:
     metadata-type: local
   protocol:
     name: tri
+    ssl-enabled: ${DUBBO_PROTOCOL_SSL_ENABLED:false}
     port: ${JUDGE_DUBBO_PORT:20884}
     triple:
       max-requests-per-connection: 50
+  ssl:
+    default: ${DUBBO_SSL_DEFAULT:false}
+    server-key-cert-chain-path: ${DUBBO_SSL_SERVER_KEY_CERT_CHAIN_PATH:}
+    server-private-key-path: ${DUBBO_SSL_SERVER_PRIVATE_KEY_PATH:}
+    server-trust-cert-collection-path: ${DUBBO_SSL_SERVER_TRUST_CERT_COLLECTION_PATH:}
+    client-key-cert-chain-path: ${DUBBO_SSL_CLIENT_KEY_CERT_CHAIN_PATH:}
+    client-private-key-path: ${DUBBO_SSL_CLIENT_PRIVATE_KEY_PATH:}
+    client-trust-cert-collection-path: ${DUBBO_SSL_CLIENT_TRUST_CERT_COLLECTION_PATH:}
   registry:
     address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
     username: ${DUBBO_REGISTRY_USERNAME:${JUDGE_NACOS_USERNAME:}}

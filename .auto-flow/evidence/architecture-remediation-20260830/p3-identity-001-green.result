@@ -1,0 +1,6 @@
+P3-IDENTITY-001 GREEN:
+- Dubbo mTLS certificate/CA, wrong-SAN, unknown, expired, unauthorized certificate and authorized/unauthorized TLS handshake contract: PASS (`bash scripts/test/dubbo-mtls-contract.sh`).
+- Dubbo mTLS policy/SPI/provider transport-session tests: PASS (7/7, `DubboMtlsCertificatePolicyTest`; affected rpc-resilience reactor test).
+- Redis ACL rotation regression after adding replication/Sentinel identities: PASS (`bash scripts/test/redis-acl-rotation-contract.sh`).
+- Full architecture contract: PASS; documentation contract: PASS; `git diff --check`: PASS; Graphify update: PASS.
+- Production Nacos/Dubbo registration, real secret provisioning/rotation, and rollout remain BLOCKED_EXTERNAL; no real credentials are committed or rotated.

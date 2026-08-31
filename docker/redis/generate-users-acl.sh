@@ -8,6 +8,7 @@
 #   AUTH_REDIS_PASSWORD APP_REDIS_PASSWORD ADMIN_REDIS_PASSWORD
 #   SUBMISSION_REDIS_PASSWORD SEARCH_REDIS_PASSWORD NOTIFICATION_REDIS_PASSWORD
 #   JUDGE_REDIS_PASSWORD OPS_REDIS_PASSWORD HEALTH_REDIS_PASSWORD
+#   REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD
 #
 # Passwords are stored as SHA-256 hashes (#<hex>), never plaintext. An optional
 # <PREFIX>_REDIS_PASSWORD_PREVIOUS adds a second hash for overlap rotation.
@@ -19,11 +20,11 @@ command -v openssl >/dev/null 2>&1 || { echo "openssl is required" >&2; exit 1; 
 
 OUTPUT_FILE="${1:-${REDIS_ACL_FILE:-}}"
 [[ $# -le 1 ]] || { echo "Usage: $0 [output-file]" >&2; exit 2; }
-
 VARS=(
   AUTH_REDIS_PASSWORD APP_REDIS_PASSWORD ADMIN_REDIS_PASSWORD
   SUBMISSION_REDIS_PASSWORD SEARCH_REDIS_PASSWORD NOTIFICATION_REDIS_PASSWORD
   JUDGE_REDIS_PASSWORD OPS_REDIS_PASSWORD HEALTH_REDIS_PASSWORD
+  REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD
 )
 
 for v in "${VARS[@]}"; do
@@ -68,6 +69,8 @@ user ulticode-submission on $(password_hashes SUBMISSION_REDIS_PASSWORD) resetke
 user ulticode-search on $(password_hashes SEARCH_REDIS_PASSWORD) resetkeys ~stream:integration ~search:* resetchannels -@all $COMMON_COMMANDS
 user ulticode-notification on $(password_hashes NOTIFICATION_REDIS_PASSWORD) resetkeys ~stream:integration ~poison:* ~notification:* ~security:delegation:replay:* resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS
 user ulticode-judge on $(password_hashes JUDGE_REDIS_PASSWORD) resetkeys ~judge_queue ~queue:* ~judge:* resetchannels -@all $COMMON_COMMANDS
+user ulticode-replication on $(password_hashes REDIS_REPLICATION_PASSWORD) resetkeys ~* resetchannels -@all +auth +hello +ping +psync +replconf +role
+user ulticode-sentinel on $(password_hashes REDIS_SENTINEL_PASSWORD) resetkeys ~* resetchannels -@all +auth +hello +ping +info +multi +exec +publish +subscribe +psubscribe +unsubscribe +punsubscribe +script|exists +script|load +script|kill +slaveof +replicaof +config|rewrite +client|kill +client|setname +role
 ACL
 }
 

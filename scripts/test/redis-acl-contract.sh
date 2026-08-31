@@ -11,6 +11,10 @@ for prefix in "${password_prefixes[@]}"; do
   printf -v "$password_var" '%s' "$(openssl rand -hex 24)"
   export "$password_var"
 done
+for password_var in REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD; do
+  printf -v "$password_var" '%s' "$(openssl rand -hex 24)"
+  export "$password_var"
+done
 AUTH_REDIS_PASSWORD_PREVIOUS="$(openssl rand -hex 24)"
 export AUTH_REDIS_PASSWORD_PREVIOUS
 
@@ -39,6 +43,15 @@ done
 
 health_line="$(grep -F 'user ulticode-health ' "$OUTPUT_FILE")"
 [[ "$health_line" == *"-@all +ping"* ]] || { echo "health principal is broader than PING" >&2; exit 1; }
+replication_line="$(grep -F 'user ulticode-replication ' "$OUTPUT_FILE")"
+[[ "$replication_line" == *"-@all"* && "$replication_line" == *"+psync"* \
+  && "$replication_line" == *"+replconf"* && "$replication_line" == *"+role"* ]] \
+  || { echo "replication principal lacks the required commands" >&2; exit 1; }
+sentinel_line="$(grep -F 'user ulticode-sentinel ' "$OUTPUT_FILE")"
+for command in ping info role subscribe script\|kill slaveof replicaof config\|rewrite; do
+  [[ "$sentinel_line" == *"+$command"* ]] \
+    || { echo "sentinel principal lacks +$command" >&2; exit 1; }
+done
 [[ "$health_line" != *" +get"* && "$health_line" != *" +set"* ]] || {
   echo "health principal has data access" >&2
   exit 1

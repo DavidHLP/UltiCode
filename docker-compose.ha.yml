@@ -8,7 +8,10 @@
 #
 # The profile provides an asynchronous MySQL replica, a Redis replica plus
 # three Sentinel processes, and a three-node Nacos cluster sharing the owner
-# database. It deliberately does not claim transparent application failover:
+# database. Redis replication requires the generated ACL principals
+# `ulticode-replication` and `ulticode-sentinel`; external configs must set
+# `masteruser`/`masterauth` and Sentinel `auth-user`/`auth-pass` accordingly.
+# It deliberately does not claim transparent application failover:
 # database promotion and application endpoint changes remain operator actions;
 # Redis clients must be configured for Sentinel before using the Sentinel
 # endpoints. No certificate, password, or generated ACL is stored here.
@@ -93,7 +96,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "redis-cli", "--user", "$$REDIS_HEALTH_USER", "--pass", "$$REDIS_HEALTH_PASSWORD", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli --user \"$$REDIS_HEALTH_USER\" --pass \"$$REDIS_HEALTH_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 10

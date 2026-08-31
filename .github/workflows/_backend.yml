@@ -290,7 +290,30 @@ jobs:
       - name: Validate scale-safe Compose topology
         run: bash scripts/test/scale-topology-contract.sh
       - name: Validate stateful HA reference profile
-        run: bash scripts/test/ha-profile-contract.sh
+        run: |
+          set -euo pipefail
+          config_dir="$(mktemp -d)"
+          env_file="$(mktemp)"
+          cleanup() {
+            rm -rf "$config_dir" "$env_file"
+          }
+          trap cleanup EXIT
+          cp .env.example "$env_file"
+          replication_password="$(openssl rand -hex 16)"
+          sentinel_password="$(openssl rand -hex 16)"
+          printf '\nNACOS_DB_USER=nacos_rw\nNACOS_DB_PASSWORD=ci-ha-config\nNACOS_SERVERS=nacos:8848 nacos-2:8848 nacos-3:8848\nREDIS_HA_CONFIG_DIR=%s\nREDIS_REPLICATION_PASSWORD=%s\nREDIS_SENTINEL_PASSWORD=%s\n' \
+            "$config_dir" "$replication_password" "$sentinel_password" >> "$env_file"
+          printf 'replicaof redis 6379\nreplica-read-only yes\nappendonly yes\nmasteruser ulticode-replication\nmasterauth %s\n' \
+            "$replication_password" > "$config_dir/redis-replica.conf"
+          for sentinel in 1 2 3; do
+            printf 'sentinel monitor mymaster redis 6379 2\nsentinel auth-user mymaster ulticode-sentinel\nsentinel auth-pass mymaster %s\n' \
+              "$sentinel_password" > "$config_dir/sentinel-$sentinel.conf"
+          done
+          HA_COMPOSE_ENV_FILE="$env_file" \
+            HA_COMPOSE_PROD=0 \
+            HA_COMPOSE_REQUIRED=1 \
+            HA_RECONNECT_DRILL=1 \
+            bash scripts/test/ha-profile-contract.sh
 
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.

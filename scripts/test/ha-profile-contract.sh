@@ -12,6 +12,8 @@ fail() {
   exit 1
 }
 
+external_blocked=0
+
 contains() {
   local file="$1" text="$2"
   [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
@@ -52,11 +54,21 @@ for owner in \
   contains docker/redis/generate-users-acl.sh "user $owner"
 done
 contains docker-compose.ha.yml '${REDIS_ACL_DIR:?REDIS_ACL_DIR is required}/users.acl'
+contains docker/redis/generate-users-acl.sh 'user ulticode-replication'
+contains docker/redis/generate-users-acl.sh 'user ulticode-sentinel'
+contains docker/redis/generate-users-acl.sh '+psync'
+contains docker/redis/generate-users-acl.sh '+replconf'
+contains docker-compose.ha.yml 'redis-cli --user'
+contains PROJECT_DOCUMENTATION.md 'masteruser ulticode-replication'
+contains PROJECT_DOCUMENTATION.md 'sentinel auth-user'
+contains docker/redis/generate-users-acl.sh '+script|kill'
+contains docker/redis/generate-users-acl.sh '+config|rewrite'
+contains docker-compose.ha.yml 'redis-replica.conf'
+contains docker-compose.ha.yml 'sentinel-1.conf'
+contains PROJECT_DOCUMENTATION.md 'sentinel auth-user mymaster ulticode-sentinel'
 contains PROJECT_DOCUMENTATION.md 'P3-HA-001'
 contains PROJECT_DOCUMENTATION.md 'mysql-replica'
 contains PROJECT_DOCUMENTATION.md 'redis-sentinel-1'
-contains PROJECT_DOCUMENTATION.md 'NACOS_SERVERS'
-
 if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
   [[ -f "$HA_COMPOSE_ENV_FILE" ]] || fail "HA_COMPOSE_ENV_FILE does not exist"
   compose_files=(-f "$ROOT_DIR/docker-compose.yml")
@@ -65,6 +77,42 @@ if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
   else
     compose_files+=(-f "$ROOT_DIR/docker-compose.dev.yml")
   fi
+  ha_config_dir="${REDIS_HA_CONFIG_DIR:-}"
+  if [[ -z "$ha_config_dir" ]]; then
+    ha_config_dir="$(sed -n 's/^REDIS_HA_CONFIG_DIR=//p' "$HA_COMPOSE_ENV_FILE" | sed -n '1p')"
+  fi
+  [[ -n "$ha_config_dir" ]] || fail "REDIS_HA_CONFIG_DIR is required for file checks"
+  [[ -d "$ha_config_dir" ]] || fail "REDIS_HA_CONFIG_DIR does not exist"
+  for config_file in redis-replica.conf sentinel-1.conf sentinel-2.conf sentinel-3.conf; do
+    [[ -s "$ha_config_dir/$config_file" ]] || fail "missing HA config: $ha_config_dir/$config_file"
+    if [[ "$config_file" == "redis-replica.conf" ]]; then
+      grep -Eq '^[[:space:]]*replicaof[[:space:]]+redis[[:space:]]+6379([[:space:]]|$)' \
+        "$ha_config_dir/$config_file" \
+        || fail "replica config must target the redis primary"
+      grep -Eq '^[[:space:]]*replica-read-only[[:space:]]+yes([[:space:]]|$)' \
+        "$ha_config_dir/$config_file" \
+        || fail "replica config must keep replica-read-only enabled"
+      grep -Eq '^[[:space:]]*appendonly[[:space:]]+yes([[:space:]]|$)' \
+        "$ha_config_dir/$config_file" \
+        || fail "replica config must persist its dataset"
+      grep -Eq '^[[:space:]]*masteruser[[:space:]]+ulticode-replication([[:space:]]|$)' \
+        "$ha_config_dir/$config_file" \
+        || fail "replica config must authenticate as ulticode-replication"
+      grep -Eq '^[[:space:]]*masterauth[[:space:]]+[^[:space:]]+' \
+        "$ha_config_dir/$config_file" \
+        || fail "replica config must provide masterauth"
+    else
+      grep -Eq '^[[:space:]]*sentinel[[:space:]]+monitor[[:space:]]+mymaster[[:space:]]+redis[[:space:]]+6379[[:space:]]+2([[:space:]]|$)' \
+        "$ha_config_dir/$config_file" \
+        || fail "Sentinel config must monitor redis with quorum 2"
+      grep -Eq '^[[:space:]]*sentinel[[:space:]]+auth-user[[:space:]]+mymaster[[:space:]]+ulticode-sentinel([[:space:]]|$)' \
+        "$ha_config_dir/$config_file" \
+        || fail "Sentinel config must authenticate as ulticode-sentinel"
+      grep -Eq '^[[:space:]]*sentinel[[:space:]]+auth-pass[[:space:]]+mymaster[[:space:]]+[^[:space:]]+' \
+        "$ha_config_dir/$config_file" \
+        || fail "Sentinel config must provide auth-pass"
+    fi
+  done
   "$DOCKER_BIN" compose --env-file "$HA_COMPOSE_ENV_FILE" \
     "${compose_files[@]}" \
     -f "$ROOT_DIR/docker-compose.ha.yml" \
@@ -72,11 +120,13 @@ if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
     || fail "HA Compose profile does not expand"
   echo "HA Compose profile expansion: PASS"
 else
+  external_blocked=1
   echo "HA Compose profile expansion: BLOCKED_EXTERNAL (HA_COMPOSE_ENV_FILE unset)"
 fi
 
 if [[ "${HA_RECONNECT_DRILL:-0}" == "1" ]]; then
   if ! command -v "$DOCKER_BIN" >/dev/null 2>&1 || ! "$DOCKER_BIN" info >/dev/null 2>&1; then
+    external_blocked=1
     echo "Redis restart/reconnect drill: BLOCKED_EXTERNAL (Docker daemon unavailable)"
   else
     container="ulticode-ha-reconnect-$$"
@@ -106,7 +156,15 @@ if [[ "${HA_RECONNECT_DRILL:-0}" == "1" ]]; then
     echo "Redis restart/reconnect drill: PASS"
   fi
 else
+  external_blocked=1
   echo "Redis restart/reconnect drill: BLOCKED_EXTERNAL (set HA_RECONNECT_DRILL=1 in an authorized disposable Docker environment)"
 fi
 
-echo "HA profile contract: PASS"
+if (( external_blocked )); then
+  echo "HA profile contract: PASS_WITH_EXTERNAL_BLOCKERS"
+  if [[ "${HA_COMPOSE_REQUIRED:-0}" == "1" ]]; then
+    fail "required external HA checks were blocked"
+  fi
+else
+  echo "HA profile contract: PASS"
+fi

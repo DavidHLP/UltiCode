@@ -187,6 +187,13 @@
 - Consequences: shutdown no longer admits new bounded work after the drain boundary while accepted work gets a finite completion window. The gate is intentionally process-local; cross-replica ownership remains in existing leases/CAS, and real traffic drain, orchestration ordering, telemetry flushing and production timings remain external evidence.
 - Affected tasks: P3-GRACE-001, P3-SCHED-001, P3-LEASE-001, P3-STREAM-001, P3-SCALE-001.
 
+## P3-RES-001: bound one logical dependency call without false success
+
+- Context: `RpcPolicy` bounded Dubbo timeout/retries but had no common circuit/bulkhead, direct HTTP clients had inconsistent budgets, and at least one security fallback treated Auth unavailability as "not banned".
+- Decision: add a JDK-only process-local `DependencyGuard` and a Dubbo cluster-filter SPI keyed by service so one permit covers the complete logical call and its safe query retry. Keep write retries at zero; count transport failures only; reject open/saturated calls instead of fabricating results. Apply explicit bounded policies to JWKS, OAuth, S3 and MeiliSearch, preserve Search's marked database fallback/PEL behavior, and make ban checks fail closed.
+- Consequences: dependency outage and saturation stop consuming unbounded caller capacity, half-open recovery is deterministic, and mutation replay remains caller/idempotency controlled. The guard is not distributed authority and does not replace owner receipts, leases, row CAS, PEL or production fault-injection/tuning evidence.
+- Affected tasks: P3-RES-001, P3-STREAM-001, P3-SCALE-001, P2-OBS-001, P0-SEC-004.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

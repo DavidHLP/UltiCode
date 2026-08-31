@@ -894,7 +894,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Resilience/RPC"
       dependencies: [P0-SEC-004]
-      status: TODO
+      status: DONE
       affected_modules: ["platform/common", "all Dubbo/HTTP consumers"]
       acceptance_criteria:
         - "Every synchronous dependency has one timeout/retry/circuit/bulkhead/fallback budget"
@@ -902,10 +902,11 @@ architecture_remediation_20260830:
       validation_commands:
         - "Timeout/refusal/slow/open-half-open/recovery/saturation tests"
         - "Rpc policy architecture tests"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-res-001-green.result"
+      commit: e666ab5
       blocked_by: []
-      notes: "Prefer minimal existing-stack library/configuration"
+      notes: "JDK-only DependencyGuard and a Dubbo cluster-filter SPI bound logical calls without a third-party stack; JWKS/OAuth/S3/MeiliSearch direct HTTP paths have explicit timeout/retry/circuit/bulkhead/fallback budgets, writes retain retry=0, and ban checks fail closed. Focused, architecture/docs, YAML/shell/diff and Graphify gates pass; production fault injection/tuning remains external."
     - id: P3-STREAM-001
       title: "Prove stream crash replay and compatibility"
       priority: P3

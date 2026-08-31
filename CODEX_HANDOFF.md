@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 28 DONE, 14 TODO. `P3-RES-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, `P2-DEPLOY-001`, `P3-SCHED-001`, `P3-LEASE-001`, and `P3-GRACE-001` are closed in the repository with their available owner checks green.
+Current count: 29 DONE, 13 TODO. `P3-STREAM-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, `P2-DEPLOY-001`, `P3-SCHED-001`, `P3-LEASE-001`, `P3-GRACE-001`, and `P3-RES-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -164,7 +164,7 @@ Current count: 28 DONE, 14 TODO. `P3-RES-001` is the active implementation task;
 - `P3-SCHED-001`: DONE — Isolate critical scheduler executors
 - `P3-LEASE-001`: DONE — Fence singleton jobs across replicas
 - `P3-GRACE-001`: DONE — Drain services safely on termination
-- `P3-RES-001`: TODO — Bound retries circuits and dependency concurrency
+- `P3-RES-001`: DONE — Bound retries circuits and dependency concurrency
 - `P3-STREAM-001`: TODO — Prove stream crash replay and compatibility
 - `P3-SCALE-001`: TODO — Validate two-instance service operation
 - `P3-HA-001`: TODO — Provide truthful stateful HA profiles
@@ -590,12 +590,12 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P3-SCHED-001 implementation checkpoint: `5a578a7`; the previous P2-DEPLOY-001 implementation is `60784a5`.
-- Current active task: `P3-RES-001`.
+- Current active task: `P3-STREAM-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P3-GRACE-001 as complete and points to `P3-RES-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P3-RES-001 as complete and points to `P3-STREAM-001`.
 
 ## 17. Handoff stop condition
 
@@ -855,3 +855,23 @@ contract, real child-JVM SIGTERM probe, and affected worker no-new-claim tests.
 The affected reactor compile, graceful-drain contract, full architecture/docs gates, dev Compose config expansion, and refreshed
 Graphify graph pass. No production traffic drain, orchestration rollout, registry promotion, credential rotation, or remote
 deployment was executed; the next repository task is `P3-RES-001`.
+
+## 32. Completed checkpoint — P3-RES-001
+
+P3-RES-001 is repository-complete in `e666ab5` (`feat(resilience): bound synchronous dependencies`). Common now owns a
+JDK-only `DependencyGuard` with a fail-fast concurrency bulkhead, consecutive-failure circuit, 30-second open interval and one
+half-open probe. The new `backend-rpc-resilience` module registers a Dubbo cluster-filter SPI across every Admin/App/Notification/
+Submission/Judge consumer module. One permit covers the logical invocation and its safe read retry; transport failures count,
+while business, validation and authorization failures do not. Query/write/execution totals remain 800ms x2, 3s x1 and 190s x1,
+and every write remains automatic-retry zero.
+
+Direct HTTP boundaries are also explicit: JWKS uses an 800ms connect/read timeout and bounded 300-second stale-key fallback;
+OAuth uses provider-local 5s/10s connect/read budgets; S3 uses configurable 10s/30s connect/request budgets, GET x2 and write x1;
+MeiliSearch read, backfill, worker and readiness paths use bounded guards while preserving marked database fallback and Redis PEL
+recovery. The prior ban-check fallback now throws when Auth cannot prove status instead of treating circuit-open as "not banned".
+
+The dependency-resilience contract, timeout/refusal/slow/open/half-open/recovery/saturation tests, RpcPolicy architecture tests,
+affected 24-module compile, full architecture/docs/YAML/shell/diff gates and Graphify pass. Formal review subagents were unavailable
+because the agent thread limit was reached; the main-thread two-axis review found and fixed the half-open race, stale-key deadline
+overrun and fail-open ban fallback. No production fault injection, threshold tuning, traffic, remote deployment or configuration
+mutation was executed; the next repository task is `P3-STREAM-001`.

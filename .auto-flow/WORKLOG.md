@@ -1,5 +1,7 @@
 # G-5 Worklog
 
+- 2026-08-31: P3-LEASE-001 completed in `d5f9866`: added common expiry/clock-skew/fence rules, Admin database-clock lease CAS, stale reconciliation completion fencing, scheduled backup singleton gating, and shared migration/backup runbook coordination. Ephemeral lease state is excluded from business restore. Common/Admin tests, real MySQL two-runner/expiry IT, Admin context IT, migration/backup contracts, full architecture/docs gates, and Graphify pass; production lease/storage authority remains external. Next task is P3-GRACE-001.
+
 - 2026-08-31: P3-SCHED-001 completed in `5a578a7`: isolated Admin audit/reconciliation/backup, Submission outbox/recovery, and Search consume/heartbeat schedulers with bounded 1–16 pools, 30-second shutdown, active/queued/completed/rejected metrics, and independent-progress/rejection JUnit. Full architecture/docs, compile, shell/diff, and Graphify gates pass; production saturation/drain evidence remains external. Next task is P3-LEASE-001.
 
 - 2026-08-31: P2-DEPLOY-001 completed in `60784a5`: host-deploy now preflights source/schema/digest/Compose integrity before migrations/ACL/sandbox/Compose mutation; atomic descriptors and schema-compatible rollback are enforced; host-health requires HTTPS and full system PASS. Disposable contract, full architecture/docs, shell/diff, and Graphify gates pass; remote/production execution remains external. Next task is P3-SCHED-001.

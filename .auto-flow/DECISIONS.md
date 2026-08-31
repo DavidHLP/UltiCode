@@ -171,6 +171,15 @@
 - Consequences: blocking/saturation is visible and cannot starve another named path; increasing a pool requires metric evidence. The repository proves independent progress and rejection locally, while production load, JVM sizing, and cross-replica lease behavior remain external/follow-up concerns.
 - Affected tasks: P3-SCHED-001, P3-LEASE-001, P3-GRACE-001, P2-OBS-001.
 
+## P3-LEASE-001: fence true singleton work with database time and tokens
+
+- Context: reconciliation used a MySQL connection-scoped advisory lock and the migration/backup runbooks used host-local `flock`; neither was an expiring cross-replica ownership record with stale-completion protection.
+- Decision: create `admin.fenced_job_leases` in the shared Flyway chain, use `CURRENT_TIMESTAMP(3)` for atomic acquire/renew/release, increment a monotonic `fence_token` after expiry/release, and require owner/token/未过期 CAS on reconciliation completion. Keep `flock` only as a same-host fast path, and keep the shared owner migration bootstrap serialized by Flyway before acquiring the lease.
+- Decision: gate the Admin scheduled backup enqueue and the external backup/restore/prune runbook with separate lease names. Treat lease rows as ephemeral control state and exclude them from business backup checksum/restore; the canonical migration recreates the table.
+- Decision: do not wrap Submission outbox dispatchers or judge lease recovery in the global lease; their row claim/generation/attempt-id CAS already supports concurrent runners at item granularity.
+- Consequences: duplicate, paused, partitioned, crashed, clock-uncertain, or stale runners fail closed; production migration/backup authority, lease-table grants, and off-host restore remain external.
+- Affected tasks: P3-LEASE-001, P3-GRACE-001, P3-STREAM-001, P2-BACKUP-001, P2-MIG-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

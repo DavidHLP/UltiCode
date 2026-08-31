@@ -858,7 +858,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Resilience/Lease"
       dependencies: [P3-SCHED-001]
-      status: TODO
+      status: DONE
       affected_modules: ["platform/common", "admin", "submission", "migration/backup"]
       acceptance_criteria:
         - "Backup reconciliation migration and singleton jobs acquire expiring fenced leases"
@@ -866,10 +866,11 @@ architecture_remediation_20260830:
       validation_commands:
         - "Two-runner lease integration tests"
         - "Lost-lease tests"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-lease-001-green.result"
+      commit: d5f9866
       blocked_by: []
-      notes: "Reuse existing claim/CAS for non-singleton outbox jobs"
+      notes: "Shared database-clock-backed fenced lease for Admin reconciliation/backup and migration/backup runbooks; ephemeral lease state is excluded from business restore; existing non-singleton outbox claim/CAS remains unchanged"
     - id: P3-GRACE-001
       title: "Drain services safely on termination"
       priority: P3

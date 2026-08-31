@@ -71,7 +71,7 @@ No staging or production application is assumed by repository completion.
 | Original finding | Task IDs | Implementation surfaces | Required validation | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
 | Submission recovery tasks share one scheduler; Search consume can starve heartbeat; Admin maintenance can starve audit dispatch | `P3-SCHED-001` | Submission/Search/Admin scheduler configuration and metrics | blocking/saturation/rejection/independent-progress tests | `5a578a7` | Locally Validated; production saturation/drain external |
-| Backup, reconciliation, migration and singleton jobs can run on every replica | `P3-LEASE-001` | shared fenced lease Module and job callers | two-runner, expiry, pause, crash, lost-lease stale completion tests | pending | TODO |
+| Backup, reconciliation, migration and singleton jobs can run on every replica | `P3-LEASE-001` | shared `FencedLease`, Admin `fenced_job_leases` CAS, runbook lease library and job callers | two-runner, expiry, pause, partition, crash, clock-skew, lost-lease stale completion tests | `d5f9866` | DONE |
 | HTTP/RPC/workers lack complete graceful drain | `P3-GRACE-001` | Spring lifecycle, Dubbo/worker drain, Compose | real SIGTERM integration and no-loss/no-duplicate proof | pending | TODO |
 | Timeout/retry policy lacks circuit, bulkhead and total retry budget | `P3-RES-001` | shared RPC/HTTP policy and consumers | timeout/refusal/slow/open/half-open/recovery/saturation tests | pending | TODO |
 | Streams reliability mechanisms require full crash/replay/shutdown/schema proof | `P3-STREAM-001` | Streams adapters, Inbox, Judge/Search/Notification/App/Submission | PEL/ACK/claim/DLQ/poison/crash/duplicate/replay tests | pending | TODO |

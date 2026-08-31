@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 26 DONE, 16 TODO. `P3-LEASE-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, `P2-DEPLOY-001`, and `P3-SCHED-001` are closed in the repository with their available owner checks green.
+Current count: 27 DONE, 15 TODO. `P3-GRACE-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, `P2-DEPLOY-001`, `P3-SCHED-001`, and `P3-LEASE-001` are closed in the repository with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -162,7 +162,7 @@ Current count: 26 DONE, 16 TODO. `P3-LEASE-001` is the active implementation tas
 - `P2-OBS-001`: DONE — Operate metrics traces alerts and SLOs
 - `P2-DEPLOY-001`: DONE — Enforce release rollback and config integrity
 - `P3-SCHED-001`: DONE — Isolate critical scheduler executors
-- `P3-LEASE-001`: TODO — Fence singleton jobs across replicas
+- `P3-LEASE-001`: DONE — Fence singleton jobs across replicas
 - `P3-GRACE-001`: TODO — Drain services safely on termination
 - `P3-RES-001`: TODO — Bound retries circuits and dependency concurrency
 - `P3-STREAM-001`: TODO — Prove stream crash replay and compatibility
@@ -590,12 +590,12 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 At this handoff:
 
 - Last committed P3-SCHED-001 implementation checkpoint: `5a578a7`; the previous P2-DEPLOY-001 implementation is `60784a5`.
-- Current active task: `P3-LEASE-001`.
+- Current active task: `P3-GRACE-001`.
 - P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
 - P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
 - P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
 - P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P3-SCHED-001 as complete and points to `P3-LEASE-001`.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P3-LEASE-001 as complete and points to `P3-GRACE-001`.
 
 ## 17. Handoff stop condition
 
@@ -820,3 +820,20 @@ The scheduler contract and real `AdminSchedulerConfigurationTest` pass: a blocke
 closed scheduler rejects new work, and the rejection metric increments. Admin/Submission/Search compile, full architecture/docs/YAML/
 shell/diff gates and Graphify pass. Production load/saturation, JVM sizing, multi-replica lease behavior, and SIGTERM traffic drills
 remain follow-up evidence; the next repository task is `P3-LEASE-001`.
+
+## 30. Completed checkpoint — P3-LEASE-001
+
+P3-LEASE-001 is repository-complete in `d5f9866` (`feat(lease): fence singleton jobs across replicas`). The shared `FencedLease`
+model makes expiry, monotonically increasing fence tokens, renewal, duplicate runners, clock-skew safety, pause/partition/crash
+expiry, and stale completion deterministic and testable.
+
+Admin now owns `fenced_job_leases` in its schema, created by the shared Flyway chain and operated with database
+`CURRENT_TIMESTAMP(3)`. Reconciliation uses `admin:reconciliation` and only finishes a run through an owner/token/expiry CAS;
+scheduled Admin backup enqueue uses `admin:scheduled-backup`. The ordered owner migration and external backup/restore/prune runbooks
+use `admin:owner-migration` and `admin:owner-backup`; local `flock` remains only a same-host fast path. Ephemeral lease rows are
+excluded from business backup checksum/restore so a dead runner's token is not resurrected.
+
+Submission outbox and judge recovery continue to use their existing per-item claim/generation/attempt-id CAS rather than a global
+lease. Common/Admin unit tests, real MySQL `FencedJobLeaseIT` 2/2 and `OwnerReconcilerIT` 2/2, Admin context IT 1/1, migration/
+backup contracts, full architecture/docs gates, shell/diff checks, and Graphify pass. Production migration, lease grants,
+off-host backup/restore, and remote deployment remain external; the next repository task is `P3-GRACE-001`.

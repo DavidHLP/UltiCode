@@ -180,6 +180,13 @@
 - Consequences: duplicate, paused, partitioned, crashed, clock-uncertain, or stale runners fail closed; production migration/backup authority, lease-table grants, and off-host restore remain external.
 - Affected tasks: P3-LEASE-001, P3-GRACE-001, P3-STREAM-001, P2-BACKUP-001, P2-MIG-001.
 
+## P3-GRACE-001: drain before scheduler and client shutdown
+
+- Context: Spring services and web-less workers needed a deterministic termination boundary that stopped new claims without changing durable Redis PEL, inbox-row lease, outbox claim, or judge-lease recovery semantics.
+- Decision: use a small process-local `DrainGate` around each bounded scheduled claim/maintenance cycle; flip it from `ContextClosedEvent`, let admitted work finish under the existing scheduler/Spring shutdown budgets, and leave later durable work recoverable through the existing PEL, row-lease, generation/CAS and reaper paths. Configure graceful Spring lifecycle, scheduler await-termination, PID1 `SIGTERM`, Compose stop grace, PM2 kill timeout, and web-less readiness marker removal. Prove the boundary with a real child-JVM SIGTERM test plus no-new-claim worker tests.
+- Consequences: shutdown no longer admits new bounded work after the drain boundary while accepted work gets a finite completion window. The gate is intentionally process-local; cross-replica ownership remains in existing leases/CAS, and real traffic drain, orchestration ordering, telemetry flushing and production timings remain external evidence.
+- Affected tasks: P3-GRACE-001, P3-SCHED-001, P3-LEASE-001, P3-STREAM-001, P3-SCALE-001.
+
 ## P1-SEAM-001: prune dead contracts without collapsing real boundaries
 
 - Context: the App API still contained unreferenced Follow ingestion/payload, Judge execution, and generic Achievement trigger types, while the live-ranking contract used a default method that only threw at runtime.

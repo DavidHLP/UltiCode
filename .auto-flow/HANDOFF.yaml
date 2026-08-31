@@ -2,7 +2,7 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P3-GRACE-001
+active_task: P3-RES-001
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -26,6 +26,7 @@ outputs:
   - "P2-DEPLOY-001 release/rollback/config integrity implemented in 60784a5; pre-mutation source/schema/digest/Compose gates, atomic descriptor, schema-compatible rollback, HTTPS/full-health summary, disposable rehearsal, architecture/docs, and Graphify gates pass"
   - "P3-SCHED-001 isolated critical owner schedulers in 5a578a7; bounded Admin/Submission/Search pools, explicit @Scheduled bindings, rejection/active/queued metrics, independent-progress JUnit, architecture/docs, and Graphify gates pass"
   - "P3-LEASE-001 fenced singleton jobs in d5f9866; common expiry/clock-skew model, Admin DB CAS lease, reconciliation stale-completion fence, backup/migration runbook coordination, two-runner MySQL IT, architecture/docs, and Graphify gates pass"
+  - "P3-GRACE-001 graceful service drain in aa42a66; common DrainGate, ContextClosedEvent worker gates, Spring/Docker/Compose/PM2 shutdown budgets, readiness marker cleanup, real SIGTERM probe, affected worker tests, architecture/docs, and Graphify gates pass"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -46,7 +47,8 @@ evidence:
   - "P2-DEPLOY-001 evidence: p2-deploy-001-green.result; deployment-integrity descriptor/rollback rehearsal, full architecture/docs/YAML/shell/diff, and Graphify pass; remote/production deployment remains external"
   - "P3-SCHED-001 evidence: p3-sched-001-green.result; scheduler contract, Admin independent-progress/rejection/metrics test, module compile, architecture/docs/YAML/shell/diff, and Graphify pass; production saturation evidence remains external"
   - "P3-LEASE-001 evidence: p3-lease-001-green.result; common/Admin unit tests, two-runner/expiry MySQL IT, Admin context IT, migration/backup contracts, full architecture/docs gates, and Graphify pass; production lease authority remains external"
-next_goal: "Drain services safely on termination"
+  - "P3-GRACE-001 evidence: p3-grace-001-green.result; DrainGate/worker SIGTERM and no-new-claim tests, affected reactor compile, full architecture/docs gates, dev Compose config, and Graphify pass; production traffic drain and orchestration authority remain external"
+next_goal: "Bound retries circuits and dependency concurrency"
 next_skill: agent-architecture-audit
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers: []

@@ -876,7 +876,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Resilience/Shutdown"
       dependencies: [P3-SCHED-001]
-      status: TODO
+      status: DONE
       affected_modules: ["all services", "compose"]
       acceptance_criteria:
         - "SIGTERM stops new HTTP/RPC/stream claims, drains bounded in-flight work, preserves PEL/releases leases, flushes telemetry and closes clients"
@@ -884,10 +884,11 @@ architecture_remediation_20260830:
       validation_commands:
         - "SIGTERM integration tests"
         - "Compose stop-grace config"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-grace-001-green.result"
+      commit: aa42a66
       blocked_by: []
-      notes: "No fake shutdown test that only inspects configuration"
+      notes: "Common DrainGate stops new bounded claims after ContextClosedEvent; Spring graceful lifecycle, scheduler await-termination, Docker SIGTERM, Compose/PM2 budgets, readiness marker removal, worker tests, and real child-JVM SIGTERM probe pass. Durable PEL/row-lease/CAS recovery remains unchanged; production drain authority is external."
     - id: P3-RES-001
       title: "Bound retries circuits and dependency concurrency"
       priority: P3

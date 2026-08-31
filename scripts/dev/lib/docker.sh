@@ -32,6 +32,22 @@ if ! [[ -v __ULTICODE_DOCKER_SOURCED ]]; then
     return 1
   }
 
+  compose_service_container() {
+    local compose_array_name="$1" service="$2" container
+    local -n compose_ref="$compose_array_name"
+    container="$("${compose_ref[@]}" ps -q "$service" | sed -n '1p' | tr -d '\r')"
+    [[ -n "$container" ]] || {
+      echo "No container found for Compose service: $service" >&2
+      return 1
+    }
+    printf '%s\n' "$container"
+  }
+
+  running_compose_service_container() {
+    local service="$1"
+    docker ps -q --filter "label=com.docker.compose.service=$service" | sed -n '1p'
+  }
+
   container_running() {
     [[ "$(docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null || true)" == "true" ]]
   }
@@ -53,5 +69,6 @@ if ! [[ -v __ULTICODE_DOCKER_SOURCED ]]; then
     return 1
   }
 
-  readonly -f mysql_container_targets_configured_host container_running await_container_health
+  readonly -f mysql_container_targets_configured_host compose_service_container running_compose_service_container container_running await_container_health
+
 fi

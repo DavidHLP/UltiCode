@@ -2,6 +2,7 @@
 set -euo pipefail
 
 : "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}"
+: "${MYSQL_CONTAINER:?MYSQL_CONTAINER is required}"
 : "${NACOS_USERNAME:?NACOS_USERNAME is required}"
 : "${NACOS_PASSWORD:?NACOS_PASSWORD is required}"
 
@@ -36,7 +37,7 @@ provision_admin() {
   password_hash="$(hash_password "$NACOS_USERNAME" "$NACOS_PASSWORD")"
   docker exec -i \
     -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" \
-    ulticode-mysql \
+    "$MYSQL_CONTAINER" \
     mysql -uroot nacos_config <<SQL
 INSERT INTO users (username, password, enabled)
 VALUES ('$NACOS_USERNAME', '$password_hash', TRUE)
@@ -55,7 +56,7 @@ provision_service() {
   password_hash="$(hash_password "$username" "$password")"
   docker exec -i \
     -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" \
-    ulticode-mysql \
+    "$MYSQL_CONTAINER" \
     mysql -uroot nacos_config <<SQL
 INSERT INTO users (username, password, enabled)
 VALUES ('$username', '$password_hash', TRUE)

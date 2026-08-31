@@ -293,8 +293,18 @@ compose=(
   -f "$ROOT_DIR/docker-compose.dev.yml"
 )
 
+resolve_mysql_container() {
+  local configured="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
+  if [[ -n "$configured" ]] && container_running "$configured"; then
+    printf '%s\n' "$configured"
+    return 0
+  fi
+  compose_service_container compose mysql
+}
+
 provision_submission_migration_principal() {
-  local container="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
+  local container
+  container="$(resolve_mysql_container)"
   local escaped_password="$SUBMISSION_MIGRATION_DB_PASSWORD"
   escaped_password="${escaped_password//\\/\\\\}"
   escaped_password="${escaped_password//\'/\'\'}"
@@ -306,7 +316,8 @@ provision_submission_migration_principal() {
 }
 
 provision_owner_accounts() {
-  local container="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
+  local container
+  container="$(resolve_mysql_container)"
   local owner owner_prefix user_var password_var user password escaped_password
   for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
     owner_prefix="${owner^^}"
@@ -329,7 +340,8 @@ provision_owner_accounts() {
 }
 
 verify_owner_accounts() {
-  local container="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-ulticode-mysql}}"
+  local container
+  container="$(resolve_mysql_container)"
   local owner owner_prefix user_var password_var name_var user password database
   for owner in "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}"; do
     owner_prefix="${owner^^}"
@@ -350,7 +362,10 @@ verify_owner_accounts() {
 }
 
 wait_for_health() {
-  await_container_health "$1" "$DEVSTACK_INFRA_READINESS_ATTEMPTS" "$DEVSTACK_READINESS_INTERVAL_SECONDS"
+  local service="$1"
+  local container
+  container="$(compose_service_container compose "$service")"
+  await_container_health "$container" "$DEVSTACK_INFRA_READINESS_ATTEMPTS" "$DEVSTACK_READINESS_INTERVAL_SECONDS"
 }
 
 # ===== 步骤 1: Docker 基础设施 =====
@@ -359,9 +374,12 @@ if [[ "$SKIP_INFRA" != true ]]; then
   # --force-recreate: 用当前 .env 重建容器, 避免沿用过期 env
   # (否则 REDIS_PASSWORD 等 env 漂移后容器仍持旧值 → Spring 启动报 RedisWrongPasswordException)
   "${compose[@]}" up -d --force-recreate
-  wait_for_health ulticode-mysql
-  wait_for_health ulticode-redis
-  wait_for_health ulticode-nacos
+  MYSQL_CONTAINER="$(compose_service_container compose mysql)"
+  MIGRATION_MYSQL_CONTAINER="$MYSQL_CONTAINER"
+  export MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER
+  wait_for_health mysql
+  wait_for_health redis
+  wait_for_health nacos
 
   # ===== 步骤 2: Nacos 管理员配置 (依赖 Nacos 运行, 故随 infra 一起) =====
   echo "Provisioning the local Nacos administrator..."

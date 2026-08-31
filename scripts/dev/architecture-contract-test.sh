@@ -399,6 +399,9 @@ contains .github/workflows/_backend.yml 'dependency-resilience-contract.sh'
 contains .github/workflows/_backend.yml 'stream-resilience-contract.sh'
 contains scripts/test/stream-resilience-contract.sh 'stream-resilience-contract: PASS'
 bash "$ROOT_DIR/scripts/test/stream-resilience-contract.sh"
+contains .github/workflows/_backend.yml 'scale-topology-contract.sh'
+contains scripts/test/scale-topology-contract.sh 'scale-topology-contract: PASS'
+bash "$ROOT_DIR/scripts/test/scale-topology-contract.sh"
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"

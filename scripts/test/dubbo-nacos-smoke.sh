@@ -60,6 +60,7 @@ NACOS_NAMESPACE="${DUBBO_NAMESPACE:-dev}"
 NACOS_GROUP="DEFAULT_GROUP"
 NACOS_INSTANCE_LIST_URL="${NACOS_BASE}/nacos/v1/ns/instance/list?serviceName=${SERVICE_NAME}&groupName=${NACOS_GROUP}&namespaceId=${NACOS_NAMESPACE}"
 
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ulticode-dubbo-smoke-$$}"
 compose=(docker compose --env-file "$ENV_FILE"
          -f "$ROOT_DIR/docker-compose.yml"
          -f "$ROOT_DIR/docker-compose.dev.yml")
@@ -83,21 +84,22 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 wait_for_container_health() {
-  await_container_health "$1" "${2:-60}" "${3:-2}"
+  local service="$1"
+  local container
+  container="$(compose_service_container compose "$service")"
+  await_container_health "$container" "${2:-60}" "${3:-2}"
 }
 
 echo "--- 1. Starting MySQL + Redis + Nacos ---"
-# Drop the MySQL volume to start from a clean DB. The smoke environment is
-# disposable; the Phase 0 migrations leave a few `flyway_schema_history`
-# entries behind on an existing local volume that would otherwise cause
-# "Table 'oauth_provider_identities' already exists" on the first migrate.
-docker volume rm ulticode_mysql_data 2>/dev/null || true
+# The smoke environment is disposable and has its own Compose project, so
+# remove only its project volumes before starting from a clean database.
+"${compose[@]}" down -v >/dev/null 2>&1 || true
 "${compose[@]}" up -d --force-recreate 2>&1 | tail -10
-wait_for_container_health ulticode-mysql
-wait_for_container_health ulticode-redis
-wait_for_container_health ulticode-nacos
-
-# Wait for Nacos Server to finish its own MySQL schema bootstrap
+MYSQL_CONTAINER="$(compose_service_container compose mysql)"
+export MYSQL_CONTAINER
+wait_for_container_health mysql
+wait_for_container_health redis
+wait_for_container_health nacos
 # (initdb/01-nacos-init.sql runs the first time MySQL starts up; the
 # nacos_config database and its tables only land after MySQL is
 # healthy AND the init container has finished). The container health
@@ -107,7 +109,7 @@ wait_for_container_health ulticode-nacos
 echo "Waiting for Nacos schema to initialise (up to 30 s)..."
 schema_ok=0
 for i in $(seq 1 15); do
-  if docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" ulticode-mysql mysql -uroot nacos_config -e "SHOW TABLES LIKE 'users';" 2>/dev/null | grep -q users; then
+  if docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" "$MYSQL_CONTAINER" mysql -uroot nacos_config -e "SHOW TABLES LIKE 'users';" 2>/dev/null | grep -q users; then
     schema_ok=1
     break
   fi

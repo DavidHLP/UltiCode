@@ -50,7 +50,6 @@ services:
 
   nacos:
     image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8
-    container_name: ulticode-nacos
     restart: unless-stopped
     deploy:
       resources:
@@ -90,7 +89,6 @@ services:
 
   backend-auth:
     image: "${BACKEND_AUTH_IMAGE_REF:?BACKEND_AUTH_IMAGE_REF is required}"
-    container_name: ulticode-backend-auth
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -172,7 +170,6 @@ services:
         max-file: "5"
   backend-admin:
     image: "${BACKEND_ADMIN_IMAGE_REF:?BACKEND_ADMIN_IMAGE_REF is required}"
-    container_name: ulticode-backend-admin
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -247,7 +244,6 @@ services:
         max-file: "5"
   backend-app:
     image: "${BACKEND_APP_IMAGE_REF:?BACKEND_APP_IMAGE_REF is required}"
-    container_name: ulticode-backend-app
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -339,7 +335,6 @@ services:
 
   backend-submission:
     image: "${BACKEND_SUBMISSION_IMAGE_REF:?BACKEND_SUBMISSION_IMAGE_REF is required}"
-    container_name: ulticode-backend-submission
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -407,7 +402,6 @@ services:
 
   backend-search:
     image: "${BACKEND_SEARCH_IMAGE_REF:?BACKEND_SEARCH_IMAGE_REF is required}"
-    container_name: ulticode-backend-search
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -466,7 +460,6 @@ services:
 
   backend-notification:
     image: "${BACKEND_NOTIFICATION_IMAGE_REF:?BACKEND_NOTIFICATION_IMAGE_REF is required}"
-    container_name: ulticode-backend-notification
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -548,7 +541,6 @@ services:
 
   backend-judge:
     image: "${BACKEND_JUDGE_IMAGE_REF:?BACKEND_JUDGE_IMAGE_REF is required}"
-    container_name: ulticode-backend-judge
     restart: unless-stopped
     stop_grace_period: ${SERVICE_STOP_GRACE_PERIOD:-60s}
     expose:
@@ -646,7 +638,6 @@ services:
 
   console:
     image: "${CONSOLE_IMAGE_REF:?CONSOLE_IMAGE_REF is required}"
-    container_name: ulticode-console
     restart: unless-stopped
     stop_grace_period: ${FRONTEND_STOP_GRACE_PERIOD:-30s}
     ports:
@@ -682,7 +673,6 @@ services:
 
   management:
     image: "${MANAGEMENT_IMAGE_REF:?MANAGEMENT_IMAGE_REF is required}"
-    container_name: ulticode-management
     restart: unless-stopped
     stop_grace_period: ${FRONTEND_STOP_GRACE_PERIOD:-30s}
     ports:

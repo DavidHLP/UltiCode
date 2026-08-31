@@ -477,9 +477,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend-ap
 `SANDBOX_HOST_DIR` 必须是宿主机绝对路径，并在 Worker 容器内使用同一路径；否则 Docker daemon 无法看到 Worker 创建的作业目录。Docker socket 等同宿主机 Docker 管理权限，只应授予专用部署主机。
 
 ```bash
-# 直接进 MySQL（容器默认 latin1，必须显式指定 utf8mb4）
+# 直接进 MySQL（Compose 服务发现，容器默认 latin1，必须显式指定 utf8mb4）
 set -a; source .env; set +a
-docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml exec mysql \
   mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" \
   -e "SHOW TABLES;"
 ```
@@ -571,7 +571,7 @@ node /home/davidhlp/project/arthas-diagnostics/bin/arthas-diagnostics.mjs tools
 
 Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式 attach。
 
-1. `ulticode-mysql` / `ulticode-redis` / `ulticode-nacos` 必须 **Up + Healthy**
+1. Compose 服务 `mysql` / `redis` / `nacos` 必须 **Up + Healthy**
 2. `./scripts/dev/up.sh --mode dev-lite`（包含 Flyway、Owner readiness 和 runtime mode）
 
 > 一键修复： `./scripts/dev/up.sh --skip-install`

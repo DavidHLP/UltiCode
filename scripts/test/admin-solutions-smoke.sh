@@ -11,6 +11,17 @@ HEADERS_JAR="$SMOKE_ARTIFACT_DIR/headers.txt"
 # caller-provided SMOKE_* values are not present in .env, so ordering is safe.
 smoke_load_env
 
+MYSQL_CONTAINER="${MYSQL_CONTAINER:-}"
+if [[ -z "$MYSQL_CONTAINER" ]] || ! container_running "$MYSQL_CONTAINER"; then
+  MYSQL_CONTAINER="$(running_compose_service_container mysql)"
+fi
+REDIS_CONTAINER="${REDIS_CONTAINER:-}"
+if [[ -z "$REDIS_CONTAINER" ]] || ! container_running "$REDIS_CONTAINER"; then
+  REDIS_CONTAINER="$(running_compose_service_container redis)"
+fi
+: "${MYSQL_CONTAINER:?MySQL Compose service is not running; set MYSQL_CONTAINER or start the stack}"
+: "${REDIS_CONTAINER:?Redis Compose service is not running; set REDIS_CONTAINER or start the stack}"
+
 BASE="${SMOKE_BASE_URL:-${BASE:-http://localhost:9003/api}}"
 # Credentials come from the environment; never hardcode a seed password here.
 # Canonical names are SMOKE_USERNAME/SMOKE_PASSWORD; the legacy pair still works.
@@ -77,13 +88,13 @@ CSRF=$(python3 -c "import json; d=json.load(open('$ARTIFACT_DIR/uc-login.json'))
 log "login" "$( [ -n "$CSRF" ] && echo OK || echo FAIL )" "csrfLen=${#CSRF}"
 
 # Reset state for idempotent reruns (soft-deleted sol-s-005/006, leftover rate-limit counters).
-docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e "
+docker exec -e MYSQL_PWD="$DB_PASSWORD" "$MYSQL_CONTAINER" mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e "
   UPDATE solutions SET is_deleted=0, deleted_at=NULL, deleted_by=NULL WHERE id IN ('sol-s-005','sol-s-006');
   UPDATE solutions SET is_flagged=0, flagged_at=NULL, flagged_reason=NULL;
   UPDATE solutions SET is_published=1, published_at=COALESCE(published_at, NOW()) WHERE is_published=0;
 " 2>/dev/null
-docker exec ulticode-redis redis-cli --no-raw KEYS 'rate-limit:admin:solution*' 2>/dev/null \
-  | tr -d '"' | xargs -I{} -r docker exec ulticode-redis redis-cli DEL {} 2>/dev/null
+docker exec "$REDIS_CONTAINER" redis-cli --no-raw KEYS 'rate-limit:admin:solution*' 2>/dev/null \
+  | tr -d '"' | xargs -I{} -r docker exec "$REDIS_CONTAINER" redis-cli DEL {} 2>/dev/null
 log "reset" "OK" "DB + redis rate-limit counters cleared"
 
 # ===== 1. GET /admin/solutions =====
@@ -213,7 +224,7 @@ code=$(call DELETE "/admin/solutions/sol-s-006" "" $ARTIFACT_DIR/uc-7.json)
 log "delete" "$([ "$code" = "200" ] && echo OK || echo FAIL)" "code=$code body=$(head -c200 $ARTIFACT_DIR/uc-7.json)"
 
 # 7b. verify is_deleted in DB
-DB_STATE=$(docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" --skip-column-names -e "SELECT is_deleted FROM solutions WHERE id='sol-s-006';" 2>/dev/null)
+DB_STATE=$(docker exec -e MYSQL_PWD="$DB_PASSWORD" "$MYSQL_CONTAINER" mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" --skip-column-names -e "SELECT is_deleted FROM solutions WHERE id='sol-s-006';" 2>/dev/null)
 log "delete-db-state" "$([ "$DB_STATE" = "1" ] && echo OK || echo NOTE)" "is_deleted=$DB_STATE"
 
 # 7c. delete non-existent
@@ -270,8 +281,8 @@ for i in $(seq 1 35); do
 done
 log "rate-limit" "$([ "$RL_HIT" -ge 1 ] && [ "$RL_OK" -ge 25 ] && echo OK || echo NOTE)" "ok=$RL_OK hit429=$RL_HIT"
 # cleanup rate-limit counter for sol-s-003 + DB flag
-docker exec ulticode-redis redis-cli DEL "rate-limit:admin:solution-flag:user:5be2650e-63dd-11f1-a640-5efbb60fdb93" 2>/dev/null
-docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e \
+docker exec "$REDIS_CONTAINER" redis-cli DEL "rate-limit:admin:solution-flag:user:5be2650e-63dd-11f1-a640-5efbb60fdb93" 2>/dev/null
+docker exec -e MYSQL_PWD="$DB_PASSWORD" "$MYSQL_CONTAINER" mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e \
   "UPDATE solutions SET is_flagged=0, flagged_at=NULL, flagged_reason=NULL WHERE id='sol-s-003';" 2>/dev/null
 
 # ===== Summary =====

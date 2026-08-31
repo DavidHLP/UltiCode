@@ -30,7 +30,11 @@ MONITORING_DB_PASSWORD="${MONITORING_DB_PASSWORD:-${MIGRATION_DB_PASSWORD:-}}"
 : "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
 MYSQL_CONTAINER="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
 MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
-REDIS_CONTAINER="${REDIS_CONTAINER:-ulticode-redis}"
+REDIS_CONTAINER="${REDIS_CONTAINER:-}"
+if [[ -z "$REDIS_CONTAINER" ]] || ! container_running "$REDIS_CONTAINER"; then
+  REDIS_CONTAINER="$(running_compose_service_container redis)"
+fi
+: "${REDIS_CONTAINER:?Redis container is not running; set REDIS_CONTAINER or start the Compose redis service}"
 
 if [[ -n "$MYSQL_CONTAINER" ]]; then
   container_running "$MYSQL_CONTAINER" \

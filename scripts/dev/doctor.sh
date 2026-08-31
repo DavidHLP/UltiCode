@@ -230,22 +230,32 @@ let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{
 }
 
 # Infrastructure (Docker) readiness summary.
+running_compose_service_container() {
+  local service="$1"
+  docker ps -q --filter "label=com.docker.compose.service=$service" | sed -n '1p'
+}
+
 infra_health() {
   if ! command -v docker >/dev/null 2>&1; then
     printf '%s docker not on PATH\n' "$(color yellow '[SKIP]')"
     return 0
   fi
-  printf '%s infrastructure containers:\n' "$(color cyan '[INFO]')"
-  for c in ulticode-mysql ulticode-redis ulticode-nacos; do
-    local h
-    h="$(docker inspect -f '{{.State.Health.Status}}' "$c" 2>/dev/null || echo 'absent')"
+  printf '%s infrastructure services:\n' "$(color cyan '[INFO]')"
+  local service container h
+  for service in mysql redis nacos; do
+    container="$(running_compose_service_container "$service")"
+    if [[ -z "$container" ]]; then
+      printf '  %s  %s (absent)\n' "$(color yellow '[WARN]')" "$service"
+      continue
+    fi
+    h="$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo 'absent')"
     case "$h" in
-      healthy)   printf '  %s  %s (healthy)\n'   "$(color green '[ OK ]')" "$c" ;;
-      running)   printf '  %s  %s (running, no healthcheck)\n' "$(color green '[ OK ]')" "$c" ;;
-      starting)  printf '  %s  %s (starting)\n' "$(color yellow '[WAIT]')" "$c" ;;
-      unhealthy) printf '  %s  %s (unhealthy)\n' "$(color red '[FAIL]')" "$c" ;;
-      exited)    printf '  %s  %s (exited)\n'    "$(color red '[FAIL]')" "$c" ;;
-      *)         printf '  %s  %s (%s)\n'       "$(color yellow '[WARN]')" "$c" "$h" ;;
+      healthy)   printf '  %s  %s (healthy)\n'   "$(color green '[ OK ]')" "$service" ;;
+      running)   printf '  %s  %s (running, no healthcheck)\n' "$(color green '[ OK ]')" "$service" ;;
+      starting)  printf '  %s  %s (starting)\n' "$(color yellow '[WAIT]')" "$service" ;;
+      unhealthy) printf '  %s  %s (unhealthy)\n' "$(color red '[FAIL]')" "$service" ;;
+      exited)    printf '  %s  %s (exited)\n'    "$(color red '[FAIL]')" "$service" ;;
+      *)         printf '  %s  %s (%s)\n'       "$(color yellow '[WARN]')" "$service" "$h" ;;
     esac
   done
 }
@@ -284,8 +294,9 @@ recommend() {
   fi
 
   if command -v docker >/dev/null 2>&1; then
-    local h
-    h="$(docker inspect -f '{{.State.Health.Status}}' ulticode-mysql 2>/dev/null || true)"
+    local h container
+    container="$(running_compose_service_container mysql)"
+    h="$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
     if [[ "$h" == "unhealthy" || "$h" == "exited" ]]; then
       infra_unhealthy=true
     fi

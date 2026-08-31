@@ -17,7 +17,8 @@
 #   lib/env.sh       ROOT_DIR/ENV_FILE resolution, load_env_file,
 #                    capture_env_vars/apply_env_overrides
 #   lib/validate.sh  owner_schema, valid_identifier/port/container_ref
-#   lib/docker.sh    container_running, await_container_health,
+#   lib/docker.sh    compose_service_container, running_compose_service_container,
+#                    container_running, await_container_health,
 #                    mysql_container_targets_configured_host
 #   lib/confirm.sh   require_write_confirmation, gate_confirmed
 #   lib/sql.sh       table_exists/column_signature/row_count/checksum_table,

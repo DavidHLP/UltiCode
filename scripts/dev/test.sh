@@ -111,14 +111,16 @@ trap cleanup_test_resources EXIT
 echo "Starting test dependencies..."
 "${compose[@]}" up -d mysql redis
 
-for container in ulticode-mysql ulticode-redis; do
+MYSQL_CONTAINER="$(compose_service_container compose mysql)"
+REDIS_CONTAINER="$(compose_service_container compose redis)"
+for container in "$MYSQL_CONTAINER" "$REDIS_CONTAINER"; do
   await_container_health "$container" 60 2 || exit 1
 done
 
-MYSQL_ADMIN_CONTAINER="ulticode-mysql"
-if ! docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" ulticode-mysql \
+MYSQL_ADMIN_CONTAINER="$MYSQL_CONTAINER"
+if ! docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" "$MYSQL_CONTAINER" \
   mysql -u root --batch --skip-column-names -e "SELECT 1" >/dev/null 2>&1; then
-  echo "Existing ulticode-mysql rejected the configured root password; using a disposable local MySQL for this run." >&2
+  echo "Existing MySQL service rejected the configured root password; using a disposable local MySQL for this run." >&2
   if ! docker image inspect "$TEST_MYSQL_IMAGE" >/dev/null 2>&1; then
     echo "Cannot isolate the test database: local image '$TEST_MYSQL_IMAGE' is unavailable and no registry pull is attempted." >&2
     echo "Set TEST_MYSQL_IMAGE to an existing local MySQL-compatible image, or restore the image/registry before retrying." >&2

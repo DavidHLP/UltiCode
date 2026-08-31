@@ -1,0 +1,20 @@
+P3-STREAM-001 REVIEW FIX
+
+Changes:
+  - Search DELETE ledger entries now use typed `D:T` tombstones, preserving version-zero deletes without `-0` resurrection.
+  - Legacy negative tombstones remain readable.
+  - Search unit and end-to-end expectations cover the typed format; a version-zero tombstone regression prevents an equal-version UPSERT.
+  - The CI migration-validation job now provides the pinned Redis service and REDIS_HOST/REDIS_PORT, so JudgeStreamRedisIntegrationTest is no longer conditionally skipped there.
+  - The stream contract uses stable single-line assertions for lease-renewal fail-closed behavior.
+
+Verification:
+  - SearchDocumentIndexWorkerTest: 23/23 passed.
+  - stream-resilience-contract.sh: PASS.
+  - architecture-contract-test.sh: PASS; real Redis runtime remains BLOCKED_EXTERNAL locally because REDIS_HOST is unset.
+  - bash -n and git diff --check passed.
+
+Commit:
+  614d90f
+
+External boundary:
+  No Docker, Redis, production, remote, certificate, credential, or host mutation was performed.

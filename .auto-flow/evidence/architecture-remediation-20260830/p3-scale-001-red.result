@@ -1,0 +1,10 @@
+P3-SCALE-001 RED
+
+Command:
+  rtk git show HEAD:docker-compose.yml | python3 -c 'import sys; text=sys.stdin.read(); print("container_name: present" if "container_name:" in text else "container_name: absent"); raise SystemExit(1 if "container_name:" in text else 0)'
+
+Observed:
+  container_name: present
+
+Root cause exposed:
+  The base Compose topology used fixed container identities, so host scripts and smoke checks could not safely address scaled replicas through service discovery.

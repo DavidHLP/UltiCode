@@ -207,3 +207,17 @@
 - Decision: validate the shared envelope at accepted App/Notification staging and Search processing boundaries; poison malformed accepted events, leave Search failures in the PEL, and fail closed on lease renewal or ACK uncertainty. Keep existing durable MySQL inbox CAS/idempotency, Redis atomic Judge enqueue/DLQ, and per-document Search version ledger rather than adding another broker.
 - Consequences: replay remains safe and unsupported/future events cannot create business effects; real Redis crash/reclaim and broker-fault evidence still requires a Redis-enabled environment.
 - Affected tasks: P3-STREAM-001, P3-SCALE-001, P3-HA-001.
+
+## P3-STREAM-001 follow-up: encode tombstones without numeric ambiguity
+
+- Context: prefixing a DELETE version with `-` makes valid aggregateVersion `0` serialize as `-0`, which parses as numeric zero and permits equal-version resurrection.
+- Decision: write new DELETE ledger entries as `D:T`, retain parsing of legacy negative tombstones, and cover version-zero suppression with a regression.
+- Consequences: the ledger remains backward-readable while new deletes have a lossless type marker; old `-0` rows cannot be distinguished retroactively and remain a migration concern.
+- Affected tasks: P3-STREAM-001.
+
+## P3-SCALE-001: use service discovery instead of container identity
+
+- Context: fixed `container_name` values prevent Compose replicas and bind host scripts/smokes to one local session.
+- Decision: remove fixed names from base/prod Compose, keep backend discovery on service DNS, and resolve host-side targets through Compose service IDs or labels. Isolate disposable smoke projects before volume cleanup.
+- Consequences: replicas can be addressed without name collisions; production-like two-instance registration/failure evidence still requires an approved disposable environment and is not inferred from static checks.
+- Affected tasks: P3-SCALE-001, P3-HA-001, P3-NET-001.

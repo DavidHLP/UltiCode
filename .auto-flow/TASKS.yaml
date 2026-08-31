@@ -923,15 +923,17 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-review-fix.result"
       commit: 4ebb418
-      blocked_by: ["REDIS_HOST unset for real Redis integration; CI/runtime environment required"]
-      notes: "Shared envelope validation rejects future schema and malformed aggregate versions before business effects; App/Notification poison incompatible accepted events, Search preserves PEL, Judge retains atomic XADD/XACK/DLQ and replacement-consumer reclaim coverage. Focused Search 22/22 and App/Notification 12/12 passed; Judge real Redis suite compiled but 6/6 skipped because REDIS_HOST is unset."
+      follow_up_commit: 614d90f
+      blocked_by: ["REDIS_HOST unset for local real Redis integration; CI migration validation now provides Redis"]
+      notes: "Shared envelope validation rejects future schema and malformed aggregate versions before business effects; App/Notification poison incompatible accepted events, Search preserves PEL and uses typed D:T tombstones, Judge retains atomic XADD/XACK/DLQ and replacement-consumer reclaim coverage. Focused Search 23/23 and App/Notification 12/12 passed; local Judge real Redis suite remains externally blocked because REDIS_HOST is unset."
     - id: P3-SCALE-001
       title: "Validate two-instance service operation"
       priority: P3
       scope: "Scale"
       dependencies: [P3-LEASE-001, P3-GRACE-001]
-      status: TODO
+      status: DONE
       affected_modules: ["compose", "services configs", "health scripts"]
       acceptance_criteria:
         - "Production compose has no fixed container names or local session coupling and supports two instances"
@@ -939,10 +941,12 @@ architecture_remediation_20260830:
       validation_commands:
         - "Multi-instance Compose test profile"
         - "Dubbo registration/load distribution tests"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "Docker unavailability becomes BLOCKED_EXTERNAL"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-scale-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-scale-001-green.result"
+      commit: 7833227
+      blocked_by: ["Production Compose merged expansion and two-instance runtime drill require an approved disposable environment; local .env lacks required health/prod values"]
+      notes: "Base/prod Compose use service DNS and no container_name; dev/test/up/doctor/runbook/smoke paths resolve current containers through Compose ps or service labels. Static and shell/Compose-safe checks pass; Docker registration/distribution/removal/rolling-restart/failure proof is BLOCKED_EXTERNAL."
     - id: P3-HA-001
       title: "Provide truthful stateful HA profiles"
       priority: P3

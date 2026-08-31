@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 30 DONE, 12 TODO. `P3-SCALE-001` is the active implementation task; `P3-STREAM-001` is closed in `4ebb418`, and earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
+Current count: 31 DONE, 11 TODO. `P3-HA-001` is the active implementation task; `P3-SCALE-001` is closed in `7833227`, `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`, and earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -165,8 +165,8 @@ Current count: 30 DONE, 12 TODO. `P3-SCALE-001` is the active implementation tas
 - `P3-LEASE-001`: DONE — Fence singleton jobs across replicas
 - `P3-GRACE-001`: DONE — Drain services safely on termination
 - `P3-RES-001`: DONE — Bound retries circuits and dependency concurrency
-- `P3-STREAM-001`: DONE — Prove stream crash replay and compatibility (`4ebb418`)
-- `P3-SCALE-001`: TODO — Validate two-instance service operation
+- `P3-STREAM-001`: DONE — Prove stream crash replay and compatibility (`4ebb418`, review follow-up `614d90f`)
+- `P3-SCALE-001`: DONE — Validate two-instance service operation (`7833227`; runtime drill externally blocked)
 - `P3-HA-001`: TODO — Provide truthful stateful HA profiles
 - `P3-IDENTITY-001`: TODO — Authenticate Dubbo workloads with mTLS
 - `P3-NET-001`: TODO — Restrict service network reachability
@@ -589,13 +589,11 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 At this handoff:
 
-- Last committed P3-SCHED-001 implementation checkpoint: `5a578a7`; the previous P2-DEPLOY-001 implementation is `60784a5`.
-- Current active task: `P3-STREAM-001`.
-- P1-NOT-001 focused affected tests pass 50/50, Notification owner Docker-backed integration passes 11/11, and architecture/documentation contracts pass; no production or remote evidence is inferred.
-- P1-DATA-001 is repository-complete in `0aa0569`; its focused 184-test suite, Submission API compatibility gate, architecture/docs/negative scan, Graphify, and disposable owner-contraction rehearsal pass. The standard quick gate remains host-blocked by the existing Judge Redis ACL credentials.
-- P1-AUDIT-001 is repository-complete in `f223b88`; its targeted 27-test suite, owner-local outbox/inbox wiring, disposable MySQL grant contract, architecture/docs gates, Compose config, shell checks, and Graphify pass. Live owner traffic and production migration remain external.
-- P1-SEAM-001 is repository-complete in `efc12eb`; its clean affected reactor, App API contract compatibility, dead-contract inventory, architecture/docs gates, shell checks, and Graphify pass. Live mixed-version provider/reference traffic remains external.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P3-RES-001 as complete and points to `P3-STREAM-001`.
+- Last committed implementation checkpoints: P3-SCALE-001 `7833227`; P3-STREAM-001 `4ebb418` with review follow-up `614d90f`.
+- Current active task: `P3-HA-001`.
+- P3-SCALE-001 static topology, development Compose, shell and diff checks pass; production merged expansion and the real two-instance registration/distribution/removal/rolling-restart/failure drill remain BLOCKED_EXTERNAL.
+- P3-STREAM-001 Search 23/23 and App/Notification 12/12 pass; CI migration validation now includes Redis, while local real Redis runtime remains BLOCKED_EXTERNAL because `REDIS_HOST` is unset.
+- `.auto-flow` task/evidence/worklog/decision/resume state records P3-SCALE-001 as complete and points to `P3-HA-001`.
 
 ## 17. Handoff stop condition
 
@@ -890,3 +888,11 @@ compiled but all 6 tests skipped because `REDIS_HOST` is unset; `stream-resilien
 Docker, production, remote, certificate, credential, or host mutation was performed.
 
 The next repository task is `P3-SCALE-001`.
+
+## 34. Completed checkpoint — P3-SCALE-001
+
+`P3-SCALE-001` is repository-complete in `7833227` (`feat(scale): remove fixed Compose identities`). Base and production Compose no longer define `container_name`; backend service discovery remains on Compose DNS, and host-side dev/test/startup/doctor/runbook/smoke operations resolve the current service container through Compose `ps -q` or service labels. The Dubbo/Nacos smoke uses an isolated Compose project before disposable volume cleanup.
+
+`scale-topology-contract.sh` is wired into the architecture gate and backend workflow. It verifies fixed-name/network-mode absence, production service/discovery/health/restart/resource declarations, and reports the optional merged production expansion and two-instance registration/distribution/removal/rolling-restart/failure drill explicitly. Static scale checks, shell syntax, development Compose expansion, full architecture/documentation contracts, and `git diff --check` pass. Production merged expansion is blocked by missing approved image/TLS/delegation/Nacos/telemetry inputs; the real two-instance drill requires an approved disposable environment. No Docker stack, production, remote, credential, sudo, group-membership, or host mutation was performed.
+
+The stream review follow-up is `614d90f`: typed `D:T` Search tombstones close the version-zero resurrection edge, CI migration validation provides Redis for Judge integration tests, and the lease assertion now matches stable source lines. The next repository task is `P3-HA-001`.

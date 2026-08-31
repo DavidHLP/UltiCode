@@ -289,6 +289,8 @@ jobs:
 
       - name: Validate scale-safe Compose topology
         run: bash scripts/test/scale-topology-contract.sh
+      - name: Validate stateful HA reference profile
+        run: bash scripts/test/ha-profile-contract.sh
 
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.

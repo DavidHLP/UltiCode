@@ -1,0 +1,260 @@
+# Optional stateful HA reference overlay.
+#
+# This is not enabled by the base, dev, or production Compose files. Use it
+# only with an operator-owned secret/config directory and an explicit profile:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     -f docker-compose.ha.yml --profile ha up -d
+#
+# The profile provides an asynchronous MySQL replica, a Redis replica plus
+# three Sentinel processes, and a three-node Nacos cluster sharing the owner
+# database. It deliberately does not claim transparent application failover:
+# database promotion and application endpoint changes remain operator actions;
+# Redis clients must be configured for Sentinel before using the Sentinel
+# endpoints. No certificate, password, or generated ACL is stored here.
+services:
+  mysql:
+    profiles: [ha]
+    image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6
+    restart: unless-stopped
+    command:
+      - --bind-address=0.0.0.0
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-replica-updates=ON
+      - --read-only=OFF
+
+  mysql-replica:
+    profiles: [ha]
+    image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6
+    restart: unless-stopped
+    command:
+      - --bind-address=0.0.0.0
+      - --server-id=2
+      - --log-bin=mysql-bin
+      - --relay-log=mysql-relay-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-replica-updates=ON
+      - --read-only=ON
+      - --super-read-only=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    expose:
+      - "3306"
+    volumes:
+      - mysql_ha_replica_data:/var/lib/mysql
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infrastructure
+
+  redis:
+    profiles: [ha]
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28efce28eadf
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --aclfile
+      - /usr/local/etc/redis/users.acl
+      - --appendonly
+      - "yes"
+      - --repl-diskless-sync
+      - "yes"
+
+  redis-replica:
+    profiles: [ha]
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28efce28eadf
+    restart: unless-stopped
+    command:
+      - redis-server
+      - /etc/redis/replica.conf
+      - --aclfile
+      - /usr/local/etc/redis/users.acl
+    expose:
+      - "6379"
+    volumes:
+      - ${REDIS_ACL_DIR:?REDIS_ACL_DIR is required}/users.acl:/usr/local/etc/redis/users.acl:ro
+      - ${REDIS_HA_CONFIG_DIR:?REDIS_HA_CONFIG_DIR is required}/redis-replica.conf:/etc/redis/replica.conf:ro
+      - redis_ha_replica_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "--user", "$$REDIS_HEALTH_USER", "--pass", "$$REDIS_HEALTH_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_HEALTH_USER: ulticode-health
+      REDIS_HEALTH_PASSWORD: ${HEALTH_REDIS_PASSWORD:?HEALTH_REDIS_PASSWORD is required}
+    networks:
+      - infrastructure
+
+  redis-sentinel-1:
+    profiles: [ha]
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28efce28eadf
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: "cp /etc/redis/sentinel-source.conf /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel"
+    expose:
+      - "26379"
+    volumes:
+      - ${REDIS_HA_CONFIG_DIR:?REDIS_HA_CONFIG_DIR is required}/sentinel-1.conf:/etc/redis/sentinel-source.conf:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      redis-replica:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infrastructure
+
+  redis-sentinel-2:
+    profiles: [ha]
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28efce28eadf
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: "cp /etc/redis/sentinel-source.conf /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel"
+    expose:
+      - "26379"
+    volumes:
+      - ${REDIS_HA_CONFIG_DIR:?REDIS_HA_CONFIG_DIR is required}/sentinel-2.conf:/etc/redis/sentinel-source.conf:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      redis-replica:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infrastructure
+
+  redis-sentinel-3:
+    profiles: [ha]
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28efce28eadf
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: "cp /etc/redis/sentinel-source.conf /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel"
+    expose:
+      - "26379"
+    volumes:
+      - ${REDIS_HA_CONFIG_DIR:?REDIS_HA_CONFIG_DIR is required}/sentinel-3.conf:/etc/redis/sentinel-source.conf:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      redis-replica:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infrastructure
+
+  nacos:
+    profiles: [ha]
+    image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8
+    restart: unless-stopped
+    environment:
+      MODE: cluster
+      NACOS_SERVERS: ${NACOS_SERVERS:?NACOS_SERVERS is required for HA cluster mode}
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: ${DB_HOST:-mysql}
+      MYSQL_SERVICE_PORT: ${DB_PORT:-3306}
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: ${NACOS_DB_USER:?NACOS_DB_USER is required}
+      MYSQL_SERVICE_PASSWORD: ${NACOS_DB_PASSWORD:?NACOS_DB_PASSWORD is required}
+      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=true&allowPublicKeyRetrieval=true"
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?NACOS_AUTH_TOKEN is required}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?NACOS_AUTH_IDENTITY_KEY is required}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?NACOS_AUTH_IDENTITY_VALUE is required}
+
+  nacos-2:
+    profiles: [ha]
+    image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8
+    restart: unless-stopped
+    environment:
+      MODE: cluster
+      NACOS_SERVERS: ${NACOS_SERVERS:?NACOS_SERVERS is required for HA cluster mode}
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: ${DB_HOST:-mysql}
+      MYSQL_SERVICE_PORT: ${DB_PORT:-3306}
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: ${NACOS_DB_USER:?NACOS_DB_USER is required}
+      MYSQL_SERVICE_PASSWORD: ${NACOS_DB_PASSWORD:?NACOS_DB_PASSWORD is required}
+      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=true&allowPublicKeyRetrieval=true"
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?NACOS_AUTH_TOKEN is required}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?NACOS_AUTH_IDENTITY_KEY is required}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?NACOS_AUTH_IDENTITY_VALUE is required}
+    volumes:
+      - nacos_ha_logs_2:/home/nacos/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - infrastructure
+
+  nacos-3:
+    profiles: [ha]
+    image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8
+    restart: unless-stopped
+    environment:
+      MODE: cluster
+      NACOS_SERVERS: ${NACOS_SERVERS:?NACOS_SERVERS is required for HA cluster mode}
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: ${DB_HOST:-mysql}
+      MYSQL_SERVICE_PORT: ${DB_PORT:-3306}
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: ${NACOS_DB_USER:?NACOS_DB_USER is required}
+      MYSQL_SERVICE_PASSWORD: ${NACOS_DB_PASSWORD:?NACOS_DB_PASSWORD is required}
+      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=true&allowPublicKeyRetrieval=true"
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?NACOS_AUTH_TOKEN is required}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?NACOS_AUTH_IDENTITY_KEY is required}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?NACOS_AUTH_IDENTITY_VALUE is required}
+    volumes:
+      - nacos_ha_logs_3:/home/nacos/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - infrastructure
+
+volumes:
+  mysql_ha_replica_data:
+  redis_ha_replica_data:
+  nacos_ha_logs_2:
+  nacos_ha_logs_3:

@@ -1,0 +1,9 @@
+ARCH-DUBBO-001 GREEN (2026-08-31)
+
+- `rtk bash scripts/test/dubbo-provider-reference-contract.sh`: PASS.
+- Source inventory: 64 providers and 94 references. Each inventory row records owner, class, interface, group, version, consumer and source path; duplicate provider identities, missing groups/versions and unconsumed providers fail closed.
+- `<config>` references resolve the concrete `dubbo.consumer.version` from the owning `application.yml` and match interface, group and version exactly; no wildcard consumer match is accepted.
+- `rtk bash scripts/dev/architecture-contract-test.sh`: PASS; `rtk bash scripts/test/dependency-resilience-contract.sh`: PASS; `rtk bash scripts/test/dubbo-mtls-contract.sh`: PASS.
+- Removed dead/no-consumer health providers, the Submission analytics provider, duplicate App Submission read/activity/streak/user-stat providers, and the unused local adapters/ports. The App no longer registers a duplicate Submission admin-read provider.
+- The only source-level compatibility exception is the deprecated Submission owner `SubmissionWriteProvider`; it is explicitly reported as N-1 compatibility and has no repository consumer.
+- `BLOCKED_EXTERNAL`: draining external N-1 consumers, retiring the compatibility provider/registry entry, and removing the deprecated compatibility contracts require operator/release authority not available in this checkout.

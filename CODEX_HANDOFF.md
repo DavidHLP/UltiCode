@@ -4,7 +4,7 @@
 
 This is the single operational handoff for continuing the current session in Codex. It consolidates the user’s objective, repository rules, decisions, completed work, commits, verification evidence, external blockers, the full 42-task status, and the exact dirty-worktree state where execution stopped.
 
-This is an organized handoff, not a raw transcript. No credential values are included.
+This is the final repository handoff, not a raw transcript. No credential values are included.
 
 ## 1. Codex entry procedure
 
@@ -25,7 +25,7 @@ Start here; do not restart discovery from scratch.
    ```
 
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
-7. Continue `.auto-flow/TASKS.yaml` in dependency order. Canonical active task: `P2-SC-001`.
+7. `.auto-flow/TASKS.yaml` is closed for repository work: all 42 tasks are DONE; only recorded `BLOCKED_EXTERNAL` execution items remain.
 8. Make local Conventional Commits only. Do not push.
 9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
 10. After code changes, run `rtk graphify update .`.
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 35 DONE, 7 TODO. `ARCH-CONTRACT-001` is the active implementation task; `P3-JUDGE-001` is closed in `3aef022` with hardening follow-up `0781f5f`, `P3-NET-001` is closed in `51efd26`, `P3-IDENTITY-001` is closed in `8f190a7`, `P3-HA-001` is closed in `9b7c628`, `P3-SCALE-001` is closed in `7833227`, and `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`. Earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
+Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints are `7743d88f`, `ef74edc`, and `bfd1919`; no task remains active. External consumer-drain, Compose-secret, remote-runtime and production-authority limits are recorded as `BLOCKED_EXTERNAL` in the task ledger.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -171,13 +171,13 @@ Current count: 35 DONE, 7 TODO. `ARCH-CONTRACT-001` is the active implementation
 - `P3-IDENTITY-001`: DONE — Authenticate Dubbo workloads with mTLS (`8f190a7`; production certificate/registry rollout external)
 - `P3-NET-001`: DONE — Restrict service network reachability (`51efd26`; production expansion/firewall/DNS/ingress authority external)
 - `P3-JUDGE-001`: DONE — Remove production Docker socket trust (`3aef022`, hardening `0781f5f`; remote/rootless endpoint and production smoke external)
-- `ARCH-CONTRACT-001`: TODO — Align contracts with bounded owners
-- `ARCH-DUBBO-001`: TODO — Prune provider and reference sprawl
-- `ARCH-SEC-001`: TODO — Forbid duplicate security implementations
-- `TEST-COV-001`: TODO — Enforce real non-regression coverage gates
-- `REVIEW-001`: TODO — Run first full standards and spec review
-- `REVIEW-002`: TODO — Run independent final implementation review
-- `CLOSURE-001`: TODO — Close tasks commits evidence and final report
+- `ARCH-CONTRACT-001`: DONE — Align contracts with bounded owners (`7743d88f`; deprecated N-1 removal remains `BLOCKED_EXTERNAL`)
+- `ARCH-DUBBO-001`: DONE — Prune provider and reference sprawl (`7743d88f`; N-1 registry retirement remains `BLOCKED_EXTERNAL`)
+- `ARCH-SEC-001`: DONE — Forbid duplicate security implementations (`bfd1919`)
+- `TEST-COV-001`: DONE — Enforce real non-regression coverage gates (`ef74edc`; unified Compose run is `BLOCKED_EXTERNAL`)
+- `REVIEW-001`: DONE — Run first full standards and spec review (`7743d88f`)
+- `REVIEW-002`: DONE — Run independent final implementation review (`bfd1919`)
+- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (closure checkpoint follows)
 
 For exact dependencies, acceptance criteria, validation commands, and external notes, use the same task entries in `.auto-flow/TASKS.yaml`; do not invent alternate task IDs or a second task system.
 
@@ -483,21 +483,22 @@ The implementation commit is clean; the follow-on `.auto-flow` checkpoint record
 - Focused owner-facts/contract tests: 32 tests, 0 failures, 0 errors, 0 skipped.
 - Affected reactor: 711 fresh Surefire suites, 2404 tests, 0 failures, 0 errors, 19 skipped.
 - Architecture contract, documentation contract, and `git diff --check` exit 0.
-- Graphify update exits 0 with 27410 nodes, 81471 edges, and 869 communities; the environment still lacks `tree_sitter_sql` for 101 SQL files.
+- Graphify update exits 0 with 28173 nodes, 84823 edges, and 887 communities; the environment still lacks `tree_sitter_sql` for 110 SQL files, which is a graph extraction warning rather than a source verification result.
 - Owner integration command reaches Testcontainers and is `BLOCKED_EXTERNAL` because Docker socket access is denied; it is not a source PASS.
 
-### Completed follow-ups and next task
+### Historical follow-ups
 
 1. `OwnerReconciler` has one nightly scheduler, valid escaped JSON details, explicit full/incremental entry points, and a transaction-scoped advisory lease.
 2. `SKIPPED` is documented as an in-memory status and is returned only for a busy lease; lock errors persist `FAILED` when the database remains writable.
 3. Focused tests cover full paging, incremental watermark propagation, invalid/duplicate/ordered facts, busy leases, lock/owner failures, actionable metrics/details, and App's removed Submission SQL.
 4. `OwnerReconcilerIT` and Submission owner integration are wired for real grouped full/incremental facts but remain Docker-blocked in this host.
 5. Repository documentation, task/evidence ledgers, and Graphify were updated after green repository checks.
-6. P1-NOT-001 is complete; continue immediately with `P1-DATA-001` (legacy data and compatibility contract retirement).
+6. The historical P1 sequence is closed; the current closure state is recorded below and in `.auto-flow/TASKS.yaml`.
 
-## 12. Completed execution sequence and next task
+## 12. Historical execution sequence
 
-The handoff sequence is complete for P1-SUB-004. The implementation commit is `8a521d7`; the task/evidence/ledger checkpoint advances the next agent to P1-NOT-001.
+The following section preserves the earlier P1-SUB-004 execution record for audit context; it is not an active task pointer.
+Any “next repository task” wording in the archived checkpoint sections below describes the historical sequence at that time, not a current TODO.
 
 ### Step A — fix and compile
 
@@ -587,17 +588,17 @@ Repository work should supply executable runbooks and fail-closed gates, then re
 
 ## 16. Current verification truth
 
-At this handoff:
+At the final handoff:
 
-- Last committed implementation checkpoints: P3-SCALE-001 `7833227`; P3-STREAM-001 `4ebb418` with review follow-up `614d90f`.
-- Current active task: `P3-HA-001`.
-- P3-SCALE-001 static topology, development Compose, shell and diff checks pass; production merged expansion and the real two-instance registration/distribution/removal/rolling-restart/failure drill remain BLOCKED_EXTERNAL.
-- P3-STREAM-001 Search 23/23 and App/Notification 12/12 pass; CI migration validation now includes Redis, while local real Redis runtime remains BLOCKED_EXTERNAL because `REDIS_HOST` is unset.
-- `.auto-flow` task/evidence/worklog/decision/resume state records P3-SCALE-001 as complete and points to `P3-HA-001`.
+- Final implementation checkpoints are `7743d88f769bda1e5f0534eb925b7ade159607e0`, `ef74edc657beaba8fc269e85ae45b6d434e7be2b`, and `bfd1919882c7d1e9d6a976626c623591ed856057`.
+- There is no active task. ARCH-CONTRACT-001, ARCH-DUBBO-001, ARCH-SEC-001, TEST-COV-001, REVIEW-001, REVIEW-002 and CLOSURE-001 are DONE.
+- Contract boundary, Dubbo inventory, security, coverage, API compatibility, selected Maven verify, frontend coverage/type-check, architecture/docs and Graphify gates pass.
+- `scripts/dev/test.sh quick` and `full` pass all repository-only stages but stop before Compose startup because `.env` lacks `HEALTH_REDIS_PASSWORD`; this is `BLOCKED_EXTERNAL`.
+- Deprecated Submission N-1 compatibility drain, real Redis/HA/scale/remote Judge/mTLS/network/production evidence remain `BLOCKED_EXTERNAL`.
 
-## 17. Handoff stop condition
+## 17. Final closure condition
 
-P1-SUB-004 is complete in the repository when:
+The architecture remediation is closed in the repository when:
 
 - Submission owner serves bounded full/incremental reconciliation facts;
 - Admin consumes those facts with no App `submissions` SQL;

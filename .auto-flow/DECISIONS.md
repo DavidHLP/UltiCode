@@ -246,3 +246,31 @@
 - Decision: production Compose requires a deployment-owned remote/rootless Docker daemon over TLS (`DOCKER_TLS_VERIFY=1`) with read-only client certs, shared absolute workspace and fixed shared seccomp path. A pre-mutation host-deploy check renders the production service with the immutable release image assignments, validates endpoint/cert/workspace/seccomp/rootless/image prerequisites without sourcing `.env`, and runs before migrations/ACL changes. The socket is retained only in an explicit disposable `judge-socket` dev overlay.
 - Consequences: DockerProcessRunner records `--cidfile` plus unique name and performs bounded `rm -f` cleanup with deterministic-name retries on timeout and interruption; per-run directories use 0755 traversal while source/input mounts remain read-only. Remote endpoint, certificate permissions/rotation, image/workspace provisioning and live smoke remain external.
 - Affected tasks: P3-JUDGE-001, TEST-COV-001, REVIEW-001, REVIEW-002.
+
+## ARCH-CONTRACT-001: keep the compatibility gate honest
+
+- Context: the four provider-owned API modules need an explicit owner/consumer/lifecycle boundary, while the old monolithic baseline may not contain standalone API artifacts.
+- Decision: compute the baseline revision from its Maven metadata, install it under that exact revision, build the current contracts under a distinct CI revision, and skip only compatibility comparison when the baseline has no standalone contracts. Keep the ownership boundary gate active in that case; reject the missing-baseline sentinel and any japicmp self-comparison.
+- Consequences: the local four-contract comparison is reproducible and fail-closed. Deprecated Submission N-1 contracts remain until an external consumer drain and incompatible release are authorized; that removal is `BLOCKED_EXTERNAL`, not silently claimed.
+- Affected tasks: ARCH-CONTRACT-001, REVIEW-001, REVIEW-002.
+
+## ARCH-DUBBO-001: inventory real seams and isolate the sole N-1 exception
+
+- Context: source registration alone did not prove that every provider had a real consumer, and config-backed Dubbo versions must not become unconstrained matches.
+- Decision: inventory providers/references by owner, interface, group, version and call site; resolve `<config>` versions from the owner `application.yml` and require exact matches. Delete dead/no-consumer providers and adapters; retain only the deprecated SubmissionWriteProvider as an explicit N-1 exception.
+- Consequences: the source gate reports 64 providers and 94 references and fails closed on new unconsumed registrations. Registry retirement and external consumer drain remain operator-owned.
+- Affected tasks: ARCH-DUBBO-001.
+
+## ARCH-SEC-001: one shared verifier with owner policy wrappers
+
+- Context: duplicated JWT/delegation verification and an unguarded Auth route chain could drift independently.
+- Decision: centralize assertion verification and RSA public-key loading in `platform/web-security`; keep four owner wrappers policy-only; require Notification's replay guard import; and verify Auth's `.anyRequest().authenticated()` chain after whitespace normalization in the architecture gate.
+- Consequences: common issuer/audience/expiry/replay/signature behavior and owner route policy are both testable; explicit health/anonymous paths remain narrow and all other requests fail closed.
+- Affected tasks: ARCH-SEC-001.
+
+## TEST-COV-001: source-inclusive thresholds are explicit and non-regressing
+
+- Context: report generation alone could pass despite skipped tests, stale Vue parse exclusions or a lowered threshold.
+- Decision: run real JaCoCo/V8 coverage commands, include production source globs, reject test/type/generated artifacts, pin committed frontend floors, use an explicit Submission owner-specific bundle property, freeze CI lockfile installs, and fail closed when cross-stack i18n fixtures are unavailable.
+- Consequences: current repository coverage is truthful without inflating numbers by business-source exclusions; the unified Compose gate still reports the missing local Redis health secret as external.
+- Affected tasks: TEST-COV-001, REVIEW-001, REVIEW-002.

@@ -1,8 +1,8 @@
-outcome: in_progress
+outcome: complete
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: ARCH-CONTRACT-001
+active_task: null
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -33,6 +33,12 @@ outputs:
   - "P3-IDENTITY-001 Dubbo workload mTLS implemented in 8f190a7; six Triple configs, provider/consumer SAN/caller/target filter, required secret mounts, certificate/handshake policy, ACL rotation and CI/architecture wiring pass; production certificate/Nacos/Dubbo rollout remains external"
   - "P3-NET-001 service network reachability implemented in 51efd26; segmented internal/point-to-point Compose networks, per-workload egress, CI/architecture contract, static port/loopback/HA checks and disposable allow/deny drill pass; production Compose expansion and firewall/DNS/Nacos/ingress validation remain external"
   - "P3-JUDGE-001 Judge sandbox isolation implemented in 3aef022 with lifecycle/preflight hardening follow-up 0781f5f; production no-socket remote/rootless TLS, release-image-aware pre-mutation preflight, explicit dev socket profile, shared workspace/seccomp/image checks, timeout/interruption cleanup and sandbox controls pass; remote endpoint/cert/image/host authority remains external"
+  - "ARCH-CONTRACT-001 completed in 7743d88f769bda1e5f0534eb925b7ade159607e0; four provider-owned API contracts, dynamic distinct-revision japicmp gate, ownership boundary script and corrected monolithic-baseline skip behavior pass"
+  - "ARCH-DUBBO-001 completed in 7743d88f769bda1e5f0534eb925b7ade159607e0; source inventory covers 64 providers and 94 references, dead providers/adapters are removed, and the sole N-1 compatibility exception is explicit"
+  - "ARCH-SEC-001 completed in bfd1919882c7d1e9d6a976626c623591ed856057; shared delegation verifier/key loading and Auth route fail-closed gate are covered by code and security review"
+  - "TEST-COV-001 completed in ef74edc657beaba8fc269e85ae45b6d434e7be2b; JaCoCo/V8 gates, fixed floors, negative fixtures, no parse exclusions and fail-closed i18n coverage pass"
+  - "REVIEW-001 and REVIEW-002 completed against baseline 8b4012b3d13678eaec38a82980c8e3558123b5a8; final independent code/Java/security reviews report no CRITICAL/HIGH"
+  - "CLOSURE-001 metadata and evidence are complete in the final working tree; the local checkpoint commit is the next and final repository action"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -61,7 +67,10 @@ evidence:
   - "P3-IDENTITY-001 evidence: p3-identity-001-red.result and p3-identity-001-green.result; TLS/handshake/session policy, ACL rotation, architecture/docs/shell/diff and Graphify pass; production certificate and registry authority external"
   - "P3-NET-001 evidence: p3-net-001-red.result and p3-net-001-green.result; network membership, forbidden-path, port/loopback, HA/observability and disposable reachability checks PASS; production expansion/firewall/DNS authority external"
   - "P3-JUDGE-001 evidence: p3-judge-001-red.result and p3-judge-001-green.result; initial implementation 3aef022 plus hardening 0781f5f, Judge contract, affected reactor, Compose profile, architecture/docs/shell/diff and Graphify pass; remote/rootless smoke external"
-next_goal: "Align contracts with bounded owners"
-next_skill: agent-architecture-audit
-reason: "Repository implementation is authorized; production and host mutations remain prohibited"
-blockers: []
+next_goal: null
+next_skill: null
+reason: "Repository-scope remediation is complete; production, remote-runtime, consumer-drain and secret-dependent operations remain prohibited or externally owned"
+blockers:
+  - "BLOCKED_EXTERNAL: local .env lacks HEALTH_REDIS_PASSWORD, so scripts/dev/test.sh quick/full cannot start Compose dependencies"
+  - "BLOCKED_EXTERNAL: Submission N-1 compatibility consumer drain/registry retirement and removal of deprecated compatibility contracts require external operator and release authority"
+  - "BLOCKED_EXTERNAL: prior P3 Redis crash/reclaim, two-instance scale, HA failover, mTLS rollout, network expansion and remote/rootless Judge smoke require external runtime/production authority"

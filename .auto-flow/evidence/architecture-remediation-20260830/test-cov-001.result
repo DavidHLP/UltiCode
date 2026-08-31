@@ -1,0 +1,8 @@
+TEST-COV-001 GREEN (2026-08-31)
+
+- `rtk bash scripts/test/coverage-contract.sh`: PASS. The contract checks JaCoCo `prepare-agent`/`report(test)`/`check(verify)`, nonzero thresholds, recursive critical packages, approved exclusions only, frontend V8 include/report/floor wiring, frozen CI installs, and the missing-baseline/100%-threshold negative fixtures.
+- Affected backend Maven verify with Zulu 17 passed for `platform/web-security,auth,admin,app/app-web,submission,notification` and dependencies; every selected JaCoCo check reported that coverage checks were met.
+- Frontend `test:coverage` commands exited 0 with no V8 parse/exclusion warnings: Console 71 files/592 tests (23.43/19.55/17.68/24.01), Management 54 files/425 tests (12.91/9.04/11.11/12.92), auth-core 8 files/71 tests (46.42/43.80/39.78/49.43) in statements/branches/functions/lines order.
+- Console, Management and auth-core type-check commands all exited 0. `SubmissionStatusI18nCoverageTest` executed 50/50 dynamic and ordinary tests with 0 skipped; missing repository roots now fail closed.
+- API old-baseline install (`1.0.0`), distinct current package (`1.0.0-ci.local`), compatibility verify and four XML distinct-artifact checks all exited 0.
+- `BLOCKED_EXTERNAL`: unified `rtk bash scripts/dev/test.sh quick` and `full` pass all repository-only stages but cannot start Compose dependencies because `.env` lacks `HEALTH_REDIS_PASSWORD`; no secret value was printed or written.

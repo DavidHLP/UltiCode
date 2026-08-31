@@ -335,7 +335,7 @@ services_issues_20260828:
       notes: "No commit/push/deploy authorization. SVC-003-GATE remains an independent external blocker reported by completion audit."
 architecture_remediation_20260830:
   objective: "Implement and verify the complete microservice architecture remediation without applying unauthorized production operations"
-  status: IN_PROGRESS
+  status: COMPLETE
   branch: fix/architecture-remediation
   baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
   source:
@@ -1029,7 +1029,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Architecture/Contracts"
       dependencies: [P1-SEAM-001]
-      status: TODO
+      status: DONE
       affected_modules: ["api modules", "services poms", "architecture tests"]
       acceptance_criteria:
         - "All contracts are classified by owner consumer transport lifecycle and moved to focused modules without cycles"
@@ -1038,16 +1038,19 @@ architecture_remediation_20260830:
         - "Maven dependency graph"
         - "Contract shape/japicmp"
         - "ArchUnit"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "Contract split does not create new services"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/arch-contract-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/arch-contract-001-green.result"
+      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
+      blocked_by:
+        - "BLOCKED_EXTERNAL: removing deprecated SubmissionAnalyticsPort/SubmissionWritePort requires verified external consumer drain and next incompatible contract release authority"
+      notes: "Four provider-owned API contracts, dynamic oldVersion/revision compatibility guard, ownership boundary gate, and implementation-dependency checks are complete; the documented N-1 compatibility surfaces remain until external release authority drains them."
     - id: ARCH-DUBBO-001
       title: "Prune provider and reference sprawl"
       priority: P3
       scope: "Architecture/Dubbo"
       dependencies: [ARCH-CONTRACT-001]
-      status: TODO
+      status: DONE
       affected_modules: ["app", "admin", "all providers/adapters"]
       acceptance_criteria:
         - "Every provider/reference is a real domain capability or is removed/merged/moved"
@@ -1055,16 +1058,18 @@ architecture_remediation_20260830:
       validation_commands:
         - "Provider/reference inventory"
         - "Call-chain and ArchUnit checks"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "Preserve facades with permission aggregation transaction cache or semantic value"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/arch-dubbo-001.result"
+      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
+      blocked_by:
+        - "BLOCKED_EXTERNAL: the retained SubmissionWriteProvider N-1 consumer drain and registry retirement cannot be proven from this checkout"
+      notes: "Source inventory reports every provider/reference with owner, interface, group, version and repository consumer; dead health/analytics/read providers and duplicate App adapters are removed. Only the documented deprecated SubmissionWriteProvider compatibility exception remains."
     - id: ARCH-SEC-001
       title: "Forbid duplicate security implementations"
       priority: P0
       scope: "Architecture/Security"
       dependencies: [P0-SEC-004, P0-SEC-002]
-      status: TODO
+      status: DONE
       affected_modules: ["platform/web-security", "all services architecture tests"]
       acceptance_criteria:
         - "Only the shared security implementation owns JWT/JWKS/filter/CSRF logic"
@@ -1072,16 +1077,17 @@ architecture_remediation_20260830:
       validation_commands:
         - "Security ArchUnit tests"
         - "architecture-contract-test.sh"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/arch-sec-001.result"
+      commit: "bfd1919882c7d1e9d6a976626c623591ed856057"
       blocked_by: []
-      notes: "Service-specific route policy remains declarative configuration"
+      notes: "Shared web-security owns delegation verification and key loading; four owner wrappers retain only policy/config adapters. Auth, App, Admin, Notification and Submission route gates remain fail-closed."
     - id: TEST-COV-001
       title: "Enforce real non-regression coverage gates"
       priority: P3
       scope: "Testing/Coverage"
       dependencies: [ARCH-SEC-001, P1-DATA-001]
-      status: TODO
+      status: DONE
       affected_modules: ["all service poms", "tests", "ci"]
       acceptance_criteria:
         - "All configured gates are nonzero and not below remediated baselines; critical security/migration/idempotency code has explicit thresholds"
@@ -1089,16 +1095,18 @@ architecture_remediation_20260830:
       validation_commands:
         - "mvn clean verify"
         - "JaCoCo report/gate negative fixture"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "Changed-code 80/70 only if reliably supported; module non-regression is mandatory"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/test-cov-001.result"
+      commit: "ef74edc657beaba8fc269e85ae45b6d434e7be2b"
+      blocked_by:
+        - "BLOCKED_EXTERNAL: scripts/dev/test.sh quick/full reached Compose dependency startup but .env lacks HEALTH_REDIS_PASSWORD; no dependency-backed unified run can be claimed"
+      notes: "Six affected backend modules pass JaCoCo verify with explicit recursive security/idempotency rules; three frontend V8 gates use source include globs, fixed floors and frozen CI installs; negative fixtures reject weak coverage and missing contract baselines."
     - id: REVIEW-001
       title: "Run first full standards and spec review"
       priority: P3
       scope: "Review"
       dependencies: [TEST-COV-001, P3-JUDGE-001, P2-DEPLOY-001]
-      status: TODO
+      status: DONE
       affected_modules: ["all changed files"]
       acceptance_criteria:
         - "Every changed file and full context is reviewed for standards and supplied spec"
@@ -1106,16 +1114,17 @@ architecture_remediation_20260830:
       validation_commands:
         - "Three-dot diff from 8b4012b3d13678eaec38a82980c8e3558123b5a8"
         - "Affected tests after fixes"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/review-001.result"
+      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
       blocked_by: []
-      notes: "Separate Standards and Spec findings"
+      notes: "Standards and Spec findings were separated; confirmed in-repository findings were fixed, while compatibility-drain and runtime-environment limits remain explicitly external."
     - id: REVIEW-002
       title: "Run independent final implementation review"
       priority: P3
       scope: "Review"
       dependencies: [REVIEW-001]
-      status: TODO
+      status: DONE
       affected_modules: ["all final files"]
       acceptance_criteria:
         - "Final implementation is reread independently, not merely checked against round-one findings"
@@ -1123,16 +1132,17 @@ architecture_remediation_20260830:
       validation_commands:
         - "Final standards/spec/security review"
         - "Full verification"
-      evidence: []
-      commit: null
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/review-002.result"
+      commit: "bfd1919882c7d1e9d6a976626c623591ed856057"
       blocked_by: []
-      notes: "Required before final commit sequence closes"
+      notes: "Independent code, Java/Spring and security reviews report no CRITICAL/HIGH; one non-blocking low observation is documented, and all affected repository gates were rerun."
     - id: CLOSURE-001
       title: "Close tasks commits evidence and final report"
       priority: P3
       scope: "Closure"
       dependencies: [REVIEW-002]
-      status: TODO
+      status: DONE
       affected_modules: [".auto-flow", "docs", "git"]
       acceptance_criteria:
         - "Traceability tasks commits checkpoint Git and final report agree with no unexplained status"
@@ -1141,7 +1151,9 @@ architecture_remediation_20260830:
         - "Full Maven/Compose/security/migration gates"
         - "git diff/status/commit reachability"
         - "graphify update"
-      evidence: []
-      commit: null
-      blocked_by: []
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/closure-001.result"
+      commit: "bfd1919882c7d1e9d6a976626c623591ed856057"
+      blocked_by:
+        - "BLOCKED_EXTERNAL: HEALTH_REDIS_PASSWORD is absent from the local .env, so quick/full Compose-backed test dependencies cannot start"
       notes: "No push or production apply without separate authorization"

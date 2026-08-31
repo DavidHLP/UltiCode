@@ -1,0 +1,7 @@
+REVIEW-001 GREEN (2026-08-31)
+
+- Baseline: `8b4012b3d13678eaec38a82980c8e3558123b5a8` (the literal `main@...` ref is not present locally; the SHA resolves).
+- Standards and Spec review covered the complete worktree diff, project/nested AGENTS rules, Java/Spring layering, shell contracts, API ownership, security invariants, CI and documentation drift.
+- Confirmed findings and fixes: dynamic japicmp baseline/revision and monolithic skip; recursive JaCoCo rules; explicit Submission coverage property; V8 source include and Vue icon transformation; fixed coverage floors; frozen lockfile installs and cache dependencies; real `<config>` Dubbo version matching; Notification replay-guard wiring; Auth route fail-closed chain; i18n test path and empty-fallback removal.
+- External/out-of-scope findings are recorded rather than hidden: deprecated Submission N-1 compatibility removal requires consumer drain/release authority; production/remote runtime drills are not locally provable; P3 lease work was already completed in its checkpoint.
+- First review evidence has no unresolved CRITICAL/HIGH after the fixes; affected verification was rerun before closure.

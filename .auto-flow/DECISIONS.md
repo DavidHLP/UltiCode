@@ -200,3 +200,10 @@
 - Decision: remove only the production-unreferenced types and make the live-ranking page method abstract; retain contracts with concrete callers/providers, explicit health/rollback roles, or the documented Submission N-1 compatibility window.
 - Consequences: the App API surface is smaller and no normal provider can silently compile while failing at runtime. Contract/API compatibility and affected clean reactor tests remain the guard; mixed-version external consumer inventory is still required before production rollout.
 - Affected tasks: P1-SEAM-001, P2-MIG-001, ARCH-CONTRACT-001, ARCH-DUBBO-001.
+
+## P3-STREAM-001: keep transport at-least-once and validate before ACK
+
+- Context: Redis Streams already provides PEL delivery, but the shared envelope did not reject future schema or malformed aggregate versions and Search could treat failed lease renewal/ACK as success.
+- Decision: validate the shared envelope at accepted App/Notification staging and Search processing boundaries; poison malformed accepted events, leave Search failures in the PEL, and fail closed on lease renewal or ACK uncertainty. Keep existing durable MySQL inbox CAS/idempotency, Redis atomic Judge enqueue/DLQ, and per-document Search version ledger rather than adding another broker.
+- Consequences: replay remains safe and unsupported/future events cannot create business effects; real Redis crash/reclaim and broker-fault evidence still requires a Redis-enabled environment.
+- Affected tasks: P3-STREAM-001, P3-SCALE-001, P3-HA-001.

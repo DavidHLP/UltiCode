@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 29 DONE, 13 TODO. `P3-STREAM-001` is the active implementation task; `P1-SUB-004`, `P1-NOT-001`, `P1-DATA-001`, `P1-AUDIT-001`, `P1-SEAM-001`, `P2-MIG-001`, `P2-BACKUP-001`, `P2-REDIS-001`, `P2-TLS-001`, `P2-SC-001`, `P2-OBS-001`, `P2-DEPLOY-001`, `P3-SCHED-001`, `P3-LEASE-001`, `P3-GRACE-001`, and `P3-RES-001` are closed in the repository with their available owner checks green.
+Current count: 30 DONE, 12 TODO. `P3-SCALE-001` is the active implementation task; `P3-STREAM-001` is closed in `4ebb418`, and earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -165,7 +165,7 @@ Current count: 29 DONE, 13 TODO. `P3-STREAM-001` is the active implementation ta
 - `P3-LEASE-001`: DONE — Fence singleton jobs across replicas
 - `P3-GRACE-001`: DONE — Drain services safely on termination
 - `P3-RES-001`: DONE — Bound retries circuits and dependency concurrency
-- `P3-STREAM-001`: TODO — Prove stream crash replay and compatibility
+- `P3-STREAM-001`: DONE — Prove stream crash replay and compatibility (`4ebb418`)
 - `P3-SCALE-001`: TODO — Validate two-instance service operation
 - `P3-HA-001`: TODO — Provide truthful stateful HA profiles
 - `P3-IDENTITY-001`: TODO — Authenticate Dubbo workloads with mTLS
@@ -875,3 +875,18 @@ affected 24-module compile, full architecture/docs/YAML/shell/diff gates and Gra
 because the agent thread limit was reached; the main-thread two-axis review found and fixed the half-open race, stale-key deadline
 overrun and fail-open ban fallback. No production fault injection, threshold tuning, traffic, remote deployment or configuration
 mutation was executed; the next repository task is `P3-STREAM-001`.
+
+## 33. Completed checkpoint — P3-STREAM-001 implementation
+
+`P3-STREAM-001` repository implementation is in `4ebb418` (`feat(streams): enforce replay-safe event envelopes`). The shared
+`IntegrationEventEnvelopeContract` now requires the stable envelope fields, accepts only schema version 1, and rejects malformed
+or negative aggregate versions. App and Notification poison incompatible accepted events before staging; Search leaves invalid
+events in the PEL, fails closed on uncertain ACK or document-lease renewal, and preserves the existing per-document version ledger.
+Judge Streams coverage now includes replacement-consumer reclaim after an unacked worker entry and malformed-payload poison ACK.
+
+The Search regression suite passed 22/22 and App/Notification focused suites passed 12/12. The Judge Redis integration suite
+compiled but all 6 tests skipped because `REDIS_HOST` is unset; `stream-resilience-contract.sh` reports that runtime check as
+`BLOCKED_EXTERNAL` while its static contract passes. Shell syntax, `git diff --check`, and Graphify update passed. No Redis,
+Docker, production, remote, certificate, credential, or host mutation was performed.
+
+The next repository task is `P3-SCALE-001`.

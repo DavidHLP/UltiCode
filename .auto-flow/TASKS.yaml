@@ -912,7 +912,7 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Resilience/Streams"
       dependencies: [P0-SEC-006, P3-GRACE-001]
-      status: TODO
+      status: DONE
       affected_modules: ["platform/integration-inbox", "judge-runtime", "search", "notification", "app", "submission"]
       acceptance_criteria:
         - "Group ack PEL claim retry backoff DLQ poison idempotency version disorder and schema compatibility are explicit"
@@ -920,10 +920,12 @@ architecture_remediation_20260830:
       validation_commands:
         - "Redis Streams integration suite"
         - "Worker crash/restart tests"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "Deepen existing adapters; no Kafka"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-green.result"
+      commit: 4ebb418
+      blocked_by: ["REDIS_HOST unset for real Redis integration; CI/runtime environment required"]
+      notes: "Shared envelope validation rejects future schema and malformed aggregate versions before business effects; App/Notification poison incompatible accepted events, Search preserves PEL, Judge retains atomic XADD/XACK/DLQ and replacement-consumer reclaim coverage. Focused Search 22/22 and App/Notification 12/12 passed; Judge real Redis suite compiled but 6/6 skipped because REDIS_HOST is unset."
     - id: P3-SCALE-001
       title: "Validate two-instance service operation"
       priority: P3

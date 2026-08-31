@@ -261,7 +261,7 @@ class SearchDocumentIndexWorkerTest {
     }
 
     @Test
-    @DisplayName("DELETE tombstones the document, records a negative ledger version and ACKs")
+    @DisplayName("DELETE tombstones the document with a typed ledger version and ACKs")
     void deleteTombstonesAndAcks() {
         stubBusyGroup();
         stubEmptyReads();
@@ -272,8 +272,26 @@ class SearchDocumentIndexWorkerTest {
         worker.consume();
 
         verify(meiliIndex).deleteDocument("doc-2");
-        verify(hashOps).put("search:doc-version:users", "doc-2", "-200");
+        verify(hashOps).put("search:doc-version:users", "doc-2", "D:200");
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-2"));
+    }
+
+    @Test
+    @DisplayName("version-zero tombstone blocks an equal-version UPSERT")
+    void versionZeroTombstoneBlocksEqualUpsert() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(hashOps.get("search:doc-version:problems", "doc-zero")).thenReturn("D:0");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("zero", SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "0")));
+
+        int processed = worker.consume();
+
+        assertThat(processed).isEqualTo(1);
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-zero"));
     }
 
     @Test

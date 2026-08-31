@@ -214,7 +214,7 @@ class SearchWorkerEndToEndIT {
         assertThat(processed).isEqualTo(1);
         assertThat(DELETED_IDS).containsExactly("doc-2");
         assertThat(redis.<String, String>opsForHash()
-                .get(props.getVersionKeyPrefix() + ":problems", "doc-2")).isEqualTo("-200");
+                .get(props.getVersionKeyPrefix() + ":problems", "doc-2")).isEqualTo("D:200");
         assertThat(pendingCount()).isZero();
     }
 

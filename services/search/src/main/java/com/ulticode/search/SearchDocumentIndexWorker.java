@@ -49,15 +49,16 @@ import org.springframework.stereotype.Component;
  * keep their own delivery). Only allowlisted indexes are written.
  *
  * <p>Version ledger (DEC-016): each UPSERT carries the document version
- * (epoch millis, {@code aggregateVersion} envelope field). The worker keeps a
- * per-index Redis hash ({@code versionKeyPrefix}:{@code index}) of the last
+ * (epoch millis, {@code aggregateVersion} envelope field). The worker keeps
+ * a per-index Redis hash ({@code versionKeyPrefix}:{@code index}) of the last
  * written version per document. An incoming UPSERT whose version is strictly
  * older than the ledger entry is skipped (counted, still ACKed) so a backfill
  * snapshot can never overwrite a newer live write; equal versions rewrite
- * (idempotent, content-convergent). DELETEs record a negative tombstone
- * version so an equal-or-older UPSERT cannot resurrect a deleted document.
- * The version is also embedded in the Meili document as
- * {@code _aggregateVersion} for diff watermark and observability.
+ * (idempotent, content-convergent). DELETEs record a typed tombstone
+ * ({@code D:T}) so an equal-or-older UPSERT cannot resurrect a deleted
+ * document, including version zero. Legacy negative tombstones remain
+ * readable for compatibility. The version is also embedded in the Meili
+ * document as {@code _aggregateVersion} for diff watermark and observability.
  * Replicas serialize versioned operations for the same index/document with a
  * short Redis lease; lock contention defers the event in the PEL (without
  * inflating its delivery count, so contention cannot dead-letter a valid
@@ -72,7 +73,7 @@ public class SearchDocumentIndexWorker {
     private static final String EVENT_TYPE = SearchDocumentChangedEventContract.EVENT_TYPE;
     private static final Duration CLAIM_MIN_IDLE = Duration.ofSeconds(30);
     private static final String DOCUMENT_VERSION_FIELD = "_aggregateVersion";
-
+    private static final String DELETE_LEDGER_PREFIX = "D:";
     private final StringRedisTemplate redisTemplate;
     private final Client meiliSearchClient;
     private final ObjectMapper objectMapper;
@@ -556,7 +557,7 @@ public class SearchDocumentIndexWorker {
             } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
                 executeMeili(() -> meiliSearchClient.index(index).deleteDocument(documentId));
                 writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
-                        "-" + incomingVersion);
+                        DELETE_LEDGER_PREFIX + incomingVersion);
             } else {
                 throw new IllegalArgumentException("unsupported operation: " + operation);
             }
@@ -629,10 +630,10 @@ public class SearchDocumentIndexWorker {
      * <ul>
      *   <li>positive ledger value = last written version: skip iff
      *       existing &gt; incoming (equal rewrites, idempotent);</li>
-     *   <li>negative ledger value = tombstone version {@code -T} recorded by
-     *       a DELETE: skip iff {@code T &gt;= incoming} (a delete never loses
-     *       to an equal-or-older snapshot);</li>
-     *   <li>absent/corrupt ledger: never skip (first write or self-heal).
+     *   <li>{@code D:T} = tombstone version {@code T} recorded by a DELETE:
+     *       skip iff {@code T &gt;= incoming} (including version zero);</li>
+     *   <li>negative legacy value = tombstone version {@code -T};</li>
+     *   <li>absent/corrupt ledger: never skip (first write or self-heal).</li>
      * </ul>
      */
     private boolean isStale(String existing, long incomingVersion) {
@@ -640,9 +641,14 @@ public class SearchDocumentIndexWorker {
             return false;
         }
         try {
+            if (existing.startsWith(DELETE_LEDGER_PREFIX)) {
+                long tombstoneVersion = Long.parseLong(existing.substring(DELETE_LEDGER_PREFIX.length()));
+                return tombstoneVersion >= 0L && tombstoneVersion >= incomingVersion;
+            }
             long existingVersion = Long.parseLong(existing);
             if (existingVersion < 0) {
-                return -existingVersion >= incomingVersion;
+                return existingVersion == Long.MIN_VALUE
+                        || -existingVersion >= incomingVersion;
             }
             return existingVersion > incomingVersion;
         } catch (NumberFormatException e) {
@@ -661,8 +667,16 @@ public class SearchDocumentIndexWorker {
             if (existing == null) {
                 return null;
             }
-            Long.parseLong(String.valueOf(existing));
-            return String.valueOf(existing);
+            String value = String.valueOf(existing);
+            if (value.startsWith(DELETE_LEDGER_PREFIX)) {
+                long tombstoneVersion = Long.parseLong(value.substring(DELETE_LEDGER_PREFIX.length()));
+                if (tombstoneVersion < 0L) {
+                    return null;
+                }
+            } else {
+                Long.parseLong(value);
+            }
+            return value;
         } catch (RuntimeException e) {
             log.warn("Ignoring unparsable ledger version for {} in {}", documentId, versionKey);
             return null;

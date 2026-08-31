@@ -53,7 +53,8 @@ contains services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/ad
 contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'CURRENT_SCHEMA_VERSION'
 contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'requireCompatibleEnvelope'
 not_contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'return renewed == null'
-not_contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'catch (RuntimeException exception) {\n            log.warn("Search document lease renewal check failed'
+contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'return renewed != null && renewed > 0L'
+not_contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'Search document lease renewal check failed'
 
 printf 'durable inbox claim/lease/retry/backoff/dead-letter contract: PASS\n'
 printf 'stream consumer PEL/replay/poison/schema/version contract: PASS\n'

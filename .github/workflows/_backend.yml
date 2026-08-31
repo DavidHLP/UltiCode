@@ -215,12 +215,23 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      redis:
+        image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        ports:
+          - 26379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     env:
       DB_HOST: localhost
       DB_PORT: 23306
       DB_USER: ulticode
       DB_PASSWORD: ulticode
       DB_NAME: ulticode
+      REDIS_HOST: localhost
+      REDIS_PORT: 26379
     steps:
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -275,6 +286,9 @@ jobs:
 
       - name: Validate Redis Streams resilience
         run: bash scripts/test/stream-resilience-contract.sh
+
+      - name: Validate scale-safe Compose topology
+        run: bash scripts/test/scale-topology-contract.sh
 
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.

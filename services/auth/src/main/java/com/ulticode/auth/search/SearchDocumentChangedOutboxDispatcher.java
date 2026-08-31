@@ -8,12 +8,15 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
+import com.ulticode.common.lifecycle.DrainGate;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
@@ -39,12 +42,24 @@ public class SearchDocumentChangedOutboxDispatcher {
     private final SearchDocumentChangedOutboxMapper outboxMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final DrainGate drainGate = new DrainGate();
 
     private final String claimOwner = "auth-search-" + UUID.randomUUID();
 
     @Scheduled(fixedDelayString = "${auth.search.outbox.dispatcher.interval-ms:2000}",
                initialDelayString = "5000")
     public int dispatch() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return dispatchClaimedBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int dispatchClaimedBatch() {
         outboxMapper.reclaimStaleClaimed(LEASE_SECONDS);
         List<SearchDocumentChangedOutboxRecord> pending = outboxMapper.selectPending(BATCH_SIZE);
         if (pending.isEmpty()) {
@@ -52,6 +67,9 @@ public class SearchDocumentChangedOutboxDispatcher {
         }
         int delivered = 0;
         for (SearchDocumentChangedOutboxRecord record : pending) {
+            if (drainGate.isDraining()) {
+                break;
+            }
             if (outboxMapper.claim(record.getId(), claimOwner) == 0) {
                 continue; // another replica claimed it
             }
@@ -67,6 +85,11 @@ public class SearchDocumentChangedOutboxDispatcher {
             }
         }
         return delivered;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     private void publishToStream(SearchDocumentChangedOutboxRecord record) throws Exception {

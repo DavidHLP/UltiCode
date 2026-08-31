@@ -1,9 +1,12 @@
 package com.ulticode.modules.admin.outbox;
 import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
+import com.ulticode.common.lifecycle.DrainGate;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,10 +28,15 @@ public class AuditOutboxDispatcher {
 
     private final AuditOutboxMapper auditOutboxMapper;
     private final AuditOutboxProcessor auditOutboxProcessor;
+    private final DrainGate drainGate = new DrainGate();
 
     @Scheduled(scheduler = "adminAuditScheduler",
             fixedDelayString = "${audit.outbox.dispatcher.interval-ms:2000}", initialDelayString = "5000")
     public int dispatch() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
         // Recover rows where JVM/DB died after claim() but before processor completed.
         auditOutboxMapper.reclaimStaleClaimed();
         List<AuditOutboxRecord> pendingRecords = auditOutboxMapper.claimPending(BATCH_SIZE);
@@ -38,6 +46,9 @@ public class AuditOutboxDispatcher {
 
         int processedCount = 0;
         for (AuditOutboxRecord record : pendingRecords) {
+            if (drainGate.isDraining()) {
+                break;
+            }
             String rowOwner = "audit-outbox-" + UUID.randomUUID();
             if (auditOutboxMapper.claim(record.getId(), rowOwner) == 0) {
                 continue;
@@ -61,5 +72,13 @@ public class AuditOutboxDispatcher {
             log.debug("Dispatched {} audit outbox records to audit_logs", processedCount);
         }
         return processedCount;
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 }

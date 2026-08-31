@@ -897,6 +897,10 @@ enqueue，owner migration 在 shared Flyway bootstrap 后保护 owner/post-owner
 避免恢复已死亡副本的 owner token。`FencedLease` common model 对 expiry、duplicate、clock-skew、pause/partition/crash
 和 stale completion 提供确定性测试；Submission outbox/reaper 保留现有 per-item claim/generation/attempt-id CAS，不套 global lock。
 
+#### Graceful shutdown and work preservation
+
+P3-GRACE-001 将停止顺序固定为：先由 Spring `ContextClosedEvent` 让 HTTP/RPC provider 与 worker claimers 进入 draining，再停止有界 scheduler，等待在途 handler/数据库更新在 45 秒 phase 内完成，最后由 Spring 关闭 Redis/MySQL/Dubbo/MeiliSearch/OTel clients。Redis Streams 只有在 durable inbox/业务处理完成后才 ACK；被 SIGTERM 中断的 PEL entry、Inbox row lease、Submission outbox claim 或 judge lease 继续由既有 reaper/claim CAS 恢复。`scripts/test/graceful-drain-contract.sh` 同时覆盖配置、worker no-new-claim 和真实子进程 SIGTERM probe。
+
 #### Submission read owner cutover 与 schema contraction
 
 P1-DATA-001 完成了 App 正常读路径的 owner cutover：用户列表/详情、统计、Problem submission counts、用户标签统计、
@@ -1337,6 +1341,7 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 - App 单实例迁移期可继续 SimpleBroker；多实例前使用粘性会话 + Redis broadcast bridge，或按负载证明引入 broker relay；
 - 每个 Scheduled job 只能由 Owner 启用，使用 CAS/lease/fence/Redisson lock，提供 disable flag 和 lag 指标；P3-SCHED-001 为 Admin、Submission、Search 关键任务分配有界 executor（默认 1，Admin audit 2，最大 16），暴露 active/queued/completed/rejection 指标并在关闭时等待不超过 30 秒；
+- P3-GRACE-001 为 HTTP Owner 设置 `server.shutdown=graceful` 与 45 秒 Spring shutdown phase，为非 HTTP worker 设置相同生命周期边界；Stream/Inbox/outbox/reaper claimers 在 `ContextClosedEvent` 后通过 common `DrainGate` 拒绝新 claim，让当前 bounded batch 完成并保留 PEL/row lease 供恢复。Production Compose 的 Java/frontend/infrastructure stop grace 分别为 60/30 秒，PM2 kill timeout 与 Java 服务一致；真实流量 drain 与编排 authority 仍属外部证据；
 - Backup 最终更适合作为外部 Ops job。若暂留 Admin，使用最小权限 backup credential；它读取物理备份流是运维例外，不可借此执行跨库业务查询；
 - `backend-judge` 是独立 Maven module/image；它只消费 Redis Streams 并通过 Problem/Submission owner contracts 读 facts、抢 lease、写 verdict。提交、`judge_outbox`、lease/fence、result outbox 的数据 Owner 目标态为 `backend-submission`。生产 Compose 通过 Docker socket、同路径沙箱工作目录和 seccomp profile 运行它；不发布 HTTP/Dubbo 到公网。
 - `backend-submission` 是独立 Maven module/image；暴露 direct Submission owner write/fence provider，默认端口为内部 HTTP `9106`、Dubbo `20886`；provider 直接写 Submission schema，App 仅通过 `APP_SUBMISSION_ROUTING_MODE=remote` 访问该 owner。

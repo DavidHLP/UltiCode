@@ -68,6 +68,7 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 - `observability-release-annotation.sh` — publish a release/environment marker and immutable image manifest to Grafana without printing the API token.
 - `deployment-integrity.sh` — preflight source commit, migration manifest checksum, required deployment files, atomic release descriptor, and schema-compatible rollback/health state.
 - `SCHEDULER_RUNBOOK.md` (under `services/docs/`) — owner-local scheduler map, bounds, saturation response, and shutdown behavior.
+- `GRACEFUL_DRAIN_RUNBOOK.md` (under `services/docs/`) — SIGTERM, HTTP/RPC, scheduler, stream PEL, lease recovery, and termination budgets.
 - `redis-acl-rotation.sh` — runtime ACL materialization and `prepare`/`finalize`/`rollback` overlap rotation with atomic replacement and drift-check; state/report files contain only hashes and phase.
 
 ## scripts/test/ — standalone smoke suites
@@ -85,6 +86,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 - `deployment-integrity-contract.sh` — disposable descriptor/rollback/schema mismatch and host-health system-summary contract without remote mutation.
 - `scheduler-contract.sh` — bounded scheduler bindings plus independent-progress, rejection, metrics, and shutdown test.
 - `fenced-lease-contract.sh` — fenced lease wiring, deterministic clock/lost-lease tests, and MySQL two-runner/expiry integration test.
+- `graceful-drain-contract.sh` — graceful Spring/Compose/PM2/PID1 configuration plus worker no-new-claim and SIGTERM probe.
 - `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 
 ## Other

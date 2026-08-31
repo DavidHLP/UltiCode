@@ -3,6 +3,7 @@ package com.ulticode.modules.reconciliation;
 import com.ulticode.auth.api.dto.AuthReconciliationOrphanCounts;
 import com.ulticode.auth.api.service.ReconciliationQueryService;
 import com.ulticode.common.lease.FencedLease;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.app.api.dto.ReconciliationOrphanCounts;
 import com.ulticode.app.api.service.AppReconciliationReadPort;
 import com.ulticode.common.error.BaseErrorCode;
@@ -21,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,6 +78,7 @@ public class OwnerReconciler {
     private final AuditOrphanMapper auditOrphanMapper;
     private final MeterRegistry meterRegistry;
     private final FencedJobLeaseService fencedJobLeaseService;
+    private final DrainGate drainGate = new DrainGate();
 
     @DubboReference(group = "backend-auth", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
@@ -92,7 +96,19 @@ public class OwnerReconciler {
     @Scheduled(scheduler = "adminReconciliationScheduler", cron = "0 0 2 * * *")
     @Transactional
     public void scheduledReconciliation() {
-        runReconciliation();
+        if (!drainGate.tryEnter()) {
+            return;
+        }
+        try {
+            runReconciliation();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     /** Execute a full reconciliation run. */

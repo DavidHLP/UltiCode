@@ -2,10 +2,13 @@ server:
   # The worker exposes no HTTP API. Keep a private port only because the
   # generic Spring Boot container image expects SERVER_PORT to exist.
   port: ${SEARCH_SERVER_PORT:9107}
+  shutdown: graceful
 
 spring:
   application:
     name: backend-search
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   main:
     web-application-type: none
   autoconfigure:

@@ -1,9 +1,12 @@
 server:
   port: ${SUBMISSION_SERVER_PORT:9106}
+  shutdown: graceful
 
 spring:
   application:
     name: backend-submission
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   datasource:
     url: jdbc:mysql://${SUBMISSION_DB_HOST}:${SUBMISSION_DB_PORT}/${SUBMISSION_DB_NAME}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&useAffectedRows=true
     username: ${SUBMISSION_DB_USER}

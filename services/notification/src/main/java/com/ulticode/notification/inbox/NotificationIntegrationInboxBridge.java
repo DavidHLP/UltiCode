@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.notification.api.event.NotificationIntentEventContract;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
@@ -14,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
@@ -73,6 +76,7 @@ public class NotificationIntegrationInboxBridge {
     private final List<Binding> bindings;
     /** Queue/consumer SLO gauges for the App-Notification staging bridge. */
     private final WorkerSloMeters slo;
+    private final DrainGate drainGate = new DrainGate();
 
     @Autowired
     public NotificationIntegrationInboxBridge(
@@ -118,6 +122,9 @@ public class NotificationIntegrationInboxBridge {
     @Scheduled(fixedDelayString = "${integration.inbox.consumer.interval-ms:2000}",
                initialDelayString = "5000")
     public int consume() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
         try {
             int staged = 0;
             for (Binding binding : bindings) {
@@ -138,6 +145,16 @@ public class NotificationIntegrationInboxBridge {
                 slo.incrementFailures();
             }
             throw e;
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
+        for (Binding binding : bindings) {
+            binding.inboxConsumer.beginDrain();
         }
     }
 
@@ -220,6 +237,9 @@ public class NotificationIntegrationInboxBridge {
     }
 
     private int stage(Binding binding) {
+        if (drainGate.isDraining()) {
+            return 0;
+        }
         if (!ensureGroup(binding)) {
             return 0;
         }
@@ -244,6 +264,9 @@ public class NotificationIntegrationInboxBridge {
     }
 
     private List<MapRecord<String, String, String>> reclaim(Binding binding) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             PendingMessages pending = streams.pending(
@@ -274,6 +297,9 @@ public class NotificationIntegrationInboxBridge {
     }
 
     private List<MapRecord<String, String, String>> read(Binding binding, ReadOffset offset) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             List<MapRecord<String, String, String>> records = streams.read(

@@ -32,6 +32,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-auth.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '1G',
     },
     {
@@ -61,6 +62,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-admin.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '1G',
     },
     {
@@ -98,6 +100,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-app.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '1G',
     },
     {
@@ -124,6 +127,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-notification.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '1G',
     },
     {
@@ -161,6 +165,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-submission.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '768M',
     },
     {
@@ -191,6 +196,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-judge.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '2G',
     },
     {
@@ -213,6 +219,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'backend-search.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 60000,
       max_memory_restart: '1G',
     },
     {
@@ -226,6 +233,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'console.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 30000,
       max_memory_restart: '512M',
     },
     {
@@ -239,6 +247,7 @@ module.exports = {
       error_file: path.join(ROOT, 'logs', 'management.err.log'),
       merge_logs: true,
       time: true,
+      kill_timeout: 30000,
       max_memory_restart: '512M',
     },
   ],

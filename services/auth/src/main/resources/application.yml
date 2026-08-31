@@ -1,5 +1,6 @@
 server:
   port: ${SERVER_PORT:9101}
+  shutdown: graceful
   servlet:
     encoding:
       charset: UTF-8
@@ -14,6 +15,13 @@ cors:
 spring:
   application:
     name: backend-auth
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
+  task:
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: ${SPRING_TASK_SCHEDULING_SHUTDOWN_AWAIT_TERMINATION_PERIOD:45s}
   main:
     allow-bean-definition-overriding: true
   datasource:

@@ -2,10 +2,13 @@ server:
   # The worker does not expose an HTTP API. Keep a private port only because
   # the generic Spring Boot container image expects SERVER_PORT to exist.
   port: ${JUDGE_SERVER_PORT:9104}
+  shutdown: graceful
 
 spring:
   application:
     name: backend-judge
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   main:
     web-application-type: none
   autoconfigure:
@@ -34,6 +37,9 @@ spring:
       pool:
         size: ${JUDGE_SCHEDULING_POOL_SIZE:4}
       thread-name-prefix: judge-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: ${SPRING_TASK_SCHEDULING_SHUTDOWN_AWAIT_TERMINATION_PERIOD:45s}
 
 app:
   runtime:

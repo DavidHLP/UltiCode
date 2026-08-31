@@ -1,9 +1,12 @@
 server:
   port: ${SERVER_PORT:9103}
+  shutdown: graceful
 
 spring:
   application:
     name: backend-app
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
@@ -31,6 +34,9 @@ spring:
       pool:
         size: 4
       thread-name-prefix: app-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: ${SPRING_TASK_SCHEDULING_SHUTDOWN_AWAIT_TERMINATION_PERIOD:45s}
 
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml

@@ -1,6 +1,7 @@
 package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
@@ -16,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.ArrayList;
@@ -58,6 +61,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
+    private final DrainGate drainGate = new DrainGate();
     /** Epoch millis of the last successfully processed job; 0 = never. */
     private final java.util.concurrent.atomic.AtomicLong lastSuccessMillis = new java.util.concurrent.atomic.AtomicLong(0);
 
@@ -97,6 +101,9 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             initialDelayString = "${queue.judge.initial-delay-ms:5000}"
     )
     public void pollAndProcess() {
+        if (!drainGate.tryEnter()) {
+            return;
+        }
         try {
             if (featureFlags.isJudgeQueueUsePort()) {
                 return;
@@ -116,6 +123,8 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             }
         } catch (Exception e) {
             log.error("JudgeWorkerProcessor.pollAndProcess failed", e);
+        } finally {
+            drainGate.leave();
         }
     }
 
@@ -137,14 +146,17 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             initialDelayString = "${judge.port.initial-delay-ms:5000}"
     )
     public void pollAndProcessFromPort() {
-        if (!featureFlags.isJudgeQueueUsePort()) {
-            return;
-        }
-        JudgeQueue port = judgeQueueProvider.getIfAvailable();
-        if (port == null) {
+        if (!drainGate.tryEnter()) {
             return;
         }
         try {
+            if (!featureFlags.isJudgeQueueUsePort()) {
+                return;
+            }
+            JudgeQueue port = judgeQueueProvider.getIfAvailable();
+            if (port == null) {
+                return;
+            }
             if (!hasJobCapacity()) {
                 return;
             }
@@ -154,6 +166,10 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                 return;
             }
             JudgeJobHandle handle = maybeHandle.get();
+            if (drainGate.isDraining()) {
+                port.nack(handle, "judge worker is draining");
+                return;
+            }
             if (!tryAcquireJobSlot()) {
                 port.nack(handle, "judge worker concurrency limit reached");
                 return;
@@ -165,6 +181,8 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             }
         } catch (Exception e) {
             log.error("JudgeWorkerProcessor.pollAndProcessFromPort failed", e);
+        } finally {
+            drainGate.leave();
         }
     }
 
@@ -178,15 +196,29 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
      * the reaper's claim-then-ack window stays small.
      */
     public void processReclaimedHandle(JudgeQueue port, JudgeJobHandle handle) {
+        if (!drainGate.tryEnter()) {
+            port.nack(handle, "judge worker is draining");
+            return;
+        }
         if (!tryAcquireJobSlot()) {
-            port.nack(handle, "judge worker concurrency limit reached");
+            try {
+                port.nack(handle, "judge worker concurrency limit reached");
+            } finally {
+                drainGate.leave();
+            }
             return;
         }
         try {
             processJobFromPort(port, handle);
         } finally {
             releaseJobSlot();
+            drainGate.leave();
         }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     /** Used by the Streams reaper to avoid claiming work while this worker is full. */

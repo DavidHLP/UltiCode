@@ -1,6 +1,7 @@
 package com.ulticode.modules.queue.outbox.reaper;
 
 import com.ulticode.submission.api.queue.JudgeJobHandle;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
 import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
 import com.ulticode.submission.api.queue.JudgeStreamKeys;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
@@ -55,55 +58,71 @@ public class UnackedStreamEntriesReaper {
     private final ObjectProvider<JudgeWorkerProcessor> workerProvider;
     /** Nullable so unit tests without a registry still compile. */
     private final MeterRegistry meterRegistry;
+    private final DrainGate drainGate = new DrainGate();
 
     @Scheduled(
             fixedDelayString = "${judge.streams.reaper.interval-ms:10000}",
             initialDelayString = "${judge.streams.reaper.initial-delay-ms:15000}")
     public void recoverUnackedStreamEntries() {
-        long pending = streamsAdapter.pendingCount();
-        registerPendingGauge(pending);
-        refreshSloGauges(pending);
-        if (pending == 0) {
+        if (!drainGate.tryEnter()) {
             return;
         }
-        // Reclaim one stale entry per sweep; the fixedDelay paces the loop
-        // so we don't race a slow worker.
         try {
-            JudgeWorkerProcessor worker = workerProvider.getIfAvailable();
-            if (worker != null && !worker.hasCapacity()) {
+            long pending = streamsAdapter.pendingCount();
+            registerPendingGauge(pending);
+            refreshSloGauges(pending);
+            if (pending == 0) {
                 return;
             }
-            java.util.Optional<JudgeJobHandle> reclaimed =
-                    streamsAdapter.claimIdle(JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS);
-            if (reclaimed.isEmpty()) {
-                return;
+            // Reclaim one stale entry per sweep; the fixedDelay paces the loop
+            // so we don't race a slow worker.
+            try {
+                JudgeWorkerProcessor worker = workerProvider.getIfAvailable();
+                if (worker != null && !worker.hasCapacity()) {
+                    return;
+                }
+                if (drainGate.isDraining()) {
+                    return;
+                }
+                java.util.Optional<JudgeJobHandle> reclaimed =
+                        streamsAdapter.claimIdle(JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS);
+                if (reclaimed.isEmpty()) {
+                    return;
+                }
+                JudgeJobHandle handle = reclaimed.get();
+                log.info("Unacked Streams reaper reclaimed submission={} gen={} (idle >= {}ms)",
+                        handle.envelope().submissionId(),
+                        handle.envelope().generation(),
+                        JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS);
+                // codex P1 #3 fix: route the reclaimed handle to the worker
+                // for fenced processing + ack. Without this, the reclaimed
+                // entry sits in the PEL and is never consumed (worker's
+                // neverDelivered() poll ignores it). We delegate to the
+                // worker so a single fencing pass handles the whole job
+                // (acquireLease -> heartbeat -> execute -> writeVerdictFenced
+                // -> XACK). A later reaper sweep is the fallback when the worker
+                // bean is not wired.
+                if (worker != null) {
+                    worker.processReclaimedHandle(streamsAdapter, handle);
+                } else {
+                    log.warn("Reaper reclaimed submission={} but worker not wired; "
+                            + "a later reaper sweep will retry it",
+                            handle.envelope().submissionId());
+                }
+            } catch (Exception e) {
+                // A single reclaim failure must not stop the reaper. The
+                // pendingCount is the source of truth; the next sweep will
+                // retry naturally.
+                log.warn("Unacked Streams reaper sweep failed: {}", e.getMessage());
             }
-            JudgeJobHandle handle = reclaimed.get();
-            log.info("Unacked Streams reaper reclaimed submission={} gen={} (idle >= {}ms)",
-                    handle.envelope().submissionId(),
-                    handle.envelope().generation(),
-                    JudgeStreamKeys.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS);
-            // codex P1 #3 fix: route the reclaimed handle to the worker
-            // for fenced processing + ack. Without this, the reclaimed
-            // entry sits in the PEL and is never consumed (worker's
-            // neverDelivered() poll ignores it). We delegate to the
-            // worker so a single fencing pass handles the whole job
-            // (acquireLease -> heartbeat -> execute -> writeVerdictFenced
-            // -> XACK). A later reaper sweep is the fallback when the worker
-            // bean is not wired.
-            if (worker != null) {
-                worker.processReclaimedHandle(streamsAdapter, handle);
-            } else {
-                log.warn("Reaper reclaimed submission={} but worker not wired; "
-                        + "a later reaper sweep will retry it",
-                        handle.envelope().submissionId());
-            }
-        } catch (Exception e) {
-            // A single reclaim failure must not stop the reaper. The
-            // pendingCount is the source of truth; the next sweep will
-            // retry naturally.
-            log.warn("Unacked Streams reaper sweep failed: {}", e.getMessage());
+        } finally {
+            drainGate.leave();
         }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     /**

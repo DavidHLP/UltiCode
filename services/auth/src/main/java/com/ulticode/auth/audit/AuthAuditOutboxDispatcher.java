@@ -1,9 +1,12 @@
 package com.ulticode.auth.audit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.lifecycle.DrainGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
@@ -34,10 +37,22 @@ public class AuthAuditOutboxDispatcher {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final String claimOwner = "auth-audit-outbox-" + UUID.randomUUID();
+    private final DrainGate drainGate = new DrainGate();
 
     @Scheduled(fixedDelayString = "${auth.audit.outbox.dispatcher.interval-ms:2000}",
             initialDelayString = "5000")
     public int dispatch() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return dispatchClaimedBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int dispatchClaimedBatch() {
         outboxMapper.reclaimStaleClaimed();
         List<AuthAuditOutboxRecord> pending = outboxMapper.selectPending(BATCH_SIZE);
         if (pending == null || pending.isEmpty()) {
@@ -45,6 +60,9 @@ public class AuthAuditOutboxDispatcher {
         }
         int delivered = 0;
         for (AuthAuditOutboxRecord record : pending) {
+            if (drainGate.isDraining()) {
+                break;
+            }
             if (outboxMapper.claim(record.getId(), claimOwner) == 0) {
                 continue;
             }
@@ -62,6 +80,11 @@ public class AuthAuditOutboxDispatcher {
             }
         }
         return delivered;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     private void publishToStream(AuthAuditOutboxRecord record) throws Exception {

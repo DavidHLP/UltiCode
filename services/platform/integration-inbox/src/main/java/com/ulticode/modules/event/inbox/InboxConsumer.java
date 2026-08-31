@@ -1,5 +1,6 @@
 package com.ulticode.modules.event.inbox;
 
+import com.ulticode.common.lifecycle.DrainGate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -41,6 +42,7 @@ public class InboxConsumer {
     private final TransactionTemplate transactionTemplate;
     private final TransactionTemplate leaseTransactionTemplate;
     private final String instanceId = UUID.randomUUID().toString();
+    private final DrainGate drainGate = new DrainGate();
     private final Map<String, HandlerRegistration> handlers =
             new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -104,7 +106,23 @@ public class InboxConsumer {
         handlers.put(eventType, new HandlerRegistration(handler, false));
     }
 
+    /** Stop claiming new inbox rows while allowing the current batch to finish. */
+    public void beginDrain() {
+        drainGate.beginDrain();
+    }
+
     public int consume() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return consumeClaimedBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int consumeClaimedBatch() {
         String leaseOwner = consumerName + ":" + instanceId;
         int leased = inboxMapper.claimLease(leaseOwner, consumerName, BATCH_SIZE);
         if (leased == 0) {

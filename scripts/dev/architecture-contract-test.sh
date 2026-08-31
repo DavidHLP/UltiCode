@@ -394,12 +394,14 @@ contains .github/workflows/_docker.yml 'supply-chain-contract.sh'
 contains .github/workflows/_docker.yml 'deployment-integrity-contract.sh'
 contains .github/workflows/_backend.yml 'scheduler-contract.sh'
 contains .github/workflows/_backend.yml 'fenced-lease-contract.sh'
+contains .github/workflows/_backend.yml 'graceful-drain-contract.sh'
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"
 bash "$ROOT_DIR/scripts/test/deployment-integrity-contract.sh"
 bash "$ROOT_DIR/scripts/test/scheduler-contract.sh"
 bash "$ROOT_DIR/scripts/test/fenced-lease-contract.sh"
+bash "$ROOT_DIR/scripts/test/graceful-drain-contract.sh"
 contains apps/console/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains apps/management/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains infrastructure/nginx/includes/tls-listener.prod.conf 'listen 8443 ssl;'

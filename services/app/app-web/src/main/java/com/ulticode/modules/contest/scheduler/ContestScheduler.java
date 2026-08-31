@@ -1,9 +1,11 @@
 package com.ulticode.modules.contest.scheduler;
 
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -29,6 +31,7 @@ public class ContestScheduler {
 
     private final ContestLifecycleService contestLifecycleService;
     private final Clock clock;
+    private final DrainGate drainGate = new DrainGate();
 
     /**
      * 10-second heartbeat: advance due UPCOMING→RUNNING, claim and finalize
@@ -38,7 +41,14 @@ public class ContestScheduler {
      */
     @Scheduled(fixedRate = 10_000)
     public void run() {
-        contestLifecycleService.tick(LocalDateTime.now(clock));
+        if (!drainGate.tryEnter()) {
+            return;
+        }
+        try {
+            contestLifecycleService.tick(LocalDateTime.now(clock));
+        } finally {
+            drainGate.leave();
+        }
     }
 
     /**
@@ -64,6 +74,18 @@ public class ContestScheduler {
      */
     @Scheduled(fixedRate = 60_000)
     public void sendContestReminders() {
-        contestLifecycleService.sendReminders(LocalDateTime.now(clock));
+        if (!drainGate.tryEnter()) {
+            return;
+        }
+        try {
+            contestLifecycleService.sendReminders(LocalDateTime.now(clock));
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 }

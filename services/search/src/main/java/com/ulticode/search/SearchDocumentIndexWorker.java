@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meilisearch.sdk.Client;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.time.Duration;
@@ -13,6 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.connection.stream.Consumer;
@@ -82,6 +85,7 @@ public class SearchDocumentIndexWorker {
 
     /** Instance-unique consumer identity, resolved once at startup. */
     private final String consumerName;
+    private final DrainGate drainGate = new DrainGate();
 
     private static final RedisScript<Long> ATOMIC_DEAD_LETTER_SCRIPT = RedisScript.of("""
             local marked = redis.call('SET', KEYS[3], '1', 'NX', 'EX', ARGV[10])
@@ -168,18 +172,33 @@ public class SearchDocumentIndexWorker {
             fixedDelayString = "${search.worker.interval-ms:2000}",
                initialDelayString = "5000")
     public int consume() {
-        if (!ensureGroup()) {
-            slo.incrementFailures();
+        if (!drainGate.tryEnter()) {
             return 0;
         }
-        refreshSloGauges();
-        int processed = 0;
-        processed += drainPending();   // PEL: dead-letter + reclaim
-        processed += drainNew();       // new entries
-        if (processed > 0) {
-            slo.markSuccess();
+        try {
+            if (drainGate.isDraining()) {
+                return 0;
+            }
+            if (!ensureGroup()) {
+                slo.incrementFailures();
+                return 0;
+            }
+            refreshSloGauges();
+            int processed = 0;
+            processed += drainPending();   // PEL: dead-letter + reclaim
+            processed += drainNew();       // new entries
+            if (processed > 0) {
+                slo.markSuccess();
+            }
+            return processed;
+        } finally {
+            drainGate.leave();
         }
-        return processed;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     /**
@@ -265,6 +284,9 @@ public class SearchDocumentIndexWorker {
     }
 
     private boolean ensureGroup() {
+        if (drainGate.isDraining()) {
+            return false;
+        }
         try {
             redisTemplate.opsForStream().createGroup(
                     props.getStreamKey(), ReadOffset.from("0-0"), props.getGroup());
@@ -335,6 +357,9 @@ public class SearchDocumentIndexWorker {
     }
 
     private List<MapRecord<String, String, String>> readNew(StreamOperations<String, String, String> streams) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         List<MapRecord<String, String, String>> records = streams.read(
                 Consumer.from(props.getGroup(), consumerName),
                 StreamReadOptions.empty().count(props.getBatchSize()),
@@ -349,6 +374,9 @@ public class SearchDocumentIndexWorker {
      * inflate their delivery count.
      */
     private List<MapRecord<String, String, String>> readPending(StreamOperations<String, String, String> streams) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         PendingMessages pending = streams.pending(
                 props.getStreamKey(), props.getGroup(), Range.unbounded(), props.getBatchSize());
         if (pending == null || pending.isEmpty()) {

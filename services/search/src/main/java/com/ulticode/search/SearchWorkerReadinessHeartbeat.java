@@ -1,6 +1,7 @@
 package com.ulticode.search;
 
 import com.meilisearch.sdk.Client;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.search.config.SearchWorkerProperties;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,8 @@ import java.nio.file.StandardOpenOption;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,6 +40,7 @@ public class SearchWorkerReadinessHeartbeat {
     private final StringRedisTemplate redisTemplate;
     private final Client meiliSearchClient;
     private final Path readyFile;
+    private final DrainGate drainGate = new DrainGate();
 
     public SearchWorkerReadinessHeartbeat(
             StringRedisTemplate redisTemplate,
@@ -52,18 +56,37 @@ public class SearchWorkerReadinessHeartbeat {
             fixedDelayString = "${search.worker.heartbeat-interval-ms:10000}",
                initialDelayString = "${search.worker.heartbeat-initial-delay-ms:5000}")
     public void beat() {
-        if (!dependenciesUp()) {
-            return;
-        }
-        if (readyFile == null) {
+        if (!drainGate.tryEnter()) {
             return;
         }
         try {
-            Files.writeString(readyFile, String.valueOf(System.currentTimeMillis()),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-        } catch (IOException e) {
-            log.warn("Failed to refresh readiness marker {}: {}", readyFile, e.getMessage());
+            if (!dependenciesUp() || readyFile == null) {
+                return;
+            }
+            if (drainGate.isDraining()) {
+                return;
+            }
+            try {
+                Files.writeString(readyFile, String.valueOf(System.currentTimeMillis()),
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            } catch (IOException e) {
+                log.warn("Failed to refresh readiness marker {}: {}", readyFile, e.getMessage());
+            }
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
+        if (readyFile != null) {
+            try {
+                Files.deleteIfExists(readyFile);
+            } catch (IOException e) {
+                log.debug("Failed to remove readiness marker {}: {}", readyFile, e.getMessage());
+            }
         }
     }
 

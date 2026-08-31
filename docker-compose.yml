@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:9.1
     container_name: ulticode-mysql
+    stop_grace_period: ${INFRA_STOP_GRACE_PERIOD:-30s}
     # Bind to all interfaces so IPv4 port-mapped connections (localhost:23306) reach the
     # MySQL handshake. Without this, MySQL 9.1 listens on IPv6 [::]:3306 only, and Docker
     # Desktop on WSL2 fails to forward the IPv4→IPv6 handshake to the container.
@@ -31,6 +32,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ulticode-redis
+    stop_grace_period: ${INFRA_STOP_GRACE_PERIOD:-30s}
     expose:
       - "6379"
     # Per-owner ACL security boundary (review 2026-08-25): the anonymous
@@ -55,6 +57,7 @@ services:
   nacos:
     image: nacos/nacos-server:v2.3.2
     container_name: ulticode-nacos
+    stop_grace_period: ${INFRA_STOP_GRACE_PERIOD:-30s}
     expose:
       - "8848"
       - "9848"
@@ -89,6 +92,7 @@ services:
   meilisearch:
     image: getmeili/meilisearch:v1.8
     container_name: ulticode-meilisearch
+    stop_grace_period: ${INFRA_STOP_GRACE_PERIOD:-30s}
     restart: unless-stopped
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}

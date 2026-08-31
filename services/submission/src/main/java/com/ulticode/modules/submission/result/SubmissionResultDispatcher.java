@@ -1,9 +1,12 @@
 package com.ulticode.modules.submission.result;
 
 import com.ulticode.modules.submission.result.ResultEventPublisher;
+import com.ulticode.common.lifecycle.DrainGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -36,10 +39,22 @@ public class SubmissionResultDispatcher {
 
     private final SubmissionResultOutboxMapper resultMapper;
     private final ResultEventPublisher resultEventPublisher;
+    private final DrainGate drainGate = new DrainGate();
     @Scheduled(scheduler = "submissionResultOutboxScheduler",
             fixedDelayString = "${result.outbox.dispatcher.interval-ms:3000}",
                initialDelayString = "5000")
     public int dispatch() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return dispatchClaimedBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int dispatchClaimedBatch() {
         resultMapper.reclaimStaleClaimed();
         int claimed = resultMapper.claimPending(claimOwner, BATCH_SIZE);
         if (claimed == 0) {
@@ -70,6 +85,11 @@ public class SubmissionResultDispatcher {
             log.debug("Dispatched {} result outbox events", published);
         }
         return published;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     private void publishResultEvent(SubmissionResultOutboxRecord record) {

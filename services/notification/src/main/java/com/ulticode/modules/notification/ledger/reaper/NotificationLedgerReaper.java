@@ -1,11 +1,14 @@
 package com.ulticode.modules.notification.ledger.reaper;
 
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.notification.ledger.mapper.NotificationDeliveryLedgerMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
@@ -54,10 +57,14 @@ public class NotificationLedgerReaper {
 
     private final NotificationDeliveryLedgerMapper ledgerMapper;
     private final MeterRegistry meterRegistry;
+    private final DrainGate drainGate = new DrainGate();
 
     @Scheduled(fixedDelayString = "${ulticode.notification.ledger.reaper-interval-ms:300000}",
             initialDelayString = "${ulticode.notification.ledger.reaper-initial-delay-ms:60000}")
     public void reap() {
+        if (!drainGate.tryEnter()) {
+            return;
+        }
         try {
             int reaped = ledgerMapper.reapStaleClaimed();
             if (reaped > 0) {
@@ -72,6 +79,13 @@ public class NotificationLedgerReaper {
         } catch (Exception e) {
             log.warn("NotificationLedgerReaper.reap failed: {}",
                     e.getClass().getSimpleName());
+        } finally {
+            drainGate.leave();
         }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 }

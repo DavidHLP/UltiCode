@@ -1,5 +1,6 @@
 package com.ulticode.modules.submission.reaper;
 
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -33,6 +36,7 @@ public class JudgingLeaseReaper {
     private final UuidGenerator uuidGenerator;
     private final MeterRegistry meterRegistry;
     private final ObjectProvider<PlatformTransactionManager> transactionManagerProvider;
+    private final DrainGate drainGate = new DrainGate();
 
     private volatile TransactionTemplate rowTransactionTemplate;
 
@@ -40,6 +44,17 @@ public class JudgingLeaseReaper {
             fixedDelayString = "${judge.reaper.interval-ms:5000}",
             initialDelayString = "${judge.reaper.initial-delay-ms:10000}")
     public int recoverExpiredLeases() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return recoverExpiredLeasesBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int recoverExpiredLeasesBatch() {
         if (!featureFlags.isUseGenerationFence()
                 || !featureFlags.isUseJudgeOutbox()
                 || !featureFlags.getJudgeQueue().isUsePort()) {
@@ -72,6 +87,11 @@ public class JudgingLeaseReaper {
                     failed.size(), expired.size(), failed);
         }
         return recovered;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     private boolean recoverOne(Submission submission) {

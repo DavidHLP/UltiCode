@@ -1,6 +1,7 @@
 package com.ulticode.modules.queue.outbox.dispatcher;
 
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
@@ -12,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +62,7 @@ public class JudgeOutboxDispatcher {
     private final MeterRegistry meterRegistry;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final DrainGate drainGate = new DrainGate();
 
     /** Cutover watermark (F13). Only rows {@code created_at >= cutoverAt} are real-dispatched. */
     @Value("${app.features.judge-queue.cutover-at:1970-01-01T00:00:00}")
@@ -74,12 +78,24 @@ public class JudgeOutboxDispatcher {
             initialDelayString = "${judge.outbox.dispatcher.initial-delay-ms:15000}")
     @Transactional
     public void dispatch() {
-        JudgeQueue judgeQueue = judgeQueueProvider.getIfAvailable();
-        if (judgeQueue == null) {
-            dispatchUnavailable();
-        } else {
-            dispatchReal(judgeQueue);
+        if (!drainGate.tryEnter()) {
+            return;
         }
+        try {
+            JudgeQueue judgeQueue = judgeQueueProvider.getIfAvailable();
+            if (judgeQueue == null) {
+                dispatchUnavailable();
+            } else {
+                dispatchReal(judgeQueue);
+            }
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     /** Keep real rows retryable when cutover is configured but its provider is absent. */

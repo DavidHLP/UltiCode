@@ -1,6 +1,7 @@
 package com.ulticode.modules.event.outbox;
 
 import lombok.RequiredArgsConstructor;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.RecordId;
@@ -8,6 +9,8 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -39,6 +42,7 @@ public class IntegrationOutboxDispatcher {
 
     private final IntegrationOutboxMapper outboxMapper;
     private final StringRedisTemplate redisTemplate;
+    private final DrainGate drainGate = new DrainGate();
 
     /**
      * Scheduled dispatch loop. Runs every 2 seconds (configurable).
@@ -48,6 +52,17 @@ public class IntegrationOutboxDispatcher {
     @Scheduled(fixedDelayString = "${integration.outbox.dispatcher.interval-ms:2000}",
                initialDelayString = "5000")
     public int dispatch() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return dispatchClaimedBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int dispatchClaimedBatch() {
         outboxMapper.reclaimStaleClaimed();
         int claimed = outboxMapper.claimPending(claimOwner, BATCH_SIZE);
         if (claimed == 0) {
@@ -79,6 +94,11 @@ public class IntegrationOutboxDispatcher {
             log.debug("Dispatched {} integration outbox events", published);
         }
         return published;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     /**

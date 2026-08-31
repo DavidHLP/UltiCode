@@ -130,6 +130,17 @@ class SearchDocumentIndexWorkerTest {
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-1"));
         verify(meiliSearchClient, never()).index(anyString());
     }
+
+    @Test
+    @DisplayName("context close stops new Redis claims")
+    void contextCloseStopsNewClaims() {
+        worker.onContextClosed(null);
+
+        assertThat(worker.consume()).isZero();
+        verify(redisTemplate, never()).opsForStream();
+        verify(meiliSearchClient, never()).index(anyString());
+    }
+
     @Test
     @DisplayName("search events from unsupported owners remain unacknowledged")
     void unsupportedOwnerIsNotProcessed() {

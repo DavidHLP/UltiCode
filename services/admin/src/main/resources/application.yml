@@ -1,9 +1,12 @@
 server:
   port: ${SERVER_PORT:9102}
+  shutdown: graceful
 
 spring:
   application:
     name: backend-admin
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:45s}
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration

@@ -9,8 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 
 import java.time.Duration;
+import com.ulticode.common.lifecycle.DrainGate;
 
 /**
  * Scheduler for automated backup tasks
@@ -25,6 +28,7 @@ public class BackupScheduler {
 
     private final BackupService backupService;
     private final FencedJobLeaseService fencedJobLeaseService;
+    private final DrainGate drainGate = new DrainGate();
 
     /**
      * Scheduled backup task that runs at 2 AM daily
@@ -32,6 +36,17 @@ public class BackupScheduler {
      */
     @Scheduled(scheduler = "adminBackupScheduler", cron = "0 0 2 * * ?")
     public void scheduledBackup() {
+        if (!drainGate.tryEnter()) {
+            return;
+        }
+        try {
+            runScheduledBackup();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private void runScheduledBackup() {
         FencedLease lease;
         try {
             lease = fencedJobLeaseService.tryAcquire(BACKUP_LEASE, BACKUP_LEASE_TTL);
@@ -59,5 +74,10 @@ public class BackupScheduler {
                 log.error("Scheduled backup lease release failed", e);
             }
         }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 }

@@ -9,10 +9,13 @@ import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionCreatedContestConsumer;
 import com.ulticode.modules.websocket.consumer.SubmissionJudgedWebSocketConsumer;
 import com.ulticode.modules.moderation.consumer.UserBannedModerationConsumer;
+import com.ulticode.common.lifecycle.DrainGate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
@@ -70,6 +73,7 @@ public class SubmissionJudgedInboxBridge {
     private final UuidGenerator uuidGenerator;
     private final TransactionTemplate transactionTemplate;
     private final List<Binding> bindings;
+    private final DrainGate drainGate = new DrainGate();
 
     public SubmissionJudgedInboxBridge(
             StringRedisTemplate redisTemplate,
@@ -167,19 +171,37 @@ public class SubmissionJudgedInboxBridge {
     @Scheduled(fixedDelayString = "${integration.inbox.consumer.interval-ms:2000}",
                initialDelayString = "5000")
     public int consume() {
-        int staged = 0;
-        for (Binding binding : bindings) {
-            staged += stage(binding);
+        if (!drainGate.tryEnter()) {
+            return 0;
         }
+        try {
+            int staged = 0;
+            for (Binding binding : bindings) {
+                staged += stage(binding);
+            }
 
-        int processed = 0;
-        for (Binding binding : bindings) {
-            processed += binding.inboxConsumer.consume();
+            int processed = 0;
+            for (Binding binding : bindings) {
+                processed += binding.inboxConsumer.consume();
+            }
+            return staged + processed;
+        } finally {
+            drainGate.leave();
         }
-        return staged + processed;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
+        for (Binding binding : bindings) {
+            binding.inboxConsumer.beginDrain();
+        }
     }
 
     private int stage(Binding binding) {
+        if (drainGate.isDraining()) {
+            return 0;
+        }
         if (!ensureGroup(binding)) {
             return 0;
         }
@@ -204,6 +226,9 @@ public class SubmissionJudgedInboxBridge {
     }
 
     private List<MapRecord<String, String, String>> reclaim(Binding binding) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             PendingMessages pending = streams.pending(
@@ -231,6 +256,9 @@ public class SubmissionJudgedInboxBridge {
     }
 
     private List<MapRecord<String, String, String>> read(Binding binding, ReadOffset offset) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             List<MapRecord<String, String, String>> records = streams.read(

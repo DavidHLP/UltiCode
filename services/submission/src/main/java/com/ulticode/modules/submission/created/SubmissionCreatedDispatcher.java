@@ -2,10 +2,13 @@ package com.ulticode.modules.submission.created;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.modules.submission.result.ResultEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -25,11 +28,23 @@ public class SubmissionCreatedDispatcher {
     private final String claimOwner = "submission-created-" + UUID.randomUUID();
     private final SubmissionCreatedOutboxMapper outboxMapper;
     private final ResultEventPublisher eventPublisher;
+    private final DrainGate drainGate = new DrainGate();
 
     @Scheduled(scheduler = "submissionCreatedOutboxScheduler",
                fixedDelayString = "${created.outbox.dispatcher.interval-ms:3000}",
                initialDelayString = "5000")
     public int dispatch() {
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            return dispatchClaimedBatch();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    private int dispatchClaimedBatch() {
         outboxMapper.reclaimStaleClaimed();
         int claimed = outboxMapper.claimPending(claimOwner, BATCH_SIZE);
         if (claimed == 0) {
@@ -56,6 +71,11 @@ public class SubmissionCreatedDispatcher {
             }
         }
         return published;
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
     }
 
     private void publish(SubmissionCreatedOutboxRecord record) {

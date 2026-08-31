@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.audit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
 import com.ulticode.modules.event.inbox.InboxConsumer;
@@ -19,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
@@ -64,6 +67,7 @@ public class AdminAuditIntegrationInboxBridge {
     private final InboxConsumer inboxConsumer;
     private final String redisConsumerName = GROUP + ":" + UUID.randomUUID();
     private final AtomicBoolean groupReady = new AtomicBoolean();
+    private final DrainGate drainGate = new DrainGate();
 
     @Autowired
     public AdminAuditIntegrationInboxBridge(
@@ -93,11 +97,27 @@ public class AdminAuditIntegrationInboxBridge {
             fixedDelayString = "${admin.audit.inbox.interval-ms:2000}",
             initialDelayString = "5000")
     public int consume() {
-        int staged = stage();
-        return staged + inboxConsumer.consume();
+        if (!drainGate.tryEnter()) {
+            return 0;
+        }
+        try {
+            int staged = stage();
+            return staged + inboxConsumer.consume();
+        } finally {
+            drainGate.leave();
+        }
+    }
+
+    @EventListener
+    public void onContextClosed(ContextClosedEvent ignored) {
+        drainGate.beginDrain();
+        inboxConsumer.beginDrain();
     }
 
     private int stage() {
+        if (drainGate.isDraining()) {
+            return 0;
+        }
         if (!ensureGroup()) {
             return 0;
         }
@@ -121,6 +141,9 @@ public class AdminAuditIntegrationInboxBridge {
     }
 
     private List<MapRecord<String, String, String>> reclaim() {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             PendingMessages pending = streams.pending(
@@ -143,6 +166,9 @@ public class AdminAuditIntegrationInboxBridge {
     }
 
     private List<MapRecord<String, String, String>> read(ReadOffset offset) {
+        if (drainGate.isDraining()) {
+            return List.of();
+        }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             List<MapRecord<String, String, String>> records = streams.read(

@@ -65,7 +65,6 @@ if ! [[ -v __ULTICODE_DOCKER_SOURCED ]]; then
       sleep "$interval_seconds"
     done
     echo "Container did not become healthy: $container" >&2
-    docker logs --tail 100 "$container" >&2 || true
     return 1
   }
 

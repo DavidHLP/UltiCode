@@ -34,6 +34,7 @@ for user in "${business_users[@]}"; do
   line="$(grep -F "user $user " "$OUTPUT_FILE")"
   [[ "$line" == *"-@all"* ]] || { echo "$user is not deny-by-default" >&2; exit 1; }
   [[ "$line" != *"+@"* ]] || { echo "$user uses command categories" >&2; exit 1; }
+  [[ "$line" == *"+xlen"* ]] || { echo "$user lacks the required XLEN stream command" >&2; exit 1; }
   [[ "$line" != *"~*"* ]] || { echo "$user has an unrestricted key pattern" >&2; exit 1; }
   [[ "$line" != *"&*"* ]] || { echo "$user has an unrestricted channel pattern" >&2; exit 1; }
   for command in flushdb flushall config shutdown module debug; do

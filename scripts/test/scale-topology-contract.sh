@@ -31,6 +31,7 @@ for service in backend-auth backend-admin backend-app backend-submission backend
   backend-notification backend-judge; do
   contains docker-compose.prod.yml "  $service:"
 done
+contains services/auth/src/main/resources/application.yml 'port: ${DUBBO_PROTOCOL_PORT:20881}'
 
 contains docker-compose.prod.yml 'DUBBO_REGISTRY_ADDRESS=nacos://nacos:8848'
 contains docker-compose.prod.yml 'restart: unless-stopped'

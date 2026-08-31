@@ -204,7 +204,7 @@ dubbo:
   protocol:
     name: tri
     ssl-enabled: ${DUBBO_PROTOCOL_SSL_ENABLED:false}
-    port: 20881
+    port: ${DUBBO_PROTOCOL_PORT:20881}
     triple:
       max-requests-per-connection: 50
   ssl:

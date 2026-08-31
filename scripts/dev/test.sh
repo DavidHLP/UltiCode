@@ -11,11 +11,11 @@ TEST_MYSQL_IMAGE="${TEST_MYSQL_IMAGE:-mysql:8.0}"
 TEST_MYSQL_DB_NAME="${TEST_MYSQL_DB_NAME:-ulticode}"
 TEST_MYSQL_CONTAINER=""
 TEST_ENV_FILE=""
-if command -v mise >/dev/null 2>&1; then
-  MAVEN=(mise exec java@zulu-17.68.203.0 -- ./mvnw)
-else
-  MAVEN=(./mvnw)
+if ! command -v mise >/dev/null 2>&1; then
+  echo "mise is required for the Java 17 test gate" >&2
+  exit 1
 fi
+MAVEN=(mise exec java@zulu-17.68.203.0 -- ./mvnw)
 
 case "$MODE" in
   quick|full|integration)
@@ -93,6 +93,33 @@ if [[ -z "${MEILI_MASTER_KEY:-}" ]]; then
   MEILI_MASTER_KEY="$(openssl rand -hex 32)"
   export MEILI_MASTER_KEY
 fi
+
+# Older local .env files may predate the health/HA Redis principals. The test
+# wrapper is disposable, so supply in-memory values for this run and never
+# rewrite the developer's secret file. The ACL generator below stores only
+# hashes in the ignored runtime directory.
+for ephemeral_redis_var in HEALTH_REDIS_PASSWORD REDIS_REPLICATION_PASSWORD REDIS_SENTINEL_PASSWORD; do
+  if [[ -z "${!ephemeral_redis_var:-}" ]]; then
+    printf -v "$ephemeral_redis_var" '%s' "$(openssl rand -hex 32)"
+    export "$ephemeral_redis_var"
+  fi
+done
+
+# Keep the test ACL isolated from a possibly root-owned dev-stack directory
+# left by an earlier container run. This directory is ignored and contains
+# only hash-based ACL material generated for the current local test stack.
+REDIS_ACL_DIR="$ROOT_DIR/.local/test-redis-acl"
+[[ "$REDIS_ACL_DIR" == /* ]] || REDIS_ACL_DIR="$ROOT_DIR/$REDIS_ACL_DIR"
+mkdir -p "$REDIS_ACL_DIR"
+chmod 755 "$REDIS_ACL_DIR"
+REDIS_ACL_FILE="$REDIS_ACL_DIR/users.acl"
+[[ "$REDIS_ACL_FILE" == /* ]] || REDIS_ACL_FILE="$ROOT_DIR/$REDIS_ACL_FILE"
+export REDIS_ACL_DIR REDIS_ACL_FILE
+if [[ ! -x "$ROOT_DIR/docker/redis/generate-users-acl.sh" ]]; then
+  echo "Missing Redis ACL generator: docker/redis/generate-users-acl.sh" >&2
+  exit 1
+fi
+"$ROOT_DIR/docker/redis/generate-users-acl.sh" "$REDIS_ACL_FILE"
 
 if ! [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ && "$TEST_DB_NAME" =~ ^[A-Za-z0-9_]+$ && "$TEST_MYSQL_DB_NAME" =~ ^[A-Za-z0-9_]+$ ]]; then
   echo "DB_USER, TEST_DB_NAME, and TEST_MYSQL_DB_NAME must contain only letters, digits, or underscore." >&2

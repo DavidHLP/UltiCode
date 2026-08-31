@@ -4,6 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 COMMAND="${1:-migrate}"
+
+# Keep every real Flyway invocation on the repository's supported Java 17
+# toolchain. A bare mise `mvn` shim is not a Maven executable and fails when
+# no global Maven version is configured.
+if ! command -v mise >/dev/null 2>&1; then
+  echo "mise is required for repository Flyway commands" >&2
+  exit 1
+fi
+if [[ "${ULTICODE_MISE_JAVA17:-0}" != "1" ]]; then
+  exec env ULTICODE_MISE_JAVA17=1 mise exec java@zulu-17.68.203.0 -- bash "$0" "$@"
+fi
+
 case "$COMMAND" in
   migrate|validate|info|repair|baseline|contract)
     ;;
@@ -32,7 +44,7 @@ load_env_file
 # connection.
 apply_env_overrides
 MIGRATION_MYSQL_CONTAINER_PORT="${MIGRATION_MYSQL_CONTAINER_PORT:-3306}"
-MAVEN_BIN="${MAVEN_BIN:-mvn}"
+MAVEN_BIN="${MAVEN_BIN:-$ROOT_DIR/services/mvnw}"
 fail_preflight() {
   echo "Migration preflight failed: $*" >&2
   exit 1

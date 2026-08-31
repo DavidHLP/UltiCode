@@ -47,7 +47,7 @@ password_hashes() {
 # Exact commands needed by the current Spring Data Redis, Redisson, and stream
 # adapters. No command categories are used: administrative commands such as
 # FLUSHDB, FLUSHALL, CONFIG, SHUTDOWN, MODULE, and DEBUG remain denied.
-COMMON_COMMANDS="+auth +hello +ping +quit +select +client|id +client|setname +get +set +getdel +del +unlink +exists +expire +pexpire +expireat +pexpireat +ttl +pttl +incr +incrby +decr +decrby +incrbyfloat +hget +hset +hdel +hexists +hgetall +hkeys +hlen +hmget +hmset +hvals +hincrby +hincrbyfloat +sadd +srem +sismember +smembers +scard +srandmember +zadd +zrem +zrange +zrevrange +zrangebyscore +zrevrangebyscore +zcard +zscore +lpush +rpush +lpop +rpop +lrange +llen +ltrim +type +scan +multi +exec +discard +watch +unwatch +eval +evalsha +script|exists +script|load +xadd +xread +xreadgroup +xack +xpending +xclaim +xautoclaim +xgroup +xrange +xrevrange +xdel +xtrim +xinfo"
+COMMON_COMMANDS="+auth +hello +ping +quit +select +client|id +client|setname +get +set +getdel +del +unlink +exists +expire +pexpire +expireat +pexpireat +ttl +pttl +incr +incrby +decr +decrby +incrbyfloat +hget +hset +hdel +hexists +hgetall +hkeys +hlen +hmget +hmset +hvals +hincrby +hincrbyfloat +sadd +srem +sismember +smembers +scard +srandmember +zadd +zrem +zrange +zrevrange +zrangebyscore +zrevrangebyscore +zcard +zscore +lpush +rpush +lpop +rpop +lrange +llen +ltrim +type +scan +multi +exec +discard +watch +unwatch +eval +evalsha +script|exists +script|load +xadd +xlen +xread +xreadgroup +xack +xpending +xclaim +xautoclaim +xgroup +xrange +xrevrange +xdel +xtrim +xinfo"
 PUBSUB_COMMANDS="+publish +subscribe +psubscribe +unsubscribe +punsubscribe"
 
 # NOTE: redis-server ACL files allow ONLY lines that start with "user" — no

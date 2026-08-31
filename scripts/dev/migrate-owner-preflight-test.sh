@@ -12,6 +12,7 @@ FAKE_BIN="$TMP_DIR/bin"
 ENV_FILE="$TMP_DIR/.env"
 MAVEN_MARKER="$TMP_DIR/maven-marker"
 mkdir -p "$FAKE_BIN"
+export MAVEN_BIN="$FAKE_BIN/mvn"
 
 cat >"$ENV_FILE" <<'EOF'
 DB_HOST=runtime-host

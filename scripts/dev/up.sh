@@ -287,6 +287,15 @@ if [[ "$FRONTEND_ONLY" != true ]]; then
   : "${MIGRATION_DB_PASSWORD:=${DB_ROOT_PASSWORD:-$MYSQL_ROOT_PASSWORD}}"
 fi
 
+# Bind Nacos bootstrap to the Compose project before the first Compose command
+# runs. The default matches Compose's normalized repository basename.
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ulticode}"
+[[ "$COMPOSE_PROJECT_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$ ]] || {
+  echo "COMPOSE_PROJECT_NAME must be a safe Docker Compose project name." >&2
+  exit 1
+}
+export COMPOSE_PROJECT_NAME NACOS_EXPECTED_DOCKER_PROJECT="$COMPOSE_PROJECT_NAME"
+
 compose=(
   docker compose --env-file "$ENV_FILE"
   -f "$ROOT_DIR/docker-compose.yml"

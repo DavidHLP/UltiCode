@@ -273,6 +273,9 @@ jobs:
       - name: Validate dependency resilience
         run: bash scripts/test/dependency-resilience-contract.sh
 
+      - name: Validate Redis Streams resilience
+        run: bash scripts/test/stream-resilience-contract.sh
+
   # --- Baseline Parity (init-db deep module) ---
   # CI gate for 派生制品：baseline.sql 必须与增量迁移 per-schema 一致.
   # 本地等价: ./init-db/scripts/validate-baseline.sh && ./init-db/scripts/baseline-adopt.sh

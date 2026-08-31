@@ -1,5 +1,6 @@
 package com.ulticode.common.event;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -13,6 +14,8 @@ import java.util.Set;
  * dependency (AuthSingleHopArchTest, §6.5).</p>
  */
 public final class IntegrationEventEnvelopeContract {
+    public static final int CURRENT_SCHEMA_VERSION = 1;
+    public static final int MIN_SUPPORTED_SCHEMA_VERSION = 1;
 
     public static final String EVENT_ID = "eventId";
     public static final String OWNER = "owner";
@@ -30,4 +33,47 @@ public final class IntegrationEventEnvelopeContract {
 
     private IntegrationEventEnvelopeContract() {
     }
+
+    /**
+     * Validate the transport envelope before a consumer acknowledges it.
+     *
+     * <p>Schema versions are additive only: consumers accept the supported
+     * range and leave malformed or future events in the broker PEL.</p>
+     *
+     * @param fields Redis Stream fields
+     * @throws IllegalArgumentException when the envelope is incompatible
+     */
+    public static void requireCompatibleEnvelope(Map<String, String> fields) {
+        if (fields == null) {
+            throw new IllegalArgumentException("Integration event envelope is missing");
+        }
+        for (String field : FIELDS) {
+            if (CAUSATION_ID.equals(field) || TRACE_ID.equals(field)) {
+                continue;
+            }
+            String value = fields.get(field);
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("Missing integration event field: " + field);
+            }
+        }
+        int schemaVersion;
+        try {
+            schemaVersion = Integer.parseInt(fields.get(SCHEMA_VERSION));
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Invalid integration event schema version", exception);
+        }
+        if (schemaVersion < MIN_SUPPORTED_SCHEMA_VERSION
+                || schemaVersion > CURRENT_SCHEMA_VERSION) {
+            throw new IllegalArgumentException(
+                    "Unsupported integration event schema version: " + schemaVersion);
+        }
+        try {
+            if (Long.parseLong(fields.get(AGGREGATE_VERSION)) < 0L) {
+                throw new IllegalArgumentException("Integration event aggregate version is negative");
+            }
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Invalid integration event aggregate version", exception);
+        }
+    }
+
 }

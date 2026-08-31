@@ -3,6 +3,7 @@ package com.ulticode.notification.inbox;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.notification.api.event.NotificationIntentEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
@@ -346,6 +347,13 @@ public class NotificationIntegrationInboxBridge {
                         eventId, binding.group, e.getMessage());
             }
             return 0;
+        }
+        try {
+            IntegrationEventEnvelopeContract.requireCompatibleEnvelope(fields);
+        } catch (IllegalArgumentException e) {
+            log.warn("Incompatible integration event {} for {}: {}",
+                    eventId, binding.group, e.getMessage());
+            return stagePoison(binding, record, eventId, e);
         }
         if (!expectedOwner(eventType, fields.get("owner"))) {
             return stagePoison(binding, record, eventId,

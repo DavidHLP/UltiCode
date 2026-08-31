@@ -3,6 +3,7 @@ package com.ulticode.modules.event.inbox;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.consumer.SubmissionJudgedAchievementConsumer;
 import com.ulticode.modules.contest.consumer.SubmissionJudgedContestConsumer;
@@ -302,6 +303,13 @@ public class SubmissionJudgedInboxBridge {
                         eventId, binding.group, e.getMessage());
             }
             return 0;
+        }
+        try {
+            IntegrationEventEnvelopeContract.requireCompatibleEnvelope(fields);
+        } catch (IllegalArgumentException e) {
+            log.warn("Incompatible integration event {} for {}: {}",
+                    eventId, binding.group, e.getMessage());
+            return stagePoison(binding, record, eventId, e);
         }
         if (!expectedOwner(eventType, fields.get("owner"))) {
             return stagePoison(binding, record, eventId,

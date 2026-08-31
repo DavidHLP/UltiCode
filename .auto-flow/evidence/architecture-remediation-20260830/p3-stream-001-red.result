@@ -1,0 +1,12 @@
+P3-STREAM-001 RED
+
+Command:
+  rtk bash -lc 'mise exec java@zulu-17.68.203.0 -- bash ./mvnw -pl search -am -Dtest=SearchDocumentIndexWorkerTest -DfailIfNoTests=false test -B'
+
+Observed:
+  SearchDocumentIndexWorkerTest ran 22 tests with 2 failures.
+  futureSchemaIsNotProcessed expected zero processing but received one.
+  malformedAggregateVersionIsNotProcessed expected zero processing but received one.
+
+Root cause exposed:
+  SearchDocumentIndexWorker accepted future schemaVersion and malformed aggregateVersion because the shared envelope was field-name-only and parseVersion silently returned 0.

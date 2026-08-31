@@ -80,6 +80,49 @@ class JudgeStreamRedisIntegrationTest {
     }
 
     @Test
+    @DisplayName("a replacement consumer reclaims an unacked entry after worker loss")
+    void replacementConsumerReclaimsUnackedEntry() {
+        String streamKey = "judge:it:" + UUID.randomUUID();
+        RedissonClient client = defaultCodecClient();
+        try {
+            RedissonStreamsJudgeQueueAdapter first = adapter(client, streamKey, 5, "it-consumer-1");
+            first.ensureGroup();
+            first.enqueue(envelope("sub-" + UUID.randomUUID()));
+            assertThat(first.poll(2_000)).isPresent();
+            assertThat(first.pendingDepth()).isEqualTo(1);
+
+            RedissonStreamsJudgeQueueAdapter replacement =
+                    adapter(client, streamKey, 5, "it-consumer-2");
+            Optional<JudgeJobHandle> reclaimed = replacement.claimIdle(0L);
+
+            assertThat(reclaimed).as("replacement must reclaim the crashed worker's PEL entry").isPresent();
+            replacement.ack(reclaimed.get());
+            assertThat(replacement.pendingDepth()).isZero();
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    @Test
+    @DisplayName("malformed stream payload is acknowledged as poison without business delivery")
+    void malformedPayloadIsPoisonAcked() {
+        String streamKey = "judge:it:" + UUID.randomUUID();
+        RedissonClient client = defaultCodecClient();
+        try {
+            RedissonStreamsJudgeQueueAdapter adapter = adapter(client, streamKey, 5);
+            adapter.ensureGroup();
+            RStream<String, String> stream = client.getStream(streamKey, StringCodec.INSTANCE);
+            stream.add(org.redisson.api.stream.StreamAddArgs.entry("payload", "{not-json"));
+
+            assertThat(adapter.poll(2_000)).isEmpty();
+            assertThat(adapter.pendingDepth()).isZero();
+        } finally {
+            client.shutdown();
+        }
+    }
+
+
+    @Test
     @DisplayName("dedup marker short-circuits a repeated enqueue without a second XADD")
     void dedupSkipsSecondEnqueue() {
         String streamKey = "judge:it:" + UUID.randomUUID();
@@ -165,6 +208,11 @@ class JudgeStreamRedisIntegrationTest {
     }
 
     private RedissonStreamsJudgeQueueAdapter adapter(RedissonClient client, String streamKey, int maxAttempts) {
+        return adapter(client, streamKey, maxAttempts, "it-consumer");
+    }
+
+    private RedissonStreamsJudgeQueueAdapter adapter(
+            RedissonClient client, String streamKey, int maxAttempts, String consumerName) {
         return new RedissonStreamsJudgeQueueAdapter(
                 client,
                 // Lenient like the judge runtime ObjectMapper
@@ -174,7 +222,7 @@ class JudgeStreamRedisIntegrationTest {
                         com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false),
                 streamKey,
                 "it-workers",
-                "it-consumer",
+                consumerName,
                 1_000L,
                 maxAttempts,
                 null);

@@ -396,6 +396,9 @@ contains .github/workflows/_backend.yml 'scheduler-contract.sh'
 contains .github/workflows/_backend.yml 'fenced-lease-contract.sh'
 contains .github/workflows/_backend.yml 'graceful-drain-contract.sh'
 contains .github/workflows/_backend.yml 'dependency-resilience-contract.sh'
+contains .github/workflows/_backend.yml 'stream-resilience-contract.sh'
+contains scripts/test/stream-resilience-contract.sh 'stream-resilience-contract: PASS'
+bash "$ROOT_DIR/scripts/test/stream-resilience-contract.sh"
 bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
 bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
 bash "$ROOT_DIR/scripts/test/observability-contract.sh"

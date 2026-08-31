@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meilisearch.sdk.Client;
 import com.meilisearch.sdk.exceptions.MeilisearchException;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
@@ -454,21 +455,21 @@ public class SearchDocumentIndexWorker {
     private boolean process(MapRecord<String, String, String> record) {
         Map<String, String> fields = record.getValue();
         if (fields == null) {
-            ack(record);
-            return true;
+            return ack(record);
         }
         if (!EVENT_TYPE.equals(fields.get("eventType"))) {
             // Not ours; ACK so this group's cursor advances without touching
-            // other groups' delivery.
-            ack(record);
-            return true;
+            // other groups.
+            return ack(record);
         }
 
         try {
+            IntegrationEventEnvelopeContract.requireCompatibleEnvelope(fields);
             String owner = fields.get(SearchDocumentChangedEventContract.OWNER_FIELD);
             if (owner == null || !SearchDocumentChangedEventContract.SUPPORTED_PUBLISHERS.contains(owner)) {
                 throw new IllegalArgumentException("unsupported search event owner: " + owner);
             }
+
             Map<String, Object> payload = objectMapper.readValue(fields.get("payload"), payloadType);
             String index = stringField(payload, SearchDocumentChangedEventContract.INDEX);
             String operation = stringField(payload, SearchDocumentChangedEventContract.OPERATION);
@@ -490,7 +491,9 @@ public class SearchDocumentIndexWorker {
 
             boolean applied = applyVersionedOperation(
                     record, index, documentId, incomingVersion, operation, payload);
-            ack(record);
+            if (!ack(record)) {
+                return false;
+            }
             if (!applied) {
                 return true;
             }
@@ -596,10 +599,8 @@ public class SearchDocumentIndexWorker {
 
     /**
      * Whether the lease is still ours (renewing it in the same check).
-     * Redis answers 1 (renewed) or 0 (lost); a {@code null} answer only
-     * occurs with a broken transport or test double and is optimistically
-     * treated as still owned — a genuinely unavailable Redis fails the
-     * subsequent ledger write loudly instead.
+     * Redis answers 1 (renewed) or 0 (lost). A missing or failed renewal
+     * fails closed so a stale worker cannot advance the version ledger.
      */
     private boolean ownsDocumentLock(String lockKey, String lockToken) {
         try {
@@ -608,10 +609,9 @@ public class SearchDocumentIndexWorker {
                     List.of(lockKey),
                     lockToken,
                     String.valueOf(DOCUMENT_LOCK_TTL.toSeconds()));
-            return renewed == null || renewed > 0L;
+            return renewed != null && renewed > 0L;
         } catch (RuntimeException exception) {
-            log.warn("Search document lease renewal check failed for {}: {}", lockKey, exception.getMessage());
-            return true;
+            throw new IllegalStateException("Search document lease renewal unavailable", exception);
         }
     }
 
@@ -677,12 +677,16 @@ public class SearchDocumentIndexWorker {
      */
     private long parseVersion(String raw) {
         if (raw == null || raw.isBlank()) {
-            return 0L;
+            throw new IllegalArgumentException("Missing aggregate version");
         }
         try {
-            return Long.parseLong(raw);
+            long version = Long.parseLong(raw);
+            if (version < 0L) {
+                throw new IllegalArgumentException("Negative aggregate version");
+            }
+            return version;
         } catch (NumberFormatException e) {
-            return 0L;
+            throw new IllegalArgumentException("Invalid aggregate version", e);
         }
     }
 
@@ -691,11 +695,20 @@ public class SearchDocumentIndexWorker {
         return value == null ? null : String.valueOf(value);
     }
 
-    private void ack(MapRecord<String, String, String> record) {
+    private boolean ack(MapRecord<String, String, String> record) {
         try {
-            redisTemplate.opsForStream().acknowledge(props.getStreamKey(), props.getGroup(), record.getId());
+            Long acknowledged = redisTemplate.opsForStream().acknowledge(
+                    props.getStreamKey(), props.getGroup(), record.getId());
+            if (acknowledged == null || acknowledged < 1L) {
+                slo.incrementFailures();
+                log.warn("Search event {} was not acknowledged", record.getId().getValue());
+                return false;
+            }
+            return true;
         } catch (RuntimeException e) {
+            slo.incrementFailures();
             log.warn("Failed to ACK search event {}: {}", record.getId().getValue(), e.getMessage());
+            return false;
         }
     }
 }

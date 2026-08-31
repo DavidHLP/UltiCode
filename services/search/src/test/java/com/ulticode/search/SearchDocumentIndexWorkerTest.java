@@ -65,6 +65,10 @@ class SearchDocumentIndexWorkerTest {
         when(redisTemplate.opsForStream()).thenReturn(streamOps);
         when(redisTemplate.opsForHash()).thenReturn(hashOps);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(streamOps.acknowledge(anyString(), anyString(), any(RecordId.class))).thenReturn(1L);
+        when(redisTemplate.execute(
+                any(org.springframework.data.redis.core.script.RedisScript.class),
+                anyList(), any(Object[].class))).thenReturn(1L);
         when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
         when(meiliSearchClient.index(anyString())).thenReturn(meiliIndex);
     }
@@ -79,13 +83,19 @@ class SearchDocumentIndexWorkerTest {
 
     private MapRecord<String, String, String> record(
             String id, String eventType, String payload, String version, String owner) {
+        return record(id, eventType, payload, version, owner, "1");
+    }
+
+    private MapRecord<String, String, String> record(
+            String id, String eventType, String payload, String version,
+            String owner, String schemaVersion) {
         return StreamRecords.mapBacked(Map.of(
                         "eventId", "evt-" + id,
                         "owner", owner,
                         "eventType", eventType,
                         "aggregateId", "doc-" + id,
                         "aggregateVersion", version,
-                        "schemaVersion", "1",
+                        "schemaVersion", schemaVersion,
                         "causationId", "cause-" + id,
                         "traceId", "trace-" + id,
                         "payload", payload))
@@ -466,6 +476,35 @@ class SearchDocumentIndexWorkerTest {
                         "evt-9", "App", SearchDocumentChangedEventContract.EVENT_TYPE,
                         "doc-9", "0", "1", "cause-9", "trace-9",
                         upsertPayload("problems"), "86400", "search-worker", "evt-9");
+    }
+    @Test
+    @DisplayName("future envelope schema remains in the PEL")
+    void futureSchemaIsNotProcessed() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("future-schema",
+                        SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "100", "App", "2")));
+
+        assertThat(worker.consume()).isZero();
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
+    }
+
+    @Test
+    @DisplayName("malformed aggregate version remains in the PEL")
+    void malformedAggregateVersionIsNotProcessed() {
+        stubBusyGroup();
+        stubEmptyReads();
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(record("malformed-version",
+                        SearchDocumentChangedEventContract.EVENT_TYPE,
+                        upsertPayload("problems"), "not-a-number", "App", "1")));
+
+        assertThat(worker.consume()).isZero();
+        verify(meiliSearchClient, never()).index(anyString());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
     }
 
 }

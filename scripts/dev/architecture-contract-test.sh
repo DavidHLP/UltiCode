@@ -22,6 +22,41 @@ not_contains() {
     || fail "$file contains stale or bypass text: $text"
 }
 
+compact_contains() {
+  local file="$1" text="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
+  python3 - "$ROOT_DIR/$file" "$text" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+needle = re.sub(r"\s+", "", sys.argv[2])
+source = re.sub(r"\s+", "", path.read_text(encoding="utf-8"))
+if needle not in source:
+    raise SystemExit(f"{path}: missing guarded symbol chain {sys.argv[2]}")
+PY
+}
+
+compact_not_contains() {
+  local file="$1" text="$2"
+  [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
+  if python3 - "$ROOT_DIR/$file" "$text" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+needle = re.sub(r"\s+", "", sys.argv[2])
+source = re.sub(r"\s+", "", path.read_text(encoding="utf-8"))
+raise SystemExit(0 if needle not in source else 1)
+PY
+  then
+    return 0
+  fi
+  fail "$file contains forbidden guarded symbol chain: $text"
+}
+
 for file in \
   scripts/runbooks/notification-schema-cutover.sh \
   scripts/runbooks/submission-schema-cutover.sh \
@@ -211,12 +246,15 @@ for stale_csrf in \
   [[ ! -e "$ROOT_DIR/$stale_csrf" ]] || fail "stale Auth-only CSRF implementation remains: $stale_csrf"
 done
 for route_config in \
+  services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java \
   services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
   services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \
   services/notification/src/main/java/com/ulticode/notification/security/NotificationSecurityConfig.java \
   services/app/app-web/src/test/java/com/ulticode/app/security/AppTestSecurityConfig.java; do
-  not_contains "$route_config" '.anyRequest().permitAll()'
+  compact_not_contains "$route_config" '.anyRequest().permitAll()'
 done
+compact_contains services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java \
+  '.anyRequest().authenticated()'
 contains services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java \
   '.anyRequest().authenticated()'
 contains services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java \

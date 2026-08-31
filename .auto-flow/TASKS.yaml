@@ -331,6 +331,7 @@ services_issues_20260828:
         - "origin/main N-1 app-api+submission-api japicmp contract-compat: exit 0"
         - "architecture/docs/DevStack, bash-n, Compose dev/prod, workflow/action YAML, git diff --check: exit 0"
         - "graphify update: 27545 nodes / 80685 edges / exit 0; Codebase Memory moderate: 43719 nodes / 188931 edges"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result: disposable Docker, Redis Streams, owner migration, Nacos registration, HA/reconnect, and two-instance scale checks exit 0"
       commits: []
       notes: "No commit/push/deploy authorization. SVC-003-GATE remains an independent external blocker reported by completion audit."
 architecture_remediation_20260830:
@@ -509,9 +510,12 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-006-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-006-green.result"
-        - "Exact ACL generator and static contract pass; disposable runtime ACL verification is externally blocked by unavailable Redis/Docker"
-      blocked_by: [DOCKER-ENV]
-      notes: "P2 handles runtime materialization and rotation"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
+        - "Exact ACL generator, static contract, runtime materialization/rotation, drift rejection, lock, rollback, and plaintext absence pass"
+      commit: 054b95e
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
+      blocked_by: []
+      notes: "P2 runtime materialization and rotation are also locally verified; production secret rotation remains external"
     - id: P0-SEC-007
       title: "Verify SSH host identity in deployment"
       priority: P0
@@ -548,9 +552,11 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-008-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p0-sec-008-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: b689e73
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by: []
-      notes: "P3 adds workload mTLS; no real Nacos accounts are changed"
+      notes: "P3 adds workload mTLS; production Nacos accounts are unchanged. The approved disposable smoke provisions only temporary local accounts and tears its stack down."
     - id: P1-SUB-001
       title: "Establish Submission owner-only mutation path"
       priority: P1
@@ -605,7 +611,9 @@ architecture_remediation_20260830:
         - "Disposable MySQL rehearsal"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-003-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: 73d9f78
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by: []
       notes: "Real target backfill is external unless authorized environment exists"
     - id: P1-SUB-004
@@ -624,9 +632,11 @@ architecture_remediation_20260830:
         - "Forbidden SQL architecture gate"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p1-sub-004-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: 8a521d7
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by: []
-      notes: "Repository reconciliation is complete; Docker-backed integration remains BLOCKED_EXTERNAL. Do not add cross-owner joins"
+      notes: "Repository reconciliation is complete; disposable owner migration and OwnerReconcilerIT now pass with local Docker. Do not add cross-owner joins; production observation remains external"
     - id: P1-NOT-001
       title: "Complete Notification owner persistence cutover"
       priority: P1
@@ -924,10 +934,11 @@ architecture_remediation_20260830:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-green.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-stream-001-review-fix.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: 4ebb418
-      follow_up_commit: 614d90f
-      blocked_by: ["REDIS_HOST unset for local real Redis integration; CI migration validation now provides Redis"]
-      notes: "Shared envelope validation rejects future schema and malformed aggregate versions before business effects; App/Notification poison incompatible accepted events, Search preserves PEL and uses typed D:T tombstones, Judge retains atomic XADD/XACK/DLQ and replacement-consumer reclaim coverage. Focused Search 23/23 and App/Notification 12/12 passed; local Judge real Redis suite remains externally blocked because REDIS_HOST is unset."
+      follow_up_commit: "614d90f, cb40a226934ec501b788a1a673fe864d41d35ae0"
+      blocked_by: []
+      notes: "Shared envelope validation rejects future schema and malformed aggregate versions before business effects; App/Notification poison incompatible accepted events, Search preserves PEL and uses typed D:T tombstones, and Judge atomic XADD/XACK/DLQ plus real Redis crash/reclaim/dedup/DLQ tests pass. Production broker fault injection remains external."
     - id: P3-SCALE-001
       title: "Validate two-instance service operation"
       priority: P3
@@ -944,9 +955,11 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-scale-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-scale-001-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: 7833227
-      blocked_by: ["Production Compose merged expansion and two-instance runtime drill require an approved disposable environment; local .env lacks required health/prod values"]
-      notes: "Base/prod Compose use service DNS and no container_name; dev/test/up/doctor/runbook/smoke paths resolve current containers through Compose ps or service labels. Static and shell/Compose-safe checks pass; Docker registration/distribution/removal/rolling-restart/failure proof is BLOCKED_EXTERNAL."
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
+      blocked_by: ["BLOCKED_EXTERNAL: production multi-host rollout, peer/network authority, and production traffic distribution evidence are unavailable; the approved local disposable two-instance drill passes"]
+      notes: "Base/prod Compose use service DNS and no container_name; Auth protocol port is overrideable for isolated replicas. Static merged-config expansion and the disposable Nacos-backed two-instance registration/removal/rolling-restart/failure sequence pass. Production-scale traffic and rollout evidence remains external."
     - id: P3-HA-001
       title: "Provide truthful stateful HA profiles"
       priority: P3
@@ -963,7 +976,9 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-ha-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-ha-001-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: 9b7c628
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by: ["Production HA Compose expansion/failover authority remains operator-provided; CI/static and disposable Redis proof are available"]
       notes: "Non-default HA profile provides GTID/binlog MySQL primary/replica, Redis replica plus three Sentinel processes with generated owner, replication, and Sentinel ACL identities, and Nacos three-node cluster mode. External HA configs are checked for replication/auth/quorum directives; MySQL promotion and application endpoint changes remain manual; current clients are not claimed Sentinel-aware. MeiliSearch remains single-node derived data with owner restore and version-ledger reset/backfill recovery. Temporary dev Compose expansion, ACL contract, and disposable Redis restart/reconnect pass."
     - id: P3-IDENTITY-001
@@ -1061,6 +1076,7 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/arch-dubbo-001.result"
       commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by:
         - "BLOCKED_EXTERNAL: the retained SubmissionWriteProvider N-1 consumer drain and registry retirement cannot be proven from this checkout"
       notes: "Source inventory reports every provider/reference with owner, interface, group, version and repository consumer; dead health/analytics/read providers and duplicate App adapters are removed. Only the documented deprecated SubmissionWriteProvider compatibility exception remains."
@@ -1097,10 +1113,11 @@ architecture_remediation_20260830:
         - "JaCoCo report/gate negative fixture"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/test-cov-001.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: "ef74edc657beaba8fc269e85ae45b6d434e7be2b"
-      blocked_by:
-        - "BLOCKED_EXTERNAL: scripts/dev/test.sh quick/full reached Compose dependency startup but .env lacks HEALTH_REDIS_PASSWORD; no dependency-backed unified run can be claimed"
-      notes: "Six affected backend modules pass JaCoCo verify with explicit recursive security/idempotency rules; three frontend V8 gates use source include globs, fixed floors and frozen CI installs; negative fixtures reject weak coverage and missing contract baselines."
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
+      blocked_by: []
+      notes: "Six affected backend modules pass JaCoCo verify with explicit recursive security/idempotency rules; three frontend V8 gates use source include globs, fixed floors and frozen CI installs; negative fixtures reject weak coverage and missing contract baselines. Current quick/full Compose-backed gates pass with disposable in-memory helper credentials and isolated generated ACL without rewriting .env."
     - id: REVIEW-001
       title: "Run first full standards and spec review"
       priority: P3
@@ -1119,6 +1136,7 @@ architecture_remediation_20260830:
       commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
       blocked_by: []
       notes: "Standards and Spec findings were separated; confirmed in-repository findings were fixed, while compatibility-drain and runtime-environment limits remain explicitly external."
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
     - id: REVIEW-002
       title: "Run independent final implementation review"
       priority: P3
@@ -1134,9 +1152,11 @@ architecture_remediation_20260830:
         - "Full verification"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/review-002.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/review-follow-up-20260901.result"
       commit: "bfd1919882c7d1e9d6a976626c623591ed856057"
+      follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by: []
-      notes: "Independent code, Java/Spring and security reviews report no CRITICAL/HIGH; one non-blocking low observation is documented, and all affected repository gates were rerun."
+      notes: "Independent code, Java/Spring and security reviews at the prior checkpoint reported no CRITICAL/HIGH. Post-checkpoint concrete findings were fixed and reverified in review-follow-up-20260901.result; fresh delegated reviewer transport did not return a final message, so no new reviewer PASS is claimed."
     - id: CLOSURE-001
       title: "Close tasks commits evidence and final report"
       priority: P3
@@ -1153,7 +1173,7 @@ architecture_remediation_20260830:
         - "graphify update"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/closure-001.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
       commit: "4c53c34dc8cee40461338fc1748b5c2725dfaddb"
-      blocked_by:
-        - "BLOCKED_EXTERNAL: HEALTH_REDIS_PASSWORD is absent from the local .env, so quick/full Compose-backed test dependencies cannot start"
-      notes: "No push or production apply without separate authorization"
+      blocked_by: []
+      notes: "Repository-local blockers were rechecked and closed in the disposable evidence file; external production/remote/consumer authority remains recorded on the affected tasks. No push or production apply without separate authorization"

@@ -73,7 +73,14 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 
 ## scripts/test/ — standalone smoke suites
 
-Gateway baseline, moderation API, admin solutions, Dubbo/Nacos smoke. New
+Gateway baseline, moderation API, admin solutions, Dubbo/Nacos smoke. The
+Dubbo/Nacos smoke accepts an owned mode-600 `ENV_FILE` for an isolated local
+stack, pins its disposable Compose project, provisions the Auth owner account
+for the temporary database, checks `/api/v1/auth/health/ready`, and keeps
+credentials out of process arguments, URLs, and failure tails. Its live
+assertion is the application-level `register-mode=instance` service plus
+Dubbo metadata; it does not require an interface-level provider service.
+New
 smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 `smoke_require_credentials`, `smoke_login`). Credentials converge on
 `SMOKE_USERNAME`/`SMOKE_PASSWORD`; legacy names are still accepted.

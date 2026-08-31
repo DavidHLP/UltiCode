@@ -27,7 +27,7 @@ Start here; do not restart discovery from scratch.
 6. For a resumed task, read its current evidence and continue from the recorded stop point; do not redesign or revert completed reconciliation work.
 7. `.auto-flow/TASKS.yaml` is closed for repository work: all 42 tasks are DONE; only recorded `BLOCKED_EXTERNAL` execution items remain.
 8. Make local Conventional Commits only. Do not push.
-9. Do not execute production, remote-host, credential-rotation, account-provisioning, migration, deployment, sudo, group-membership, or other external mutations.
+9. Do not execute production, remote-host, credential-rotation, deployment, sudo, group-membership, or other external mutations. Short-lived account provisioning and migrations are allowed only inside the explicitly isolated disposable verification stacks.
 10. After code changes, run `rtk graphify update .`.
 
 ## 2. User objective and authority
@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints are `7743d88f`, `ef74edc`, and `bfd1919`; no task remains active. External consumer-drain, Compose-secret, remote-runtime and production-authority limits are recorded as `BLOCKED_EXTERNAL` in the task ledger.
+Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints are `7743d88f`, `ef74edc`, `bfd1919`, and local verification hardening `cb40a226934ec501b788a1a673fe864d41d35ae0`; the local blocker follow-up is recorded in `.auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result`. No task remains active. External consumer-drain, production secret/failover, remote-runtime and production-authority limits are recorded as `BLOCKED_EXTERNAL` in the task ledger.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -166,7 +166,7 @@ Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints 
 - `P3-GRACE-001`: DONE — Drain services safely on termination
 - `P3-RES-001`: DONE — Bound retries circuits and dependency concurrency
 - `P3-STREAM-001`: DONE — Prove stream crash replay and compatibility (`4ebb418`, review follow-up `614d90f`)
-- `P3-SCALE-001`: DONE — Validate two-instance service operation (`7833227`; runtime drill externally blocked)
+- `P3-SCALE-001`: DONE — Validate two-instance service operation (`7833227`; approved disposable Nacos-backed runtime drill passes; production rollout external)
 - `P3-HA-001`: DONE — Provide truthful stateful HA profiles (`9b7c628`; production expansion/failover authority external)
 - `P3-IDENTITY-001`: DONE — Authenticate Dubbo workloads with mTLS (`8f190a7`; production certificate/registry rollout external)
 - `P3-NET-001`: DONE — Restrict service network reachability (`51efd26`; production expansion/firewall/DNS/ingress authority external)
@@ -174,10 +174,10 @@ Current count: 42 DONE, 0 TODO. The final repository implementation checkpoints 
 - `ARCH-CONTRACT-001`: DONE — Align contracts with bounded owners (`7743d88f`; deprecated N-1 removal remains `BLOCKED_EXTERNAL`)
 - `ARCH-DUBBO-001`: DONE — Prune provider and reference sprawl (`7743d88f`; N-1 registry retirement remains `BLOCKED_EXTERNAL`)
 - `ARCH-SEC-001`: DONE — Forbid duplicate security implementations (`bfd1919`)
-- `TEST-COV-001`: DONE — Enforce real non-regression coverage gates (`ef74edc`; unified Compose run is `BLOCKED_EXTERNAL`)
+- `TEST-COV-001`: DONE — Enforce real non-regression coverage gates (`ef74edc`, verification `cb40a226934ec501b788a1a673fe864d41d35ae0`; unified Compose run passes locally)
 - `REVIEW-001`: DONE — Run first full standards and spec review (`7743d88f`)
 - `REVIEW-002`: DONE — Run independent final implementation review (`bfd1919`)
-- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (checkpoint `4c53c34d`)
+- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (checkpoint `4c53c34d`; follow-up `cb40a226934ec501b788a1a673fe864d41d35ae0`)
 
 For exact dependencies, acceptance criteria, validation commands, and external notes, use the same task entries in `.auto-flow/TASKS.yaml`; do not invent alternate task IDs or a second task system.
 
@@ -256,7 +256,7 @@ The session’s broader execution checklist has two completed categories and sev
 - Separate PING-only health user.
 - Atomic ACL-file replacement.
 - Static ACL and Compose checks pass.
-- Runtime Redis integration is Docker-blocked.
+- Runtime Redis Streams integration passes 6/6 against the local ACL-protected Redis.
 - GREEN implementation commit in history: `054b95e7d`.
 
 ### P0-SEC-007 — SSH host identity
@@ -274,7 +274,7 @@ The session’s broader execution checklist has two completed categories and sev
 - Explicit application names, credentials, and namespaces in Compose, PM2, and local tooling.
 - Built-in Nacos account remains disabled.
 - Static/effective Compose, Nacos security, architecture, docs, launcher, generated-env, and graph gates passed.
-- Live Nacos/Dubbo registration is Docker-blocked.
+- Disposable authenticated Nacos/Dubbo registration smoke passes; production registry rollout remains external.
 - GREEN commit: `b689e73af`.
 
 ### P1-SUB-001 — owner-only Submission mutation
@@ -328,7 +328,7 @@ The session’s broader execution checklist has two completed categories and sev
 - Added `scripts/test/submission-backfill-contract.sh` fake-MySQL rehearsal.
 - Extended disposable owner migration integration test to run backfill and verify before cutover.
 - Fake-MySQL contract, migration preflight, architecture/docs/shell/diff gates, and Graphify passed.
-- Disposable MySQL/Redis rehearsal remains Docker-blocked.
+- Disposable MySQL/Redis migration/backfill/cutover/rollback rehearsal passes.
 - GREEN commit: `73d9f78e2`.
 - Evidence: `p1-sub-003-green.result`.
 
@@ -398,13 +398,13 @@ a29236739 refactor(notification): move reconciliation to owner facts
   - newer-owner protection PASS;
   - execute confirmation rejection PASS.
 - Current architecture gate includes Redis ACL, SSH identity, Nacos security, backfill contract, documentation drift, and ownership assertions.
-- P1-SUB-004: implementation commit `8a521d7`; focused 32 tests and affected reactor 711 suites/2404 tests pass with zero failures/errors, architecture/docs/diff/Graphify gates pass, and Docker-backed owner integration is BLOCKED_EXTERNAL.
+- P1-SUB-004: implementation commit `8a521d7`; focused 32 tests and affected reactor 711 suites/2404 tests pass with zero failures/errors, architecture/docs/diff/Graphify gates pass, and `OwnerReconcilerIT` passes against local Testcontainers.
 
 ### Runtime gates that were not run
 
-- Redis runtime integration: Docker-blocked.
-- Nacos/Dubbo live registration: Docker-blocked.
-- Disposable MySQL/Redis owner migration/backfill rehearsal: Docker-blocked.
+- Redis runtime integration: PASS (local ACL-protected Redis Streams, 6 tests).
+- Nacos/Dubbo live registration: PASS in the approved disposable environment; production rollout remains external.
+- Disposable MySQL/Redis owner migration/backfill rehearsal: PASS.
 - Production traffic/cutover/HA/failover/SLO evidence: external and not fabricated.
 
 ## 11. Completed checkpoint — P1-SUB-004
@@ -491,7 +491,7 @@ The implementation commit is clean; the follow-on `.auto-flow` checkpoint record
 1. `OwnerReconciler` has one nightly scheduler, valid escaped JSON details, explicit full/incremental entry points, and a transaction-scoped advisory lease.
 2. `SKIPPED` is documented as an in-memory status and is returned only for a busy lease; lock errors persist `FAILED` when the database remains writable.
 3. Focused tests cover full paging, incremental watermark propagation, invalid/duplicate/ordered facts, busy leases, lock/owner failures, actionable metrics/details, and App's removed Submission SQL.
-4. `OwnerReconcilerIT` and Submission owner integration are wired for real grouped full/incremental facts but remain Docker-blocked in this host.
+4. `OwnerReconcilerIT` and Submission owner integration are wired for real grouped full/incremental facts; `OwnerReconcilerIT` now passes with local Testcontainers.
 5. Repository documentation, task/evidence ledgers, and Graphify were updated after green repository checks.
 6. The historical P1 sequence is closed; the current closure state is recorded below and in `.auto-flow/TASKS.yaml`.
 
@@ -593,8 +593,8 @@ At the final handoff:
 - Final implementation checkpoints are `7743d88f769bda1e5f0534eb925b7ade159607e0`, `ef74edc657beaba8fc269e85ae45b6d434e7be2b`, and `bfd1919882c7d1e9d6a976626c623591ed856057`.
 - There is no active task. ARCH-CONTRACT-001, ARCH-DUBBO-001, ARCH-SEC-001, TEST-COV-001, REVIEW-001, REVIEW-002 and CLOSURE-001 are DONE.
 - Contract boundary, Dubbo inventory, security, coverage, API compatibility, selected Maven verify, frontend coverage/type-check, architecture/docs and Graphify gates pass.
-- `scripts/dev/test.sh quick` and `full` pass all repository-only stages but stop before Compose startup because `.env` lacks `HEALTH_REDIS_PASSWORD`; this is `BLOCKED_EXTERNAL`.
-- Deprecated Submission N-1 compatibility drain, real Redis/HA/scale/remote Judge/mTLS/network/production evidence remain `BLOCKED_EXTERNAL`.
+- `scripts/dev/test.sh quick` and `full` pass with disposable in-memory helper credentials and isolated generated ACL; `.env` remains unchanged.
+- Deprecated Submission N-1 compatibility drain, production HA/failover, certificate/registry rollout, remote Judge, firewall/DNS/ingress, telemetry/SLO operation and production traffic evidence remain `BLOCKED_EXTERNAL`.
 
 ## 17. Final closure condition
 
@@ -605,7 +605,7 @@ The architecture remediation is closed in the repository when:
 - multi-replica overlap is fenced;
 - failures create metrics and actionable persisted records;
 - focused tests and affected-module tests pass;
-- integration tests either pass or are truthfully recorded as Docker-blocked;
+- integration tests either pass in the authorized local disposable environment or are truthfully recorded as production/remote `BLOCKED_EXTERNAL`;
 - architecture/docs/diff/Graphify gates pass;
 - implementation, evidence, task status, handoff, and local commits are updated together.
 
@@ -932,3 +932,11 @@ The next repository task is `P3-NET-001`.
 `P3-JUDGE-001` is repository-complete in `3aef022` with lifecycle/preflight hardening follow-up `0781f5f` (`fix(security): harden remote Judge lifecycle`). Production Compose removes the Docker socket, `DOCKER_GID` and `group_add` trust, requires a deployment-owned remote/rootless Docker daemon over TCP TLS, mounts the client bundle read-only, and checks endpoint, immutable release image assignments, regular cert files, rootless security options, shared absolute workspace, fixed seccomp profile and remote sandbox image before migrations and ACL mutation. The explicit socket profile is isolated to `docker-compose.judge-dev.yml --profile judge-socket`.
 
 The sandbox executor preserves `--network none`, `--cap-drop ALL`, `--read-only`, `--user 1000:1000`, bounded memory/CPU/PIDs and seccomp. It mounts only the read-only job workspace, records a cidfile plus unique name, and DockerProcessRunner removes timed-out or interrupted remote containers through bounded `rm -f` cleanup with deterministic-name fallback retries. Judge contract, 2/2 cleanup tests, affected 14-test reactor, Compose profile parse, full architecture/docs/shell/diff and Graphify gates pass. Remote daemon, rootless proof, certificate permissions/rotation, shared workspace/image provisioning and production smoke remain external. The next repository task is `ARCH-CONTRACT-001`.
+
+## 39. Local blocker follow-up — 2026-09-01
+
+The repository-local execution blockers were rechecked in the approved disposable Docker context. `scripts/dev/test.sh quick` and `full` pass without rewriting `.env`; Redis ACL generation/rotation and real Judge Streams crash/reclaim/dedup/DLQ integration pass; owner migration/backfill/cutover/rollback safety and `OwnerReconcilerIT` pass; HA profile/reconnect and authenticated Nacos registration pass; and the Nacos-backed two-instance sequence reports `2:20891,20892 -> 1:20892 -> 2:20891,20892 -> 1:20891`. The latest code/evidence follow-up is `cb40a226934ec501b788a1a673fe864d41d35ae0`; the evidence packet is `.auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result`.
+
+The Nacos bootstrap now uses namespace-scoped canonical resource paths and explicit `r`/`w` actions, while the disposable smoke pins its project, bounds requests, keeps credentials out of process arguments/URLs, and cleans temporary material. Auth's default Dubbo port remains `20881` with an explicit `DUBBO_PROTOCOL_PORT` override for isolated replicas.
+
+Remaining `BLOCKED_EXTERNAL` items are limited to the Submission N-1 consumer drain/registry retirement and operator-owned production or remote evidence: HA promotion/failover, certificate/secret rotation and rollout, production network/edge/telemetry/SLO operation, and remote/rootless Judge endpoint/workspace/image smoke. No push, merge, deployment, production mutation, sudo or group/credential mutation was performed.

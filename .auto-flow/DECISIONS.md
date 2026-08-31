@@ -68,7 +68,7 @@
 
 - Context: production registry clients previously inherited one shared Nacos username/password and the Compose override could silently run standalone.
 - Decision: keep dev explicitly standalone in the dev namespace; require a production cluster peer list and non-empty namespace; provision one registry user/role per Dubbo workload with only config/service read-write permissions, while the built-in Nacos account stays disabled.
-- Consequences: a service credential or registry permission can be rotated independently; live Nacos account provisioning and registration smoke remain environment-gated and are not performed by repository work.
+- Consequences: a service credential or registry permission can be rotated independently; production Nacos account changes and rollout remain environment-gated, while the approved disposable registration smoke is repository-local and tears down its temporary accounts.
 - Affected tasks: P0-SEC-008, P3-IDENTITY-001.
 
 ### Route Admin rejudge through the Submission owner
@@ -205,7 +205,7 @@
 
 - Context: Redis Streams already provides PEL delivery, but the shared envelope did not reject future schema or malformed aggregate versions and Search could treat failed lease renewal/ACK as success.
 - Decision: validate the shared envelope at accepted App/Notification staging and Search processing boundaries; poison malformed accepted events, leave Search failures in the PEL, and fail closed on lease renewal or ACK uncertainty. Keep existing durable MySQL inbox CAS/idempotency, Redis atomic Judge enqueue/DLQ, and per-document Search version ledger rather than adding another broker.
-- Consequences: replay remains safe and unsupported/future events cannot create business effects; real Redis crash/reclaim and broker-fault evidence still requires a Redis-enabled environment.
+- Consequences: replay remains safe and unsupported/future events cannot create business effects; local Redis crash/reclaim evidence is now captured, while production broker fault injection remains external.
 - Affected tasks: P3-STREAM-001, P3-SCALE-001, P3-HA-001.
 
 ## P3-STREAM-001 follow-up: encode tombstones without numeric ambiguity
@@ -219,7 +219,7 @@
 
 - Context: fixed `container_name` values prevent Compose replicas and bind host scripts/smokes to one local session.
 - Decision: remove fixed names from base/prod Compose, keep backend discovery on service DNS, and resolve host-side targets through Compose service IDs or labels. Isolate disposable smoke projects before volume cleanup.
-- Consequences: replicas can be addressed without name collisions; production-like two-instance registration/failure evidence still requires an approved disposable environment and is not inferred from static checks.
+- Consequences: replicas can be addressed without name collisions; an approved local disposable two-instance registration/removal/rolling-restart/failure sequence is captured separately, while production multi-host traffic evidence remains external.
 - Affected tasks: P3-SCALE-001, P3-HA-001, P3-NET-001.
 
 ## P3-HA-001: provide stateful reference profiles without false failover claims
@@ -272,5 +272,14 @@
 
 - Context: report generation alone could pass despite skipped tests, stale Vue parse exclusions or a lowered threshold.
 - Decision: run real JaCoCo/V8 coverage commands, include production source globs, reject test/type/generated artifacts, pin committed frontend floors, use an explicit Submission owner-specific bundle property, freeze CI lockfile installs, and fail closed when cross-stack i18n fixtures are unavailable.
-- Consequences: current repository coverage is truthful without inflating numbers by business-source exclusions; the unified Compose gate still reports the missing local Redis health secret as external.
+- Consequences: current repository coverage is truthful without inflating numbers by business-source exclusions; the unified Compose gate materializes missing test-only Redis helper values in memory and keeps `.env` unchanged.
 - Affected tasks: TEST-COV-001, REVIEW-001, REVIEW-002.
+
+## 2026-09-01: close repository-local runtime blockers without changing authority
+
+- Evidence: an approved disposable Docker context is sufficient to validate repository-local Redis, MySQL, Nacos, migration, reconciliation, and two-instance behavior. It is not production evidence.
+- Decision: generate missing test-only health/HA Redis values in memory, render ACL hashes into an isolated ignored directory, and keep the developer `.env` unchanged. Remove the stale local `HEALTH_REDIS_PASSWORD` blocker from current metadata.
+- Decision: keep Nacos registry users namespace-scoped and use explicit `r`-only config/metadata reads plus owner-scoped `w` paths for metadata and naming. Configured and empty-namespace metadata paths are both bounded; provider metadata uses each owner's `com.ulticode.<owner>*` prefix. The bootstrap binds the target MySQL container to the caller's Compose project, fails closed on unsafe/overlong resources, and keeps the built-in account disabled.
+- Decision: make disposable Nacos smoke inputs owned/non-writable and pin the Compose project to the script PID; credential forms use stdin, API tokens use a temporary Bearer config, readiness checks include Auth DB/Redis, failure output is redacted, Compose errors propagate, and temporary logs/configs are removed. The smoke asserts application-level `register-mode=instance` plus metadata-service presence, not an interface-level provider naming entry. Preserve the mise-managed Zulu 17 Maven path and Auth's default Dubbo port while allowing an explicit local replica override.
+- Consequences: local Redis Streams crash/reclaim, ACL, owner migration/backfill/cutover/rollback, reconciliation, HA reconnect, Nacos registration, two-instance lifecycle, quick, and full gates are now evidenced. N-1 consumer drain, production failover/certificates/telemetry/network/remote Judge and production rollout remain `BLOCKED_EXTERNAL`.
+- Affected tasks: P0-SEC-006, P0-SEC-008, P1-SUB-003, P1-SUB-004, P2-REDIS-001, P3-STREAM-001, P3-SCALE-001, P3-HA-001, TEST-COV-001, CLOSURE-001.

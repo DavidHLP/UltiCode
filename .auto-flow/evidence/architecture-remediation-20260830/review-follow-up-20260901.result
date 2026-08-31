@@ -1,0 +1,30 @@
+task: REVIEW-FOLLOW-UP
+date: 2026-09-01
+scope: "Post-checkpoint disposable verification hardening in cb40a226934ec501b788a1a673fe864d41d35ae0"
+result: "NO_UNRESOLVED_KNOWN_CRITICAL_OR_HIGH"
+
+reviewed_findings:
+  - finding: "Nacos instance-mode smoke incorrectly queried an interface-level providers service"
+    result: "FIXED"
+    evidence: "scripts/test/dubbo-nacos-smoke.sh now asserts the application instance and Dubbo metadata-service metadata; the authenticated disposable smoke passes."
+  - finding: "Nacos resource length bound omitted the longest provider path"
+    result: "FIXED"
+    evidence: "bootstrap-nacos-user.sh bounds :DEFAULT_GROUP:naming/providers:com.ulticode.notification* and the Nacos security contract passes."
+  - finding: "Nacos ACL matrix omitted default config and empty-namespace mapping paths"
+    result: "FIXED"
+    evidence: "The bootstrap provisions explicit read-only/default and owner-prefixed mapping paths; the Nacos security contract passes."
+  - finding: "Compose bootstrap target and smoke diagnostics could be misbound or expose secrets"
+    result: "FIXED"
+    evidence: "Compose project is bound before bootstrap; migration/backend secrets are held in mode-600 temporary env files; token/header and failure output guards pass; full smoke passes."
+
+verification:
+  - "rtk bash -n on changed shell files: PASS"
+  - "rtk bash scripts/test/nacos-security-contract.sh: PASS"
+  - "rtk bash scripts/dev/architecture-contract-test.sh: PASS"
+  - "rtk bash scripts/dev/test.sh quick: PASS"
+  - "rtk bash scripts/dev/test.sh full: PASS after stale disposable-container cleanup"
+  - "rtk git diff --check: PASS"
+
+reviewer_limit:
+  result: "BLOCKED_TOOL"
+  detail: "Fresh delegated code-reviewer/security-reviewer sessions were invoked after the fixes, but the reviewer transport returned no final message after bounded waits and was closed. Their earlier concrete HIGH findings are listed above and were rechecked by source, contracts, and runtime; no reviewer PASS is fabricated."

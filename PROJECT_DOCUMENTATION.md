@@ -655,7 +655,7 @@ Submission owner 的 `SubmissionAdministrationProvider` 先验证 backend-admin 
 
 Backfill 只插入 target 缺失主键，不更新已有 owner 行。已有同主键但字段不同的行会停止该批并导出冲突；因此不会用 legacy source 覆盖较新的 owner 数据。`verify` 对 submissions/judge_outbox/submission_result_outbox 分别检查 source/target count、缺失/多余主键、逐字段 NULL-safe 比较、CHECKSUM TABLE 和 App writer 状态；任一 unexplained difference 非零都会阻止 `cutover --execute`。cutover 只撤销已核验的 App 表级 grants，不再隐式执行一把梭复制。
 
-证据：`scripts/test/submission-backfill-contract.sh`（fake-MySQL dry-run/checkpoint/conflict rehearsal）与 `owner-migration-safety-integration-test.sh`（真实 disposable MySQL/Redis，当前因 Docker daemon 权限外部阻塞）。
+证据：`scripts/test/submission-backfill-contract.sh`（fake-MySQL dry-run/checkpoint/conflict rehearsal）与 `owner-migration-safety-integration-test.sh`（真实 disposable MySQL/Redis migration/backfill/cutover/rollback safety pass）。生产目标库观察与切流仍属外部证据。
 
 ##### 4.6 身份模型裁决
 
@@ -1361,10 +1361,11 @@ RocketMQ 准入条件：Redis event backlog/retention 达不到 SLA、需要独�
 
 ##### 11.3 Registry、配置与网络
 
-- Nacos 只用注册发现；dev 使用显式 standalone + `DUBBO_NAMESPACE=dev`，prod 强制 cluster 并要求 `NACOS_SERVERS` 与非空 `DUBBO_NAMESPACE`；每个 Dubbo workload 使用独立 Nacos 用户、角色与 application name，operator administrator 由 `scripts/security/bootstrap-nacos-user.sh` 维护，内置 `nacos` 账号保持禁用；业务配置继续 env/application，避免同时改变 discovery 和 config source；
+- Nacos 只用注册发现；dev 使用显式 standalone + `DUBBO_NAMESPACE=dev`，prod 强制 cluster 并要求 `NACOS_SERVERS` 与非空 `DUBBO_NAMESPACE`；每个 Dubbo workload 使用独立 Nacos 用户、角色与 application name。Bootstrap 对 `Dubbo-Nacos-Test`/`DEFAULT_GROUP` 配置和 `mapping` 元数据只授予显式 `r`，mapping 写入限制为对应 owner 的 `com.ulticode.<owner>*` 前缀（同时覆盖空 namespace 的兼容路径）；naming 只允许 namespace/group 范围读取，application/provider 写入也限制为对应 owner。Compose project、资源长度和内置 `nacos` 账号均 fail-closed，operator administrator 由 `scripts/security/bootstrap-nacos-user.sh` 维护；业务配置继续 env/application，避免同时改变 discovery 和 config source；
+- `scripts/test/dubbo-nacos-smoke.sh` 是短时、隔离的本地运行证明：它使用自有 Compose project、临时 owner 账号/ACL 和 loopback 端口，先验证 Auth `/health/ready` 的 DB/Redis 可用性，再验证 `register-mode=instance` 的 `backend-auth` 应用实例及 Dubbo metadata；它不把 interface-level `providers:<interface>` 查询误当作 instance-level 注册，也不产生生产证据。
 - Base/prod Compose 继续不暴露 MySQL、Redis、Nacos、backend 端口；开发仅 loopback；
 - `P3-NET-001` 将 base/prod Compose 的隐式 default/infrastructure 全互联改为最小网络成员：`edge` 仅连接前端与 HTTP owners，`sql`/`cache`/`registry`/`search` 分别连接对应基础设施，`rpc-auth`/`rpc-app`/`rpc-submission`/`rpc-notification`/`rpc-judge` 只连接真实 Dubbo caller/target，`observability` 只连接 telemetry collector、scraper 与 backend workers，`egress` 只连接需要 SMTP/OAuth/S3/OTLP/Nacos peer 的 workload；除 `egress` 外所有网络默认 `internal: true`。网络 contract 会拒绝生产 backend/infra `ports`、host network、default/infrastructure 残留及 forbidden membership，并执行 disposable allow/deny drill。
-- P3-SCALE-001 的 base/prod Compose 不定义 `container_name`，backend discovery 只使用 service DNS；测试、启动、健康和 runbook 脚本从 Compose service label/`ps -q` 解析当前实例，避免宿主会话绑定某个固定容器名。真实双副本注册、分布、摘除、滚动重启和单实例故障需在授权一次性 Docker 环境运行 `scale-topology-contract.sh` 的外部演练。
+- P3-SCALE-001 的 base/prod Compose 不定义 `container_name`，backend discovery 只使用 service DNS；测试、启动、健康和 runbook 脚本从 Compose service label/`ps -q` 解析当前实例，避免宿主会话绑定某个固定容器名。授权一次性 Docker 环境中的 Nacos-backed 双副本注册、摘除、滚动重启和单实例故障演练已通过；生产多主机流量/发布证据仍由外部 authority 负责。
 - `P3-HA-001` 的非默认 `docker-compose.ha.yml` profile `ha` 是可审计的 stateful reference profile，不是默认生产拓扑：MySQL primary 开启 GTID/binlog 并提供 `mysql-replica`，但复制初始化、提升、切换 `DB_HOST` 和回切必须由外部运维 authority 执行；它不宣称无感自动故障转移，也不替代 `owner-backup-restore.sh` 的加密备份与 restore drill。
 - 同一 HA profile 提供 Redis replica 与 `redis-sentinel-1/2/3`，挂载运行时生成的按 Owner ACL（`default off`、Auth/Admin/App/Submission/Search/Notification/Judge/Ops/Health 身份不变）以及独立的 `ulticode-replication`、`ulticode-sentinel` 控制面身份。`REDIS_HA_CONFIG_DIR` 必须包含 `redis-replica.conf`、`sentinel-1.conf`、`sentinel-2.conf`、`sentinel-3.conf`；replica 配置使用 `masteruser ulticode-replication`/`masterauth`，Sentinel 配置使用 `sentinel auth-user mymaster ulticode-sentinel`/`auth-pass`，密码由 `REDIS_REPLICATION_PASSWORD`/`REDIS_SENTINEL_PASSWORD` secret 注入并随 ACL rotation 一起轮换。只有配置真实复制、quorum=2、单次故障转移并让客户端使用 Sentinel-aware URI 后，Redis 才有数据平面 failover。当前 Spring Data/Redisson 默认仍是单 endpoint，不能仅启动 profile 就声称应用无感切换。
 - 同一 profile 将 Nacos primary 与 `nacos-2`/`nacos-3` 置于 cluster mode，共用 `nacos_config` 与 `NACOS_SERVERS` peer list，保留 auth token/identity 与每个 Dubbo workload 的独立账号；Nacos 配置中心仍不是业务配置源。`NACOS_SERVERS`、共享数据库可达性和节点摘除必须由部署环境验证，base/dev 仍保持 standalone。
@@ -1540,7 +1541,7 @@ App DB fallback 的四类 SearchSource 读契约同时传递 `offset/limit` 并�
 
 #### Appendix A. 调研证据与限制
 
-本指导以当前源码、canonical migrations、POM/application/Compose 和代表性真实调用链为依据。结构性调查使用了 codebase graph 作为候选定位，但图谱元数据存在 HEAD/generation 不一致，且当前运行时没有 `check_index_coverage`。因此没有把图谱空结果当作“绝对不存在”的证明；表清单、教育领域缺口、Dubbo/Nacos/AI 未使用、事务注解、跨模块 import 等负面结论均通过当前源码全范围 glob/grep/read 回退。
+本指导以当前源码、canonical migrations、POM/application/Compose 和代表性真实调用链为依据。结构性调查使用 codebase graph 作为候选定位，并对操作路径调用 `check_index_coverage`；图谱仍是 best-effort，metadata-changed、excluded 或 parse-partial 范围均通过当前源码 grep/read 回退。因此没有把图谱空结果当作“绝对不存在”的证明；表清单、教育领域缺口、Dubbo/Nacos/AI 未使用、事务注解、跨模块 import 等负面结论均通过当前源码全范围 glob/grep/read 回退。
 
 关键证据入口：
 

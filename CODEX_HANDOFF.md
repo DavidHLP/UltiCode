@@ -134,7 +134,7 @@ Repository work may make production actions executable and verifiable, but must 
 
 ## 6. Full 42-task status
 
-Current count: 32 DONE, 10 TODO. `P3-IDENTITY-001` is the active implementation task; `P3-HA-001` is closed in `9b7c628`, `P3-SCALE-001` is closed in `7833227`, and `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`. Earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
+Current count: 33 DONE, 9 TODO. `P3-NET-001` is the active implementation task; `P3-IDENTITY-001` is closed in `8f190a7`, `P3-HA-001` is closed in `9b7c628`, `P3-SCALE-001` is closed in `7833227`, and `P3-STREAM-001` is closed in `4ebb418` with review follow-up `614d90f`. Earlier P0/P1/P2/P3 tasks remain closed with their available owner checks green.
 
 - `CTX-001`: DONE — Rebuild remediation context and baseline evidence
 - `TRACE-001`: DONE — Map every finding to implementation evidence
@@ -168,7 +168,7 @@ Current count: 32 DONE, 10 TODO. `P3-IDENTITY-001` is the active implementation 
 - `P3-STREAM-001`: DONE — Prove stream crash replay and compatibility (`4ebb418`, review follow-up `614d90f`)
 - `P3-SCALE-001`: DONE — Validate two-instance service operation (`7833227`; runtime drill externally blocked)
 - `P3-HA-001`: DONE — Provide truthful stateful HA profiles (`9b7c628`; production expansion/failover authority external)
-- `P3-IDENTITY-001`: TODO — Authenticate Dubbo workloads with mTLS
+- `P3-IDENTITY-001`: DONE — Authenticate Dubbo workloads with mTLS (`8f190a7`; production certificate/registry rollout external)
 - `P3-NET-001`: TODO — Restrict service network reachability
 - `P3-JUDGE-001`: TODO — Remove production Docker socket trust
 - `ARCH-CONTRACT-001`: TODO — Align contracts with bounded owners
@@ -912,4 +912,10 @@ passed. Production HA promotion/failover, secret-managed config, MySQL endpoint 
 application clients, and MeiliSearch recovery authority remain external. MeiliSearch is explicitly single-node derived data and
 recovers by restoring Owners, clearing the version ledger, and replaying backfill.
 
-The next repository task is `P3-IDENTITY-001`.
+The next repository task is `P3-NET-001`.
+
+## 36. Completed checkpoint — P3-IDENTITY-001
+
+`P3-IDENTITY-001` is repository-complete in `8f190a7` (`feat(security): enforce Dubbo workload mTLS`). All six Triple workloads now carry production-configurable SSL/mTLS paths and independent service identity configuration. The shared `backend-rpc-resilience` SPI filter validates provider caller SANs against the delegation audience and consumer server SANs against the local reference target; missing/expired/unknown/wrong-SAN/unauthorized peers fail closed. Auth now packages the filter artifact, production Compose mounts per-service material read-only, and CI runs the mTLS contract on both backend and Docker-triggered changes.
+
+`dubbo-mtls-contract.sh` passes certificate policy, wrong-SAN/unknown/expired/unauthorized trust and authorized/unauthorized TLS handshakes. The Maven policy/SPI/transport-session test passes 7/7; ACL rotation covers replication/Sentinel identities. Full architecture/docs/shell/diff and Graphify gates pass. Production certificate provisioning, secret rotation, Nacos/Dubbo registration and rollout remain external. The next repository task is `P3-NET-001`.

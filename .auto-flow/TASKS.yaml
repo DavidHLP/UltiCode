@@ -971,18 +971,20 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Security/mTLS"
       dependencies: [P0-SEC-005, P0-SEC-008]
-      status: TODO
-      affected_modules: ["platform/web-security", "services Dubbo config", "compose"]
+      status: DONE
+      affected_modules: ["platform/rpc-resilience", "all six Triple service configs", "production Compose/CI"]
       acceptance_criteria:
         - "Production Triple uses per-service mTLS identities with SAN/caller policy aligned to delegation audience"
         - "Unknown expired wrong-SAN and unauthorized service certificates fail; keys are secret mounts with rotation"
       validation_commands:
         - "TLS config tests"
         - "Wrong-certificate integration tests"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "No real certificates are committed or rotated"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-identity-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-identity-001-green.result"
+      commit: 8f190a7
+      blocked_by: ["Production certificate provisioning, secret-store rotation, Nacos/Dubbo registration and rollout require external operator authority"]
+      notes: "Provider/consumer workload-mtls SPI filter enforces exact SPIFFE/DNS SAN identity and delegation caller/target matrix. Production Compose uses required per-service read-only mounts; local/CI OpenSSL and policy/session tests pass. No real certificates or credentials were committed or rotated."
     - id: P3-NET-001
       title: "Restrict service network reachability"
       priority: P3

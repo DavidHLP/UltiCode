@@ -36,7 +36,7 @@ No staging or production application is assumed by repository completion.
 | Deployment disables SSH host verification | `P0-SEC-007` | host-deploy action/workflows | forbidden-pattern and workflow tests; required environment `known_hosts` | pending | TODO |
 | Nacos credentials are shared and production defaults to standalone-capable configuration | `P0-SEC-008` | Compose and service registry configuration | per-service required credential variables; production standalone rejection | pending | TODO |
 | Dubbo/Nacos discovery does not provide trusted workload identity; sensitive reads trust caller-supplied identifiers | `P3-IDENTITY-001`, `P3-NET-001` | Dubbo TLS/identity filters, caller policies, Compose networks | six Triple mTLS configs, provider/consumer SAN/caller/target policy, wrong/missing/expired/unknown/unauthorized certificate and handshake tests; live registry/rotation external | `8f190a7` | Locally Validated; production certificate/registry rollout external |
-| Judge defaults to the host Docker socket | `P3-JUDGE-001`, `P3-NET-001` | Judge Compose/runtime Adapter and runbook | prod forbidden-socket gate; isolated TLS runtime tests | pending | TODO |
+| Judge defaults to the host Docker socket | `P3-JUDGE-001` | Judge runtime DockerProcessRunner/SandboxExecutor, remote TLS Compose, explicit dev socket profile, host-deploy preflight | production no-socket/GID gate, release-image-aware pre-migration remote/rootless TLS/cert/workspace/image preflight, sandbox controls, timeout/interruption cleanup tests, Compose profile parse; live remote smoke external | `3aef022`, hardening `0781f5f` | Locally Validated; remote/rootless daemon and production smoke external |
 
 ## P1 Owner cutovers and data ownership
 

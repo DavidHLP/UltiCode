@@ -1009,8 +1009,8 @@ architecture_remediation_20260830:
       priority: P3
       scope: "Security/Judge"
       dependencies: [P3-IDENTITY-001, P3-NET-001]
-      status: TODO
-      affected_modules: ["judge", "judge-runtime", "compose", "runbooks"]
+      status: DONE
+      affected_modules: ["judge-runtime", "judge", "production/dev Compose", "host-deploy/runbook contracts"]
       acceptance_criteria:
         - "Production cannot mount docker.sock and uses isolated remote/rootless TLS sandbox runtime"
         - "Dev-only socket profile is explicit; sandbox CPU memory PID file timeout network readonly seccomp controls and trusted result channel are tested"
@@ -1018,10 +1018,12 @@ architecture_remediation_20260830:
         - "Prod forbidden-socket gate"
         - "Sandbox config/security tests"
         - "Remote runtime smoke when available"
-      evidence: []
-      commit: null
-      blocked_by: []
-      notes: "No host group or production runtime mutation"
+      evidence:
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-judge-001-red.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/p3-judge-001-green.result"
+      commit: "3aef022, 0781f5f"
+      blocked_by: ["Remote/rootless Docker endpoint, certificate permissions/rotation, shared workspace/image provisioning and production smoke require external operator authority"]
+      notes: "Production Compose removes socket/GID/group_add and requires remote Docker over DOCKER_TLS_VERIFY=1 with a read-only client bundle, shared workspace and fixed seccomp path. A dedicated preflight uses rendered Compose plus the immutable release image assignments and runs before migrations/ACL mutation, validates regular files, TCP TLS, rootless security options, workspace and remote image. The explicit judge-socket profile is development-only. Sandbox limits/network/readonly/seccomp/user/result controls remain enforced; cidfile/name cleanup handles timeout and interruption with bounded fallback retries. Local contract/module tests pass; remote smoke remains BLOCKED_EXTERNAL."
     - id: ARCH-CONTRACT-001
       title: "Align contracts with bounded owners"
       priority: P3

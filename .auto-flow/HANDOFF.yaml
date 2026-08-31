@@ -2,7 +2,7 @@ outcome: in_progress
 objective: "Implement and verify architecture remediation P0-P3 in the repository"
 branch: fix/architecture-remediation
 baseline_head: 8b4012b3d13678eaec38a82980c8e3558123b5a8
-active_task: P3-JUDGE-001
+active_task: ARCH-CONTRACT-001
 outputs:
   - "42-task remediation graph persisted in .auto-flow/TASKS.yaml"
   - "Static architecture, documentation, migration preflight, Compose baselines, and Maven clean compile/test/verify captured"
@@ -32,6 +32,7 @@ outputs:
   - "P3-HA-001 truthful stateful HA reference profile implemented in 9b7c628; generated Redis replication/Sentinel identities, required external config directives, static/dev Compose and disposable Redis restart/reconnect pass; production promotion/failover authority remains external"
   - "P3-IDENTITY-001 Dubbo workload mTLS implemented in 8f190a7; six Triple configs, provider/consumer SAN/caller/target filter, required secret mounts, certificate/handshake policy, ACL rotation and CI/architecture wiring pass; production certificate/Nacos/Dubbo rollout remains external"
   - "P3-NET-001 service network reachability implemented in 51efd26; segmented internal/point-to-point Compose networks, per-workload egress, CI/architecture contract, static port/loopback/HA checks and disposable allow/deny drill pass; production Compose expansion and firewall/DNS/Nacos/ingress validation remain external"
+  - "P3-JUDGE-001 Judge sandbox isolation implemented in 3aef022 with lifecycle/preflight hardening follow-up 0781f5f; production no-socket remote/rootless TLS, release-image-aware pre-mutation preflight, explicit dev socket profile, shared workspace/seccomp/image checks, timeout/interruption cleanup and sandbox controls pass; remote endpoint/cert/image/host authority remains external"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; full reactor Redis integration is externally blocked"
@@ -59,7 +60,8 @@ evidence:
   - "P3-HA-001 evidence: p3-ha-001-red.result and p3-ha-001-green.result; HA static/dev profile, ACL principal/file checks, temporary Compose expansion, and Redis restart/reconnect PASS; production expansion/failover authority external"
   - "P3-IDENTITY-001 evidence: p3-identity-001-red.result and p3-identity-001-green.result; TLS/handshake/session policy, ACL rotation, architecture/docs/shell/diff and Graphify pass; production certificate and registry authority external"
   - "P3-NET-001 evidence: p3-net-001-red.result and p3-net-001-green.result; network membership, forbidden-path, port/loopback, HA/observability and disposable reachability checks PASS; production expansion/firewall/DNS authority external"
-next_goal: "Remove production Docker socket trust"
+  - "P3-JUDGE-001 evidence: p3-judge-001-red.result and p3-judge-001-green.result; initial implementation 3aef022 plus hardening 0781f5f, Judge contract, affected reactor, Compose profile, architecture/docs/shell/diff and Graphify pass; remote/rootless smoke external"
+next_goal: "Align contracts with bounded owners"
 next_skill: agent-architecture-audit
 reason: "Repository implementation is authorized; production and host mutations remain prohibited"
 blockers: []

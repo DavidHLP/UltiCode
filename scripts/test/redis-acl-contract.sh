@@ -59,9 +59,12 @@ done
   exit 1
 }
 
-grep -Fq 'user ulticode-app ' "$OUTPUT_FILE"
-grep -Fq 'user ulticode-notification ' "$OUTPUT_FILE"
-grep -Fq '~stream:integration' "$OUTPUT_FILE"
+app_line="$(grep -F 'user ulticode-app ' "$OUTPUT_FILE")"
+[[ "$app_line" == *"~blacklist:"* ]] || { echo "app principal lacks blacklist keyspace" >&2; exit 1; }
+notification_line="$(grep -F 'user ulticode-notification ' "$OUTPUT_FILE")"
+[[ "$notification_line" == *"~rate-limit:"* ]] || { echo "notification principal lacks rate-limit keyspace" >&2; exit 1; }
+admin_line="$(grep -F 'user ulticode-admin ' "$OUTPUT_FILE")"
+[[ "$admin_line" == *"~stream:integration"* ]] || { echo "admin principal lacks shared integration stream keyspace" >&2; exit 1; }
 grep -Fq '&ulticode:ws:broadcast' "$OUTPUT_FILE"
 grep -Fq '+acl|load' "$OUTPUT_FILE"
 auth_hash="$(printf '%s' "$AUTH_REDIS_PASSWORD" | openssl dgst -sha256 | awk '{print $NF}')"

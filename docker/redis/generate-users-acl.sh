@@ -65,11 +65,11 @@ user default off
 user ulticode-health on $(password_hashes HEALTH_REDIS_PASSWORD) resetkeys resetchannels -@all +ping
 user ulticode-ops on $(password_hashes OPS_REDIS_PASSWORD) resetkeys ~* resetchannels &* -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info +acl|whoami +acl|load
 user ulticode-auth on $(password_hashes AUTH_REDIS_PASSWORD) resetkeys ~csrf:* ~oauth:* ~rate-limit:* ~auth:* ~security:delegation:replay:* ~stream:integration resetchannels -@all $COMMON_COMMANDS
-user ulticode-admin on $(password_hashes ADMIN_REDIS_PASSWORD) resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* resetchannels -@all $COMMON_COMMANDS
-user ulticode-app on $(password_hashes APP_REDIS_PASSWORD) resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~problem:* ~email_queue ~notification_queue ~security:delegation:replay:* ~stream:integration resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info
+user ulticode-admin on $(password_hashes ADMIN_REDIS_PASSWORD) resetkeys ~rate-limit:* ~stream:integration ~userStats:* ~contestRanking:* ~contest:* resetchannels -@all $COMMON_COMMANDS
+user ulticode-app on $(password_hashes APP_REDIS_PASSWORD) resetkeys ~rate-limit:* ~userStats:* ~contestRanking:* ~contest:* ~monitoring:* ~queue:* ~judge:* ~problem:* ~blacklist:* ~email_queue ~notification_queue ~security:delegation:replay:* ~stream:integration resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS +info
 user ulticode-submission on $(password_hashes SUBMISSION_REDIS_PASSWORD) resetkeys ~stream:integration ~judge:* ~security:delegation:replay:* resetchannels -@all $COMMON_COMMANDS
 user ulticode-search on $(password_hashes SEARCH_REDIS_PASSWORD) resetkeys ~stream:integration ~search:* resetchannels -@all $COMMON_COMMANDS
-user ulticode-notification on $(password_hashes NOTIFICATION_REDIS_PASSWORD) resetkeys ~stream:integration ~poison:* ~notification:* ~security:delegation:replay:* resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS
+user ulticode-notification on $(password_hashes NOTIFICATION_REDIS_PASSWORD) resetkeys ~stream:integration ~rate-limit:* ~poison:* ~notification:* ~security:delegation:replay:* resetchannels &ulticode:ws:broadcast -@all $COMMON_COMMANDS $PUBSUB_COMMANDS
 user ulticode-judge on $(password_hashes JUDGE_REDIS_PASSWORD) resetkeys ~judge_queue ~queue:* ~judge:* resetchannels -@all $COMMON_COMMANDS
 user ulticode-replication on $(password_hashes REDIS_REPLICATION_PASSWORD) resetkeys ~* resetchannels -@all +auth +hello +ping +psync +replconf +role
 user ulticode-sentinel on $(password_hashes REDIS_SENTINEL_PASSWORD) resetkeys ~* resetchannels -@all +auth +hello +ping +info +multi +exec +publish +subscribe +psubscribe +unsubscribe +punsubscribe +script|exists +script|load +script|kill +slaveof +replicaof +config|rewrite +client|kill +client|setname +role

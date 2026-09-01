@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.projection;
 
 import com.ulticode.notification.api.dto.NotificationAdminDTO;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
@@ -164,11 +165,13 @@ class AdminNotificationProjectionTest {
             when(notificationAdminReadPort.selectSystemNotifications(
                     anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
                     .thenReturn(PageResult.of(List.of(n1, n2, n3), 3L, 1, 10));
-            when(userEnricher.enrich(anySet())).thenReturn(Map.of(
-                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice",
-                            "https://example.com/avatar/u-1.png", "alice@example.com"),
-                    "u-2", new AdminUserSummary("u-2", "bob", "role2", "Bob",
-                            "https://example.com/avatar/u-2.png", "bob@example.com")));
+            when(userEnricher.enrichWithStatus(anySet())).thenReturn(
+                    new AdminUserEnricher.EnrichedUsers(Map.of(
+                            "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice",
+                                    "https://example.com/avatar/u-1.png", "alice@example.com"),
+                            "u-2", new AdminUserSummary("u-2", "bob", "role2", "Bob",
+                                    "https://example.com/avatar/u-2.png", "bob@example.com")),
+                            DegradationStatus.OK));
 
             PageResult<AdminNotificationVO> result = projection.getSystemNotifications(query);
 
@@ -202,7 +205,7 @@ class AdminNotificationProjectionTest {
 
             assertThat(result.getItems()).hasSize(1);
             assertThat(result.getItems().get(0).getCreator()).isNull();
-            verify(userEnricher, never()).enrich(anySet());
+            verify(userEnricher, never()).enrichWithStatus(anySet());
         }
     }
 
@@ -220,9 +223,11 @@ class AdminNotificationProjectionTest {
         @DisplayName("populates every VO field and enriches the creator")
         void populatesAllFields() {
             NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", "u-1");
-            when(userEnricher.enrich(anySet())).thenReturn(Map.of(
-                    "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice",
-                            "https://example.com/avatar/u-1.png", "alice@example.com")));
+            when(userEnricher.enrichWithStatus(anySet())).thenReturn(
+                    new AdminUserEnricher.EnrichedUsers(Map.of(
+                            "u-1", new AdminUserSummary("u-1", "alice", "role1", "Alice",
+                                    "https://example.com/avatar/u-1.png", "alice@example.com")),
+                            DegradationStatus.OK));
 
             AdminNotificationVO vo = projection.toAdminVO(n);
 
@@ -247,15 +252,15 @@ class AdminNotificationProjectionTest {
             AdminNotificationVO vo = projection.toAdminVO(n);
 
             assertThat(vo.getCreator()).isNull();
-            verify(userEnricher, never()).enrich(anySet());
+            verify(userEnricher, never()).enrichWithStatus(anySet());
         }
 
         @Test
         @DisplayName("leaves creator null when the creator id is not resolvable")
         void creatorNullWhenUserMissing() {
-            NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", "missing-user");
-            when(userEnricher.enrich(anySet())).thenReturn(Collections.emptyMap());
-
+            NotificationAdminDTO n = makeSystemNotification("n-1", "a-1", "u-1");
+            when(userEnricher.enrichWithStatus(anySet())).thenReturn(
+                    new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK));
             AdminNotificationVO vo = projection.toAdminVO(n);
 
             assertThat(vo.getCreator()).isNull();

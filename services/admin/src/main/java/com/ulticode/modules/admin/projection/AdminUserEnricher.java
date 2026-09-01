@@ -1,31 +1,43 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.UserProfileQueryService;
-import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.auth.api.service.IdentityQueryService;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import com.ulticode.admin.error.AdminErrorCode;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.response.DegradationStatus;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Shared helper that enriches admin projections with user display data via
@@ -59,16 +71,36 @@ import com.ulticode.common.rpc.RpcPolicy;
 @Slf4j
 @Component
 public class AdminUserEnricher {
+    private static final int BATCH_QUERY_POOL_SIZE = 2;
+    private static final int BATCH_QUERY_QUEUE_CAPACITY = 2;
+    private static final String BATCH_QUERY_THREAD_PREFIX = "admin-user-enrichment-query";
+
+    private final ThreadPoolExecutor queryExecutor;
 
     public AdminUserEnricher() {
+        this(null, null, null);
     }
 
     AdminUserEnricher(IdentityQueryService identityQueryService,
                       UserProfileQueryService userProfileQueryService,
                       AccountQueryService accountQueryService) {
+        this(identityQueryService, userProfileQueryService, accountQueryService,
+                newQueryExecutor());
+    }
+
+    AdminUserEnricher(IdentityQueryService identityQueryService,
+                      UserProfileQueryService userProfileQueryService,
+                      AccountQueryService accountQueryService,
+                      ThreadPoolExecutor queryExecutor) {
         this.identityQueryService = identityQueryService;
         this.userProfileQueryService = userProfileQueryService;
         this.accountQueryService = accountQueryService;
+        this.queryExecutor = Objects.requireNonNull(queryExecutor, "queryExecutor");
+    }
+
+    @PreDestroy
+    void shutdownQueryExecutor() {
+        queryExecutor.shutdownNow();
     }
 
     @Autowired(required = false)
@@ -209,21 +241,118 @@ public class AdminUserEnricher {
         if (accountIds == null || accountIds.isEmpty()) {
             return new EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
         }
+        return enrichBatchesInParallel(accountIds);
+    }
 
-        IdentityBatch identities = batchIdentities(accountIds);
-        ProfileBatch profiles = batchProfiles(accountIds);
+    /**
+     * Batch enrichment outcome: the merged summaries plus an explicit
+     * {@link DegradationStatus} describing source availability.
+     *
+     * @param users  merged summaries keyed by accountId (possibly empty)
+     * @param status OK / PARTIAL / UNAVAILABLE for this enrichment round
+     */
+    public record EnrichedUsers(Map<String, AdminUserSummary> users, DegradationStatus status) {
+    }
 
+    private record IdentityBatch(Map<String, UserIdentityDTO> data, boolean available) {
+    }
+
+    private record ProfileBatch(Map<String, UserProfileDTO> data, boolean available) {
+    }
+
+    private EnrichedUsers enrichBatchesInParallel(Set<String> accountIds) {
+        EnrichmentQuery<IdentityBatch> identities =
+                submitQuery(() -> batchIdentities(accountIds));
+        EnrichmentQuery<ProfileBatch> profiles =
+                submitQuery(() -> batchProfiles(accountIds));
+        try {
+            CompletableFuture.allOf(identities.result(), profiles.result())
+                    .get(RpcPolicy.QUERY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            cancel(identities, profiles);
+        } catch (ExecutionException exception) {
+            cancel(identities, profiles);
+            rethrowFatal(exception.getCause());
+        } catch (TimeoutException exception) {
+            cancel(identities, profiles);
+        }
+        return mergeBatches(
+                accountIds,
+                completedResult(identities.result()),
+                completedResult(profiles.result()));
+    }
+
+    private <T> EnrichmentQuery<T> submitQuery(Callable<T> task) {
+        CompletableFuture<T> result = new CompletableFuture<>();
+        Future<?> execution;
+        try {
+            execution = queryExecutor.submit(() -> {
+                try {
+                    result.complete(task.call());
+                } catch (Error error) {
+                    result.completeExceptionally(error);
+                    throw error;
+                } catch (Exception exception) {
+                    result.completeExceptionally(exception);
+                }
+            });
+        } catch (RejectedExecutionException rejected) {
+            result.completeExceptionally(rejected);
+            execution = null;
+        }
+        return new EnrichmentQuery<>(result, execution);
+    }
+
+    @SafeVarargs
+    private static void cancel(EnrichmentQuery<?>... queries) {
+        for (EnrichmentQuery<?> query : queries) {
+            // Cancel the public result before interrupting its worker, matching
+            // the admin query executor's race-safe cancellation order.
+            query.result().cancel(true);
+            if (query.execution() != null) {
+                query.execution().cancel(true);
+            }
+        }
+    }
+
+    private static <T> T completedResult(CompletableFuture<T> result) {
+        if (!result.isDone() || result.isCancelled()) {
+            return null;
+        }
+        try {
+            return result.join();
+        } catch (CompletionException exception) {
+            rethrowFatal(exception.getCause());
+            return null;
+        }
+    }
+
+    private static void rethrowFatal(Throwable cause) {
+        if (cause instanceof Error error) {
+            throw error;
+        }
+    }
+
+    private static EnrichedUsers mergeBatches(
+            Set<String> accountIds, IdentityBatch identities, ProfileBatch profiles) {
+        boolean identitiesAvailable = identities != null && identities.available();
+        boolean profilesAvailable = profiles != null && profiles.available();
         DegradationStatus status;
-        if (!identities.available() && !profiles.available()) {
+        if (!identitiesAvailable && !profilesAvailable) {
             status = DegradationStatus.UNAVAILABLE;
-        } else if (!identities.available() || !profiles.available()) {
+        } else if (!identitiesAvailable || !profilesAvailable) {
             status = DegradationStatus.PARTIAL;
         } else {
             status = DegradationStatus.OK;
         }
 
-        Map<String, UserIdentityDTO> identityMap = identities.data();
-        Map<String, UserProfileDTO> profileMap = profiles.data();
+        Map<String, UserIdentityDTO> identityMap = identities == null || identities.data() == null
+                ? Collections.emptyMap()
+                : identities.data();
+        Map<String, UserProfileDTO> profileMap = profiles == null || profiles.data() == null
+                ? Collections.emptyMap()
+                : profiles.data();
         Map<String, AdminUserSummary> users = accountIds.stream()
                 .filter(id -> identityMap.containsKey(id) || profileMap.containsKey(id))
                 .collect(Collectors.toMap(
@@ -244,20 +373,34 @@ public class AdminUserEnricher {
         return new EnrichedUsers(users, status);
     }
 
-    /**
-     * Batch enrichment outcome: the merged summaries plus an explicit
-     * {@link DegradationStatus} describing source availability.
-     *
-     * @param users  merged summaries keyed by accountId (possibly empty)
-     * @param status OK / PARTIAL / UNAVAILABLE for this enrichment round
-     */
-    public record EnrichedUsers(Map<String, AdminUserSummary> users, DegradationStatus status) {
+    private static ThreadPoolExecutor newQueryExecutor() {
+        return new ThreadPoolExecutor(
+                BATCH_QUERY_POOL_SIZE,
+                BATCH_QUERY_POOL_SIZE,
+                30,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(BATCH_QUERY_QUEUE_CAPACITY),
+                new NamedDaemonThreadFactory(BATCH_QUERY_THREAD_PREFIX),
+                new ThreadPoolExecutor.AbortPolicy());
     }
 
-    private record IdentityBatch(Map<String, UserIdentityDTO> data, boolean available) {
+    private record EnrichmentQuery<T>(CompletableFuture<T> result, Future<?> execution) {
     }
 
-    private record ProfileBatch(Map<String, UserProfileDTO> data, boolean available) {
+    private static final class NamedDaemonThreadFactory implements ThreadFactory {
+        private final String name;
+        private final AtomicInteger sequence = new AtomicInteger();
+
+        private NamedDaemonThreadFactory(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public Thread newThread(Runnable runnable) {
+            Thread thread = new Thread(runnable, name + "-" + sequence.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        }
     }
 
     /**

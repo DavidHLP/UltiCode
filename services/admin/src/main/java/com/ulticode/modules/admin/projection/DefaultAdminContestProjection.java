@@ -1,9 +1,11 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.app.api.dto.ContestAdminDTO;
 import com.ulticode.app.api.service.ContestAdminReadPort;
-import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -39,22 +41,33 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         int page = pageRequest.page();
         int limit = pageRequest.pageSize();
 
-        PageResult<ContestAdminDTO> result = contestAdminReadPort.selectPage(
-                page, limit, query.getSearch(), query.getStatus(), query.getType(),
-                query.getSortBy(), query.getSortOrder());
+        PageResult<ContestAdminDTO> result;
+        try {
+            result = contestAdminReadPort.selectPage(
+                    page, limit, query.getSearch(), query.getStatus(), query.getType(),
+                    query.getSortBy(), query.getSortOrder());
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App contest", exception);
+        }
+        requirePage(result, "App contest");
 
         List<AdminContestVO> vos = result.getItems().stream()
                 .map(this::toAdminVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(vos, result.getTotal(), page, limit);
+        return PageResult.of(vos, result.getTotal(), pageRequest, DegradationStatus.OK);
     }
 
     @Override
     public AdminContestVO getContest(String id) {
-        ContestAdminDTO contest = contestAdminReadPort.selectByIdOrSlug(id);
+        ContestAdminDTO contest;
+        try {
+            contest = contestAdminReadPort.selectByIdOrSlug(id);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App contest", exception);
+        }
         if (contest == null) {
-            throw new BusinessException(BaseErrorCode.NOT_FOUND, "Contest not found");
+            throw new BusinessException(AdminErrorCode.CONTEST_NOT_FOUND);
         }
         return toAdminVO(contest);
     }
@@ -63,6 +76,16 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
     public AdminContestVO toAdminVO(ContestAdminDTO contest) {
         if (contest == null) {
             return null;
+        }
+
+        long problemCount;
+        try {
+            problemCount = contestAdminReadPort.countProblemsByContestId(contest.getId());
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App problem", exception);
+        }
+        if (problemCount < 0 || problemCount > Integer.MAX_VALUE) {
+            throw AdminReadContract.ownerUnavailable("App problem");
         }
 
         AdminContestVO vo = new AdminContestVO();
@@ -79,9 +102,16 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         vo.setParticipantCount(contest.getRegisteredCount());
         vo.setCreatedAt(contest.getCreatedAt());
         vo.setUpdatedAt(contest.getUpdatedAt());
-        vo.setProblemCount((int) contestAdminReadPort.countProblemsByContestId(contest.getId()));
+        vo.setProblemCount((int) problemCount);
 
         return vo;
+    }
+
+    private static void requirePage(PageResult<?> page, String owner) {
+        if (page == null || page.getItems() == null || page.getItems().stream().anyMatch(java.util.Objects::isNull)
+                || page.getTotal() == null || page.getTotal() < 0) {
+            throw AdminReadContract.ownerUnavailable(owner);
+        }
     }
 
     @Override

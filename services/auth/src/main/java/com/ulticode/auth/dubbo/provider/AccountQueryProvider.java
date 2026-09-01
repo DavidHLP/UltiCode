@@ -3,14 +3,22 @@ package com.ulticode.auth.dubbo.provider;
 import com.ulticode.auth.account.AuthAccountQueryPort;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.rpc.RpcResult;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Component;
 
+import java.time.DayOfWeek;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Dubbo provider implementing {@link AccountQueryService}.
@@ -23,6 +31,8 @@ public class AccountQueryProvider implements AccountQueryService {
 
     private static final String DEFAULT_TRACE_ID = "t-system";
     private static final int MAX_ACCOUNT_ID_BATCH = 100;
+    private static final Set<String> TREND_PERIODS =
+            Set.of("hour", "day", "week", "month", "year");
 
     private final AuthAccountQueryPort queryPort;
 
@@ -108,5 +118,72 @@ public class AccountQueryProvider implements AccountQueryService {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         return RpcResult.success(queryPort.dashboardStatsSummary(
                 now.minusDays(1), now.minusWeeks(1), now.minusMonths(1)), DEFAULT_TRACE_ID);
+    }
+    @Override
+    public RpcResult<List<AuthUserTrendBucketDTO>> getUserTrend(
+            AuthUserTrendAggregateQuery query) {
+        if (!isValidTrendQuery(query)) {
+            return RpcResult.failure(AuthErrorCode.INVALID_ACCOUNT_REQUEST, DEFAULT_TRACE_ID);
+        }
+        try {
+            List<AuthUserTrendBucketDTO> buckets = queryPort.aggregateUserTrend(query);
+            if (!hasValidTrendBuckets(buckets, query.maxBuckets())) {
+                return RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, DEFAULT_TRACE_ID);
+            }
+            return RpcResult.success(List.copyOf(buckets), DEFAULT_TRACE_ID);
+        } catch (RuntimeException exception) {
+            return RpcResult.failure(AuthErrorCode.UNEXPECTED_AUTH_STATE, DEFAULT_TRACE_ID);
+        }
+    }
+
+    private static boolean isValidTrendQuery(AuthUserTrendAggregateQuery query) {
+        if (query == null || query.start() == null || query.end() == null
+                || query.start().isAfter(query.end())
+                || query.period() == null
+                || !TREND_PERIODS.contains(query.period().toLowerCase(Locale.ROOT))
+                || query.maxBuckets() < 1
+                || query.maxBuckets() > AuthUserTrendAggregateQuery.MAX_BUCKETS) {
+            return false;
+        }
+        return estimatedBucketCount(query) <= query.maxBuckets();
+    }
+
+    private static long estimatedBucketCount(AuthUserTrendAggregateQuery query) {
+        LocalDateTime start = query.start();
+        LocalDateTime end = query.end();
+        return switch (query.period()) {
+            case "hour" -> ChronoUnit.HOURS.between(
+                    start.withMinute(0).withSecond(0).withNano(0),
+                    end.withMinute(0).withSecond(0).withNano(0)) + 1L;
+            case "day" -> ChronoUnit.DAYS.between(
+                    start.toLocalDate(), end.toLocalDate()) + 1L;
+            case "week" -> ChronoUnit.WEEKS.between(
+                    start.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+                    end.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))) + 1L;
+            case "month" -> ChronoUnit.MONTHS.between(
+                    start.toLocalDate().withDayOfMonth(1),
+                    end.toLocalDate().withDayOfMonth(1)) + 1L;
+            case "year" -> ChronoUnit.YEARS.between(
+                    start.toLocalDate().withDayOfYear(1),
+                    end.toLocalDate().withDayOfYear(1)) + 1L;
+            default -> Long.MAX_VALUE;
+        };
+    }
+
+    private static boolean hasValidTrendBuckets(
+            List<AuthUserTrendBucketDTO> buckets, int maxBuckets) {
+        if (buckets == null || buckets.size() > maxBuckets) {
+            return false;
+        }
+        String previousDate = null;
+        for (AuthUserTrendBucketDTO bucket : buckets) {
+            if (bucket == null || bucket.date() == null || bucket.date().isBlank()
+                    || bucket.count() < 0
+                    || (previousDate != null && previousDate.compareTo(bucket.date()) >= 0)) {
+                return false;
+            }
+            previousDate = bucket.date();
+        }
+        return true;
     }
 }

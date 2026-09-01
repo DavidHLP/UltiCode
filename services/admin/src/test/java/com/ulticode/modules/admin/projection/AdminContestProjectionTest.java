@@ -1,7 +1,8 @@
 package com.ulticode.modules.admin.projection;
-import com.ulticode.common.error.BaseErrorCode;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
@@ -164,13 +165,15 @@ class AdminContestProjectionTest {
         }
 
         @Test
-        @DisplayName("throws BusinessException(NOT_FOUND) when the read port returns null")
-        void notFound_throws() {
-            when(contestAdminReadPort.selectByIdOrSlug("missing")).thenReturn(null);
+        @DisplayName("throws typed unavailable when the contest owner transport fails")
+        void ownerFailure_throwsUnavailable() {
+            when(contestAdminReadPort.selectByIdOrSlug("down"))
+                    .thenThrow(new RuntimeException("timeout"));
 
-            assertThatThrownBy(() -> projection.getContest("missing"))
+            assertThatThrownBy(() -> projection.getContest("down"))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", BaseErrorCode.NOT_FOUND);
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
         }
     }
 
@@ -208,8 +211,22 @@ class AdminContestProjectionTest {
             assertThat(result.getItems().get(0).getProblemCount()).isEqualTo(4);
             assertThat(result.getItems().get(1).getSlug()).isEqualTo("weekly-22");
             assertThat(result.getItems().get(1).getProblemCount()).isEqualTo(8);
+            assertThat(result.getDegradationStatus()).isEqualTo(DegradationStatus.OK);
         }
 
+        @Test
+        @DisplayName("null owner page is unavailable, never an empty success")
+        void nullOwnerPage_throwsUnavailable() {
+            AdminContestQueryDTO query = new AdminContestQueryDTO();
+            when(contestAdminReadPort.selectPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+                    .thenReturn(null);
+
+            assertThatThrownBy(() -> projection.getContests(query))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+
+        }
         @Test
         @DisplayName("returns an empty PageResult when the read port yields no records")
         void emptyResult_yieldsEmptyPageResult() {
@@ -225,6 +242,7 @@ class AdminContestProjectionTest {
 
             assertThat(result.getTotal()).isZero();
             assertThat(result.getItems()).isEmpty();
+            assertThat(result.getDegradationStatus()).isEqualTo(DegradationStatus.OK);
         }
     }
 

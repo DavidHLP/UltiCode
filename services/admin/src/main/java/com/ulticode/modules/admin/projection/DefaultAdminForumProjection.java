@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.projection;
 
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.app.api.dto.AdminForumCommunityDTO;
 import com.ulticode.app.api.dto.AdminForumCommunityPage;
 import com.ulticode.app.api.dto.AdminForumPostPage;
@@ -8,6 +9,7 @@ import com.ulticode.app.api.dto.AdminForumPostQuery;
 import com.ulticode.app.api.dto.AdminForumPostRowDTO;
 import com.ulticode.app.api.service.AdminForumReadPort;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminForumCommunityVO;
@@ -67,19 +69,24 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
                 pageRequest.page(),
                 pageRequest.pageSize());
 
-        AdminForumPostPage page = adminForumReadPort.listPosts(portQuery);
+        AdminForumPostPage page;
+        try {
+            page = adminForumReadPort.listPosts(portQuery);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App forum", exception);
+        }
+        requirePage(page, "App forum");
 
         Set<String> userIds = page.rows().stream()
                 .map(AdminForumPostRowDTO::getUserId)
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<String, AdminUserSummary> userMap = userIds.isEmpty()
-                ? Collections.emptyMap()
-                : userEnricher.enrich(userIds);
+        AdminUserEnricher.EnrichedUsers enriched = enrichUsers(userIds);
 
         List<AdminForumPostVO> vos = page.rows().stream()
-                .map(row -> toAdminVO(row, userMap.get(row.getUserId())))
+                .map(row -> toAdminVO(row, enriched.users().get(row.getUserId())))
                 .collect(Collectors.toList());
-        return PageResult.of(vos, page.total(), pageRequest);
+        return PageResult.of(vos, page.total(), pageRequest, enriched.status());
     }
 
     // ------------------------------------------------------------------
@@ -88,12 +95,22 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
 
     @Override
     public AdminForumPostVO getPost(String id) {
-        AdminForumPostRowDTO row = adminForumReadPort.getPost(id);
+        AdminForumPostRowDTO row;
+        try {
+            row = adminForumReadPort.getPost(id);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App forum", exception);
+        }
         if (row == null) {
             throw new BusinessException(AdminErrorCode.NOT_FOUND);
         }
-        AdminUserSummary user = userEnricher.enrichOne(row.getUserId());
-        return toAdminVO(row, user);
+        try {
+            return toAdminVO(row, userEnricher.enrichOne(row.getUserId()));
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -104,14 +121,20 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
     public PageResult<AdminForumCommunityVO> getCommunities(int page, int limit, String search) {
         PaginationRequest communitiesRequest = PaginationRequest.of(page, limit);
 
-        AdminForumCommunityPage result = adminForumReadPort.listCommunities(
-                communitiesRequest.page(), communitiesRequest.pageSize(), search);
+        AdminForumCommunityPage result;
+        try {
+            result = adminForumReadPort.listCommunities(
+                    communitiesRequest.page(), communitiesRequest.pageSize(), search);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App forum", exception);
+        }
+        requirePage(result, "App forum");
 
         List<AdminForumCommunityVO> voList = result.rows().stream()
                 .map(this::toCommunityVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.total(), communitiesRequest);
+        return PageResult.of(voList, result.total(), communitiesRequest, DegradationStatus.OK);
     }
 
     // ------------------------------------------------------------------
@@ -171,5 +194,33 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
         vo.setPostCount(community.postCount() != null ? community.postCount() : 0);
         vo.setMemberCount(community.memberCount() != null ? community.memberCount() : 0);
         return vo;
+    }
+
+    private AdminUserEnricher.EnrichedUsers enrichUsers(Set<String> userIds) {
+        if (userIds.isEmpty()) {
+            return new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
+        }
+        AdminUserEnricher.EnrichedUsers result = userEnricher.enrichWithStatus(userIds);
+        if (result == null || result.status() == null
+                || result.status() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user");
+        }
+        return result;
+    }
+
+    private static void requirePage(AdminForumPostPage page, String owner) {
+        if (page == null || page.rows() == null
+                || page.rows().stream().anyMatch(java.util.Objects::isNull)
+                || page.total() < 0) {
+            throw AdminReadContract.ownerUnavailable(owner);
+        }
+    }
+
+    private static void requirePage(AdminForumCommunityPage page, String owner) {
+        if (page == null || page.rows() == null
+                || page.rows().stream().anyMatch(java.util.Objects::isNull)
+                || page.total() < 0) {
+            throw AdminReadContract.ownerUnavailable(owner);
+        }
     }
 }

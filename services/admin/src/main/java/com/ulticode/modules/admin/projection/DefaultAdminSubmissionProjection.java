@@ -1,12 +1,11 @@
 package com.ulticode.modules.admin.projection;
 
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
-import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
-import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
-import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
@@ -14,6 +13,9 @@ import com.ulticode.modules.admin.dto.AdminSubmissionVO;
 import com.ulticode.modules.admin.dto.LanguageOption;
 import com.ulticode.modules.admin.dto.StatusOption;
 import com.ulticode.modules.admin.dto.SubmissionStatistics;
+import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
+import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
+import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,42 +64,48 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
     public PageResult<AdminSubmissionVO> getSubmissions(SubmissionAdminQueryDTO query) {
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
-        PageResult<SubmissionAdminRowDTO> result = submissionReadPort.search(
-                query, pageRequest.page(), pageRequest.pageSize());
+        PageResult<SubmissionAdminRowDTO> result;
+        try {
+            result = submissionReadPort.search(query, pageRequest.page(), pageRequest.pageSize());
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Submission", exception);
+        }
+        requirePage(result, "Submission");
 
-        // Batch-load users and problems to avoid N+1 queries (WR-05)
         Map<String, AdminUserSummary> userMap = new HashMap<>();
         Map<Long, ProblemAdminRowDTO> problemMap = new HashMap<>();
+        DegradationStatus status = result.getDegradationStatus() == null
+                ? DegradationStatus.OK : result.getDegradationStatus();
+
         if (!result.getItems().isEmpty()) {
             Set<String> userIds = result.getItems().stream()
                     .map(SubmissionAdminRowDTO::userId)
+                    .filter(java.util.Objects::nonNull)
                     .collect(Collectors.toSet());
             Set<Long> problemIds = result.getItems().stream()
                     .map(SubmissionAdminRowDTO::problemId)
+                    .filter(java.util.Objects::nonNull)
                     .collect(Collectors.toSet());
 
             if (!userIds.isEmpty()) {
-                userMap = userEnricher.enrich(userIds);
+                AdminUserEnricher.EnrichedUsers users = loadUsers(userIds);
+                userMap.putAll(users.users());
+                status = mergeStatus(status, users.status());
             }
             if (!problemIds.isEmpty()) {
-                problemMap = problemReadPort.findProblemsByIds(problemIds).stream()
-                        .collect(Collectors.toMap(ProblemAdminRowDTO::id, p -> p));
+                ProblemBatch problems = loadProblems(problemIds);
+                problemMap.putAll(problems.rows());
+                status = mergeStatus(status, problems.status());
             }
         }
 
-        // Enrich with user and problem information using batch-loaded maps
-        Map<String, AdminUserSummary> finalUserMap = userMap;
-        Map<Long, ProblemAdminRowDTO> finalProblemMap = problemMap;
         List<AdminSubmissionVO> vos = result.getItems().stream()
-                .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
+                .map(s -> toAdminVO(s, userMap, problemMap))
                 .collect(Collectors.toList());
 
-        // All filtering now at DB level — use database total for correct pagination
-        return PageResult.of(
-                vos,
-                result.getTotal(),
-                pageRequest
-        );
+        return PageResult.of(vos, result.getTotal(), pageRequest, status);
     }
 
     // ------------------------------------------------------------------
@@ -106,7 +114,12 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public AdminSubmissionVO getSubmission(String id) {
-        SubmissionAdminRowDTO submission = submissionReadPort.findById(id);
+        SubmissionAdminRowDTO submission;
+        try {
+            submission = submissionReadPort.findById(id);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Submission", exception);
+        }
         if (submission == null) {
             throw new BusinessException(AdminErrorCode.SUBMISSION_NOT_FOUND);
         }
@@ -119,39 +132,53 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public SubmissionStatistics getStatistics() {
-        SubmissionStatistics stats = new SubmissionStatistics();
+        try {
+            SubmissionStatistics stats = new SubmissionStatistics();
+            stats.setTotal(submissionReadPort.countAll());
 
-        // Total submissions — via the typed read port (no mapper leak)
-        stats.setTotal(submissionReadPort.countAll());
+            List<com.ulticode.submission.api.dto.StatusCountDTO> statusRows =
+                    submissionReadPort.countByStatus();
+            List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
+            if (statusRows == null) {
+                throw AdminReadContract.ownerUnavailable("Submission");
+            }
+            for (com.ulticode.submission.api.dto.StatusCountDTO row : statusRows) {
+                if (row == null) {
+                    throw AdminReadContract.ownerUnavailable("Submission");
+                }
+                SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
+                sc.setStatus(row.getStatus());
+                sc.setCount(row.getCount());
+                byStatus.add(sc);
+            }
+            stats.setByStatus(byStatus);
 
-        // By status — typed projection from the read port
-        List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
-        for (com.ulticode.submission.api.dto.StatusCountDTO row : submissionReadPort.countByStatus()) {
-            SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
-            sc.setStatus(row.getStatus());
-            sc.setCount(row.getCount());
-            byStatus.add(sc);
+            List<com.ulticode.submission.api.dto.LanguageCountDTO> languageRows =
+                    submissionReadPort.countByLanguage();
+            List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
+            if (languageRows == null) {
+                throw AdminReadContract.ownerUnavailable("Submission");
+            }
+            for (com.ulticode.submission.api.dto.LanguageCountDTO row : languageRows) {
+                if (row == null) {
+                    throw AdminReadContract.ownerUnavailable("Submission");
+                }
+                SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
+                lc.setLanguage(row.getLanguage());
+                lc.setCount(row.getCount());
+                byLanguage.add(lc);
+            }
+            stats.setByLanguage(byLanguage);
+
+            LocalDateTime yesterday = LocalDateTime.now(clock).minusHours(24);
+            stats.setLast24h(submissionReadPort.countCreatedSince(yesterday));
+            stats.setPending(submissionReadPort.countByStatus("Pending"));
+            return stats;
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Submission", exception);
         }
-        stats.setByStatus(byStatus);
-
-        // By language — typed projection from the read port
-        List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
-        for (com.ulticode.submission.api.dto.LanguageCountDTO row : submissionReadPort.countByLanguage()) {
-            SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
-            lc.setLanguage(row.getLanguage());
-            lc.setCount(row.getCount());
-            byLanguage.add(lc);
-        }
-        stats.setByLanguage(byLanguage);
-
-        // Last 24 hours
-        LocalDateTime yesterday = LocalDateTime.now(clock).minusHours(24);
-        stats.setLast24h(submissionReadPort.countCreatedSince(yesterday));
-
-        // Pending count
-        stats.setPending(submissionReadPort.countByStatus("Pending"));
-
-        return stats;
     }
 
     // ------------------------------------------------------------------
@@ -160,25 +187,30 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public List<StatusOption> getStatuses() {
-        // Derive filter options from the canonical enum so the dropdown
-        // stays in sync with both the DB (displayName) and statistics
-        // (category). Returns all 11 statuses including transient ones
-        // (Judging) so admins can see and filter on every observed state.
-        return Arrays.stream(SubmissionStatus.values())
-            .map(s -> {
-                StatusOption opt = new StatusOption();
-                opt.setKey(s.getDisplayName());
-                opt.setLabel(s.getDisplayName());
-                opt.setCode(s.name());
-                opt.setCategory(s.getCategory());
-                return opt;
-            })
-            .collect(Collectors.toList());
+        List<StatusOption> options = new ArrayList<>(SubmissionStatus.values().length);
+        for (SubmissionStatus status : SubmissionStatus.values()) {
+            StatusOption option = new StatusOption();
+            option.setKey(status.getDisplayName());
+            option.setLabel(status.getDisplayName());
+            option.setCategory(status.getCategory());
+            option.setCode(status.name());
+            options.add(option);
+        }
+        return options;
     }
 
     @Override
     public List<LanguageOption> getLanguages() {
-        return submissionReadPort.findDistinctLanguages().stream()
+        List<String> languages;
+        try {
+            languages = submissionReadPort.findDistinctLanguages();
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Submission", exception);
+        }
+        if (languages == null || languages.stream().anyMatch(java.util.Objects::isNull)) {
+            throw AdminReadContract.ownerUnavailable("Submission");
+        }
+        return languages.stream()
             .map(code -> {
                 LanguageOption opt = new LanguageOption();
                 opt.setKey(code);
@@ -187,6 +219,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
             })
             .collect(Collectors.toList());
     }
+
 
     /**
      * Convert a language code stored in the database to a human-readable
@@ -295,13 +328,27 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         vo.setCodeLength(submission.codeLength());
 
         // Fetch user info (single-row detail path — no batch needed)
-        AdminUserSummary user = userEnricher.enrichOne(submission.userId());
+        AdminUserSummary user;
+        try {
+            user = userEnricher.enrichOne(submission.userId());
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
         if (user != null) {
             vo.setUsername(user.username());
         }
 
         // Fetch problem info (single-row detail path)
-        ProblemAdminRowDTO problem = problemReadPort.findProblem(submission.problemId());
+        ProblemAdminRowDTO problem;
+        try {
+            problem = problemReadPort.findProblem(submission.problemId());
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App problem", exception);
+        }
         if (problem != null) {
             vo.setProblemTitle(problem.title());
             vo.setProblemSlug(problem.slug());
@@ -309,4 +356,69 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         return vo;
     }
-}
+    private AdminUserEnricher.EnrichedUsers loadUsers(Set<String> userIds) {
+        if (userIds.isEmpty()) {
+            return new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
+        }
+        AdminUserEnricher.EnrichedUsers result;
+        try {
+            result = userEnricher.enrichWithStatus(userIds);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
+        if (result == null || result.status() == null
+                || result.status() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user");
+        }
+        return result;
+    }
+
+    private ProblemBatch loadProblems(Set<Long> problemIds) {
+        List<ProblemAdminRowDTO> rows;
+        try {
+            rows = problemReadPort.findProblemsByIds(problemIds);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App problem", exception);
+        }
+        if (rows == null) {
+            throw AdminReadContract.ownerUnavailable("App problem");
+        }
+        Map<Long, ProblemAdminRowDTO> rowMap = rows.stream()
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toMap(ProblemAdminRowDTO::id, p -> p, (first, ignored) -> first));
+        DegradationStatus status = rowMap.keySet().containsAll(problemIds)
+                ? DegradationStatus.OK : DegradationStatus.PARTIAL;
+        return new ProblemBatch(rowMap, status);
+    }
+
+    private static DegradationStatus mergeStatus(
+            DegradationStatus current, DegradationStatus next) {
+        if (current == DegradationStatus.UNAVAILABLE || next == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Admin read");
+        }
+        if (current == DegradationStatus.PARTIAL || next == DegradationStatus.PARTIAL) {
+            return DegradationStatus.PARTIAL;
+        }
+        return current == null ? DegradationStatus.OK : current;
+    }
+
+    private static void requirePage(
+            PageResult<SubmissionAdminRowDTO> page, String owner) {
+        if (page == null || page.getItems() == null
+                || page.getItems().stream().anyMatch(java.util.Objects::isNull)
+                || page.getTotal() == null
+                || page.getTotal() < 0
+                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable(owner);
+        }
+    }
+
+    private record ProblemBatch(
+            Map<Long, ProblemAdminRowDTO> rows, DegradationStatus status) {
+    }
+
+    }

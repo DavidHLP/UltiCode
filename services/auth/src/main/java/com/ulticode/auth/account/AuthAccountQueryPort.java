@@ -2,6 +2,8 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
 
 import java.util.List;
@@ -27,4 +29,7 @@ public interface AuthAccountQueryPort {
     AccountQueryService.AccountStatsSummary dashboardStatsSummary(java.time.LocalDateTime todayStart,
                                                                    java.time.LocalDateTime weekStart,
                                                                    java.time.LocalDateTime monthStart);
+
+    /** Aggregate Auth-owned account registrations into bounded time buckets. */
+    List<AuthUserTrendBucketDTO> aggregateUserTrend(AuthUserTrendAggregateQuery query);
 }

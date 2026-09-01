@@ -1,23 +1,24 @@
 package com.ulticode.modules.admin.projection;
 
 import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.app.api.service.SolutionAdminReadPort;
 import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminQuery;
 import com.ulticode.app.api.service.SolutionAdminReadPort.SolutionAdminRow;
+import com.ulticode.app.api.dto.ProblemAdminRowDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
-import com.ulticode.app.api.dto.ProblemAdminRowDTO;
-import com.ulticode.app.api.service.ProblemAdminReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,31 +68,38 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
                 query.getUserId(),
                 query.getIsFlagged(),
                 query.getIsPublished(),
-                // When isDeleted=true, bypass MyBatis-Plus filtering via the
-                // provider's raw-SQL branch.
                 Boolean.TRUE.equals(query.getIsDeleted()),
                 query.getSortBy(),
                 query.getSortOrder(),
                 pageRequest.page(),
                 pageRequest.pageSize());
 
-        SolutionAdminReadPort.SolutionAdminPage page = solutionAdminReadPort.page(portQuery);
+        SolutionAdminReadPort.SolutionAdminPage page;
+        try {
+            page = solutionAdminReadPort.page(portQuery);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App solution", exception);
+        }
+        requirePage(page);
 
         Set<String> userIds = page.rows().stream()
                 .map(SolutionAdminRow::userId)
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toSet());
         Set<Long> problemIds = page.rows().stream()
                 .map(SolutionAdminRow::problemId)
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        Map<String, AdminUserSummary> userMap = batchLoadUsers(userIds);
-        Map<Long, ProblemAdminRowDTO> problemMap = batchLoadProblems(problemIds);
+        AdminUserEnricher.EnrichedUsers users = batchLoadUsers(userIds);
+        ProblemBatch problems = batchLoadProblems(problemIds);
+        DegradationStatus status = mergeStatus(users.status(), problems.status());
 
         List<AdminSolutionListItemVO> voList = page.rows().stream()
-                .map(s -> toListItemVO(s, userMap, problemMap))
+                .map(s -> toListItemVO(s, users.users(), problems.rows()))
                 .toList();
 
-        return PageResult.of(voList, page.total(), pageRequest.page(), pageRequest.pageSize());
+        return PageResult.of(voList, page.total(), pageRequest, status);
     }
 
     // ------------------------------------------------------------------
@@ -123,7 +131,12 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
 
     @Override
     public AdminSolutionVO getSolution(String id) {
-        SolutionAdminRow row = solutionAdminReadPort.getById(id);
+        SolutionAdminRow row;
+        try {
+            row = solutionAdminReadPort.getById(id);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App solution", exception);
+        }
         if (row == null) {
             throw new BusinessException(AdminErrorCode.SOLUTION_NOT_FOUND);
         }
@@ -134,20 +147,71 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
     // Batch-loaders (cross-module enrichment — N+1-safe)
     // ------------------------------------------------------------------
 
-    private Map<String, AdminUserSummary> batchLoadUsers(Set<String> userIds) {
+    private AdminUserEnricher.EnrichedUsers batchLoadUsers(Set<String> userIds) {
         if (userIds.isEmpty()) {
-            return Collections.emptyMap();
+            return new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
         }
-        return userEnricher.enrich(userIds);
+        AdminUserEnricher.EnrichedUsers result;
+        try {
+            result = userEnricher.enrichWithStatus(userIds);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
+        if (result == null || result.status() == null
+                || result.status() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user");
+        }
+        return result;
     }
 
-    private Map<Long, ProblemAdminRowDTO> batchLoadProblems(Set<Long> problemIds) {
+    private ProblemBatch batchLoadProblems(Set<Long> problemIds) {
         if (problemIds.isEmpty()) {
-            return new HashMap<>();
+            return new ProblemBatch(Collections.emptyMap(), DegradationStatus.OK);
         }
-        return problemReadPort.findProblemsByIds(problemIds).stream()
+
+        List<ProblemAdminRowDTO> rows;
+        try {
+            rows = problemReadPort.findProblemsByIds(problemIds);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App problem", exception);
+        }
+        if (rows == null) {
+            throw AdminReadContract.ownerUnavailable("App problem");
+        }
+
+        Map<Long, ProblemAdminRowDTO> rowMap = rows.stream()
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toMap(ProblemAdminRowDTO::id, p -> p));
+        DegradationStatus status = rowMap.keySet().containsAll(problemIds)
+                ? DegradationStatus.OK : DegradationStatus.PARTIAL;
+        return new ProblemBatch(rowMap, status);
     }
+
+    private static DegradationStatus mergeStatus(
+            DegradationStatus userStatus, DegradationStatus problemStatus) {
+        if (userStatus == DegradationStatus.PARTIAL
+                || problemStatus == DegradationStatus.PARTIAL) {
+            return DegradationStatus.PARTIAL;
+        }
+        return DegradationStatus.OK;
+    }
+
+    private static void requirePage(SolutionAdminReadPort.SolutionAdminPage page) {
+        if (page == null || page.rows() == null
+                || page.rows().stream().anyMatch(java.util.Objects::isNull)
+                || page.total() < 0) {
+            throw AdminReadContract.ownerUnavailable("App solution");
+        }
+    }
+
+    private record ProblemBatch(
+            Map<Long, ProblemAdminRowDTO> rows, DegradationStatus status) {
+    }
+
 
     // ------------------------------------------------------------------
     // Projection helpers (row &rarr; VO)
@@ -222,7 +286,14 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
         vo.setCreatedAt(solution.createdAt());
         vo.setUpdatedAt(solution.updatedAt());
 
-        AdminUserSummary author = userEnricher.enrichOne(solution.userId());
+        AdminUserSummary author;
+        try {
+            author = userEnricher.enrichOne(solution.userId());
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
         if (author != null) {
             AdminSolutionVO.AuthorInfo authorInfo = new AdminSolutionVO.AuthorInfo();
             authorInfo.setId(author.accountId());
@@ -232,7 +303,14 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
             vo.setAuthor(authorInfo);
         }
 
-        ProblemAdminRowDTO problem = problemReadPort.findProblem(solution.problemId());
+        ProblemAdminRowDTO problem;
+        try {
+            problem = problemReadPort.findProblem(solution.problemId());
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("App problem", exception);
+        }
         if (problem != null) {
             AdminSolutionVO.ProblemInfo problemInfo = new AdminSolutionVO.ProblemInfo();
             problemInfo.setId(problem.id().toString());

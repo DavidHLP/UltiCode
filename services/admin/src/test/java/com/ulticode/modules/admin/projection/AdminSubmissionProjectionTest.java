@@ -1,31 +1,36 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.submission.api.dto.LanguageCountDTO;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminQueryDTO;
 import com.ulticode.submission.api.dto.SubmissionAdminRowDTO;
-import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;
 import com.ulticode.modules.admin.dto.SubmissionStatistics;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
@@ -154,10 +159,11 @@ class AdminSubmissionProjectionTest {
             when(submissionReadPort.search(any(SubmissionAdminQueryDTO.class), anyInt(), anyInt()))
                 .thenReturn(PageResult.of(List.of(s1, s2), 2L, 1, 10));
 
-            when(userEnricher.enrich(anySet())).thenReturn(Map.of(
+            when(userEnricher.enrichWithStatus(anySet())).thenReturn(
+                new AdminUserEnricher.EnrichedUsers(Map.of(
                     "u1", new AdminUserSummary("u1", "alice", "role1", "Alice", "avatar1", "alice@example.com"),
-                    "u2", new AdminUserSummary("u2", "bob", "role2", "Bob", "avatar2", "bob@example.com")));
-
+                    "u2", new AdminUserSummary("u2", "bob", "role2", "Bob", "avatar2", "bob@example.com")),
+                    DegradationStatus.OK));
             ProblemAdminRowDTO p1 = problemRow(100L, "two-sum", "Two Sum");
             ProblemAdminRowDTO p2 = problemRow(200L, "add-two-numbers", "Add Two Numbers");
             when(problemReadPort.findProblemsByIds(anySet())).thenReturn(List.of(p1, p2));
@@ -178,6 +184,32 @@ class AdminSubmissionProjectionTest {
             assertThat(first.getId()).isEqualTo("sub-1");
         }
 
+        @Test
+        void nullRowsAreTypedAsUnavailable() {
+            when(submissionReadPort.search(any(SubmissionAdminQueryDTO.class), anyInt(), anyInt()))
+                    .thenReturn(PageResult.of(
+                            Collections.<SubmissionAdminRowDTO>singletonList(null),
+                            1L, 1, 10));
+
+            assertThatThrownBy(() -> projection.getSubmissions(new SubmissionAdminQueryDTO()))
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+        }
+
+        @Test
+        void detailProblemOwnerFailureIsTypedAsUnavailable() {
+            SubmissionAdminRowDTO submission = row(
+                    "sub-3", "u3", 300L, "java", "Accepted", "class Main {}", LocalDateTime.now());
+            when(submissionReadPort.findById("sub-3")).thenReturn(submission);
+            when(userEnricher.enrichOne("u3")).thenReturn(null);
+            when(problemReadPort.findProblem(300L))
+                    .thenThrow(new IllegalStateException("problem owner offline"));
+
+            assertThatThrownBy(() -> projection.getSubmission("sub-3"))
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+        }
+
         private SubmissionAdminRowDTO row(String id, String userId, Long problemId, String language,
                                           String status, String code, LocalDateTime createdAt) {
             return new SubmissionAdminRowDTO(
@@ -193,4 +225,16 @@ class AdminSubmissionProjectionTest {
                     null, null, null, null, null, null, null, null, null, null);
         }
     }
+
+        @Test
+        @DisplayName("null owner page is unavailable, never an empty success")
+        void nullOwnerPageThrowsUnavailable() {
+            when(submissionReadPort.search(any(SubmissionAdminQueryDTO.class), anyInt(), anyInt()))
+                    .thenReturn(null);
+
+            assertThatThrownBy(() -> projection.getSubmissions(new SubmissionAdminQueryDTO()))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+        }
 }

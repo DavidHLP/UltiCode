@@ -1,7 +1,11 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.notification.api.dto.NotificationAdminDTO;
 import com.ulticode.notification.api.service.NotificationAdminReadPort;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
@@ -79,18 +83,26 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
         }
         String sortOrder = query.getSortOrder();
 
-        PageResult<NotificationAdminDTO> result = notificationAdminReadPort.selectSystemNotifications(
-                page,
-                limit,
-                query.getKeyword(),
-                query.getType(),
-                query.getCategory(),
-                query.getAnnouncementId(),
-                sortBy,
-                sortOrder);
+        PageResult<NotificationAdminDTO> result;
+        try {
+            result = notificationAdminReadPort.selectSystemNotifications(
+                    page,
+                    limit,
+                    query.getKeyword(),
+                    query.getType(),
+                    query.getCategory(),
+                    query.getAnnouncementId(),
+                    sortBy,
+                    sortOrder);
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Notification", exception);
+        }
+        requirePage(result, "Notification");
 
-        List<AdminNotificationVO> vos = toAdminVOList(result.getItems());
-        return PageResult.of(vos, result.getTotal(), page, limit);
+        CreatorEnrichment creators = loadCreators(result.getItems());
+        List<AdminNotificationVO> vos = toAdminVOList(result.getItems(), creators.users());
+        DegradationStatus status = mergeStatus(result.getDegradationStatus(), creators.status());
+        return PageResult.of(vos, result.getTotal(), pageRequest, status);
     }
 
     // ------------------------------------------------------------------
@@ -102,7 +114,8 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
         if (notification == null) {
             return null;
         }
-        return toAdminVOList(Collections.singletonList(notification)).stream()
+        CreatorEnrichment creators = loadCreators(Collections.singletonList(notification));
+        return toAdminVOList(Collections.singletonList(notification), creators.users()).stream()
                 .findFirst()
                 .orElse(null);
     }
@@ -126,23 +139,69 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
      * distinct {@code createdBy} is collapsed into a single
      * {@code AdminUserEnricher.enrich} call.
      */
-    private List<AdminNotificationVO> toAdminVOList(List<NotificationAdminDTO> notifications) {
+    private CreatorEnrichment loadCreators(List<NotificationAdminDTO> notifications) {
         if (notifications == null || notifications.isEmpty()) {
-            return Collections.emptyList();
+            return new CreatorEnrichment(Collections.emptyMap(), DegradationStatus.OK);
         }
 
         Set<String> creatorIds = notifications.stream()
+                .filter(java.util.Objects::nonNull)
                 .map(NotificationAdminDTO::createdBy)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toSet());
+        if (creatorIds.isEmpty()) {
+            return new CreatorEnrichment(Collections.emptyMap(), DegradationStatus.OK);
+        }
 
-        Map<String, AdminUserSummary> userMap = creatorIds.isEmpty()
-                ? Collections.emptyMap()
-                : userEnricher.enrich(creatorIds);
+        AdminUserEnricher.EnrichedUsers result;
+        try {
+            result = userEnricher.enrichWithStatus(creatorIds);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
+        if (result == null || result.status() == null
+                || result.status() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user");
+        }
+        return new CreatorEnrichment(result.users(), result.status());
+    }
 
+    private List<AdminNotificationVO> toAdminVOList(
+            List<NotificationAdminDTO> notifications, Map<String, AdminUserSummary> userMap) {
+        if (notifications == null || notifications.isEmpty()) {
+            return Collections.emptyList();
+        }
         return notifications.stream()
                 .map(n -> toAdminVO(n, userMap))
                 .collect(Collectors.toList());
+    }
+
+    private record CreatorEnrichment(
+            Map<String, AdminUserSummary> users, DegradationStatus status) {
+    }
+
+    private static DegradationStatus mergeStatus(
+            DegradationStatus pageStatus, DegradationStatus enrichmentStatus) {
+        if (pageStatus == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Notification");
+        }
+        if (pageStatus == DegradationStatus.PARTIAL
+                || enrichmentStatus == DegradationStatus.PARTIAL) {
+            return DegradationStatus.PARTIAL;
+        }
+        return pageStatus == null ? DegradationStatus.OK : pageStatus;
+    }
+
+    private static void requirePage(PageResult<?> page, String owner) {
+        if (page == null || page.getItems() == null
+                || page.getItems().stream().anyMatch(java.util.Objects::isNull)
+                || page.getTotal() == null
+                || page.getTotal() < 0
+                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable(owner);
+        }
     }
 
     /**

@@ -4,12 +4,15 @@ import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountQueryMapper;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
+import com.ulticode.common.dto.DashboardBucketCount;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -116,6 +119,39 @@ public class MyBatisAuthAccountQueryAdapter implements AuthAccountQueryPort {
         return new com.ulticode.auth.api.service.AccountQueryService.AccountStatsSummary(
                 row.total(), row.active(), row.banned(), row.activeToday(),
                 row.activeWeek(), row.activeMonth(), Map.copyOf(byRole));
+    }
+
+    @Override
+    public List<AuthUserTrendBucketDTO> aggregateUserTrend(AuthUserTrendAggregateQuery query) {
+        if (query == null) {
+            throw new IllegalArgumentException("query must not be null");
+        }
+        List<DashboardBucketCount> rows = mapper.aggregateUserTrend(
+                query.start(), query.end(), dateFormat(query.period()), query.maxBuckets());
+        if (rows == null) {
+            throw new IllegalStateException("Auth user trend aggregate returned null");
+        }
+        return rows.stream()
+                .map(MyBatisAuthAccountQueryAdapter::toTrendBucket)
+                .toList();
+    }
+
+    private static AuthUserTrendBucketDTO toTrendBucket(DashboardBucketCount row) {
+        if (row == null || row.getBucket() == null || row.getCount() == null) {
+            throw new IllegalStateException("Auth user trend aggregate returned an invalid bucket");
+        }
+        return new AuthUserTrendBucketDTO(row.getBucket(), row.getCount());
+    }
+
+    private static String dateFormat(String period) {
+        return switch (period == null ? "" : period.toLowerCase(Locale.ROOT)) {
+            case "hour" -> "%Y-%m-%d %H:00";
+            case "week" -> "%Y-%u";
+            case "month" -> "%Y-%m";
+            case "year" -> "%Y";
+            case "day" -> "%Y-%m-%d";
+            default -> throw new IllegalArgumentException("Unsupported trend period");
+        };
     }
 
     private AuthAccountDTO toDto(AuthAccountEntity entity) {

@@ -2,6 +2,8 @@ package com.ulticode.auth.api.service;
 
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
 import com.ulticode.common.rpc.RpcResult;
 
 import java.io.Serializable;
@@ -36,6 +38,14 @@ public interface AccountQueryService {
      * Return one bounded summary for dashboard statistics owned by Auth.
      */
     RpcResult<AccountStatsSummary> getDashboardStatsSummary();
+
+    /**
+     * Return bounded, Auth-owned registration trend buckets for the dashboard.
+     *
+     * <p>The provider performs the date filtering and grouping; consumers must
+     * not recreate this aggregate by paging through account rows.</p>
+     */
+    RpcResult<List<AuthUserTrendBucketDTO>> getUserTrend(AuthUserTrendAggregateQuery query);
 
     record AccountStatsSummary(
             long total,

@@ -30,6 +30,18 @@ class AdminWebExceptionHandlerHttpStatusTest {
     }
 
     @Test
+    void ownerQueryUnavailable_mapsTo503AndKeepsOwnerContext() {
+        BusinessException ex = AdminReadContract.ownerUnavailable("App forum");
+
+        ResponseEntity<Result<Void>> response = handler.handleBusinessException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCode()).isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE.code());
+        assertThat(response.getBody().getMessage()).contains("App forum");
+    }
+
+    @Test
     void baseErrorCode_badRequest_mapsTo400() {
         BusinessException ex = new BusinessException(BaseErrorCode.BAD_REQUEST);
 
@@ -37,7 +49,6 @@ class AdminWebExceptionHandlerHttpStatusTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
-
     @Test
     void baseErrorCode_notFound_mapsTo404() {
         BusinessException ex = new BusinessException(BaseErrorCode.NOT_FOUND);

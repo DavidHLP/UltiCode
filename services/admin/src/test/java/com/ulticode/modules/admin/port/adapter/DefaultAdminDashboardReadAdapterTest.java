@@ -3,14 +3,17 @@ package com.ulticode.modules.admin.port.adapter;
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
 import com.ulticode.app.api.service.DashboardAdminReadPort;
-import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.modules.admin.port.AdminDashboardReadPort;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
 import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -93,13 +96,38 @@ class DefaultAdminDashboardReadAdapterTest {
     }
 
     @Test
+    void routesUserChartToOneBoundedAuthAggregateCall() {
+        LocalDateTime start = LocalDateTime.of(2026, 8, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 8, 3, 23, 59);
+        when(accountQueryService.getUserTrend(any())).thenReturn(
+                RpcResult.success(List.of(
+                        new AuthUserTrendBucketDTO("2026-08-01", 2L),
+                        new AuthUserTrendBucketDTO("2026-08-03", 1L)), "test"));
+
+        List<AdminDashboardReadPort.ChartPoint> result =
+                adapter().loadChartData("users", start, end, "day");
+
+        assertThat(result).containsExactly(
+                new AdminDashboardReadPort.ChartPoint("2026-08-01", 2L),
+                new AdminDashboardReadPort.ChartPoint("2026-08-03", 1L));
+        ArgumentCaptor<AuthUserTrendAggregateQuery> query =
+                ArgumentCaptor.forClass(AuthUserTrendAggregateQuery.class);
+        verify(accountQueryService, times(1)).getUserTrend(query.capture());
+        assertThat(query.getValue().start()).isEqualTo(start);
+        assertThat(query.getValue().end()).isEqualTo(end);
+        assertThat(query.getValue().period()).isEqualTo("day");
+        assertThat(query.getValue().maxBuckets())
+                .isEqualTo(AuthUserTrendAggregateQuery.MAX_BUCKETS);
+    }
+
+    @Test
     void failsClosedWhenAnOwnerIsUnavailable() {
         DefaultAdminDashboardReadAdapter adapter = adapter();
         when(appDashboardReadPort.loadDashboardStats(any()))
                 .thenThrow(new IllegalStateException("owner offline"));
 
         assertThatThrownBy(() -> adapter.loadStats(LocalDateTime.of(2026, 8, 20, 10, 0)))
-                .hasMessage("Dashboard owner unavailable");
+                .hasMessage("Dashboard owner query unavailable");
     }
 
     private DefaultAdminDashboardReadAdapter adapter() {

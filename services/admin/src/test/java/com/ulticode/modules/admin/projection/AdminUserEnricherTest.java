@@ -1,9 +1,10 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.UserProfileQueryService;
-import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthAccountDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
@@ -11,7 +12,7 @@ import com.ulticode.auth.api.service.IdentityQueryService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.admin.error.AdminErrorCode;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,10 +26,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,12 +54,37 @@ class AdminUserEnricherTest {
                 "bio", "Acme", "github", "Beijing", "twitter", "website", "zh-CN");
     }
 
+    private static void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("test latch interrupted", exception);
+        }
+    }
+
+    private static <T> T blockUntilInterrupted(CountDownLatch interrupted, T value) {
+        try {
+            new CountDownLatch(1).await();
+            throw new AssertionError("blocked test task completed without cancellation");
+        } catch (InterruptedException exception) {
+            interrupted.countDown();
+            Thread.currentThread().interrupt();
+            return value;
+        }
+    }
+
     @BeforeEach
     void setUp() {
         enricher = new AdminUserEnricher();
         ReflectionTestUtils.setField(enricher, "identityQueryService", identityQueryService);
         ReflectionTestUtils.setField(enricher, "userProfileQueryService", userProfileQueryService);
         ReflectionTestUtils.setField(enricher, "accountQueryService", accountQueryService);
+    }
+
+    @AfterEach
+    void tearDown() {
+        enricher.shutdownQueryExecutor();
     }
 
     @Nested
@@ -110,6 +139,54 @@ class AdminUserEnricherTest {
             assertThat(result.users()).containsKey("u1");
             assertThat(result.users().get("u1").username()).isEqualTo("user-u1");
             assertThat(result.users().get("u1").name()).isEqualTo("Display u1");
+        }
+
+        @Test
+        @DisplayName("independent identity and profile batches run in one bounded round")
+        void independentBatchesRunInParallel() {
+            CountDownLatch identityStarted = new CountDownLatch(1);
+            CountDownLatch profileStarted = new CountDownLatch(1);
+            when(identityQueryService.batchGetIdentity(any())).thenAnswer(invocation -> {
+                identityStarted.countDown();
+                await(profileStarted);
+                return RpcResult.success(List.of(identity("u1")), "t");
+            });
+            when(userProfileQueryService.getProfilesByAccountIds(any())).thenAnswer(invocation -> {
+                profileStarted.countDown();
+                await(identityStarted);
+                return RpcResult.success(List.of(profile("u1")), "t");
+            });
+
+            AdminUserEnricher.EnrichedUsers result = enricher.enrichWithStatus(Set.of("u1"));
+
+            assertThat(result.status()).isEqualTo(DegradationStatus.OK);
+            assertThat(result.users().get("u1").username()).isEqualTo("user-u1");
+            assertThat(result.users().get("u1").name()).isEqualTo("Display u1");
+            verify(identityQueryService).batchGetIdentity(Set.of("u1"));
+            verify(userProfileQueryService).getProfilesByAccountIds(Set.of("u1"));
+        }
+
+        @Test
+        @DisplayName("timed out batch futures are cancelled instead of empty success")
+        void timedOutBatchesAreCancelled() throws InterruptedException {
+            CountDownLatch identityInterrupted = new CountDownLatch(1);
+            CountDownLatch profileInterrupted = new CountDownLatch(1);
+            when(identityQueryService.batchGetIdentity(any())).thenAnswer(invocation ->
+                    blockUntilInterrupted(
+                            identityInterrupted,
+                            RpcResult.success(List.of(identity("u1")), "t")));
+            when(userProfileQueryService.getProfilesByAccountIds(any())).thenAnswer(invocation ->
+                    blockUntilInterrupted(
+                            profileInterrupted,
+                            RpcResult.success(List.of(profile("u1")), "t")));
+
+            AdminUserEnricher.EnrichedUsers result = enricher.enrichWithStatus(Set.of("u1"));
+
+            assertThat(result.status()).isEqualTo(DegradationStatus.UNAVAILABLE);
+            assertThat(result.users()).isEmpty();
+            enricher.shutdownQueryExecutor();
+            assertThat(identityInterrupted.await(1, TimeUnit.SECONDS)).isTrue();
+            assertThat(profileInterrupted.await(1, TimeUnit.SECONDS)).isTrue();
         }
 
         @Test

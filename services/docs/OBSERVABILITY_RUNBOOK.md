@@ -67,6 +67,33 @@ after 1–2 weeks of real traffic using p50/p95/p99 and error-budget review.
 | Security | `http_server_requests_seconds_count{status=~"401|403"}` correlated with trace and route | no unexplained spike | 5m / investigate all unexplained changes |
 | Scheduler/JVM/pools | executor active/queued/rejected tasks, `jvm_memory_*`, `jvm_gc_pause_seconds_*` | no rejection/heap/GC saturation | 5m / service-specific baseline |
 
+
+### Admin use-case dependency metrics
+
+Admin dependency-shape metrics use the fixed `admin.use_case` vocabulary:
+
+```text
+admin.use_case.logical_calls{use_case,owner}
+admin.use_case.serial_rounds{use_case,owner="all"}
+admin.use_case.duration{use_case,owner="all"}
+admin.use_case.degradation{use_case,owner="all",degradation}
+admin.use_case.freshness{use_case,owner="all",freshness}
+```
+
+Example PromQL for comparing the repository budget shape with observations:
+
+```promql
+max by (use_case, owner) (admin_use_case_logical_calls)
+max by (use_case) (admin_use_case_serial_rounds)
+histogram_quantile(0.95, sum by (use_case, le) (rate(admin_use_case_duration_seconds_bucket[5m])))
+sum by (use_case, degradation) (increase(admin_use_case_degradation_total[5m]))
+```
+
+`use_case` values are the finite IDs in `P3-ADMIN-001`; account IDs, user IDs,
+request IDs, and owner-specific identifiers are never labels. These meters are
+best-effort observations: registry failures do not change the Admin result.
+The values compare call shape and repository budgets; they are not production
+latency, freshness, capacity, or availability evidence.
 `-1` worker gauges mean the observation failed or is not applicable; they are
 filtered from alerts and must not be treated as a healthy zero.
 

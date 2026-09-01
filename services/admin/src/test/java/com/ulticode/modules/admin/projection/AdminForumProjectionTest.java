@@ -1,9 +1,12 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.dto.AdminForumPostPage;
 import com.ulticode.app.api.dto.AdminForumPostQuery;
 import com.ulticode.app.api.dto.AdminForumPostRowDTO;
 import com.ulticode.app.api.service.AdminForumReadPort;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,9 +21,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-
 /**
  * Unit tests for {@link DefaultAdminForumProjection} &mdash; the read-side
  * deep module lifted out of AdminForumServiceImpl per ADR-0011 Stage 2.
@@ -64,6 +67,9 @@ class AdminForumProjectionTest {
         testPost.setIsLocked(false);
         testPost.setIsFlagged(false);
         testPost.setIsDeleted(false);
+        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class)))
+                .thenReturn(new AdminForumPostPage(List.of(testPost), 1));
+
     }
 
     @Test
@@ -72,9 +78,8 @@ class AdminForumProjectionTest {
         testPost.setCommentCount(5);
         testPost.setUpvotes(10);
         testPost.setDownvotes(2);
-        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class)))
-                .thenReturn(new AdminForumPostPage(List.of(testPost), 1));
-        when(userEnricher.enrich(any())).thenReturn(Map.of());
+        when(userEnricher.enrichWithStatus(any()))
+                .thenReturn(new AdminUserEnricher.EnrichedUsers(Map.of(), DegradationStatus.OK));
 
         var result = projection.getPosts(createDefaultQuery());
 
@@ -91,9 +96,8 @@ class AdminForumProjectionTest {
         testPost.setCommentCount(0);
         testPost.setUpvotes(0);
         testPost.setDownvotes(0);
-        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class)))
-                .thenReturn(new AdminForumPostPage(List.of(testPost), 1));
-        when(userEnricher.enrich(any())).thenReturn(Map.of());
+        when(userEnricher.enrichWithStatus(any()))
+                .thenReturn(new AdminUserEnricher.EnrichedUsers(Map.of(), DegradationStatus.OK));
 
         var result = projection.getPosts(createDefaultQuery());
 
@@ -112,6 +116,17 @@ class AdminForumProjectionTest {
 
         assertThat(result.getItems()).isEmpty();
         assertThat(result.getTotal()).isZero();
+    }
+
+    @Test
+    @DisplayName("null owner page is unavailable, never an empty success")
+    void nullOwnerPageThrowsUnavailable() {
+        when(adminForumReadPort.listPosts(any(AdminForumPostQuery.class))).thenReturn(null);
+
+        assertThatThrownBy(() -> projection.getPosts(createDefaultQuery()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
     }
 
     private AdminForumPostQueryDTO createDefaultQuery() {

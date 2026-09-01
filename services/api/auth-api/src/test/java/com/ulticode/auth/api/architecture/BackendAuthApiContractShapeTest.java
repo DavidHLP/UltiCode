@@ -11,9 +11,11 @@ import com.ulticode.auth.api.command.UpdateAccountCredentialsCommand;
 import com.ulticode.auth.api.command.WriteCommand;
 import com.ulticode.auth.api.dto.AccountMutationDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
 import com.ulticode.auth.api.dto.UserIdentityDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
+import com.ulticode.auth.api.dto.AccountStateDTO;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.auth.api.service.AccountManagementService;
@@ -129,6 +131,20 @@ class BackendAuthApiContractShapeTest {
                 AccountQueryService.AccountStatsSummary.class))
                 .as("Hessian/Dubbo dashboard payload must be Serializable")
                 .isTrue();
+    }
+
+    @Test
+    void user_trend_contract_payloads_are_transport_serializable_and_normalized() {
+        assertThat(Serializable.class.isAssignableFrom(AuthUserTrendAggregateQuery.class))
+                .isTrue();
+        assertThat(Serializable.class.isAssignableFrom(AuthUserTrendBucketDTO.class))
+                .isTrue();
+        AuthUserTrendAggregateQuery query = new AuthUserTrendAggregateQuery(
+                java.time.LocalDateTime.of(2026, 8, 1, 0, 0),
+                java.time.LocalDateTime.of(2026, 8, 1, 23, 59),
+                " DAY ",
+                1);
+        assertThat(query.period()).isEqualTo("day");
     }
 
     /* ===== String UUID identifiers ==================================== */

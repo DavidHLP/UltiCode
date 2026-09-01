@@ -1,14 +1,16 @@
 package com.ulticode.modules.admin.port.adapter;
 
+import com.ulticode.admin.error.AdminReadContract;
 import com.ulticode.app.api.dto.DashboardAppStatsDTO;
 import com.ulticode.app.api.dto.DashboardChartDataDTO;
 import com.ulticode.app.api.service.DashboardAdminReadPort;
-import com.ulticode.auth.api.dto.AccountQueryDTO;
+import com.ulticode.auth.api.dto.AuthUserTrendAggregateQuery;
+import com.ulticode.auth.api.dto.AuthUserTrendBucketDTO;
 import com.ulticode.auth.api.service.AccountQueryService;
-import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.metrics.AdminUseCaseMetrics;
 import com.ulticode.modules.admin.port.AdminDashboardReadPort;
 import com.ulticode.submission.api.dto.SubmissionDashboardChartDataDTO;
 import com.ulticode.submission.api.dto.SubmissionDashboardStatsDTO;
@@ -19,17 +21,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.WeekFields;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 /**
  * Bounded Admin Dashboard adapter. Owner-specific SQL remains behind the App
@@ -37,13 +36,17 @@ import java.util.concurrent.TimeoutException;
  */
 @Component
 public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort {
-    private static final int ACCOUNT_PAGE_SIZE = 100;
-    private static final DateTimeFormatter HOUR_BUCKET_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH");
-    private static final DateTimeFormatter DAY_BUCKET_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter MONTH_BUCKET_FORMAT =
-            DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final int MAX_TREND_BUCKETS = AuthUserTrendAggregateQuery.MAX_BUCKETS;
+    private static final Map<AdminUseCaseMetrics.Owner, Integer> STATS_CALLS = Map.of(
+            AdminUseCaseMetrics.Owner.APP, 1,
+            AdminUseCaseMetrics.Owner.AUTH, 1,
+            AdminUseCaseMetrics.Owner.SUBMISSION, 1);
+    private static final Map<AdminUseCaseMetrics.Owner, Integer> APP_CHART_CALLS =
+            Map.of(AdminUseCaseMetrics.Owner.APP, 1);
+    private static final Map<AdminUseCaseMetrics.Owner, Integer> SUBMISSION_CHART_CALLS =
+            Map.of(AdminUseCaseMetrics.Owner.SUBMISSION, 1);
+    private static final Map<AdminUseCaseMetrics.Owner, Integer> USER_CHART_CALLS =
+            Map.of(AdminUseCaseMetrics.Owner.AUTH, 1);
 
     private final SubmissionAdminReadPort submissionAdminReadPort;
     private final CancellableQueryExecutor queryExecutor;
@@ -56,6 +59,11 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
     @DubboReference(group = "backend-auth", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AccountQueryService accountQueryService;
+
+
+    /** Optional so focused wiring tests and metrics-disabled deployments retain the same seam. */
+    @Autowired(required = false)
+    private AdminUseCaseMetrics useCaseMetrics;
 
     @Autowired
     public DefaultAdminDashboardReadAdapter(SubmissionAdminReadPort submissionAdminReadPort) {
@@ -76,6 +84,15 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
 
     @Override
     public DashboardData loadStats(LocalDateTime now) {
+        return observe(
+                "I-DASH-STATS",
+                STATS_CALLS,
+                1,
+                AdminUseCaseMetrics.Freshness.NOW,
+                () -> loadStatsInternal(now));
+    }
+
+    private DashboardData loadStatsInternal(LocalDateTime now) {
         CancellableQueryExecutor.Query<DashboardAppStatsDTO> appFuture = queryExecutor.submit(
                 () -> appDashboardReadPort.loadDashboardStats(now));
         CancellableQueryExecutor.Query<SubmissionDashboardStatsDTO> submissionFuture = queryExecutor.submit(
@@ -115,6 +132,33 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
 
     @Override
     public List<ChartPoint> loadChartData(
+            String metric, LocalDateTime start, LocalDateTime end, String period) {
+        if (metric == null) {
+            throw unavailable();
+        }
+        String useCase = switch (metric) {
+            case "users" -> "I-DASH-CHART-USERS";
+            case "submissions", "problems", "contests", "solutions", "forum_posts"
+                    -> "I-DASH-CHART-OWNER";
+            default -> null;
+        };
+        if (useCase == null) {
+            return List.of();
+        }
+        Map<AdminUseCaseMetrics.Owner, Integer> calls = switch (metric) {
+            case "users" -> USER_CHART_CALLS;
+            case "submissions" -> SUBMISSION_CHART_CALLS;
+            default -> APP_CHART_CALLS;
+        };
+        return observe(
+                useCase,
+                calls,
+                1,
+                AdminUseCaseMetrics.Freshness.REQ,
+                () -> loadChartDataInternal(metric, start, end, period));
+    }
+
+    private List<ChartPoint> loadChartDataInternal(
             String metric, LocalDateTime start, LocalDateTime end, String period) {
         try {
             return switch (metric) {
@@ -160,113 +204,49 @@ public class DefaultAdminDashboardReadAdapter implements AdminDashboardReadPort 
     }
 
     private List<ChartPoint> userPoints(LocalDateTime start, LocalDateTime end, String period) {
-        AccountScan scan = scanAccounts(start);
-        if (scan.accounts().isEmpty()) {
-            return List.of();
-        }
-        Map<String, Long> buckets = new TreeMap<>();
-        for (var account : scan.accounts()) {
-            LocalDateTime joinedAt = account.joinedAt();
-            if (!joinedAt.isBefore(start) && !joinedAt.isAfter(end)) {
-                buckets.merge(formatTimeBucket(joinedAt, period), 1L, Long::sum);
-            }
-        }
-        return buckets.entrySet().stream()
-                .map(entry -> new ChartPoint(entry.getKey(), entry.getValue()))
-                .toList();
-    }
-
-    private AccountScan scanAccounts(LocalDateTime stopBefore) {
-        if (accountQueryService == null) {
+        if (accountQueryService == null || start == null || end == null
+                || start.isAfter(end) || period == null || period.isBlank()) {
             throw unavailable();
         }
-        try {
-            List<com.ulticode.auth.api.dto.AuthAccountDTO> accounts = new ArrayList<>();
-            long total = -1L;
-            for (int pageNumber = 1; ; pageNumber++) {
-                RpcResult<com.ulticode.auth.api.dto.AuthAccountDTO> response =
-                        accountQueryService.queryAccounts(new AccountQueryDTO(
-                                null, null, null, null, pageNumber,
-                                ACCOUNT_PAGE_SIZE, "joinedAt", "desc"));
-                if (response == null || !response.success() || response.page() == null) {
-                    throw unavailable();
-                }
-                RpcResult.Page page = response.page();
-                if (page.page() == null || page.page() != pageNumber
-                        || page.pageSize() == null || page.pageSize() < 1
-                        || page.pageSize() > ACCOUNT_PAGE_SIZE
-                        || page.total() == null || page.total() < 0
-                        || page.totalPages() == null || page.totalPages() < 0) {
-                    throw unavailable();
-                }
-                long expectedPages = page.total() == 0L
-                        ? 0L : (page.total() - 1L) / page.pageSize() + 1L;
-                if (page.totalPages() != expectedPages) {
-                    throw unavailable();
-                }
-                if (page.total() != 0L && pageNumber > page.totalPages()) {
-                    throw unavailable();
-                }
-                if (total < 0L) {
-                    total = page.total();
-                } else if (total != page.total()) {
-                    throw unavailable();
-                }
-                List<?> items = page.items();
-                if (items == null || items.size() > page.pageSize() || items.isEmpty()) {
-                    if (total == 0L && items != null && items.isEmpty()) {
-                        return new AccountScan(accounts, total);
-                    }
-                    throw unavailable();
-                }
-                if (pageNumber < page.totalPages() && items.size() < page.pageSize()) {
-                    throw unavailable();
-                }
-                boolean reachedWindow = false;
-                for (Object item : items) {
-                    if (!(item instanceof com.ulticode.auth.api.dto.AuthAccountDTO account)
-                            || account.joinedAt() == null
-                            || account.role() == null || account.role().isBlank()) {
-                        throw unavailable();
-                    }
-                    if (!reachedWindow && stopBefore != null && account.joinedAt().isBefore(stopBefore)) {
-                        reachedWindow = true;
-                    }
-                    if (!reachedWindow) {
-                        accounts.add(account);
-                    }
-                }
-                if (reachedWindow || pageNumber >= page.totalPages()) {
-                    if (!reachedWindow && accounts.size() != total) {
-                        throw unavailable();
-                    }
-                    return new AccountScan(accounts, total);
-                }
-            }
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
+        AuthUserTrendAggregateQuery query =
+                new AuthUserTrendAggregateQuery(start, end, period, MAX_TREND_BUCKETS);
+        RpcResult<List<AuthUserTrendBucketDTO>> response =
+                accountQueryService.getUserTrend(query);
+        if (response == null || !response.success() || response.data() == null) {
             throw unavailable();
         }
+        List<AuthUserTrendBucketDTO> buckets = response.data();
+        if (buckets.size() > MAX_TREND_BUCKETS) {
+            throw unavailable();
+        }
+        List<ChartPoint> points = new ArrayList<>(buckets.size());
+        String previousDate = null;
+        for (AuthUserTrendBucketDTO bucket : buckets) {
+            if (bucket == null || bucket.date() == null || bucket.date().isBlank()
+                    || bucket.count() < 0
+                    || (previousDate != null && previousDate.compareTo(bucket.date()) >= 0)) {
+                throw unavailable();
+            }
+            points.add(new ChartPoint(bucket.date(), bucket.count()));
+            previousDate = bucket.date();
+        }
+        return List.copyOf(points);
     }
 
-    private String formatTimeBucket(LocalDateTime value, String period) {
-        return switch (period.toLowerCase()) {
-            case "hour" -> value.format(HOUR_BUCKET_FORMAT) + ":00";
-            case "week" -> String.format(java.util.Locale.ROOT, "%04d-%02d",
-                    value.getYear(), value.get(WeekFields.ISO.weekOfYear()));
-            case "month" -> value.format(MONTH_BUCKET_FORMAT);
-            case "year" -> String.format(java.util.Locale.ROOT, "%04d", value.getYear());
-            default -> value.format(DAY_BUCKET_FORMAT);
-        };
-    }
-
-    private record AccountScan(
-            List<com.ulticode.auth.api.dto.AuthAccountDTO> accounts, long total) {
+    private <T> T observe(
+            String useCase,
+            Map<AdminUseCaseMetrics.Owner, Integer> logicalCallsByOwner,
+            int serialRounds,
+            AdminUseCaseMetrics.Freshness freshness,
+            Supplier<T> action) {
+        AdminUseCaseMetrics metrics = useCaseMetrics;
+        return metrics == null
+                ? action.get()
+                : metrics.observe(useCase, logicalCallsByOwner, serialRounds, freshness, action);
     }
 
     private static BusinessException unavailable() {
-        return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Dashboard owner unavailable");
+        return AdminReadContract.ownerUnavailable("Dashboard");
     }
 
 }

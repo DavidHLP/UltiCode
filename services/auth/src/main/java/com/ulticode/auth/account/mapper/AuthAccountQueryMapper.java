@@ -1,6 +1,7 @@
 package com.ulticode.auth.account.mapper;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
+import com.ulticode.common.dto.DashboardBucketCount;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -131,6 +132,27 @@ public interface AuthAccountQueryMapper {
             ORDER BY role
             """)
     List<RoleCountRow> dashboardRoleCounts();
+
+    /**
+     * Aggregate live account registrations in the requested local-time
+     * window. The date format is selected from the closed period allowlist by
+     * the Auth provider before it reaches this mapper.
+     */
+    @Select("""
+            SELECT DATE_FORMAT(joined_at, #{dateFormat}) AS bucket, COUNT(*) AS count
+            FROM users
+            WHERE is_deleted = 0
+              AND joined_at >= #{start}
+              AND joined_at <= #{end}
+            GROUP BY DATE_FORMAT(joined_at, #{dateFormat})
+            ORDER BY bucket ASC
+            LIMIT #{maxBuckets}
+            """)
+    List<DashboardBucketCount> aggregateUserTrend(
+            @Param("start") java.time.LocalDateTime start,
+            @Param("end") java.time.LocalDateTime end,
+            @Param("dateFormat") String dateFormat,
+            @Param("maxBuckets") int maxBuckets);
 
     record AccountStatsRow(long total, long active, long banned,
                            long activeToday, long activeWeek, long activeMonth) {}

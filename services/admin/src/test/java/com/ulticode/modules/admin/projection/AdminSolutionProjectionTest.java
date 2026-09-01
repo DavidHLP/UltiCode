@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.projection;
 
+import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.app.api.dto.ProblemAdminRowDTO;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.app.api.service.SolutionAdminReadPort;
@@ -26,6 +27,7 @@ import org.mockito.quality.Strictness;
 import java.util.Collections;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +83,19 @@ class AdminSolutionProjectionTest {
             when(solutionAdminReadPort.getById("sol-missing")).thenReturn(null);
             assertThrows(BusinessException.class, () -> projection.getSolution("sol-missing"));
         }
+        @Test
+        void problemOwnerFailureIsTypedAsUnavailable() {
+            SolutionAdminRow sol = row("sol-3", 100L, "user-3", "Title", null, null, null);
+            when(solutionAdminReadPort.getById("sol-3")).thenReturn(sol);
+            when(userEnricher.enrichOne("user-3")).thenReturn(null);
+            when(problemReadPort.findProblem(100L))
+                    .thenThrow(new IllegalStateException("problem owner offline"));
+
+            assertThatThrownBy(() -> projection.getSolution("sol-3"))
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
+        }
+
 
         @Test
         @DisplayName("enriches author + problem inline and copies every detail field")
@@ -208,6 +223,20 @@ class AdminSolutionProjectionTest {
                     ArgumentCaptor.forClass(SolutionAdminQuery.class);
             verify(solutionAdminReadPort).page(captor.capture());
             assertThat(captor.getValue().includeDeleted()).isFalse();
+        }
+
+        @Test
+        void nullRowsAreTypedAsUnavailable() {
+            AdminSolutionQueryDTO query = new AdminSolutionQueryDTO();
+            query.setPage(1);
+            query.setLimit(10);
+            when(solutionAdminReadPort.page(any()))
+                    .thenReturn(new SolutionAdminPage(
+                            Collections.<SolutionAdminRow>singletonList(null), 1L));
+
+            assertThatThrownBy(() -> projection.getSolutions(query))
+                    .extracting("errorCode")
+                    .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE);
         }
 
         @Test

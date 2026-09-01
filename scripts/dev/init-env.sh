@@ -155,10 +155,10 @@ NOTIFICATION_DB_NAME=notification
 NOTIFICATION_DB_USER=notification_rw
 NOTIFICATION_DB_PASSWORD="$notification_db_password"
 
-# The local PM2 stack provisions all five Owner accounts from this file. The
-# normal Submission reads use the owner route; the explicit legacy-rollback
-# mode is the only local compatibility route and both normal modes require
-# the completed data/grant cutover marker.
+# The local PM2 stack provisions all five Owner accounts from this file. Current
+# modes always use the remote Submission owner route and require the completed
+# data/grant cutover marker; this generator never emits a local compatibility
+# route.
 SUBMISSION_DB_HOST=localhost
 SUBMISSION_DB_PORT=23306
 SUBMISSION_DB_NAME=submission

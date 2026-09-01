@@ -32,12 +32,6 @@ class FlagCombinationValidatorTest {
         return validator;
     }
 
-    private FlagCombinationValidator legacyRollbackValidator(FeatureFlagsProperties flags) {
-        FlagCombinationValidator validator = validator(flags);
-        ReflectionTestUtils.setField(validator, "runtimeMode", "legacy-rollback");
-        return validator;
-    }
-
     private FeatureFlagsProperties flags(boolean usePort, boolean useJudgeOutbox,
                                          boolean useGenerationFence,
                                          LocalDateTime cutoverAt) {
@@ -47,13 +41,6 @@ class FlagCombinationValidatorTest {
         f.getJudgeQueue().setUsePort(usePort);
         f.getJudgeQueue().setCutoverAt(cutoverAt);
         return f;
-    }
-
-    @Test
-    @DisplayName("legacy rollback all-off flags pass")
-    void allOffPasses() {
-        FeatureFlagsProperties f = flags(false, false, false, null);
-        assertThatCode(() -> legacyRollbackValidator(f).validate()).doesNotThrowAnyException();
     }
 
     @Test
@@ -132,10 +119,15 @@ class FlagCombinationValidatorTest {
     }
 
     @Test
-    @DisplayName("legacy rollback explicitly permits the legacy flags")
-    void legacyRollbackAllowsLegacyFlags() {
+    @DisplayName("legacy rollback runtime mode fails closed")
+    void legacyRollbackFailsClosed() {
         FeatureFlagsProperties f = flags(false, false, false, null);
-        assertThatCode(() -> legacyRollbackValidator(f).validate()).doesNotThrowAnyException();
+        FlagCombinationValidator v = validator(f);
+        ReflectionTestUtils.setField(v, "runtimeMode", "legacy-rollback");
+        assertThatThrownBy(v::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("app.runtime.mode")
+                .hasMessageContaining("legacy-rollback");
     }
 
     @Test

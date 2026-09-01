@@ -38,11 +38,7 @@ UltiCode 是一个全栈在线编程平台，提供题库、竞赛、在线评�
 ./scripts/dev/up.sh --mode dev-full
 ```
 
-`legacy-rollback` 只用于显式回滚演练，不是正常开发路径：
-
-```bash
-./scripts/dev/up.sh --mode legacy-rollback
-```
+当前版本不再支持 `legacy-rollback`；`up.sh` 对该旧模式和未知 mode fail closed。生产回滚只能使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](docs/operations/deployment.md)）。
 
 ## 文档入口
 

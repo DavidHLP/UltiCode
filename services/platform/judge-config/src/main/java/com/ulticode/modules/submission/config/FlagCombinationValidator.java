@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 /**
- * Shared startup validator for the named local/external runtime modes.
+ * Shared startup validator for the named dev and external runtime modes.
  * Submission, App and Judge must reject the same unsafe flag combinations.
  */
 @Slf4j
@@ -66,15 +66,8 @@ public class FlagCombinationValidator {
             }
             return;
         }
-        if ("legacy-rollback".equals(runtimeMode)) {
-            if (flags.isUseJudgeOutbox() || flags.isUseGenerationFence() || judgeQueue.isUsePort()) {
-                throw new IllegalStateException(
-                        "Runtime mode legacy-rollback requires all Judge Streams flags to be false.");
-            }
-            return;
-        }
         throw new IllegalStateException(
                 "Invalid app.runtime.mode='" + runtimeMode
-                        + "'; expected dev-lite, dev-full, external-full or legacy-rollback.");
+                        + "'; expected dev-lite, dev-full or external-full.");
     }
 }

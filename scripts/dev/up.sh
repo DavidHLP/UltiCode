@@ -74,10 +74,9 @@ Options:
   --no-frontend        不起前端 (dev-lite 等同六个后端；dev-full 另含 Search)
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
-  --mode <dev-lite|dev-full|legacy-rollback>
+  --mode <dev-lite|dev-full>
                        dev-lite=remote owner reads/DB search/no Search worker（需 cutover marker）；
-                       dev-full=remote owner reads/indexed/Search worker；
-                       legacy-rollback=App 本地写+兼容消费旧 RQueue（不启动 Judge worker）；默认 dev-lite
+                       dev-full=remote owner reads/indexed/Search worker；默认 dev-lite
   -h, --help           显示此帮助
 
 Examples:
@@ -91,7 +90,6 @@ Examples:
   ./scripts/dev/up.sh --skip-infra --skip-migrate
   ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环，DB search，不启用 App shadow
   ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/indexed/Search owner 栈
-  ./scripts/dev/up.sh --mode legacy-rollback   # 显式 Judge Streams 回滚栈（仅回滚演练使用）
 EOF
 }
 

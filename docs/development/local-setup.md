@@ -20,7 +20,7 @@
 ./scripts/dev/up.sh --mode dev-full
 ```
 
-`dev-full` 额外启动 Search worker 和两个前端。需要只启动前端时使用 `./scripts/dev/up.sh --frontend-only`；需要只启动 Search 时使用 `./scripts/dev/up.sh --mode dev-full --only search`。正常两种模式使用 Judge Streams。只有需要验证旧路径时才使用 `./scripts/dev/up.sh --mode legacy-rollback`；该模式不启动 Judge worker。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
+`dev-full` 额外启动 Search worker 和两个前端。需要只启动前端时使用 `./scripts/dev/up.sh --frontend-only`；需要只启动 Search 时使用 `./scripts/dev/up.sh --mode dev-full --only search`。正常两种模式使用 Judge Streams；`up.sh` 对已退役的 `legacy-rollback` 和未知 mode fail closed。生产回滚使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](../operations/deployment.md)）。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
 
 常用变体：
 

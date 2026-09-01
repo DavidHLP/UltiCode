@@ -35,13 +35,6 @@ DEVSTACK_READINESS_APPS=(
   ulticode-9002
   ulticode-9003
 )
-DEVSTACK_ROLLBACK_APPS=(
-  ulticode-auth
-  ulticode-admin
-  ulticode-app
-  ulticode-submission
-  ulticode-notification
-)
 
 DEVSTACK_REQUIRED_BASE_VARS=(
   DB_USER DB_PASSWORD DB_NAME MYSQL_ROOT_PASSWORD JWT_SECRET
@@ -73,9 +66,9 @@ devstack_apps_csv() {
 
 devstack_validate_mode_name() {
   case "$1" in
-    dev-lite|dev-full|legacy-rollback) return 0 ;;
+    dev-lite|dev-full) return 0 ;;
     *)
-      echo "--mode must be dev-lite, dev-full or legacy-rollback." >&2
+      echo "--mode must be dev-lite or dev-full." >&2
       return 2
       ;;
   esac
@@ -85,10 +78,6 @@ devstack_apps_for_mode() {
   case "$1" in
     dev-lite) devstack_apps_csv "${DEVSTACK_DEV_LITE_APPS[@]}" ;;
     dev-full) devstack_apps_csv "${DEVSTACK_DEV_FULL_APPS[@]}" ;;
-    # Rollback topology: App writes locally and consumes the legacy RQueue
-    # itself (judge-compatibility-enabled=true). The Judge worker must NOT
-    # run: with use-port=false it would poll the same RQueue and double-judge.
-    legacy-rollback) devstack_apps_csv "${DEVSTACK_ROLLBACK_APPS[@]}" ;;
     *) devstack_validate_mode_name "$1" ;;
   esac
 }
@@ -97,13 +86,13 @@ devstack_backend_apps_for_mode() {
   case "$1" in
     dev-lite) devstack_apps_csv "${DEVSTACK_DEV_LITE_APPS[@]}" ;;
     dev-full) devstack_apps_csv "${DEVSTACK_DEV_FULL_BACKEND_APPS[@]}" ;;
-    legacy-rollback) devstack_apps_csv "${DEVSTACK_ROLLBACK_APPS[@]}" ;;
     *) devstack_validate_mode_name "$1" ;;
   esac
 }
 
 devstack_required_vars() {
   local mode="$1" frontend_only="$2"
+  devstack_validate_mode_name "$mode" || return $?
   printf '%s\n' "${DEVSTACK_REQUIRED_BASE_VARS[@]}"
   [[ "$frontend_only" == true ]] && return 0
 
@@ -116,13 +105,12 @@ devstack_required_vars() {
       "${owner_prefix}_DB_PASSWORD"
   done
   printf '%s\n' SUBMISSION_MIGRATION_DB_USER SUBMISSION_MIGRATION_DB_PASSWORD
-  if [[ "$mode" != legacy-rollback ]]; then
-    printf '%s\n' APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE
-  fi
+  printf '%s\n' APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE
 }
 
 devstack_validate_environment() {
   local mode="$1" root_dir="$2" frontend_only="$3" prepare_owner="$4"
+  devstack_validate_mode_name "$mode" || return $?
   [[ "$frontend_only" == true ]] && return 0
 
   local owner owner_prefix db_name_var
@@ -142,7 +130,7 @@ devstack_validate_environment() {
     echo "Local PM2 requires SUBMISSION_DB_USER=submission_rw; provision custom production accounts outside up.sh." >&2
     return 1
   }
-  if [[ "$prepare_owner" != true && "$mode" != legacy-rollback ]]; then
+  if [[ "$prepare_owner" != true ]]; then
     [[ "$APP_SUBMISSION_ROUTING_MODE" == remote ]] || {
       echo "$mode requires APP_SUBMISSION_ROUTING_MODE=remote." >&2
       return 1
@@ -155,6 +143,8 @@ devstack_validate_environment() {
 }
 
 devstack_apply_mode() {
+  devstack_validate_mode_name "$1" || return $?
+
   case "$1" in
     dev-lite)
       APP_RUNTIME_MODE=dev-lite
@@ -163,7 +153,6 @@ devstack_apply_mode() {
       APP_FEATURES_USE_JUDGE_OUTBOX=true
       APP_FEATURES_USE_GENERATION_FENCE=true
       APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED=false
       APP_FEATURES_CONTEST_DUBBO_CUTOVER=true
       APP_FEATURES_SUBMISSION_DUBBO_CUTOVER=false
       APP_SEARCH_READ_MODE=database
@@ -179,7 +168,6 @@ devstack_apply_mode() {
       APP_FEATURES_USE_JUDGE_OUTBOX=true
       APP_FEATURES_USE_GENERATION_FENCE=true
       APP_FEATURES_JUDGE_QUEUE_USE_PORT=true
-      APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED=false
       APP_FEATURES_CONTEST_DUBBO_CUTOVER=true
       APP_FEATURES_SUBMISSION_DUBBO_CUTOVER=true
       APP_SEARCH_READ_MODE=indexed
@@ -188,36 +176,11 @@ devstack_apply_mode() {
       APP_SEARCH_BACKFILL_ENABLED="${APP_SEARCH_BACKFILL_ENABLED:-false}"
       SEARCH_WORKER_ENABLED=true
       ;;
-    # Rollback-only mode: App writes submissions locally and consumes the
-    # legacy RQueue itself (judge-compatibility-enabled=true). Judge worker
-    # is not started (see DEVSTACK_ROLLBACK_APPS) so the RQueue has exactly
-    # one consumer. Flag trio false satisfies FlagCombinationValidator.
-    legacy-rollback)
-      APP_RUNTIME_MODE=legacy-rollback
-      APP_SUBMISSION_ROUTING_MODE=local
-      SUBMISSION_CUTOVER_COMPLETE=false
-      APP_FEATURES_USE_JUDGE_OUTBOX=false
-      APP_FEATURES_USE_GENERATION_FENCE=false
-      APP_FEATURES_JUDGE_QUEUE_USE_PORT=false
-      APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED=true
-      APP_FEATURES_CONTEST_DUBBO_CUTOVER=false
-      APP_FEATURES_SUBMISSION_DUBBO_CUTOVER=false
-      APP_SEARCH_READ_MODE=database
-      APP_SEARCH_FALLBACK_TO_DATABASE=false
-      MEILISEARCH_ENABLED=false
-      APP_SEARCH_BACKFILL_ENABLED=false
-      SEARCH_WORKER_ENABLED=false
-      ;;
-    *)
-      echo "--mode must be dev-lite, dev-full or legacy-rollback." >&2
-      return 2
-      ;;
   esac
 
   export APP_RUNTIME_MODE APP_SUBMISSION_ROUTING_MODE SUBMISSION_CUTOVER_COMPLETE \
     APP_FEATURES_USE_JUDGE_OUTBOX APP_FEATURES_USE_GENERATION_FENCE \
     APP_FEATURES_JUDGE_QUEUE_USE_PORT \
-    APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED \
     APP_FEATURES_CONTEST_DUBBO_CUTOVER APP_FEATURES_SUBMISSION_DUBBO_CUTOVER \
     APP_SEARCH_READ_MODE APP_SEARCH_FALLBACK_TO_DATABASE \
     MEILISEARCH_ENABLED APP_SEARCH_BACKFILL_ENABLED SEARCH_WORKER_ENABLED

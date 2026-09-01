@@ -6,7 +6,6 @@ import com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor;
 import com.ulticode.modules.queue.processor.JudgeAttemptExecutor;
 import com.ulticode.modules.queue.service.QueueService;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
@@ -15,7 +14,6 @@ import org.springframework.context.annotation.Profile;
  * Normal App/API boot does not own Judge polling; the independent Judge
  * process imports the full execution graph from {@code JudgeRuntimeConfiguration}.
  */
-@Configuration(proxyBeanMethods = false)
 @Profile("!test")
 @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
         "'${app.features.judge-compatibility-enabled:false}' == 'true' "

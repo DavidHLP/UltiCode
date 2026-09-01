@@ -7,7 +7,7 @@ local startup/verification entry points live in `scripts/dev/`.
 
 | Script | Purpose |
 | --- | --- |
-| `up.sh` | 唯一本地开发启动入口 (`--mode dev-lite/dev-full/legacy-rollback`)；执行顺序与就绪面由 `devstack-manifest.sh` 声明，正常模式要求 Submission cutover marker |
+| `up.sh` | 唯一本地开发启动入口 (`--mode dev-lite/dev-full`)；`legacy-rollback` 和未知 mode fail closed；执行顺序与就绪面由 `devstack-manifest.sh` 声明，正常模式要求 Submission cutover marker |
 | `stop.sh` | 停止 PM2 管理的本地进程组 |
 | `init-env.sh` | 生成本地 `.env`（基础设施凭据随机，开发管理员由 bootstrap 配置） |
 | `migrate.sh` | Flyway 入口（shared chain + per-owner `MIGRATION_SCHEMA=`） |

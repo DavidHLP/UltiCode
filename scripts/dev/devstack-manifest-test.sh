@@ -17,6 +17,55 @@ assert_file_not_contains() {
   ! grep -F -- "$unexpected" "$ROOT_DIR/$file" >/dev/null
 }
 
+assert_mode_rejected() {
+  local mode="$1"
+  if devstack_validate_mode_name "$mode" >/dev/null 2>&1 \
+    || devstack_apps_for_mode "$mode" >/dev/null 2>&1 \
+    || devstack_backend_apps_for_mode "$mode" >/dev/null 2>&1 \
+    || devstack_required_vars "$mode" false >/dev/null 2>&1 \
+    || devstack_validate_environment "$mode" "$ROOT_DIR" true false >/dev/null 2>&1 \
+    || devstack_apply_mode "$mode" >/dev/null 2>&1; then
+    echo "mode must be rejected: $mode" >&2
+    exit 1
+  fi
+}
+
+assert_mode_rejected legacy-rollback
+assert_mode_rejected unknown
+
+assert_file_not_contains scripts/dev/devstack-manifest.sh 'legacy-rollback'
+assert_file_not_contains scripts/dev/devstack-manifest.sh 'APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED='
+assert_file_not_contains scripts/dev/up.sh 'legacy-rollback'
+assert_file_not_contains services/app/app-web/src/main/java/com/ulticode/BackendAppApplication.java \
+  'AppJudgeCompatibilityConfiguration'
+assert_file_not_contains services/app/app-web/src/main/resources/application.yml \
+  'judge-compatibility-enabled'
+assert_file_not_contains ecosystem.config.cjs 'APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED'
+assert_file_not_contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
+  '@Configuration'
+assert_file_not_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
+  'legacy-rollback'
+assert_file_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
+  'expected dev-lite, dev-full or external-full.'
+
+(
+  export APP_RUNTIME_MODE=legacy-rollback
+  export APP_SUBMISSION_ROUTING_MODE=local
+  export APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED=true
+  devstack_apply_mode dev-lite
+  [[ "$APP_RUNTIME_MODE" == dev-lite ]]
+  [[ "$APP_SUBMISSION_ROUTING_MODE" == remote ]]
+)
+
+(
+  export APP_RUNTIME_MODE=legacy-rollback
+  export APP_SUBMISSION_ROUTING_MODE=local
+  export APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED=true
+  devstack_apply_mode dev-full
+  [[ "$APP_RUNTIME_MODE" == dev-full ]]
+  [[ "$APP_SUBMISSION_ROUTING_MODE" == remote ]]
+)
+
 [[ "${DEVSTACK_OWNER_MIGRATION_ORDER[*]}" == "auth admin app notification submission" ]]
 [[ "$(devstack_apps_csv "${DEVSTACK_DEV_LITE_APPS[@]}")" == \
   "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge" ]]
@@ -51,7 +100,7 @@ assert_file_contains .env.example 'APP_SUBMISSION_ROUTING_MODE=remote'
 assert_file_contains scripts/dev/init-env.sh 'APP_SUBMISSION_ROUTING_MODE=remote'
 assert_file_contains scripts/dev/up.sh 'source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"'
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_CONTEST_DUBBO_CUTOVER: process.env.APP_FEATURES_CONTEST_DUBBO_CUTOVER || 'true'"
-assert_file_contains ecosystem.config.cjs "APP_RUNTIME_MODE: process.env.APP_RUNTIME_MODE || 'dev-lite'"
+assert_file_contains ecosystem.config.cjs "APP_RUNTIME_MODE: process.env.APP_RUNTIME_MODE === 'dev-full' ? 'dev-full' : 'dev-lite'"
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_USE_JUDGE_OUTBOX: process.env.APP_FEATURES_USE_JUDGE_OUTBOX || 'true'"
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_USE_GENERATION_FENCE: process.env.APP_FEATURES_USE_GENERATION_FENCE || 'true'"
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_JUDGE_QUEUE_USE_PORT: process.env.APP_FEATURES_JUDGE_QUEUE_USE_PORT || 'true'"
@@ -84,7 +133,6 @@ fi
   [[ "$APP_SEARCH_READ_MODE" == database ]]
   [[ "$APP_SEARCH_FALLBACK_TO_DATABASE" == false ]]
   [[ "$MEILISEARCH_ENABLED" == false ]]
-  [[ "$APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED" == false ]]
   [[ "$SEARCH_WORKER_ENABLED" == false ]]
 )
 
@@ -100,23 +148,9 @@ fi
   [[ "$APP_SEARCH_READ_MODE" == indexed ]]
   [[ "$APP_SEARCH_FALLBACK_TO_DATABASE" == true ]]
   [[ "$MEILISEARCH_ENABLED" == true ]]
-  [[ "$APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED" == false ]]
   [[ "$SEARCH_WORKER_ENABLED" == true ]]
 )
 
-(
-  unset SUBMISSION_CUTOVER_COMPLETE APP_SEARCH_BACKFILL_ENABLED
-  devstack_apply_mode legacy-rollback
-  [[ "$APP_RUNTIME_MODE" == legacy-rollback ]]
-  [[ "$APP_SUBMISSION_ROUTING_MODE" == local ]]
-  # Rollback topology: flag trio false (validator) + App compatibility on;
-  # Judge worker must not be in the app set or the RQueue gets two consumers.
-  [[ "$APP_FEATURES_USE_JUDGE_OUTBOX" == false ]]
-  [[ "$APP_FEATURES_USE_GENERATION_FENCE" == false ]]
-  [[ "$APP_FEATURES_JUDGE_QUEUE_USE_PORT" == false ]]
-  [[ "$APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED" == true ]]
-  [[ "$(devstack_apps_for_mode legacy-rollback)" != *ulticode-judge* ]]
-)
 
 for app in "${DEVSTACK_READINESS_APPS[@]}"; do
   devstack_readiness "$app" >/dev/null

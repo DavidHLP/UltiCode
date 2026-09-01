@@ -58,8 +58,7 @@ app:
     mode: ${APP_RUNTIME_MODE:dev-lite}
   submission:
     routing:
-      # Normal App/API boot reads Submission through backend-submission. The
-      # local projection is reserved for the explicit legacy-rollback mode.
+      # Normal App/API boot reads Submission through backend-submission.
       mode: ${APP_SUBMISSION_ROUTING_MODE:remote}
       # Owner-read startup remains gated until data/grant cutover verification.
       cutover-complete: ${SUBMISSION_CUTOVER_COMPLETE:false}
@@ -117,8 +116,6 @@ app:
       max-concurrent-requests: ${APP_STORAGE_S3_MAX_CONCURRENT_REQUESTS:16}
 
   features:
-    # Explicit rollback-only seam. Normal App/API boot never owns Judge polling.
-    judge-compatibility-enabled: ${APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED:false}
     use-judge-outbox: ${APP_FEATURES_USE_JUDGE_OUTBOX:true}
     use-generation-fence: ${APP_FEATURES_USE_GENERATION_FENCE:true}
     judge-queue:

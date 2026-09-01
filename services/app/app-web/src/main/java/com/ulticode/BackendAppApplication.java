@@ -2,9 +2,7 @@ package com.ulticode;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import com.ulticode.app.judge.AppJudgeCompatibilityConfiguration;
 /**
  * P1-INFRA-005: App service placeholder boot entry.
  *
@@ -13,7 +11,6 @@ import com.ulticode.app.judge.AppJudgeCompatibilityConfiguration;
  * profiles still scan every App-owned mapper package.</p>
  */
 @EnableScheduling
-@Import(AppJudgeCompatibilityConfiguration.class)
 @SpringBootApplication(scanBasePackages = {
         "com.ulticode.app",
         "com.ulticode.audit",

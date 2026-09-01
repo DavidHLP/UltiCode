@@ -148,6 +148,21 @@ contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/se
 contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
   "'\${app.runtime.mode:dev-lite}' != 'legacy-rollback'"
 
+# P4-LEGACY-006: current launchers and binaries fail closed for the retired
+# rollback mode; compatibility sources remain until P4-LEGACY-007.
+not_contains services/app/app-web/src/main/java/com/ulticode/BackendAppApplication.java \
+  'AppJudgeCompatibilityConfiguration'
+not_contains services/app/app-web/src/main/resources/application.yml \
+  'judge-compatibility-enabled'
+not_contains ecosystem.config.cjs 'APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED'
+not_contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
+  '@Configuration'
+not_contains scripts/dev/up.sh 'legacy-rollback'
+not_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
+  'legacy-rollback'
+contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
+  'expected dev-lite, dev-full or external-full.'
+
 # SVC-002: cross-process mutation and problem lookup contracts expose only
 # the capabilities each consumer actually uses.
 contains services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \
@@ -511,8 +526,8 @@ done
 not_contains services/api/app-api/src/main/java/com/ulticode/app/api/service/ContestLiveRankingReadPort.java \
   'UnsupportedOperationException'
 
-# P1-DATA-001: all normal Submission reads cross the owner contract. The
-# local mapper/adapters remain only behind the explicit legacy rollback mode.
+# P1-DATA-001: all current Submission reads cross the owner contract. Legacy
+# local mapper/adapters remain as deletion-boundary sources until P4-007+.
 for contraction_file in \
   init-db/flyway-contraction.conf \
   init-db/migrations/V20260830200000__Create_Owner_Contraction_Proof.sql \

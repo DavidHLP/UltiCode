@@ -18,10 +18,6 @@ app:
     outbox:
       dispatcher:
         enabled: false
-  submission:
-    routing:
-      mode: remote
-      cutover-complete: true
   features:
     use-judge-outbox: true
     use-generation-fence: true

@@ -31,14 +31,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Write-path projection adapter for {@code backend-submission}.
+ * Submission owner projection for user-facing list and detail responses.
  *
- * <p>SPLIT-003 slice-2 copy of the P0-1 security projection from the App
- * adapter: user-visible (SAMPLE/null=legacy) test details are exposed,
- * HIDDEN cases are filtered, and the first failing detail is extracted
- * without leaking hidden-case inputs/outputs. Read-side enrichments
- * (user/problem summaries) are omitted here — the App-side adapter supplies
- * them on the read path until SPLIT-004.
+ * <p>The P0-1 security projection exposes user-visible (SAMPLE/null=legacy)
+ * test details, filters HIDDEN cases, and extracts the first failing detail
+ * without leaking hidden-case inputs/outputs. User and problem summaries are
+ * enriched through the owner-facing App/Auth read seams.
  */
 @Slf4j
 @Component

@@ -15,13 +15,11 @@ import java.util.Map;
 /**
  * Projection seam owned by {@code backend-submission}.
  *
- * <p>SPLIT-003 slice-2 copies the write-path projection ({@link #toVO})
- * with its P0-1 security filtering. SPLIT-004 slice-7 adds the user-facing
- * read aggregations (calendar dates, learning progress, submission history,
- * status catalog) that are pure {@code submissions}-table reads — no
- * cross-owner JOIN, per DEC-011. The pre-joined list-item overloads
- * ({@code toListItemVO} / {@code toVO(SubmissionWithProblem)}) stay in App
- * until the read-routing cutover slice.
+ * <p>The P0-1 security projection and the user-facing read aggregations
+ * (calendar dates, learning progress, submission history, status catalog) are
+ * owned here and read only the {@code submissions} table. User/problem
+ * summaries cross the explicit App-owned seams; no cross-owner JOIN is used
+ * (DEC-011).
  */
 public interface SubmissionProjection {
 

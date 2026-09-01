@@ -142,8 +142,6 @@ contains services/judge/src/main/java/com/ulticode/judge/provider/CodeExecutionP
   '@DubboService(group = "backend-judge"'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java \
   "'\${app.runtime.mode:dev-lite}' == 'legacy-rollback'"
-contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
-  "'\${app.runtime.mode:dev-lite}' != 'legacy-rollback'"
 
 # P4-LEGACY-006/007: current launchers and binaries fail closed for the
 # retired rollback mode; the App compatibility sources are now absent.
@@ -523,8 +521,9 @@ done
 not_contains services/api/app-api/src/main/java/com/ulticode/app/api/service/ContestLiveRankingReadPort.java \
   'UnsupportedOperationException'
 
-# P1-DATA-001: all current Submission reads cross the owner contract. Legacy
-# local mapper/adapters remain as deletion-boundary sources until P4-007+.
+# P1-DATA-001/P4-LEGACY-008: current Submission reads cross the owner
+# contracts. App-local read implementations are deleted; Mapper/entity residue
+# remains only as the explicitly scoped P4-009 boundary.
 for contraction_file in \
   init-db/flyway-contraction.conf \
   init-db/migrations/V20260830200000__Create_Owner_Contraction_Proof.sql \
@@ -540,8 +539,8 @@ for contraction_file in \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionStreakAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionUserStatsAdapter.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/RemoteSubmissionGenerationReadAdapter.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/LocalSubmissionAdjudicationReadAdapter.java; do
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionUserQueryAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/RemoteSubmissionGenerationReadAdapter.java; do
   [[ -f "$ROOT_DIR/$contraction_file" ]] || fail "missing P1-DATA source: $contraction_file"
 done
 contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdjudicationReadProvider.java \
@@ -558,8 +557,6 @@ contains services/app/app-web/src/main/java/com/ulticode/modules/contest/port/ad
   'backend-submission'
 contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteProblemSubmissionStatsAdapter.java \
   'backend-submission'
-contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionUserQueryRoutingPort.java \
-  'selectOwnerRead'
 contains services/app/app-web/src/main/java/com/ulticode/app/config/LegacySubmissionMapperScanConfig.java \
   '@MapperScan(value = "com.ulticode.modules.submission.mapper"'
 not_contains services/app/app-web/src/main/java/com/ulticode/app/config/MapperScanConfig.java \
@@ -579,8 +576,6 @@ for app_submission_sql_source in "${app_submission_sql_sources[@]}"; do
   [[ "$app_submission_sql_source" == "$app_java/com/ulticode/modules/submission/mapper/SubmissionMapper.java" ]] \
     || fail "normal App source contains direct Submission SQL: $app_submission_sql_source"
 done
-contains services/app/app-web/src/main/resources/application.yml \
-  'mode: ${APP_SUBMISSION_ROUTING_MODE:remote}'
 contains scripts/dev/migrate.sh \
   'OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION'
 contains scripts/dev/migrate.sh \
@@ -594,19 +589,38 @@ contains scripts/runbooks/owner-schema-contraction.sh 'OWNER_SCHEMA_CONTRACTION_
 contains init-db/migrations/contraction/V20260830200100__Retire_Legacy_Owner_Tables.sql 'backup_confirmed'
 contains init-db/migrations/contraction/V20260830200100__Retire_Legacy_Owner_Tables.sql 'writers_quiesced_at'
 contains scripts/test/owner-schema-contraction-contract.sh 'forward contraction and owner preservation: PASS'
-legacy_route="'\${app.runtime.mode:dev-lite}' == 'legacy-rollback'"
 for local_submission_source in \
   services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/LocalSubmissionAdjudicationReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionGenerationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/LocalSubmissionUserQueryAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/ProblemSubmissionStatsMapperAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionStreakAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/SubmissionUserStatsMapperAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionUserQueryRoutingPort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionUserStatsPort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/ProblemSubmissionStatsPort.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/config/SubmissionRoutingProperties.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/projection/DefaultSubmissionProjection.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/projection/SubmissionProjection.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/service/SubmissionService.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/DefaultSubmissionPerformanceStats.java \
-  services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/JdbcSubmissionStreakCalculator.java; do
-  contains "$local_submission_source" "$legacy_route"
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/JdbcSubmissionStreakCalculator.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/SubmissionPerformanceStats.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/SubmissionStreakCalculator.java; do
+  assert_absent "$local_submission_source"
+done
+for remote_submission_source in \
+  services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/RemoteSubmissionAdjudicationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/RemoteSubmissionGenerationReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionUserQueryAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteProblemSubmissionStatsAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionReadAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionStreakAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionUserStatsAdapter.java \
+  services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java; do
+  not_contains "$remote_submission_source" 'legacy-rollback'
 done
 contains docker-compose.prod.yml 'JWT_RSA_ENABLED=true'
 contains docker-compose.prod.yml 'JWT_JWKS_URI=https://backend-auth:9101/auth/jwks'

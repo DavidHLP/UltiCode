@@ -5,7 +5,6 @@ import com.ulticode.submission.api.dto.ProblemDifficultyCompletion;
 import com.ulticode.submission.api.dto.ProblemTrend;
 import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +15,6 @@ import java.util.Map;
 /** App adapter for Submission-owner Problem statistics. */
 @Component
 @Primary
-@ConditionalOnExpression("'${app.runtime.mode:dev-lite}' != 'legacy-rollback'")
 public class RemoteProblemSubmissionStatsAdapter implements ProblemSubmissionStatsPort {
 
     @DubboReference(group = "backend-submission", version = "1.1.0",

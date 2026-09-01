@@ -11,24 +11,18 @@ import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcPolicy;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * Remote route for {@link SubmissionUserQueryPort}: reads the Submission
- * owner over Dubbo once read-routing cutover is enabled.
+ * Direct App adapter for the Submission-owner user query contract.
  *
- * <p>SPLIT-004 slice-8: activated only when
- * {@code app.submission.routing.mode=remote} (the same flag that turns on
- * the remote write route). The read endpoints then hit
- * {@code backend-submission}, which runs the queries against the Submission
- * owner schema and enriches problem facts through the App-owned
- * {@code ProblemFactsPort} batch seam — no cross-owner JOIN (DEC-011).
+ * <p>All user-facing Submission reads cross the owner boundary through this
+ * bounded Dubbo contract. The App controller remains unchanged and receives
+ * the same wire DTOs and pagination envelopes.
  */
 @Component
-@ConditionalOnExpression("'${app.runtime.mode:dev-lite}' != 'legacy-rollback'")
 public class RemoteSubmissionUserQueryAdapter implements SubmissionUserQueryPort {
 
     @DubboReference(group = "backend-submission", version = "1.1.0",

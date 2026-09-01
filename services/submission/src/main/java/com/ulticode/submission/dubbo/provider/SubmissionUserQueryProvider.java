@@ -38,8 +38,9 @@ import java.util.stream.Collectors;
  * through the {@link com.ulticode.app.api.service.ProblemFactsPort} batch
  * seam — never a cross-owner JOIN (DEC-011).
  *
- * <p>Normal App controller reads route to this owner provider; the App-local
- * projection is retained only for explicit legacy rollback.
+ * <p>All normal App controller reads route to this owner provider. The
+ * provider owns the Submission persistence and projection path; problem display
+ * facts are supplied through the App-owned batch seam.
  *
  * <p>Wire contract version {@code 1.1.0}: gates the newly added
  * {@code findByProblemId} read so 1.0.0 consumers never route to this

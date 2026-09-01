@@ -5,7 +5,6 @@ import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.submission.api.dto.SubmissionDateCountDTO;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +13,6 @@ import java.util.List;
 /** App adapter for Submission-owner per-user statistics. */
 @Component
 @Primary
-@ConditionalOnExpression("'${app.runtime.mode:dev-lite}' != 'legacy-rollback'")
 public class RemoteSubmissionUserStatsAdapter implements SubmissionUserStatsPort {
 
     @DubboReference(group = "backend-submission", version = "1.1.0",

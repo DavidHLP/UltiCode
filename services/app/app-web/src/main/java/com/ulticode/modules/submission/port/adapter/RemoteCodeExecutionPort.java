@@ -9,14 +9,12 @@ import com.ulticode.common.rpc.RpcPolicy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.rpc.RpcException;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /** App adapter for the Judge-owned synchronous code execution seam. */
 @Component
 @Primary
-@ConditionalOnExpression("'${app.runtime.mode:dev-lite}' != 'legacy-rollback'")
 @Slf4j
 public class RemoteCodeExecutionPort implements CodeExecutionPort {
 

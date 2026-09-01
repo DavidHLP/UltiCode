@@ -4,7 +4,6 @@ import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.service.SubmissionReadPort;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +13,6 @@ import java.util.List;
 /** App adapter for Submission-owner contest submission projections. */
 @Component
 @Primary
-@ConditionalOnExpression("'${app.runtime.mode:dev-lite}' != 'legacy-rollback'")
 public class RemoteSubmissionReadAdapter implements SubmissionReadPort {
 
     @DubboReference(group = "backend-submission", version = "1.0.0",

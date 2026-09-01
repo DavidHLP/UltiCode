@@ -21,13 +21,11 @@ import java.util.Objects;
  * {@code backend-submission} so external modules (contest) project
  * submission entities to VOs from the Submission owner schema.
  *
- * <p>SPLIT-004 slice-6: user-visible projection runs locally
+ * <p>SPLIT-004 slice-6: user-visible projection runs in the Submission owner
  * ({@link SubmissionProjection}, P0-1 hidden-case filter), then user and
  * problem summaries are enriched through the App/Auth-owned seams
- * ({@link ProblemFactsPort}) — never
- * reading user or problem tables (DEC-011). Normal App and Contest reads
- * route to this owner provider; the App-local projection is retained only
- * for explicit legacy rollback.
+ * ({@link ProblemFactsPort}) — never reading user or problem tables (DEC-011).
+ * Normal App and Contest reads route to this owner provider.
  */
 @DubboService(group = "backend-submission", version = "1.0.0")
 @RequiredArgsConstructor

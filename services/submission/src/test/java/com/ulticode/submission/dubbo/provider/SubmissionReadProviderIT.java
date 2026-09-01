@@ -38,13 +38,11 @@ import static org.mockito.Mockito.when;
  * SPLIT-004 slice-6: Submission owner user-facing read provider against a
  * real MySQL container.
  *
- * <p>Verifies that {@code backend-submission} serves
  * {@code SubmissionReadPort.toVO} from the {@code submission} schema with
  * the P0-1 projection applied locally, and enriches user/problem summaries
  * through the App/Auth-owned seams ({@link SubmissionUserReadPort},
  * {@link ProblemFactsPort} — Dubbo in production, mocked here) per DEC-011.
- * The App provider (group=backend-app) remains the active contest route
- * until the read-routing cutover slice.
+ * Normal App and Contest reads route to this owner provider.
  */
 @Testcontainers
 @DisplayName("SPLIT-004 slice-6: Submission owner user-facing read provider")

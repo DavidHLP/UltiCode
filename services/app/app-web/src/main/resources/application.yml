@@ -56,12 +56,6 @@ app:
     # Supported local launcher default. dev-full overrides this through the
     # manifest; production Compose must declare its indexed/remote mode.
     mode: ${APP_RUNTIME_MODE:dev-lite}
-  submission:
-    routing:
-      # Normal App/API boot reads Submission through backend-submission.
-      mode: ${APP_SUBMISSION_ROUTING_MODE:remote}
-      # Owner-read startup remains gated until data/grant cutover verification.
-      cutover-complete: ${SUBMISSION_CUTOVER_COMPLETE:false}
   search:
     read:
       # dev-lite is deterministic DB read; indexed mode is explicit and

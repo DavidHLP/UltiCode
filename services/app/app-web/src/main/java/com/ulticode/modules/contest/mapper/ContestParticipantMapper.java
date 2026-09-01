@@ -253,10 +253,10 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             @Param("userId") String userId);
 
     /**
-     * R6.3 / F-08: tells the achievement layer whether a given submission
-     * belongs to a virtual session. Returns true only if there is a
+     * R6.3 / F-08: tells the contest integration layer whether a given
+     * submission belongs to a virtual session. Returns true only if there is a
      * contest_submissions row pointing at a contest_participants row with
-     * {@code is_virtual=1}. Used by SubmissionServiceImpl to skip
+     * {@code is_virtual=1}. Used by {@code ContestSubmissionAdapter} to skip
      * achievement triggers for virtual ACs.
      */
     @Select("SELECT cp.is_virtual FROM contest_submissions cs "

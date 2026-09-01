@@ -80,7 +80,7 @@ class DefaultProblemDetailPortTest {
                 problemTagRelationMapper,
                 new ObjectMapper(),
                 Clock.systemDefaultZone(),
-                new com.ulticode.app.uuid.FixedAppUuidGenerator());
+                new com.ulticode.common.uuid.FixedUuidGenerator());
     }
 
     private Problem problem(Long id, String slug) {

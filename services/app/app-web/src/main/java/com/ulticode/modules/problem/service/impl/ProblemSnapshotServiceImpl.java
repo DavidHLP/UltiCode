@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.app.error.ProblemErrorCode;
-import com.ulticode.app.uuid.AppUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
@@ -67,7 +67,7 @@ public class ProblemSnapshotServiceImpl implements ProblemSnapshotService {
     private final ProblemLanguageMapper problemLanguageMapper;
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
-    private final AppUuidGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final ObjectMapper objectMapper;
 
     @Override

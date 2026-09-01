@@ -3,7 +3,7 @@ package com.ulticode.modules.problem.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.app.uuid.FixedAppUuidGenerator;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
@@ -83,7 +83,7 @@ class ProblemSnapshotServiceTest {
                 problemLanguageMapper,
                 problemTagMapper,
                 problemTagRelationMapper,
-                new FixedAppUuidGenerator(),
+                new FixedUuidGenerator(),
                 objectMapper);
     }
 

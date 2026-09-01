@@ -2,7 +2,7 @@ package com.ulticode.modules.forum.service.impl;
 
 import com.ulticode.app.error.ForumErrorCode;
 import com.ulticode.app.security.CheckBan;
-import com.ulticode.app.uuid.AppUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.forum.dto.CreatePostDTO;
 import com.ulticode.modules.forum.dto.ForumPostVO;
@@ -47,7 +47,7 @@ public class ForumPostServiceImpl implements ForumPostService {
     private final ForumCommentMapper commentMapper;
     private final ForumUserLifecyclePort forumUserLifecycle;
     private final ForumUserReadPort forumUserReadPort;
-    private final AppUuidGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
     private final ForumPostProjection postProjection;
 

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.error.ProblemErrorCode;
-import com.ulticode.app.uuid.FixedAppUuidGenerator;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
@@ -94,7 +94,7 @@ class ProblemVersionServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        FixedAppUuidGenerator uuidGenerator = new FixedAppUuidGenerator();
+        FixedUuidGenerator uuidGenerator = new FixedUuidGenerator();
         // The service now sees only the snapshot seam; wire a real impl to the
         // same mock graph so behavior assertions stay end-to-end.
         ProblemSnapshotService snapshotService = new ProblemSnapshotServiceImpl(

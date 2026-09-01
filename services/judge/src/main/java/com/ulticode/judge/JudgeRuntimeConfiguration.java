@@ -2,8 +2,6 @@ package com.ulticode.judge;
 
 import com.ulticode.app.config.AppClockConfig;
 import com.ulticode.app.config.AppRedisTemplateConfig;
-import com.ulticode.app.uuid.AppUuidGenerator;
-import com.ulticode.app.uuid.CommonUuidGeneratorAdapter;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.inspector.DefaultQueueInspector;
 import com.ulticode.modules.queue.migration.JudgeStreamLegacyMigration;
@@ -53,8 +51,6 @@ import org.springframework.context.annotation.Import;
 @Import({
         AppClockConfig.class,
         AppRedisTemplateConfig.class,
-        AppUuidGenerator.ProdAppUuidGenerator.class,
-        CommonUuidGeneratorAdapter.class,
         DockerSandboxConfigRegistrar.class,
         FeatureFlagsProperties.class,
         FlagCombinationValidator.class,

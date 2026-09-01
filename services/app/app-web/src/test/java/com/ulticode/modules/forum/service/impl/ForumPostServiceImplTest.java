@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ulticode.app.uuid.AppUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.forum.dto.CreatePostDTO;
 import com.ulticode.modules.forum.dto.ForumPostVO;
 import com.ulticode.modules.forum.dto.UpdatePostDTO;
@@ -44,7 +44,7 @@ class ForumPostServiceImplTest {
     @Mock private ForumCommentMapper commentMapper;
     @Mock private ForumUserLifecyclePort forumUserLifecycle;
     @Mock private ForumUserReadPort forumUserReadPort;
-    @Mock private AppUuidGenerator uuidGenerator;
+    @Mock private UuidGenerator uuidGenerator;
     @Mock private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
     @Mock private ForumPostProjection postProjection;
 

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.app.security.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.error.SolutionErrorCode;
-import com.ulticode.app.uuid.AppUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
@@ -45,7 +45,7 @@ public class SolutionServiceImpl implements SolutionService {
     private final ProblemExistencePort problemExistencePort;
     private final SolutionProjection solutionProjection;
     private final Clock clock;
-    private final AppUuidGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
     private final com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 
     private static final int MAX_SUMMARY_LENGTH = 180;

@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.app.error.ProblemErrorCode;
-import com.ulticode.app.uuid.AppUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.problem.dto.LanguageConfigDTO;
 import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -58,7 +58,7 @@ public class DefaultProblemDetailPort implements ProblemDetailPort {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
-    private final AppUuidGenerator uuidGenerator;
+    private final UuidGenerator uuidGenerator;
 
     @Override
     @Transactional

@@ -1,6 +1,6 @@
 package com.ulticode.modules.solution.service;
 
-import com.ulticode.app.uuid.AppUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
@@ -50,7 +50,7 @@ class SolutionServiceTest {
     @Mock
     private Clock clock;
     @Mock
-    private AppUuidGenerator uuidGenerator;
+    private UuidGenerator uuidGenerator;
     @Mock
     private com.ulticode.modules.search.source.SearchDocumentChangedPublisher searchPublisher;
 

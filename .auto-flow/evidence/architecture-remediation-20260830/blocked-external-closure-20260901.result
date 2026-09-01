@@ -75,6 +75,25 @@ cleanup:
 
 known_tool_limit:
   result: BLOCKED_TOOL
-  detail: "Fresh delegated code-reviewer, Java/Spring reviewer, and security-reviewer sessions were invoked after modifications, but the reviewer transport returned no final message after bounded waits and was closed. No reviewer PASS is claimed; source review, static contracts, and tests were rerun locally."
+  detail: "Fresh delegated Java/Spring and security reviewer sessions, plus a follow-up code-reviewer session, returned no final message after bounded waits and were closed. One independent code-reviewer did return three HIGH findings; all three were fixed and the targeted contracts were rerun. No reviewer PASS is claimed beyond that returned finding report."
+
+review_follow_up:
+  result: "NO_UNRESOLVED_KNOWN_CRITICAL_OR_HIGH"
+  findings:
+    - finding: "admin-api directory assertion treated ignored generated target output as source"
+      result: FIXED
+      detail: "The boundary gate now ignores only target/.flattened-pom generated output, rejects symlinks/non-directory entries, rejects any remaining source, and checks tracked files; the stale generated directory was removed."
+    - finding: "retirement inventory treated grep read errors as a clean search"
+      result: FIXED
+      detail: "The gate accepts only grep exit 1 as no match and fails closed for every other non-zero status."
+    - finding: "new retirement script was missing from CI contract path filtering"
+      result: FIXED
+      detail: "ci.yml contract paths now include scripts/test/submission-compatibility-retirement-contract.sh."
+  verification:
+    - "rtk bash scripts/test/api-contract-boundary-contract.sh: PASS"
+    - "rtk bash scripts/test/submission-compatibility-retirement-contract.sh: PASS"
+    - "rtk bash scripts/dev/docs-contract-test.sh: PASS"
+    - "rtk bash -n on changed shell files: PASS"
+    - "rtk git diff --check: PASS"
 
 scope_note: "A default invocation without disposable inputs must continue to report BLOCKED_EXTERNAL for missing external endpoint/secret authority. That branch is intentional fail-closed behavior, not an unresolved repository task."

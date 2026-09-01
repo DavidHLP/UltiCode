@@ -59,7 +59,7 @@ Repository work may make deployment actions executable and verifiable, but this 
 - Last committed P1-SUB-004 implementation checkpoint:
   - `8a521d7`
   - `refactor(submission): move reconciliation to owner facts`
-- `.auto-flow` and handoff checkpoint metadata is committed in `b29c634`.
+- `.auto-flow` and handoff checkpoint metadata is committed in flow checkpoint `cef925a`; the current local checkpoint contains the final review-fix evidence.
 - `git diff --check` currently passes.
 - OS: Arch Linux, x86_64.
 - Working Java: Zulu `17.0.20.1` via mise.
@@ -181,7 +181,7 @@ Final graph refresh before flow closure: `rtk graphify update .` rebuilt 28177 n
 - `TEST-COV-001`: DONE — Enforce real non-regression coverage gates (`ef74edc`, verification `cb40a226934ec501b788a1a673fe864d41d35ae0`; unified Compose run passes locally)
 - `REVIEW-001`: DONE — Run first full standards and spec review (`7743d88f`)
 - `REVIEW-002`: DONE — Run independent final implementation review (`bfd1919`)
-- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (flow checkpoint `fc31cf35eecbd48ee87392a3e7e0366975191c2b`; implementation follow-up `cb40a226934ec501b788a1a673fe864d41d35ae0`)
+- `CLOSURE-001`: DONE — Close tasks commits evidence and final report (flow checkpoint `cef925a`; implementation checkpoint `1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a`)
 
 For exact dependencies, acceptance criteria, validation commands, and external notes, use the same task entries in `.auto-flow/TASKS.yaml`; do not invent alternate task IDs or a second task system.
 

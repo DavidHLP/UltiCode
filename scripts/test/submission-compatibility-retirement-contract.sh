@@ -35,10 +35,14 @@ done
 for source_root in services/api/submission-api/src/main services/submission/src/main \
   services/app/app-web/src/main services/admin/src/main services/judge/src/main \
   services/notification/src/main; do
-  if grep -RIlw --include='*.java' --exclude-dir=target \
-      -e 'SubmissionWritePort' -e 'SubmissionAnalyticsPort' -e 'SubmissionWriteProvider' \
-      "$ROOT_DIR/$source_root"; then
+  grep_status=0
+  grep -RIlw --include='*.java' --exclude-dir=target \
+    -e 'SubmissionWritePort' -e 'SubmissionAnalyticsPort' -e 'SubmissionWriteProvider' \
+    "$ROOT_DIR/$source_root" || grep_status=$?
+  if (( grep_status == 0 )); then
     fail "retired N-1 symbol remains in production source under $source_root"
+  elif (( grep_status != 1 )); then
+    fail "could not inspect production source under $source_root (grep exit $grep_status)"
   fi
 done
 

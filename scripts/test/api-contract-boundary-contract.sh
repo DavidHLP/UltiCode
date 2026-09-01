@@ -30,9 +30,21 @@ not_contains() {
 }
 
 admin_api_dir="$ROOT_DIR/services/api/admin-api"
-if [[ -e "$admin_api_dir" ]]; then
+if [[ -L "$admin_api_dir" || ( -e "$admin_api_dir" && ! -d "$admin_api_dir" ) ]]; then
   fail "obsolete API module source still exists: services/api/admin-api"
 fi
+if [[ -d "$admin_api_dir" ]]; then
+  obsolete_source="$(find "$admin_api_dir" -mindepth 1 \
+    ! -path "$admin_api_dir/target" \
+    ! -path "$admin_api_dir/target/*" \
+    ! -path "$admin_api_dir/.flattened-pom.xml" \
+    -print -quit)"
+  [[ -z "$obsolete_source" ]] \
+    || fail "obsolete API module source exists under services/api/admin-api: $obsolete_source"
+fi
+tracked_admin_api="$(git -C "$ROOT_DIR" ls-files -- 'services/api/admin-api')"
+[[ -z "$tracked_admin_api" ]] \
+  || fail "obsolete API module has tracked files: $tracked_admin_api"
 
 implementation_artifacts=(
   backend-auth backend-admin backend-app backend-submission

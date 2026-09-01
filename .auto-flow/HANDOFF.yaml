@@ -38,7 +38,7 @@ outputs:
   - "ARCH-SEC-001 completed in bfd1919882c7d1e9d6a976626c623591ed856057; shared delegation verifier/key loading and Auth route fail-closed gate are covered by code and security review"
   - "TEST-COV-001 completed in ef74edc657beaba8fc269e85ae45b6d434e7be2b with verification follow-up cb40a226934ec501b788a1a673fe864d41d35ae0; JaCoCo/V8 gates, fixed floors, negative fixtures, no parse exclusions and fail-closed i18n coverage pass"
   - "REVIEW-001 and REVIEW-002 completed against baseline 8b4012b3d13678eaec38a82980c8e3558123b5a8; prior concrete CRITICAL/HIGH findings are fixed and reverified. Fresh delegated reviewer transport returned no final message and is recorded as BLOCKED_TOOL, not as a reviewer PASS"
-  - "CLOSURE-001 metadata and evidence synchronization is recorded in .auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result and will be committed in the local flow checkpoint"
+  - "CLOSURE-001 metadata and evidence synchronization is recorded in .auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result and committed in flow checkpoint cef925a; the current worktree is the final local checkpoint"
 evidence:
   - ".auto-flow/evidence/architecture-remediation-20260830"
   - "P0-SEC-004 shared JWT/JWKS committed as 828a941; shared and isolated owner security suites pass; current full reactor and disposable Redis integration pass"

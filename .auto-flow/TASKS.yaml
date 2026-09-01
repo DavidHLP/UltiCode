@@ -1186,6 +1186,6 @@ architecture_remediation_20260830:
         - ".auto-flow/evidence/architecture-remediation-20260830/closure-001.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
-      commit: "fc31cf35eecbd48ee87392a3e7e0366975191c2b"
+      commit: "cef925a"
       blocked_by: []
-      notes: "Repository-local blockers were rechecked and closed in blocked-external-closure-20260901.result; flow metadata/evidence synchronization will be committed in the local checkpoint. Production/remote adoption is outside this repository and is not claimed. No push or production apply without separate authorization."
+      notes: "Repository-local blockers were rechecked and closed in blocked-external-closure-20260901.result; flow metadata/evidence synchronization is committed in cef925a. Production/remote adoption is outside this repository and is not claimed. No push or production apply without separate authorization."

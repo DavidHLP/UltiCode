@@ -137,9 +137,26 @@ interfaces = sorted(
     for match in [re.search(r"\bpublic\s+interface\s+([A-Za-z0-9_]+)", source.read_text(encoding="utf-8"))]
     if match
 )
+source_names = set(interfaces)
+catalog_rows = []
+in_catalog = False
+for line in catalog.splitlines():
+    if line == "## Catalog":
+        in_catalog = True
+        continue
+    if line == "## Retired by P2-APP-003":
+        break
+    if in_catalog and line.startswith("| ") and line.endswith("|"):
+        name = line.split("|", 2)[1].strip()
+        if name not in {"Interface", "---"}:
+            catalog_rows.append((name, line))
+catalog_names = {name for name, _ in catalog_rows}
+extra = sorted(catalog_names - source_names)
+if extra:
+    raise SystemExit("app-api catalog has stale interface rows: " + ", ".join(extra))
 missing = []
 for name in interfaces:
-    rows = [line for line in catalog.splitlines() if line.startswith(f"| {name} |")]
+    rows = [line for row_name, line in catalog_rows if row_name == name]
     if len(rows) != 1 or rows[0].count("|") < 7 or not rows[0].rstrip().endswith("|"):
         missing.append(name)
     elif "unknown" in rows[0].lower():

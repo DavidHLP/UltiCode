@@ -168,9 +168,3 @@ dubbo:
     retries: 0
   cloud:
     subscribed-services: ''
-
-logging:
-  level:
-    root: INFO
-    com.ulticode.judge: INFO
-    com.ulticode.modules.queue: INFO

@@ -1,0 +1,162 @@
+# Preserve the dirty worktree and require confirmation for external or
+# destructive Git operations from the project rules.
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Pushing changes is an external action; confirm the remote and ref first.",
+    match = ["git push origin main", "git push --set-upstream origin feature"],
+    not_match = ["git status", "git diff"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "push"],
+    decision = "prompt",
+    justification = "Pushing changes is an external action; confirm the remote and ref first.",
+    match = ["rtk git push origin main"],
+    not_match = ["rtk git status"],
+)
+
+prefix_rule(
+    pattern = ["git", "pull"],
+    decision = "prompt",
+    justification = "Pulling can change the worktree; confirm the remote and branch first.",
+    match = ["git pull origin main"],
+    not_match = ["git fetch origin"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "pull"],
+    decision = "prompt",
+    justification = "Pulling can change the worktree; confirm the remote and branch first.",
+    match = ["rtk git pull origin main"],
+    not_match = ["rtk git fetch origin"],
+)
+
+prefix_rule(
+    pattern = ["git", "merge"],
+    decision = "prompt",
+    justification = "Merging changes history and the worktree; confirm the source branch first.",
+    match = ["git merge feature"],
+    not_match = ["git mergetool"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "merge"],
+    decision = "prompt",
+    justification = "Merging changes history and the worktree; confirm the source branch first.",
+    match = ["rtk git merge feature"],
+    not_match = ["rtk git mergetool"],
+)
+
+prefix_rule(
+    pattern = ["git", "rebase"],
+    decision = "prompt",
+    justification = "Rebasing rewrites history; confirm the base and recovery path first.",
+    match = ["git rebase main"],
+    not_match = ["git rev-parse HEAD"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "rebase"],
+    decision = "prompt",
+    justification = "Rebasing rewrites history; confirm the base and recovery path first.",
+    match = ["rtk git rebase main"],
+    not_match = ["rtk git rev-parse HEAD"],
+)
+
+prefix_rule(
+    pattern = ["git", "reset"],
+    decision = "prompt",
+    justification = "Reset can discard or rewrite work; confirm the exact target and user request first.",
+    match = ["git reset --hard HEAD~1", "git reset path/to/file"],
+    not_match = ["git status"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "reset"],
+    decision = "prompt",
+    justification = "Reset can discard or rewrite work; confirm the exact target and user request first.",
+    match = ["rtk git reset --hard HEAD~1"],
+    not_match = ["rtk git status"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "prompt",
+    justification = "Clean deletes untracked work; confirm the exact scope and recovery path first.",
+    match = ["git clean -fd"],
+    not_match = ["git status --short"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "clean"],
+    decision = "prompt",
+    justification = "Clean deletes untracked work; confirm the exact scope and recovery path first.",
+    match = ["rtk git clean -fd"],
+    not_match = ["rtk git status --short"],
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "--"],
+    decision = "prompt",
+    justification = "This checkout form can discard local changes; confirm the exact path first.",
+    match = ["git checkout -- path/to/file"],
+    not_match = ["git checkout feature"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "checkout", "--"],
+    decision = "prompt",
+    justification = "This checkout form can discard local changes; confirm the exact path first.",
+    match = ["rtk git checkout -- path/to/file"],
+    not_match = ["rtk git checkout feature"],
+)
+
+prefix_rule(
+    pattern = ["git", "restore"],
+    decision = "prompt",
+    justification = "Restore can discard local changes; confirm the exact path and mode first.",
+    match = ["git restore path/to/file", "git restore --staged path/to/file"],
+    not_match = ["git status"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "restore"],
+    decision = "prompt",
+    justification = "Restore can discard local changes; confirm the exact path and mode first.",
+    match = ["rtk git restore path/to/file"],
+    not_match = ["rtk git status"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", "."],
+    decision = "prompt",
+    justification = "Broad staging can include secrets or unrelated changes; stage reviewed paths explicitly.",
+    match = ["git add ."],
+    not_match = ["git add src/app.js"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "add", "."],
+    decision = "prompt",
+    justification = "Broad staging can include secrets or unrelated changes; stage reviewed paths explicitly.",
+    match = ["rtk git add ."],
+    not_match = ["rtk git add src/app.js"],
+)
+
+prefix_rule(
+    pattern = ["git", "add", "-A"],
+    decision = "prompt",
+    justification = "Broad staging can include secrets or unrelated changes; stage reviewed paths explicitly.",
+    match = ["git add -A"],
+    not_match = ["git add src/app.js"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "git", "add", "-A"],
+    decision = "prompt",
+    justification = "Broad staging can include secrets or unrelated changes; stage reviewed paths explicitly.",
+    match = ["rtk git add -A"],
+    not_match = ["rtk git add src/app.js"],
+)

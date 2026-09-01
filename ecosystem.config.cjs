@@ -10,8 +10,8 @@ module.exports = {
     {
       name: 'ulticode-auth',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f auth/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f auth/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -38,8 +38,8 @@ module.exports = {
     {
       name: 'ulticode-admin',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f admin/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f admin/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -68,8 +68,8 @@ module.exports = {
     {
       name: 'ulticode-app',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f app/app-web/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f app/app-web/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -106,8 +106,8 @@ module.exports = {
     {
       name: 'ulticode-notification',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f notification/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f notification/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -133,8 +133,8 @@ module.exports = {
     {
       name: 'ulticode-submission',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f submission/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f submission/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -171,8 +171,8 @@ module.exports = {
     {
       name: 'ulticode-judge',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f judge/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f judge/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {
@@ -205,8 +205,8 @@ module.exports = {
       // list because MeiliSearch is not required for ordinary App development.
       name: 'ulticode-search',
       cwd: BACKEND_CWD,
-      script: 'mvn',
-      args: '-f search/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
+      script: 'mise',
+      args: 'exec java@zulu-17.68.203.0 -- ./mvnw -f search/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: BACKEND_ENV_FILE,
       env: {

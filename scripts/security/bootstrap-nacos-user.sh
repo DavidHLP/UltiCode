@@ -105,6 +105,7 @@ provision_service_sql() {
   local metadata_empty_read_resource=":mapping:config/*"
   local metadata_empty_write_resource=":mapping:config/${metadata_prefix}*"
   local config_default_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:config/*"
+  local config_dubbo_resource="${NACOS_RESOURCE_NAMESPACE}:dubbo:config/*"
   local config_test_default_resource=":Dubbo-Nacos-Test:config/*"
   local naming_read_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:naming/*"
   local naming_app_write_resource="${NACOS_RESOURCE_NAMESPACE}:DEFAULT_GROUP:naming/backend-${prefix,,}"
@@ -122,6 +123,7 @@ DELETE FROM permissions WHERE role = '$role';
 INSERT INTO permissions (role, resource, action) VALUES
   ('$role', '$config_test_resource', 'r'),
   ('$role', '$config_default_resource', 'r'),
+  ('$role', '$config_dubbo_resource', 'r'),
   ('$role', '$metadata_read_resource', 'r'),
   ('$role', '$metadata_write_resource', 'w'),
   ('$role', '$metadata_empty_read_resource', 'r'),

@@ -1,0 +1,130 @@
+# Require confirmation before actions that publish, merge, or mutate external
+# deployment resources.
+
+prefix_rule(
+    pattern = ["gh", "pr", "create"],
+    decision = "prompt",
+    justification = "Creating a pull request publishes repository content; confirm the target repository and branch first.",
+    match = ["gh pr create --title change"],
+    not_match = ["gh pr view 123"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "gh", "pr", "create"],
+    decision = "prompt",
+    justification = "Creating a pull request publishes repository content; confirm the target repository and branch first.",
+    match = ["rtk gh pr create --title change"],
+    not_match = ["rtk gh pr view 123"],
+)
+
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "prompt",
+    justification = "Merging changes remote history; confirm the pull request and merge method first.",
+    match = ["gh pr merge 123"],
+    not_match = ["gh pr view 123"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "gh", "pr", "merge"],
+    decision = "prompt",
+    justification = "Merging changes remote history; confirm the pull request and merge method first.",
+    match = ["rtk gh pr merge 123"],
+    not_match = ["rtk gh pr view 123"],
+)
+
+prefix_rule(
+    pattern = ["gh", "release", "create"],
+    decision = "prompt",
+    justification = "Creating a release publishes an artifact; confirm the tag and release target first.",
+    match = ["gh release create v1.0.0"],
+    not_match = ["gh release view v1.0.0"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "gh", "release", "create"],
+    decision = "prompt",
+    justification = "Creating a release publishes an artifact; confirm the tag and release target first.",
+    match = ["rtk gh release create v1.0.0"],
+    not_match = ["rtk gh release view v1.0.0"],
+)
+
+prefix_rule(
+    pattern = ["docker", "push"],
+    decision = "prompt",
+    justification = "Pushing an image publishes an artifact; confirm the registry, repository, and digest first.",
+    match = ["docker push registry.example/app:tag"],
+    not_match = ["docker images"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "docker", "push"],
+    decision = "prompt",
+    justification = "Pushing an image publishes an artifact; confirm the registry, repository, and digest first.",
+    match = ["rtk docker push registry.example/app:tag"],
+    not_match = ["rtk docker images"],
+)
+
+prefix_rule(
+    pattern = ["npm", "publish"],
+    decision = "prompt",
+    justification = "Publishing a package changes an external registry; confirm the package and version first.",
+    match = ["npm publish"],
+    not_match = ["npm pack"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "npm", "publish"],
+    decision = "prompt",
+    justification = "Publishing a package changes an external registry; confirm the package and version first.",
+    match = ["rtk npm publish"],
+    not_match = ["rtk npm pack"],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "publish"],
+    decision = "prompt",
+    justification = "Publishing a package changes an external registry; confirm the package and version first.",
+    match = ["pnpm publish"],
+    not_match = ["pnpm pack"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "pnpm", "publish"],
+    decision = "prompt",
+    justification = "Publishing a package changes an external registry; confirm the package and version first.",
+    match = ["rtk pnpm publish"],
+    not_match = ["rtk pnpm pack"],
+)
+
+prefix_rule(
+    pattern = ["kubectl", "apply"],
+    decision = "prompt",
+    justification = "Applying Kubernetes resources mutates an external environment; confirm the context and namespace first.",
+    match = ["kubectl apply -f deployment.yaml"],
+    not_match = ["kubectl get pods"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "kubectl", "apply"],
+    decision = "prompt",
+    justification = "Applying Kubernetes resources mutates an external environment; confirm the context and namespace first.",
+    match = ["rtk kubectl apply -f deployment.yaml"],
+    not_match = ["rtk kubectl get pods"],
+)
+
+prefix_rule(
+    pattern = ["kubectl", "delete"],
+    decision = "prompt",
+    justification = "Deleting Kubernetes resources can cause service or data loss; confirm the context and target first.",
+    match = ["kubectl delete deployment app"],
+    not_match = ["kubectl describe deployment app"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "kubectl", "delete"],
+    decision = "prompt",
+    justification = "Deleting Kubernetes resources can cause service or data loss; confirm the context and target first.",
+    match = ["rtk kubectl delete deployment app"],
+    not_match = ["rtk kubectl describe deployment app"],
+)

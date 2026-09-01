@@ -1,0 +1,113 @@
+# Protect local data and schema history during runtime and migration work.
+
+prefix_rule(
+    pattern = ["docker", "compose", "down", "-v"],
+    decision = "prompt",
+    justification = "Compose volume removal can destroy local databases; confirm the project and disposable scope first.",
+    match = ["docker compose down -v"],
+    not_match = ["docker compose down"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "docker", "compose", "down", "-v"],
+    decision = "prompt",
+    justification = "Compose volume removal can destroy local databases; confirm the project and disposable scope first.",
+    match = ["rtk docker compose down -v"],
+    not_match = ["rtk docker compose down"],
+)
+
+prefix_rule(
+    pattern = ["docker", "compose", "down", "--volumes"],
+    decision = "prompt",
+    justification = "Compose volume removal can destroy local databases; confirm the project and disposable scope first.",
+    match = ["docker compose down --volumes"],
+    not_match = ["docker compose down"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "docker", "compose", "down", "--volumes"],
+    decision = "prompt",
+    justification = "Compose volume removal can destroy local databases; confirm the project and disposable scope first.",
+    match = ["rtk docker compose down --volumes"],
+    not_match = ["rtk docker compose down"],
+)
+
+prefix_rule(
+    pattern = ["docker", "volume", "rm"],
+    decision = "prompt",
+    justification = "Removing Docker volumes can destroy database state; confirm the exact disposable volume first.",
+    match = ["docker volume rm ulticode_mysql"],
+    not_match = ["docker volume ls"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "docker", "volume", "rm"],
+    decision = "prompt",
+    justification = "Removing Docker volumes can destroy database state; confirm the exact disposable volume first.",
+    match = ["rtk docker volume rm ulticode_mysql"],
+    not_match = ["rtk docker volume ls"],
+)
+
+prefix_rule(
+    pattern = ["docker", "system", "prune"],
+    decision = "prompt",
+    justification = "Docker system pruning removes host resources; confirm the exact cleanup scope first.",
+    match = ["docker system prune"],
+    not_match = ["docker system df"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "docker", "system", "prune"],
+    decision = "prompt",
+    justification = "Docker system pruning removes host resources; confirm the exact cleanup scope first.",
+    match = ["rtk docker system prune"],
+    not_match = ["rtk docker system df"],
+)
+
+prefix_rule(
+    pattern = ["docker", "builder", "prune"],
+    decision = "prompt",
+    justification = "Builder pruning removes cached host resources; confirm the cleanup scope first.",
+    match = ["docker builder prune"],
+    not_match = ["docker builder ls"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "docker", "builder", "prune"],
+    decision = "prompt",
+    justification = "Builder pruning removes cached host resources; confirm the cleanup scope first.",
+    match = ["rtk docker builder prune"],
+    not_match = ["rtk docker builder ls"],
+)
+
+prefix_rule(
+    pattern = ["flyway", "clean"],
+    decision = "prompt",
+    justification = "Flyway clean removes schema objects; use the repository migration workflow and confirm the target first.",
+    match = ["flyway clean"],
+    not_match = ["flyway info"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "flyway", "clean"],
+    decision = "prompt",
+    justification = "Flyway clean removes schema objects; use the repository migration workflow and confirm the target first.",
+    match = ["rtk flyway clean"],
+    not_match = ["rtk flyway info"],
+)
+
+prefix_rule(
+    pattern = ["flyway", "repair"],
+    decision = "prompt",
+    justification = "Flyway repair changes migration history; inspect the failure and confirm the recovery path first.",
+    match = ["flyway repair"],
+    not_match = ["flyway info"],
+)
+
+prefix_rule(
+    pattern = ["rtk", "flyway", "repair"],
+    decision = "prompt",
+    justification = "Flyway repair changes migration history; inspect the failure and confirm the recovery path first.",
+    match = ["rtk flyway repair"],
+    not_match = ["rtk flyway info"],
+)

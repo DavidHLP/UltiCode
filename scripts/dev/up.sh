@@ -206,12 +206,22 @@ else
 fi
 
 # ===== 前置检查 =====
-for command in docker mvn pnpm pm2 curl timeout openssl; do
+for command in docker pnpm pm2 curl timeout openssl; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command not found: $command" >&2
     exit 1
   }
 done
+if [[ "$FRONTEND_ONLY" != true ]]; then
+  command -v mise >/dev/null 2>&1 || {
+    echo "Required command not found: mise" >&2
+    exit 1
+  }
+  [[ -x "$ROOT_DIR/services/mvnw" ]] || {
+    echo "Required Maven wrapper not found or not executable: $ROOT_DIR/services/mvnw" >&2
+    exit 1
+  }
+fi
 
 if [[ ! -f "$ENV_FILE" ]]; then
   "$ROOT_DIR/scripts/dev/init-env.sh"
@@ -474,6 +484,17 @@ else
   echo "Skipping DEV-LOCAL App Owner seed data (--skip-seed-data / --skip-migrate / --quick / --frontend-only / disabled / App not selected)."
 fi
 
+# ===== 步骤 3.75: 可选的 Maven 反应堆重建 (--rebuild) =====
+# Bootstrap and PM2 use per-module spring-boot:run, so current reactor
+# artifacts must be installed before either path resolves sibling modules.
+if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *,ulticode-* ]]; then
+  echo "Rebuilding services reactor into ~/.m2 (-DskipTests install)..."
+  (cd "$ROOT_DIR/services" && mise exec java@zulu-17.68.203.0 -- ./mvnw -DskipTests install -B) || {
+    echo "Error: reactor install failed; fix compilation errors before starting the stack." >&2
+    exit 1
+  }
+fi
+
 # ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====
 if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   # UserProvisioningAdapter 通过 Dubbo RPC 调用 backend-auth 的
@@ -543,7 +564,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     SERVER_PORT=9102 \
     SPRING_PROFILES_ACTIVE=dev \
       timeout --kill-after="$DEVSTACK_BOOTSTRAP_KILL_AFTER_SECONDS" \
-        "$DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS" mvn -f admin/pom.xml spring-boot:run \
+        "$DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS" mise exec java@zulu-17.68.203.0 -- ./mvnw -f admin/pom.xml spring-boot:run \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \
         -Dspring-boot.run.arguments='--spring.main.web-application-type=none --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration' \
@@ -585,19 +606,6 @@ if [[ "$SKIP_INSTALL" != true ]]; then
   done
 else
   echo "Skipping dependency install (--skip-install / --quick / --frontend-only)."
-fi
-
-# ===== 步骤 5-pre: 可选的 Maven 反应堆重建 (--rebuild) =====
-# 背景: PM2 用单模块 mvn -f <module>/pom.xml spring-boot:run 启动各后端服务,
-# 兄弟模块 (api/*, platform/*, judge-runtime) 从 ~/.m2 仓库解析。只改源码不
-# install 时, ~/.m2 里的旧 jar 与新源码不一致, 表现为编译期构造器不匹配或
-# 运行期 ClassNotFoundException。--rebuild 提供一条显式刷新路径。
-if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *,ulticode-* ]]; then
-  echo "Rebuilding services reactor into ~/.m2 (-DskipTests install)..."
-  (cd "$ROOT_DIR/services" && ./mvnw -DskipTests install -B) || {
-    echo "Error: reactor install failed; fix compilation errors before starting the stack." >&2
-    exit 1
-  }
 fi
 
 # ===== 步骤 5a: 沙箱镜像前置告警(判题功能依赖;不阻塞启动) =====

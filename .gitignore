@@ -46,7 +46,6 @@
 !/docker-compose.judge-dev.yml
 !/.env.example
 !/.env.test.example
-!/.auto-flow/**
 
 # =====================================================================
 # 3. 后端 (Spring Boot / Java 17)
@@ -203,6 +202,7 @@ yarn-debug.log*
 # 17a. Agent / disposable runtime state（项目本地，不纳入版本库）
 # =====================================================================
 .agent/
+.auto-flow/
 .agents/
 .workbuddy/
 .trae/

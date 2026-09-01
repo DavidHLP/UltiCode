@@ -1,1 +1,0 @@
-P3-IDENTITY-001 RED baseline (pre-change): Dubbo application YAMLs had no production protocol SSL/mTLS certificate paths, no workload identity/caller policy filter, and production Compose had no per-service Dubbo certificate mounts. Wrong-SAN/unknown/expired/unauthorized workload certificate rejection was not executable.

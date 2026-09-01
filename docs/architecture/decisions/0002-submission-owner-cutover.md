@@ -17,4 +17,4 @@ App-local writer、Admin rejudge fallback 和 Submission owner writer 曾使 mut
 - backfill 采用 dry-run、批量 checkpoint、insert-only、NULL-safe conflict detection、checksum/parity 后再 contraction。
 - 生产 traffic drain、真实 schema cutover 和 external N-1 consumer evidence 仍需部署 authority；repository/disposable proof 不替代它们。
 
-详细任务和证据见 [`../../project/task-continuation.md`](../../project/task-continuation.md) 与归档 decisions/evidence。
+详细任务和证据见 [`../../archive/architecture-remediation-2026-08/remediation-traceability.md`](../../archive/architecture-remediation-2026-08/remediation-traceability.md) 与 [`../../project/history/architecture-remediation-20260830.md`](../../project/history/architecture-remediation-20260830.md)。

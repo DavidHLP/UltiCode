@@ -139,9 +139,9 @@ silently baselines an unknown schema.
 The supported `scripts/dev/up.sh` path supplies that confirmation only after
 the shared chain and manifest identify the canonical bootstrap shape; an
 unexpected table set still fails closed.
-Credentials belong in the local `.env`/CI secret store, never in this directory
-or `.auto-flow`. The shared migration chain without `MIGRATION_SCHEMA` retains
-the historical `DB_*` contract.
+Credentials belong in the local `.env`/CI secret store, never in this
+directory. The shared migration chain without `MIGRATION_SCHEMA` retains the
+historical `DB_*` contract.
 
 ## Owner schema contraction (P1-DATA-001)
 

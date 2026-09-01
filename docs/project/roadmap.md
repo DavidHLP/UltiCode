@@ -1,6 +1,6 @@
 # 路线图
 
-本页只描述从当前 repository-complete 状态到真实部署采用所需的 Planned 顺序；不会把未来触发条件写成已完成。仓库内任务状态见 [`current-status.md`](current-status.md) 与 `.auto-flow/TASKS.yaml`。
+本页只描述从当前 repository-complete 状态到真实部署采用所需的 Planned 顺序；不会把未来触发条件写成已完成。仓库内任务状态见 [`current-status.md`](current-status.md)。
 
 ## Planned：外部采用顺序
 

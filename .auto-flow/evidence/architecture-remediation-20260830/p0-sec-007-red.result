@@ -1,7 +1,0 @@
-task: P0-SEC-007
-status: RED
-check:
-  command: "rtk ./scripts/test/ssh-host-identity-contract.sh"
-  exit: 1
-  failure: "host-deploy action lacks strict SSH host-key checking and still relies on automatic host-key setup"
-  interpretation: "Deployment currently permits host impersonation through StrictHostKeyChecking=no/ssh-keyscan behavior; per-environment known_hosts must be required and supplied without mutation."

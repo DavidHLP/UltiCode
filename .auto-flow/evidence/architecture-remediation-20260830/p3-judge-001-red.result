@@ -1,1 +1,0 @@
-P3-JUDGE-001 RED baseline (pre-change): production Compose mounted the host Docker socket with a configurable socket path and Docker group membership. Host deploy built/provisioned the sandbox locally without proving the configured remote daemon, and no executable contract required remote TLS/rootless endpoint, shared workspace readiness, or timeout container cleanup.

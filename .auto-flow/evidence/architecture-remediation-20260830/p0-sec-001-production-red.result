@@ -1,9 +1,0 @@
-task=P0-SEC-001
-phase=RED
-command=cd services && ./mvnw -pl auth -am -Dtest=JwtTokenProviderTest -Dsurefire.failIfNoSpecifiedTests=false test -B
-exit=1
-tests=23
-failures=1
-errors=0
-skipped=0
-failure_contract=JwtTokenProviderTest.ValidateSecret.rejectsInsecureCookiesWithoutLocalProfile expected startup validation to reject Secure=false, but no exception was raised.

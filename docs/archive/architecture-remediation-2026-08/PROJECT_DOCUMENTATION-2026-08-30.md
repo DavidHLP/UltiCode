@@ -1612,7 +1612,7 @@ writer is introduced.
 
 - `ProblemApiContractShapeTest` AssertJ generic compilation baseline fixed without removing or weakening assertions.
 - `backend-app-api` module tests, focused contest/Admin verification, full services reactor verification, JaCoCo checks, and the required integration matrix passed.
-- Final readiness evidence and the approval state are also recorded in the local `.auto-flow/` control-plane files.
+- At that historical checkpoint, final readiness evidence and approval state were recorded in local flow control-plane artifacts; those artifacts were later retired.
 
 ## 6. Management app i18n design
 

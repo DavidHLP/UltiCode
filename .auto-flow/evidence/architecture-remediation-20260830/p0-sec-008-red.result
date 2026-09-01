@@ -1,7 +1,0 @@
-task: P0-SEC-008
-status: RED
-check:
-  command: "rtk ./scripts/test/nacos-security-contract.sh"
-  exit: 1
-  failure: "production Nacos override still defaults MODE to standalone and service registry credentials still fall back to shared NACOS_USERNAME/NACOS_PASSWORD"
-  interpretation: "Production must require explicit cluster mode, namespace/server inputs, and distinct service registry credentials; the dev compose mode remains standalone explicitly."

@@ -1,8 +1,0 @@
-ARCH-SEC-001 GREEN (2026-08-31)
-
-- Shared `platform/web-security` owns delegation assertion verification and RSA public-key loading. Auth, App, Notification and Submission retain only owner policy/config adapters; Admin retains the owner-specific private-key signer.
-- Shared verifier tests cover issuer, audience, expiry/lifetime, subject/actor binding, key/signature, algorithm, bootstrap claim/key selection and replay rejection. Notification explicitly imports the shared `RedisDelegationAssertionReplayGuard`.
-- `rtk bash scripts/dev/architecture-contract-test.sh`: PASS, including Auth/App/Admin/Notification route fail-closed checks, shared JWT/JWKS checks, no HMAC delegation fallback, and exact Auth `.anyRequest().authenticated()` chain verification.
-- `rtk bash scripts/test/tls-profile-contract.sh`: PASS; `rtk bash scripts/test/nacos-security-contract.sh`: PASS; `rtk bash scripts/test/api-contract-boundary-contract.sh`: PASS.
-- Independent security review after the Auth gate fix: CRITICAL=0, HIGH=0, MEDIUM=0, LOW=1 non-blocking observation about other broad matcher forms outside this targeted regression; verdict PASS.
-- No production or remote security rollout was executed; certificate, registry, secret-store and failover operations remain external by policy.

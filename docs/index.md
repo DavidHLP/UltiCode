@@ -60,7 +60,7 @@
 - [当前状态](project/current-status.md)
 - [路线图](project/roadmap.md)
 - [已知问题与外部门禁](project/known-issues.md)
-- [任务延续](project/task-continuation.md)
+- [Architecture remediation closure](project/history/architecture-remediation-20260830.md)
 - [归档目录](archive/README.md)
 
 ## 原位保留的专业文档
@@ -78,4 +78,4 @@
 
 ## 历史资料
 
-[归档目录](archive/README.md) 保留已完成 remediation wave 的任务状态、决策、证据和原始汇总文档。归档内容只用于追溯，不取代当前实现或状态文档。
+[归档目录](archive/README.md) 保留已完成 remediation wave 的历史映射和决策快照；运行台账与 raw evidence 已退役并保留在 Git 历史。归档内容只用于追溯，不取代当前实现或状态文档。

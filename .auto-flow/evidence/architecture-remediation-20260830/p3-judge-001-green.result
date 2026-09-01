@@ -1,7 +1,0 @@
-P3-JUDGE-001 GREEN:
-- Production no-socket/remote TCP TLS/rootless preflight, explicit dev socket profile, release-image-aware workspace/seccomp/certificate checks, resource/network/readonly/user/seccomp/result controls, pre-migration host-deploy ordering and CI wiring: PASS (`bash scripts/test/judge-sandbox-contract.sh`).
-- Initial implementation `3aef022`; lifecycle/preflight hardening follow-up `0781f5f`.
-- DockerProcessRunner timeout and interruption cleanup regression: PASS (2/2, cidfile/name fallback removes the timed-out container reference with bounded retries).
-- Affected `judge-runtime` reactor test: PASS (14 run, 0 failures/errors, 6 Redis integration tests skipped because REDIS_HOST is unset).
-- Compose prod and explicit judge-socket profile YAML/topology parse: PASS; full architecture contract: PASS; documentation contract: PASS; shell syntax: PASS; `git diff --check`: PASS; Graphify update: PASS.
-- Remote/rootless daemon endpoint, certificate permissions/rotation, shared workspace, remote sandbox image and production smoke remain BLOCKED_EXTERNAL; no production host, Docker daemon, credentials or data were modified.

@@ -1,8 +1,0 @@
-task: P1-SUB-002
-status: RED
-check:
-  command: "rtk mise exec java@zulu-17.68.203.0 -- ./mvnw -pl admin -am -Dtest=SubmissionCutoverServiceTest -Dsurefire.failIfNoSpecifiedTests=false test -B"
-  exit: 1
-  tests: "5 run, 1 failure, 0 errors, 0 skipped"
-  failure: "SubmissionCutoverService Dubbo reference group is backend-app; expected backend-submission."
-  interpretation: "Admin rejudge still targets the App compatibility provider and retains a local AdminSubmissionService fallback instead of expressing intent to the Submission owner only."

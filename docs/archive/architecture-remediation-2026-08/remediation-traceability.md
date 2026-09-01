@@ -1,6 +1,7 @@
 # Architecture remediation traceability
+> 2026-09-01：`.auto-flow/` 运行台账与证据已退役并删除；下文路径指向的原始文件保留在本分支 Git 历史（flow checkpoints `cef925a`、`fc31cf35`、`1e69b5b5` 等），不再作为当前工作树证据。当前状态见 [`../../project/current-status.md`](../../project/current-status.md)，closure 见 [`../../project/history/architecture-remediation-20260830.md`](../../project/history/architecture-remediation-20260830.md)。
 
-- Status source: [`.auto-flow/TASKS.yaml`](../../../.auto-flow/TASKS.yaml), block `architecture_remediation_20260830`.
+- Status source: 任务台账已退役（原 `.auto-flow/TASKS.yaml`，block `architecture_remediation_20260830`），保留在 Git 历史；本文档为归档映射。
 
 - Canonical Services issue lifecycle: [`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md). This document does not replace that registry. It maps the 2026-08-30 architecture assessment and remediation directive to executable repository tasks.
 
@@ -16,8 +17,8 @@ No staging or production application is assumed by repository completion.
 
 Current repository scope: this is an open-source project with no production environment. The
 previously blocked runtime acceptances were executed in short-lived disposable Compose/DinD
-environments and are recorded in
-`.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result`.
+environments. The retired runtime packets remain recoverable from Git history; they are not
+current-worktree evidence.
 The optional scripts remain fail-closed and print `BLOCKED_EXTERNAL` when their disposable inputs
 are absent; that default branch is not an unresolved task.
 
@@ -25,8 +26,8 @@ are absent; that default branch is not an unresolved task.
 
 | Finding or requirement | Task IDs | Primary implementation surfaces | Acceptance evidence | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
-| Rebuild current Git, topology, task, build, Compose and Docker baseline | `CTX-001` | `.auto-flow/*`, evidence logs, Maven reactor, Compose | Static gates and clean Maven compile/test/verify exit 0; Docker daemon is `BLOCKED_EXTERNAL` with exact permission evidence | `fa71f276e530` | Locally Validated |
-| Map every assessment finding and directive item | `TRACE-001` | this file, `.auto-flow/TASKS.yaml`, `SERVICES_ISSUES.md` | 42/42 task mapping, six explicit ADR deferrals, documentation contract exit 0 | `fa71f276e530` | Locally Validated |
+| Rebuild current Git, topology, task, build, Compose and Docker baseline | `CTX-001` | Git history, archived traceability, Maven reactor, Compose | Static gates and clean Maven compile/test/verify exit 0; Docker daemon is `BLOCKED_EXTERNAL` with exact permission evidence | `fa71f276e530` | Locally Validated |
+| Map every assessment finding and directive item | `TRACE-001` | this file, Git history, `SERVICES_ISSUES.md` | 42/42 task mapping, six explicit ADR deferrals, documentation contract exit 0 | `fa71f276e530` | Locally Validated |
 
 ## P0 security
 
@@ -57,7 +58,7 @@ are absent; that default branch is not an unresolved task.
 | Notification ownership is incomplete in reconciliation and compatibility persistence/read paths | `P1-NOT-001` | Notification Owner, App intents, Notification facts, Admin reconciliation | single-writer, read/delivery/retry state and zero-diff tests | `a292367`, `0ff5a53` | Locally Validated |
 | Nightly reconciliation scans `app.notifications` | `P1-NOT-001` | Notification reconciliation provider and Admin aggregator | no App notification SQL; owner unavailable/partial behavior | `a292367`, `0ff5a53` | Locally Validated |
 | Legacy tables, fields and compatibility contracts must be retired only after expand/migrate/verify/cutover proof | `P1-DATA-001` | new forward migrations, contracts, App/Owner code | fresh/upgrade/compatibility/negative reference gates | `0aa0569` | Locally Validated; production migration authority external |
-| Submission local-copy retirement gate | `SVC-003-GATE` | source inventory, 2.0.0 contract retirement, virtual drain ledger, disposable migration/backfill/cutover/rollback proof | `.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result` | `1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a` | Locally Validated |
+| Submission local-copy retirement gate | `SVC-003-GATE` | source inventory, 2.0.0 contract retirement, virtual drain ledger, disposable migration/backfill/cutover/rollback proof | Retired evidence packet recoverable from Git history | `1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a` | Locally Validated |
 | Auth/App write `admin.audit_outbox` across Owner schemas | `P1-AUDIT-001` | owner-local outboxes, integration stream, Admin inbox, grant migration | duplicate/disorder/retry/DLQ tests and no cross-schema write/grant gate | f223b88 | DONE |
 | Pass-through, mock-only, unused and migration-only seams remain | `P1-SEAM-001`, `ARCH-DUBBO-001` | API modules, providers, references and adapters | caller/provider inventory and architecture rules; 63 providers and 94 references with no unconsumed exception | efc12eb | Locally Validated |
 | `app-api` owns 78/106 interfaces and mixes multiple Owner/internal/migration contracts | `ARCH-CONTRACT-001`, `ARCH-DUBBO-001` | API modules/POMs/contract tests | no cycles; owner/consumer/transport/lifecycle classification; distinct-revision japicmp; 2.0.0 N-1 retirement/virtual drain proof | `7743d88f`, `cb40a226934ec501b788a1a673fe864d41d35ae0`, `1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a` | Locally Validated |
@@ -91,11 +92,11 @@ are absent; that default branch is not an unresolved task.
 
 | Requirement | Task IDs | Validation/evidence | Evidence path | Commit | Status |
 | --- | --- | --- | --- | --- | --- |
-| Remove duplicate security implementations and prevent recurrence | `ARCH-SEC-001` | Security ArchUnit and forbidden-pattern gate | `.auto-flow/evidence/architecture-remediation-20260830/arch-sec-001.result` + `.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result` | `bfd1919` | Locally Validated |
-| Establish nonzero, non-regressing JaCoCo gates and prove the gate fails negatively | `TEST-COV-001` | `clean verify`, reports, negative fixture; current quick/full Compose-backed gates with isolated ACL and in-memory helper values | `.auto-flow/evidence/architecture-remediation-20260830/test-cov-001.result` + `.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result` | `ef74edc`, `cb40a226934ec501b788a1a673fe864d41d35ae0` | Locally Validated |
-| First complete Standards/Spec/Security review and fix all confirmed findings | `REVIEW-001` | fixed point `8b4012b3d...`, separate review records and reruns | `.auto-flow/evidence/architecture-remediation-20260830/review-001.result` + `.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result` | `7743d88f` | Locally Validated; fresh reviewer transport BLOCKED_TOOL |
-| Second independent final review | `REVIEW-002` | reread final implementation; confirmed findings zero | `.auto-flow/evidence/architecture-remediation-20260830/review-002.result` + `.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result` | `bfd1919` | Locally Validated; fresh reviewer transport BLOCKED_TOOL |
-| Align tasks, commits, evidence, Git and final report | `CLOSURE-001` | final task/YAML/docs/Git/verification checks | `.auto-flow/evidence/architecture-remediation-20260830/closure-001.result` + `.auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result` | `cef925a` | Locally Validated |
+| Remove duplicate security implementations and prevent recurrence | `ARCH-SEC-001` | Security ArchUnit and forbidden-pattern gate | Retired evidence packet recoverable from Git history | `bfd1919` | Locally Validated |
+| Establish nonzero, non-regressing JaCoCo gates and prove the gate fails negatively | `TEST-COV-001` | `clean verify`, reports, negative fixture; current quick/full Compose-backed gates with isolated ACL and in-memory helper values | Retired evidence packets recoverable from Git history | `ef74edc`, `cb40a226934ec501b788a1a673fe864d41d35ae0` | Locally Validated |
+| First complete Standards/Spec/Security review and fix all confirmed findings | `REVIEW-001` | fixed point `8b4012b3d...`, separate review records and reruns | Retired evidence packets recoverable from Git history | `7743d88f` | Locally Validated |
+| Second independent final review | `REVIEW-002` | reread final implementation; confirmed findings zero | Retired evidence packets recoverable from Git history | `bfd1919` | Locally Validated |
+| Align tasks, commits, evidence, Git and final report | `CLOSURE-001` | final closure checks | Retired evidence packets recoverable from Git history | `cef925a` | Locally Validated |
 
 ## Explicitly deferred architecture expansion
 

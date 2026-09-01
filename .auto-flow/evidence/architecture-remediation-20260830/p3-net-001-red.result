@@ -1,1 +1,0 @@
-P3-NET-001 RED baseline (pre-change): base/prod Compose relied on the shared implicit default/infrastructure network model. Backend, ingress, infrastructure, search and worker reachability had no executable call-graph membership/forbidden-path contract; production infra/backend port and loopback network guards were not centralized.

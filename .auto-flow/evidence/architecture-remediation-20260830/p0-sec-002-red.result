@@ -1,9 +1,0 @@
-task=P0-SEC-002
-phase=RED
-command=cd services && JAVA_HOME=/home/david/.local/share/mise/installs/java/zulu-17.68.203.0 ./mvnw -pl auth -am -Dtest=CsrfValidationFilterContractTest -Dsurefire.failIfNoSpecifiedTests=false test -B
-exit=1
-tests=3
-failures=3
-errors=0
-skipped=0
-failure_contracts=refresh cookie without access authentication bypassed CSRF (200 not 403); bearer-only mutation was incorrectly CSRF-blocked (403 not 200); mismatched CSRF header/cookie reached business code (200 not 403).

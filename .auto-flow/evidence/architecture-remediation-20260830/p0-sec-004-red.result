@@ -1,6 +1,0 @@
-task=P0-SEC-004
-phase=RED
-command=./scripts/dev/architecture-contract-test.sh
-exit=1
-failure_contract=Shared JWT verifier/filter/JWKS sources are absent; owner-local Auth/App/Admin/Notification copies remain; production Compose still uses plain-HTTP JWKS.
-first_failure=missing services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/AccessTokenVerifier.java

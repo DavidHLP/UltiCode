@@ -7,9 +7,9 @@
 - [`PROJECT_DOCUMENTATION-2026-08-30.md`](architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md)：原临时统一文档完整快照；其当前主题已拆分到 `docs/architecture/`、`docs/development/`、`docs/operations/`、`docs/project/` 和 `docs/api/`。
 - [`remediation-traceability.md`](architecture-remediation-2026-08/remediation-traceability.md)：Finding → task → implementation → evidence → commit 的完整映射。
 
-## 仍由 flow 工具维护的证据
+## 2026-09-01：`.auto-flow/` 已退役
 
-`.auto-flow/` 保留在仓库原位：`HANDOFF.yaml` 与 `TASKS.yaml` 是机器可读的当前控制状态，`evidence/` 是已提交的验证原件；`DECISIONS.md`、`EVIDENCE.md`、`COVERAGE.md`、`RESUME.md` 和 `WORKLOG.md` 仍是该工具的历史/证据表面。它们没有被删除或移动，避免破坏恢复、链接和审计路径。面向新成员的精简入口见 [`../project/current-status.md`](../project/current-status.md)。
+原 `.auto-flow/` 运行台账与证据目录（`TASKS.yaml`、`DECISIONS.md`、`EVIDENCE.md`、`COVERAGE.md`、`RESUME.md`、`HANDOFF.yaml`、`WORKLOG.md` 与 `evidence/architecture-remediation-20260830/`）已于 2026-09-01 文档治理任务中删除；其内容保留在本分支 Git 历史（flow checkpoints `cef925a`、`fc31cf35`、`1e69b5b5` 等），不再作为当前工作树证据。当前状态见 [`../project/current-status.md`](../project/current-status.md)，精简 closure 见 [`../project/history/architecture-remediation-20260830.md`](../project/history/architecture-remediation-20260830.md)。
 
 ## 已删除的中间产物
 

@@ -11,8 +11,8 @@ UltiCode is an online-judge platform with these main surfaces:
 |`services/auth/`|Auth owner service: credentials, OAuth, sessions, JWT, RBAC|
 |`services/admin/`|Admin owner service: governance, audit, settings, monitoring, backup|
 |`services/app/`|App owner service: OJ and general user business (parent of `app-web/` boot shell + `modules/` private domains)|
-|`services/judge/`|Independent judge runtime: reuses the app-web jar with `app.runtime.role=judge`; Redis Streams consumer + Docker sandbox, Dubbo remote adapters, no HTTP and no business tables|
-|`services/`|Java 17 / Spring Boot 3.2.5 Maven parent/reactor; `platform/` (common, web-security), `api/` (Dubbo contracts), three owner services, and the independent judge runtime|
+|`services/judge/`|Independent Judge worker service: separate from `app-web`, reuses the storage-free `backend-judge-runtime` plus owner APIs; Redis Streams consumer + Docker sandbox, Dubbo remote adapters, no HTTP and no business tables|
+|`services/`|Java 17 / Spring Boot 3.2.5 Maven parent/reactor; `platform/` (common, web-security), `api/` (Dubbo contracts), five owner services, two independent workers, and the shared judge runtime|
 | `apps/console/` | Vue 3 user application |
 | `apps/management/` | Vue 3 administrator application |
 | `packages/` | Focused frontend packages shared by both applications |
@@ -115,6 +115,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 - Keep repository-wide agent rules only in this file. Nested guides contain only durable, subtree-specific constraints; `CLAUDE.md` remains a short pointer.
 - Do not record volatile counts, file lengths, temporary review findings, planned architecture, or facts directly inferable from package/build configuration.
 - Update the affected canonical document under `docs/` in the same change when behavior, commands, paths, contracts, or architecture boundaries change. Keep implementation and executable configuration authoritative.
+- Agent runtime state is not project documentation: handoff, resume, worklog, task ledgers, and raw verification evidence stay in ignored local directories and are not committed. Architecture decisions go to `docs/architecture/decisions/`, current state to `docs/project/current-status.md`, open issues to `services/docs/SERVICES_ISSUES.md`; each fact has one authoritative location.
 
 ## Completion criteria
 

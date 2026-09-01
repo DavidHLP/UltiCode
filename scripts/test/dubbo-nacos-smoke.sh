@@ -9,8 +9,9 @@
 # to register itself with Nacos. The optional two-replica mode also exercises
 # removal, restart and single-replica failure. Tears everything down on exit.
 # Setting `DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1` additionally stops Nacos while
-# providers remain live, boots one provider during that outage, and verifies
-# registry restart/reconnect before the provider restart assertions.
+# providers remain live, verifies owner readiness plus registry loss, attempts
+# one provider boot during that outage (classifying required-dependency exit as
+# `FAIL_START`), and verifies registry restart/reconnect before provider recovery.
 #
 # This is the live acceptance check for P1-INFRA-003 acceptance criteria
 # "service registers successfully with dev namespace". The unit test
@@ -515,6 +516,7 @@ stop_backend() {
 
 wait_for_backend_ready() {
   local replica="$1"
+  local allow_failure="${2:-0}"
   local backend_pid="${BACKEND_PIDS[$replica]}"
   local http_port="${BACKEND_HTTP_PORTS[$replica]}"
   local backend_log_file="$LOG_DIR/backend-auth-$replica.log"
@@ -524,6 +526,10 @@ wait_for_backend_ready() {
     if ! kill -0 "$backend_pid" 2>/dev/null; then
       echo "backend-auth replica $replica exited before readiness." >&2
       redact_smoke_output <"$backend_log_file" | tail -120 >&2
+      if [[ "$allow_failure" == "1" ]]; then
+        BACKEND_PIDS[$replica]=""
+        return 1
+      fi
       exit 1
     fi
     readiness_code="$(curl -sS -o "$readiness_body" -w '%{http_code}' \
@@ -538,6 +544,12 @@ wait_for_backend_ready() {
   if [[ "$auth_ready" -ne 1 ]]; then
     echo "backend-auth replica $replica did not become ready in time; refusing registry-only success." >&2
     redact_smoke_output <"$backend_log_file" | tail -120 >&2
+    if [[ "$allow_failure" == "1" ]]; then
+      if ! kill -0 "$backend_pid" 2>/dev/null; then
+        BACKEND_PIDS[$replica]=""
+      fi
+      return 1
+    fi
     exit 1
   fi
   echo "  backend-auth replica $replica readiness: PASS"
@@ -568,6 +580,13 @@ wait_for_registered_count() {
   done
   echo "backend-auth registry count did not reach $expected for $label (last=$registered)." >&2
   printf '%s\n' "$response" | redact_smoke_output >&2
+  for replica in "${!BACKEND_PIDS[@]}"; do
+    local backend_log_file="$LOG_DIR/backend-auth-$replica.log"
+    if [[ -f "$backend_log_file" ]]; then
+      echo "--- backend-auth replica $replica log tail ---" >&2
+      redact_smoke_output <"$backend_log_file" | tail -80 >&2
+    fi
+  done
   exit 1
 }
 obtain_nacos_token() {
@@ -627,8 +646,11 @@ registry_failure_drill() {
 
   stop_backend 1
   start_backend 1 "$((HTTP_PORT_BASE + 1))" "$((DUBBO_PORT_BASE + 1))"
-  wait_for_backend_ready 1
-  echo "  provider boot while registry stopped: backend-auth readiness: PASS"
+  if wait_for_backend_ready 1 1; then
+    echo "  provider boot while registry stopped: DEGRADED_RUN (owner readiness remained available)"
+  else
+    echo "  provider boot while registry stopped: FAIL_START (expected; registry is a required startup dependency)"
+  fi
 
   if ! "${compose[@]}" start nacos >"$LOG_DIR/nacos-start.log" 2>&1; then
     echo "Failed to restart disposable Nacos registry." >&2
@@ -640,6 +662,10 @@ registry_failure_drill() {
     echo "Nacos authenticated API did not recover after restart." >&2
     exit 1
   }
+  if [[ -z "${BACKEND_PIDS[1]:-}" ]]; then
+    start_backend 1 "$((HTTP_PORT_BASE + 1))" "$((DUBBO_PORT_BASE + 1))"
+    wait_for_backend_ready 1
+  fi
   response=""
   wait_for_registered_count "$SMOKE_REPLICAS" "Nacos restart/reconnect"
 

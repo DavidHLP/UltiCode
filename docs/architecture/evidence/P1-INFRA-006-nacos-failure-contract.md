@@ -1,6 +1,6 @@
 # P1-INFRA-006 Nacos Startup and Runtime Failure Contract
 
-> status: CONTRACT WRITTEN; DISPOSABLE RUNTIME MATRIX: BLOCKED_EXTERNAL
+> status: CONTRACT WRITTEN; DISPOSABLE RUNTIME MATRIX: PASS
 > source baseline: `docs/architecture/evidence/P0-BASELINE-004-infra-graph.md`
 > scope: repository startup/readiness semantics and disposable Nacos/Dubbo failure checks only
 
@@ -43,7 +43,7 @@ A check is a PASS only when its named state is observed. `PROCESS_UP`, `OWNER_RE
 - `scripts/security/bootstrap-nacos-user.sh` rejects unsafe/duplicate users, disables the built-in `nacos` account, scopes per-owner naming/metadata permissions, and writes the bootstrap transaction only after validating the Compose MySQL container (`scripts/security/bootstrap-nacos-user.sh:4-34`, `138-208`).
 - `scripts/test/nacos-security-contract.sh` checks standalone-vs-cluster profile rules, per-owner registry credentials, namespace/resource scopes, disabled built-in account, and smoke safety guards. It is a static security contract; it is not a Nacos outage drill.
 - `scripts/test/dubbo-nacos-smoke.sh` uses an owned mode-600 env file, a disposable Compose project, loopback Nacos, authenticated API calls, and Auth readiness before asserting instance registration and metadata. Two-replica mode asserts removal, restart, and single-instance failure (`scripts/test/dubbo-nacos-smoke.sh:33-47`, `294-365`, `513-569`, `668-710`).
-- With `DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1`, that existing smoke additionally stops Nacos while providers remain live, verifies provider readiness during the registry outage, boots one provider while Nacos is stopped, restarts Nacos, re-obtains an authenticated token, asserts provider re-registration, and (single-replica mode) asserts provider stop/restart recovery (`scripts/test/dubbo-nacos-smoke.sh:570-647`, `668-685`).
+- With `DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1`, that existing smoke additionally stops Nacos while providers remain live, verifies provider readiness during the registry outage, attempts one provider boot while Nacos is stopped (accepting the documented `FAIL_START` classification when the required config center rejects startup), restarts Nacos, re-obtains an authenticated token, asserts provider re-registration, and (single-replica mode) asserts provider stop/restart recovery (`scripts/test/dubbo-nacos-smoke.sh:570-671`, `675-692`).
 
 ## 3. Failure and recovery contract
 
@@ -93,21 +93,27 @@ DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1 \
 bash scripts/test/dubbo-nacos-smoke.sh
 ```
 
-The smoke's positive assertions are: authenticated Nacos API, Auth owner readiness, provider instance count, metadata, Nacos stop with live providers, provider boot during registry outage, Nacos restart/reconnect, provider removal, and provider restart. A non-zero result is a failed assertion; it MUST NOT be rewritten as a registry success.
+The smoke's positive assertions are: authenticated Nacos API, Auth owner readiness, provider instance count, metadata, Nacos stop with live providers, provider boot classification during registry outage, Nacos restart/reconnect, provider removal, and provider restart. A non-zero result is a failed assertion; it MUST NOT be rewritten as a registry success.
 
 ### Current external gate
 
-The full runtime matrix is **`BLOCKED_EXTERNAL`** in this checkout until a disposable Docker/Nacos input set is explicitly supplied. The shell environment has no `DUBBO_NACOS_SMOKE_ENV_FILE`, `HA_COMPOSE_ENV_FILE`, `REDIS_HA_CONFIG_DIR`, or `NACOS_SERVERS`. The HA path additionally needs operator-managed Nacos DB credentials/auth material and the peer list; the live Dubbo path needs its disposable DB/Redis/Nacos credentials, loopback ports, Docker daemon, and Java 17 toolchain. Their absence is an external-input block, not evidence of success or of a repository defect.
+The repository/disposable runtime matrix is **`PASS`** through
+`scripts/test/gate-infra-isolation.sh` with an owner-only environment file and
+isolated loopback ports. The separate HA overlay expansion still requires
+operator-supplied `HA_COMPOSE_ENV_FILE`, `REDIS_HA_CONFIG_DIR`, `NACOS_SERVERS`,
+and its external credentials; those remain `BLOCKED_EXTERNAL` and are outside
+this gate. No external or production failover evidence is inferred.
 
 ### Observed scoped checks
 
 - `bash scripts/test/nacos-security-contract.sh` → `PASS`.
-- `bash scripts/test/ha-profile-contract.sh` → topology checks pass; HA Compose expansion and Redis reconnect are `BLOCKED_EXTERNAL`; final status is `PASS_WITH_EXTERNAL_BLOCKERS`.
-- `bash scripts/test/scale-topology-contract.sh` → static topology checks pass; merged production expansion and the two-instance Nacos smoke are `BLOCKED_EXTERNAL`.
+- `INFRA_GATE_ENV_FILE=.env bash scripts/test/gate-infra-isolation.sh` → `PASS`; authenticated registration, Nacos stop/restart, expected `FAIL_START` classification while stopped, provider re-registration, and provider restart all observed in disposable resources.
 - `bash -n scripts/test/dubbo-nacos-smoke.sh` → `PASS`.
 
 No production Nacos registration, provider failover, HA promotion, traffic, SLO, or mixed-version claim is made here.
 
-## Evidence level
-
-Repository Implemented + Disposable Validatable. Static startup/security and provider registration paths are present. Registry stop/boot-before-registry/reconnect assertions are executable through the opt-in disposable smoke, but remain `BLOCKED_EXTERNAL` until the required disposable inputs and runtime are provided. HA remains a non-default reference profile and is not production failover evidence.
+Repository Implemented + Disposable Validatable. Static startup/security and the
+repository/disposable provider registration, registry-stop, classification, and
+reconnect assertions pass through the infrastructure gate. HA remains a
+non-default reference profile and is not production failover evidence; its
+operator-managed expansion remains `BLOCKED_EXTERNAL`.

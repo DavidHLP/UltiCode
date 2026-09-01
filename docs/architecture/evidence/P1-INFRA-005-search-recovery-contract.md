@@ -203,6 +203,7 @@ The repository has focused proof surfaces for this contract. They are validation
 | Auth/App user composition, stable account order, and `freshAt` propagation | `services/app/app-web/src/test/java/com/ulticode/modules/search/port/OwnerUserSearchReadAdapterTest.java` |
 | No App/Auth production Meili write API outside `backend-search` | `services/app/app-web/src/test/java/com/ulticode/modules/search/MeiliWritePathScanTest.java` |
 | Operator inspection, PEL/DLQ replay, stop-write boundaries, and recovery steps | `services/docs/WORKER_SLO_RUNBOOK.md` §2–§6; `scripts/dev/drill-worker-failure.sh` |
+| Disposable Meili dependency stop/restart and health recovery | `scripts/test/meilisearch-recovery-contract.sh` |
 
 The disposable limit is strict: do not infer production HA, zero downtime, exact RPO/RTO, cross-index atomicity, or external-host failover from these tests or runbooks. No new infrastructure platform is part of P1-INFRA-005.
 

@@ -124,5 +124,33 @@ contains .github/workflows/_contract.yml 'ci_revision=${current_revision}-ci.${G
 contains .github/workflows/_contract.yml 'japicmp self-comparison detected'
 contains .github/workflows/_contract.yml 'japicmp baseline artifact/version is missing'
 contains .github/workflows/_contract.yml 'baseline has no standalone API contracts; compatibility comparison skipped'
+python3 - "$ROOT_DIR/services/api/app-api/src/main/java" "$ROOT_DIR/docs/architecture/evidence/P2-APP-001-app-api-catalog.md" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+source_root = Path(sys.argv[1])
+catalog = Path(sys.argv[2]).read_text(encoding="utf-8")
+interfaces = sorted(
+    match.group(1)
+    for source in source_root.rglob("*.java")
+    for match in [re.search(r"\bpublic\s+interface\s+([A-Za-z0-9_]+)", source.read_text(encoding="utf-8"))]
+    if match
+)
+missing = []
+for name in interfaces:
+    rows = [line for line in catalog.splitlines() if line.startswith(f"| {name} |")]
+    if len(rows) != 1 or rows[0].count("|") < 7 or not rows[0].rstrip().endswith("|"):
+        missing.append(name)
+    elif "unknown" in rows[0].lower():
+        missing.append(name)
+if missing:
+    raise SystemExit("app-api catalog missing complete ownership metadata: " + ", ".join(missing))
+for retired in ("JudgeConfigPort", "JudgeEnqueuePort", "VerdictResolvePort", "ModerationUserReadPort"):
+    if re.search(rf"\bpublic\s+interface\s+{retired}\b", "\n".join(
+        source.read_text(encoding="utf-8") for source in source_root.rglob("*.java"))):
+        raise SystemExit(f"retired app-api interface remains: {retired}")
+print(f"app-api ownership catalog: PASS ({len(interfaces)} interfaces)")
+PY
 printf 'API provider ownership, implementation leakage, and compatibility boundary: PASS\n'
 printf 'api-contract-boundary-contract: PASS\n'

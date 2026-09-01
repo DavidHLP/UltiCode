@@ -1,8 +1,14 @@
 package com.ulticode.modules.moderation.port;
 
-/**
- * Local sub-interface inheriting from the app-api port.
- * Kept for package-internal type resolution.
- */
-public interface ModerationUserReadPort extends com.ulticode.app.api.service.ModerationUserReadPort {
+import com.ulticode.app.api.dto.ModerationUserInfo;
+
+import java.util.Collection;
+import java.util.Map;
+
+/** Local moderation read seam; not part of the cross-service app-api. */
+public interface ModerationUserReadPort {
+
+    ModerationUserInfo findById(String userId);
+
+    Map<String, ModerationUserInfo> findByIds(Collection<String> userIds);
 }

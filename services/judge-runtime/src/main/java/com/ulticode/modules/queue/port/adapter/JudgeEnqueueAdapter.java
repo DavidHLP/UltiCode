@@ -1,6 +1,6 @@
 package com.ulticode.modules.queue.port.adapter;
 
-import com.ulticode.app.api.service.JudgeEnqueuePort;
+import com.ulticode.modules.queue.port.JudgeEnqueuePort;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.queue.service.QueueService;
 import lombok.RequiredArgsConstructor;

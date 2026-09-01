@@ -4,7 +4,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.ulticode.app.api.service.CodeExecutionPort;
 import com.ulticode.app.api.service.JudgeFeatureFlagsPort;
-import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.modules.submission.port.VerdictResolvePort;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.port.adapter.RemoteSubmissionWritePort;
 import com.ulticode.modules.submission.service.CodeExecutionService;
@@ -62,10 +62,10 @@ class SubmissionPortWiringTest {
     }
 
     @Test
-    @DisplayName("VerdictResolver implements app-api VerdictResolvePort")
+    @DisplayName("VerdictResolver implements the judge-runtime private VerdictResolvePort")
     void verdictResolvePortWiring() {
         assertTrue(VerdictResolvePort.class.isAssignableFrom(VerdictResolver.class),
-                "VerdictResolver must implement com.ulticode.app.api.service.VerdictResolvePort");
+                "VerdictResolver must implement the judge-runtime private VerdictResolvePort");
     }
 
     @Test

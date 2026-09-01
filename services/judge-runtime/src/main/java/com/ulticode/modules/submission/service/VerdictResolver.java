@@ -1,5 +1,5 @@
 package com.ulticode.modules.submission.service;
-import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.modules.submission.port.VerdictResolvePort;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.domain.submission.enums.SubmissionStatus.Kind;

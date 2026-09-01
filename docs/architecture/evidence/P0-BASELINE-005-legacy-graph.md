@@ -32,7 +32,7 @@ These are in **main** (non-conditional) and break normal path if `backend-judge-
 | `SubmissionResultPushPort` alias (`com.ulticode.modules.queue.port.SubmissionResultPushPort extends com.ulticode.app.api.service.SubmissionResultPushPort`) | `judge-runtime/src/main/java/com/ulticode/modules/queue/port/SubmissionResultPushPort.java:13` | `WebSocketSubmissionResultPushAdapter.java:3,17` implements queue-local, `SubmissionJudgedWebSocketConsumer.java:4,22` injects `app.api.service.SubmissionResultPushPort` | Delete queue-local alias, use `app-api` contract directly — `P4-LEGACY-003` |
 | `SubmissionStatusCodec` (`com.ulticode.modules.submission.codec.SubmissionStatusCodec`) | `judge-runtime` (wire conversion) | `SubmissionJudgedAchievementConsumer.java:8,35`, `SubmissionJudgedWebSocketConsumer.java:6,34` | Move to Owner or App private util, remove runtime import — `P4-LEGACY-004` |
 
-Verification: `grep -rn "AppUuidGenerator\|SubmissionResultPushPort\|SubmissionStatusCodec" services/app/app-web/src/main/java` => 9 hits across 3 families; after migration expected 0 for normal source (compatibility closure excepted).
+Verification at baseline: `grep -rn "AppUuidGenerator\|SubmissionResultPushPort\|SubmissionStatusCodec" services/app/app-web/src/main/java` => 9 hits across 3 families. After Batch B, the AppUuidGenerator and queue-local alias references are zero; `SubmissionStatusCodec` remains only as the common wire-contract class and is no longer runtime-owned.
 
 ## 3. Legacy-Only Reachability (behind `legacy-rollback`)
 

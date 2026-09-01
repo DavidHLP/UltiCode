@@ -4,7 +4,7 @@ import com.ulticode.modules.queue.port.JudgingCase;
 import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.adapter.ProblemExampleJudgingCaseSource;
 import com.ulticode.modules.queue.port.adapter.TestCaseJudgingCaseSource;
-import com.ulticode.app.api.service.JudgeConfigPort;
+import com.ulticode.modules.submission.port.JudgeConfigPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;

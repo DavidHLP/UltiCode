@@ -7,7 +7,7 @@ import com.ulticode.app.api.dto.RunResultDTO;
 import com.ulticode.app.api.dto.RunSubmissionDTO;
 import com.ulticode.domain.submission.enums.CaseScope;
 import com.ulticode.app.api.service.CodeExecutionPort;
-import com.ulticode.app.api.service.VerdictResolvePort;
+import com.ulticode.modules.submission.port.VerdictResolvePort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

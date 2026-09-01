@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.port.adapter;
 
-import com.ulticode.app.api.service.JudgeConfigPort;
+import com.ulticode.modules.submission.port.JudgeConfigPort;
 import com.ulticode.modules.submission.config.JudgeSourceProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

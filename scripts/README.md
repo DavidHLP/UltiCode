@@ -95,6 +95,9 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 - `fenced-lease-contract.sh` — fenced lease wiring, deterministic clock/lost-lease tests, and MySQL two-runner/expiry integration test.
 - `graceful-drain-contract.sh` — graceful Spring/Compose/PM2/PID1 configuration plus worker no-new-claim and SIGTERM probe.
 - `dependency-resilience-contract.sh` — Dubbo/direct-HTTP timeout, retry, circuit, bulkhead and fail-closed fallback wiring plus refusal/recovery tests.
+- `submission-compatibility-retirement-contract.sh` — repository-only major-release proof for deleting unused Submission N-1 contracts, including a virtual drain/error-budget ledger and registry retirement/rollback simulation.
+- `scale-topology-contract.sh` — merged Compose scale contract; set `SCALE_COMPOSE_ENV_FILE` for disposable production-profile expansion and `DUBBO_NACOS_SMOKE_ENV_FILE` for the two-instance Nacos/Dubbo rolling registration drill.
+- `dubbo-nacos-smoke.sh` — authenticated disposable Nacos/Dubbo smoke; `DUBBO_NACOS_SMOKE_REPLICAS=2` exercises registration, removal, restart and failover sequencing.
 - `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 
 ## Other

@@ -1,8 +1,8 @@
 # `services/` 问题清单
 
-更新时间：2026-08-30
+更新时间：2026-09-01
 
-本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与生产触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
+本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与可选外部运行触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
 实现与可执行配置始终优先；事实冲突时按以下顺序核实：Java source/tests → Maven POM → application config → Compose → startup/deploy scripts → 本文件。
 
@@ -17,15 +17,19 @@
 
 当前拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）与两个 Worker（Judge、Search）。问题不在服务数量，而在少数部署 Seam、过宽 Contract Interface、Submission 双轨兼容和发布控制面尚未完全收敛。
 
-项目当前只有开发环境。优先修复可测试、可复现的结构问题；不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
+项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
 ## OPEN
 
-### SVC-003 P1 Submission ownership contraction remains incomplete
+当前没有剩余的仓库可执行 OPEN 项。
+
+## CLOSED
+
+### SVC-003 P1 Submission ownership contraction (CLOSED)
 
 Ordinary and contest intake now always use App's `RemoteSubmissionWritePort` and execute in `backend-submission`. The App-local writer, mutation router, fence adapters, judge/result dispatchers, shadow comparator, and lease reaper are deleted; write ownership is no longer selected by `APP_SUBMISSION_ROUTING_MODE`.
 
-P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads through Submission-owner facts; App local Submission projections and mapper access remain only behind explicit `legacy-rollback`. The repository proof is complete, while owner registration, database grants, traffic observation, backup and physical contraction remain external.
+P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads through Submission-owner facts; App local Submission projections and mapper access remain only behind explicit `legacy-rollback`. The repository proof and the authorized disposable migration/backfill/cutover/rollback rehearsal are complete. This repository has no production registry or traffic plane; a virtual 14-day compatibility ledger is used for the N-1 retirement acceptance and is explicitly not production evidence.
 
 Evidence:
 
@@ -45,11 +49,11 @@ Retirement gates:
 
 | Seam | Repository state | Remaining external/next evidence |
 | --- | --- | --- |
-| Intake/outbox/fence | App mutation implementation deleted; owner tests and duplicate-writer gate are authoritative | Live registration/traffic observation remains external; rollback uses a prior verified artifact plus the data runbook, not a second current writer |
-| Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Live Nacos/Dubbo/Redis/target-database observation remains external; audit delivery still depends on owner registration and runtime stream observation |
-| User reads | Normal user/contest/admin/statistics/generation reads use bounded Submission-owner facts; local adapters are rollback-only | Production registration/traffic observation and the explicit contraction runbook must complete before App legacy tables/contracts are removed |
+| Intake/outbox/fence | App mutation implementation deleted; owner tests, duplicate-writer gate, and disposable cutover rehearsal are authoritative | No deployed production plane exists in this repository; future adopters must perform their own rollout validation |
+| Admin rejudge | Admin compatibility service/provider deleted; Admin sends authenticated commands to the owner; owner receipt, generation CAS, lease expiry, and judge outbox tests are authoritative | Repository-only and disposable owner verification is complete; no production traffic claim is made |
+| User reads | Normal user/contest/admin/statistics/generation reads use bounded Submission-owner facts; local adapters are rollback-only | Disposable parity/checksum and rollback rehearsal is complete; production migration is outside this repository's scope |
 
-Do not close SVC-003 or contract the App schema until the external owner registration/traffic, backup, and bounded-read evidence is complete; the repository-side route gate is now covered by P1-DATA-001.
+The repository-side SVC-003 gate is closed by source inventory, major-version contract retirement, virtual drain/error-budget evidence, and disposable owner migration proof. No external production state is inferred.
 
 ## DEFERRED
 
@@ -85,14 +89,14 @@ Do not close SVC-003 or contract the App schema until the external owner registr
 
 触发条件：随真实发布自然积累。破坏性 Contract 变更仍要求 reactor 协同升级；门禁说明见 [`CONTRACT_COMPAT_GATE.md`](CONTRACT_COMPAT_GATE.md)。
 
-## CLOSED
+## CLOSED (historical findings)
 
 下列历史 Finding 已有代码、配置或可执行门禁承接，不应在其他文档重复维护正文：
 
 | 历史问题 | 当前承接证据 |
 | --- | --- |
 | SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；本地 Docker 仅在 SVC-003 的显式 `legacy-rollback` 激活 |
-| SVC-002 跨进程 Contract Interface 过宽 | `SubmissionIntakePort`、`SubmissionVerdictWritePort` 与 `ProblemTitleLookupPort` 按消费语义拆分；旧 `SubmissionWritePort`/provider 仅作 deprecated N-1 兼容窗口且所有方法真实委托 |
+| SVC-002 跨进程 Contract Interface 过宽 | `SubmissionIntakePort`、`SubmissionVerdictWritePort` 与 `ProblemTitleLookupPort` 按消费语义拆分；旧 composite `SubmissionWritePort`/provider 和无消费者的 analytics contract 已在 2.0.0 major contract release 中删除 |
 | SVC-005 Search 选择性发布/回滚入口不完整 | Search 已进入 deploy choice、rollback whitelist/all 与共享 `host-health`；架构门禁从 services matrix 解析全部 backend 并逐项校验三个控制面 |
 | Owner 假健康 | `ReadinessChecks`、各 Owner readiness controller、Compose/host health |
 | Search/Judge 静态健康证明 | `SearchWorkerReadinessHeartbeat`、`JudgeWorkerReadinessHeartbeat` |

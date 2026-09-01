@@ -13,10 +13,10 @@
 
 | 模块 | Provider owner | 已知 Consumer | Transport | Lifecycle |
 | --- | --- | --- | --- | --- |
-| `backend-auth-api` | `backend-auth` | App、Admin、Submission、Notification | 内部 Dubbo request/response | `1.0.0`；账号/授权查询与幂等管理命令 |
-| `backend-app-api` | `backend-app` | Admin、Submission、Judge、Notification 及 App 内部适配器 | 内部 Dubbo request/response、事件与 WS payload | `1.0.0`；App 领域查询/命令及显式跨 owner seams |
-| `backend-submission-api` | `backend-submission` | App、Admin、Judge | 内部 Dubbo request/response、Redis Streams、生命周期事件 | `1.0.0`；写命令带 generation/attempt/idempotency 语义，旧写接口按 N-1 窗口保留 |
-| `backend-notification-api` | `backend-notification` | App、Admin | 内部 Dubbo request/response、事件与 WS payload | `1.0.0`；通知命令/意图与 reconciliation read seam |
+| `backend-auth-api` | `backend-auth` | App、Admin、Submission、Notification | 内部 Dubbo request/response | Dubbo interface `1.0.0` / Maven artifact revision `2.0.0`；账号/授权查询与幂等管理命令 |
+| `backend-app-api` | `backend-app` | Admin、Submission、Judge、Notification 及 App 内部适配器 | 内部 Dubbo request/response、事件与 WS payload | Dubbo interface `1.0.0` / Maven artifact revision `2.0.0`；App 领域查询/命令及显式跨 owner seams |
+| `backend-submission-api` | `backend-submission` | App、Admin、Judge | 内部 Dubbo request/response、Redis Streams、生命周期事件 | Dubbo interface `1.0.0`；Maven artifact revision `2.0.0` 删除无仓库消费者的 N-1 合同 |
+| `backend-notification-api` | `backend-notification` | App、Admin | 内部 Dubbo request/response、事件与 WS payload | Dubbo interface `1.0.0` / Maven artifact revision `2.0.0`；通知命令/意图与 reconciliation read seam |
 
 每个模块只承载其 Provider owner 的无实现合同；Consumer 通过显式 port/service
 接口引用，不能把 Entity、Mapper、ServiceImpl、Repository 或 owner 实现带入合同。
@@ -99,7 +99,7 @@ profile 定义（精简）：
 export JAVA_HOME=/path/to/java17
 cd services
 ./mvnw -Drevision=1.0.0 -pl api/auth-api -am -DskipTests install
-./mvnw -Drevision=1.0.0-ci.local -Dcontract.compat.oldVersion=1.0.0 \
+./mvnw -Drevision=2.0.0-ci.local -Dcontract.compat.oldVersion=1.0.0 \
   -pl api/auth-api -am -P contract-compat verify
 # 预期：BUILD SUCCESS，target/japicmp/ 下生成 contract-compat-check.xml/html/diff，且无 binary incompatible 项
 ```
@@ -112,13 +112,15 @@ cd services
 
 # 2)  bump 本地工作副本版本（例如改 revision 或直接用 -Dcontract.compat.oldVersion 指定旧版本）
 #    若需模拟新版本，可临时改 pom 的 revision 或用 -Drevision=1.0.1：
-./mvnw -pl api/auth-api -am -Drevision=1.0.1 -DskipTests package
-./mvnw -Drevision=1.0.1 -P contract-compat -Dcontract.compat.oldVersion=1.0.0 \
+./mvnw -pl api/auth-api -am -Drevision=2.0.0-ci.local -DskipTests package
+./mvnw -Drevision=2.0.0-ci.local -P contract-compat -Dcontract.compat.oldVersion=1.0.0 \
   -pl api/auth-api -am verify
 # 无源码变更时零 diff；若临时删除一个 public 方法再跑，则应报 binary incompatible 并 fail，验证后 git restore。
 ```
 
-> 说明：`api/*` 的当前版本来自 `${revision}`；跨版本验证必须在 package 与 verify 两步使用同一、且不同于旧版本的 revision。CI 从 standalone baseline 的 Maven `revision` 元数据计算 `oldVersion` 并用同一 revision 安装，再以 `1.0.0-ci.<run_id>` 构建当前 `target/` jar 作为 `newVersion` 对比，避免自比较（见 3.2）。若基线没有 standalone API contracts（例如旧 monolithic layout），ownership boundary 仍运行，但输出 `baseline has no standalone API contracts; compatibility comparison skipped` 并跳过当前构建、japicmp 和 distinct-artifact guard。
+> 说明：`api/*` 的当前版本来自 `${revision}`；跨版本验证必须在 package 与 verify 两步使用同一、且不同于旧版本的 revision。CI 从 standalone baseline 的 Maven `revision` 元数据计算 `oldVersion` 并用同一 revision 安装，再以 `<current_revision>-ci.<run_id>` 构建当前 `target/` jar 作为 `newVersion` 对比，避免自比较（见 3.2）。若基线没有 standalone API contracts（例如旧 monolithic layout），ownership boundary 仍运行，但输出 `baseline has no standalone API contracts; compatibility comparison skipped` 并跳过当前构建、japicmp 和 distinct-artifact guard。
+
+若当前 revision 与 baseline 的 major 不同，workflow 会明确输出 `intentional major contract release; compatibility comparison skipped after repository retirement proof`，运行 `submission-compatibility-retirement-contract.sh`，并跳过 japicmp 与 distinct-artifact guard。该 skip 只由 major 版本差异触发；同 major 变更仍必须执行二进制兼容比较，不能手工设置 skip。
 
 ### 2.3 报告产物
 
@@ -165,8 +167,8 @@ cd services
 - `checkout` 使用 `fetch-depth: 0`（需完整 tag 历史）。
 - `git worktree add /tmp/baseline <baseline_ref>` 检出基线到临时目录。
 - 基线：先从 `/tmp/baseline/services` 的 Maven `revision` 元数据解析基线版本，再执行 `./mvnw -Drevision=<baseline_revision> -pl api/auth-api,api/app-api,api/submission-api,api/notification-api -am -DskipTests install -B`（安装到本地仓库，供 `oldVersion` 解析）。若四个 standalone API module 不存在，则记录明确 skip 并不执行兼容比较。
-- 当前分支：`services ./mvnw -Drevision=1.0.0-ci.<run_id> -pl api/... -am -DskipTests package -B`（生成 `target/` jar 作为 `newVersion`，package 与 verify 使用完全相同的 distinct revision）。
-- 执行：`services ./mvnw -Drevision=1.0.0-ci.<run_id> -Dcontract.compat.oldVersion=<baseline_revision> -P contract-compat -pl api/... -am verify -B`（japicmp 以 `breakBuildOnBinaryIncompatibleModifications=true` 判定，并由 XML guard 拒绝 oldJar/newJar 自比较）。
+- 当前分支：`services ./mvnw -Drevision=<current_revision>-ci.<run_id> -pl api/... -am -DskipTests package -B`（生成 `target/` jar 作为 `newVersion`，package 与 verify 使用完全相同的 distinct revision）。
+- 执行：`services ./mvnw -Drevision=<current_revision>-ci.<run_id> -Dcontract.compat.oldVersion=<baseline_revision> -P contract-compat -pl api/... -am verify -B`（japicmp 以 `breakBuildOnBinaryIncompatibleModifications=true` 判定，并由 XML guard 拒绝 oldJar/newJar 自比较）。
 - `actions/upload-artifact@v7` 上传 `services/api/**/target/japicmp/**`（`if: always()`，`retention-days: 7`）。
 - `timeout-minutes: 20`、`setup-java@v5` + `cache: maven`、`chmod +x services/mvnw` 对齐 `_backend.yml` 风格。
 
@@ -180,28 +182,28 @@ cd services
 2. **走版本窗口（需升级 RpcPolicy）**：若必须破坏性变更：
    - 提升契约的语义版本（`revision` 或对应 `service.version.*` 的 major），并在对应 Dubbo `RpcPolicy` 常量或版本约束中声明不兼容窗口；
    - 采用双版本并存窗口：Provider 同时暴露新旧接口（或新旧 DTO 通过 `compat` 字段兼容），消费者分批升级，窗口期内 CI 可通过 `excludes` 临时豁免已公告的类（需评审），窗口结束后移除旧版本并清理豁免；
-   - 发版时打 tag（如 `v2.0.0`），成为下一轮 `baseline_ref`。
+   - 发版时打 tag（如 `v2.0.0`），成为下一轮 reusable workflow 的 `baseline_ref`。
 
-当前 Submission mutation Interface 拆分采用兼容化而非豁免：
+当前 Submission mutation Interface 拆分已完成 major contract release：
 
-1. `backend-submission` 先发布 `SubmissionIntakePort`、`SubmissionVerdictWritePort`，同时继续发布 deprecated `SubmissionWritePort` 1.0.0 provider；旧消费者仍可调用全部真实能力。
-2. App/Judge 再升级为只消费窄 Interface。升级期间不得先回滚 Submission provider；需要回滚时先回滚消费者，再回滚 provider。
-3. 只有混合版本窗口、consumer drain 与回滚证据完成后，才允许删除 deprecated Interface/provider；删除属于后续 major/version-window 任务，不属于本次窄化。
+1. `backend-submission` 发布 `SubmissionIntakePort`、`SubmissionVerdictWritePort`，App/Judge/Admin 只消费窄 Interface。
+2. 本仓库没有部署中的 N-1 consumer 或 registry；源码 inventory 为零仓库消费者，短时虚拟 14-day ledger 覆盖 write/fence/read drain、checksum、error budget 和 rollback。
+3. `SubmissionWritePort`、`SubmissionAnalyticsPort` 与 `SubmissionWriteProvider` 已从 2.0.0 API/provider 产物删除。2.0.0 是显式 major release；同 major 的后续修改仍必须通过 japicmp，不能用 skip 绕过。
 
 `ProblemTitleLookupPort` 是新增的 App provider / Submission consumer Seam，发布顺序固定为 **App provider first → Submission consumer second**；回滚顺序固定为 **Submission consumer first → App provider second**。旧 App 不提供该 FQCN，因此禁止选择性先部署新 Submission；该顺序由架构门禁与发布交接共同保留，真实混合版本运行证据仍归 SVC-010。
 
-Dubbo provider/reference inventory 由 `scripts/test/dubbo-provider-reference-contract.sh` 生成：每行记录 owner、consumer、group、version、interface、调用字段和源码路径；脚本拒绝重复 provider、无仓库 consumer 的新 provider，以及缺少 group 的 reference。`SubmissionWriteProvider` 是唯一显式保留的 N-1 compatibility exception，必须保持 `@Deprecated(forRemoval = true)`，其外部 consumer drain 仍需 operator authority。
+Dubbo provider/reference inventory 由 `scripts/test/dubbo-provider-reference-contract.sh` 生成：每行记录 owner、consumer、group、version、interface、调用字段和源码路径；脚本拒绝重复 provider、任何无仓库 consumer 的 provider，以及缺少 group 的 reference。当前不再允许 compatibility exception。
 
 P1-DATA-001 新增的 Submission user-stat batch fields 与 Problem-stat batch read 属于
 wire-incompatible Interface additions，provider/reference 使用 version `1.1.0`；新的
 `SubmissionAdjudicationReadPort` 是独立的 `1.0.0` provider。旧的
-`SubmissionWritePort` 1.0.0 仍按本节的 N-1 窗口保留，不因本次 read cutover 删除。
+旧的 `SubmissionWritePort`/`SubmissionAnalyticsPort` 不再保留；它们已随 2.0.0 major contract release 删除。
 
 豁免流程：原则上 `excludes` 不开放业务豁免；确需豁免（合成/桥接噪音除外）必须在 PR 中说明理由、影响面、回滚计划，并由 Owner 负责人批准后在 `pom` 的 `<parameter><excludes>` 中按 `package.Class#method` 精确列出，禁止通配 `*`。
 
 ## 5. 基线 tag 约定
 
-- 发版打 tag 是建立契约基线的唯一方式：每次生产发布（或契约发布）执行 `git tag vX.Y.Z && git push origin vX.Y.Z`。
+- 发版打 tag 是建立契约基线的唯一方式：每次契约发布执行 `git tag vX.Y.Z`；本仓库验证不执行 push。
 - `_contract.yml` 默认以 `git describe --tags --abbrev=0` 找到最近 tag 作为 `oldVersion` 来源；无 tag 时 CI 明确报错并提示需先打 tag。
 - reusable `workflow_call` 的调用方可声明并传递 `baseline_ref` 覆盖基线；当前 `ci.yml` 的 `workflow_dispatch` 没有声明或传递该输入。
 

@@ -99,12 +99,12 @@ printf 'dependency timeout/retry/circuit/bulkhead/fallback wiring: PASS\n'
   cd "$ROOT_DIR/services"
   if command -v mise >/dev/null 2>&1; then
     mise exec java@zulu-17.68.203.0 -- bash ./mvnw \
-      -pl platform/common,platform/rpc-resilience,platform/web-security,auth,admin,app/app-web,notification,submission,search,judge -am \
+      -pl platform/common,platform/rpc-resilience,platform/web-security,auth,admin,app/modules/problem,app/modules/contest,app/modules/submission,app/modules/moderation,app/app-web,notification,submission,search,judge -am \
       -Dtest='DependencyGuardTest,RpcPolicyBudgetTest,DubboDependencyResilienceFilterTest,JwksPublicKeyProviderTest,OAuthHttpTest,S3StorageTest,IdentityBanCheckAdapterTest,SearchDocumentIndexWorkerTest,DefaultSearchReadProjectionTest,SearchBackfillRunnerTest,RpcPolicyArchTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   else
     bash ./mvnw \
-      -pl platform/common,platform/rpc-resilience,platform/web-security,auth,admin,app/app-web,notification,submission,search,judge -am \
+      -pl platform/common,platform/rpc-resilience,platform/web-security,auth,admin,app/modules/problem,app/modules/contest,app/modules/submission,app/modules/moderation,app/app-web,notification,submission,search,judge -am \
       -Dtest='DependencyGuardTest,RpcPolicyBudgetTest,DubboDependencyResilienceFilterTest,JwksPublicKeyProviderTest,OAuthHttpTest,S3StorageTest,IdentityBanCheckAdapterTest,SearchDocumentIndexWorkerTest,DefaultSearchReadProjectionTest,SearchBackfillRunnerTest,RpcPolicyArchTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   fi

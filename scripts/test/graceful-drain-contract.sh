@@ -85,12 +85,12 @@ printf 'graceful shutdown/lifecycle/worker wiring contract: PASS\n'
   cd "$ROOT_DIR/services"
   if command -v mise >/dev/null 2>&1; then
     mise exec java@zulu-17.68.203.0 -- bash ./mvnw \
-      -pl platform/common,platform/integration-inbox,auth,admin,app/app-web,notification,submission,search,judge-runtime,judge -am \
+      -pl platform/common,platform/integration-inbox,auth,admin,app/modules/problem,app/modules/contest,app/modules/submission,app/modules/moderation,app/app-web,notification,submission,search,judge-runtime,judge -am \
       -Dtest='DrainGateTest,DrainGateSignalIT,InboxConsumerDrainTest,SearchDocumentIndexWorkerTest,AuthAuditOutboxDispatcherTest,SearchDocumentChangedOutboxDispatcherTest,AppAuditOutboxDispatcherTest,SubmissionJudgedInboxBridgeTest,SubmissionCreatedDispatcherTest,JudgeOutboxDispatcherTest,JudgingLeaseReaperTest,NotificationIntegrationInboxBridgeTest,NotificationLedgerReaperTest,JudgeWorkerProcessorTest,AdminAuditIntegrationInboxBridgeTest,AuditOutboxDispatcherTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   else
     bash ./mvnw \
-      -pl platform/common,platform/integration-inbox,auth,admin,app/app-web,notification,submission,search,judge-runtime,judge -am \
+      -pl platform/common,platform/integration-inbox,auth,admin,app/modules/problem,app/modules/contest,app/modules/submission,app/modules/moderation,app/app-web,notification,submission,search,judge-runtime,judge -am \
       -Dtest='DrainGateTest,DrainGateSignalIT,InboxConsumerDrainTest,SearchDocumentIndexWorkerTest,AuthAuditOutboxDispatcherTest,SearchDocumentChangedOutboxDispatcherTest,AppAuditOutboxDispatcherTest,SubmissionJudgedInboxBridgeTest,SubmissionCreatedDispatcherTest,JudgeOutboxDispatcherTest,JudgingLeaseReaperTest,NotificationIntegrationInboxBridgeTest,NotificationLedgerReaperTest,JudgeWorkerProcessorTest,AdminAuditIntegrationInboxBridgeTest,AuditOutboxDispatcherTest' \
       -Dsurefire.failIfNoSpecifiedTests=false test -B
   fi

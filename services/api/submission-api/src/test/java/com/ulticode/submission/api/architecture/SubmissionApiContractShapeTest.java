@@ -28,7 +28,6 @@ import com.ulticode.submission.api.service.SubmissionAdminReadPort;
 import com.ulticode.submission.api.service.SubmissionAdministrationService;
 import com.ulticode.submission.api.service.SubmissionAdjudicationReadPort;
 import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
-import com.ulticode.submission.api.service.SubmissionAnalyticsPort;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionGenerationReadPort;
 import com.ulticode.submission.api.service.SubmissionReadPort;
@@ -37,7 +36,6 @@ import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -55,7 +53,6 @@ class SubmissionApiContractShapeTest {
             SubmissionAdministrationService.class,
             SubmissionAdjudicationReadPort.class,
             SubmissionReconciliationReadPort.class,
-            SubmissionAnalyticsPort.class,
             SubmissionFencePort.class,
             SubmissionGenerationReadPort.class,
             SubmissionReadPort.class,
@@ -63,11 +60,9 @@ class SubmissionApiContractShapeTest {
             SubmissionUserQueryPort.class,
             SubmissionUserStatsPort.class,
             SubmissionIntakePort.class,
-            SubmissionVerdictWritePort.class,
-            SubmissionWritePort.class);
+            SubmissionVerdictWritePort.class);
 
     @Test
-    @SuppressWarnings("removal")
     void mutationContractsStaySplitByConsumerCapability() {
         assertThat(SubmissionIntakePort.class.getDeclaredMethods()).hasSize(4);
         assertThat(SubmissionVerdictWritePort.class.getDeclaredMethods()).hasSize(2);
@@ -75,8 +70,6 @@ class SubmissionApiContractShapeTest {
                 .map(Method::getName)).allMatch(name -> name.startsWith("submit"));
         assertThat(Arrays.stream(SubmissionVerdictWritePort.class.getDeclaredMethods())
                 .map(Method::getName)).allMatch(name -> name.startsWith("updateSubmissionResult"));
-        assertThat(SubmissionWritePort.class.isAnnotationPresent(Deprecated.class)).isTrue();
-        assertThat(SubmissionAnalyticsPort.class.isAnnotationPresent(Deprecated.class)).isTrue();
     }
 
     @Test

@@ -30,7 +30,7 @@ not_contains() {
 }
 
 admin_api_dir="$ROOT_DIR/services/api/admin-api"
-if [[ -f "$admin_api_dir/pom.xml" || -d "$admin_api_dir/src" ]]; then
+if [[ -e "$admin_api_dir" ]]; then
   fail "obsolete API module source still exists: services/api/admin-api"
 fi
 
@@ -85,10 +85,20 @@ PY
 
 
 contains services/api/app-api/pom.xml '<artifactId>backend-submission-api</artifactId>'
-contains services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionAnalyticsPort.java '@Deprecated(since = "1.1.0", forRemoval = true)'
 not_contains services/pom.xml '<module>api/admin-api</module>'
 not_contains services/admin/pom.xml '<artifactId>backend-admin-api</artifactId>'
 not_contains services/api/app-api/pom.xml '<artifactId>spring-context</artifactId>'
+for retired in \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
+  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionAnalyticsPort.java \
+  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java; do
+  [[ ! -e "$ROOT_DIR/$retired" ]] || fail "retired compatibility source still exists: $retired"
+done
+contains services/pom.xml '<revision>2.0.0</revision>'
+contains services/pom.xml '<skip>${contract.compat.breakingRelease}</skip>'
+contains .github/workflows/_contract.yml 'breaking_release=true'
+contains .github/workflows/_contract.yml 'intentional major contract release; compatibility comparison skipped after repository retirement proof'
+contains scripts/test/submission-compatibility-retirement-contract.sh 'virtual-14-day'
 
 contains services/docs/CONTRACT_COMPAT_GATE.md 'breakBuildOnBinaryIncompatibleModifications=true'
 contains services/pom.xml '<id>contract-compat</id>'
@@ -98,7 +108,7 @@ contains services/pom.xml '<artifactId>maven-enforcer-plugin</artifactId>'
 contains services/pom.xml '<goal>cmp</goal>'
 contains services/pom.xml '<contract.compat.oldVersion>__missing_contract_baseline__</contract.compat.oldVersion>'
 not_contains services/pom.xml '<contract.compat.oldVersion>${project.version}</contract.compat.oldVersion>'
-contains .github/workflows/_contract.yml '1.0.0-ci.${GITHUB_RUN_ID}'
+contains .github/workflows/_contract.yml 'ci_revision=${current_revision}-ci.${GITHUB_RUN_ID}'
 contains .github/workflows/_contract.yml 'japicmp self-comparison detected'
 contains .github/workflows/_contract.yml 'japicmp baseline artifact/version is missing'
 contains .github/workflows/_contract.yml 'baseline has no standalone API contracts; compatibility comparison skipped'

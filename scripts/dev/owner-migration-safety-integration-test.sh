@@ -3,8 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-if ! java -version >/dev/null 2>&1 && command -v mise >/dev/null 2>&1; then
-  exec mise exec java@zulu-17.68.203.0 -- bash "$0" "$@"
+if [[ "${ULTICODE_MISE_JAVA17:-0}" != "1" ]]; then
+  command -v mise >/dev/null 2>&1 || {
+    echo "mise is required for the Java 17 owner migration safety integration" >&2
+    exit 1
+  }
+  exec env ULTICODE_MISE_JAVA17=1 mise exec java@zulu-17.68.203.0 -- bash "$0" "$@"
 fi
 
 MYSQL_TEST_CONTAINER="ulticode-owner-migration-test-mysql-$$"

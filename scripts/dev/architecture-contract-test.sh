@@ -22,6 +22,11 @@ not_contains() {
     || fail "$file contains stale or bypass text: $text"
 }
 
+assert_absent() {
+  local file="$1"
+  [[ ! -e "$ROOT_DIR/$file" ]] || fail "$file must be absent after compatibility retirement"
+}
+
 compact_contains() {
   local file="$1" text="$2"
   [[ -f "$ROOT_DIR/$file" ]] || fail "missing guarded file: $file"
@@ -68,7 +73,6 @@ for file in \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReadPort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionIntakePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionVerdictWritePort.java \
-  services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
   services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionReconciliationReadPort.java \
   services/api/notification-api/src/main/java/com/ulticode/notification/api/service/NotificationReconciliationReadPort.java \
   services/api/app-api/src/main/java/com/ulticode/app/api/service/CodeExecutionPort.java \
@@ -85,7 +89,6 @@ for file in \
   services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionVerdictWriteProvider.java \
-  services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
   services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
   services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java \
@@ -155,10 +158,9 @@ not_contains services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmi
   'UnsupportedOperationException'
 not_contains services/submission/src/main/java/com/ulticode/submission/port/adapter/ProblemTitleLookupDubboAdapter.java \
   'UnsupportedOperationException'
-contains services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java \
-  '@Deprecated(forRemoval = true)'
-contains services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java \
-  'implements SubmissionWritePort'
+assert_absent services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionWritePort.java
+assert_absent services/api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionAnalyticsPort.java
+assert_absent services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionWriteProvider.java
 contains services/docs/CONTRACT_COMPAT_GATE.md \
   'App provider first → Submission consumer second'
 contains services/docs/CONTRACT_COMPAT_GATE.md \
@@ -169,6 +171,7 @@ contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port
   'implements SubmissionIntakePort'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java \
   'SubmissionVerdictWritePort'
+bash "$ROOT_DIR/scripts/test/submission-compatibility-retirement-contract.sh"
 for stale_app_mutation in \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionWriteRoutingPort.java \

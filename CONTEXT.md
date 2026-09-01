@@ -64,8 +64,7 @@
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],
   [[AdminReadModel seam]], [[CurrentUserProvider seam]].
-  `SubmissionAnalyticsPort`, `AdminSubmissionReadPort`,
-  `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`,
+  `AdminSubmissionReadPort`, `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`,
   `ProblemDetailPort`, `TokenBlacklistPort`.
 - **TokenBlacklistPort** — read-only revocation seam consulted by the
   WebSocket authentication path before a STOMP CONNECT is accepted. Owned

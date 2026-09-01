@@ -263,7 +263,7 @@ SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json
 # rootless Docker daemon over TLS. Supply JUDGE_DOCKER_HOST and
 # JUDGE_DOCKER_CERT_DIR from the deployment secret/config store; init-env
 # deliberately does not generate or persist them.
-# Development-only socket profile (`docker-compose.judge-dev.yml`) uses this
+# Development-only socket profile uses this
 # local group id; production Compose never consumes it.
 SANDBOX_HOST_DIR=/opt/ulticode/sandbox
 JAVA_TOOL_OPTIONS=

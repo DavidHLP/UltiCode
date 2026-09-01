@@ -57,6 +57,23 @@ jobs:
       - name: Grant Maven wrapper execute permission
         run: chmod +x services/mvnw
 
+      - name: Determine current contract revision
+        id: current
+        run: |
+          set -euo pipefail
+          current_revision="$({
+            cd services
+            ./mvnw help:evaluate -Dexpression=revision -q -DforceStdout
+          } | tail -n 1)"
+          if [[ ! "$current_revision" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Current contract revision is not a stable semantic version: $current_revision"
+            exit 1
+          fi
+          echo "revision=$current_revision" >> "$GITHUB_OUTPUT"
+          echo "major=${current_revision%%.*}" >> "$GITHUB_OUTPUT"
+          echo "ci_revision=${current_revision}-ci.${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "[contract] current API revision=$current_revision"
+
       - name: Create baseline worktree
         run: |
           set -euo pipefail
@@ -89,6 +106,7 @@ jobs:
             done
             if (( ${#present_projects[@]} == 0 )); then
               echo "has_standalone_contracts=false" >> "$GITHUB_OUTPUT"
+              echo "breaking_release=false" >> "$GITHUB_OUTPUT"
               echo "baseline has no standalone API contracts; compatibility comparison skipped"
               exit 0
             fi
@@ -107,8 +125,17 @@ jobs:
             echo "old_version=$baseline_revision" >> "$GITHUB_OUTPUT"
             echo "has_standalone_contracts=true" >> "$GITHUB_OUTPUT"
             echo "[contract] baseline API revision=$baseline_revision"
+            baseline_major="${baseline_revision%%.*}"
+            if [[ "$baseline_major" =~ ^[0-9]+$ && "$baseline_major" != "${{ steps.current.outputs.major }}" ]]; then
+              echo "breaking_release=true" >> "$GITHUB_OUTPUT"
+              echo "[contract] intentional major contract release: current=${{ steps.current.outputs.revision }}, baseline=$baseline_revision"
+              echo "[contract] compatibility comparison skipped; repository retirement contract remains required"
+              exit 0
+            fi
+            echo "breaking_release=false" >> "$GITHUB_OUTPUT"
           elif [[ -d "$baseline_root/backend-spring" ]]; then
             echo "has_standalone_contracts=false" >> "$GITHUB_OUTPUT"
+            echo "breaking_release=false" >> "$GITHUB_OUTPUT"
             echo "baseline has no standalone API contracts; compatibility comparison skipped"
             exit 0
           else
@@ -120,8 +147,13 @@ jobs:
             -Drevision="${baseline_revision}" -DskipTests install -B
 
       - name: Record skipped contract compatibility comparison
-        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts != 'true' }}
-        run: echo "baseline has no standalone API contracts; compatibility comparison skipped"
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts != 'true' || steps.baseline_contracts.outputs.breaking_release == 'true' }}
+        run: |
+          if [[ "${{ steps.baseline_contracts.outputs.has_standalone_contracts }}" != "true" ]]; then
+            echo "baseline has no standalone API contracts; compatibility comparison skipped"
+          else
+            echo "intentional major contract release; compatibility comparison skipped after repository retirement proof"
+          fi
 
       - name: Build current api contracts
         if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' }}
@@ -129,23 +161,27 @@ jobs:
           set -euo pipefail
           echo "[contract] building current api contracts at a distinct revision"
           cd services
-          ./mvnw -Drevision=1.0.0-ci.${GITHUB_RUN_ID} \
+          ./mvnw -Drevision=${{ steps.current.outputs.ci_revision }} \
             -pl api/auth-api,api/app-api,api/submission-api,api/notification-api \
             -am -DskipTests package -B
 
+      - name: Validate intentional major contract retirement
+        if: ${{ steps.baseline_contracts.outputs.breaking_release == 'true' }}
+        run: bash scripts/test/submission-compatibility-retirement-contract.sh
+
       - name: Run japicmp contract compat check
-        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' }}
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' && steps.baseline_contracts.outputs.breaking_release != 'true' }}
         run: |
           set -euo pipefail
           echo "[contract] running japicmp against installed baseline ${{ steps.baseline_contracts.outputs.old_version }}"
           cd services
-          ./mvnw -Drevision=1.0.0-ci.${GITHUB_RUN_ID} \
+          ./mvnw -Drevision=${{ steps.current.outputs.ci_revision }} \
             -Dcontract.compat.oldVersion="${{ steps.baseline_contracts.outputs.old_version }}" \
             -P contract-compat \
             -pl api/auth-api,api/app-api,api/submission-api,api/notification-api \
             -am verify -B
       - name: Assert japicmp compares distinct artifacts
-        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' }}
+        if: ${{ steps.baseline_contracts.outputs.has_standalone_contracts == 'true' && steps.baseline_contracts.outputs.breaking_release != 'true' }}
         run: |
           set -euo pipefail
           python3 - <<'PY'

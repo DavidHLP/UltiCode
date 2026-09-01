@@ -121,12 +121,6 @@ def runtime_consumer_version(source: str) -> str | None:
     return resolved
 
 
-def deprecated_for_removal(source: str) -> bool:
-    return re.search(
-        r"@Deprecated\s*\([^)]*\bforRemoval\s*=\s*true\b[^)]*\)", source
-    ) is not None
-
-
 providers: list[dict[str, str]] = []
 references: list[dict[str, str]] = []
 
@@ -225,25 +219,6 @@ for identity, provider_matches in sorted(providers_by_identity.items()):
         files = ", ".join(match["path"] for match in provider_matches)
         raise SystemExit(f"duplicate Dubbo providers for {identity}: {files}")
 
-compatibility_exceptions: list[dict[str, str]] = []
-compatibility_candidates = [
-    provider for provider in providers if provider["class"] == "SubmissionWriteProvider"
-]
-if len(compatibility_candidates) > 1:
-    files = ", ".join(provider["path"] for provider in compatibility_candidates)
-    raise SystemExit(f"multiple SubmissionWriteProvider compatibility exceptions: {files}")
-for provider in compatibility_candidates:
-    if "SubmissionWritePort" not in provider["implemented_interfaces"]:
-        raise SystemExit(
-            f"{provider['path']}:{provider['class']} compatibility exception must implement SubmissionWritePort"
-        )
-    if not deprecated_for_removal(provider["source"]):
-        raise SystemExit(
-            f"{provider['path']}:{provider['class']} is an unconsumed "
-            "compatibility provider without @Deprecated(forRemoval = true)"
-        )
-
-
 def matches(provider: dict[str, str], reference: dict[str, str]) -> bool:
     # `<config>` means the version is supplied by the consumer's runtime
     # configuration. runtime_consumer_version() fails closed when the owner
@@ -272,13 +247,11 @@ def matching_consumers(provider: dict[str, str]) -> list[dict[str, str]]:
 for provider in providers:
     consumers = matching_consumers(provider)
     if not consumers:
-        if provider not in compatibility_candidates:
-            raise SystemExit(
-                f"{provider['path']}:{provider['class']} exposes "
-                f"({provider['interface']}, {provider['group']}, {provider['version']}) "
-                "with no repository @DubboReference consumer"
-            )
-        compatibility_exceptions.append(provider)
+        raise SystemExit(
+            f"{provider['path']}:{provider['class']} exposes "
+            f"({provider['interface']}, {provider['group']}, {provider['version']}) "
+            "with no repository @DubboReference consumer"
+        )
 
 print(
     f"Dubbo inventory: providers={len(providers)}, references={len(references)}, "
@@ -309,12 +282,6 @@ for reference in sorted(references, key=lambda item: item["path"]):
         f"version={reference['version']} "
         f"resolved_version={reference['runtime_version'] or '<explicit>'} "
         f"file={reference['path']}"
-    )
-if compatibility_exceptions:
-    print(
-        "COMPATIBILITY_EXCEPTION "
-        "SubmissionWriteProvider retained only for the documented N-1 "
-        "provider-first window; external consumer drain is not locally provable"
     )
 print("dubbo-provider-reference-contract: PASS")
 PY

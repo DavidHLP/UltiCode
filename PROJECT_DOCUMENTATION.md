@@ -83,7 +83,7 @@ Judge 执行库归属，而不是 App 私有业务包。`RunSubmissionDTO`、`Ru
 公共类型，也不因此新增进程或持久化依赖。
 
 生产 Compose (`docker-compose.prod.yml`) 定义 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-search`、`backend-notification`、`backend-judge` 七个后端 runtime。`ecosystem.config.cjs` 也提供七个后端 PM2 entry；本地 `scripts/dev/up.sh --mode dev-lite` 是唯一第一类开发 interface，默认启动六个后端并明确排除 Search，`--mode dev-full` 由 `devstack-manifest.sh` 显式加入 Search，以配合 indexed read；`APP_RUNTIME_MODE`、`APP_SUBMISSION_ROUTING_MODE` 和 Search read mode 均由该 manifest 统一导出，直接本地 App/Judge boot 默认与 dev-lite 一致；`--only search` 仍可单独启动 Search。`up.sh --rebuild` 在启动后端前执行 services 反应堆 `-DskipTests install`,用于刷新 `~/.m2`(PM2 以单模块 spring-boot:run 启动各服务并从本地仓库解析兄弟模块,源码接口变更后不重新 install 会命中旧 jar);启动前还会做服务端口占用预检(监听者不属于对应 PM2 app 时 fail fast),并在加载 `.env` 后丢弃遗留的通用 `SERVER_PORT`,端口一律以 `ecosystem.config.cjs` 为准。完整 DEV-LOCAL 启动在 Owner migration 后通过 `init-db/scripts/app-owner-seed.sh` 分域、幂等导入 App problemset/forum/contest/solution 与 global-ranking seed；该 Adapter 按领域组分别处理空/完整/部分状态，不进入生产 Compose/Owner Flyway 主链。Contest 事务同时导入竞赛和全球排名 canonical fixtures，只使用 App Owner 表与 fixture ID，不通过运行时跨 Owner 查询用户。
-- P3-SCALE-001 移除 base/prod Compose 的 `container_name` 与依赖固定容器名的本地脚本；服务间使用 Compose DNS，宿主操作通过服务名解析当前容器。`scripts/test/scale-topology-contract.sh` 验证无固定身份、生产 discovery/health/restart/resource 声明，并在提供授权一次性环境时承接合并配置和双副本实测；当前真实双副本注册/摘除/滚动重启/单实例故障证据仍需外部 Docker 环境。
+- P3-SCALE-001 移除 base/prod Compose 的 `container_name` 与依赖固定容器名的本地脚本；服务间使用 Compose DNS，宿主操作通过服务名解析当前容器。`scripts/test/scale-topology-contract.sh` 验证无固定身份、生产 discovery/health/restart/resource 声明，并在短时 disposable 环境中承接合并配置和双副本实测；当前仓库的双副本注册/摘除/滚动重启/单实例故障证据已通过。
 - 启动前 up.sh 会用当前 .env 原子物化挂载给 Redis 的 runtime `REDIS_ACL_DIR`，避免凭据轮换后 healthcheck 使用旧 hash；tracked Git 不再保存 ACL verifier。生产/运维凭据通过 `scripts/runbooks/redis-acl-rotation.sh` 做 overlap/finalize/rollback/drift-check；本地环境生成器同时创建独立的 Admin/Bootstrap RS256 委托密钥对。私钥只进入 Admin bootstrap/PM2 进程，不写入 Git 或日志。
 
 ##### 2.2 Contract Seam
@@ -203,8 +203,8 @@ Auth owner。
 - 每次切换前后保存 rows/checksum/privilege snapshot；
 - 失败时先回滚 route/consumer 到上一 artifact，再按 manifest/copy/reconcile runbook 回写；不得 `DROP`、`TRUNCATE` 或重置共享 source；
 - 本地 TEST-TARGET/DEV-LOCAL 证据只能证明 rehearsal 与脚本契约；不得替代外部目标 authority、users/profile responsibility sign-off、physical cutover 或 production acceptance。
-- ARCH-002 当前 blocked，直到真实目标账号/权限、责任切换、回填/回滚与最终外部 Review/Validation 证据齐全。
-- ARCH-003 的 remote stability、deployment authority、all-writer quiesce、observation/rollback 和 compatibility retirement 仍是外部 blocker。
+- ARCH-002 的 repository gate 已由 disposable owner migration safety integration test 收敛；其结果只证明隔离环境中的账号、权限、回填、回滚和 owner boundary 行为，不推断生产目标状态。
+- ARCH-003 的 repository-side compatibility retirement、all-writer quiesce rehearsal、observation/rollback contract 已收敛；本项目没有生产 registry、traffic plane 或 deployment authority，因此不产生生产应用声明。
 
 #### init-db 收敛 — baseline / seed / owner 深模块与 CI 门禁（2026-08-23）
 
@@ -323,7 +323,7 @@ Auth owner。
 
 ##### 2.2 当前运行拓扑
 
-> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；正常/生产同步 `/problems/{id}/submissions/run` 通过 `CodeExecutionPort` 从 App 调用 Judge provider，App 不执行本地 Docker。唯一例外是 SVC-003 尚未退役的显式 `legacy-rollback`：该开发回滚模式不启动 Judge，暂时激活 App 本地执行并保留 `app-web -> judge-runtime` 编译依赖；待 SVC-003 的观察、drain、checksum 与回滚门禁完成后一起删除。Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。根级兼容别名已收敛：`scripts/start.sh`、`scripts/stop.sh`、`scripts/start.bat`、`scripts/stop.bat` 已删除（`scripts/dev/architecture-contract-test.sh` 断言其不存在）；唯一保留的根级 adapter 是 `scripts/pitstop-start-backend.ps1`，因 `pitstop.yaml` 仍消费它（委托 `bash scripts/dev/up.sh --no-frontend`）。一次性数据迁移 runbook 位于 `scripts/runbooks/`（cutover/backfill/rehearsal），独立冒烟位于 `scripts/test/`；共享 shell 原语（env 加载、显式值保全、容器探测、健康等待、写确认谓词）统一由 `scripts/dev/lib/common.sh` 提供，其内部按关注点拆分为 `lib/env.sh`/`lib/validate.sh`/`lib/docker.sh`/`lib/confirm.sh`/`lib/sql.sh` 子模块（外部入口不变）；`mysql_query` 连接 adapter 由 `lib/sql.sh` 的 `define_mysql_query_adapter` 单源生成，各 runbook 不再手写 docker-exec/mysql 调用；`scripts/test/` 冒烟共用 `scripts/test/lib/smoke-common.sh` 前奏（凭据收敛为 `SMOKE_USERNAME`/`SMOKE_PASSWORD`，旧变量名仍兼容）。本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖）；生产/PM2 拓扑另由 `docker-compose.*.yml`/`ecosystem.config.cjs` 定义。当前项目没有 production environment，因此本地证据不等于生产切流证据。
+> **当前实现状态（以 source/POM/config/Compose/startup script 为准）**：Strangler migration 已完成多进程 Owner/Worker 骨架，但仍处于收敛阶段。五个 data Owner 是 `backend-auth`、`backend-admin`、`backend-app`、`backend-submission`、`backend-notification`；两个不持有业务表的 Worker 是 `backend-judge`、`backend-search`。`judge-runtime` 仅是共享依赖，不是独立进程。Contract modules 是服务边界；正常/生产同步 `/problems/{id}/submissions/run` 通过 `CodeExecutionPort` 从 App 调用 Judge provider，App 不执行本地 Docker。唯一的兼容路径是显式 `legacy-rollback`：该开发回滚模式不启动 Judge，按回滚需要临时激活 App 本地执行并保留 `app-web -> judge-runtime` 编译依赖；它由 source/config/runbook gate 保护，不属于正常路径，也不是未完成的 SVC-003 blocker。Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams，legacy RQueue 只在显式 `legacy-rollback` mode 保留。Submission read 使用 bounded batch owner facts contract，Contest 不再逐条调用 `toVO(id)`。本地开发唯一入口是 `scripts/dev/up.sh`；dev-lite 不启动 Search，dev-full 显式启动 Search/indexed read。根级兼容别名已收敛：`scripts/start.sh`、`scripts/stop.sh`、`scripts/start.bat`、`scripts/stop.bat` 已删除（`scripts/dev/architecture-contract-test.sh` 断言其不存在）；唯一保留的根级 adapter 是 `scripts/pitstop-start-backend.ps1`，因 `pitstop.yaml` 仍消费它（委托 `bash scripts/dev/up.sh --no-frontend`）。一次性数据迁移 runbook 位于 `scripts/runbooks/`（cutover/backfill/rehearsal），独立冒烟位于 `scripts/test/`；共享 shell 原语（env 加载、显式值保全、容器探测、健康等待、写确认谓词）统一由 `scripts/dev/lib/common.sh` 提供，其内部按关注点拆分为 `lib/env.sh`/`lib/validate.sh`/`lib/docker.sh`/`lib/confirm.sh`/`lib/sql.sh` 子模块（外部入口不变）；`mysql_query` 连接 adapter 由 `lib/sql.sh` 的 `define_mysql_query_adapter` 单源生成，各 runbook 不再手写 docker-exec/mysql 调用；`scripts/test/` 冒烟共用 `scripts/test/lib/smoke-common.sh` 前奏（凭据收敛为 `SMOKE_USERNAME`/`SMOKE_PASSWORD`，旧变量名仍兼容）。本地开发拓扑唯一来源为 `scripts/dev/up.sh`+`scripts/dev/devstack-manifest.sh`（受 `devstack-manifest-test:37-52` 覆盖）；生产/PM2 拓扑另由 `docker-compose.*.yml`/`ecosystem.config.cjs` 定义。当前项目没有 production environment；本地和 disposable 证据只证明仓库行为，不等于生产切流证据。
 
 Admin 用户读面的 Auth account/identity + App profile freshness、批量合并与降级状态由 `AdminUserEnricher` 单一深 Module 负责；`DefaultAdminUserProjection` 不再持有两个 Owner Client，只保留 VO、权限与本地统计。事件化读模型仍以真实延迟/可用性指标为触发条件，不预建事件表。
 
@@ -638,7 +638,7 @@ Owner-only intake cutover：App 的 local writer、mutation router、fence adapt
 | W19 | fenced verdict rejects stale generation/attempt | `DefaultSubmissionWritePortIT.fencedVerdictRejectsStaleGeneration` |
 | W20 | terminal verdict writes one generation-idempotent result outbox | `DefaultSubmissionWritePortIT.fencedVerdictAcceptsCurrentGeneration` |
 
-Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component and direct App Submission reads. Live traffic observation remains external. Admin rejudge is owner-routed per P1-SUB-002; normal App reads are owner-routed per P1-DATA-001 and local readers remain only as rollback seams.
+Repository proof is structural, not a claim of production traffic: `SubmissionPortWiringTest` imports App classes and requires exactly one intake implementation (the remote owner adapter) and zero App verdict/fence implementations; `architecture-contract-test.sh` also rejects every deleted compatibility component and direct App Submission reads. The disposable Nacos/Redis/MySQL owner and two-instance checks in the current evidence packet pass; this project has no production traffic plane. Admin rejudge is owner-routed per P1-SUB-002; normal App reads are owner-routed per P1-DATA-001 and local readers remain only as rollback seams.
 
 ##### 4.5.3 Admin rejudge ownership (P1-SUB-002)
 
@@ -648,7 +648,7 @@ Submission owner 的 `SubmissionAdministrationProvider` 先验证 backend-admin 
 
 `SubmissionRejudgeService` 只在 owner 事务内执行状态转换：terminal 行使用 generation CAS 后写非 shadow `judge_outbox`；Judging 行只失效当前 lease/attempt，交给 owner reaper 生成下一代任务；contest 关联仍按既有 `submission_created_outbox` 保护。actor、trace、fingerprint 和结果暂存于 owner receipt，完整跨 owner audit outbox 由 P1-AUDIT-001 收敛。
 
-证据：`SubmissionCutoverServiceTest`、`SubmissionRejudgeServiceTest`、`SubmissionCommandReceiptExecutorTest`、`SubmissionAdministrationProviderTest`、`InternalDelegationAssertionVerifierTest`、`architecture-contract-test.sh`。真实 Nacos/Dubbo/数据库运行与流量切换仍需外部环境；当前变更不执行生产或远程操作。
+证据：`SubmissionCutoverServiceTest`、`SubmissionRejudgeServiceTest`、`SubmissionCommandReceiptExecutorTest`、`SubmissionAdministrationProviderTest`、`InternalDelegationAssertionVerifierTest`、`architecture-contract-test.sh` 与当前 disposable evidence packet。短时 Nacos/Dubbo/数据库运行已在隔离环境通过；本项目没有生产流量平面，因此不执行也不声称生产切流。
 ##### 4.5.4 Resumable Submission backfill verification (P1-SUB-003)
 
 `submission-schema-cutover.sh preflight` 保持首次迁移的空 target/shape/grant 检查；实际数据搬运先执行默认无写入的 `backfill --dry-run`，再由显式 `SUBMISSION_BACKFILL_CONFIRM` 与全 writer quiesce token 解锁 `backfill --execute`。每个 owner 表按主键字典序批处理，成功批次原子更新本地 checkpoint；失败批次写入 TSV failure export，checkpoint 停留在上一批。
@@ -810,17 +810,18 @@ Admin 的内部通知服务仍属于 Admin owner，不因此创建跨 owner Dubb
 `backend-submission-api` 与 `backend-notification-api` 已作为 provider-owned artifacts 加入
 `services` reactor；包根分别为 `com.ulticode.submission.api` 与
 `com.ulticode.notification.api`，Dubbo identity 沿用
-`backend-submission`/`backend-notification`、version `1.0.0`。Contract 可依赖极小的
+`backend-submission`/`backend-notification`、Dubbo interface version `1.0.0`。四个 Maven contract
+artifacts 当前统一使用 reactor revision `2.0.0`；这是包含 Submission N-1 retirement 的 intentional major release。Contract 可依赖极小的
 `backend-common`，但不得依赖任何服务实现模块。
 
 Wire-incompatible Submission contracts 以 version 门禁发布：`SubmissionFencePort`
 （`currentGeneration` 由 `Optional<Long>` 改为可空 `Long`，避免 Dubbo 序列化 `Optional`）与新增
 `findByProblemId` 的 `SubmissionUserQueryPort` 的 provider/reference 均已升到 version `1.1.0`。
-Submission mutation 已拆为 `SubmissionIntakePort` 与 `SubmissionVerdictWritePort`；旧的
-`SubmissionWritePort` 1.0.0 仍只作为 deprecated API 类型保留，仓库内没有业务 consumer，
-其唯一 N-1 compatibility provider 仍由 Submission owner 注册。App 的重复 provider 已由
-ARCH-DUBBO-001 删除；任何外部 N-1 consumer drain 无法由本地源码证明，需外部 operator
-authority，因此仍是 `BLOCKED_EXTERNAL`；正常运行时只注册窄 Interface provider。
+Submission mutation 已拆为 `SubmissionIntakePort` 与 `SubmissionVerdictWritePort`；
+`SubmissionWritePort`、`SubmissionAnalyticsPort` 与其唯一 N-1 provider 已在 2.0.0 major
+contract release 中删除。源码 inventory 没有仓库 consumer，虚拟 14-day drain ledger、
+checksum、error-budget、rollback 和 disposable owner migration rehearsal 均通过；本项目
+没有生产 registry 或流量平面，因此这些是 repository-only simulation evidence，不是生产声明。
 新增 `ProblemTitleLookupPort` 采用 App-provider-first → Submission-consumer-second，回滚
 顺序相反；旧 App 不提供该 Interface，禁止先选择性发布新 Submission。
 
@@ -834,8 +835,7 @@ authority，因此仍是 `BLOCKED_EXTERNAL`；正常运行时只注册窄 Interf
 `backend-app-api` 只保留 App-owned contracts 与显式的 App fact/recipient exceptions；Submission 的
 write/fence/read/rejudge/admin contracts、DTO 与 lifecycle events 位于 `backend-submission-api`，Notification
 admin/service contracts、commands、payloads 与 intent event 位于 `backend-notification-api`。当前
-Submission mutation 窄 Interface 与 owner 内部的 deprecated 1.0.0 compatibility provider 并存；App
-不再提供 Submission mutation/rejudge provider，正常 Submission reads 使用 owner facts，`APP_SUBMISSION_ROUTING_MODE`
+Submission mutation 只保留窄 Interface；App 不再提供 Submission mutation/rejudge provider，正常 Submission reads 使用 owner facts，`APP_SUBMISSION_ROUTING_MODE`
 仅作为兼容配置保留，显式 `legacy-rollback` 才允许临时本地 read projection。
 
 P2-MIG-001 的 CD 迁移入口是 `scripts/runbooks/owner-migration-manifest.sh`：它固定 shared → Auth → Admin → App →
@@ -879,11 +879,10 @@ P2-DEPLOY-001 将 CD 的完整性校验前移到任何远端迁移、Redis ACL m
 Rollback 需要当前 descriptor 存在且 schema checksum 与批准输入一致，禁止以旧 artifact 静默跨 schema 回退；descriptor 只含 commit、schema
 checksum、service scope、digest manifest 和状态，不含凭据。真实主机 checkout、数据库 schema、远端 Docker 和生产回滚 authority 仍需外部授权。
 
-P1-SEAM-001 清理了 App API 中没有生产调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
+P1-SEAM-001 清理了 App API 中没有仓库调用方的 Follow ingestion/payload、Judge execution 和通用 Achievement
 trigger 类型，并移除了 `ContestLiveRankingReadPort` 上只会抛异常的分页默认实现；当前 live-ranking provider、Admin
-consumer 和 WebSocket consumer 均实现并调用完整契约。`SubmissionWritePort` 仅作为 deprecated API 类型保留，
-其唯一 N-1 compatibility provider 仍由 Submission owner 注册，App 不再注册重复 provider；外部 consumer drain
-仍为 `BLOCKED_EXTERNAL`。`ReconciliationOrphanCounts` 中的 zero fields 是已记录的
+consumer 和 WebSocket consumer 均实现并调用完整契约。Submission 的 deprecated composite API/provider 已在
+2.0.0 major contract release 中删除，App 不再注册重复 provider。`ReconciliationOrphanCounts` 中的 zero fields 是已记录的
 wire-compatibility 窗口；它们不是新的正常业务入口。Shell health controller 仍承担 `/api/v1/{app,admin}/health`
 兼容健康检查，不以 placeholder 代替业务能力。
 

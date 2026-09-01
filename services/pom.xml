@@ -40,7 +40,9 @@
 	</modules>
 
 	<properties>
-		<revision>1.0.0</revision>
+		<!-- The N-1 Submission compatibility contracts were retired in the
+		     repository's first intentional major contract release. -->
+		<revision>2.0.0</revision>
 		<!-- Per-service release versions: bump individually to release one owner
 		     service (its image tag) independently of the shared platform modules.
 		     Consumed by docker-publish.yml to add a v<version> GHCR tag. -->
@@ -75,6 +77,9 @@
 		     CI resolves this from the baseline tag's installed artifacts; see
 		     services/docs/CONTRACT_COMPAT_GATE.md. -->
 		<contract.compat.oldVersion>__missing_contract_baseline__</contract.compat.oldVersion>
+		<!-- Only an explicitly versioned major contract release may skip japicmp;
+		     same-major changes remain fail-closed and must compare artifacts. -->
+		<contract.compat.breakingRelease>false</contract.compat.breakingRelease>
 	</properties>
 
 	<dependencyManagement>
@@ -112,7 +117,7 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission-domain</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.app}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
@@ -122,37 +127,37 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-submission</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.submission}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-moderation-domain</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.app}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-contest-domain</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.app}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-problem-domain</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.app}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-auth</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.auth}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-admin</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.admin}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-app</artifactId>
-				<version>${revision}</version>
+				<version>${service.version.app}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
@@ -303,6 +308,7 @@
 						<artifactId>japicmp-maven-plugin</artifactId>
 						<version>${japicmp.version}</version>
 						<configuration>
+							<skip>${contract.compat.breakingRelease}</skip>
 							<oldVersion>
 								<dependency>
 									<groupId>${project.groupId}</groupId>

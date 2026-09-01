@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# P3-SCALE-001 contract: production Compose must remain scale-safe. Docker
-# registration/removal/rolling-restart fault drills are opt-in and external.
+# P3-SCALE-001 contract: the Compose topology must remain scale-safe. A
+# repository-owned disposable smoke can exercise registration/removal/
+# rolling-restart/failure when `DUBBO_NACOS_SMOKE_ENV_FILE` is supplied.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -53,5 +54,14 @@ else
   printf 'production Compose merged config expansion: BLOCKED_EXTERNAL (SCALE_COMPOSE_ENV_FILE is unset)\n'
 fi
 
-printf 'two-instance registration/distribution/removal/rolling-restart/failure drill: BLOCKED_EXTERNAL (requires an approved disposable Compose environment)\n'
+if [[ -n "${DUBBO_NACOS_SMOKE_ENV_FILE:-}" ]]; then
+  [[ -f "$DUBBO_NACOS_SMOKE_ENV_FILE" ]] \
+    || fail "DUBBO_NACOS_SMOKE_ENV_FILE does not exist"
+  ENV_FILE="$DUBBO_NACOS_SMOKE_ENV_FILE" \
+    DUBBO_NACOS_SMOKE_REPLICAS=2 \
+    bash "$ROOT_DIR/scripts/test/dubbo-nacos-smoke.sh"
+  printf 'two-instance registration/distribution/removal/rolling-restart/failure drill: PASS\n'
+else
+  printf 'two-instance registration/distribution/removal/rolling-restart/failure drill: BLOCKED_EXTERNAL (set DUBBO_NACOS_SMOKE_ENV_FILE for the disposable repository smoke)\n'
+fi
 printf 'scale-topology-contract: PASS\n'

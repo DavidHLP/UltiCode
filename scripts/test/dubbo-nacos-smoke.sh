@@ -4,11 +4,10 @@
 # P1-INFRA-003: Real-Dubbo registration smoke.
 #
 # Spins up the dev infrastructure (MySQL + Redis + Nacos) via docker compose,
-# runs Flyway migrations, then starts backend-auth (Dubbo 3.3.6 Triple +
-# Nacos registry, dev namespace) long enough for the provider to register
-# itself with Nacos. Queries the Nacos instance list and asserts that the
-# application-level service `backend-auth` is present in the `DEFAULT_GROUP`
-# of the `dev` namespace. Tears everything down on exit.
+# runs Flyway migrations, then starts one or two backend-auth replicas (Dubbo
+# 3.3.6 Triple + Nacos registry, dev namespace) long enough for the provider
+# to register itself with Nacos. The optional two-replica mode also exercises
+# removal, restart and single-replica failure. Tears everything down on exit.
 #
 # This is the live acceptance check for P1-INFRA-003 acceptance criteria
 # "service registers successfully with dev namespace". The unit test
@@ -17,12 +16,19 @@
 #
 # Usage:
 #   ./scripts/test/dubbo-nacos-smoke.sh
+#   DUBBO_NACOS_SMOKE_REPLICAS=2 ./scripts/test/dubbo-nacos-smoke.sh
 #
 # Exit codes:
 #   0  Nacos registry contains the backend-auth instance
 #
 
 set -euo pipefail
+
+SMOKE_REPLICAS="${DUBBO_NACOS_SMOKE_REPLICAS:-1}"
+[[ "$SMOKE_REPLICAS" =~ ^[12]$ ]] || {
+  echo "DUBBO_NACOS_SMOKE_REPLICAS must be 1 or 2" >&2
+  exit 2
+}
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
@@ -70,6 +76,15 @@ set +u
 load_env_file
 set -u
 
+HTTP_PORT_BASE="${DUBBO_NACOS_SMOKE_HTTP_PORT_BASE:-9100}"
+DUBBO_PORT_BASE="${DUBBO_NACOS_SMOKE_DUBBO_PORT_BASE:-20880}"
+if [[ ! "$HTTP_PORT_BASE" =~ ^[0-9]+$ ]] || [[ ! "$DUBBO_PORT_BASE" =~ ^[0-9]+$ ]] \
+  || (( HTTP_PORT_BASE < 1024 || HTTP_PORT_BASE + SMOKE_REPLICAS > 65535 )) \
+  || (( DUBBO_PORT_BASE < 1024 || DUBBO_PORT_BASE + SMOKE_REPLICAS > 65535 )); then
+  echo "DUBBO_NACOS_SMOKE_*_PORT_BASE values must leave valid non-privileged ports for all replicas" >&2
+  exit 2
+fi
+
 # The env file is a data source for the disposable stack, not authority to
 # replace the caller's executable path or Docker endpoint.
 PATH="$SMOKE_PATH"
@@ -86,7 +101,8 @@ fi
 MAVEN=(mise exec java@zulu-17.68.203.0 -- ./mvnw)
 
 # Keep cleanup-owned state out of the sourced env namespace.
-BACKEND_PID=""
+declare -a BACKEND_PIDS=()
+declare -a BACKEND_HTTP_PORTS=()
 
 # The smoke is local-only. Generate missing disposable principals in memory so
 # an older .env can exercise the authenticated path without being rewritten.
@@ -225,19 +241,24 @@ cleanup() {
   trap - EXIT INT TERM
   echo
   echo "--- Cleanup (rc=$rc) ---"
-  if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "Stopping backend-auth (pid=$BACKEND_PID)..."
-    kill -TERM "$BACKEND_PID" 2>/dev/null || true
+  for replica in "${!BACKEND_PIDS[@]}"; do
+    backend_pid="${BACKEND_PIDS[$replica]}"
+    [[ -n "$backend_pid" ]] || continue
+    if ! kill -0 "$backend_pid" 2>/dev/null; then
+      continue
+    fi
+    echo "Stopping backend-auth replica $replica (pid=$backend_pid)..."
+    kill -TERM "$backend_pid" 2>/dev/null || true
     for _ in $(seq 1 30); do
-      kill -0 "$BACKEND_PID" 2>/dev/null || break
+      kill -0 "$backend_pid" 2>/dev/null || break
       sleep 1
     done
-    if kill -0 "$BACKEND_PID" 2>/dev/null; then
-      echo "backend-auth did not stop gracefully; forcing termination" >&2
-      kill -KILL "$BACKEND_PID" 2>/dev/null || true
+    if kill -0 "$backend_pid" 2>/dev/null; then
+      echo "backend-auth replica $replica did not stop gracefully; forcing termination" >&2
+      kill -KILL "$backend_pid" 2>/dev/null || true
     fi
-    wait "$BACKEND_PID" 2>/dev/null || true
-  fi
+    wait "$backend_pid" 2>/dev/null || true
+  done
   echo "Stopping dev infrastructure..."
   if ! "${compose[@]}" down -v >"$LOG_DIR/compose-down.log" 2>&1; then
     echo "Failed to clean disposable Compose project $COMPOSE_PROJECT_NAME" >&2
@@ -389,12 +410,17 @@ fi
 echo "--- 3a. Installing backend-common into the local repo ---"
 (
   cd "$ROOT_DIR/services"
-  "${MAVEN[@]}" -pl platform/common -am -DskipTests -B install \
+  "${MAVEN[@]}" \
+    -pl platform/common,platform/rpc-resilience,platform/web-security,api/auth-api \
+    -am -DskipTests -B install \
     >"$LOG_DIR/backend-common-install.log" 2>&1 \
     || { echo "backend-common install failed (see $LOG_DIR/backend-common-install.log)" >&2; redact_smoke_output <"$LOG_DIR/backend-common-install.log" | tail -50 >&2; exit 1; }
 )
 
 write_backend_env() {
+  local backend_env_file="$1"
+  local http_port="$2"
+  local dubbo_port="$3"
   if ! {
     printf 'PATH=%q\n' "$SMOKE_PATH"
     printf 'HOME=%q\n' "$SMOKE_HOME"
@@ -420,58 +446,127 @@ write_backend_env() {
     printf 'DUBBO_REGISTRY_ADDRESS=%q\n' "nacos://127.0.0.1:${NACOS_PORT}?namespace=${DUBBO_NAMESPACE}"
     printf 'DUBBO_REGISTRY_USERNAME=%q\n' "$AUTH_NACOS_USERNAME"
     printf 'DUBBO_REGISTRY_PASSWORD=%q\n' "$AUTH_NACOS_PASSWORD"
-    printf 'SERVER_PORT=%q\n' '9101'
+    printf 'SERVER_PORT=%q\n' "$http_port"
+    printf 'DUBBO_PROTOCOL_PORT=%q\n' "$dubbo_port"
     printf 'SPRING_PROFILES_ACTIVE=%q\n' 'dev'
-  } >"$BACKEND_ENV_FILE" && chmod 600 "$BACKEND_ENV_FILE"; then
-    echo "Failed to create protected backend-auth environment file." >&2
+  } >"$backend_env_file" && chmod 600 "$backend_env_file"; then
+    echo "Failed to create protected backend-auth environment file: $backend_env_file" >&2
     exit 1
   fi
 }
 
-echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
-write_backend_env
-(
-  cd "$ROOT_DIR/services"
-  env -i PATH="$SMOKE_PATH" HOME="$SMOKE_HOME" BACKEND_ENV_FILE="$BACKEND_ENV_FILE" \
-    bash -c '
-      set -a
-      source "$BACKEND_ENV_FILE"
-      set +a
-      exec timeout --foreground --kill-after=15 240 \
-        mise exec java@zulu-17.68.203.0 -- ./mvnw -f auth/pom.xml \
-          -Dspring-boot.run.profiles=dev \
-          -Dmaven.test.skip=true \
-          -Dspring-boot.run.fork=false \
-          -B spring-boot:run
-    ' >"$LOG_DIR/backend-auth.log" 2>&1 &
-  echo $!
-) >"$LOG_DIR/backend.pid"
-BACKEND_PID="$(cat "$LOG_DIR/backend.pid")"
-echo "  backend-auth pid=$BACKEND_PID (logs: $LOG_DIR/backend-auth.log)"
+start_backend() {
+  local replica="$1"
+  local http_port="$2"
+  local dubbo_port="$3"
+  local backend_env_file="$LOG_DIR/backend-auth-$replica.env"
+  local backend_log_file="$LOG_DIR/backend-auth-$replica.log"
+  local backend_pid_file="$LOG_DIR/backend-$replica.pid"
+  write_backend_env "$backend_env_file" "$http_port" "$dubbo_port"
+  (
+    cd "$ROOT_DIR/services"
+    env -i PATH="$SMOKE_PATH" HOME="$SMOKE_HOME" BACKEND_ENV_FILE="$backend_env_file" \
+      bash -c '
+        set -a
+        source "$BACKEND_ENV_FILE"
+        set +a
+        exec timeout --foreground --kill-after=15 240 \
+          mise exec java@zulu-17.68.203.0 -- ./mvnw -f auth/pom.xml \
+            -Dspring-boot.run.profiles=dev \
+            -Dmaven.test.skip=true \
+            -Dspring-boot.run.fork=false \
+            -B spring-boot:run
+      ' >"$backend_log_file" 2>&1 &
+    echo $!
+  ) >"$backend_pid_file"
+  BACKEND_PIDS[$replica]="$(<"$backend_pid_file")"
+  BACKEND_HTTP_PORTS[$replica]="$http_port"
+  echo "  backend-auth replica $replica pid=${BACKEND_PIDS[$replica]} (logs: $backend_log_file)"
+}
 
-echo "--- 4a. Waiting for backend-auth readiness ---"
-auth_ready=0
-for attempt in $(seq 1 45); do
-  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "backend-auth exited before readiness (see backend log)." >&2
-    redact_smoke_output <"$LOG_DIR/backend-auth.log" | tail -120 >&2
+stop_backend() {
+  local replica="$1"
+  local backend_pid="${BACKEND_PIDS[$replica]:-}"
+  [[ -n "$backend_pid" ]] || return 0
+  if kill -0 "$backend_pid" 2>/dev/null; then
+    echo "  stopping backend-auth replica $replica..."
+    kill -TERM "$backend_pid" 2>/dev/null || true
+    for _ in $(seq 1 30); do
+      kill -0 "$backend_pid" 2>/dev/null || break
+      sleep 1
+    done
+    if kill -0 "$backend_pid" 2>/dev/null; then
+      echo "backend-auth replica $replica did not stop gracefully" >&2
+      kill -KILL "$backend_pid" 2>/dev/null || true
+    fi
+  fi
+  wait "$backend_pid" 2>/dev/null || true
+  BACKEND_PIDS[$replica]=""
+}
+
+wait_for_backend_ready() {
+  local replica="$1"
+  local backend_pid="${BACKEND_PIDS[$replica]}"
+  local http_port="${BACKEND_HTTP_PORTS[$replica]}"
+  local backend_log_file="$LOG_DIR/backend-auth-$replica.log"
+  local readiness_body="$LOG_DIR/backend-ready-$replica.body"
+  local auth_ready=0 readiness_code
+  for attempt in $(seq 1 45); do
+    if ! kill -0 "$backend_pid" 2>/dev/null; then
+      echo "backend-auth replica $replica exited before readiness." >&2
+      redact_smoke_output <"$backend_log_file" | tail -120 >&2
+      exit 1
+    fi
+    readiness_code="$(curl -sS -o "$readiness_body" -w '%{http_code}' \
+      --connect-timeout 2 --max-time 5 "http://127.0.0.1:$http_port/api/v1/auth/health/ready" \
+      2>/dev/null || true)"
+    if [[ "$readiness_code" == "200" ]]; then
+      auth_ready=1
+      break
+    fi
+    sleep 2
+  done
+  if [[ "$auth_ready" -ne 1 ]]; then
+    echo "backend-auth replica $replica did not become ready in time; refusing registry-only success." >&2
+    redact_smoke_output <"$backend_log_file" | tail -120 >&2
     exit 1
   fi
-  readiness_code="$(curl -sS -o "$LOG_DIR/backend-ready.body" -w '%{http_code}' \
-    --connect-timeout 2 --max-time 5 http://127.0.0.1:9101/api/v1/auth/health/ready \
-    2>/dev/null || true)"
-  if [[ "$readiness_code" == "200" ]]; then
-    auth_ready=1
-    break
-  fi
-  sleep 2
-done
-if [[ "$auth_ready" -ne 1 ]]; then
-  echo "backend-auth did not become ready in time; refusing to treat registry-only startup as success." >&2
-  redact_smoke_output <"$LOG_DIR/backend-auth.log" | tail -120 >&2
+  echo "  backend-auth replica $replica readiness: PASS"
+}
+
+registered_count() {
+  printf '%s' "$response" | python3 -c '
+import json
+import sys
+
+payload = json.load(sys.stdin)
+print(len(payload.get("hosts") or []))
+' 2>/dev/null || printf '0'
+}
+
+wait_for_registered_count() {
+  local expected="$1"
+  local label="$2"
+  local registered=0
+  for attempt in $(seq 1 44); do
+    response="$(nacos_request "$NACOS_INSTANCE_LIST_URL" 2>/dev/null || true)"
+    registered="$(registered_count)"
+    if [[ "$registered" == "$expected" ]]; then
+      echo "  $label: ${registered} registered instance(s)"
+      return 0
+    fi
+    sleep 5
+  done
+  echo "backend-auth registry count did not reach $expected for $label (last=$registered)." >&2
+  printf '%s\n' "$response" | redact_smoke_output >&2
   exit 1
-fi
-echo "  backend-auth readiness: PASS"
+}
+
+echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
+for replica in $(seq 1 "$SMOKE_REPLICAS"); do
+  start_backend "$replica" "$((HTTP_PORT_BASE + replica))" "$((DUBBO_PORT_BASE + replica))"
+  wait_for_backend_ready "$replica"
+done
 
 # Nacos 2.x with auth enabled requires a JWT accessToken for Open API calls.
 # The registry client (Dubbo Nacos client) already performs login internally;
@@ -501,33 +596,19 @@ if [[ ! "$NACOS_TOKEN" =~ ^[A-Za-z0-9._~+/=-]+$ ]]; then
 fi
 
 echo "--- 6. Waiting for backend-auth to register with Nacos ---"
-REGISTERED=0
 response=""
-for attempt in $(seq 1 44); do
-  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "backend-auth exited before registering (see $LOG_DIR/backend-auth.log)." >&2
-    redact_smoke_output <"$LOG_DIR/backend-auth.log" | tail -120 >&2
-    exit 1
-  fi
-  response="$(nacos_request "$NACOS_INSTANCE_LIST_URL" 2>/dev/null || true)"
-  if [[ -n "$response" ]] && [[ "$response" != *"\"hosts\":[]"* ]] \
-      && [[ "$response" == *'"ip"'* ]]; then
-    echo "  registered after ${attempt} probes (5s each):"
-    printf '  %s\n' "$response" | redact_smoke_output | head -c 400
-    echo
-    REGISTERED=1
-    break
-  fi
-  sleep 5
-done
-
-if [[ "$REGISTERED" -ne 1 ]]; then
-  echo "backend-auth did not register with Nacos in time." >&2
-  echo "Last Nacos response:" >&2
-  printf '%s\n' "$response" | redact_smoke_output >&2
-  echo "--- backend-auth log tail ---" >&2
-  redact_smoke_output <"$LOG_DIR/backend-auth.log" | tail -120 >&2
-  exit 1
+if [[ "$SMOKE_REPLICAS" == "1" ]]; then
+  wait_for_registered_count 1 "registration"
+else
+  wait_for_registered_count 2 "initial two-instance registration"
+  stop_backend 2
+  wait_for_registered_count 1 "instance removal"
+  start_backend 2 "$((HTTP_PORT_BASE + 2))" "$((DUBBO_PORT_BASE + 2))"
+  wait_for_backend_ready 2
+  wait_for_registered_count 2 "rolling restart recovery"
+  stop_backend 1
+  wait_for_registered_count 1 "single-instance failure recovery"
+  echo "  two-instance registration/removal/rolling-restart/failure: PASS"
 fi
 
 echo "--- 7. Verifying instance metadata ---"
@@ -545,7 +626,7 @@ import sys
 
 payload = json.load(sys.stdin)
 hosts = payload.get("hosts") or []
-print("1" if any((host.get("metadata") or {}).get("dubbo.metadata-service.url-params") for host in hosts) else "0")
+print("1" if hosts and all((host.get("metadata") or {}).get("dubbo.metadata-service.url-params") for host in hosts) else "0")
 ' 2>/dev/null || printf '0')"
 if [[ "$metadata_ok" != "1" ]]; then
   echo "Nacos application instance is missing Dubbo metadata-service registration." >&2

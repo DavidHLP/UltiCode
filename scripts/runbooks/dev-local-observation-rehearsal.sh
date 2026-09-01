@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=scripts/dev/lib/common.sh
 source "$ROOT_DIR/scripts/dev/lib/common.sh"
+command -v mise >/dev/null 2>&1 || {
+  echo "mise is required for the Java 17 observation rehearsal" >&2
+  exit 1
+}
+MAVEN=(mise exec java@zulu-17.68.203.0 -- ./mvnw)
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env}"
 SKIP_TESTS=false
 
@@ -122,7 +127,7 @@ else
 
   MAVEN_OUTPUT_FILE="$(mktemp /tmp/dev-local-obs-test-XXXXXX.log)"
   set +e
-  (cd "$ROOT_DIR/services" && ./mvnw test -am \
+  (cd "$ROOT_DIR/services" && "${MAVEN[@]}" test -am \
     -Dtest='SubmissionProviderContractTest,SubmissionFactsSnapshotTest,SubmissionApiContractShapeTest,DefaultSubmissionWritePortIT,SubmissionOwnerCutoverIT,SubmissionOutboxDispatcherIT,SubmissionCreatedDispatcherTest,JudgeStreamRedisIntegrationTest,NotificationDeliveryLedgerMapperIT,NotificationDispatcherTest,NotificationLedgerReaperTest,DefaultAdminAnalyticsPortAdapterTest,AdminAnalyticsServiceImplTest' \
     -Dsurefire.failIfNoSpecifiedTests=false -B) > "$MAVEN_OUTPUT_FILE" 2>&1
   MAVEN_STATUS=$?
@@ -247,6 +252,6 @@ if [[ "$RUNBOOK_STATUS" =~ "REHEARSAL_VERIFIED" ]]; then
 else
   printf 'Summary: DEV-LOCAL observation completed with PARTIAL status (test execution was skipped).\n'
 fi
-printf 'Notice: This rehearsal proves local script and container-level resilience only.\n'
-printf 'Live multi-node cluster partition, live production writer drain, and external change authority\n'
-printf 'are UNAVAILABLE in this local environment. External ARCH-003-001..005 acceptance remains BLOCKED.\n'
+printf 'Notice: This rehearsal proves repository behavior in a short-lived disposable environment only.\n'
+printf 'This open-source repository has no production traffic plane; live multi-node operations and\n'
+printf 'deployment authority are outside repository scope and are not claimed by this result.\n'

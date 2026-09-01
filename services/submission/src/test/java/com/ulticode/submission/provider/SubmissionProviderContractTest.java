@@ -11,14 +11,12 @@ import com.ulticode.submission.api.service.SubmissionReconciliationReadPort;
 import com.ulticode.submission.api.service.SubmissionFencePort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
-import com.ulticode.submission.api.service.SubmissionWritePort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.dubbo.provider.SubmissionAdministrationProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionFenceProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionUserQueryProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionIntakeProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionVerdictWriteProvider;
-import com.ulticode.submission.dubbo.provider.SubmissionWriteProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionReconciliationReadProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionActivityAnalyticsProvider;
 import com.ulticode.submission.dubbo.provider.SubmissionAdjudicationReadProvider;
@@ -57,7 +55,6 @@ class SubmissionProviderContractTest {
     void publishesOwnerPorts() {
         assertProvider(SubmissionIntakeProvider.class, SubmissionIntakePort.class, "1.0.0");
         assertProvider(SubmissionVerdictWriteProvider.class, SubmissionVerdictWritePort.class, "1.0.0");
-        assertProvider(SubmissionWriteProvider.class, SubmissionWritePort.class, "1.0.0");
         assertProvider(SubmissionAdministrationProvider.class,
                 SubmissionAdministrationService.class, "1.0.0");
         assertProvider(SubmissionReconciliationReadProvider.class,
@@ -118,28 +115,6 @@ class SubmissionProviderContractTest {
     }
 
     @Test
-    @SuppressWarnings("removal")
-    @DisplayName("legacy provider keeps every pre-split method operational")
-    void legacyProviderForwardsEveryCapability() {
-        DefaultSubmissionWritePort localWriter = mock(DefaultSubmissionWritePort.class);
-        SubmissionWriteProvider legacy = new SubmissionWriteProvider(localWriter);
-        CreateSubmissionDTO request = new CreateSubmissionDTO();
-        SubmissionFactsSnapshot facts = new SubmissionFactsSnapshot(
-                "user-1", true, null, 1L, SubmissionFactsSnapshot.CURRENT_SCHEMA_VERSION);
-        SubmissionVO expected = new SubmissionVO();
-        when(localWriter.submit("user-1", request, facts)).thenReturn(expected);
-        when(localWriter.updateSubmissionResultFenced(
-                "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
-                .thenReturn(true);
-
-        assertThat(legacy.submit("user-1", request, facts)).isSameAs(expected);
-        legacy.updateSubmissionResult("sub-1", SubmissionStatus.JUDGING, 0, 0.0, null);
-        assertThat(legacy.updateSubmissionResultFenced(
-                "sub-1", SubmissionStatus.ACCEPTED, 12, 1.5, "[]", 3L, "attempt-1"))
-                .isTrue();
-    }
-
-    @Test
     @DisplayName("forwards every fence call to the local Submission owner")
     void fenceProviderForwardsToLocalFence() {
         DefaultSubmissionFencePort localFence = mock(DefaultSubmissionFencePort.class);
@@ -162,11 +137,9 @@ class SubmissionProviderContractTest {
     void providerHasNoCompatibilityReference() {
         assertNoDubboReference(SubmissionIntakeProvider.class);
         assertNoDubboReference(SubmissionVerdictWriteProvider.class);
-        assertNoDubboReference(SubmissionWriteProvider.class);
         assertNoDubboReference(SubmissionFenceProvider.class);
         assertNoOwnerModeSelector(SubmissionIntakeProvider.class);
         assertNoOwnerModeSelector(SubmissionVerdictWriteProvider.class);
-        assertNoOwnerModeSelector(SubmissionWriteProvider.class);
         assertNoOwnerModeSelector(SubmissionFenceProvider.class);
     }
 

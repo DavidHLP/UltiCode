@@ -7,9 +7,9 @@ local startup/verification entry points live in `scripts/dev/`.
 
 | Script | Purpose |
 | --- | --- |
-| `up.sh` |唯一本地开发启动入口 (`--mode dev-lite/dev-full/legacy-rollback`)；执行顺序与就绪面由 `devstack-manifest.sh` 声明 |
+| `up.sh` | 唯一本地开发启动入口 (`--mode dev-lite/dev-full/legacy-rollback`)；执行顺序与就绪面由 `devstack-manifest.sh` 声明，正常模式要求 Submission cutover marker |
 | `stop.sh` | 停止 PM2 管理的本地进程组 |
-| `init-env.sh` | 生成开发者 `.env`（无可用默认凭据） |
+| `init-env.sh` | 生成本地 `.env`（基础设施凭据随机，开发管理员由 bootstrap 配置） |
 | `migrate.sh` | Flyway 入口（shared chain + per-owner `MIGRATION_SCHEMA=`） |
 | `test.sh` | 支持的验证 wrapper：`quick` / `full` / `integration`（见仓库根 AGENTS.md） |
 | `doctor.sh` | 只读的端口/PM2/Docker 健康诊断，附建议命令 |
@@ -63,7 +63,6 @@ execute path requires explicit backfill and all-writers quiesce confirmations.
 - `migrate-post-owner.sh` — local privileged post-owner Flyway chain for cross-schema controls that cannot run under an owner-scoped migration account.
 - `owner-backup-restore.sh` — external Ops backup boundary for `ulticode` plus all five owner schemas; creates encrypted checksum/metadata manifests, verifies retention, and runs a disposable restore drill.
 - `lib/fenced-lease.sh` — shared database-clock-backed owner/token/expiry protocol for synchronous singleton runbooks.
-- `redis-acl-rotation.sh` — runtime ACL materialization and `prepare`/`finalize`/`rollback` overlap rotation with atomic replacement and drift-check; state/report files contain only hashes and phase.
 - `image-reference-policy.sh` — shared production image policy: exact nine-service digest manifest, Cosign signature/SPDX/SLSA verification, Trivy HIGH/CRITICAL scan, and expiring exception gate.
 - `observability-release-annotation.sh` — publish a release/environment marker and immutable image manifest to Grafana without printing the API token.
 - `deployment-integrity.sh` — preflight source commit, migration manifest checksum, required deployment files, atomic release descriptor, and schema-compatible rollback/health state.
@@ -80,14 +79,12 @@ for the temporary database, checks `/api/v1/auth/health/ready`, and keeps
 credentials out of process arguments, URLs, and failure tails. Its live
 assertion is the application-level `register-mode=instance` service plus
 Dubbo metadata; it does not require an interface-level provider service.
-New
-smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
+新 smoke 应 source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 `smoke_require_credentials`, `smoke_login`). Credentials converge on
 `SMOKE_USERNAME`/`SMOKE_PASSWORD`; legacy names are still accepted.
 - `audit-owner-boundary-contract.sh` — disposable MySQL proof for owner-local audit outboxes, Admin inbox creation, and post-owner cross-owner grant revocation.
 - `owner-migration-manifest-contract.sh` — fast manifest validation/retry/lock/rollback-report contract without a production database.
 - `owner-backup-restore-contract.sh` — disposable encrypted six-schema backup, Flyway-history validation, checksum reconciliation, smoke, RPO/RTO, lock, wrong-key, and retention contract.
-- `redis-acl-rotation-contract.sh` — disposable Redis proof for runtime ACL materialization, dual-password overlap, ACL LOAD, finalize/rollback, drift rejection, lock contention, and plaintext absence.
 - `supply-chain-contract.sh` — immutable production Compose/Dockerfile references, full-SHA Actions, release evidence, digest-manifest, and expiry-bound exception contract.
 - `observability-contract.sh` — validate the optional Prometheus/Alertmanager/Collector/Grafana/Tempo/Loki overlay, rules, dashboard, and release annotation guard.
 - `deployment-integrity-contract.sh` — disposable descriptor/rollback/schema mismatch and host-health system-summary contract without remote mutation.
@@ -105,7 +102,7 @@ smokes should source `lib/smoke-common.sh` (`smoke_init`, `smoke_load_env`,
 - `security/bootstrap-nacos-user.sh` — opt-in Nacos administrator and per-service registry-user provisioning.
 - `pitstop-start-backend.ps1` — Windows pitstop adapter delegating to
   `scripts/dev/up.sh --no-frontend` (consumed by `pitstop.yaml`).
-- `statusline/` — Claude Code statusline configuration.
+- [`statusline/README.md`](statusline/README.md) — Claude Code statusline configuration and design reference.
 
 Theme guard tooling (`verify-theme-sync.mjs`, `sync-theme-bootstrap.mjs`,
 `verify-typography-tokens.mjs`) lives with the module it guards:

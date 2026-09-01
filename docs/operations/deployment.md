@@ -6,12 +6,7 @@
 
 ## 开发部署
 
-开发统一使用：
-
-```bash
-./scripts/dev/up.sh --mode dev-lite
-./scripts/dev/up.sh --mode dev-full
-```
+开发启动命令与 mode 语义由[本地开发](../development/local-setup.md)统一维护；正常 `dev-lite`/`dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`。
 
 `docker-compose.yml` 是基础配置；`docker-compose.dev.yml` 只在 loopback 暴露开发端口；`docker-compose.prod.yml` 不发布 MySQL、Redis、Nacos 或 backend 端口，前端仅作 HTTPS edge。不要直接用 PM2/Maven 启动 owner runtime，以免绕过 manifest、migration、readiness 和 rollback gate。
 

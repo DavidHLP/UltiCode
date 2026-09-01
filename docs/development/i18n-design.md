@@ -11,9 +11,11 @@ apps/management/src/i18n/
 ├── utils.ts
 ├── check.ts
 └── locales/
-    ├── zh-CN/{index.ts,modules/{common,nav,users,problems,contests,dashboard,auth,errors,moderation,settings}.ts}
-    └── en-US/{index.ts,modules/...}
+    ├── zh-CN/{index.ts,modules/*.ts}
+    └── en-US/{index.ts,modules/*.ts}
 ```
+
+两个 locale 目录中的模块应保持可比的键集合；具体模块列表由当前源文件和 validator 决定，本文不复制易漂移的文件清单。
 
 键使用小驼峰和语义命名空间，例如 `users.title`、`problems.actions.edit`、`users.deleteConfirm`。复数和插值使用 vue-i18n API，不拼接用户可见句子。
 

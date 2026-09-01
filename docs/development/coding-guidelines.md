@@ -1,6 +1,6 @@
 # 编码指南与规则入口
 
-仓库级规则唯一入口是 [`AGENTS.md`](../../AGENTS.md)；后端、前端、包和数据库的嵌套规则位于最近的 `AGENTS.md` 与 `.omp/rules/` / `.claude/rules/`。本文只提供查找地图，不复制规则正文。
+仓库级规则唯一入口是 [`AGENTS.md`](../../AGENTS.md)；后端、前端、包和数据库的嵌套规则位于最近的 `AGENTS.md` 与 `.omp/rules/` / `.claude/rules/`。命令执行安全策略位于 [`.codex/rules/README.md`](../../.codex/rules/README.md)，不替代代码规范。本文只提供查找地图，不复制规则正文。
 
 ## 必须保持的结构
 

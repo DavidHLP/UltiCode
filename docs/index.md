@@ -18,7 +18,9 @@
 | --- | --- | --- |
 | Constitution | [`AGENTS.md`](../AGENTS.md) 与最近的嵌套 `AGENTS.md` | 代理与贡献者必须遵守的规则 |
 | Map | [`architecture/`](architecture/overview.md) | 现有模块、边界、数据流和查找入口 |
-| Status | [`project/`](project/current-status.md) | 当前完成度、外部门禁、已知问题和后续工作 |
+| Status | [`project/current-status.md`](project/current-status.md) | 当前完成度、验证入口和外部边界 |
+| Issues | [`services/docs/SERVICES_ISSUES.md`](../services/docs/SERVICES_ISSUES.md) | Services 问题状态与外部触发条件的唯一注册表 |
+| Plan | [`project/roadmap.md`](project/roadmap.md) | 尚未完成的外部采用顺序与明确延后项 |
 | History | [`architecture/decisions/`](architecture/decisions/README.md) 与 [`archive/`](archive/README.md) | 架构决策、迁移记录、验证证据和有意删除项 |
 | Operations | [`operations/`](operations/deployment.md) 与 [`services/docs/`](../services/docs/SERVICES_ISSUES.md) | 可执行发布、迁移、监控、恢复和问题登记 |
 
@@ -68,8 +70,11 @@
 - `services/docs/`：契约、韧性、租约、优雅退出、观测、调度和 Worker SLO 运行手册。
 - `init-db/`：Flyway 命令、Owner migration、baseline、seed 和回滚说明。
 - `scripts/`：本地启动、测试、runbook 和 smoke 入口。
+- [`CONTEXT.md`](../CONTEXT.md)：供工具使用的当前领域术语表，不是任务状态或会话记录。
+- [Sandbox harness](../docker/sandbox/harness/README.md) 与 [Prometheus rules](../docker/prometheus/README.md)：运行时执行和观测专业文档。
+- [Statusline reference](../scripts/statusline/README.md)：开发工具状态栏的实现与设计说明。
 - `packages/design-system/docs/`：设计 token 的完整规范。
-- `docker/`、`assets/`：基础设施与截图说明。
+- `docker/`：基础设施说明；[`assets/screenshots/README.md`](../assets/screenshots/README.md)：UI 参考截图索引。
 
 ## 历史资料
 

@@ -1,7 +1,7 @@
 # UltiCode Sandbox Harness
 
 LeetCode/HackerRank-style execution harness compiled into the sandbox image
-(form D — see Phase 2 of `docs/SANDBOX_V2_PLAN.md`).
+(form D). The executable envelope is defined in the [sandbox contract](contract/CONTRACT.md).
 
 ## Directory layout
 
@@ -10,14 +10,14 @@ LeetCode/HackerRank-style execution harness compiled into the sandbox image
 | `java/` | ✅ complete | Production-ready: 31 unit + 8 E2E tests, full ListNode/TreeNode support, reflective Solution invocation, per-case worker thread with soft TLE, stdout capture |
 | `python/` | ✅ complete | Mirrors Java contract; uses `inspect.signature` annotations for ListNode/TreeNode adaptation |
 | `cpp/` | ✅ complete | `cpp-sandbox` orchestrator: statically extracts the Solution signature, generates a typed runner, g++-compiles it in-container, emits the D-form envelope. ListNode/TreeNode + JSON parse/serialize |
-| `c/` | ✅ complete | `c-sandbox` orchestrator: reads `/job/input.json`, runs the user solution, emits the envelope |
+| `c/` | ⚠️ Phase-1 stub | GCC smoke only; it does not consume `input.json` or implement the D-form dispatch contract |
 
 ## Envelope contract (stdout JSON)
 
 ```json
 {
   "harness_version": "1.0",
-  "language": "java | python | cpp | c",
+  "language": "java | python | cpp",
   "exit_code": 0,
   "total_elapsed_ms": 245,
   "results": [
@@ -37,6 +37,7 @@ LeetCode/HackerRank-style execution harness compiled into the sandbox image
 ```
 
 - `status` enum is closed: `Accepted | Wrong Answer | Runtime Error | Time Limit Exceeded` for Phase 1.
+- The C harness is a build smoke stub and is not a producer of this envelope.
 - `interrupted` only present on TLE results.
 - `error` only present on RE results; `stack` strips harness frames, keeps only user frames.
 - Harness panics (parse error, missing Solution class, etc.) → stderr stack + `exit 2`, no envelope.
@@ -71,8 +72,9 @@ g++ -O2 -std=c++17 -o /tmp/cpp-smoke main.cpp && /tmp/cpp-smoke
 ## Image installation
 
 The sandbox image is **not distributed with the repo** — it is built locally.
-Contract: source → `harness-staging/` (host-precompiled) → image. See
-`CLAUDE.md` § Sandbox Harness for the operating contract and rebuild runbook.
+Contract: source → `harness-staging/` (host-precompiled) → image. Use
+[`build.sh`](build.sh) for the rebuild entry point and the [sandbox contract](contract/CONTRACT.md)
+for the runtime boundary.
 
 The runtime base is `ulticode-sandbox:base-17` (`alpine:3.19` + openjdk17 +
 python3 + gcc + g++ + musl libc), **not** Debian. The Dockerfile COPYs the
@@ -90,8 +92,8 @@ envelope JSON from stdout.
   glibc) produces binaries the image cannot execute (`interpreter
   /lib64/ld-linux-x86-64.so.2` vs `/lib/ld-musl-x86_64.so.1`), and `g++
   -static` additionally fails if the host lacks `libstdc++-static` /
-  `glibc-static`. **Build c/cpp inside the base-17 container** (recipe in
-  `CLAUDE.md` § Sandbox Harness); java (class bytecode) and python (`.py`
+  `glibc-static`. **Build c/cpp inside the base-17 container** (the recipe is in
+  [`build.sh`](build.sh)); java (class bytecode) and python (`.py`
   source) are portable, host-build is fine.
 - **Proxy environments.** `~/.docker/config.json` proxies are injected into
   every build/run container. In bridge mode the container's `127.0.0.1` is
@@ -104,10 +106,10 @@ envelope JSON from stdout.
 
 ## Safety properties (per language)
 
-| Property | Java | Python | C/C++ |
-|---|---|---|---|
-| Per-case soft timeout | ✅ `Thread.interrupt()` via worker | ⚠️ wall-clock check after return | 🚧 Phase 3+ |
-| Outer hard timeout | (backend `ProcessBuilder.waitFor` + `destroyForcibly`) for all langs |
-| User stdout capture | ✅ `System.setOut(buffer)` | ✅ `redirect_stdout(buffer)` | 🚧 Phase 3+ |
-| Cycle-safe ListNode serialize | ✅ `LIST_NODE_TRAVERSAL_CAP=100_000` | ✅ same constant | n/a |
-| Harness frames hidden from RE stack | ✅ | ✅ | n/a |
+| Property | Java | Python | C++ | C |
+|---|---|---|---|---|
+| Per-case soft timeout | ✅ worker interrupt | ⚠️ wall-clock check after return | ✅ `fork`/`waitpid` | — stub |
+| Outer hard timeout | ✅ backend `ProcessBuilder` | ✅ backend process bound | ✅ backend process bound | — stub |
+| User output isolation | ✅ `System.setOut` capture | ✅ `redirect_stdout` capture | ✅ result channel isolated | — stub |
+| Cycle-safe ListNode serialize | ✅ `LIST_NODE_TRAVERSAL_CAP=100_000` | ✅ same constant | ✅ traversal cap | — stub |
+| Harness frames hidden from RE stack | ✅ | ✅ | ✅ | — stub |

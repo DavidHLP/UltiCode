@@ -28,7 +28,7 @@ Honors `NO_COLOR` (https://no-color.org) — when set, all 256-color SGR sequenc
 
 ```
 claude-opus-4-8 ·./ ⎇ main ↑2 · pm2: 3/3 ●●● · arthas: ● · ctx: ████░░░░░░ 43%
-└─ model ─┘ └─ cwd ─┘ └──── git ────┘ └───── pm2 (9001/9002/9003) ─────┘ └ arthas ┘ └──── ctx ────┘
+└─ model ─┘ └─ cwd ─┘ └──── git ────┘ └───── pm2 (owner/frontends) ─────┘ └ arthas ┘ └──── ctx ────┘
 ```
 
 `⎇` is U+2387 (alternative key symbol). `●`/`○`/`◐` are U+25CF/25CB/25D0. The progress bar uses U+2588 (filled) and U+2591 (light shade). Set `NO_COLOR=1` to disable ANSI and get plain ASCII.
@@ -52,7 +52,7 @@ claude-opus-4-8 ·./ ⎇ main ↑2 · pm2: 3/3 ●●● · arthas: ● · ctx: 
 | `lsof` | arthas port probe | segment hidden |
 | `awk` | ahead/behind counters | upstream check hidden |
 
-All five external tools are best-effort. The script **never aborts** on a missing dependency — segments are silently dropped, the rest renders normally.
+All listed tools are best-effort. The script **never aborts** on a missing dependency — segments are silently dropped, the rest renders normally.
 
 ## Updating / extending
 

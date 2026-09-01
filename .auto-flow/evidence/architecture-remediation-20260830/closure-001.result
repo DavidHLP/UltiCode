@@ -3,7 +3,7 @@ CLOSURE-001 GREEN (2026-09-01)
 superseded_by: blocked-external-closure-20260901.result
 
 - `.auto-flow/TASKS.yaml` records all 42 remediation tasks as `DONE`; the separate Services issue ledger and SVC-003-GATE are also complete, with current repository blockers closed in the superseding evidence packet.
-- `HANDOFF.yaml` and `RESUME.md` contain no active task pointer. `CODEX_HANDOFF.md` reports `42 DONE, 0 TODO`.
+- `HANDOFF.yaml` and `RESUME.md` contain no active task pointer. `TASKS.yaml` records `42 DONE, 0 TODO`.
 - Required evidence files exist under this directory; docs, workflow, script, test and traceability updates are staged separately from generated runtime artifacts.
 - `rtk graphify update .`: exit 0; generated graph contains 28188 nodes, 84846 edges and 867 communities. Generated artifacts remain ignored and were not staged. The run reported the environment's missing `tree_sitter_sql` dependency for 110 SQL files; this does not alter source verification.
 - `rtk git diff --check`: PASS before implementation commit `1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a` and flow checkpoint `cef925a`. No push, merge, deployment, production mutation, remote-host mutation or credential rotation was executed.

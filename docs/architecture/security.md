@@ -38,4 +38,3 @@ Redis ACL deny-by-default，按 Owner 限制命令、key 和 channel；运行时
 - [Trust-boundary rules](../../.omp/rules/trust-boundaries-path.md)
 - [Services issue registry](../../services/docs/SERVICES_ISSUES.md)
 - [Dubbo mTLS 与依赖策略](../../services/docs/DEPENDENCY_RESILIENCE_RUNBOOK.md)
-- [完整历史认证章节](../archive/architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md)

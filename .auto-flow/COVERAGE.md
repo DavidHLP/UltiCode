@@ -37,23 +37,23 @@ Final gate: `./scripts/dev/verify-garden-design.sh --with-build` passed. Browser
 | SVC-009 operational observability evidence | SVC-007-010-GATES; requires real production traffic/drills; repository wiring remains audited |
 | SVC-010 mixed-version history | SVC-007-010-GATES; requires real releases; contract gate remains enforced |
 | CLOSED history | SVC-VALIDATE; regression/architecture gates and source evidence remain intact |
-| ACCEPTED decisions | All tasks; no access-token writer, no new MQ/mesh/Kubernetes/Seata, Search manifest policy preserved, SubmissionFactsSnapshot remains minimal, compatibility seam retained until SVC-003 gate |
+| ACCEPTED decisions | All tasks; no access-token writer, no new MQ/mesh/Kubernetes/Seata, Search manifest policy preserved, SubmissionFactsSnapshot remains minimal, and the Submission compatibility seam is rollback-only |
 | Maintenance rules | SVC-VALIDATE; one registry, evidence-backed status transitions, docs/runbooks/contracts keep their own content |
 
 Delivery authority excludes commit, push, merge, release, deploy, production data, and third-party mutation.
 
 ### Final Services gate
 
-- Repository-actionable: SVC-001 CLOSED, SVC-002 CLOSED, SVC-004 ACCEPTED, SVC-005 CLOSED, SVC-006 deep-Module precondition complete, SVC-009 OTLP repository wiring complete.
+- Repository-actionable: SVC-001 CLOSED, SVC-002 CLOSED, SVC-003-GATE CLOSED, SVC-004 ACCEPTED, SVC-005 CLOSED, SVC-006 deep-Module precondition complete, SVC-009 OTLP repository wiring complete.
 - External/deferred by registry: SVC-006 event projection metrics, SVC-007 multi-host/SLO, SVC-008 multi-tenant threat model, SVC-009 real traffic/SLO/live drills, SVC-010 real mixed-version releases.
-- Objective blocker: SVC-003 local-copy retirement lacks the required 14-day write/fence/read observation, zero local activity, real drain/error budgets/checksums, and verified target rollback.
+- Objective blocker: none in repository scope; production traffic, registry, deployment, and external authority remain outside this repository.
 - Formal Review: Standards 0, Spec 0, Security 0 Confirmed Findings.
 - Validation: reactor verify 2714 tests; `*IT` 233 tests; zero failures/errors. Supported quick, N-1 compatibility, architecture/docs/DevStack, Compose dev/prod, YAML, graph, coverage and diff gates passed.
-- Delivery: verified dirty worktree, no commit/push/deploy authorization.
+- Delivery: no commit/push/deploy authorization; worktree state is reported by Git.
 
 ## Architecture remediation 2026-08-30
 
-The complete finding-to-task matrix is maintained in docs/architecture/remediation-traceability.md. The canonical finding text and lifecycle remain in services/docs/SERVICES_ISSUES.md; this coverage section links execution rather than duplicating the registry.
+The complete finding-to-task matrix is maintained in docs/archive/architecture-remediation-2026-08/remediation-traceability.md. The canonical finding text and lifecycle remain in services/docs/SERVICES_ISSUES.md; this coverage section links execution rather than duplicating the registry.
 
 - P0 browser and internal security: P0-SEC-001..008 and ARCH-SEC-001.
 - P1 owner cutovers and data seams: P1-SUB-001..004, P1-NOT-001, P1-DATA-001, P1-AUDIT-001, P1-SEAM-001.

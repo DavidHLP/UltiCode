@@ -15,7 +15,7 @@
 
 ## 当前结论
 
-当前拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）与两个 Worker（Judge、Search）。问题不在服务数量，而在少数部署 Seam、过宽 Contract Interface、Submission 双轨兼容和发布控制面尚未完全收敛。
+当前拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）与两个 Worker（Judge、Search）。仓库范围内的服务边界、Submission 单写者、Contract 收敛和发布控制面已闭环；剩余问题均列为需要真实指标、环境或授权的 `DEFERRED` 项。
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
@@ -95,7 +95,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 | 历史问题 | 当前承接证据 |
 | --- | --- |
-| SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；本地 Docker 仅在 SVC-003 的显式 `legacy-rollback` 激活 |
+| SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；仅 App-local execution 在 SVC-003 的显式 `legacy-rollback` 激活 |
 | SVC-002 跨进程 Contract Interface 过宽 | `SubmissionIntakePort`、`SubmissionVerdictWritePort` 与 `ProblemTitleLookupPort` 按消费语义拆分；旧 composite `SubmissionWritePort`/provider 和无消费者的 analytics contract 已在 2.0.0 major contract release 中删除 |
 | SVC-005 Search 选择性发布/回滚入口不完整 | Search 已进入 deploy choice、rollback whitelist/all 与共享 `host-health`；架构门禁从 services matrix 解析全部 backend 并逐项校验三个控制面 |
 | Owner 假健康 | `ReadinessChecks`、各 Owner readiness controller、Compose/host health |
@@ -132,7 +132,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 - Access token 即时黑名单 writer 当前不建设：refresh token hash-only revoke、HTTP ban check、WebSocket 实时 account check 与短期 access token TTL 共同限定窗口；只有产品明确要求即时踢下线时才新增 writer-owned revoke Interface。
 - Search `dev-lite=database`、`dev-full=indexed` 是 manifest 的显式策略，不是配置漂移。
 - `SubmissionFactsSnapshot` 只允许增加 Owner intake 校验所需的最小字段；字段变化必须通过现有 Contract shape test，避免形成第二套隐式 facts Interface。
-- Submission compatibility Seam 在 SVC-003 门禁满足前保留；不得因为代码“看似不常用”直接删除。
+- Submission compatibility seam 仅作为显式 `legacy-rollback` 回滚路径保留；正常模式使用 owner route，不得将回滚路径重新作为默认 writer 或 read path。
 - 当前阶段不拆更多进程，不引入新 MQ、Service Mesh、Kubernetes 或 Seata。
 
 ## 维护规则

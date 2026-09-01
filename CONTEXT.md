@@ -37,13 +37,14 @@
   `AdminForumProjection`, `AdminSolutionProjection`,
   `AdminSubmissionProjection`, `AdminUserProjection`,
   `AdminContestProjection`, `AdminNotificationProjection`. The
-  `AdminXxxProjection` series is the ADR-0011 deepening that lifts
+  `AdminXxxProjection` series lifts
   entity→VO shaping and pagination out of the admin orchestration services.
 - **Admin projection** — module-owned deep modules holding admin's own
   `AdminXxxVO` projection rules and read-side aggregation
   (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
   the [[AdminReadModel seam]] ports: ports are for cross-module reads,
-  projections are for admin's own VO shape. See ADR-0011.
+  projections are for admin's own VO shape. See the current Admin projection
+  implementations and tests.
 - **User Facts View** — the cross-owner read shape that combines Auth account
   facts with App profile facts for Search and moderation reads only; ordinary
   user-facing reads go through the User Directory View below.
@@ -70,19 +71,15 @@
   WebSocket authentication path before a STOMP CONNECT is accepted. Owned
   by the websocket module (the consumer); the Redis adapter
   (`RedisTokenBlacklistAdapter`) hides SHA-256 fingerprinting and the
-  `blacklist:token:<sha256>` key-prefix convention. The previous
-  `com.ulticode.common.service.TokenBlacklistService` fused the read path
-  with three unused write methods (dead code &mdash; runtime revocation is
-  owned by `RefreshTokenService`); the port deliberately exposes only the
-  read side. Fail-closed: storage errors propagate so revoked tokens can
-  never slip through on a Redis outage.
+  `blacklist:token:<sha256>` key-prefix convention. Fail-closed: storage
+  errors propagate so revoked tokens can never slip through on a Redis outage.
 - **AdminReadModel seam** — the running series of typed read ports the
   admin module owns to stop reaching across into submission / user /
   forum / solution mappers: `AdminSubmissionReadPort` (dashboard global),
   `AdminUserStatsReadPort` (per-user stats), `AdminCommentReadPort`
-  (comment-view enrichment). Future phases: contest.
+  (comment-view enrichment), and `AdminContestReadPort`.
 - **ContestSubmissionPort** — the port through which submission asks contest
-  to record synchronous same-transaction contest effects. See ADR-0001.
+  to record synchronous same-transaction contest effects.
 - **SubmissionPerformanceStats** — deep module owning the runtime/memory
   percentile + distribution-bin math for an Accepted submission.
 - **Judge queue / outbox** — the dispatch path from Submission intake to the
@@ -97,18 +94,13 @@
   in `websocket/port/adapter/`. The only producer-side component left is
   `WebSocketContestRankingFlusher` (ranking throttle + flush + cleanup),
   which exists to protect the STOMP transport from leaderboard-flood
-  bursts. The old `RealtimeService` god service is deleted. See
-  ADR-0009.
+  bursts.
 - **CurrentUserProvider (sole actor seam)** — the canonical port that
   every service uses to resolve the acting principal's identity and
-  role. After the 2026-07-09 architecture sweep, the legacy
-  `common/util/SecurityUtil` static helper and the
-  `SecurityContextHolder.getContext().getAuthentication()` direct
-  call are gone: `SystemSettingsServiceImpl`,
-  `PermissionServiceImpl`, `UserPermissionServiceImpl`, and
-  `AuditHelper` all go through `CurrentUserProvider` for `getCurrentUserId`
-  / `hasRole` / `hasAuthority`. Tests inject a `CurrentUserProvider`
-  mock where the previous design reached for `MockedStatic<SecurityUtil>`.
+  role. `SystemSettingsServiceImpl`, `PermissionServiceImpl`,
+  `UserPermissionServiceImpl`, and `AuditHelper` use
+  `CurrentUserProvider` for `getCurrentUserId` / `hasRole` /
+  `hasAuthority`; tests inject the same port.
   See [[CurrentUserProvider seam]].
 - **SystemSettingsStore** — the storage seam for the
   `system_settings` table. Owns the five category keys
@@ -118,24 +110,21 @@
   service keeps only the business policy (SMTP password masking, the
   "preserve-on-mask" PATCH rule, the all-defaults feature-toggle
   safety check, the audit anchor). One prod adapter
-  (`JsonSystemSettingsStore`) + one in-memory test double. The seam
-  closed the `SecurityContextHolder.getContext().getAuthentication()`
-  leak that survived the `CurrentUserProvider` extraction; the audit
-  log's actor now flows through the port.
+  (`JsonSystemSettingsStore`) + one in-memory test double. The audit
+  log's actor flows through the authenticated principal provided by the
+  port.
 - **PartialUpdate** — the partial-PATCH helper (in `common/util`)
   with four static methods: `setIfPresent(entity, getter, setter)`,
   `setIfPresentText(text-aware entity variant that skips blanks)`,
   `setIfPresentWrapper(LambdaUpdateWrapper<T>)`, and
-  `setIfPresentTextWrapper` (text-aware wrapper variant). Every PATCH
-  service that previously had a chain of `if (dto.getX() != null) {
-  wrapper.set(...) }` now delegates to one of the four methods.
+  `setIfPresentTextWrapper` (text-aware wrapper variant). PATCH services
+  delegate to one of the four methods for consistent null/blank handling.
   Applied to: `UserManagementServiceImpl` (12 fields), admin and
   user `ProblemList` services (4 update methods each), admin and
   generic `ContestServiceImpl`, admin and user `NotificationService`
   paths, `AdminTestCaseService.updateTestCase` (8 fields), and
   `AdminProblemServiceImpl.updateFromImport` (5 fields). One
-  `common/util` import collapses ~30 lines of if-null chains into a
-  few one-liners per service.
+  `common/util` helper keeps those update paths consistent.
 - **TimeSource** — the read-only port that hides `System.currentTimeMillis()`
   `SystemTimeSource` (prod `@Component`) and `FakeTimeSource` (test,
   not a bean). Static utility call sites (`TraceIdUtil.current()`)
@@ -169,10 +158,6 @@
 
 ## Decisions
 
-- 2026-07-09: the former `wiki/concepts/` ADR + concept-page layer was retired
-  and its historical note is now preserved in `docs/archive/architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md`. The "why" behind the in-progress
-  refactor lives in commit messages, source Javadoc on the affected classes
-  (`services/auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java`,
-  `services/platform/web-security/src/main/java/com/ulticode/websecurity/ratelimiter/RateLimiter.java`,
-  `services/platform/common/src/main/java/com/ulticode/common/time/TimeSource.java`),
-  and the related Flyway migration comments.
+- 2026-07-09: the former `wiki/concepts/` ADR + concept-page layer was retired.
+  Durable rationale remains in the relevant ADRs, source Javadoc and Flyway
+  migration comments; this glossary is the current terminology entry point.

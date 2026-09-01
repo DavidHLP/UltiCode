@@ -5,7 +5,6 @@
 ## Architecture remediation 2026-08
 
 - [`PROJECT_DOCUMENTATION-2026-08-30.md`](architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md)：原临时统一文档完整快照；其当前主题已拆分到 `docs/architecture/`、`docs/development/`、`docs/operations/`、`docs/project/` 和 `docs/api/`。
-- [`CODEX_HANDOFF-2026-09-01.md`](architecture-remediation-2026-08/CODEX_HANDOFF-2026-09-01.md)：已闭环 remediation 的 Codex handoff；当前延续入口是 [`../project/task-continuation.md`](../project/task-continuation.md)。
 - [`remediation-traceability.md`](architecture-remediation-2026-08/remediation-traceability.md)：Finding → task → implementation → evidence → commit 的完整映射。
 
 ## 仍由 flow 工具维护的证据

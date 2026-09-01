@@ -2,6 +2,8 @@
 
 更新时间：2026-08-30
 
+> 归档快照：本文只用于回溯 2026-08 remediation 的评审与迁移过程，其中的状态、路径、端口和操作顺序可能已被后续实现替代。当前入口请从 [`docs/index.md`](../../index.md) 开始。
+
 本文是项目临时工程说明的汇总入口。Services 架构问题、评审 Finding、修复状态和生产触发条件只在 [`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md) 维护；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
 
 ## 导航

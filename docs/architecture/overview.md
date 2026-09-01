@@ -6,6 +6,8 @@
 
 UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：
 
+本页只提供拓扑摘要；职责与禁止事项以[模块与数据所有权](modules.md)为准。
+
 | 类型 | 服务 | 责任 |
 | --- | --- | --- |
 | Owner | `backend-auth` | 账号、凭证、会话、授权事实 |
@@ -56,4 +58,4 @@ flowchart LR
 - 请求、事件和事务：[`data-flow.md`](data-flow.md)
 - 认证和信任边界：[`security.md`](security.md)
 - 当前问题与外部触发条件：[`../project/known-issues.md`](../project/known-issues.md) 与 [`../../services/docs/SERVICES_ISSUES.md`](../../services/docs/SERVICES_ISSUES.md)
-- 完整历史迁移调查：[`PROJECT_DOCUMENTATION-2026-08-30.md`](../archive/architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md)
+- 历史迁移与审计材料：[`archive/README.md`](../archive/README.md)

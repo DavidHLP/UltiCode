@@ -21,7 +21,7 @@
 | `REDIS_ACL_DIR` | 运行时 ACL 目录 | ignored、原子物化；不把 hash snapshot 放入 Git |
 | `TLS_CERT_DIR` | 前端生产 TLS 证书挂载 | secret mount；开发 HTTP 不需要 |
 
-Owner migration 与生产 Compose 还要求 `SUBMISSION_CUTOVER_COMPLETE=true`、独立 migration principal、`DUBBO_MTLS_CERT_DIR` 和外部 OTLP collector 等变量。缺失必需变量时应 fail closed，而不是生成默认凭据。
+正常 `dev-lite`/`dev-full`、Owner migration 与生产 Compose 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`；另外还需要独立 migration principal、`DUBBO_MTLS_CERT_DIR` 和外部 OTLP collector 等变量。缺失必需变量时应 fail closed，而不是生成默认凭据。
 
 ## 安全规则
 

@@ -33,4 +33,4 @@
 | tracked Redis ACL hash snapshot | runtime `REDIS_ACL_DIR` materialization | 不重新提交 secret-derived verifier |
 | broad Submission composite contracts | 2.0.0 narrow contracts | 外部 N-1 consumer drain 证据 |
 
-完整历史风险和迁移调查在 [`../archive/architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md`](../archive/architecture-remediation-2026-08/PROJECT_DOCUMENTATION-2026-08-30.md)，当前状态以 registry 和实现为准。
+历史材料只通过 [`../archive/README.md`](../archive/README.md) 进入；当前状态以本页、Services registry 和实现为准。

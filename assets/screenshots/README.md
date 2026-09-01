@@ -1,6 +1,6 @@
 # Screenshots
 
-> 仓库主 `README.md` 界面预览区引用的全部截图。视口统一 1496×933 桌面端。
+> Console 与 Management 的设计/回归参考截图。视口统一 1496×933 桌面端。
 >
 > 主题：项目使用 `packages/theme` 维护 light/dark/system 三态。下表「主题」列
 > 表示截图实际渲染的主题。
@@ -35,8 +35,8 @@
 ## 重新生成
 
 ```bash
-# 1. 启动 dev stack（基础设施 + PM2 应用）
-./scripts/dev/up.sh --skip-install
+# 1. 在已满足 Submission cutover gate 的环境启动完整 dev stack
+./scripts/dev/up.sh --mode dev-full --skip-install
 
 # 2. 用 IDE 内置浏览器打开对应 URL
 # 3. 在 console 中切换主题 (右上角用户菜单 → 主题 → 浅色/深色)
@@ -54,4 +54,4 @@
 - `subview`（可选）：`list` `thread` `detail` `set` `audit` …
 - `theme`：`light` | `dark`
 
-主 README 的「界面预览」表直接引用这些文件名，新增截图时保持同款命名。
+新增截图时保持同款命名，并在本索引中补充页面、主题和用途。

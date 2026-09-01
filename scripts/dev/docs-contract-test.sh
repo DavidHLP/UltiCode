@@ -41,15 +41,15 @@ contains init-db/README.md 'flyway-contraction.conf'
 contains scripts/README.md 'owner-schema-contraction.sh'
 contains services/docs/SERVICES_ISSUES.md 'P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads'
 
-not_contains PROJECT_DOCUMENTATION.md \
+not_contains docs/architecture/overview.md \
   'Admin 的查询 Seam 仍过细'
-contains PROJECT_DOCUMENTATION.md \
+contains docs/architecture/overview.md \
   'Admin 查询已收敛为粗粒度 query slices'
-not_contains PROJECT_DOCUMENTATION.md \
+not_contains docs/architecture/overview.md \
   'Submission 读侧的 facts enrichment、数据库物理隔离、App 双轨兼容、Admin Seam 聚合和运维文档仍需后续任务完成'
-contains PROJECT_DOCUMENTATION.md \
+contains docs/architecture/overview.md \
   'Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams'
-contains PROJECT_DOCUMENTATION.md \
+contains docs/operations/database-migrations.md \
   '#### Submission read owner cutover 与 schema contraction'
 contains services/docs/SCHEDULER_RUNBOOK.md 'P3-SCHED-001'
 contains services/docs/SCHEDULER_RUNBOOK.md 'ThreadPoolTaskScheduler'

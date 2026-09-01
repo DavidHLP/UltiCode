@@ -9,12 +9,11 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * Submission-owned administrative provider for submission lifecycle operations.
  *
- * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.3
- * as one of {@code backend-submission}'s Dubbo providers. Per &sect;6.3
- * "显式 rejudge command" is an RPC-suitable scenario. Submission read
- * paths (list, detail, statistics) are <b>not</b> on this contract:
- * they go through App's HTTP API or batch projections per the
- * "不应该 RPC" row in &sect;6.3.
+ * <p>Listed in {@code docs/architecture/modules.md} as one of
+ * {@code backend-submission}'s Dubbo providers. An explicit rejudge command is
+ * an RPC-suitable scenario per {@code docs/architecture/data-flow.md}.
+ * Submission read paths (list, detail, statistics) are not on this contract:
+ * they use the bounded owner-facts projections described there.
  *
  * <p>The Submission provider owns the full rejudge state machine (generation
  * fence via generation-checked SQL CAS, lease expiry, and durable judge/result

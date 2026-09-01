@@ -67,7 +67,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 ### SVC-007 生产多主机 HA
 
-现状：生产 Compose 仍是单机拓扑，固定 `container_name`；MySQL、Redis、MeiliSearch 默认单点，Nacos 已强制 cluster 模式但尚无多节点故障演练。
+现状：生产 Compose 是单机 reference topology；base/prod/HA 不使用固定 `container_name`，MySQL、Redis、MeiliSearch 默认仍是单点，Nacos 的 cluster profile 需要外部节点与故障演练。HA Compose 不等于已完成生产 failover。
 
 触发条件：出现真实多节点生产环境、明确可用性 SLO，且单机维护窗口不再可接受。届时再实施无状态多副本、反向代理和有状态组件 HA。
 
@@ -116,7 +116,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 | RBAC 变更无 durable invalidation/version 信号 | `authz_version` 原子递增与 durable `AUTHORIZATION_CHANGED` 记录 |
 | Submission 写事务同步回访 App/Auth | request owner 传入不可变 `SubmissionFactsSnapshot` 并 fail closed |
 | 游离 `services/com` 编译产物 | 当前 source tree 已清除 |
-| Services 问题文档多入口与状态漂移 | 本文件为唯一注册表，`PROJECT_DOCUMENTATION.md` 只保留导航链接 |
+| Services 问题文档多入口与状态漂移 | 本文件为唯一注册表，当前状态导航见 `docs/project/known-issues.md`；旧的 `PROJECT_DOCUMENTATION.md` 已归档，不再作为入口 |
 | SVC-011 | Replay/DLQ HTTP operations are method-protected with `ADMIN|SUPER_ADMIN` and have MockMvc denied-path coverage for every operation |
 | SVC-012 | Admin delegation assertions are target-audience bound; Auth, App profile/problem/contest/list/submission writes reject missing or invalid trust; `changePassword` is self-service only (USER in-process via current-password check, admin self-change via verified assertion) |
 | SVC-013 | Production Compose requires RS256/JWKS, dedicated internal-delegation secret, explicit Dubbo namespace, and a least-privilege Nacos DB account |

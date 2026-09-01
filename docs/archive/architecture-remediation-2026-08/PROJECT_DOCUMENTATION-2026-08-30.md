@@ -2,7 +2,7 @@
 
 更新时间：2026-08-30
 
-本文是项目临时工程说明的汇总入口。Services 架构问题、评审 Finding、修复状态和生产触发条件只在 [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) 维护；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
+本文是项目临时工程说明的汇总入口。Services 架构问题、评审 Finding、修复状态和生产触发条件只在 [`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md) 维护；源代码、配置、迁移脚本和 `AGENTS.md` 仍然是行为与规则的权威来源。
 
 ## 导航
 
@@ -14,7 +14,7 @@
 6. Management 前端 i18n 设计
 7. Garden 全局设计系统
 
-Services 问题唯一入口：[`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md)。
+Services 问题唯一入口：[`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md)。
 
 ## 文档边界
 
@@ -34,7 +34,7 @@ Services 问题唯一入口：[`services/docs/SERVICES_ISSUES.md`](services/docs
 | `wiki/SECURITY_TOKEN_REVOCATION.md` | 安全：访问令牌吊销边界 |
 | `services/docs/CONTEST-009-RELEASE-APPROVAL.md` | CONTEST-009 审批记录 |
 | `apps/management/docs/i18n-design.md` | Management i18n 设计 |
-| 历史 Services 评审、最终评审与修复计划 | [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) |
+| 历史 Services 评审、最终评审与修复计划 | [`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md) |
 
 ## 1. Current services architecture status
 
@@ -138,7 +138,7 @@ Submission 已将复杂逻辑收进 Owner 内部：输入验证、事务、本�
 
 #### 4. 问题与收敛入口
 
-当前开放问题、Submission 双轨退出门禁、生产触发条件、已关闭历史和明确裁决只在 [`services/docs/SERVICES_ISSUES.md`](services/docs/SERVICES_ISSUES.md) 维护。本节保留当前拓扑说明，不再复制问题状态。
+当前开放问题、Submission 双轨退出门禁、生产触发条件、已关闭历史和明确裁决只在 [`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md) 维护。本节保留当前拓扑说明，不再复制问题状态。
 
 ## 2. Owner database isolation plan
 

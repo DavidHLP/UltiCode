@@ -1,8 +1,8 @@
 # Architecture remediation traceability
 
-Status source: [`.auto-flow/TASKS.yaml`](../../.auto-flow/TASKS.yaml), block `architecture_remediation_20260830`.
+- Status source: [`.auto-flow/TASKS.yaml`](../../../.auto-flow/TASKS.yaml), block `architecture_remediation_20260830`.
 
-Canonical Services issue lifecycle: [`services/docs/SERVICES_ISSUES.md`](../../services/docs/SERVICES_ISSUES.md). This document does not replace that registry. It maps the 2026-08-30 architecture assessment and remediation directive to executable repository tasks.
+- Canonical Services issue lifecycle: [`services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md). This document does not replace that registry. It maps the 2026-08-30 architecture assessment and remediation directive to executable repository tasks.
 
 ## Status semantics
 
@@ -99,7 +99,7 @@ are absent; that default branch is not an unresolved task.
 
 ## Explicitly deferred architecture expansion
 
-The governing ADR is [`adr/0001-deferred-platform-expansion.md`](adr/0001-deferred-platform-expansion.md).
+The governing ADR is [`../../architecture/decisions/0001-deferred-platform-expansion.md`](../../architecture/decisions/0001-deferred-platform-expansion.md).
 
 The following are deliberate non-implementations, not missing tasks:
 

@@ -2,11 +2,11 @@
 
 Claude Code `statusLine` config for UltiCode. Shows — left to right — the current model, working directory, git branch (with dirty / ahead / behind markers), PM2 service status, Arthas MCP reachability, and a 10-char context-window progress bar with percentage.
 
-**Source**: [`statusline.sh`](./statusline.sh) — registered in [`.claude/settings.json`](../../.claude/settings.json) so anyone who clones the repo gets the same statusline for free.
+**Source**: [`statusline.sh`](./statusline.sh). Registration is a user-level Claude Code setting; this repository ships the source but does not assume a `.claude/settings.json` file.
 
 ## Color design: "Solarized Project Sync"
 
-The statusline uses 256-color SGR codes that **map directly to the project's `oklch` design tokens** defined in [`solarized-terminal-design-style`](../../.claude/skills/solarized-terminal-design-style/SKILL.md). The statusline and the Console UI share the same color language — when you see green/amber/red here, you see the same hues in the problem list, submission status, contest state, etc.
+The statusline uses 256-color SGR codes that map directly to the project's design tokens defined in [`GARDEN_DESIGN_SPEC.md`](../../packages/design-system/docs/GARDEN_DESIGN_SPEC.md). The statusline and the Console UI share the same color language — when you see green/amber/red here, you see the same hues in the problem list, submission status, contest state, etc.
 
 | Token | oklch | SGR | Where it appears |
 |-------|-------|-----|------------------|
@@ -78,4 +78,4 @@ bash scripts/statusline/design-demo.sh solarized # one
 
 ## Disabling
 
-Comment out the `statusLine` block in `.claude/settings.json` and restart Claude Code. The default Claude Code statusline (model only) takes over.
+Disable the `statusLine` entry in your user-level Claude Code settings and restart Claude Code. The default Claude Code statusline (model only) takes over.

@@ -417,7 +417,7 @@ pnpm --dir packages/auth-core test:coverage
 pnpm --dir packages/auth-core type-check
 ```
 
-> 修改 `packages/auth-core` 必须在 apps/console / apps/management 双端验证。详见 [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)。
+> 修改 `packages/auth-core` 必须在 apps/console / apps/management 双端验证。详见 [docs/](docs/index.md)。
 
 ### 数据库迁移 (`init-db/`)
 
@@ -582,7 +582,7 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 ## 环境变量
 
 `.env` 是**唯一**真实来源（gitignored），由 `init-env.sh` 生成。
-完整字段与说明见 [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 与 [.env.example](.env.example)。
+完整字段与说明见 [配置文档](docs/development/configuration.md) 与 [.env.example](.env.example)。
 
 | 变量 | 用途 | 备注 |
 |------|------|------|
@@ -618,27 +618,27 @@ Arthas 由 `arthas-diagnostics` OMP 插件管理；先启动 App JVM，再显式
 | 分支策略 | 默认在 `main` 直接提交（多文件 / 多 commit / 跨模块亦可） |
 | 危险操作 | `git push` / `merge` / `publish` / 改写历史 / 改第三方资源 **必须显式批准** |
 
-> 完整规范：[AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) · [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)
+> 完整规范：[AGENTS.md](AGENTS.md) · [CLAUDE.md](CLAUDE.md) · [docs/](docs/index.md)
 
 ---
 
 ## 文档导航
 
-UltiCode 维护一份统一的临时工程文档，按主题查阅：
+UltiCode 维护一份按主题组织的长期文档体系，统一入口为 [`docs/index.md`](docs/index.md)：
 
 | 你是… | 从这里开始 |
 |-------|------------|
-| 第一次提 PR | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的验证与贡献章节 |
-| On-call 工程师 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的基础设施与风险章节 |
-| 架构师 / 规划者 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 的当前架构与迁移章节 |
-| 后端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [AGENTS.md](AGENTS.md) + [services/AGENTS.md](services/AGENTS.md) |
-| 前端开发 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [AGENTS.md](AGENTS.md) + [packages/AGENTS.md](packages/AGENTS.md) |
-| 数据库 / Flyway | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [AGENTS.md](AGENTS.md) |
-| 沙箱 / 评测 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [services/AGENTS.md](services/AGENTS.md) |
-| 运维 / 部署 / 密钥 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) 与 [.env.example](.env.example) |
-| 安全审查 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [.codex/agents/security-reviewer.toml](.codex/agents/security-reviewer.toml) |
-| 主题 / 样式 | [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) + [packages/AGENTS.md](packages/AGENTS.md) |
-| 决策记录（ADR） | 已退役；稳定规则沉淀在 `AGENTS.md`、`CLAUDE.md`、源码 Javadoc 和迁移注释中 |
+| 第一次提 PR | [测试与质量](docs/development/testing.md) + [编码指南](docs/development/coding-guidelines.md) |
+| On-call 工程师 | [事件响应](docs/operations/incident-response.md) + [Worker SLO](services/docs/WORKER_SLO_RUNBOOK.md) |
+| 架构师 / 规划者 | [架构总览](docs/architecture/overview.md) + [路线图](docs/project/roadmap.md) |
+| 后端开发 | [模块与所有权](docs/architecture/modules.md) + [AGENTS.md](AGENTS.md) + [services/AGENTS.md](services/AGENTS.md) |
+| 前端开发 | [本地开发](docs/development/local-setup.md) + [AGENTS.md](AGENTS.md) + [packages/AGENTS.md](packages/AGENTS.md) |
+| 数据库 / Flyway | [数据库迁移](docs/operations/database-migrations.md) + [init-db/README.md](init-db/README.md) |
+| 沙箱 / 评测 | [数据流与契约](docs/architecture/data-flow.md) + [services/AGENTS.md](services/AGENTS.md) |
+| 运维 / 部署 / 密钥 | [部署与回滚](docs/operations/deployment.md) + [配置](docs/development/configuration.md) |
+| 安全审查 | [安全架构](docs/architecture/security.md) + [安全规则](.omp/rules/trust-boundaries-path.md) |
+| 主题 / 样式 | [Garden 设计系统](docs/development/design-system.md) + [packages/AGENTS.md](packages/AGENTS.md) |
+| 决策记录（ADR） | [ADR 索引](docs/architecture/decisions/README.md) |
 
 ---
 
@@ -646,7 +646,7 @@ UltiCode 维护一份统一的临时工程文档，按主题查阅：
 
 欢迎贡献代码、文档、Issue 与功能建议。在开始前请阅读：
 
-- **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)** — 统一工程文档、迁移说明、运行与评审记录
+- **[docs/](docs/index.md)** — 主题化工程文档、项目状态、操作入口和决策索引
 - **[AGENTS.md](AGENTS.md)** — 仓库级权威指南（结构、工具链、启动流程、运维命令）
 - **[CLAUDE.md](CLAUDE.md)** — Claude Code 兼容入口（指向 AGENTS.md，含 MySQL 容器化操作说明）
 

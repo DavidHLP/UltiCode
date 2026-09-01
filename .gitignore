@@ -25,7 +25,6 @@
 !/.gitlab-ci.yml
 !/.gitleaks.toml
 !/.mcp.json
-!/PROJECT_DOCUMENTATION.md
 !/AGENTS.md
 !/CLAUDE.md
 !/CONTEXT.md
@@ -140,6 +139,10 @@ docker/sandbox/harness-staging/
 # =====================================================================
 # 10. Consolidated project documentation
 # =====================================================================
+!docs/**
+docs/**/.scratch/
+docs/**/target/
+docs/**/node_modules/
 
 # =====================================================================
 # 11. 静态资源（截图等）
@@ -195,6 +198,17 @@ yarn-debug.log*
 .tool-versions
 .zcode/
 .reports/
+
+# =====================================================================
+# 17a. Agent / disposable runtime state（项目本地，不纳入版本库）
+# =====================================================================
+.agent/
+.agents/
+.workbuddy/
+.trae/
+.local/
+.dubbo-smoke/
+graphify-out/
 
 # =====================================================================
 # 18. IDE / 编辑器

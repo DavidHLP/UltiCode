@@ -17,7 +17,7 @@ tasks:
   - id: G-4
     title: "Final acceptance gate (automated, repeatable)"
     status: done
-    evidence: "./scripts/dev/verify-garden-design.sh --with-build PASS (theme guardrails, design-system contract tests, both apps type-check/test/build, legacy Solarized sweep zero); documented in PROJECT_DOCUMENTATION.md §9"
+    evidence: "./scripts/dev/verify-garden-design.sh --with-build PASS (theme guardrails, design-system contract tests, both apps type-check/test/build, legacy Solarized sweep zero); documented in docs/development/design-system.md"
 
 verification:
   - "verify-garden-design.sh --with-build full pass (52s, 2026-08-26)"

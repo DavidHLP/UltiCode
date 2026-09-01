@@ -7,13 +7,11 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * App-owned content moderation provider.
  *
- * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.3
- * as one of {@code backend-app}'s Dubbo providers; per &sect;6.2 the
- * interface signature mirrors the migration guide example exactly.
- * The Admin / Moderation service calls {@link #apply} to enforce a
- * moderation decision on App-owned content (forum, solution, comment,
- * problem note); the App transaction stays local per &sect;4.2
- * boundary ruling.
+ * <p>Listed in {@code docs/architecture/modules.md} as one of
+ * {@code backend-app}'s Dubbo providers. The interface is contract-only and
+ * the transaction stays inside App's Owner boundary. The Admin / Moderation
+ * service calls {@link #apply} to enforce a moderation decision on App-owned
+ * content (forum, solution, comment, problem note).
  *
  * <p>This interface is contract-only; no ServiceImpl lives in this
  * module. The provider implementation belongs to {@code backend-app}.

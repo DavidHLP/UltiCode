@@ -209,6 +209,6 @@ wire-incompatible Interface additions，provider/reference 使用 version `1.1.0
 
 ## 6. 已知限制
 
-- **同一 reactor**：`api/*` 与 `platform/*`（`backend-common` 等）及各 Owner 仍在同一 Maven reactor 中。契约变更若涉及 `platform/common` 的共享类型，需同步构建整个 reactor 才能通过编译；契约 jar 的本地安装与 CI 的 worktree 隔离仅解决二进制对比，不解决源码级同步构建的必要性。与 `PROJECT_DOCUMENTATION.md` 既有结论“api 与平台库仍同一 reactor，契约变更需同步构建”一致。
+- **同一 reactor**：`api/*` 与 `platform/*`（`backend-common` 等）及各 Owner 仍在同一 Maven reactor 中。契约变更若涉及 `platform/common` 的共享类型，需同步构建整个 reactor 才能通过编译；契约 jar 的本地安装与 CI 的 worktree 隔离仅解决二进制对比，不解决源码级同步构建的必要性。与 [`docs/architecture/data-flow.md`](../../docs/architecture/data-flow.md) 的结论一致。
 - **仅二进制兼容**：japicmp 检测二进制（`breakBuildOnBinaryIncompatibleModifications`）与源码兼容；语义/行为兼容（如字段含义变更、校验收紧）不在此门禁范围内，需配合契约测试与集成测试覆盖。
 - **合成/桥接噪音已过滤**：`includeSynthetic=false` 过滤合成方法/桥方法；若仍出现噪音，应通过精确 `excludes` 而非关闭整个门禁处理。

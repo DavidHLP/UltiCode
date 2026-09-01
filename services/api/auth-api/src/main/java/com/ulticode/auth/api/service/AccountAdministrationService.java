@@ -9,12 +9,11 @@ import com.ulticode.common.rpc.RpcResult;
 /**
  * Auth-owned administrative write provider.
  *
- * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.1
- * as one of {@code backend-auth}'s three Dubbo providers; per &sect;6.2
- * the interface signature mirrors the migration guide example
- * exactly. Both methods are mutations that go through the auth
- * provider's local transaction; Provider must never synchronously
- * chain another RPC to complete the command (see &sect;6.5).
+ * <p>Listed in {@code docs/architecture/modules.md} as one of
+ * {@code backend-auth}'s three Dubbo providers.
+ * Both methods are mutations that go through the auth provider's local
+ * transaction; Provider must never synchronously chain another RPC to complete
+ * the command (see {@code docs/architecture/data-flow.md}).
  *
  * <p>This interface is contract-only; no ServiceImpl lives in this
  * module. The provider implementation belongs to {@code backend-auth}.

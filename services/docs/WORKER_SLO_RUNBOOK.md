@@ -123,7 +123,7 @@ redis-cli ... XLEN "judge:{judge-stream}:dlq"
 
 # Notification bridge
 redis-cli -h $REDIS_HOST -p $REDIS_PORT --user ulticode-notification --pass "$NOTIFICATION_REDIS_PASSWORD" XINFO GROUPS stream:integration
-psql "$NOTIFICATION_DB_URL" -c "select event_id, event_type, left(payload::text,200), created_at from consumer_inbox where consumer_group='App-Notification' order by created_at desc limit 20;"
+MYSQL_PWD="$NOTIFICATION_DB_PASSWORD" mysql --protocol=tcp -h "$NOTIFICATION_DB_HOST" -P "$NOTIFICATION_DB_PORT" -u "$NOTIFICATION_DB_USER" "$NOTIFICATION_DB_NAME" -e "SELECT event_id, event_type, LEFT(payload,200), created_at FROM consumer_inbox WHERE consumer_group='App-Notification' ORDER BY created_at DESC LIMIT 20;"
 
 # Owner Prometheus metrics and web-less worker OTLP metrics (Collector exporter)
 curl -s 'http://localhost:9090/api/v1/query?query=up' | jq .

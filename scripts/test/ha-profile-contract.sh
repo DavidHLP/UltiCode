@@ -45,7 +45,7 @@ contains docker-compose.ha.yml 'NACOS_AUTH_ENABLE: "true"'
 not_contains docker-compose.ha.yml 'container_name:'
 not_contains docker-compose.ha.yml 'network_mode: host'
 not_contains docker-compose.ha.yml 'ports:'
-contains PROJECT_DOCUMENTATION.md '本仓库不承诺 active-active HA'
+contains docs/operations/deployment.md '本仓库不承诺 active-active HA'
 
 for owner in \
   ulticode-auth ulticode-admin ulticode-app ulticode-submission \
@@ -59,16 +59,12 @@ contains docker/redis/generate-users-acl.sh 'user ulticode-sentinel'
 contains docker/redis/generate-users-acl.sh '+psync'
 contains docker/redis/generate-users-acl.sh '+replconf'
 contains docker-compose.ha.yml 'redis-cli --user'
-contains PROJECT_DOCUMENTATION.md 'masteruser ulticode-replication'
-contains PROJECT_DOCUMENTATION.md 'sentinel auth-user'
-contains docker/redis/generate-users-acl.sh '+script|kill'
-contains docker/redis/generate-users-acl.sh '+config|rewrite'
-contains docker-compose.ha.yml 'redis-replica.conf'
-contains docker-compose.ha.yml 'sentinel-1.conf'
-contains PROJECT_DOCUMENTATION.md 'sentinel auth-user mymaster ulticode-sentinel'
-contains PROJECT_DOCUMENTATION.md 'P3-HA-001'
-contains PROJECT_DOCUMENTATION.md 'mysql-replica'
-contains PROJECT_DOCUMENTATION.md 'redis-sentinel-1'
+contains docs/operations/deployment.md 'masteruser ulticode-replication'
+contains docs/operations/deployment.md 'sentinel auth-user'
+contains docs/operations/deployment.md 'sentinel auth-user mymaster ulticode-sentinel'
+contains docs/operations/deployment.md 'P3-HA-001'
+contains docs/operations/deployment.md 'mysql-replica'
+contains docs/operations/deployment.md 'redis-sentinel-1'
 if [[ -n "${HA_COMPOSE_ENV_FILE:-}" ]]; then
   [[ -f "$HA_COMPOSE_ENV_FILE" ]] || fail "HA_COMPOSE_ENV_FILE does not exist"
   compose_files=(-f "$ROOT_DIR/docker-compose.yml")

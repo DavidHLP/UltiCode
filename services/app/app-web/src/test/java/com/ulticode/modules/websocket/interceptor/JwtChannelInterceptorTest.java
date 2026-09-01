@@ -30,11 +30,10 @@ import org.springframework.messaging.support.MessageBuilder;
  * (blacklist, expiry, user existence, fail-closed) live in
  * {@code DefaultWebSocketAuthenticatorTest}.
  *
- * <p>Phase 0 (PROJECT_DOCUMENTATION.md §7.1) added fail-closed
- * behavior for SEND/SUBSCRIBE without a bound principal: pre-fix these
- * commands logged-and-returned, silently admitting frames on
- * unattributed sessions. New tests assert the WebSocketAuthentication
- * throw path.
+ * <p>The security architecture added fail-closed behavior for SEND/SUBSCRIBE
+ * without a bound principal: pre-fix these commands logged-and-returned,
+ * silently admitting frames on unattributed sessions. New tests assert the
+ * WebSocketAuthentication throw path.
  */
 @ExtendWith(MockitoExtension.class)
 class JwtChannelInterceptorTest {

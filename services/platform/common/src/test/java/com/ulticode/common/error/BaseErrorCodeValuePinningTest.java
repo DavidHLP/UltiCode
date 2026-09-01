@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>The {@code VALIDATION_FAILED(49999, …)} outlier (which breaks the
  * HTTP-status×100 pattern used by the other 10 codes) is preserved verbatim
  * because legacy depends on it and a "fix" would silently corrupt the
- * NestJS contract. See {@code PROJECT_DOCUMENTATION.md}.
+ * NestJS contract. See {@code docs/api/overview.md}.
  *
  * <p>The cross-module mirror (legacy {@code ErrorCode} ⇄
  * {@code BaseErrorCode}) is checked by

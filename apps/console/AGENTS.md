@@ -1,6 +1,6 @@
 # Console frontend guide
 
-This file supplements [`../AGENTS.md`](../AGENTS.md) for the user-facing Vue 3 application.
+This file supplements [`../../AGENTS.md`](../../AGENTS.md) for the user-facing Vue 3 application.
 
 ## Boundaries and patterns
 

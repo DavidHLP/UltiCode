@@ -1,6 +1,6 @@
 # Management frontend guide
 
-This file supplements [`../AGENTS.md`](../AGENTS.md) for the administrator Vue 3 application.
+This file supplements [`../../AGENTS.md`](../../AGENTS.md) for the administrator Vue 3 application.
 
 ## Boundaries and patterns
 

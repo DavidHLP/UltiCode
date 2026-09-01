@@ -105,10 +105,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private void validateUserSession(StompHeaderAccessor accessor, StompCommand command) {
     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
     if (sessionAttributes == null) {
-      // Phase 0 / PROJECT_DOCUMENTATION.md §7.1: SEND/SUBSCRIBE
-      // must fail closed when the session has no attributes at all. The
-      // pre-fix behaviour was log-and-return, which silently admitted
-      // frames on unattributed sessions — that is a fail-open bug.
+      // Current security architecture: SEND/SUBSCRIBE must fail closed when
+      // the session has no attributes at all. The pre-fix behaviour was
+      // log-and-return, which silently admitted frames on unattributed sessions.
       throw new WebSocketAuthenticationException(
           WebSocketErrorCode.SESSION_MISSING,
           "WebSocket session is missing attributes for " + command);

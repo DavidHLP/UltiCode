@@ -19,7 +19,7 @@ local startup/verification entry points live in `scripts/dev/`.
 - `architecture-contract-test.sh` — code-seam contracts (Java ports, compose
   aliases, PM2 topology) plus the DevStack manifest test.
 - `docs-contract-test.sh` — documentation-drift guardrails (README /
-  PROJECT_DOCUMENTATION / CONTEXT wording). Invoked by the architecture gate.
+  `docs/` / CONTEXT wording). Invoked by the architecture gate.
 - `devstack-manifest-test.sh` — locks the manifest data consumed by
   `up.sh`/`stop.sh`.
 - `migrate-owner-preflight-test.sh` — fast fake-binary suite for

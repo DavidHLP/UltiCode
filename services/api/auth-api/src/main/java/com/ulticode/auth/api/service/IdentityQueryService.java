@@ -10,8 +10,8 @@ import java.util.Set;
  * Auth-owned query provider exposing the minimum identity projection
  * required by other modules.
  *
- * <p>Listed in {@code PROJECT_DOCUMENTATION.md} &sect;4.1
- * as one of {@code backend-auth}'s Dubbo providers. It exposes minimal
+ * <p>Listed in {@code docs/architecture/modules.md} as one of
+ * {@code backend-auth}'s Dubbo providers. It exposes minimal
  * identity validation plus the Auth-owned active-recipient query needed by
  * App notification broadcasts.
  *

@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * from being polluted on their next pass.
  *
  * <p>The rules below mirror the contract spelled out in
- * {@code PROJECT_DOCUMENTATION.md} §2.6 and the task spec:
+ * {@code docs/architecture/modules.md} and the task spec:
  * <ul>
  *   <li>no MyBatis (no {@code com.baomidou..}, {@code org.apache.ibatis..},
  *       {@code org.mybatis..});</li>

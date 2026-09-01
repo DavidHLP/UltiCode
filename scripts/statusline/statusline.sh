@@ -2,7 +2,7 @@
 # UltiCode Claude Code statusline
 #
 # Color design: "Solarized Project Sync" — matches the project's design
-# system tokens (see .claude/skills/solarized-terminal-design-style/SKILL.md).
+# system tokens (see packages/design-system/docs/GARDEN_DESIGN_SPEC.md).
 # Mapping oklch → 256-color SGR:
 #   --accent-electric  oklch(0.6149 0.1394 244.9)  → SGR 38;5;33  (electric blue)
 #   --terminal-cyan    oklch(0.6437 0.1019 187.4)  → SGR 38;5;39  (info)

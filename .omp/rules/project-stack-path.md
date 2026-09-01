@@ -12,7 +12,7 @@ globs:
 - AGENTS.md
 - '**/AGENTS.md'
 - CLAUDE.md
-- PROJECT_DOCUMENTATION.md
+- 'docs/**/*.md'
 priority: 100
 ---
 
@@ -31,6 +31,6 @@ priority: 100
 - Operations: use existing startup, migration, PM2, and verification entry points; do not invent parallel operational paths.
 - Shell: new Bash scripts MUST use `#!/usr/bin/env bash`, default to `set -euo pipefail`, quote expansions, avoid `eval`, use `mktemp` plus cleanup traps, bound retries/polling, and fail closed for security-sensitive validation.
 - Shell: changed scripts MUST pass `bash -n`; never echo secrets or enable `set -x` around credentials.
-- Documentation: update `PROJECT_DOCUMENTATION.md` in the same change when behavior, commands, paths, contracts, or architecture boundaries change; keep implementation and executable configuration authoritative.
+- Documentation: update the affected canonical document under `docs/` in the same change when behavior, commands, paths, contracts, or architecture boundaries change; keep implementation and executable configuration authoritative.
 - Cross-stack: inspect both backend and frontend consumers before changing DTOs, VOs, API routes, events, or shared types; record the producer-consumer mapping and verify wire compatibility.
 - Architecture: cross-service boundaries route through Dubbo RPC contracts in `services/api/`; judge runtime consumes Redis Streams without HTTP exposure; register `@Audited`/`@CheckBan` in `AuditPolicy`.

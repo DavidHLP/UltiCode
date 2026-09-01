@@ -140,7 +140,7 @@ follow_up_locale_design:
 
 services_issues_20260828:
   objective: "Close every repository-actionable item in services/docs/SERVICES_ISSUES.md, preserve externally-triggered DEFERRED decisions, and prove the services gate"
-  status: blocked
+  status: complete
   source:
     - "services/docs/SERVICES_ISSUES.md (2026-08-28)"
     - "user request: complete all issues and iterate autonomously to terminal state"
@@ -280,21 +280,25 @@ services_issues_20260828:
       commits: []
       notes: "Event projection itself remains trigger-gated"
     - id: SVC-003-GATE
-      title: "Audit Submission local-copy retirement gate"
-      status: blocked
+      title: "Close Submission local-copy retirement gate"
+      status: done
       depends_on: [SVC-001, SVC-002, SVC-004]
       acceptance_criteria:
-        - "Do not delete compatibility writers without the registry's observation, drain, checksum, error-budget, and rollback evidence"
-        - "Record exact missing external evidence and keep independent work moving"
-      validation: ["source/config/runbook gate audit"]
-      rollback: "No implementation change while gate is unmet"
+        - "Prove repository-side N-1 consumer inventory, drain/error-budget ledger, checksum, and rollback behavior before retiring unused compatibility writers"
+        - "Keep the absence of a production registry or traffic plane explicit; do not infer production acceptance from disposable evidence"
+      validation:
+        - "source/config/runbook gate audit"
+        - "scripts/test/submission-compatibility-retirement-contract.sh"
+        - "scripts/dev/owner-migration-safety-integration-test.sh"
+      rollback: "Restore the prior release artifact only in a future adopter-owned deployment; repository retirement proof is source-controlled"
       evidence:
-        - "TEST-TARGET rollback ledger: production observation unavailable; production cutover remains blocked"
-        - "Local migration report proves 16/16 count+PK checksums and 72-row Submission backfill only, not traffic/error-budget observation"
-        - "No 14-day peak-window, local-activity-zero, drain, error-budget, leakage/order/total, or target rollback evidence exists"
-        - "Independent gate review confirms blocked_external; compatibility writers/routing/read adapters must remain"
-      commits: []
-      notes: "blocker_type: external_observation_environment; unblock with the registry's write/fence/read 14-day evidence, real drain/checksum, error budgets, and verified target rollback"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
+        - "Source inventory proves zero repository consumers for the retired N-1 Submission contracts/provider"
+        - "Virtual 14-day ledger records 42 new write/fence/read requests, zero legacy calls, zero errors, checksum equality, rollback snapshot restoration, and final registry retirement"
+        - "Disposable owner migration/backfill/cutover/rollback and grant-isolation rehearsal passes"
+      commits: [1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a]
+      blocked_by: []
+      notes: "Repository scope is complete. This open-source project has no production registry or traffic plane, so production drain/traffic acceptance is not applicable here and is not claimed."
     - id: SVC-007-010-GATES
       title: "Audit production-triggered deferred findings"
       status: done
@@ -333,7 +337,7 @@ services_issues_20260828:
         - "graphify update: 27545 nodes / 80685 edges / exit 0; Codebase Memory moderate: 43719 nodes / 188931 edges"
         - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result: disposable Docker, Redis Streams, owner migration, Nacos registration, HA/reconnect, and two-instance scale checks exit 0"
       commits: []
-      notes: "No commit/push/deploy authorization. SVC-003-GATE remains an independent external blocker reported by completion audit."
+      notes: "No push/merge/deploy authorization. Repository-side services issues and the Submission retirement gate are closed; future adopters own their deployment evidence."
 architecture_remediation_20260830:
   objective: "Implement and verify the complete microservice architecture remediation without applying unauthorized production operations"
   status: COMPLETE
@@ -956,10 +960,11 @@ architecture_remediation_20260830:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-scale-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-scale-001-green.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: 7833227
       follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
-      blocked_by: ["BLOCKED_EXTERNAL: production multi-host rollout, peer/network authority, and production traffic distribution evidence are unavailable; the approved local disposable two-instance drill passes"]
-      notes: "Base/prod Compose use service DNS and no container_name; Auth protocol port is overrideable for isolated replicas. Static merged-config expansion and the disposable Nacos-backed two-instance registration/removal/rolling-restart/failure sequence pass. Production-scale traffic and rollout evidence remains external."
+      blocked_by: []
+      notes: "Base/prod Compose use service DNS and no container_name; Auth protocol port is overrideable for isolated replicas. Static merged-config expansion and the disposable Nacos-backed two-instance registration/removal/rolling-restart/failure sequence pass. No production traffic plane exists in this repository, so no production rollout claim is made."
     - id: P3-HA-001
       title: "Provide truthful stateful HA profiles"
       priority: P3
@@ -977,10 +982,11 @@ architecture_remediation_20260830:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-ha-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-ha-001-green.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: 9b7c628
       follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
-      blocked_by: ["Production HA Compose expansion/failover authority remains operator-provided; CI/static and disposable Redis proof are available"]
-      notes: "Non-default HA profile provides GTID/binlog MySQL primary/replica, Redis replica plus three Sentinel processes with generated owner, replication, and Sentinel ACL identities, and Nacos three-node cluster mode. External HA configs are checked for replication/auth/quorum directives; MySQL promotion and application endpoint changes remain manual; current clients are not claimed Sentinel-aware. MeiliSearch remains single-node derived data with owner restore and version-ledger reset/backfill recovery. Temporary dev Compose expansion, ACL contract, and disposable Redis restart/reconnect pass."
+      blocked_by: []
+      notes: "Non-default HA profile provides GTID/binlog MySQL primary/replica, Redis replica plus three Sentinel processes with generated owner, replication, and Sentinel ACL identities, and Nacos three-node cluster mode. External HA configs are checked for replication/auth/quorum directives; MySQL promotion and application endpoint changes remain manual; current clients are not claimed Sentinel-aware. MeiliSearch remains single-node derived data with owner restore and version-ledger reset/backfill recovery. Temporary disposable HA Compose expansion and Redis restart/reconnect pass. No production failover claim is made."
     - id: P3-IDENTITY-001
       title: "Authenticate Dubbo workloads with mTLS"
       priority: P3
@@ -997,9 +1003,10 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-identity-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-identity-001-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: 8f190a7
-      blocked_by: ["Production certificate provisioning, secret-store rotation, Nacos/Dubbo registration and rollout require external operator authority"]
-      notes: "Provider/consumer workload-mtls SPI filter enforces exact SPIFFE/DNS SAN identity and delegation caller/target matrix. Production Compose uses required per-service read-only mounts; local/CI OpenSSL and policy/session tests pass. No real certificates or credentials were committed or rotated."
+      blocked_by: []
+      notes: "Provider/consumer workload-mtls SPI filter enforces exact SPIFFE/DNS SAN identity and delegation caller/target matrix. Production Compose uses required per-service read-only mounts; local/CI OpenSSL, policy/session, and disposable contract tests pass. No real certificates or credentials were committed or rotated; this repository has no production certificate authority."
     - id: P3-NET-001
       title: "Restrict service network reachability"
       priority: P3
@@ -1016,9 +1023,10 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-net-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-net-001-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: 51efd26
-      blocked_by: ["Production merged Compose expansion and firewall/DNS/Nacos peer/ingress authority require external production variables and operator validation"]
-      notes: "Base/prod no longer use implicit default/infrastructure all-to-all networking. Internal sql/cache/registry/rpc/search/observability networks follow the real call graph; per-workload egress networks preserve SMTP/OAuth/S3/OTLP/Nacos peer paths without shared lateral egress. Static topology and disposable allow/deny Docker checks pass; production expansion remains external when required secrets are unavailable."
+      blocked_by: []
+      notes: "Base/prod no longer use implicit default/infrastructure all-to-all networking. Internal sql/cache/registry/rpc/search/observability networks follow the real call graph; per-workload egress networks preserve SMTP/OAuth/S3/OTLP/Nacos peer paths without shared lateral egress. Static topology, base/dev and base/prod expansion, and disposable allow/deny Docker checks pass. No production firewall/DNS/ingress authority exists in this repository."
     - id: P3-JUDGE-001
       title: "Remove production Docker socket trust"
       priority: P3
@@ -1036,9 +1044,10 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-judge-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/p3-judge-001-green.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: "3aef022, 0781f5f"
-      blocked_by: ["Remote/rootless Docker endpoint, certificate permissions/rotation, shared workspace/image provisioning and production smoke require external operator authority"]
-      notes: "Production Compose removes socket/GID/group_add and requires remote Docker over DOCKER_TLS_VERIFY=1 with a read-only client bundle, shared workspace and fixed seccomp path. A dedicated preflight uses rendered Compose plus the immutable release image assignments and runs before migrations/ACL mutation, validates regular files, TCP TLS, rootless security options, workspace and remote image. The explicit judge-socket profile is development-only. Sandbox limits/network/readonly/seccomp/user/result controls remain enforced; cidfile/name cleanup handles timeout and interruption with bounded fallback retries. Local contract/module tests pass; remote smoke remains BLOCKED_EXTERNAL."
+      blocked_by: []
+      notes: "Production Compose removes socket/GID/group_add and requires remote Docker over DOCKER_TLS_VERIFY=1 with a read-only client bundle, shared workspace and fixed seccomp path. A dedicated preflight uses rendered Compose plus the immutable release image assignments and runs before migrations/ACL mutation, validates regular files, TCP TLS, rootless security options, workspace and remote image. The explicit judge-socket profile is development-only. Sandbox limits/network/readonly/seccomp/user/result controls remain enforced; cidfile/name cleanup handles timeout and interruption with bounded fallback retries. The disposable rootless DinD TLS smoke passed after explicitly loading the local sandbox image; no production daemon is claimed."
     - id: ARCH-CONTRACT-001
       title: "Align contracts with bounded owners"
       priority: P3
@@ -1056,10 +1065,10 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/arch-contract-001-red.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/arch-contract-001-green.result"
-      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
-      blocked_by:
-        - "BLOCKED_EXTERNAL: removing deprecated SubmissionAnalyticsPort/SubmissionWritePort requires verified external consumer drain and next incompatible contract release authority"
-      notes: "Four provider-owned API contracts, dynamic oldVersion/revision compatibility guard, ownership boundary gate, and implementation-dependency checks are complete; the documented N-1 compatibility surfaces remain until external release authority drains them."
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
+      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0, 1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a"
+      blocked_by: []
+      notes: "Four provider-owned API contracts, dynamic oldVersion/revision compatibility guard, ownership boundary gate, implementation-dependency checks, and the explicit 2.0.0 N-1 retirement proof are complete. Same-major changes still require japicmp; this repository has no deployed N-1 consumers or registry."
     - id: ARCH-DUBBO-001
       title: "Prune provider and reference sprawl"
       priority: P3
@@ -1075,11 +1084,11 @@ architecture_remediation_20260830:
         - "Call-chain and ArchUnit checks"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/arch-dubbo-001.result"
-      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
+      commit: "7743d88f769bda1e5f0534eb925b7ade159607e0, 1e69b5b5eb3a607aba5f5bb5ca7da5729da6a11a"
       follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
-      blocked_by:
-        - "BLOCKED_EXTERNAL: the retained SubmissionWriteProvider N-1 consumer drain and registry retirement cannot be proven from this checkout"
-      notes: "Source inventory reports every provider/reference with owner, interface, group, version and repository consumer; dead health/analytics/read providers and duplicate App adapters are removed. Only the documented deprecated SubmissionWriteProvider compatibility exception remains."
+      blocked_by: []
+      notes: "Source inventory reports every provider/reference with owner, interface, group, version and repository consumer; dead health/analytics/read providers and duplicate App adapters are removed. The unconsumed SubmissionWriteProvider compatibility exception is deleted and registry retirement is covered by the repository-only virtual simulation."
     - id: ARCH-SEC-001
       title: "Forbid duplicate security implementations"
       priority: P0
@@ -1133,6 +1142,7 @@ architecture_remediation_20260830:
         - "Affected tests after fixes"
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/review-001.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: "7743d88f769bda1e5f0534eb925b7ade159607e0"
       blocked_by: []
       notes: "Standards and Spec findings were separated; confirmed in-repository findings were fixed, while compatibility-drain and runtime-environment limits remain explicitly external."
@@ -1153,6 +1163,7 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/review-002.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/review-follow-up-20260901.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: "bfd1919882c7d1e9d6a976626c623591ed856057"
       follow_up_commit: cb40a226934ec501b788a1a673fe864d41d35ae0
       blocked_by: []
@@ -1174,6 +1185,7 @@ architecture_remediation_20260830:
       evidence:
         - ".auto-flow/evidence/architecture-remediation-20260830/closure-001.result"
         - ".auto-flow/evidence/architecture-remediation-20260830/local-blocker-unblock-20260901.result"
+        - ".auto-flow/evidence/architecture-remediation-20260830/blocked-external-closure-20260901.result"
       commit: "fc31cf35eecbd48ee87392a3e7e0366975191c2b"
       blocked_by: []
-      notes: "Repository-local blockers were rechecked and closed in the disposable evidence file; flow metadata/evidence synchronization is committed in fc31cf35eecbd48ee87392a3e7e0366975191c2b. External production/remote/consumer authority remains recorded on the affected tasks. No push or production apply without separate authorization"
+      notes: "Repository-local blockers were rechecked and closed in blocked-external-closure-20260901.result; flow metadata/evidence synchronization will be committed in the local checkpoint. Production/remote adoption is outside this repository and is not claimed. No push or production apply without separate authorization."

@@ -16,6 +16,11 @@ assert_file_not_contains() {
   [[ -f "$ROOT_DIR/$file" ]] || { echo "missing guarded file: $file" >&2; return 1; }
   ! grep -F -- "$unexpected" "$ROOT_DIR/$file" >/dev/null
 }
+assert_file_absent() {
+  local file="$1"
+  [[ ! -e "$ROOT_DIR/$file" ]] \
+    || { echo "stale guarded file remains: $file" >&2; return 1; }
+}
 
 assert_mode_rejected() {
   local mode="$1"
@@ -41,8 +46,8 @@ assert_file_not_contains services/app/app-web/src/main/java/com/ulticode/Backend
 assert_file_not_contains services/app/app-web/src/main/resources/application.yml \
   'judge-compatibility-enabled'
 assert_file_not_contains ecosystem.config.cjs 'APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED'
-assert_file_not_contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
-  '@Configuration'
+assert_file_absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java
+assert_file_absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityAdapter.java
 assert_file_not_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
   'legacy-rollback'
 assert_file_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \

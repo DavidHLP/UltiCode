@@ -89,7 +89,6 @@ for file in \
   services/submission/src/main/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutor.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionIntakeProvider.java \
   services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionVerdictWriteProvider.java \
-  services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
   services/notification/src/main/java/com/ulticode/notification/dubbo/provider/NotificationReconciliationReadProvider.java \
   services/notification/src/main/java/com/ulticode/modules/notification/mapper/NotificationReconciliationReadMapper.java \
@@ -125,8 +124,6 @@ contains services/api/submission-api/src/main/java/com/ulticode/submission/api/s
   'List<SubmissionVO> toVOs(Collection<String> submissionIds)'
 contains services/app/app-web/src/main/java/com/ulticode/modules/contest/projection/DefaultContestProjection.java \
   'submissionProjection.toVOs(contestSubmissionMapper'
-contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
-  'app.runtime.mode:dev-lite'
 contains services/app/app-web/src/test/resources/application.yml 'use-judge-outbox: true'
 contains services/app/app-web/src/test/resources/application.yml 'use-generation-fence: true'
 contains services/app/app-web/src/test/resources/application.yml 'use-port: true'
@@ -148,15 +145,15 @@ contains services/judge-runtime/src/main/java/com/ulticode/modules/submission/se
 contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteCodeExecutionPort.java \
   "'\${app.runtime.mode:dev-lite}' != 'legacy-rollback'"
 
-# P4-LEGACY-006: current launchers and binaries fail closed for the retired
-# rollback mode; compatibility sources remain until P4-LEGACY-007.
+# P4-LEGACY-006/007: current launchers and binaries fail closed for the
+# retired rollback mode; the App compatibility sources are now absent.
 not_contains services/app/app-web/src/main/java/com/ulticode/BackendAppApplication.java \
   'AppJudgeCompatibilityConfiguration'
 not_contains services/app/app-web/src/main/resources/application.yml \
   'judge-compatibility-enabled'
 not_contains ecosystem.config.cjs 'APP_FEATURES_JUDGE_COMPATIBILITY_ENABLED'
-not_contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java \
-  '@Configuration'
+assert_absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java
+assert_absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityAdapter.java
 not_contains scripts/dev/up.sh 'legacy-rollback'
 not_contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
   'legacy-rollback'

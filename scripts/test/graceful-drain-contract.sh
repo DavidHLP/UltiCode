@@ -16,6 +16,11 @@ contains() {
   grep -Fq -- "$text" "$ROOT_DIR/$file" \
     || fail "$file is missing: $text"
 }
+absent() {
+  local file="$1"
+  [[ ! -e "$ROOT_DIR/$file" ]] \
+    || fail "$file must be absent after P4-LEGACY-007"
+}
 
 for config in \
   services/auth/src/main/resources/application.yml \
@@ -65,7 +70,8 @@ for worker in \
   contains "$worker" 'beginDrain'
 done
 
-contains services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityAdapter.java 'DrainGate'
+absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityConfiguration.java
+absent services/app/app-web/src/main/java/com/ulticode/app/judge/AppJudgeCompatibilityAdapter.java
 contains services/app/app-web/src/main/java/com/ulticode/modules/contest/scheduler/ContestScheduler.java 'ContextClosedEvent'
 contains services/Dockerfile 'STOPSIGNAL SIGTERM'
 contains services/platform/integration-inbox/pom.xml 'jdk.attach.allowAttachSelf=true'

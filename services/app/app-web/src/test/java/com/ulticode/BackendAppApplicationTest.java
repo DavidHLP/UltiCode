@@ -198,7 +198,7 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.app.api.service.UserExistencePort userExistencePort;
     @MockBean
-    private com.ulticode.app.api.service.JudgeEnqueuePort judgeEnqueuePort;
+    private com.ulticode.modules.queue.port.JudgeEnqueuePort judgeEnqueuePort;
     @MockBean
     private com.ulticode.modules.contest.integration.ContestSubmissionAdapter contestSubmissionAdapter;
     // FeatureFlagsProperties is a real @ConfigurationProperties bean; must NOT be mocked
@@ -215,7 +215,7 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.submission.api.service.SubmissionStreakPort submissionStreakPort;
     @MockBean
-    private com.ulticode.app.api.service.JudgeConfigPort judgeConfigPort;
+    private com.ulticode.modules.submission.port.JudgeConfigPort judgeConfigPort;
     @MockBean
     private com.ulticode.submission.api.service.SubmissionUserStatsPort submissionUserStatsPort;
     @MockBean
@@ -291,7 +291,7 @@ class BackendAppApplicationTest {
     @MockBean(name = "emailQueue") private org.redisson.api.RQueue<Object> emailQueueBean;
     @MockBean(name = "notificationQueue") private org.redisson.api.RQueue<Object> notificationQueueBean;
     @MockBean private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
-    @MockBean private com.ulticode.modules.queue.port.SubmissionResultPushPort submissionResultPushPort;
+    @MockBean private com.ulticode.app.api.service.SubmissionResultPushPort submissionResultPushPort;
     @MockBean private com.ulticode.modules.moderation.port.ModerationUserReadPort moderationUserReadPort;
     @MockBean private com.ulticode.app.api.service.ModerationAccountPort moderationAccountPort;
     @MockBean private com.ulticode.app.api.service.ModerationContentActionPort moderationContentActionPort;

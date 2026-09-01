@@ -51,8 +51,8 @@ class AppAuditOutboxDispatcherTest {
 
         assertThat(dispatcher.dispatch()).isEqualTo(1);
 
-        verify(streamOperations).add(argThat(record ->
-                IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY.equals(record.getStream())));
+        verify(streamOperations).add(argThat(streamRecord ->
+                IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY.equals(streamRecord.getStream())));
         verify(outboxMapper).markDelivered(eq("app-audit-1"), anyString());
     }
 

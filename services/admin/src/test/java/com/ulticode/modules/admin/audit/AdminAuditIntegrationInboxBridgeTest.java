@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.event.inbox.ConsumerInboxMapper;
 import com.ulticode.modules.event.inbox.ConsumerInboxRecord;
@@ -53,7 +54,7 @@ class AdminAuditIntegrationInboxBridgeTest {
                         "owner", "Notification",
                         "eventType", "AuditRecorded",
                         "payload", "{}"))
-                .withStreamKey("stream:integration")
+                .withStreamKey(IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY)
                 .withId(RecordId.of("1-0"));
         doReturn(List.of(record), List.of())
                 .when(streamOperations)
@@ -71,6 +72,12 @@ class AdminAuditIntegrationInboxBridgeTest {
                 auditEventConsumer);
 
         assertThat(bridge.consume()).isEqualTo(1);
+        verify(streamOperations).createGroup(
+                eq(IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY),
+                any(), eq("Admin-Audit"));
+        verify(streamOperations).createGroup(
+                eq(IntegrationEventEnvelopeContract.AUTH_AUDIT_STREAM_KEY),
+                any(), eq("Admin-Audit"));
 
         verify(inboxMapper).insertIfAbsent(anyString(), eq("Admin-Audit"),
                 eq("audit-foreign"), eq("IntegrationEventPoison"), anyString());

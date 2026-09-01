@@ -60,13 +60,25 @@ done
 }
 
 app_line="$(grep -F 'user ulticode-app ' "$OUTPUT_FILE")"
-[[ "$app_line" == *"~blacklist:"* ]] || { echo "app principal lacks blacklist keyspace" >&2; exit 1; }
+[[ "$app_line" == *"(+exists ~blacklist:token:*)"* ]] \
+  || { echo "app principal lacks read-only blacklist selector" >&2; exit 1; }
+[[ "$app_line" == *"(+xadd ~stream:app-audit)"* ]] \
+  || { echo "app principal lacks owner-specific audit publisher selector" >&2; exit 1; }
 notification_line="$(grep -F 'user ulticode-notification ' "$OUTPUT_FILE")"
-[[ "$notification_line" == *"~rate-limit:"* ]] || { echo "notification principal lacks rate-limit keyspace" >&2; exit 1; }
+[[ "$notification_line" == *"~rate-limit:email:"* && "$notification_line" == *"~rate-limit:notification:"* ]] \
+  || { echo "notification principal lacks owner-scoped rate-limit keyspaces" >&2; exit 1; }
+[[ "$notification_line" != *'~rate-limit:*'* ]] || { echo "notification principal has global rate-limit access" >&2; exit 1; }
 admin_line="$(grep -F 'user ulticode-admin ' "$OUTPUT_FILE")"
-[[ "$admin_line" == *"~stream:integration"* ]] || { echo "admin principal lacks shared integration stream keyspace" >&2; exit 1; }
-grep -Fq '&ulticode:ws:broadcast' "$OUTPUT_FILE"
-grep -Fq '+acl|load' "$OUTPUT_FILE"
+admin_main="${admin_line%%(*}"
+[[ "$admin_main" != *"~stream:"* ]] || { echo "admin principal has stream access in its main selector" >&2; exit 1; }
+[[ "$admin_line" == *"~stream:app-audit"* && "$admin_line" == *"~stream:auth-audit"* ]] \
+  || { echo "admin principal lacks owner-specific audit stream selectors" >&2; exit 1; }
+admin_selectors="${admin_line#*\(}"
+[[ "$admin_selectors" == *"+xgroup|create"* && "$admin_selectors" != *"+xlen"* && "$admin_selectors" != *"+xautoclaim"* ]] \
+  || { echo "admin audit selector has unused or unsafe commands" >&2; exit 1; }
+auth_line="$(grep -F 'user ulticode-auth ' "$OUTPUT_FILE")"
+[[ "$auth_line" == *"(+xadd ~stream:auth-audit)"* ]] \
+  || { echo "auth principal lacks owner-specific audit publisher selector" >&2; exit 1; }
 auth_hash="$(printf '%s' "$AUTH_REDIS_PASSWORD" | openssl dgst -sha256 | awk '{print $NF}')"
 previous_auth_hash="$(printf '%s' "$AUTH_REDIS_PASSWORD_PREVIOUS" | openssl dgst -sha256 | awk '{print $NF}')"
 auth_line="$(grep -F 'user ulticode-auth ' "$OUTPUT_FILE")"

@@ -30,13 +30,15 @@ These are role budgets and policies for the current single-instance adapter, not
 
 ## ACL alignment repaired with the seam
 
-`docker/redis/generate-users-acl.sh` now grants only the missing key patterns:
+`docker/redis/generate-users-acl.sh` now aligns the live consumers without widening an owner beyond its role:
 
-- `ulticode-admin`: `~stream:integration` for the Admin audit consumer;
-- `ulticode-notification`: `~rate-limit:*` for Notification/Email rate-limited endpoints;
-- `ulticode-app`: `~blacklist:*` for the existing fail-closed token revocation lookup (no writer added).
+- `ulticode-auth`: `(+xadd ~stream:auth-audit)`; App/Auth cannot read or mutate the other owner's audit stream.
+- `ulticode-app`: `(+xadd ~stream:app-audit)` plus `(+exists ~blacklist:token:*)`; blacklist writes are denied.
+- `ulticode-admin`: command-limited read/ack/group-create selectors for `~stream:app-audit` and `~stream:auth-audit`; its main selector has no audit-stream key pattern.
+- `ulticode-notification`: `~rate-limit:email:*` and `~rate-limit:notification:*`, matching its live buckets rather than the global rate-limit namespace.
+- `ulticode-admin` has no shared `stream:integration` access. Pre-cutover shared audit events require the Ops-only `admin-audit-stream-migration.sh` runbook before the new owner-specific streams are enabled.
 
-The Redis ACL contract asserts each grant on its owning principal and retains deny-by-default, no unrestricted key/channel pattern, no plaintext password, and forbidden administrative commands.
+The Redis ACL contract asserts these scoped selectors, deny-by-default, no unrestricted key/channel pattern, no plaintext password, and forbidden administrative commands.
 
 ## Verification
 

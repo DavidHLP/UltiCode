@@ -8,6 +8,9 @@
 # 3.3.6 Triple + Nacos registry, dev namespace) long enough for the provider
 # to register itself with Nacos. The optional two-replica mode also exercises
 # removal, restart and single-replica failure. Tears everything down on exit.
+# Setting `DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1` additionally stops Nacos while
+# providers remain live, boots one provider during that outage, and verifies
+# registry restart/reconnect before the provider restart assertions.
 #
 # This is the live acceptance check for P1-INFRA-003 acceptance criteria
 # "service registers successfully with dev namespace". The unit test
@@ -17,16 +20,22 @@
 # Usage:
 #   ./scripts/test/dubbo-nacos-smoke.sh
 #   DUBBO_NACOS_SMOKE_REPLICAS=2 ./scripts/test/dubbo-nacos-smoke.sh
+#   DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1 ./scripts/test/dubbo-nacos-smoke.sh
 #
 # Exit codes:
-#   0  Nacos registry contains the backend-auth instance
+#   0  registration and any selected disposable failure drill passed
 #
 
 set -euo pipefail
 
 SMOKE_REPLICAS="${DUBBO_NACOS_SMOKE_REPLICAS:-1}"
+REGISTRY_DRILL="${DUBBO_NACOS_SMOKE_REGISTRY_DRILL:-0}"
 [[ "$SMOKE_REPLICAS" =~ ^[12]$ ]] || {
   echo "DUBBO_NACOS_SMOKE_REPLICAS must be 1 or 2" >&2
+  exit 2
+}
+[[ "$REGISTRY_DRILL" =~ ^[01]$ ]] || {
+  echo "DUBBO_NACOS_SMOKE_REGISTRY_DRILL must be 0 or 1" >&2
   exit 2
 }
 
@@ -561,6 +570,89 @@ wait_for_registered_count() {
   printf '%s\n' "$response" | redact_smoke_output >&2
   exit 1
 }
+obtain_nacos_token() {
+  local token_response=""
+  NACOS_TOKEN=""
+  for attempt in $(seq 1 10); do
+    token_response="$(nacos_login "$NACOS_USERNAME" "$NACOS_PASSWORD" \
+        "${NACOS_BASE}/nacos/v1/auth/users/login" 2>/dev/null || true)"
+    if [[ -n "$token_response" ]] && [[ "$token_response" == *"accessToken"* ]]; then
+      NACOS_TOKEN="$(printf '%s' "$token_response" | python3 -c \
+        'import json,sys; print(json.load(sys.stdin).get("accessToken",""))' 2>/dev/null || true)"
+      if [[ -n "$NACOS_TOKEN" ]] && [[ "$NACOS_TOKEN" =~ ^[A-Za-z0-9._~+/=-]+$ ]]; then
+        return 0
+      fi
+      if [[ -n "$NACOS_TOKEN" ]]; then
+        echo "Nacos access token contains unsupported curl-config characters." >&2
+        NACOS_TOKEN=""
+      fi
+    fi
+    sleep 2
+  done
+  echo "Failed to obtain Nacos access token; see Nacos log." >&2
+  return 1
+}
+
+registry_failure_drill() {
+  [[ "$REGISTRY_DRILL" == "1" ]] || return 0
+
+  echo "--- 6. Nacos stop/start with live providers ---"
+  for replica in $(seq 1 "$SMOKE_REPLICAS"); do
+    kill -0 "${BACKEND_PIDS[$replica]}" 2>/dev/null || {
+      echo "backend-auth replica $replica was not running before registry stop." >&2
+      exit 1
+    }
+  done
+  if ! "${compose[@]}" stop nacos >"$LOG_DIR/nacos-stop.log" 2>&1; then
+    echo "Failed to stop disposable Nacos registry." >&2
+    redact_smoke_output <"$LOG_DIR/nacos-stop.log" | tail -40 >&2 || true
+    exit 1
+  fi
+  registry_down=0
+  for _ in $(seq 1 15); do
+    if ! nacos_request "$NACOS_INSTANCE_LIST_URL" >/dev/null 2>&1; then
+      registry_down=1
+      break
+    fi
+    sleep 1
+  done
+  if [[ "$registry_down" != "1" ]]; then
+    echo "Nacos API remained reachable after registry stop." >&2
+    exit 1
+  fi
+  for replica in $(seq 1 "$SMOKE_REPLICAS"); do
+    wait_for_backend_ready "$replica"
+  done
+  echo "  registry stop with existing providers: providers remain process-ready; registry unavailable."
+
+  stop_backend 1
+  start_backend 1 "$((HTTP_PORT_BASE + 1))" "$((DUBBO_PORT_BASE + 1))"
+  wait_for_backend_ready 1
+  echo "  provider boot while registry stopped: backend-auth readiness: PASS"
+
+  if ! "${compose[@]}" start nacos >"$LOG_DIR/nacos-start.log" 2>&1; then
+    echo "Failed to restart disposable Nacos registry." >&2
+    redact_smoke_output <"$LOG_DIR/nacos-start.log" | tail -40 >&2 || true
+    exit 1
+  fi
+  wait_for_container_health nacos
+  obtain_nacos_token || {
+    echo "Nacos authenticated API did not recover after restart." >&2
+    exit 1
+  }
+  response=""
+  wait_for_registered_count "$SMOKE_REPLICAS" "Nacos restart/reconnect"
+
+  if [[ "$SMOKE_REPLICAS" == "1" ]]; then
+    stop_backend 1
+    wait_for_registered_count 0 "provider stop after registry recovery"
+    start_backend 1 "$((HTTP_PORT_BASE + 1))" "$((DUBBO_PORT_BASE + 1))"
+    wait_for_backend_ready 1
+    wait_for_registered_count 1 "provider restart recovery"
+  fi
+  echo "  registry recovery and provider registration: PASS"
+}
+
 
 echo "--- 4. Starting backend-auth (Dubbo Triple + Nacos registry) ---"
 for replica in $(seq 1 "$SMOKE_REPLICAS"); do
@@ -573,27 +665,8 @@ done
 # this script mirrors the same flow so the smoke test can verify the instance
 # list without relying on basic auth, which Nacos does not accept.
 echo "--- 5. Obtaining Nacos access token ---"
-NACOS_TOKEN=""
-for attempt in $(seq 1 10); do
-  token_response="$(nacos_login "$NACOS_USERNAME" "$NACOS_PASSWORD" \
-      "${NACOS_BASE}/nacos/v1/auth/users/login" 2>/dev/null || true)"
-  if [[ -n "$token_response" ]] && [[ "$token_response" == *"accessToken"* ]]; then
-    NACOS_TOKEN="$(echo "$token_response" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("accessToken",""))' 2>/dev/null || true)"
-    if [[ -n "$NACOS_TOKEN" ]]; then
-      echo "  Nacos token acquired."
-      break
-    fi
-  fi
-  sleep 2
-done
-if [[ -z "$NACOS_TOKEN" ]]; then
-  echo "Failed to obtain Nacos access token; see Nacos log." >&2
-  exit 1
-fi
-if [[ ! "$NACOS_TOKEN" =~ ^[A-Za-z0-9._~+/=-]+$ ]]; then
-  echo "Nacos access token contains unsupported curl-config characters." >&2
-  exit 1
-fi
+obtain_nacos_token
+echo "  Nacos token acquired."
 
 echo "--- 6. Waiting for backend-auth to register with Nacos ---"
 response=""
@@ -601,6 +674,9 @@ if [[ "$SMOKE_REPLICAS" == "1" ]]; then
   wait_for_registered_count 1 "registration"
 else
   wait_for_registered_count 2 "initial two-instance registration"
+fi
+registry_failure_drill
+if [[ "$SMOKE_REPLICAS" == "2" ]]; then
   stop_backend 2
   wait_for_registered_count 1 "instance removal"
   start_backend 2 "$((HTTP_PORT_BASE + 2))" "$((DUBBO_PORT_BASE + 2))"
@@ -610,6 +686,7 @@ else
   wait_for_registered_count 1 "single-instance failure recovery"
   echo "  two-instance registration/removal/rolling-restart/failure: PASS"
 fi
+
 
 echo "--- 7. Verifying instance metadata ---"
 ip_count="$(echo "$response" | grep -o '"ip":"[^"]*"' | wc -l | tr -d ' ')"

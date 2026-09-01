@@ -40,7 +40,7 @@ import java.time.Duration;
 @Profile("!test")
 @EnableCaching
 public class AppCacheConfig {
-
+    @Bean
     public CacheManager cacheManager(
             @Qualifier("redisCacheConnectionFactory") RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();

@@ -2,6 +2,7 @@ package com.ulticode.app.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -10,8 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -50,7 +51,8 @@ class AppAuditOutboxDispatcherTest {
 
         assertThat(dispatcher.dispatch()).isEqualTo(1);
 
-        verify(streamOperations).add(any(MapRecord.class));
+        verify(streamOperations).add(argThat(record ->
+                IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY.equals(record.getStream())));
         verify(outboxMapper).markDelivered(eq("app-audit-1"), anyString());
     }
 

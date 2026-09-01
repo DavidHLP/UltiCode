@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.audit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -15,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
@@ -53,7 +53,9 @@ import org.springframework.transaction.support.TransactionTemplate;
         matchIfMissing = true)
 public class AdminAuditIntegrationInboxBridge {
 
-    private static final String STREAM_KEY = "stream:integration";
+    private static final List<String> STREAM_KEYS = List.of(
+            IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY,
+            IntegrationEventEnvelopeContract.AUTH_AUDIT_STREAM_KEY);
     private static final String GROUP = "Admin-Audit";
     private static final String EVENT_TYPE = "AuditRecorded";
     private static final String POISON_EVENT_TYPE = "IntegrationEventPoison";
@@ -66,7 +68,7 @@ public class AdminAuditIntegrationInboxBridge {
     private final UuidGenerator uuidGenerator;
     private final InboxConsumer inboxConsumer;
     private final String redisConsumerName = GROUP + ":" + UUID.randomUUID();
-    private final AtomicBoolean groupReady = new AtomicBoolean();
+    private final Set<String> readyStreams = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final DrainGate drainGate = new DrainGate();
 
     @Autowired
@@ -118,36 +120,39 @@ public class AdminAuditIntegrationInboxBridge {
         if (drainGate.isDraining()) {
             return 0;
         }
-        if (!ensureGroup()) {
-            return 0;
-        }
         Set<String> seen = new HashSet<>();
         int staged = 0;
-        staged += stageRecords(reclaim(), seen);
-        staged += stageRecords(read(ReadOffset.from("0-0")), seen);
-        staged += stageRecords(read(ReadOffset.lastConsumed()), seen);
+        for (String streamKey : STREAM_KEYS) {
+            if (!ensureGroup(streamKey)) {
+                continue;
+            }
+            staged += stageRecords(streamKey, reclaim(streamKey), seen);
+            staged += stageRecords(streamKey, read(streamKey, ReadOffset.from("0-0")), seen);
+            staged += stageRecords(streamKey, read(streamKey, ReadOffset.lastConsumed()), seen);
+        }
         return staged;
     }
 
-    private int stageRecords(List<MapRecord<String, String, String>> records,
+    private int stageRecords(String streamKey,
+                             List<MapRecord<String, String, String>> records,
                              Set<String> seen) {
         int staged = 0;
         for (MapRecord<String, String, String> record : records) {
-            if (seen.add(record.getId().getValue())) {
-                staged += stageRecord(record);
+            if (seen.add(streamKey + ":" + record.getId().getValue())) {
+                staged += stageRecord(record, streamKey);
             }
         }
         return staged;
     }
 
-    private List<MapRecord<String, String, String>> reclaim() {
+    private List<MapRecord<String, String, String>> reclaim(String streamKey) {
         if (drainGate.isDraining()) {
             return List.of();
         }
         try {
             StreamOperations<String, String, String> streams = redisTemplate.opsForStream();
             PendingMessages pending = streams.pending(
-                    STREAM_KEY, GROUP, Range.unbounded(), BATCH_SIZE);
+                    streamKey, GROUP, Range.unbounded(), BATCH_SIZE);
             if (pending == null || pending.isEmpty()) {
                 return List.of();
             }
@@ -156,16 +161,16 @@ public class AdminAuditIntegrationInboxBridge {
                 ids.add(message.getId());
             }
             List<MapRecord<String, String, String>> reclaimed = streams.claim(
-                    STREAM_KEY, GROUP, redisConsumerName, Duration.ofSeconds(30),
+                    streamKey, GROUP, redisConsumerName, Duration.ofSeconds(30),
                     ids.toArray(RecordId[]::new));
             return reclaimed == null ? List.of() : reclaimed;
         } catch (RuntimeException e) {
-            log.debug("Admin audit stream reclaim unavailable: {}", e.getMessage());
+            log.debug("Admin audit stream reclaim unavailable for {}: {}", streamKey, e.getMessage());
             return List.of();
         }
     }
 
-    private List<MapRecord<String, String, String>> read(ReadOffset offset) {
+    private List<MapRecord<String, String, String>> read(String streamKey, ReadOffset offset) {
         if (drainGate.isDraining()) {
             return List.of();
         }
@@ -175,15 +180,16 @@ public class AdminAuditIntegrationInboxBridge {
                     org.springframework.data.redis.connection.stream.Consumer.from(
                             GROUP, redisConsumerName),
                     StreamReadOptions.empty().count(BATCH_SIZE),
-                    StreamOffset.create(STREAM_KEY, offset));
+                    StreamOffset.create(streamKey, offset));
             return records == null ? List.of() : records;
         } catch (RuntimeException e) {
-            log.debug("Admin audit stream read unavailable: {}", e.getMessage());
+            log.debug("Admin audit stream read unavailable for {}: {}", streamKey, e.getMessage());
             return List.of();
         }
     }
 
-    private int stageRecord(MapRecord<String, String, String> record) {
+
+    private int stageRecord(MapRecord<String, String, String> record, String streamKey) {
         Map<String, String> fields = record.getValue();
         String eventId = fields == null ? null : fields.get("eventId");
         String eventType;
@@ -197,16 +203,17 @@ public class AdminAuditIntegrationInboxBridge {
             }
             eventType = required(fields, "eventType");
         } catch (IllegalArgumentException e) {
-            return stagePoison(record, eventId, e);
+            return stagePoison(record, streamKey, eventId, e);
         }
 
         if (!EVENT_TYPE.equals(eventType)) {
-            acknowledge(record);
+            acknowledge(record, streamKey);
             return 0;
         }
-        if (!("App".equals(fields.get("owner")) || "Auth".equals(fields.get("owner")))) {
-            return stagePoison(record, eventId,
-                    new IllegalArgumentException("Unexpected integration event owner"));
+        String expectedOwner = expectedOwner(streamKey);
+        if (!expectedOwner.equals(fields.get("owner"))) {
+            return stagePoison(record, streamKey, eventId,
+                    new IllegalArgumentException("Unexpected audit stream owner"));
         }
 
         Map<String, Object> payload;
@@ -217,17 +224,17 @@ public class AdminAuditIntegrationInboxBridge {
                 throw new IllegalArgumentException("Integration event payload must be a JSON object");
             }
         } catch (IllegalArgumentException | JsonProcessingException e) {
-            return stagePoison(record, eventId, e);
+            return stagePoison(record, streamKey, eventId, e);
         }
 
         try {
             int inserted = inboxMapper.insertIfAbsent(
                     uuidGenerator.newId(), GROUP, eventId, eventType,
                     objectMapper.writeValueAsString(payload));
-            acknowledge(record);
+            acknowledge(record, streamKey);
             return inserted;
         } catch (JsonProcessingException e) {
-            return stagePoison(record, eventId, e);
+            return stagePoison(record, streamKey, eventId, e);
         } catch (RuntimeException e) {
             log.warn("Failed to stage or acknowledge Admin audit event {}: {}",
                     eventId, e.getMessage());
@@ -236,7 +243,7 @@ public class AdminAuditIntegrationInboxBridge {
     }
 
     private int stagePoison(MapRecord<String, String, String> record,
-                            String eventId, Exception failure) {
+                            String streamKey, String eventId, Exception failure) {
         String poisonEventId = eventId;
         if (poisonEventId == null || poisonEventId.isBlank()
                 || poisonEventId.length() > MAX_EVENT_ID_LENGTH) {
@@ -250,7 +257,7 @@ public class AdminAuditIntegrationInboxBridge {
             int inserted = inboxMapper.insertIfAbsent(
                     uuidGenerator.newId(), GROUP, poisonEventId, POISON_EVENT_TYPE,
                     objectMapper.writeValueAsString(payload));
-            acknowledge(record);
+            acknowledge(record, streamKey);
             return inserted;
         } catch (Exception poisonFailure) {
             log.warn("Failed to stage Admin audit poison event {}: {}",
@@ -259,32 +266,31 @@ public class AdminAuditIntegrationInboxBridge {
         }
     }
 
-    private void acknowledge(MapRecord<String, String, String> record) {
-        redisTemplate.opsForStream().acknowledge(STREAM_KEY, GROUP, record.getId());
+    private void acknowledge(MapRecord<String, String, String> record, String streamKey) {
+        redisTemplate.opsForStream().acknowledge(streamKey, GROUP, record.getId());
     }
 
-    private boolean ensureGroup() {
-        if (groupReady.get()) {
+    private boolean ensureGroup(String streamKey) {
+        if (readyStreams.contains(streamKey)) {
             return true;
         }
         try {
             redisTemplate.opsForStream().createGroup(
-                    STREAM_KEY, ReadOffset.from("0-0"), GROUP);
-            groupReady.set(true);
+                    streamKey, ReadOffset.from("0-0"), GROUP);
+            readyStreams.add(streamKey);
             return true;
         } catch (RuntimeException e) {
-            if (groupExists()) {
-                groupReady.set(true);
+            if (groupExists(streamKey)) {
+                readyStreams.add(streamKey);
                 return true;
             }
-            log.debug("Admin audit stream group unavailable: {}", e.getMessage());
+            log.debug("Admin audit stream group unavailable for {}: {}", streamKey, e.getMessage());
             return false;
         }
     }
-
-    private boolean groupExists() {
+    private boolean groupExists(String streamKey) {
         try {
-            StreamInfo.XInfoGroups groups = redisTemplate.opsForStream().groups(STREAM_KEY);
+            StreamInfo.XInfoGroups groups = redisTemplate.opsForStream().groups(streamKey);
             return groups != null && groups.stream()
                     .anyMatch(info -> GROUP.equals(info.groupName()));
         } catch (RuntimeException e) {
@@ -294,6 +300,15 @@ public class AdminAuditIntegrationInboxBridge {
 
     private static void rejectPoison(Map<String, Object> payload) {
         throw new IllegalArgumentException("Poison integration event: " + payload.get("error"));
+    }
+    private static String expectedOwner(String streamKey) {
+        if (IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY.equals(streamKey)) {
+            return "App";
+        }
+        if (IntegrationEventEnvelopeContract.AUTH_AUDIT_STREAM_KEY.equals(streamKey)) {
+            return "Auth";
+        }
+        throw new IllegalArgumentException("Unknown audit stream: " + streamKey);
     }
 
     private static String required(Map<String, String> fields, String key) {

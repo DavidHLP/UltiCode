@@ -40,3 +40,24 @@ Validate with `bash scripts/test/dependency-resilience-contract.sh`. Production
 threshold tuning and real dependency fault injection remain deployment evidence;
 the repository contract does not authorize production traffic or configuration
 changes.
+
+## Cross-infrastructure recovery sequence
+
+This section is the repository/disposable recovery map for the four shared
+infrastructure dependencies. It is not production failover authority.
+
+| Dependency | First response | Recovery proof | Stop condition |
+| --- | --- | --- | --- |
+| **MySQL** | Quiesce all Owner writers; do not repair a live schema from a partial dump. Select the encrypted archive and verify archive/dump SHA-256, schema set, Flyway metadata, and migration identity. | `scripts/runbooks/owner-backup-restore.sh` restores only to a disposable target in the order `ulticode → auth → admin → app → notification → submission`, then compares rows/checksums and runs owner smoke. | Missing backup/key/schema/checksum, active writer, busy fenced lease, or any smoke mismatch. Never downgrade schema; use a verified full release descriptor for rollback. |
+| **Redis** | Classify the failure as ACL denial, latency/connection saturation, eviction, or restart. Preserve Streams PEL/DLQ and replay markers; do not flush keys to make a drill pass. | `scripts/test/redis-acl-contract.sh` checks scoped principals; `scripts/test/redis-role-fault-drill.sh` runs the disposable cache-pressure/backpressure drill and always destroys its project/volume. | Any stream/Judge/audit/replay control loss, forbidden cross-owner read/write, or missing role recovery. Physical split is considered only after the P1 quantitative triggers; ACL is not resource isolation. |
+| **MeiliSearch** | Keep the integration event in PEL when the worker cannot write. App may use the explicit DB fallback only when its fallback contract is enabled; disclose `fallbackApplied`, source, freshness, and ordering. | `services/docs/WORKER_SLO_RUNBOOK.md` replay/DLQ steps plus Search worker version/tombstone checks; reindex from Owner data with the worker as sole writer. | Never ACK a rejected write, write the version ledger before Meili acceptance, or treat a derived index as authoritative data. |
+| **Nacos/Dubbo registry** | Distinguish existing provider readiness from registry availability. Existing providers may continue serving; a new provider boot during registry outage must not be reported as registered. | `scripts/test/dubbo-nacos-smoke.sh` proves authenticated registration; opt-in `DUBBO_NACOS_SMOKE_REGISTRY_DRILL=1` stops Nacos, checks provider outage/restart/reconnect, and tears down disposable resources. | No token/endpoint/cert, registry state ambiguous, provider not ready, or registration count/metadata mismatch. HA Compose is a reference profile, not transparent failover. |
+
+### Common evidence rule
+
+Record source commit, exact configuration inputs (without secrets), owner/worker
+impact, failure state, recovery command, checksum/watermark, and the evidence
+level (`Repository Implemented`, `Disposable`, or `BLOCKED_EXTERNAL`). A
+disposable `PASS` never becomes a production claim. Restore, cutover, and
+schema-contraction operations additionally require backup, quiescence, checksum,
+and rollback-descriptor evidence before any authorized external action.

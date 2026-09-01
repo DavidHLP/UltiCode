@@ -394,7 +394,9 @@ for audit_source in \
   init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql \
   init-db/flyway-post-owner.conf \
   init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql \
-  scripts/test/audit-owner-boundary-contract.sh; do
+  scripts/test/audit-owner-boundary-contract.sh \
+  scripts/runbooks/admin-audit-stream-migration.sh \
+  scripts/test/admin-audit-stream-migration-contract.sh; do
   [[ -f "$ROOT_DIR/$audit_source" ]] || fail "missing P1-AUDIT source: $audit_source"
 done
 for owner_audit_source in \
@@ -408,9 +410,12 @@ for owner_audit_source in \
   services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java; do
   not_contains "$owner_audit_source" 'admin.audit_outbox'
 done
-contains services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java 'stream:integration'
-contains services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java 'stream:integration'
-contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'Admin-Audit'
+contains services/app/app-web/src/main/java/com/ulticode/app/audit/AppAuditOutboxDispatcher.java 'APP_AUDIT_STREAM_KEY'
+contains services/auth/src/main/java/com/ulticode/auth/audit/AuthAuditOutboxDispatcher.java 'AUTH_AUDIT_STREAM_KEY'
+contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'STREAM_KEYS'
+contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'APP_AUDIT_STREAM_KEY'
+contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'AUTH_AUDIT_STREAM_KEY'
+contains scripts/runbooks/admin-audit-stream-migration.sh 'I_HAVE_VERIFIED_ADMIN_AUDIT_STREAM_MIGRATION'
 contains services/admin/src/main/java/com/ulticode/modules/admin/audit/AdminAuditIntegrationInboxBridge.java 'AuditRecorded'
 contains services/admin/src/main/java/com/ulticode/modules/admin/mapper/AuditLogMapper.java 'ON DUPLICATE KEY UPDATE id = id'
 not_contains init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
@@ -418,6 +423,7 @@ not_contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql
 contains init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
 contains init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql 'MODIFY COLUMN `action` VARCHAR(64) NOT NULL'
 bash "$ROOT_DIR/scripts/test/audit-owner-boundary-contract.sh"
+bash "$ROOT_DIR/scripts/test/admin-audit-stream-migration-contract.sh"
 
 # P2-MIG-001: CD must execute the same ordered owner-manifest seam that local
 # migration documentation describes; rollback must keep the schema untouched.

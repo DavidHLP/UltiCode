@@ -1,6 +1,7 @@
 package com.ulticode.app.audit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,15 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Publishes committed App audit rows to the shared integration stream. */
+/** Publishes committed App audit rows to the App-specific audit stream. */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.audit.outbox.dispatcher.enabled",
         havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class AppAuditOutboxDispatcher {
-
-    private static final String STREAM_KEY = "stream:integration";
+    private static final String STREAM_KEY = IntegrationEventEnvelopeContract.APP_AUDIT_STREAM_KEY;
     private static final String EVENT_TYPE = "AuditRecorded";
     private static final int BATCH_SIZE = 50;
     private static final int MAX_ATTEMPTS = 5;

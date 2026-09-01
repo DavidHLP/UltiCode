@@ -16,6 +16,9 @@ import java.util.Set;
 public final class IntegrationEventEnvelopeContract {
     public static final int CURRENT_SCHEMA_VERSION = 1;
     public static final int MIN_SUPPORTED_SCHEMA_VERSION = 1;
+    public static final String INTEGRATION_STREAM_KEY = "stream:integration";
+    public static final String APP_AUDIT_STREAM_KEY = "stream:app-audit";
+    public static final String AUTH_AUDIT_STREAM_KEY = "stream:auth-audit";
 
     public static final String EVENT_ID = "eventId";
     public static final String OWNER = "owner";

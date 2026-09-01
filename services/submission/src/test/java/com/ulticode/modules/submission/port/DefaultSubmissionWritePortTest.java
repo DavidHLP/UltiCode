@@ -2,7 +2,6 @@ package com.ulticode.modules.submission.port;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.app.api.service.ContestSubmissionPort;
-import com.ulticode.app.api.service.JudgeEnqueuePort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
@@ -172,8 +171,9 @@ class DefaultSubmissionWritePortTest {
     @Test
     void ownerDoesNotUseLegacyQueue() {
         assertThat(Arrays.stream(DefaultSubmissionWritePort.class.getDeclaredFields())
-                .map(java.lang.reflect.Field::getType))
-                .doesNotContain(JudgeEnqueuePort.class);
+                .map(java.lang.reflect.Field::getType)
+                .map(Class::getSimpleName))
+                .doesNotContain("JudgeEnqueuePort");
     }
 
     private static CreateSubmissionDTO request(String language) {

@@ -1,46 +1,44 @@
 package com.ulticode.app.config;
 
-import com.ulticode.common.redis.RedisWorkloadRole;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 class AppRedisRoleConfigTest {
 
+    private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    RedisAutoConfiguration.class,
+                    AppRedisRoleConfig.class));
+
     @Test
-    void roleAliasesDelegateToTheCurrentConnectionFactory() throws NoSuchMethodException {
-        RedisConnectionFactory delegate = mock(RedisConnectionFactory.class);
+    void roleAliasesPreserveBootRedisConnectionFactory() {
+        runner.withPropertyValues(
+                        "spring.data.redis.host=localhost",
+                        "spring.data.redis.port=6379")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    RedisConnectionFactory connectionFactory =
+                            context.getBean("redisConnectionFactory", RedisConnectionFactory.class);
 
-        RedisConnectionFactory selected = new AppRedisRoleConfig()
-                .roleConnectionFactory(delegate);
-
-        assertThat(selected).isSameAs(delegate);
-        assertThat(RedisWorkloadRole.values())
-                .containsExactly(
-                        RedisWorkloadRole.STREAMS,
-                        RedisWorkloadRole.CACHE,
-                        RedisWorkloadRole.RATE_LIMIT,
-                        RedisWorkloadRole.REPLAY,
-                        RedisWorkloadRole.QUEUE,
-                        RedisWorkloadRole.JUDGE,
-                        RedisWorkloadRole.PUBSUB);
-        Bean roleBean = AppRedisRoleConfig.class
-                .getDeclaredMethod("roleConnectionFactory", RedisConnectionFactory.class)
-                .getAnnotation(Bean.class);
-        assertThat(roleBean).isNotNull();
-        assertThat(roleBean.name()).containsExactly(
-                "redisStreamsConnectionFactory",
-                "redisCacheConnectionFactory",
-                "redisRateLimitConnectionFactory",
-                "redisReplayConnectionFactory",
-                "redisQueueConnectionFactory",
-                "redisJudgeConnectionFactory",
-                "redisPubsubConnectionFactory");
-        assertThat(AppCacheConfig.class
-                .getDeclaredMethod("cacheManager", RedisConnectionFactory.class)
-                .isAnnotationPresent(Bean.class)).isTrue();
+                    assertThat(context.getBean("redisStreamsConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                    assertThat(context.getBean("redisCacheConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                    assertThat(context.getBean("redisRateLimitConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                    assertThat(context.getBean("redisReplayConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                    assertThat(context.getBean("redisQueueConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                    assertThat(context.getBean("redisJudgeConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                    assertThat(context.getBean("redisPubsubConnectionFactory"))
+                            .isSameAs(connectionFactory);
+                });
     }
 }

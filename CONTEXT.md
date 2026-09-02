@@ -27,12 +27,9 @@
 
 ## Module concepts (architecture)
 
-- **Submission intake** — the write path that creates a Submission, writes
-  the judge outbox row, and asks the contest module to record a
-  ContestSubmission (`DefaultSubmissionWritePort.submit`).
+- **Submission intake** — the owner-only write path that creates a Submission in `backend-submission` via `SubmissionIntakePort`/`RemoteSubmissionWritePort`, writes the judge outbox row, and asks the contest module to record a `ContestSubmission`.
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
-  `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`,
   `SearchReadProjection`, `SolutionProjection`, `AchievementProjection`,
   `AdminForumProjection`, `AdminSolutionProjection`,
   `AdminSubmissionProjection`, `AdminUserProjection`,

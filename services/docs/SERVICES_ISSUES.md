@@ -89,6 +89,17 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 触发条件：随真实发布自然积累。破坏性 Contract 变更仍要求 reactor 协同升级；门禁说明见 [`CONTRACT_COMPAT_GATE.md`](CONTRACT_COMPAT_GATE.md)。
 
+### SVC-011 文档收敛残差（DEFERRED）
+
+现状：`docs/` 经 `P5-GATE-001` 前的 `182 .md` 扫描已分流（`docs 100` `services/docs 8` 等），`CONTEXT.md` 的 `Submission intake` 已由 `DefaultSubmissionWritePort` 更正为 `SubmissionIntakePort/RemoteSubmissionWritePort`，`docs/archive/contest/README.md` 的“现行”已更正为“历史归档”。以下历史快照仍保留旧表述，属有意冻结的证据，不视为现行运营真理：
+
+- `docs/architecture/decisions/0007-legacy-compatibility-lifecycle.md` 正文仍保留 `legacy-rollback`/`App Judge adapter` 的 `P4 前` 基线描述，顶部 `Amendment 2026-09-02` 已声明 `006..011 DONE` 且当前二进制 `fail closed`
+- `P0-BASELINE-001..005`、`P2-APP-001/002/004`、`P5-GATE-001` 为 `c344` 前冻结基线，已由 `P4-LEGACY-005/011` 与 `current-status.md` 的 `43/43 DONE` 覆盖
+- `P1-INFRA-001` 中 `legacy queue` 行、`P4-LEGACY-005` 的 `remains until P4-010` 文案、`P5-GATE-004` 的 `status` 与 `current-status` 的 `1 composite FAIL + 单跑 PASS` 差异均为历史快照时态
+- `docs/archive/RUNBOOK.md`、`PRIVACY.md`、`DOCS-SPEC.md`、`ADR` 中 `backend-spring/console` 旧路径为归档设计态，非现行 `services/app`/`apps/console` 运营路径
+
+触发条件：`P5-GATE-001` 最终基线刷新（`evidence` 重建）时统一替换上述冻结快照；触发前以 `Amendment` 与本条目为准，不重复报为缺陷。`CONTEXT.md` 与 `archive/contest/README` 的 `1 行` 现行性修正已随 `c0f79f2`/`68cbbdc` 落地，无需再触发。
+
 ## CLOSED (historical findings)
 
 下列历史 Finding 已有代码、配置或可执行门禁承接，不应在其他文档重复维护正文：

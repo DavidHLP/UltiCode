@@ -54,6 +54,8 @@ contains docs/architecture/overview.md \
   'Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams'
 contains docs/operations/database-migrations.md \
   '#### Submission read owner cutover 与 schema contraction'
+contains docs/architecture/evidence/P4-LEGACY-011-schema-contraction.md \
+  'owner-schema-contraction-contract: PASS'
 contains services/docs/SCHEDULER_RUNBOOK.md 'P3-SCHED-001'
 contains services/docs/SCHEDULER_RUNBOOK.md 'ThreadPoolTaskScheduler'
 

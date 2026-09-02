@@ -32,9 +32,9 @@ Auth 只写 `users` account/status/authorization 字段；App 写 `user_profiles
 
 #### Submission read owner cutover 与 schema contraction
 
-正常 App user、contest、Problem-statistics、user-tag、generation 和 Admin Submission reads 使用 `backend-submission` owner facts；App local mapper/projection 仅由显式 `legacy-rollback` 保留。Submission provider 按 `account_id` 分组分页，单页上限 500；`createdSince=null` 为全量，非空为包含式增量窗口。Admin 通过 owner adapter 做 full/incremental reconciliation，验证 ordering、duplicates、nulls、count 和 failures，并以 lease/fence 防多副本重叠。
+正常 App user、contest、Problem-statistics、user-tag、generation 和 Admin Submission reads 使用 `backend-submission` owner facts；App 不再保留 Submission local mapper/projection/entity 或 duplicate DTOs。Submission provider 按 `account_id` 分组分页，单页上限 500；`createdSince=null` 为全量，非空为包含式增量窗口。Admin 通过 owner adapter 做 full/incremental reconciliation，验证 ordering、duplicates、nulls、count 和 failures，并以 lease/fence 防多副本重叠。
 
-物理 contraction 与普通 Flyway 分开：先写 `owner_contraction_proof`，再以 backup、quiesce、parity、checksum 和 grant gates 允许 contract migration。当前 repository/disposable rehearsal 已通过；真实 production target、traffic drain、backup authority 和 cutover 仍由部署方执行。App 不再读取 Submission-owned SQL。
+物理 contraction 与普通 Flyway 分开：先写 `owner_contraction_proof`，再以 backup、quiesce、parity、checksum 和 grant gates 允许 contract migration。当前 repository/disposable rehearsal 已通过（见 [`P4-LEGACY-011-schema-contraction.md`](../architecture/evidence/P4-LEGACY-011-schema-contraction.md)）；真实 production target、traffic drain、backup authority 和 cutover 仍由部署方执行。App 不再读取 Submission-owned SQL。
 
 ## Notification contraction
 

@@ -10,5 +10,5 @@ ADR 是 durable history 的权威入口；普通提交不在这里复制。实�
 | [0004](0004-fenced-singleton-leases.md) | Accepted | migration、backup、reconciliation 等真正 singleton 使用 DB-clock fenced lease；item-level outbox 使用自身 CAS。 |
 | [0005](0005-repository-production-boundary.md) | Accepted | 仓库实现与 disposable proof 不等于 production applied；外部 authority 和证据必须显式分开。 |
 | [0006](0006-existing-control-planes.md) | Accepted | 在引入新平台前复用 Compose、Dubbo/Nacos、Redis Streams、Outbox/Inbox 和当前 runbooks。 |
-| [0007](0007-legacy-compatibility-lifecycle.md) | Accepted | legacy compatibility 由 App owner 管理，当前支持范围以 N-1 release floor、expiry 和 explicit cutover gate 约束。 |
+| [0007](0007-legacy-compatibility-lifecycle.md) | Accepted — closure `2026-09-02` | legacy compatibility 由 App owner 管理，当前支持范围以 N-1 floor/expiry/cutover gate 约束；`P4-LEGACY-006..011` 已闭环，当前二进制对 `legacy-rollback` fail closed。 |
 | [0008](0008-admin-event-read-model.md) | Accepted | Admin 暂不复制 Owner event read model；先使用 bounded synchronous reads、typed degradation 和 metrics，超预算后再复议。 |

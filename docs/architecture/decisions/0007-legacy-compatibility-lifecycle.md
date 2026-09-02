@@ -1,9 +1,10 @@
 # ADR-0007: Legacy compatibility lifecycle and retirement floor
 
-- **Status**: Accepted
+- **Status**: Accepted — repository closure `2026-09-02` (`P4-LEGACY-006..011` DONE, `P5-GATE-001` PASS; `GATE-FINAL` pending periodic re-run only)
 - **Date**: 2026-09-02
 - **Compatibility owner**: `Architecture/Release Maintainer`
 - **Decision scope**: repository policy and disposable verification; production execution remains external
+- **Amendment 2026-09-02**: `P4-LEGACY-006` 已关闭 `legacy-rollback` 可达性，`P4-LEGACY-007..010` 已删除 App Judge 兼容 adapter、本地 Submission read/projection/mapper/entity 及 `app-web → backend-judge-runtime` 编译依赖；`P4-LEGACY-011` 已通过 disposable schema-contraction rehearsal。当前仓库二进制与 `devstack-manifest.sh`/`up.sh` 对 `legacy-rollback` 与未知 mode `fail closed`，生产回滚仅依赖部署方保留的上一份完整 release descriptor（见 [`P4-LEGACY-005`](../evidence/P4-LEGACY-005-runtime-closure.md)、[`P4-LEGACY-011`](../evidence/P4-LEGACY-011-schema-contraction.md)、[`P5-GATE-001`](../evidence/P5-GATE-001-baseline-gate-report.md)）。下文 `Context` 中“App still contains …”为基线快照描述，非当前实现；当前实现已无 legacy 泄漏，`Context` 与 `Closure criteria` 按本 amendment 解释。
 
 ## Context
 

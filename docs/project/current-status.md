@@ -5,7 +5,7 @@
 ## 总体状态
 
 仓库当前位于 `fix/architecture-remediation`。架构 remediation 基线已关闭，
-`ulticode-architecture-followup` 的 P0–P6、7 batches、43/43 任务已全部完成（`plan.status DONE 2026-09-02`，HEAD `9e5d917ce`）；
+`ulticode-architecture-followup` 的 P0–P6、7 batches、43/43 任务已全部完成（`plan.status DONE 2026-09-02`，实施闭环 `9e5d917ce`；文档修正 `8626d33`）；
 `GATE-FINAL` 有明确的 `PASS/FAIL/BLOCKED_EXTERNAL` 语义，当前唯一一次 composite 运行 `gate-final-integration.sh` 在 `P2/infra-isolation` 止损 `FAIL`（artifact 738，disposable-infra 瞬态争用，单跑该门禁 PASS），按设计止损已演示，周期重跑即为验证入口；仅 `Repository Implemented + Disposable` 证据，不表示生产部署或流量已发生。
 
 当前拓扑是五个 Data Owner（Auth、Admin、App、Submission、Notification）与

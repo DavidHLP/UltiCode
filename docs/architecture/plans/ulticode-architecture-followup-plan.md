@@ -5,17 +5,19 @@
 > 调查基线：`fix/architecture-remediation@6f97e6d5fee65e3ecf1cbc4e086336dd870606d5`<br>
 > 规划持久化 HEAD：`55b541bf82f7c060ae7eec236b42fc8e0c496b47`；实施完成 HEAD：`9e1c36e14`<br>
 > 调查日期：2026-09-01；规划持久化：2026-09-02；实施闭环：2026-09-02<br>
-> 机器任务源（本 checkout、本地 ignored）：`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`（DONE）<br>
-> 规划 checkpoint：`.agent/checkpoints/architecture-followup-planning.md`（COMPLETE）<br>
+> 机器任务源（本 checkout、本地 ignored）：`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`（`plan.status DONE`，本机 ignored，仅本地可读）<br>
+> 规划 checkpoint `.agent/checkpoints/architecture-followup-planning.md` 已于 `2026-09-02` 随任务闭环删除工作树副本，内容已迁移至本文与 `../evidence/`，Git 历史保留实现提交 `9e1c36e14` 之前版本<br>
 > 最终集成矩阵：`../evidence/P5-GATE-004-final-integration-matrix.md`；当前状态：`../../project/current-status.md`
-## 1. 执行结论
+## 1. 执行结论（基线快照说明）
+
+> **快照声明**：本节 `1–4` 描述的是规划基线 `6f97e6d5`（2026-09-01）的调查快照，用于解释为何立项；非当前实现。当前实现已在 `2026-09-02` 完成全部 `43/43` 任务并通过对应 Gate，当前真实状态以 [`../../project/current-status.md`](../../project/current-status.md) 与 [`../../../services/docs/SERVICES_ISSUES.md`](../../../services/docs/SERVICES_ISSUES.md) 为准。下述“仍保留/仍存在”均为基线时态。
 
 四个规划领域均仍成立，但不是普通、未修复的仓库缺陷：
 
-1. **AREA-INFRA**：默认 MySQL、Redis、MeiliSearch 仍共享单机故障域；Nacos HA profile 需要外部节点。仓库已有 ACL、备份恢复、Search fallback、Streams resilience 和 disposable drills，应先深化现有 seam，不直接引入新平台。
-2. **AREA-APP**：App 已有 Problem、Contest、Submission、Moderation 私有 Maven module，但主要 implementation 仍集中在 `app-web`；`app-api` 同时承载跨 Owner interface 与 App/Judge 内部 interface。先收窄 interface、深化 module，再决定是否物理拆分。
-3. **AREA-ADMIN**：Admin 是同步依赖集中点。调查基线有 61 个 `@DubboReference`：App 33、Auth 18、Submission 6、Notification 4；无 Judge reference。Dashboard stats 已并行，但用户趋势仍按 100 条分页扫描 Auth，RPC 数随账号量增长。
-4. **AREA-LEGACY**：`legacy-rollback` 仍保留 App 本地 Submission read implementation。`app-web -> backend-judge-runtime` 还存在三个非回滚依赖族：`AppUuidGenerator`、queue-local `SubmissionResultPushPort`、`SubmissionStatusCodec`。必须先迁走它们，再关闭 profile 和删除兼容 implementation。
+1. **AREA-INFRA**（基线）：默认 MySQL、Redis、MeiliSearch 仍共享单机故障域；Nacos HA profile 需要外部节点。仓库已有 ACL、备份恢复、Search fallback、Streams resilience 和 disposable drills，应先深化现有 seam，不直接引入新平台。
+2. **AREA-APP**（基线）：App 已有 Problem、Contest、Submission、Moderation 私有 Maven module，但主要 implementation 仍集中在 `app-web`；`app-api` 同时承载跨 Owner interface 与 App/Judge 内部 interface。先收窄 interface、深化 module，再决定是否物理拆分。
+3. **AREA-ADMIN**（基线）：Admin 是同步依赖集中点。调查基线有 61 个 `@DubboReference`：App 33、Auth 18、Submission 6、Notification 4；无 Judge reference。Dashboard stats 已并行，但用户趋势仍按 100 条分页扫描 Auth，RPC 数随账号量增长。
+4. **AREA-LEGACY**（基线）：`legacy-rollback` 仍保留 App 本地 Submission read implementation。`app-web -> backend-judge-runtime` 还存在三个非回滚依赖族：`AppUuidGenerator`、queue-local `SubmissionResultPushPort`、`SubmissionStatusCodec`。必须先迁走它们，再关闭 profile 和删除兼容 implementation。
 
 已确认的当前事实：
 

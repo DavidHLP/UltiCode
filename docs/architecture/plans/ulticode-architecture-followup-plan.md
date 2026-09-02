@@ -1,13 +1,13 @@
 # UltiCode 架构后续整改计划
 
-> 状态：`PLANNED`<br>
-> 模式：`PLAN ONLY`；本文不授权自动实施<br>
+> 状态：`COMPLETED — 43/43 DONE (2026-09-02)`<br>
+> 模式：`COMPLETED`（实施已闭环，本文保留为历史规划快照）<br>
 > 调查基线：`fix/architecture-remediation@6f97e6d5fee65e3ecf1cbc4e086336dd870606d5`<br>
-> 持久化时 HEAD：`55b541bf82f7c060ae7eec236b42fc8e0c496b47`<br>
-> 调查日期：2026-09-01；持久化日期：2026-09-02<br>
-> 机器任务源（本 checkout、本地 ignored）：`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`<br>
-> 规划 checkpoint（本 checkout、本地 ignored）：`.agent/checkpoints/architecture-followup-planning.md`
-
+> 规划持久化 HEAD：`55b541bf82f7c060ae7eec236b42fc8e0c496b47`；实施完成 HEAD：`9e1c36e14`<br>
+> 调查日期：2026-09-01；规划持久化：2026-09-02；实施闭环：2026-09-02<br>
+> 机器任务源（本 checkout、本地 ignored）：`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`（DONE）<br>
+> 规划 checkpoint：`.agent/checkpoints/architecture-followup-planning.md`（COMPLETE）<br>
+> 最终集成矩阵：`../evidence/P5-GATE-004-final-integration-matrix.md`；当前状态：`../../project/current-status.md`
 ## 1. 执行结论
 
 四个规划领域均仍成立，但不是普通、未修复的仓库缺陷：

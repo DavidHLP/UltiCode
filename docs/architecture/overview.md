@@ -1,7 +1,6 @@
 # 架构总览
 
-更新时间：2026-09-01。当前实现以源码、Maven POM、`application.yml`、Compose 和启动脚本为准；本页只提供稳定地图。
-
+更新时间：2026-09-02。当前实现以源码、Maven POM、`application.yml`、Compose 和启动脚本为准；本页只提供稳定地图。
 ## 当前结论
 
 UltiCode 已形成五个 Data Owner 与两个不持有业务表的 Worker：

@@ -63,7 +63,7 @@ public final class RsaKeyMaterial {
             throw new IllegalArgumentException("RSA " + label + " key is required");
         }
         String normalized = encoded
-                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----BEGIN PRIVATE KEY-----", "") // gitleaks:allow: PEM framing marker only; no private-key body
                 .replace("-----END PRIVATE KEY-----", "")
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")

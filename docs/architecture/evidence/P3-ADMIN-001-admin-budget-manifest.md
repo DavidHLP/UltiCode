@@ -234,7 +234,7 @@ terminator is included in the RPC budget below.
 | `S-RECON-INCREMENTAL` | Manual/invoked incremental reconciliation | Same `32/32/32` non-empty-page caps plus owner terminators; inclusive watermark required | **`164 / 164 / 262400`** | Same unbounded page loops if the watermark window is large; current `FAIL_UNBOUNDED_SCAN` | `Q`; `WM`; caller supplies `createdSince` | Exceeding a cap fails with cursor for retry as a new bounded run; owner failure `FAILED`; no automatic write retry | `[E-RECON]` |
 | `S-RECON-LEASE-BUSY` | Scheduled/manual run when fenced lease is held | No owner scan | `0 / 0 / 0` | Lease acquisition returns null and exits | `P`; `CRON` or `WM` | `SKIPPED`, increment skip metric; never report success with fabricated facts | `[E-RECON]` |
 
-`OwnerReconciler` currently calls Auth orphan aggregate, Submission/Notification paged
+`OwnerReconciler` currently calls Auth orphan aggregate, Submission and Notification paged
 facts, App orphan aggregate, and Admin-local audit pages in serial order
 (`OwnerReconciler.java:162-209,294-445`). The current source already persists `FAILED`,
 `SKIPPED`, lease-loss, and completion state; this manifest adds the finite scan envelope
@@ -302,4 +302,3 @@ the same scheduled budget rather than silently expanding it.
 | `E-EXPORT` | `services/admin/src/main/java/com/ulticode/modules/admin/service/impl/ProblemExportServiceImpl.java:46-73`; `services/admin/src/main/java/com/ulticode/modules/admin/service/ProblemExportService.java:20-30`. |
 | `E-REJUDGE` | `services/admin/src/main/java/com/ulticode/modules/admin/service/SubmissionCutoverService.java:32-117`; `BatchRejudgeRequest.java:22-43`. |
 | `E-CONTENT` | `services/admin/src/main/java/com/ulticode/modules/admin/service/ContentModerationCutoverService.java:25-101`. |
-

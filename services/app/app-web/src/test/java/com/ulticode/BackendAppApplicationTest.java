@@ -188,8 +188,6 @@ class BackendAppApplicationTest {
     // ==================== Submission family (P7-RELOCATE-SUBMISSION-001) ====================
 
     @MockBean
-    private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
-    @MockBean
     private com.ulticode.app.api.service.ProblemFactsPort submissionProblemFactsPort;
     @MockBean
     private com.ulticode.app.api.service.UserExistencePort userExistencePort;

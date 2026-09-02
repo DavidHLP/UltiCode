@@ -25,10 +25,6 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
-			<artifactId>backend-submission-domain</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ulticode</groupId>
 			<artifactId>backend-moderation-domain</artifactId>
 		</dependency>
 		<!-- P1-INFRA-002: dependency-free shared atoms. -->

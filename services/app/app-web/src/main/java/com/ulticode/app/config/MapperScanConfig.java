@@ -39,8 +39,6 @@ import org.springframework.context.annotation.Profile;
         "com.ulticode.modules.problemlist.mapper",
         "com.ulticode.modules.reconciliation.port",
         "com.ulticode.modules.dashboard.mapper",
-        "com.ulticode.modules.submission.outbox.mapper",
-        "com.ulticode.modules.submission.result",
         "com.ulticode.modules.subscription.mapper",
 }, annotationClass = Mapper.class)
 public class MapperScanConfig {

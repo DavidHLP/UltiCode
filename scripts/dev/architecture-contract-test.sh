@@ -521,9 +521,9 @@ done
 not_contains services/api/app-api/src/main/java/com/ulticode/app/api/service/ContestLiveRankingReadPort.java \
   'UnsupportedOperationException'
 
-# P1-DATA-001/P4-LEGACY-008: current Submission reads cross the owner
-# contracts. App-local read implementations are deleted; Mapper/entity residue
-# remains only as the explicitly scoped P4-009 boundary.
+# P1-DATA-001/P4-LEGACY-008/P4-LEGACY-009: current Submission reads cross the
+# owner contracts. App-local read implementations and persistence residue are
+# deleted; App-owned contest persistence remains separate from Submission.
 for contraction_file in \
   init-db/flyway-contraction.conf \
   init-db/migrations/V20260830200000__Create_Owner_Contraction_Proof.sql \
@@ -557,10 +557,16 @@ contains services/app/app-web/src/main/java/com/ulticode/modules/contest/port/ad
   'backend-submission'
 contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteProblemSubmissionStatsAdapter.java \
   'backend-submission'
-contains services/app/app-web/src/main/java/com/ulticode/app/config/LegacySubmissionMapperScanConfig.java \
-  '@MapperScan(value = "com.ulticode.modules.submission.mapper"'
+assert_absent services/app/app-web/src/main/java/com/ulticode/app/config/LegacySubmissionMapperScanConfig.java
+assert_absent services/app/app-web/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java
+assert_absent services/app/modules/submission/src/main/java/com/ulticode/modules/submission/entity/Submission.java
+assert_absent services/app/modules/submission/pom.xml
 not_contains services/app/app-web/src/main/java/com/ulticode/app/config/MapperScanConfig.java \
   'com.ulticode.modules.submission.mapper'
+not_contains services/app/app-web/src/main/java/com/ulticode/app/config/MapperScanConfig.java \
+  'com.ulticode.modules.submission.outbox.mapper'
+not_contains services/app/app-web/src/main/java/com/ulticode/app/config/MapperScanConfig.java \
+  'com.ulticode.modules.submission.result'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java \
   'FROM submissions'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/problem/mapper/ProblemTagRelationMapper.java \
@@ -573,8 +579,7 @@ mapfile -t app_submission_sql_sources < <(grep -RIl --include='*.java' \
   -E 'FROM[[:space:]]+submissions|JOIN[[:space:]]+submissions|INSERT[[:space:]]+INTO[[:space:]]+submissions|UPDATE[[:space:]]+submissions|DELETE[[:space:]]+FROM[[:space:]]+submissions' \
   "$app_java" || true)
 for app_submission_sql_source in "${app_submission_sql_sources[@]}"; do
-  [[ "$app_submission_sql_source" == "$app_java/com/ulticode/modules/submission/mapper/SubmissionMapper.java" ]] \
-    || fail "normal App source contains direct Submission SQL: $app_submission_sql_source"
+  fail "normal App source contains direct Submission SQL: $app_submission_sql_source"
 done
 contains scripts/dev/migrate.sh \
   'OWNER_SCHEMA_CONTRACTION_CONFIRM=I_UNDERSTAND_OWNER_SCHEMA_CONTRACTION'
@@ -611,6 +616,7 @@ for local_submission_source in \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/stats/SubmissionStreakCalculator.java; do
   assert_absent "$local_submission_source"
 done
+assert_absent services/app/app-web/src/main/java/com/ulticode/modules/submission/dto
 for remote_submission_source in \
   services/app/app-web/src/main/java/com/ulticode/modules/contest/port/adapter/RemoteSubmissionAdjudicationReadAdapter.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/RemoteSubmissionGenerationReadAdapter.java \

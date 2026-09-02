@@ -39,10 +39,10 @@ flowchart LR
 ```
 
 - 外部 HTTP/WS 入口由前端 Nginx/Compose gateway 处理；内部 Dubbo 端口不对公网发布。
-- `scripts/dev/up.sh --mode dev-lite` 是默认开发入口；`dev-full` 显式启动 Search。legacy RQueue 仅由 `legacy-rollback` 激活。
-- **Admin 查询已收敛为粗粒度 query slices**，不再以拆分更多进程为理由。
-- **Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams**；legacy RQueue 仅是显式回滚 seam。
-- Submission normal reads 通过 bounded owner-facts contract；本地 read projection 只在显式 `legacy-rollback` 下可用。
+- `scripts/dev/up.sh --mode dev-lite` 是默认开发入口；`dev-full` 显式启动 Search。当前 binary/DevStack 拒绝已退役的 local compatibility mode；生产回滚只能使用部署方保留的上一份完整 release descriptor。
+- **Admin 查询已收敛为粗粒度 query slices**，不再以拆分更多进程为理由；用户趋势使用一次 bounded Auth aggregate，Enricher 使用 bounded parallel owner reads。
+- **Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams**；App 不再扫描 Judge runtime 或运行旧 RQueue poller。
+- Submission normal reads 通过 bounded owner-facts contract；App 不再保留本地 Submission read projection、mapper 或 entity。
 
 ## 关键边界
 

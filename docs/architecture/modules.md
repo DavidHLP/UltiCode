@@ -30,7 +30,7 @@ App 持有普通用户 profile、Problem/Contest/Forum/Solution/Engagement/Achie
 
 ### Submission
 
-Submission 是唯一 mutation/fence owner。App 请求边界组装不可变 `SubmissionFactsSnapshot` 并调用远程 `SubmissionIntakePort`；Judge 通过 `SubmissionFencePort` / `SubmissionVerdictWritePort` 回写。Admin rejudge 只发送带 actor、trace、idempotency 的 command。App 不保留本地 writer、rejudge provider、verdict/fence 实现；普通回滚 seam 仅由显式 `legacy-rollback` 激活。
+Submission 是唯一 mutation/fence owner。App 请求边界组装不可变 `SubmissionFactsSnapshot` 并调用远程 `SubmissionIntakePort`；Judge 通过 `SubmissionFencePort` / `SubmissionVerdictWritePort` 回写。Admin rejudge 只发送带 actor、trace、idempotency 的 command。App 不保留本地 writer、rejudge provider、verdict/fence、read projection、mapper 或 entity；当前 binary/DevStack 拒绝旧 local compatibility mode，生产回滚只能指向部署方保留的上一份完整 release descriptor。
 
 ### Notification
 

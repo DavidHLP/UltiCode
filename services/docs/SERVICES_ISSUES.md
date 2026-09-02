@@ -29,7 +29,7 @@
 
 Ordinary and contest intake now always use App's `RemoteSubmissionWritePort` and execute in `backend-submission`. The App-local writer, mutation router, fence adapters, judge/result dispatchers, shadow comparator, and lease reaper are deleted; write ownership is no longer selected by `APP_SUBMISSION_ROUTING_MODE`.
 
-P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads through Submission-owner facts; App local Submission projections and mapper access remain only behind explicit `legacy-rollback`. The repository proof and the authorized disposable migration/backfill/cutover/rollback rehearsal are complete. This repository has no production registry or traffic plane; a virtual 14-day compatibility ledger is used for the N-1 retirement acceptance and is explicitly not production evidence.
+P1-SUB-004 now moves reconciliation to Submission-owned bounded full/incremental facts: Admin calls the `backend-submission` provider, and App no longer issues reconciliation SQL against `submissions`. P1-DATA-001 also routes normal user/contest/admin/statistics/generation reads through Submission-owner facts; App Submission projections, mapper access, private persistence, and Judge runtime compile dependency are now removed. The current binary and DevStack reject the former local compatibility mode; production rollback uses the deployment-owned previous release descriptor. The repository proof and authorized disposable migration/backfill/cutover/rollback rehearsal are complete. This repository has no production registry or traffic plane; a virtual 14-day compatibility ledger is explicitly not production evidence.
 
 Evidence:
 
@@ -95,7 +95,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 | 历史问题 | 当前承接证据 |
 | --- | --- |
-| SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；仅 App-local execution 在 SVC-003 的显式 `legacy-rollback` 激活 |
+| SVC-001 App 直接复用 Judge Docker 执行实现 | 正常/生产 `/run` 通过 `CodeExecutionPort` 调用 `backend-judge` provider；真实 HTTP→Dubbo→provider IT 覆盖成功与无 provider 时 HTTP 503/code 30022；当前 App 不包含本地 Judge execution/compatibility poller，旧模式由当前 binary fail closed |
 | SVC-002 跨进程 Contract Interface 过宽 | `SubmissionIntakePort`、`SubmissionVerdictWritePort` 与 `ProblemTitleLookupPort` 按消费语义拆分；旧 composite `SubmissionWritePort`/provider 和无消费者的 analytics contract 已在 2.0.0 major contract release 中删除 |
 | SVC-005 Search 选择性发布/回滚入口不完整 | Search 已进入 deploy choice、rollback whitelist/all 与共享 `host-health`；架构门禁从 services matrix 解析全部 backend 并逐项校验三个控制面 |
 | Owner 假健康 | `ReadinessChecks`、各 Owner readiness controller、Compose/host health |
@@ -132,7 +132,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 - Access token 即时黑名单 writer 当前不建设：refresh token hash-only revoke、HTTP ban check、WebSocket 实时 account check 与短期 access token TTL 共同限定窗口；只有产品明确要求即时踢下线时才新增 writer-owned revoke Interface。
 - Search `dev-lite=database`、`dev-full=indexed` 是 manifest 的显式策略，不是配置漂移。
 - `SubmissionFactsSnapshot` 只允许增加 Owner intake 校验所需的最小字段；字段变化必须通过现有 Contract shape test，避免形成第二套隐式 facts Interface。
-- Submission compatibility seam 仅作为显式 `legacy-rollback` 回滚路径保留；正常模式使用 owner route，不得将回滚路径重新作为默认 writer 或 read path。
+- Submission compatibility lifecycle is governed by ADR-0007; the current binary/DevStack reject the former local mode, and production rollback points only to the deployment-owned previous full release descriptor.
 - 当前阶段不拆更多进程，不引入新 MQ、Service Mesh、Kubernetes 或 Seata。
 
 ## 维护规则

@@ -38,7 +38,7 @@ const emit = defineEmits<{
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
-        class="terminal-input pl-8.5 h-9 text-xs rounded-md border-border-control bg-surface-sunken text-foreground focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-2"
+        class="data-table-toolbar-search terminal-input h-9 text-xs rounded-md border-border-control bg-surface-sunken text-foreground focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-2"
       />
     </div>
 
@@ -90,3 +90,9 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.data-table-toolbar-search {
+  padding-left: calc(var(--uc-layout-control-padding-inline) + 1.25rem);
+}
+</style>

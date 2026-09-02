@@ -57,7 +57,6 @@ const emit = defineEmits<{
       :model-value="searchQuery"
       :placeholder="t('problem.list.searchPlaceholder')"
       :filter-label="t('problem.explorer.filters')"
-      :filter-icon-only="true"
       :active-filter-count="activeFilterCount"
       :show-clear="hasActiveFilters"
       :clear-label="

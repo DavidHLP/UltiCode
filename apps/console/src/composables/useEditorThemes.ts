@@ -1,8 +1,10 @@
 import { computed } from "vue";
 import {
   useEditorSettingsStore,
+  type EditorSettings,
   type EditorTheme,
 } from "@/stores/editorSettings";
+import type { ThemeMode } from "@/shared/theme/src";
 
 export interface ThemeOption {
   value: EditorTheme;
@@ -31,6 +33,28 @@ export const AVAILABLE_THEMES: ThemeOption[] = [
     icon: "contrast",
   },
 ];
+
+export type AppThemeMode = ThemeMode;
+export type SyncedEditorTheme = "vs-light" | "vs-dark";
+
+export function resolveAppEditorTheme(
+  appTheme: AppThemeMode,
+  prefersDark: boolean,
+): SyncedEditorTheme {
+  return appTheme === "dark" || (appTheme === "system" && prefersDark)
+    ? "vs-dark"
+    : "vs-light";
+}
+
+export function syncAppEditorTheme(
+  settings: Pick<EditorSettings, "highContrast" | "theme">,
+  appTheme: AppThemeMode,
+  prefersDark: boolean,
+  setTheme: (theme: SyncedEditorTheme) => void,
+): void {
+  if (settings.highContrast || settings.theme === "hc-black") return;
+  setTheme(resolveAppEditorTheme(appTheme, prefersDark));
+}
 
 /**
  * Composable for managing Monaco editor themes

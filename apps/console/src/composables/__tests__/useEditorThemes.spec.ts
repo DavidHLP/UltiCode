@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
-import { useEditorThemes } from "../useEditorThemes";
+import {
+  resolveAppEditorTheme,
+  syncAppEditorTheme,
+  useEditorThemes,
+} from "../useEditorThemes";
 
 // Mock matchMedia
 Object.defineProperty(window, "matchMedia", {
@@ -41,6 +45,48 @@ describe("useEditorThemes", () => {
   beforeEach(() => {
     localStorageMock.clear();
     setActivePinia(createPinia());
+  });
+
+  describe("app theme synchronization", () => {
+    it("maps explicit app themes to matching Monaco themes", () => {
+      expect(resolveAppEditorTheme("light", true)).toBe("vs-light");
+      expect(resolveAppEditorTheme("dark", false)).toBe("vs-dark");
+    });
+
+    it("uses the system preference when the app theme is system", () => {
+      expect(resolveAppEditorTheme("system", false)).toBe("vs-light");
+      expect(resolveAppEditorTheme("system", true)).toBe("vs-dark");
+    });
+
+    it("updates the editor theme unless high contrast is active", () => {
+      const setTheme = vi.fn();
+
+      syncAppEditorTheme(
+        { highContrast: false, theme: "vs-dark" },
+        "light",
+        false,
+        setTheme,
+      );
+      expect(setTheme).toHaveBeenCalledWith("vs-light");
+
+      setTheme.mockClear();
+      syncAppEditorTheme(
+        { highContrast: true, theme: "vs-dark" },
+        "light",
+        false,
+        setTheme,
+      );
+      expect(setTheme).not.toHaveBeenCalled();
+
+      setTheme.mockClear();
+      syncAppEditorTheme(
+        { highContrast: false, theme: "hc-black" },
+        "dark",
+        false,
+        setTheme,
+      );
+      expect(setTheme).not.toHaveBeenCalled();
+    });
   });
 
   describe("theme options", () => {

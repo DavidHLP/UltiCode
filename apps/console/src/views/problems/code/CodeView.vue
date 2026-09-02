@@ -23,6 +23,9 @@ import {
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { useEditorSettingsStore } from "@/stores/editorSettings";
+import { syncAppEditorTheme } from "@/composables/useEditorThemes";
+import { useColorTheme } from "@/shared/theme/src";
+import { usePreferredDark } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -34,6 +37,8 @@ const props = defineProps<{
 const { t } = useI18n();
 const problemEditorStore = useProblemEditorStore();
 const editorSettingsStore = useEditorSettingsStore();
+const { theme: appTheme } = useColorTheme();
+const prefersDark = usePreferredDark();
 
 const activeLanguageValue = ref(props.languages[0]?.value ?? "");
 const code = ref("");
@@ -49,7 +54,19 @@ const editorLanguage = computed(
   () => languageMeta.value?.value ?? "typescript",
 );
 
-// Use persisted settings from store
+watch(
+  [appTheme, prefersDark],
+  () =>
+    syncAppEditorTheme(
+      editorSettingsStore.settings,
+      appTheme.value,
+      prefersDark.value,
+      editorSettingsStore.setTheme,
+    ),
+  { immediate: true },
+);
+
+// Use persisted settings from store, synchronized with the app theme above.
 const editorTheme = computed(() => editorSettingsStore.settings.theme);
 const editorFontSize = computed(() => editorSettingsStore.settings.fontSize);
 const editorTabSize = computed(() => editorSettingsStore.settings.tabSize);

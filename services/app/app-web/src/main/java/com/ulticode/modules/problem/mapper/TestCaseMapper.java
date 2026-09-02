@@ -48,8 +48,8 @@ public interface TestCaseMapper extends BaseMapper<TestCase> {
      * are <b>excluded</b>. The {@code @TableLogic isDeleted} column is auto-filtered
      * by MyBatis-Plus; no explicit {@code is_deleted=0} clause is needed.
      *
-     * <p>An empty result means the problem has no judging-eligible cases. The caller
-     * (JudgeWorkerProcessor) must fail closed with a System Error verdict, not
+     * <p>An empty result means the problem has no judging-eligible cases. The
+     * execution worker must fail closed with a System Error verdict, not
      * silently fall back to {@code problem_examples}.
      */
     default List<TestCase> findActiveCasesForJudging(Long problemId) {

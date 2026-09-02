@@ -158,6 +158,10 @@ not_contains services/platform/judge-config/src/main/java/com/ulticode/modules/s
 contains services/platform/judge-config/src/main/java/com/ulticode/modules/submission/config/FlagCombinationValidator.java \
   'expected dev-lite, dev-full or external-full.'
 
+# P4-LEGACY-010: App production compiles without the Judge runtime; only the
+# existing test-scoped Judge fixture may retain runtime-only test classes.
+bash "$ROOT_DIR/scripts/test/app-judge-runtime-dependency-contract.sh"
+
 # SVC-002: cross-process mutation and problem lookup contracts expose only
 # the capabilities each consumer actually uses.
 contains services/judge/src/main/java/com/ulticode/judge/adapter/RemoteSubmissionVerdictWritePort.java \

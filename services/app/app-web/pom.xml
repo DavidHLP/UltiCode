@@ -61,10 +61,6 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ulticode</groupId>
-			<artifactId>backend-judge-runtime</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ulticode</groupId>
 			<artifactId>backend-judge</artifactId>
 			<version>${service.version.judge}</version>
 			<scope>test</scope>

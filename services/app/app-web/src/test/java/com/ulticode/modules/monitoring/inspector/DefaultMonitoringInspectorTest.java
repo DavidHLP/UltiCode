@@ -93,6 +93,7 @@ class DefaultMonitoringInspectorTest {
         ReflectionTestUtils.setField(monitoringInspector, "applicationName", "UltiCode");
         ReflectionTestUtils.setField(monitoringInspector, "applicationVersion", "1.0.0");
         ReflectionTestUtils.setField(monitoringInspector, "activeProfile", "test");
+        ReflectionTestUtils.setField(monitoringInspector, "queueInspector", queueInspector);
 
         // Pin SystemProbe to deterministic values so the resource-usage
         // assertions (availableProcessors > 0) hold regardless of the

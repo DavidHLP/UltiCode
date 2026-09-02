@@ -15,6 +15,7 @@ import com.ulticode.app.api.dto.QueueHealthSnapshotDTO;
 import com.ulticode.app.api.service.QueueHealthProbePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
@@ -43,16 +44,16 @@ import java.util.Properties;
 /**
  * Default adapter for {@link MonitoringInspector}. Side-effect free:
  * reads from the JVM MXBeans, the {@code DataSource}, the
- * {@code RedisTemplate}, and the queue module's {@link QueueInspector}
- * port only.
+ * {@code RedisTemplate}, and the App API's {@link QueueHealthProbePort}
+ * contract only.
  *
  * <p>Owns its own copy of the inspection logic — no inheritance from
  * any prior {@code MonitoringServiceImpl} class — so this read module
  * is independent of any write-path bean graph (none exists for the
  * monitoring subsystem; reads are the entire contract).
  *
- * <p><b>One queue truth</b>: queue depth is delegated to the queue
- * module's {@link QueueInspector#getQueueHealthSnapshot(String)}. An
+ * <p><b>One queue truth</b>: queue depth is delegated through the
+ * App API's {@link QueueHealthProbePort} contract. An
  * earlier revision of this class probed a BullMQ (Node.js) key layout
  * via {@code SCARD}/{@code LLEN} that no Java writer in this repo
  * ever produced, so every queue always read empty and the health
@@ -86,9 +87,10 @@ import java.util.Properties;
 public class DefaultMonitoringInspector implements MonitoringInspector {
 
     /**
-     * Static configuration: the application queues the queue module
-     * owns. Order is part of the monitoring wire contract — the
-     * management frontend renders rows in this order.
+     * Static configuration: the application queues exposed through the
+     * {@link QueueHealthProbePort} contract. Order is part of the
+     * monitoring wire contract — the management frontend renders rows in this
+     * order.
      */
     private static final List<String> KNOWN_QUEUE_NAMES =
             List.of("judge_queue",
@@ -103,12 +105,12 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
     private final TimeSource timeSource;
 
     /**
-     * The queue module's read port. Injecting this is the
-     * monitoring → queue edge: monitoring consumes the queue module's
-     * owned port (satisfies {@code .claude/rules/backend/06}) instead
-     * of probing broker key layouts directly.
+     * The App API's queue-health read contract. It is optional because the
+     * queue execution implementation belongs to the independent Judge worker;
+     * an absent probe is surfaced as unhealthy rather than an empty success.
      */
-    private final QueueHealthProbePort queueInspector;
+    @Autowired(required = false)
+    private QueueHealthProbePort queueInspector;
 
     @Value("${spring.application.name:UltiCode}")
     private String applicationName;

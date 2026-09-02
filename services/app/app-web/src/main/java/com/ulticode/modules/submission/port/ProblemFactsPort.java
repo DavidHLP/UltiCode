@@ -14,7 +14,7 @@ package com.ulticode.modules.submission.port;
  *
  * <p>Replaces the pre-2026-07-10 leakage where four submission paths
  * ({@code RemoteSubmissionWritePort}, the Submission-owner projection,
- * {@code CodeExecutionService}, and {@code JudgedNotificationDispatcher}) each
+ * the execution adapter, and {@code JudgedNotificationDispatcher}) each
  * reached into {@code problem.mapper.*} for title / limits / languages.
  *
  * <p><b>Non-throwing contract</b>: every method returns {@code null} for a

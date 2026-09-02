@@ -5,9 +5,8 @@
 ## 总体状态
 
 仓库当前位于 `fix/architecture-remediation`。架构 remediation 基线已关闭，
-`ulticode-architecture-followup` 的 P0–P4 实施批次和基础 Gate 已完成；
-GATE-FINAL 只接受 repository/disposable evidence，不表示生产部署或生产
-流量已发生。
+`ulticode-architecture-followup` 的 P0–P6、7 batches、43/43 任务已全部完成（`plan.status DONE 2026-09-02`，HEAD `9e5d917ce`）；
+`GATE-FINAL` 有明确的 `PASS/FAIL/BLOCKED_EXTERNAL` 语义，当前唯一一次 composite 运行 `gate-final-integration.sh` 在 `P2/infra-isolation` 止损 `FAIL`（artifact 738，disposable-infra 瞬态争用，单跑该门禁 PASS），按设计止损已演示，周期重跑即为验证入口；仅 `Repository Implemented + Disposable` 证据，不表示生产部署或流量已发生。
 
 当前拓扑是五个 Data Owner（Auth、Admin、App、Submission、Notification）与
 两个 Worker（Judge、Search）。`judge-runtime` 是 Judge worker 使用的共享
@@ -35,5 +34,4 @@ remote/rootless boundary 均有代码、配置、测试或运行手册承接。
 - 归档证据入口：[`../archive/README.md`](../archive/README.md)
 - Architecture map：[`../architecture/overview.md`](../architecture/overview.md)
 - Operational procedures：[`../operations/`](../operations/deployment.md)
-- Follow-up plan and task state：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)、`.agent/tasks/ulticode-architecture-followup/TASKS.yaml`
-- Final integration matrix：[`../architecture/evidence/P5-GATE-004-final-integration-matrix.md`](../architecture/evidence/P5-GATE-004-final-integration-matrix.md)
+- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）与 [`../architecture/evidence/P5-GATE-004-final-integration-matrix.md`](../architecture/evidence/P5-GATE-004-final-integration-matrix.md)（已提交证据矩阵）；机器任务正本 `.agent/tasks/ulticode-architecture-followup/TASKS.yaml` 为本机 ignored、仅本地可读（`AGENTS.md` 约定，不提交）

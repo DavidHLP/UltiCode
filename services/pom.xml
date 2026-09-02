@@ -116,11 +116,6 @@
 			</dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
-				<artifactId>backend-submission-domain</artifactId>
-				<version>${service.version.app}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.ulticode</groupId>
 				<artifactId>backend-judge-runtime</artifactId>
 				<version>${revision}</version>
 			</dependency>

@@ -20,8 +20,8 @@ Usage: ./scripts/dev/test.sh [--describe|quick|full-local|full|integration|stati
 
 Modes:
   static       Read-only zero-infrastructure guardrails and contracts.
-  unit         static plus frontend unit checks; backend unit is fail-closed
-               until its zero-infrastructure allowlist is defined.
+  unit         static plus frontend unit checks and the -Punit backend gate
+               (no Docker/DB/Redis/Nacos/Meili; *IT/*IntegrationTest excluded).
   quick        Compatibility alias for static + unit (deprecated).
   full-local   Containers, migration, Maven verify, and installed frontend
                coverage checks.
@@ -34,8 +34,8 @@ describe() {
   cat <<'TABLE'
 mode|infrastructure|frontend_dependencies|backend|extras
 static|none (no Docker/DB/services/Testcontainers)|none|source/config contracts only|shellcheck, theme, migration-preflight, coverage wiring
-unit|none (until U-03 allowlist exists)|existing node_modules only|fail-closed until unit profile; then *IT excluded|type-check, lint:check, unit tests
-quick|same as static + unit|existing node_modules only|fail-closed until unit profile; then *IT excluded|deprecated compatibility alias
+unit|none (deny env)|existing node_modules only|-Punit profile: no Docker/DB/Redis/Nacos/Meili, *IT/*IntegrationTest excluded|type-check, lint:check, unit tests
+quick|same as static + unit|existing node_modules only|same -Punit backend gate|deprecated compatibility alias
 full-local|MySQL + Redis Compose|pnpm install allowed|Maven verify|migration and coverage
 full|MySQL + Redis Compose|pnpm install allowed|Maven verify|build, audit, i18n
 integration|MySQL + Redis + sandbox/Testcontainers|pnpm install allowed|Maven verify + *IT|migration safety drill
@@ -252,8 +252,17 @@ run_backend_unit_checks() {
     die_usage "Backend zero-infrastructure unit allowlist is unresolved (U-03); refusing to claim safe Spring-slice coverage. Add the unit Maven profile, then retry."
   fi
   require_maven_toolchain
-  echo "Running backend unit tests (excluding *IT)..."
-  (cd "$ROOT_DIR/services" && "${MAVEN[@]}" test -Punit -Dtest='!*IT' -Dsurefire.failIfNoSpecifiedTests=false -B)
+  # The unit profile owns the excludes (naming-contract *IT/*IntegrationTest,
+  # including nested classes). No -Dtest selector is passed: an explicit
+  # selector would override the profile's Surefire excludes and could pull
+  # Testcontainers suites back into the deny-environment unit gate.
+  # Infra credentials are intentionally not sourced here: unit must pass with
+  # DB/Redis/Nacos/Meili unreachable (proven by deny-environment runs).
+  echo "Running backend unit tests (-Punit, deny environment, no *IT)..."
+  (cd "$ROOT_DIR/services" && env -u SPRING_PROFILES_ACTIVE -u DB_USER -u DB_PASSWORD \
+    -u DB_HOST -u DB_PORT -u REDIS_USERNAME -u REDIS_PASSWORD -u REDIS_HOST \
+    -u REDIS_PORT -u OPS_REDIS_PASSWORD -u NACOS_ADDR -u MEILI_MASTER_KEY \
+    "${MAVEN[@]}" test -Punit -B)
 }
 
 run_unit_checks() {

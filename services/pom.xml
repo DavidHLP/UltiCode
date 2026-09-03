@@ -273,6 +273,38 @@
 
 	<profiles>
 		<profile>
+			<!--
+			  Zero-infrastructure unit gate (P1-VERIFY-003 / U-03): runs the
+			  pure unit surface without Docker, databases, Redis, Nacos,
+			  MeiliSearch, or Testcontainers. Integration-flavoured suites are
+			  excluded by naming contract only: *IT (owner/Testcontainers
+			  integration) and *IntegrationTest (guarded external-service
+			  suites). Nothing else is excluded; every remaining test must pass
+			  with infra credentials absent (deny env), proven by
+			  scripts/test/zero-infra-validation-contract.sh and
+			  scripts/dev/test.sh unit.
+			-->
+			<id>unit</id>
+			<build>
+				<pluginManagement>
+					<plugins>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-surefire-plugin</artifactId>
+							<configuration>
+								<excludes>
+									<exclude>**/*IT.java</exclude>
+									<exclude>**/*IT$*.java</exclude>
+									<exclude>**/*IntegrationTest.java</exclude>
+									<exclude>**/*IntegrationTest$*.java</exclude>
+								</excludes>
+							</configuration>
+						</plugin>
+					</plugins>
+				</pluginManagement>
+			</build>
+		</profile>
+		<profile>
 			<id>contract-compat</id>
 			<build>
 				<plugins>

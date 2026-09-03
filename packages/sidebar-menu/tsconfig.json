@@ -29,9 +29,9 @@
     "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/*"],
-      "vue": ["../../console/node_modules/vue"],
-      "reka-ui": ["../../console/node_modules/reka-ui"],
-      "vue-router": ["../../console/node_modules/vue-router"]
+      "vue": ["../../apps/console/node_modules/vue"],
+      "reka-ui": ["../../apps/console/node_modules/reka-ui"],
+      "vue-router": ["../../apps/console/node_modules/vue-router"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.tsx"],

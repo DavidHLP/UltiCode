@@ -21,7 +21,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       // reka-ui is a peerDependency; resolve it from the console workspace
       // (mirrors the tsconfig.json `paths` convention).
-      'reka-ui': fileURLToPath(new URL('../../console/node_modules/reka-ui', import.meta.url)),
+      'reka-ui': fileURLToPath(new URL('../../apps/console/node_modules/reka-ui', import.meta.url)),
     },
   },
 })

@@ -14,9 +14,7 @@
 - 验证入口分为 `static` / `unit` / `quick` / `full-local` / `full` /
   `integration` 六层：`static` 零基础设施并可用 deny-shim 自证；
   `quick` 是 `static + unit` 的弃用兼容别名；原 `quick` 重型语义更名为
-  `full-local`。后端零基础设施 unit allowlist 未解（U-03，见
-  [问题注册表](../../services/docs/SERVICES_ISSUES.md)），`unit`/`quick`
-  在 U-03 关闭前 fail closed，不伪称覆盖。
+  `full-local`。后端 `unit` 走根 POM `unit` profile 与 deny 环境门禁（无 Docker/DB/Redis/Nacos/Meili，`*IT`/`*IntegrationTest` 含嵌套类排除；deny 运行 5786 测试零失败、零 Testcontainers/IT），由 `zero-infra-validation-contract.sh` 的 unit deny 阶段自证。
 - `dev-lite` 兼容默认保留，新增 `app-journey`/`admin`/`submission-judge`/
   `search`/`full-stack` 场景与 `--scope`；`up`/`stop`/`status`/`logs`/
   `health`/`doctor` 消费同一 resolver；Search off 时不创建 Meili 容器。

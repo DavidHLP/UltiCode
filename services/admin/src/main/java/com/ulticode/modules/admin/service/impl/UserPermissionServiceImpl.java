@@ -14,38 +14,44 @@ import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.modules.admin.projection.AdminUserProjection;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
+import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserPermissionService;
+import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDateTime;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import com.ulticode.common.rpc.RpcPolicy;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class UserPermissionServiceImpl implements UserPermissionService {
 
-    private final AdminUserEnricher userEnricher;
-    private final AdminUserProjection adminUserProjection;
+    private final AdminUserDetailQuery adminUserDetailQuery;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
+    @Autowired
+    public UserPermissionServiceImpl(
+            AdminUserDetailQuery adminUserDetailQuery,
+            Clock clock,
+            CurrentUserProvider currentUserProvider) {
+        this.adminUserDetailQuery = Objects.requireNonNull(
+                adminUserDetailQuery, "adminUserDetailQuery");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.currentUserProvider = Objects.requireNonNull(
+                currentUserProvider, "currentUserProvider");
+    }
 
     @Autowired(required = false)
     @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
@@ -74,66 +80,103 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     private AdminUserVO performPermissionChange(String id, String action, String resource,
                                                  LocalDateTime expiresAt, boolean isRevoke) {
-        AdminUserSummary user = userEnricher.enrichOne(id);
-        if (user == null) {
+        AdminUserDetailResult before;
+        try {
+            before = adminUserDetailQuery.loadUserDetail(id);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw permissionSnapshotUnavailable(
+                    action, resource, "detail query failed", exception);
+        }
+        if (before == null) {
+            throw permissionSnapshotUnavailable(
+                    action, resource, "detail query returned null", null);
+        }
+        if (before.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
             throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
+        if (before.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE) {
+            throw permissionSnapshotUnavailable(
+                    action, resource, "detail query unavailable", null);
+        }
 
-        final AdminUserVO beforeVo = adminUserProjection.getUserById(id);
-        final boolean alreadyPresent = beforeVo != null
-                && beforeVo.getPermissions() != null
-                && beforeVo.getPermissions().stream().anyMatch(p ->
-                        action.equals(p.getAction()) && resource.equals(p.getResource()));
+        AdminUserDetailResult.Section permissionSection = before.permissions();
+        AdminUserDetailResult.PermissionSnapshot permissionSnapshot =
+                before.permissionSnapshot();
+        if (permissionSection == null
+                || permissionSection.status() != AdminUserDetailResult.Availability.OK
+                || permissionSnapshot == null
+                || permissionSnapshot.permissions() == null) {
+            String status = permissionSection == null
+                    ? AdminUserDetailResult.Availability.UNAVAILABLE.name()
+                    : permissionSection.status().name();
+            String reason = permissionSection == null || permissionSection.reason() == null
+                    ? "authorization snapshot is incomplete"
+                    : permissionSection.reason();
+            throw permissionSnapshotUnavailable(action, resource, status + ": " + reason, null);
+        }
+
+        String targetPermStr = action + ":" + resource;
+        Set<String> currentPermissions = new HashSet<>(permissionSnapshot.permissions());
+        boolean alreadyPresent = currentPermissions.contains(targetPermStr);
 
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("action", action);
         oldValues.put("resource", resource);
         oldValues.put("alreadyPresent", alreadyPresent);
+        oldValues.put("permissionSnapshotStatus", permissionSection.status().name());
         AuditContext.setOldValues(oldValues);
+
+        if (isRevoke && !alreadyPresent) {
+            AuditContext.setNewValues(Map.of("removed", false));
+            log.info("Revoke no-op (permission not present): user={} {}:{}",
+                    id, action, resource);
+            return before.user();
+        }
 
         if (accountAdministrationService == null) {
             throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
                     "AccountAdministrationService unavailable");
         }
-        String actorId = currentUserProvider == null ? null : currentUserProvider.getCurrentUserId();
+        String actorId = currentUserProvider == null
+                ? null : currentUserProvider.getCurrentUserId();
         if (actorId == null || actorId.isBlank()) {
-            throw new BusinessException(AdminErrorCode.UNAUTHORIZED, "Authenticated admin actor is required");
+            throw new BusinessException(AdminErrorCode.UNAUTHORIZED,
+                    "Authenticated admin actor is required");
         }
         ActorDelegation actor = new ActorDelegation(
                 AdminActors.typeOf(currentUserProvider),
                 actorId, actorId, isRevoke ? "revoke perm" : "grant perm");
 
-        // Compute target full replacement permission set
-        Set<String> targetPermissions = new HashSet<>();
-        if (beforeVo != null && beforeVo.getPermissions() != null) {
-            targetPermissions = beforeVo.getPermissions().stream()
-                    .map(p -> p.getAction() + ":" + p.getResource())
-                    .collect(Collectors.toSet());
-        }
-
-        String targetPermStr = action + ":" + resource;
         if (isRevoke) {
-            targetPermissions.remove(targetPermStr);
+            currentPermissions.remove(targetPermStr);
         } else {
-            targetPermissions.add(targetPermStr);
+            currentPermissions.add(targetPermStr);
         }
 
-        // Bind idempotency key to current request/trace identity so retries share key but distinct operations over time do not collide
         String traceId = TraceIdUtil.current();
         if (traceId == null || traceId.isBlank()) {
-            traceId = "t-" + UUID.randomUUID().toString();
+            traceId = "t-" + UUID.randomUUID();
         }
         String stableKey = "auth-perm-" + traceId + "-" + id + "-" + action + "-" + resource;
-        String commandId = UUID.nameUUIDFromBytes(stableKey.getBytes()).toString();
+        String commandId = UUID.nameUUIDFromBytes(
+                stableKey.getBytes(StandardCharsets.UTF_8)).toString();
 
         ChangeAuthorizationCommand command = new ChangeAuthorizationCommand(
-                commandId, IdMetadata.of(stableKey, null), actor, new TraceMetadata(traceId, null, null, null),
-                id, 0L, user.role(), targetPermissions, isRevoke ? "revoke permission" : "grant permission"
-        );
+                commandId,
+                IdMetadata.of(stableKey, null),
+                actor,
+                new TraceMetadata(traceId, null, null, null),
+                id,
+                permissionSnapshot.version(),
+                permissionSnapshot.role(),
+                currentPermissions,
+                isRevoke ? "revoke permission" : "grant permission");
         RpcResult<?> result = accountAdministrationService.changeAuthorization(command);
         if (result == null || !result.success()) {
-            log.warn("AccountAdministrationService.changeAuthorization failed for user {}: {}", id,
-                    result == null ? "null response" : result.error());
+            log.warn("AccountAdministrationService.changeAuthorization failed for user {}: {}",
+                    id, result == null ? "null response" : result.error());
             throw new BusinessException(AdminErrorCode.UNKNOWN_ERROR,
                     "Permission change failed on Auth provider");
         }
@@ -149,14 +192,50 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         }
         AuditContext.setNewValues(newValues);
 
-        if (isRevoke && !alreadyPresent) {
-            log.info("Revoke no-op (permission not present): user={} {}:{}",
-                id, action, resource);
-        } else if (!isRevoke) {
+        if (!isRevoke) {
             log.info("Permission assigned via backend-auth RPC: user={} {}:{} expiresAt={}",
-                id, action, resource, expiresAt);
+                    id, action, resource, expiresAt);
         }
-        return adminUserProjection.getUserById(id);
+        return userFromDetail(id);
+    }
+
+    private AdminUserVO userFromDetail(String id) {
+        AdminUserDetailResult after;
+        try {
+            after = adminUserDetailQuery.loadUserDetail(id);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new BusinessException(
+                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Admin user detail query unavailable",
+                    exception);
+        }
+        if (after == null || after.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+        }
+        if (after.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
+                || after.user() == null) {
+            throw new BusinessException(
+                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Admin user detail query unavailable");
+        }
+        return after.user();
+    }
+
+    private BusinessException permissionSnapshotUnavailable(
+            String action, String resource, String reason, Throwable cause) {
+        Map<String, Object> failureValues = new HashMap<>();
+        failureValues.put("action", action);
+        failureValues.put("resource", resource);
+        failureValues.put("permissionSnapshotStatus", "UNAVAILABLE");
+        failureValues.put("permissionSnapshotReason", reason);
+        AuditContext.setOldValues(failureValues);
+        String message = "Authorization snapshot unavailable: " + reason;
+        return cause == null
+                ? new BusinessException(AdminErrorCode.OWNER_QUERY_UNAVAILABLE, message)
+                : new BusinessException(
+                        AdminErrorCode.OWNER_QUERY_UNAVAILABLE, message, cause);
     }
 
     private void requireSuperAdminForManagePermissionsSystem(String action, String resource) {

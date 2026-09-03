@@ -142,6 +142,12 @@ if violations:
 print("App source/dependency boundary: PASS")
 PY
 
+if [[ "${ULTI_STATIC_ONLY:-0}" == "1" ]]; then
+  printf 'Maven dependency-tree resolution: SKIPPED_STATIC_ONLY\n'
+  printf 'app-judge-runtime-dependency-contract: PASS (POM/source checks)\n'
+  exit 0
+fi
+
 if command -v mise >/dev/null 2>&1; then
   MAVEN=(mise exec java@zulu-17.68.203.0 -- bash "$MAVEN_WRAPPER")
 else

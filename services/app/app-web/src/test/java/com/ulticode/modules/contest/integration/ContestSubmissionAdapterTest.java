@@ -1,6 +1,6 @@
 package com.ulticode.modules.contest.integration;
 
-import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
+import com.ulticode.modules.websocket.port.ContestRankingMarkDirtyPort;
 import com.ulticode.app.error.ContestErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.contest.clock.ContestClock;

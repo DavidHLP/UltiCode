@@ -27,6 +27,8 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.RevokePermissionRequest;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
+import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.common.exception.BusinessException;
@@ -50,6 +52,7 @@ public class AdminUserController {
 
     private final UserManagementService userManagementService;
     private final UserPermissionService userPermissionService;
+    private final AdminUserDetailQuery adminUserDetailQuery;
     private final AdminUserProjection adminUserProjection;
 
     @Operation(summary = "Get users list", description = "Get paginated list of users with filters")
@@ -63,7 +66,7 @@ public class AdminUserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> getUserById(@PathVariable String id) {
-        return Result.success(adminUserProjection.getUserById(id));
+        return Result.success(userFromDetail(id));
     }
 
     @Operation(summary = "Create user", description = "Create a new user account")
@@ -193,5 +196,18 @@ public class AdminUserController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public Result<List<UserManagementService.DeleteResult>> bulkDelete(@Valid @RequestBody BulkUserActionRequest request) {
         return Result.success(userManagementService.bulkDelete(request.getIds()));
+    }
+    private AdminUserVO userFromDetail(String id) {
+        AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
+        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+        }
+        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
+                || result.user() == null) {
+            throw new BusinessException(
+                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Admin user detail query unavailable");
+        }
+        return result.user();
     }
 }

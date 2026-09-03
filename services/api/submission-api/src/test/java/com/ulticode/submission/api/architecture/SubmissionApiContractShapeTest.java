@@ -20,6 +20,7 @@ import com.ulticode.submission.api.dto.SubmissionStatusMeta;
 import com.ulticode.submission.api.dto.SubmissionTestCaseDetailDTO;
 import com.ulticode.submission.api.dto.SubmissionVO;
 import com.ulticode.submission.api.dto.SubmissionUserReferenceCountDTO;
+import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
 import com.ulticode.submission.api.dto.RejudgeResultDTO;
 import com.ulticode.submission.api.event.SubmissionLifecycleEventContract;
 import com.ulticode.submission.api.service.ProblemSubmissionStatsPort;
@@ -34,6 +35,7 @@ import com.ulticode.submission.api.service.SubmissionReadPort;
 import com.ulticode.submission.api.service.SubmissionStreakPort;
 import com.ulticode.submission.api.service.SubmissionUserQueryPort;
 import com.ulticode.submission.api.service.SubmissionUserStatsPort;
+import com.ulticode.submission.api.service.SubmissionUserDetailStatsPort;
 import com.ulticode.submission.api.service.SubmissionIntakePort;
 import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import org.junit.jupiter.api.Test;
@@ -59,6 +61,7 @@ class SubmissionApiContractShapeTest {
             SubmissionStreakPort.class,
             SubmissionUserQueryPort.class,
             SubmissionUserStatsPort.class,
+            SubmissionUserDetailStatsPort.class,
             SubmissionIntakePort.class,
             SubmissionVerdictWritePort.class);
 
@@ -88,6 +91,7 @@ class SubmissionApiContractShapeTest {
                 SubmissionResultPayload.class, SubmissionStatusMeta.class,
                 SubmissionTestCaseDetailDTO.class, SubmissionVO.class,
                 SubmissionUserReferenceCountDTO.class,
+                SubmissionUserDetailStatsSnapshotDTO.class,
                 SubmissionLifecycleEventContract.class))
                 .allSatisfy(type -> assertThat(type.getPackageName())
                         .startsWith("com.ulticode.submission.api"));

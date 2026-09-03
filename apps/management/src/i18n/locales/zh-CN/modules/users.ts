@@ -170,7 +170,18 @@ export default {
       profile: '用户资料',
       performance: '性能统计',
       account: '账户信息',
+      permissions: '角色与权限',
     },
+  },
+
+  degradation: {
+    partial: '部分用户数据暂不可用',
+    unavailable: '用户数据提供方不可用',
+    profile: '个人资料暂不可用',
+    stats: '统计数据暂不可用',
+    permissions: '权限数据暂不可用',
+    noPermissions: '该用户没有已确认的权限',
+    permissionWriteDisabled: '权限数据未确认，已禁用角色和权限写入。',
   },
 
   clearSelection: '清除选择',

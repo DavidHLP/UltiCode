@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IconArrowRight, IconLoader2 } from '@tabler/icons-vue'
+import { canWriteUserPermissions } from '@/api/admin/users'
 import { useUsersStore } from '@/stores/admin/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +38,9 @@ const emit = defineEmits<{
 const usersStore = useUsersStore()
 const loading = ref(false)
 const saving = ref(false)
+const permissionWritesAvailable = computed(() =>
+  canWriteUserPermissions(usersStore.currentUser),
+)
 const error = ref('')
 
 const form = ref({
@@ -182,12 +186,19 @@ async function handleSubmit() {
 
           <!-- Section: Access Control -->
           <div>
+            <div
+              v-if="!permissionWritesAvailable"
+              role="status"
+              class="mb-3 p-3 border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] text-sm"
+            >
+              {{ t('users.degradation.permissionWriteDisabled') }}
+            </div>
             <div class="terminal-comment mb-3">{{ t('users.form.sections.accessControl') }}</div>
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
                   <label class="terminal-label block">{{ t('users.form.role') }}</label>
-                  <Select v-model="form.role" :disabled="saving">
+                  <Select v-model="form.role" :disabled="saving || !permissionWritesAvailable">
                     <SelectTrigger class="terminal-input h-9 font-data">
                       <SelectValue />
                     </SelectTrigger>

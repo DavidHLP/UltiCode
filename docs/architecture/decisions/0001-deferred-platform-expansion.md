@@ -32,6 +32,48 @@ The remediation may implement:
 - a remote isolated Judge runtime;
 - focused Contract Module ownership changes that do not add business processes.
 
+## Accepted single-host reference trade-off (P5-INFRA-003)
+
+The current accepted reference topology is the single-host Compose shape: one
+shared MySQL service (including Nacos config storage), one Redis/Streams service,
+one Nacos registry, and one MeiliSearch service. The reference topology is not
+HA and does not provide production failover. Logical Owner schemas/accounts and
+Redis ACL users separate ownership and permissions, not physical fault domains.
+
+The repository has no production deployment, traffic, promotion, or failover
+evidence. The optional HA Compose overlay is a stateful reference only; it does
+not prove transparent application failover. The “may implement” HA alternatives
+listed above describe future options, not current adoption. Any production adoption,
+measured SLO/RTO/RPO, or capacity statement remains `BLOCKED_EXTERNAL`.
+
+Recovery navigation reuses the existing [`backup and recovery`](../../operations/backup-and-recovery.md),
+[`dependency resilience`](../../../services/docs/DEPENDENCY_RESILIENCE_RUNBOOK.md),
+and [`Worker SLO`](../../../services/docs/WORKER_SLO_RUNBOOK.md) runbooks:
+MySQL restore is in backup and recovery; Redis PEL/DLQ navigation is in Worker
+SLO; Meili replay/rebuild and Nacos/Dubbo recovery are in dependency resilience.
+Those drills are repository/disposable evidence only and do not replace deployment
+authority.
+
+### Objective reopen triggers
+
+Re-open this accepted trade-off when any trigger below is met and the required
+evidence is supplied. An absent trigger or evidence is `DEFERRED` or
+`BLOCKED_EXTERNAL`, never `PASS`.
+
+| Trigger | Evidence required | Current status |
+| --- | --- | --- |
+| Second host actually adopted | Deployment authority records a second host serving this topology. | `BLOCKED_EXTERNAL` |
+| Named operator/team and on-call | A named operating team, escalation path, and on-call ownership. | `BLOCKED_EXTERNAL` |
+| Measured SLO/latency or capacity breach | Production telemetry and an approved baseline showing the breach. | `DEFERRED; BLOCKED_EXTERNAL` |
+| Real incident | An incident record showing the shared fault domain or single-host recovery was insufficient. | `BLOCKED_EXTERNAL` |
+| Explicit RTO/RPO | Approved production RTO/RPO targets plus measured recovery evidence. Disposable restore measurements do not satisfy this trigger. | `DEFERRED; BLOCKED_EXTERNAL` |
+| Sustained mixed-version/independent release requirement | Deployment history showing sustained mixed versions or a required independent release cadence. | `DEFERRED; BLOCKED_EXTERNAL` |
+| Fault isolation requirement | An approved compliance, data, or availability requirement for physical isolation beyond schemas, accounts, or ACLs. | `DEFERRED; BLOCKED_EXTERNAL` |
+| Evidence from deployment authority | An authorized production topology decision and supporting failover/recovery evidence. | `BLOCKED_EXTERNAL` |
+
+The existing `Re-evaluation conditions` below remain the future expansion
+categories; they do not assert that any current trigger has passed.
+
 ## Why the current mechanisms are sufficient now
 
 ### Service orchestration

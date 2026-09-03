@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.problem.port;
 
 import com.ulticode.app.api.dto.ProblemIndexDTO;
 

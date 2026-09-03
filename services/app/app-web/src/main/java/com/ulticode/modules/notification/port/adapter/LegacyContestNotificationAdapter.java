@@ -1,6 +1,6 @@
 package com.ulticode.modules.notification.port.adapter;
 
-import com.ulticode.app.api.service.ContestNotificationPort;
+import com.ulticode.modules.notification.port.ContestNotificationPort;
 import com.ulticode.modules.notification.event.NotificationIntentEventPublisher;
 import com.ulticode.modules.notification.intent.ContestStartingIntent;
 import lombok.RequiredArgsConstructor;

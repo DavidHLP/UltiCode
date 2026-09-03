@@ -47,56 +47,81 @@ FRONTEND_ONLY=false
 PREPARE_SUBMISSION_OWNER=false
 ONLY=""
 DEV_MODE=""
+DEV_SCOPE=""
+OBSERVABILITY=false
+QUIET=false
+JSON_ONLY=false
+ACTION=""
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/dev/up.sh [options]
+Usage: ./scripts/dev/up.sh [status|logs|health] [options]
 
 启动 UltiCode 开发栈: Docker 基础设施 → Nacos 配置 → Flyway 迁移 → 启动 auth →
 dev-admin bootstrap (经 Dubbo RPC) → pnpm install → PM2 服务 → 就绪检查。
 # init-env.sh 默认未完成 Submission cutover；up.sh 会在启动前安全停止，
 # 不自动 copy/revoke 数据。完成 runbook 观察并设置 SUBMISSION_CUTOVER_COMPLETE=true 后再启动。
 
+Scopes (the resolver is shared by up/stop/doctor):
+  dev-lite         六后端兼容默认 (DB search, no Meili, no frontend)
+  dev-full         九进程兼容全栈 (indexed Search + both frontends)
+  app-journey      Auth/App/Notification/Submission/Judge + Console
+  admin            Auth/Admin/App/Notification/Submission + Management
+  submission-judge App/Submission/Judge only
+  search           Auth/App/Search + Console + MeiliSearch
+  full-stack       九进程 + MeiliSearch; observability remains opt-in
+
 Options:
+  --scope <name>       select one named scope (defaults to dev-lite)
+  --observability      explicitly add the observability Compose profile
   --quick              热重启: 跳过 infra/Nacos/迁移/admin/依赖, 只重启 PM2 服务
                        (改代码后最快路径)
   --rebuild            启动后端前执行 services 反应堆 ./mvnw -DskipTests install,
-                       刷新 ~/.m2 构建产物。PM2 以单模块 spring-boot:run 启动各
-                       服务并从 ~/.m2 解析兄弟模块; 源码接口变更后若不重新 install,
-                       会拿到旧 jar (构造器不匹配 / ClassNotFoundException)。
+                       刷新 ~/.m2 构建产物。
   --skip-infra         跳过 Docker 基础设施 (假设 mysql/redis/nacos 已运行)
   --skip-migrate       跳过 Flyway 迁移
   --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
   --skip-install       跳过 pnpm install (依赖未变时)
   --skip-seed-data     跳过 DEV-LOCAL App Owner 题目/题单/论坛/竞赛/题解种子数据
-  --only <apps>        只起指定 PM2 app, 逗号分隔
-                       (如 auth,admin,app,submission,notification,judge,search 或 9101,9102; 前端仍可用 9002/9003)
-  --no-frontend        不起前端 (dev-lite 等同六个后端；dev-full 另含 Search)
+  --only <apps>        只起指定 PM2 app, 逗号分隔 (legacy subset adapter)
+  --no-frontend        不起前端
   --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
   --prepare-submission-owner 只启动基础设施、迁移并 provision/unlock owner，不启动 PM2
   --mode <dev-lite|dev-full>
-                       dev-lite=remote owner reads/DB search/no Search worker（需 cutover marker）；
-                       dev-full=remote owner reads/indexed/Search worker；默认 dev-lite
+  --quiet, -q          suppress recommendation for status/health actions
+  --json               emit secret-free JSON for status/health actions
   -h, --help           显示此帮助
 
 Examples:
-  ./scripts/dev/up.sh                          # 全量冷启动
-  ./scripts/dev/up.sh --quick                  # 改代码后热重启 (最快)
-  ./scripts/dev/up.sh --rebuild                # 先刷新 ~/.m2 构建产物再起服务
-  ./scripts/dev/up.sh --only auth              # 只起 Auth
-  ./scripts/dev/up.sh --frontend-only          # 只起前端
-  ./scripts/dev/up.sh --prepare-submission-owner # 准备 owner，随后执行 cutover runbook
-  ./scripts/dev/up.sh --no-frontend --skip-bootstrap
-  ./scripts/dev/up.sh --skip-infra --skip-migrate
-  ./scripts/dev/up.sh --mode dev-lite   # 首次贡献者最小闭环，DB search，不启用 App shadow
-  ./scripts/dev/up.sh --mode dev-full   # 显式 remote/cutover/indexed/Search owner 栈
+  ./scripts/dev/up.sh                          # default dev-lite
+  ./scripts/dev/up.sh --scope app-journey     # ordinary user journey
+  ./scripts/dev/up.sh --scope admin            # admin API + management UI
+  ./scripts/dev/up.sh --scope submission-judge # judge path without Search
+  ./scripts/dev/up.sh --scope full-stack       # explicit Search/full process set
+  ./scripts/dev/up.sh --scope full-stack --observability
+  ./scripts/dev/up.sh status --scope app-journey
+  ./scripts/dev/up.sh logs --scope app-journey
+  ./scripts/dev/up.sh health --scope app-journey
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    status|logs|health)
+      [[ -z "$ACTION" ]] || { echo "Only one lifecycle action may be selected." >&2; exit 2; }
+      ACTION="$1"
+      shift
+      ;;
+    --status|--logs|--health)
+      [[ -z "$ACTION" ]] || { echo "Only one lifecycle action may be selected." >&2; exit 2; }
+      ACTION="${1#--}"
+      shift
+      ;;
     --mode)           DEV_MODE="${2:-}"; shift 2 ;;
-    --skip-install)   SKIP_INSTALL=true; shift ;;
+    --scope)          DEV_SCOPE="${2:-}"; shift 2 ;;
+    --observability)  OBSERVABILITY=true; shift ;;
+    --quiet|-q)       QUIET=true; shift ;;
+    --json)           JSON_ONLY=true; shift ;;
     --skip-infra)     SKIP_INFRA=true; shift ;;
     --skip-migrate)   SKIP_MIGRATE=true; shift ;;
     --skip-bootstrap) SKIP_BOOTSTRAP=true; shift ;;
@@ -112,13 +137,61 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$DEV_MODE" ]]; then
-  DEV_MODE="dev-lite"
+if [[ -n "$DEV_SCOPE" ]]; then
+  devstack_validate_scope_name "$DEV_SCOPE"
+  scope_mode="$(devstack_mode_for_scope "$DEV_SCOPE")"
+  if [[ -n "$DEV_MODE" && "$DEV_MODE" != "$scope_mode" ]]; then
+    echo "--scope $DEV_SCOPE requires --mode $scope_mode; do not combine incompatible selectors." >&2
+    exit 2
+  fi
+  DEV_MODE="$scope_mode"
+else
+  DEV_MODE="${DEV_MODE:-dev-lite}"
+  devstack_validate_mode_name "$DEV_MODE"
+  DEV_SCOPE="$(devstack_scope_for_mode "$DEV_MODE")"
 fi
-devstack_validate_mode_name "$DEV_MODE"
 
+run_lifecycle_action() {
+  local action="$1" scope="$2" selected="" normalized=""
+  if [[ -n "$ONLY" ]]; then
+    normalized="$(devstack_normalize_apps "$ONLY")" || return $?
+    selected="$normalized"
+  else
+    selected="$(devstack_scope_apps "$scope")" || return $?
+  fi
+  devstack_validate_scope_selection "$scope" "$selected" || return $?
 
-if [[ "$DEV_MODE" == "dev-lite" && -z "$ONLY" && "$FRONTEND_ONLY" != true ]]; then
+  case "$action" in
+    status|health)
+      local -a doctor_args=(--scope "$scope")
+      [[ -n "$ONLY" ]] && doctor_args+=(--only "$selected")
+      [[ "$OBSERVABILITY" == true ]] && doctor_args+=(--observability)
+      [[ "$QUIET" == true || "$action" == health ]] && doctor_args+=(--quiet)
+      [[ "$JSON_ONLY" == true ]] && doctor_args+=(--json)
+      exec "$ROOT_DIR/scripts/dev/doctor.sh" "${doctor_args[@]}"
+      ;;
+    logs)
+      command -v pm2 >/dev/null 2>&1 || {
+        echo "pm2 not found; no logs available." >&2
+        return 1
+      }
+      local -a apps=()
+      local IFS=','
+      read -ra apps <<< "$selected"
+      echo "PM2 logs for scope $scope: $selected"
+      pm2 logs "${apps[@]}" --nostream --lines 100
+      ;;
+  esac
+}
+
+if [[ -n "$ACTION" ]]; then
+  # --mode is retained for compatibility; named scopes are the canonical
+  # lifecycle selector and all actions resolve through the same manifest.
+  run_lifecycle_action "$ACTION" "$DEV_SCOPE"
+  exit $?
+fi
+
+if [[ "$DEV_SCOPE" == "dev-lite" && -z "$ONLY" && "$FRONTEND_ONLY" != true ]]; then
   NO_FRONTEND=true
 fi
 
@@ -147,61 +220,19 @@ if [[ "$PREPARE_SUBMISSION_OWNER" == true && ("$SKIP_MIGRATE" == true || "$FRONT
   echo "--prepare-submission-owner requires a backend migration run; remove --quick/--skip-migrate/--frontend-only." >&2
   exit 2
 fi
-# 把 owner 名、service 名或端口统一规范化为 PM2 app 名
-normalize_apps() {
-  local IFS=','
-  local out=""
-  for a in $1; do
-    a="${a// /}"
-    [[ -z "$a" ]] && continue
-    case "$a" in
-      auth|backend-auth|ulticode-auth|9101)
-        a="ulticode-auth"
-        ;;
-      admin|backend-admin|ulticode-admin|9102)
-        a="ulticode-admin"
-        ;;
-      app|backend-app|ulticode-app|9103)
-        a="ulticode-app"
-        ;;
-  judge|backend-judge|ulticode-judge|9104)
-        a="ulticode-judge"
-        ;;
-      notification|backend-notification|ulticode-notification|9105)
-        a="ulticode-notification"
-        ;;
-      submission|backend-submission|ulticode-submission|9106)
-        a="ulticode-submission"
-        ;;
-      search|backend-search|ulticode-search|9107)
-        a="ulticode-search"
-        ;;
-      console|ulticode-9002|9002)
-        a="ulticode-9002"
-        ;;
-      management|ulticode-9003|9003)
-        a="ulticode-9003"
-        ;;
-      *)
-        echo "Unknown PM2 app alias: $a" >&2
-        exit 2
-        ;;
-    esac
-    [[ ",$out," == *",$a,"* ]] || out="${out:+$out,}$a"
-  done
-  echo "$out"
-}
 
-# 决定起哪些 PM2 app (--only 优先级最高, 其次 --frontend-only / --no-frontend)
+# Resolve the exact PM2 set first; Compose targets and readiness are derived
+# from this same set below.
 if [[ -n "$ONLY" ]]; then
-  PM2_APPS="$(normalize_apps "$ONLY")"
+  PM2_APPS="$(devstack_normalize_apps "$ONLY")"
 elif [[ "$FRONTEND_ONLY" == true ]]; then
   PM2_APPS="ulticode-9002,ulticode-9003"
 elif [[ "$NO_FRONTEND" == true ]]; then
-  PM2_APPS="$(devstack_backend_apps_for_mode "$DEV_MODE")"
+  PM2_APPS="$(devstack_backend_apps_for_scope "$DEV_SCOPE")"
 else
-  PM2_APPS="$(devstack_apps_for_mode "$DEV_MODE")"
+  PM2_APPS="$(devstack_apps_for_scope "$DEV_SCOPE")"
 fi
+devstack_validate_scope_selection "$DEV_SCOPE" "$PM2_APPS"
 
 # ===== 前置检查 =====
 for command in docker pnpm pm2 curl timeout openssl; do
@@ -241,7 +272,7 @@ fi
 
 apply_env_overrides
 
-devstack_apply_mode "$DEV_MODE"
+devstack_apply_scope "$DEV_SCOPE"
 
 : "${SUBMISSION_MIGRATION_DB_USER:=${DEV_MIGRATION_SUBMISSION_USER:-}}"
 : "${SUBMISSION_MIGRATION_DB_PASSWORD:=${DEV_MIGRATION_SUBMISSION_PASSWORD:-}}"
@@ -309,6 +340,25 @@ compose=(
   -f "$ROOT_DIR/docker-compose.yml"
   -f "$ROOT_DIR/docker-compose.dev.yml"
 )
+
+JUDGE_ENABLED=false
+[[ ",$PM2_APPS," == *,ulticode-judge,* ]] && JUDGE_ENABLED=true
+if [[ "$JUDGE_ENABLED" == true ]]; then
+  # The local Judge path is opt-in. Keep the host-socket overlay out of
+  # non-Judge scopes; explicit infra targets still prevent backend-judge from
+  # being created as a second worker.
+  compose+=(-f "$ROOT_DIR/docker-compose.judge-dev.yml" --profile judge-socket)
+fi
+
+INFRA_TARGETS=""
+if [[ "$FRONTEND_ONLY" != true ]]; then
+  INFRA_TARGETS="$(devstack_infra_for_selection "$DEV_SCOPE" "$PM2_APPS" "$OBSERVABILITY")"
+fi
+COMPOSE_TARGETS=()
+if [[ -n "$INFRA_TARGETS" ]]; then
+  IFS=',' read -ra COMPOSE_TARGETS <<< "$INFRA_TARGETS"
+fi
+mapfile -t SELECTED_READINESS < <(devstack_readiness_for_selection "$DEV_SCOPE" "$PM2_APPS")
 
 resolve_mysql_container() {
   local configured="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
@@ -387,20 +437,31 @@ wait_for_health() {
 
 # ===== 步骤 1: Docker 基础设施 =====
 if [[ "$SKIP_INFRA" != true ]]; then
-  echo "Starting MySQL, Redis, and Nacos..."
-  # --force-recreate: 用当前 .env 重建容器, 避免沿用过期 env
-  # (否则 REDIS_PASSWORD 等 env 漂移后容器仍持旧值 → Spring 启动报 RedisWrongPasswordException)
-  "${compose[@]}" up -d --force-recreate
-  MYSQL_CONTAINER="$(compose_service_container compose mysql)"
-  MIGRATION_MYSQL_CONTAINER="$MYSQL_CONTAINER"
-  export MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER
-  wait_for_health mysql
-  wait_for_health redis
-  wait_for_health nacos
+  [[ "${#COMPOSE_TARGETS[@]}" -gt 0 ]] || {
+    echo "Scope $DEV_SCOPE has no Compose targets; use --frontend-only for frontend-only startup." >&2
+    exit 2
+  }
+  if [[ "$OBSERVABILITY" == true ]]; then
+    compose+=(--profile observability -f "$ROOT_DIR/docker-compose.observability.yml")
+  fi
+  echo "Starting infrastructure for scope $DEV_SCOPE: $INFRA_TARGETS"
+  # Explicit targets are mandatory: an unqualified Compose up would create
+  # MeiliSearch even when Search is disabled.
+  "${compose[@]}" up -d --force-recreate "${COMPOSE_TARGETS[@]}"
+  if [[ ",$INFRA_TARGETS," == *,mysql,* ]]; then
+    MYSQL_CONTAINER="$(compose_service_container compose mysql)"
+    MIGRATION_MYSQL_CONTAINER="$MYSQL_CONTAINER"
+    export MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER
+  fi
+  for infra_service in "${COMPOSE_TARGETS[@]}"; do
+    wait_for_health "$infra_service"
+  done
 
-  # ===== 步骤 2: Nacos 管理员配置 (依赖 Nacos 运行, 故随 infra 一起) =====
-  echo "Provisioning the local Nacos administrator..."
-  "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
+  if [[ ",$INFRA_TARGETS," == *,nacos,* ]]; then
+    # ===== 步骤 2: Nacos 管理员配置 (依赖 Nacos 运行, 故随 infra 一起) =====
+    echo "Provisioning the local Nacos administrator..."
+    "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
+  fi
 else
   echo "Skipping Docker infrastructure + Nacos provisioning (--skip-infra / --quick / --frontend-only)."
 fi
@@ -494,7 +555,8 @@ if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *
 fi
 
 # ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====
-if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
+if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" \
+  && ",$PM2_APPS," == *,ulticode-auth,* ]]; then
   # UserProvisioningAdapter 通过 Dubbo RPC 调用 backend-auth 的
   # AccountManagementService 创建/恢复 admin (check=false: 容器可启动, 调用期才需要 provider)。
   # 所以 bootstrap 前必须先拉起 ulticode-auth 并等待其 Dubbo provider 注册到 Nacos。
@@ -639,10 +701,9 @@ preflight_service_ports() {
     echo "[WARN] ss not available; skipping service port preflight." >&2
     return 0
   }
-  local app kind port path pid pids listener_cmd owned
-  for app in "${DEVSTACK_READINESS_APPS[@]}"; do
-    [[ ",$PM2_APPS," == *",$app,"* ]] || continue
-    IFS='|' read -r kind port path <<< "$(devstack_readiness "$app")"
+  local app kind port path pid pids listener_cmd owned readiness
+  for readiness in "${SELECTED_READINESS[@]}"; do
+    IFS='|' read -r app kind port path <<< "$readiness"
     [[ "$kind" == "http" ]] || continue
     pids="$(ss -ltnp "sport = :$port" 2>/dev/null | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true)"
     [[ -z "$pids" ]] && continue
@@ -680,14 +741,25 @@ echo "Starting PM2 services: $PM2_APPS"
       echo 0 > "$ROOT_DIR/logs/.judge-ready-offset"
     fi
   }
-  # Mode convergence: delete PM2 apps omitted by current mode so dev-full -> dev-lite does not leave Search/frontend running.
-  all_pm2_csv="$(devstack_apps_csv "${DEVSTACK_READINESS_APPS[@]}")"
-  IFS=',' read -ra _all <<< "$all_pm2_csv"
-  for _app in "${_all[@]}"; do
-    if [[ ",$PM2_APPS," != *",$_app,"* ]]; then
-      pm2 delete "$_app" 2>/dev/null || pm2 stop "$_app" 2>/dev/null || true
-    fi
-  done
+  # Exact-set convergence (dev-lite/dev-full/full-stack): delete PM2 apps
+  # omitted by the selected set so a mode switch does not leave Search or
+  # frontend processes from the previous exact set running. Named partial
+  # scopes (app-journey/admin/submission-judge/search) keep other scopes'
+  # processes untouched; stop.sh --scope/--all owns that teardown.
+  case "$DEV_SCOPE" in
+    dev-lite|dev-full|full-stack)
+      all_pm2_csv="$(devstack_apps_csv "${DEVSTACK_READINESS_APPS[@]}")"
+      IFS=',' read -ra _all <<< "$all_pm2_csv"
+      for _app in "${_all[@]}"; do
+        if [[ ",$PM2_APPS," != *",$_app,"* ]]; then
+          pm2 delete "$_app" 2>/dev/null || pm2 stop "$_app" 2>/dev/null || true
+        fi
+      done
+      ;;
+    *)
+      echo "Named scope $DEV_SCOPE: leaving processes of other scopes running (use stop.sh --scope/--all to tear down)." >&2
+      ;;
+  esac
   if [[ ",$PM2_APPS," == *",ulticode-judge,"* && ",$PM2_APPS," == *",ulticode-app,"* ]]; then
     first="${PM2_APPS//ulticode-judge,/}"
     first="${first//,ulticode-judge/}"
@@ -779,35 +851,35 @@ check_pm2_online() {
     | grep "$banner" >/dev/null 2>&1
 }
 
-apps_csv=",$PM2_APPS,"
 for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
   all_ok=true
-  for app in "${DEVSTACK_READINESS_APPS[@]}"; do
-    [[ "$apps_csv" == *",$app,"* ]] || continue
-    IFS='|' read -r readiness_kind readiness_port readiness_path <<< "$(devstack_readiness "$app")"
+  for readiness in "${SELECTED_READINESS[@]}"; do
+    IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
     case "$readiness_kind" in
       http) check_port "$readiness_port" "$readiness_path" || all_ok=false ;;
       pm2) check_pm2_online "$app" || all_ok=false ;;
     esac
   done
   if [[ "$all_ok" == true ]]; then
-    cat <<EOF
-Development stack is ready (mode: $DEV_MODE; services: $PM2_APPS).
-Owner migrations: $(devstack_apps_csv "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}")
-
-  Console:    http://localhost:9002
-  Management: http://localhost:9003
-  Auth API:   http://localhost:9101
-  Admin API:  http://localhost:9102
-  App API:    http://localhost:9103
-  Notification API: http://localhost:9105
-  Submission owner: PM2 ulticode-submission (Dubbo 20886)
-  Judge Worker: PM2 ulticode-judge (Dubbo 20884)
-  Search Worker: PM2 ulticode-search (opt-in locally; production Compose always defines it)
-  Nacos:      http://localhost:28848/nacos
-EOF
+    printf 'Development stack is ready (scope: %s; mode: %s; services: %s).\n' \
+      "$DEV_SCOPE" "$DEV_MODE" "$PM2_APPS"
+    echo "Owner migrations: $(devstack_apps_csv "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}")"
+    echo
+    for readiness in "${SELECTED_READINESS[@]}"; do
+      IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
+      label="$(devstack_app_label "$app")"
+      if [[ "$readiness_kind" == http ]]; then
+        printf '  %-24s http://localhost:%s%s\n' "$label:" "$readiness_port" "$readiness_path"
+      else
+        printf '  %-24s PM2 %s (port %s)\n' "$label:" "$app" "$readiness_port"
+      fi
+    done
+    if [[ ",$INFRA_TARGETS," == *,nacos,* ]]; then
+      echo "  Nacos:                   http://localhost:28848/nacos"
+    fi
     # admin 凭据只在起了后端时显示 (admin 由 dev-admin bootstrap 维护)
-    if [[ "$apps_csv" == *",ulticode-auth,"* || "$apps_csv" == *",ulticode-admin,"* || "$apps_csv" == *",ulticode-app,"* ]] && [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
+    if [[ ",$PM2_APPS," == *,ulticode-auth,* || ",$PM2_APPS," == *,ulticode-admin,* || ",$PM2_APPS," == *,ulticode-app,* ]] \
+      && [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
       cat <<EOF
 
 Local development administrator:

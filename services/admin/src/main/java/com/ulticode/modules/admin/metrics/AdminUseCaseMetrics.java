@@ -9,6 +9,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.function.Supplier;
@@ -167,7 +168,7 @@ public final class AdminUseCaseMetrics {
 
     /**
      * Measure one use-case invocation while preserving the action's result or
-     * exception. Thrown actions are marked unavailable for the metric only.
+     * exception. The default classifier treats a successful return as healthy.
      */
     public <T> T observe(
             String useCase,
@@ -175,10 +176,30 @@ public final class AdminUseCaseMetrics {
             int serialRounds,
             Freshness freshness,
             Supplier<T> action) {
+        return observe(useCase, logicalCallsByOwner, serialRounds, freshness,
+                ignored -> DegradationStatus.OK, action);
+    }
+
+    /**
+     * Measure one use-case invocation and classify a successful result's
+     * degradation state without changing the business result.
+     */
+    public <T> T observe(
+            String useCase,
+            Map<Owner, Integer> logicalCallsByOwner,
+            int serialRounds,
+            Freshness freshness,
+            Function<T, DegradationStatus> degradationOf,
+            Supplier<T> action) {
         long started = monotonicNanos();
         DegradationStatus degradation = DegradationStatus.OK;
         try {
-            return action.get();
+            T result = action.get();
+            if (degradationOf != null) {
+                DegradationStatus classified = degradationOf.apply(result);
+                degradation = classified == null ? DegradationStatus.OK : classified;
+            }
+            return result;
         } catch (RuntimeException | Error failure) {
             degradation = DegradationStatus.UNAVAILABLE;
             throw failure;

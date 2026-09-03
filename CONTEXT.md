@@ -62,8 +62,8 @@
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],
   [[AdminReadModel seam]], [[CurrentUserProvider seam]].
-  `AdminSubmissionReadPort`, `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`,
-  `ProblemDetailPort`, `TokenBlacklistPort`.
+  `AdminSubmissionReadPort`, `AdminCommentReadPort`, `AdminSubmissionUserDetailStatsReadPort`,
+  `AuthSessionPort`, `ProblemDetailPort`, `TokenBlacklistPort`.
 - **TokenBlacklistPort** — read-only revocation seam consulted by the
   WebSocket authentication path before a STOMP CONNECT is accepted. Owned
   by the websocket module (the consumer); the Redis adapter
@@ -73,8 +73,12 @@
 - **AdminReadModel seam** — the running series of typed read ports the
   admin module owns to stop reaching across into submission / user /
   forum / solution mappers: `AdminSubmissionReadPort` (dashboard global),
-  `AdminUserStatsReadPort` (per-user stats), `AdminCommentReadPort`
-  (comment-view enrichment), and `AdminContestReadPort`.
+  `AdminCommentReadPort` (comment-view enrichment), and
+  `AdminContestReadPort`. The retired per-user stats port
+  (`AdminUserStatsReadPort`) was replaced by the single use-case
+  `AdminUserDetailQuery` deep module backed by the Auth
+  `AuthorizationSnapshotService` and the provider-owned Submission
+  `SubmissionUserDetailStatsPort` snapshot.
 - **ContestSubmissionPort** — the port through which submission asks contest
   to record synchronous same-transaction contest effects.
 - **SubmissionPerformanceStats** — deep module owning the runtime/memory

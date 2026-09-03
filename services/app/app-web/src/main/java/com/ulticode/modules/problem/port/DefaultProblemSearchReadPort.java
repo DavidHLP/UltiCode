@@ -2,7 +2,6 @@ package com.ulticode.modules.problem.port;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ulticode.app.api.dto.ProblemIndexDTO;
-import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;

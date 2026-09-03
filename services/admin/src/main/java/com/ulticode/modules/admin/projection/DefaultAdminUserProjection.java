@@ -3,74 +3,62 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.dto.PermissionEntry;
-import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
-import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.auth.api.service.AuthorizationSnapshotService;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboReference;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
+import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.ulticode.common.rpc.RpcPolicy;
 
 /**
  * Adapter for {@link AdminUserProjection} using decoupled Auth and App RPC/port seams.
  */
-@Slf4j
 @Service
 public class DefaultAdminUserProjection implements AdminUserProjection {
 
-    private final AdminUserStatsReadPort userStatsReadPort;
     private final AdminUserEnricher userEnricher;
-    @Autowired(required = false)
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private AuthorizationSnapshotService authorizationSnapshotService;
-
-    @DubboReference(group = "backend-auth", version = "1.0.0", timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
-    private RoleTemplateService roleTemplateService;
+    private final AdminUserDetailQuery userDetailQuery;
 
     /**
-     * Production constructor: the local stats port and the shared owner
-     * aggregation Module are constructor-injected;
-     * the Dubbo references stay optional field injections so the admin
-     * context loads while providers are down. Explicitly marked
-     * {@link Autowired} because the test constructor below would otherwise
-     * leave Spring without a unique candidate.
+     * Production constructor: account/profile list enrichment and the detail
+     * use case are separate seams; this compatibility projection only
+     * delegates the detail operation.
      */
     @Autowired
-    public DefaultAdminUserProjection(AdminUserStatsReadPort userStatsReadPort,
-                                      AdminUserEnricher userEnricher) {
-        this.userStatsReadPort = userStatsReadPort;
+    public DefaultAdminUserProjection(
+            AdminUserEnricher userEnricher,
+            AdminUserDetailQuery userDetailQuery) {
         this.userEnricher = userEnricher;
+        this.userDetailQuery = userDetailQuery;
     }
 
-    // Constructors for test injection when Spring/Dubbo context is unavailable
-    public DefaultAdminUserProjection(com.ulticode.auth.api.service.AccountQueryService accountQueryService,
-                                      com.ulticode.app.api.service.UserProfileQueryService userProfileQueryService,
-                                      AdminUserStatsReadPort userStatsReadPort,
-                                      AuthorizationSnapshotService authorizationSnapshotService,
-                                      RoleTemplateService roleTemplateService) {
-        this.userStatsReadPort = userStatsReadPort;
+    /**
+     * Test constructor retained for callers that inject the owner RPC mocks
+     * directly. Role templates are intentionally ignored: the Auth
+     * authorization snapshot already carries role and direct entries.
+     */
+    public DefaultAdminUserProjection(
+            com.ulticode.auth.api.service.AccountQueryService accountQueryService,
+            com.ulticode.app.api.service.UserProfileQueryService userProfileQueryService,
+            com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort,
+            com.ulticode.app.api.service.SolutionReadPort solutionReadPort,
+            com.ulticode.auth.api.service.AuthorizationSnapshotService authorizationSnapshotService) {
         this.userEnricher = new AdminUserEnricher(
                 null, userProfileQueryService, accountQueryService);
-        this.authorizationSnapshotService = authorizationSnapshotService;
-        this.roleTemplateService = roleTemplateService;
+        this.userDetailQuery = new com.ulticode.modules.admin.query.DefaultAdminUserDetailQuery(
+                userEnricher,
+                submissionStatsReadPort,
+                solutionReadPort,
+                authorizationSnapshotService);
     }
 
     @Override
@@ -106,21 +94,17 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     @Override
     public AdminUserVO getUserById(String id) {
-        AdminUserEnricher.AccountDetail ownerDetail =
-                userEnricher.findAccountWithProfile(id);
-        if (ownerDetail == null) {
+        AdminUserDetailResult result = userDetailQuery.loadUserDetail(id);
+        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
             throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
         }
-        AuthAccountDTO account = ownerDetail.account();
-        AdminUserVO vo = toVO(account, ownerDetail.profile());
-        populateStats(vo, account.accountId());
-        populatePermissions(vo, account.accountId(), account.role());
-        if (ownerDetail.status() == DegradationStatus.PARTIAL) {
-            vo.setDegradationStatus(DegradationStatus.PARTIAL);
+        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE) {
+            throw new BusinessException(
+                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Admin user detail query unavailable");
         }
-        return vo;
+        return result.user();
     }
-
     private AdminUserVO toVO(AuthAccountDTO account, UserProfileDTO profile) {
         if (account == null) {
             return null;
@@ -146,79 +130,4 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
         return vo;
     }
 
-    private void populateStats(AdminUserVO vo, String userId) {
-        if (userStatsReadPort == null) {
-            return;
-        }
-        AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
-        stats.setTotalSubmissions((int) userStatsReadPort.countSubmissionsByUserId(userId));
-        stats.setAcceptedSubmissions((int) userStatsReadPort.countAcceptedProblemsByUserId(userId));
-        stats.setTotalSolutions((int) userStatsReadPort.countSolutionsByUserId(userId));
-        stats.setStreak(userStatsReadPort.calculateSubmissionStreak(userId));
-        vo.setStats(stats);
-    }
-
-    private void populatePermissions(AdminUserVO vo, String userId, String role) {
-        List<AdminUserVO.PermissionInfo> permissions = new ArrayList<>();
-        if (StringUtils.hasText(role)) {
-            populateRolePermissions(permissions, role);
-        }
-        populateDirectPermissions(permissions, userId);
-        vo.setPermissions(permissions);
-    }
-
-    private void populateRolePermissions(List<AdminUserVO.PermissionInfo> sink, String role) {
-        if (roleTemplateService == null) {
-            return;
-        }
-        RpcResult<List<PermissionEntry>> result = roleTemplateService.getRoleTemplate(role);
-        if (result == null || !result.success() || result.data() == null) {
-            return;
-        }
-        for (PermissionEntry entry : result.data()) {
-            AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-            info.setAction(entry.action());
-            info.setResource(entry.resource());
-            info.setSource("role");
-            info.setExpiresAt(null);
-            sink.add(info);
-        }
-    }
-
-    private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
-        if (authorizationSnapshotService == null) {
-            return;
-        }
-        com.ulticode.auth.api.dto.AuthorizationSnapshotDTO snapshot;
-        try {
-            RpcResult<com.ulticode.auth.api.dto.AuthorizationSnapshotDTO> rpc =
-                    authorizationSnapshotService.getSnapshot(userId);
-            if (rpc == null || !rpc.success() || rpc.data() == null) {
-                return;
-            }
-            snapshot = rpc.data();
-        } catch (Exception e) {
-            log.warn("Failed to fetch authorization snapshot for user {}: {}", userId, e.getMessage());
-            return;
-        }
-        if (snapshot == null || snapshot.permissionEntries() == null) {
-            return;
-        }
-        LocalDateTime now = LocalDateTime.now();
-        for (PermissionEntry entry : snapshot.permissionEntries()) {
-            if (!"direct".equals(entry.source())) {
-                continue;
-            }
-            OffsetDateTime expiresAt = entry.expiresAt();
-            if (expiresAt != null && !expiresAt.toLocalDateTime().isAfter(now)) {
-                continue;
-            }
-            AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-            info.setAction(entry.action());
-            info.setResource(entry.resource());
-            info.setSource("direct");
-            info.setExpiresAt(expiresAt != null ? expiresAt.toLocalDateTime() : null);
-            sink.add(info);
-        }
-    }
 }

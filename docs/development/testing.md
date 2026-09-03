@@ -3,12 +3,15 @@
 ## 统一入口
 
 ```bash
-./scripts/dev/test.sh quick
-./scripts/dev/test.sh full
-./scripts/dev/test.sh integration
+./scripts/dev/test.sh static       # 只读、零基础设施的结构门禁
+./scripts/dev/test.sh unit         # static + 前端单测；后端零基础设施 allowlist 未解前 fail closed (U-03)
+./scripts/dev/test.sh quick        # static + unit 兼容别名（已弃用，新代码请用全名）
+./scripts/dev/test.sh full-local   # 容器 + 迁移 + Maven verify + 前端测试（原 quick 的重型语义）
+./scripts/dev/test.sh full         # full-local + 前端构建、i18n 与依赖审计
+./scripts/dev/test.sh integration  # full-local + Testcontainers/Sandbox/owner migration 安全演练
 ```
 
-`quick` 覆盖后端 verify/JaCoCo、共享包、Console/Management coverage 与类型检查；`full` 追加前端构建、i18n 和依赖审计；`integration` 追加 Testcontainers、数据库/Redis/Sandbox 相关集成测试。具体阶段由 `scripts/dev/test.sh` 实现，不在本页复制脚本内部逻辑。
+`static` 不调用 Docker、数据库、服务、Testcontainers、Maven verify 或 `pnpm install`，可用 deny-shim 自证（见 `scripts/test/zero-infra-validation-contract.sh`）；缺 shellcheck 等可选工具时跳过并提示。`full-local` 保留原 `quick` 的完整覆盖（MySQL/Redis、owner migration、Maven verify/JaCoCo、Console/Management coverage 与类型检查）。`full` 追加前端构建、i18n 与依赖审计；`integration` 追加 Testcontainers、数据库/Redis/Sandbox 相关集成测试。后端零基础设施 unit 分级（U-03）依赖逐测试的外部资源分类，当前无执行证据前 `unit`/`quick` 按 fail-closed 处理并在 `scripts/dev/test.sh --describe` 输出精确原因。具体阶段由 `scripts/dev/test.sh` 实现，不在本页复制脚本内部逻辑。
 
 ## 按触碰面验证
 

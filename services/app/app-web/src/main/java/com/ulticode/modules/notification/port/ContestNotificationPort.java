@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.notification.port;
 
 import java.time.LocalDateTime;
 

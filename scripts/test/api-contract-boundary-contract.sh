@@ -124,20 +124,39 @@ contains .github/workflows/_contract.yml 'ci_revision=${current_revision}-ci.${G
 contains .github/workflows/_contract.yml 'japicmp self-comparison detected'
 contains .github/workflows/_contract.yml 'japicmp baseline artifact/version is missing'
 contains .github/workflows/_contract.yml 'baseline has no standalone API contracts; compatibility comparison skipped'
-python3 - "$ROOT_DIR/services/api/app-api/src/main/java" "$ROOT_DIR/docs/architecture/evidence/P2-APP-001-app-api-catalog.md" <<'PY'
+python3 - "$ROOT_DIR/services/api/app-api/src/main/java" "$ROOT_DIR/docs/architecture/evidence/P2-APP-001-app-api-catalog.md" "$ROOT_DIR/services/app/app-web/src/main/java/com/ulticode/modules" <<'PY'
 import re
 import sys
 from pathlib import Path
 
 source_root = Path(sys.argv[1])
 catalog = Path(sys.argv[2]).read_text(encoding="utf-8")
-interfaces = sorted(
-    match.group(1)
-    for source in source_root.rglob("*.java")
-    for match in [re.search(r"\bpublic\s+interface\s+([A-Za-z0-9_]+)", source.read_text(encoding="utf-8"))]
-    if match
-)
+internal_root = Path(sys.argv[3])
+internalized = {
+    "ContestAchievementPort": "achievement/port/ContestAchievementPort.java",
+    "ContestNotificationPort": "notification/port/ContestNotificationPort.java",
+    "ContestRankingMarkDirtyPort": "websocket/port/ContestRankingMarkDirtyPort.java",
+    "ContestStatusPushPort": "websocket/port/ContestStatusPushPort.java",
+    "ContestSubscriptionPolicy": "contest/subscription/ContestSubscriptionPolicy.java",
+    "ProblemDifficultyReadPort": "problem/port/ProblemDifficultyReadPort.java",
+    "ProblemInteractionQueryPort": "problem/port/ProblemInteractionQueryPort.java",
+    "ProblemListReadPort": "problem/port/ProblemListReadPort.java",
+    "ProblemSearchReadPort": "problem/port/ProblemSearchReadPort.java",
+    "ProblemTagStatsReadPort": "problem/port/ProblemTagStatsReadPort.java",
+}
+
+def interface_files(root):
+    result = {}
+    for source in root.rglob("*.java"):
+        match = re.search(r"\bpublic\s+interface\s+([A-Za-z0-9_]+)", source.read_text(encoding="utf-8"))
+        if match:
+            result.setdefault(match.group(1), []).append(source)
+    return result
+
+source_files = interface_files(source_root)
+interfaces = sorted(source_files)
 source_names = set(interfaces)
+internalized_names = set(internalized)
 catalog_rows = []
 in_catalog = False
 for line in catalog.splitlines():
@@ -151,23 +170,28 @@ for line in catalog.splitlines():
         if name not in {"Interface", "---"}:
             catalog_rows.append((name, line))
 catalog_names = {name for name, _ in catalog_rows}
-extra = sorted(catalog_names - source_names)
+extra = sorted(catalog_names - (source_names | internalized_names))
 if extra:
     raise SystemExit("app-api catalog has stale interface rows: " + ", ".join(extra))
 missing = []
-for name in interfaces:
+for name in sorted(source_names | internalized_names):
     rows = [line for row_name, line in catalog_rows if row_name == name]
     if len(rows) != 1 or rows[0].count("|") < 7 or not rows[0].rstrip().endswith("|"):
         missing.append(name)
     elif "unknown" in rows[0].lower():
         missing.append(name)
+for name, relative_path in internalized.items():
+    path = internal_root / relative_path
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    if len(re.findall(rf"\bpublic\s+interface\s+{name}\b", text)) != 1:
+        missing.append(f"{name} at {relative_path}")
 if missing:
     raise SystemExit("app-api catalog missing complete ownership metadata: " + ", ".join(missing))
 for retired in ("JudgeConfigPort", "JudgeEnqueuePort", "VerdictResolvePort", "ModerationUserReadPort"):
     if re.search(rf"\bpublic\s+interface\s+{retired}\b", "\n".join(
         source.read_text(encoding="utf-8") for source in source_root.rglob("*.java"))):
         raise SystemExit(f"retired app-api interface remains: {retired}")
-print(f"app-api ownership catalog: PASS ({len(interfaces)} interfaces)")
+print(f"app-api ownership catalog: PASS ({len(source_names | internalized_names)} interfaces)")
 PY
 printf 'API provider ownership, implementation leakage, and compatibility boundary: PASS\n'
 printf 'api-contract-boundary-contract: PASS\n'

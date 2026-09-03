@@ -3,6 +3,54 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
+STATIC_ONLY="${ULTI_STATIC_ONLY:-0}"
+
+# Static-safe children are source/POM assertions or shell self-tests whose
+# disposable binaries are created inside the child. Dynamic children (Docker,
+# Compose, network, or Maven test/tree shapes) remain non-static.
+#
+# Source/POM: app-judge-runtime (its Maven tree section is gated separately).
+# Shell self-tests: DevStack manifest, compatibility retirement, SSH identity,
+# Nacos duplicate-user guard, submission backfill, supply-chain, deployment
+# integrity, and owner-migration manifest. Redis ACL assertions remain in the
+# non-static gate because their contract generates ACL material.
+#
+# The API catalog/provider-reference/docs children are pure source assertions
+# and run in static mode; the underlying catalog/consumer/docs drift was
+# resolved by the App interface locality and release-control convergence.
+# Redis ACL assertions remain non-static because their contract generates ACL
+# material.
+#
+run_child() {
+  local child="$1"
+  if [[ "$STATIC_ONLY" == "1" ]]; then
+    case "$child" in
+      scripts/dev/devstack-manifest-test.sh \
+        |scripts/test/app-judge-runtime-dependency-contract.sh \
+        |scripts/test/submission-compatibility-retirement-contract.sh \
+        |scripts/test/ssh-host-identity-contract.sh \
+        |scripts/test/nacos-security-contract.sh \
+        |scripts/test/submission-backfill-contract.sh \
+        |scripts/test/supply-chain-contract.sh \
+        |scripts/test/deployment-integrity-contract.sh \
+        |scripts/test/owner-migration-manifest-contract.sh \
+        |scripts/test/api-contract-boundary-contract.sh \
+        |scripts/test/dubbo-provider-reference-contract.sh \
+        |scripts/dev/docs-contract-test.sh \
+        |scripts/test/devlite-minimal-contract.sh \
+        |scripts/test/devstack-control-contract.sh \
+      )
+        printf 'Architecture child %s: running static-safe checks\n' "$child"
+        ;;
+      *)
+        printf 'Architecture child %s: skipped in static-only mode\n' "$child"
+        return 0
+        ;;
+    esac
+  fi
+  bash "$ROOT_DIR/$child"
+}
+
 fail() {
   echo "Architecture contract failed: $*" >&2
   exit 1
@@ -107,7 +155,9 @@ not_contains services/admin/src/main/java/com/ulticode/modules/admin/projection/
 not_contains services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminUserProjection.java \
   'private UserProfileQueryService'
 
-bash "$ROOT_DIR/scripts/dev/devstack-manifest-test.sh"
+run_child scripts/dev/devstack-manifest-test.sh
+run_child scripts/test/devlite-minimal-contract.sh
+run_child scripts/test/devstack-control-contract.sh
 
 contains services/app/app-web/src/main/java/com/ulticode/app/user/port/UserFactsProjection.java \
   'Map<String, UserFactView> findByIds'
@@ -160,7 +210,7 @@ contains services/platform/judge-config/src/main/java/com/ulticode/modules/submi
 
 # P4-LEGACY-010: App production compiles without the Judge runtime; only the
 # existing test-scoped Judge fixture may retain runtime-only test classes.
-bash "$ROOT_DIR/scripts/test/app-judge-runtime-dependency-contract.sh"
+run_child scripts/test/app-judge-runtime-dependency-contract.sh
 
 # SVC-002: cross-process mutation and problem lookup contracts expose only
 # the capabilities each consumer actually uses.
@@ -185,7 +235,7 @@ contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port
   'implements SubmissionIntakePort'
 not_contains services/app/app-web/src/main/java/com/ulticode/modules/submission/port/adapter/RemoteSubmissionWritePort.java \
   'SubmissionVerdictWritePort'
-bash "$ROOT_DIR/scripts/test/submission-compatibility-retirement-contract.sh"
+run_child scripts/test/submission-compatibility-retirement-contract.sh
 for stale_app_mutation in \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/DefaultSubmissionWritePort.java \
   services/app/app-web/src/main/java/com/ulticode/modules/submission/port/SubmissionWriteRoutingPort.java \
@@ -343,12 +393,12 @@ contains scripts/runbooks/redis-acl-rotation.sh 'current-overlap-next'
 contains scripts/runbooks/redis-acl-rotation.sh 'runtime ACL drift detected'
 contains .github/actions/host-deploy/action.yml 'redis-acl-rotation.sh materialize'
 contains .github/workflows/_backend.yml 'redis-acl-rotation-contract.sh'
-bash "$ROOT_DIR/scripts/test/redis-acl-contract.sh"
-bash "$ROOT_DIR/scripts/test/redis-acl-rotation-contract.sh"
-bash "$ROOT_DIR/scripts/test/ssh-host-identity-contract.sh"
-bash "$ROOT_DIR/scripts/test/nacos-security-contract.sh"
-bash "$ROOT_DIR/scripts/test/submission-backfill-contract.sh"
-bash "$ROOT_DIR/scripts/test/owner-schema-contraction-contract.sh"
+run_child scripts/test/redis-acl-contract.sh
+run_child scripts/test/redis-acl-rotation-contract.sh
+run_child scripts/test/ssh-host-identity-contract.sh
+run_child scripts/test/nacos-security-contract.sh
+run_child scripts/test/submission-backfill-contract.sh
+run_child scripts/test/owner-schema-contraction-contract.sh
 contains services/auth/src/main/java/com/ulticode/auth/adapter/in/web/JwksController.java 'public Map<String, Object> getJwks()'
 contains services/auth/src/main/java/com/ulticode/auth/security/InternalDelegationAssertionVerifier.java 'backend-auth'
 contains services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java 'AdminActorAuthorizer actorAuthorizer'
@@ -436,8 +486,8 @@ not_contains init-db/migrations/auth/V20260831100000__Create_Auth_Audit_Outbox.s
 not_contains init-db/migrations/app/V20260831100100__Create_App_Audit_Outbox.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
 contains init-db/migrations/post-owner/V20260831100400__Revoke_Cross_Owner_Audit_Grants.sql 'REVOKE INSERT ON `admin`.`audit_outbox`'
 contains init-db/migrations/admin/V20260831100300__Widen_Audit_Action.sql 'MODIFY COLUMN `action` VARCHAR(64) NOT NULL'
-bash "$ROOT_DIR/scripts/test/audit-owner-boundary-contract.sh"
-bash "$ROOT_DIR/scripts/test/admin-audit-stream-migration-contract.sh"
+run_child scripts/test/audit-owner-boundary-contract.sh
+run_child scripts/test/admin-audit-stream-migration-contract.sh
 
 # P2-MIG-001: CD must execute the same ordered owner-manifest seam that local
 # migration documentation describes; rollback must keep the schema untouched.
@@ -466,43 +516,41 @@ contains .github/workflows/_backend.yml 'graceful-drain-contract.sh'
 contains .github/workflows/_backend.yml 'dependency-resilience-contract.sh'
 contains .github/workflows/_backend.yml 'stream-resilience-contract.sh'
 contains scripts/test/stream-resilience-contract.sh 'stream-resilience-contract: PASS'
-bash "$ROOT_DIR/scripts/test/stream-resilience-contract.sh"
+run_child scripts/test/stream-resilience-contract.sh
 contains .github/workflows/_backend.yml 'scale-topology-contract.sh'
 contains scripts/test/scale-topology-contract.sh 'scale-topology-contract: PASS'
-bash "$ROOT_DIR/scripts/test/scale-topology-contract.sh"
-contains .github/workflows/_backend.yml 'ha-profile-contract.sh'
-contains scripts/test/ha-profile-contract.sh 'HA profile contract: PASS'
-bash "$ROOT_DIR/scripts/test/ha-profile-contract.sh"
+run_child scripts/test/scale-topology-contract.sh
+run_child scripts/test/ha-profile-contract.sh
 contains .github/workflows/_backend.yml 'dubbo-mtls-contract.sh'
 contains .github/workflows/_docker.yml 'dubbo-mtls-contract.sh'
 contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'DUBBO_MTLS_ALLOWED_CALLERS'
 contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'h2StreamChannel'
 contains services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboMtlsIdentityFilter.java 'getChannel", Boolean.class'
 contains services/platform/rpc-resilience/src/main/resources/META-INF/dubbo/internal/org.apache.dubbo.rpc.Filter 'workload-mtls='
-bash "$ROOT_DIR/scripts/test/dubbo-mtls-contract.sh"
+run_child scripts/test/dubbo-mtls-contract.sh
 contains .github/workflows/_backend.yml 'network-reachability-contract.sh'
 contains .github/workflows/_docker.yml 'network-reachability-contract.sh'
 contains scripts/test/network-reachability-contract.sh 'network-reachability-contract: PASS'
-bash "$ROOT_DIR/scripts/test/network-reachability-contract.sh"
+run_child scripts/test/network-reachability-contract.sh
 contains .github/workflows/_backend.yml 'judge-sandbox-contract.sh'
 contains .github/workflows/_docker.yml 'judge-sandbox-contract.sh'
 contains scripts/test/judge-sandbox-contract.sh 'judge-sandbox-contract: PASS'
-bash "$ROOT_DIR/scripts/test/judge-sandbox-contract.sh"
-bash "$ROOT_DIR/scripts/test/owner-backup-restore-contract.sh"
-bash "$ROOT_DIR/scripts/test/supply-chain-contract.sh"
-bash "$ROOT_DIR/scripts/test/observability-contract.sh"
-bash "$ROOT_DIR/scripts/test/deployment-integrity-contract.sh"
-bash "$ROOT_DIR/scripts/test/scheduler-contract.sh"
-bash "$ROOT_DIR/scripts/test/fenced-lease-contract.sh"
-bash "$ROOT_DIR/scripts/test/graceful-drain-contract.sh"
-bash "$ROOT_DIR/scripts/test/dependency-resilience-contract.sh"
+run_child scripts/test/judge-sandbox-contract.sh
+run_child scripts/test/owner-backup-restore-contract.sh
+run_child scripts/test/supply-chain-contract.sh
+run_child scripts/test/observability-contract.sh
+run_child scripts/test/deployment-integrity-contract.sh
+run_child scripts/test/scheduler-contract.sh
+run_child scripts/test/fenced-lease-contract.sh
+run_child scripts/test/graceful-drain-contract.sh
+run_child scripts/test/dependency-resilience-contract.sh
 contains apps/console/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains apps/management/nginx.conf 'include /etc/nginx/conf.d/includes/tls-listener.conf;'
 contains infrastructure/nginx/includes/tls-listener.prod.conf 'listen 8443 ssl;'
 contains infrastructure/nginx/includes/security-headers.conf 'Strict-Transport-Security'
 contains docker-compose.prod.yml 'TLS_CERT_DIR'
 contains .github/workflows/_backend.yml 'tls-profile-contract.sh'
-bash "$ROOT_DIR/scripts/test/tls-profile-contract.sh"
+run_child scripts/test/tls-profile-contract.sh
 contains .github/actions/host-deploy/action.yml 'owner-migration-manifest.sh migrate'
 contains .github/actions/host-deploy/action.yml 'MIGRATION_DB_PASSWORD'
 contains .github/actions/host-deploy/action.yml "inputs.skip_migrations != 'true'"
@@ -510,7 +558,7 @@ contains .github/workflows/cd-deploy.yml 'migration_db_user:'
 contains .github/workflows/cd-deploy.yml 'submission_migration_db_password:'
 contains .github/workflows/cd-rollback.yml "skip_migrations: 'true'"
 contains .github/workflows/_backend.yml 'owner-migration-manifest-contract.sh'
-bash "$ROOT_DIR/scripts/test/owner-migration-manifest-contract.sh"
+run_child scripts/test/owner-migration-manifest-contract.sh
 
 # P1-SEAM-001: public App contracts must not retain dead ingestion/execution
 # types or a default method that only throws at runtime.
@@ -644,12 +692,10 @@ not_contains docker-compose.prod.yml 'BOOTSTRAP_DELEGATION_SECRET='
 
 contains .github/workflows/_contract.yml 'api-contract-boundary-contract.sh'
 contains scripts/test/api-contract-boundary-contract.sh 'api-contract-boundary-contract: PASS'
-bash "$ROOT_DIR/scripts/test/api-contract-boundary-contract.sh"
-contains .github/workflows/_backend.yml 'dubbo-provider-reference-contract.sh'
-contains scripts/test/dubbo-provider-reference-contract.sh 'dubbo-provider-reference-contract: PASS'
-bash "$ROOT_DIR/scripts/test/dubbo-provider-reference-contract.sh"
+run_child scripts/test/api-contract-boundary-contract.sh
+run_child scripts/test/dubbo-provider-reference-contract.sh
+run_child scripts/dev/docs-contract-test.sh
 # Documentation-drift assertions live in docs-contract-test.sh; run it here so
 # existing callers of this script keep covering both halves of the contract.
-bash "$ROOT_DIR/scripts/dev/docs-contract-test.sh"
 
 echo "Architecture contract: PASS"

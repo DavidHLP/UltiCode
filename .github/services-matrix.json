@@ -6,7 +6,10 @@
     "artifact": "app.jar",
     "port": "9101",
     "health_path": "/api/v1/auth/health/ready",
-    "maven_version_property": "service.version.auth"
+    "maven_version_property": "service.version.auth",
+    "role": "owner",
+    "release_group": "core",
+    "health": "http"
   },
   {
     "name": "backend-admin",
@@ -15,7 +18,10 @@
     "artifact": "app-exec.jar",
     "port": "9102",
     "health_path": "/api/v1/admin/health/ready",
-    "maven_version_property": "service.version.admin"
+    "maven_version_property": "service.version.admin",
+    "role": "owner",
+    "release_group": "core",
+    "health": "http"
   },
   {
     "name": "backend-app",
@@ -24,7 +30,10 @@
     "artifact": "app-exec.jar",
     "port": "9103",
     "health_path": "/api/v1/app/health/ready",
-    "maven_version_property": "service.version.app"
+    "maven_version_property": "service.version.app",
+    "role": "owner",
+    "release_group": "core",
+    "health": "http"
   },
   {
     "name": "backend-submission",
@@ -33,7 +42,10 @@
     "artifact": "submission-exec.jar",
     "port": "9106",
     "health_path": "/disabled",
-    "maven_version_property": "service.version.submission"
+    "maven_version_property": "service.version.submission",
+    "role": "owner",
+    "release_group": "core",
+    "health": "disabled"
   },
   {
     "name": "backend-notification",
@@ -42,7 +54,10 @@
     "artifact": "notification-exec.jar",
     "port": "9105",
     "health_path": "/api/v1/notification/health/ready",
-    "maven_version_property": "service.version.notification"
+    "maven_version_property": "service.version.notification",
+    "role": "owner",
+    "release_group": "core",
+    "health": "http"
   },
   {
     "name": "backend-search",
@@ -52,7 +67,10 @@
     "port": "9107",
     "health_path": "/disabled",
     "healthcheck": "false",
-    "maven_version_property": "service.version.search"
+    "maven_version_property": "service.version.search",
+    "role": "worker",
+    "release_group": "core",
+    "health": "disabled"
   },
   {
     "name": "backend-judge",
@@ -63,14 +81,23 @@
     "health_path": "/disabled",
     "install_docker_cli": "true",
     "healthcheck": "false",
-    "maven_version_property": "service.version.judge"
+    "maven_version_property": "service.version.judge",
+    "role": "worker",
+    "release_group": "core",
+    "health": "disabled"
   },
   {
     "name": "console",
-    "dockerfile": "./apps/console/Dockerfile"
+    "dockerfile": "./apps/console/Dockerfile",
+    "role": "frontend",
+    "release_group": "core",
+    "health": "http"
   },
   {
     "name": "management",
-    "dockerfile": "./apps/management/Dockerfile"
+    "dockerfile": "./apps/management/Dockerfile",
+    "role": "frontend",
+    "release_group": "core",
+    "health": "http"
   }
 ]

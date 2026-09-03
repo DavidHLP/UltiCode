@@ -88,6 +88,64 @@ assert_file_contains services/platform/judge-config/src/main/java/com/ulticode/m
 [[ "$DEVSTACK_READINESS_INTERVAL_SECONDS" == 2 ]]
 [[ "$DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS" == 90 ]]
 
+# P2-DEVLITE-001..005: named scenario matrix and one resolver for app,
+# infra, readiness, ports, and optional feature metadata.
+assert_scope_rejected() {
+  local scope="$1" apps="$2"
+  if devstack_validate_scope_selection "$scope" "$apps" >/dev/null 2>&1; then
+    echo "scope selection must be rejected: $scope / $apps" >&2
+    exit 1
+  fi
+}
+
+[[ "$(devstack_mode_for_scope app-journey)" == dev-lite ]]
+[[ "$(devstack_mode_for_scope admin)" == dev-lite ]]
+[[ "$(devstack_mode_for_scope submission-judge)" == dev-lite ]]
+[[ "$(devstack_mode_for_scope search)" == dev-full ]]
+[[ "$(devstack_mode_for_scope full-stack)" == dev-full ]]
+[[ "$(devstack_apps_for_scope app-journey)" == \
+  "ulticode-auth,ulticode-app,ulticode-notification,ulticode-submission,ulticode-judge,ulticode-9002" ]]
+[[ "$(devstack_apps_for_scope admin)" == \
+  "ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-submission,ulticode-9003" ]]
+[[ "$(devstack_apps_for_scope submission-judge)" == \
+  "ulticode-app,ulticode-submission,ulticode-judge" ]]
+[[ "$(devstack_apps_for_scope search)" == \
+  "ulticode-auth,ulticode-app,ulticode-search,ulticode-9002" ]]
+[[ "$(devstack_infra_for_scope dev-lite)" == "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_scope app-journey)" == "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_scope admin)" == "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_scope submission-judge)" == "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_scope search)" == "mysql,redis,nacos,meilisearch" ]]
+[[ "$(devstack_infra_for_scope full-stack)" == "mysql,redis,nacos,meilisearch" ]]
+[[ "$(devstack_infra_for_selection dev-lite ulticode-auth,ulticode-app)" == \
+  "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_selection dev-full ulticode-auth,ulticode-app)" == \
+  "mysql,redis,nacos" ]]
+[[ "$(devstack_infra_for_selection dev-full ulticode-search)" == \
+  "mysql,redis,nacos,meilisearch" ]]
+[[ "$(devstack_infra_for_selection dev-full ulticode-auth,ulticode-app true)" == \
+  "mysql,redis,nacos,otel-collector,prometheus,alertmanager,tempo,loki,grafana" ]]
+assert_scope_rejected dev-lite ulticode-search
+assert_scope_rejected admin ulticode-judge
+assert_scope_rejected submission-judge ulticode-admin
+assert_scope_rejected unknown ulticode-auth
+
+resolved_scope="$(devstack_resolve_scope full-stack)"
+[[ "${resolved_scope%%$'\n'*}" == "scope=full-stack" ]]
+[[ "$resolved_scope" == *$'apps=ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003\n'* ]]
+[[ "$resolved_scope" == *$'infra=mysql,redis,nacos,meilisearch\n'* ]]
+[[ "$resolved_scope" == *'features=search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ]]
+mapfile -t full_readiness < <(devstack_readiness_for_scope full-stack)
+mapfile -t full_ports < <(devstack_ports_for_scope full-stack)
+[[ "${#full_readiness[@]}" -eq 9 ]]
+[[ "${#full_ports[@]}" -eq 9 ]]
+[[ "${full_ports[3]}" == "ulticode-submission|9106|Submission Owner" ]]
+[[ "${full_ports[5]}" == "ulticode-judge|9104|Judge Worker" ]]
+[[ "${full_ports[6]}" == "ulticode-search|9107|Search Worker" ]]
+assert_file_contains scripts/dev/up.sh '--scope <name>'
+assert_file_contains scripts/dev/stop.sh '--all'
+assert_file_contains scripts/dev/doctor.sh 'devstack_ports_for_selection'
+
 # The manifest is the policy source, but direct local boot defaults must not
 # silently create a different architecture when a contributor runs one Owner.
 assert_file_contains services/app/app-web/src/main/resources/application.yml 'mode: ${APP_RUNTIME_MODE:dev-lite}'

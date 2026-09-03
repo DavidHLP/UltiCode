@@ -1,7 +1,6 @@
 package com.ulticode.modules.problem.port;
 
 import com.ulticode.app.api.dto.ProblemListItemDTO;
-import com.ulticode.app.api.service.ProblemListReadPort;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;

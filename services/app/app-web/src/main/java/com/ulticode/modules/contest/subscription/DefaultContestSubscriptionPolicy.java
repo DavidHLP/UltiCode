@@ -1,9 +1,5 @@
 package com.ulticode.modules.contest.subscription;
 
-import com.ulticode.app.api.service.ContestSubscriptionPolicy;
-import com.ulticode.app.api.service.ContestSubscriptionPolicy.ContestSubscribeRequest;
-import com.ulticode.app.api.service.ContestSubscriptionPolicy.SubscriptionDecision;
-import com.ulticode.app.api.service.ContestSubscriptionPolicy.Verdict;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import lombok.RequiredArgsConstructor;

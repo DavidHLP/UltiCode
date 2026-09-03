@@ -17,7 +17,8 @@ import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
+import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.websecurity.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,7 +49,7 @@ import java.util.UUID;
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminAccountController {
 
-    private final AdminUserProjection adminUserProjection;
+    private final AdminUserDetailQuery adminUserDetailQuery;
     private final UserManagementService userManagementService;
     @Autowired(required = false)
     private final AccountManagementService accountManagementService;
@@ -58,7 +59,7 @@ public class AdminAccountController {
     @GetMapping("/profile")
     public Result<AdminUserVO> getProfile() {
         String userId = getCurrentUserIdOrThrow();
-        AdminUserVO user = adminUserProjection.getUserById(userId);
+        AdminUserVO user = userFromDetail(userId);
         return Result.success(user);
     }
 
@@ -147,5 +148,19 @@ public class AdminAccountController {
         public void setStartedAt(String startedAt) { this.startedAt = startedAt; }
         public String getExpiresAt() { return expiresAt; }
         public void setExpiresAt(String expiresAt) { this.expiresAt = expiresAt; }
+    }
+    private AdminUserVO userFromDetail(String id) {
+        AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
+        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
+            throw new BusinessException(
+                    com.ulticode.admin.error.AdminErrorCode.USER_NOT_FOUND);
+        }
+        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
+                || result.user() == null) {
+            throw new BusinessException(
+                    com.ulticode.admin.error.AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Admin user detail query unavailable");
+        }
+        return result.user();
     }
 }

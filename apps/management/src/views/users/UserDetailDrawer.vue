@@ -74,6 +74,48 @@ watch(
     :not-found-text="t('users.details.notFound')"
   >
     <template #content="{ entity }">
+      <div
+        v-if="
+          (entity.detailStatus ?? entity.degradationStatus) &&
+          (entity.detailStatus ?? entity.degradationStatus) !== 'OK'
+        "
+        role="status"
+        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+      >
+        {{
+          (entity.detailStatus ?? entity.degradationStatus) === 'PARTIAL'
+            ? t('users.degradation.partial')
+            : t('users.degradation.unavailable')
+        }}
+      </div>
+
+      <div
+        v-if="entity.profileStatus && entity.profileStatus !== 'OK'"
+        role="status"
+        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+      >
+        <strong>{{ t('users.degradation.profile') }}</strong>
+        <span v-if="entity.profileReason"> — {{ entity.profileReason }}</span>
+      </div>
+
+      <div
+        v-if="entity.statsStatus && entity.statsStatus !== 'OK'"
+        role="status"
+        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+      >
+        <strong>{{ t('users.degradation.stats') }}</strong>
+        <span v-if="entity.statsReason"> — {{ entity.statsReason }}</span>
+      </div>
+
+      <div
+        v-if="entity.permissionsStatus && entity.permissionsStatus !== 'OK'"
+        role="status"
+        class="border border-[var(--status-warning-mark)] bg-[color-mix(in_oklch,_var(--status-warning-mark)_8%,_transparent)] p-3 text-sm"
+      >
+        <strong>{{ t('users.degradation.permissions') }}</strong>
+        <span v-if="entity.permissionsReason"> — {{ entity.permissionsReason }}</span>
+      </div>
+
       <!-- Profile Header - Terminal Style -->
       <div
         class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
@@ -143,7 +185,7 @@ watch(
 
       <!-- Performance Stats - Terminal Style -->
       <div
-        v-if="entity.stats"
+        v-if="entity.stats && (!entity.statsStatus || entity.statsStatus === 'OK')"
         class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
       >
         <div
@@ -206,7 +248,10 @@ watch(
           </div>
 
           <!-- Submission Progress Bar -->
-          <div class="space-y-2" v-if="entity.stats">
+          <div
+            class="space-y-2"
+            v-if="entity.stats && (!entity.statsStatus || entity.statsStatus === 'OK')"
+          >
             <div class="flex items-center justify-between">
               <span class="font-data text-xs text-[var(--foreground-muted)]">{{
                 $t('users.stats.acceptanceRate')
@@ -220,6 +265,32 @@ watch(
               <span class="ascii-progress-track">{{ progressEmpty }}</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Permissions - only a proven snapshot is rendered as permissions. -->
+      <div
+        v-if="entity.permissions && (!entity.permissionsStatus || entity.permissionsStatus === 'OK')"
+        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">{{ t('users.drawer.sections.permissions') }}</span>
+        </div>
+        <div class="p-4">
+          <ul v-if="entity.permissions.length" class="space-y-1">
+            <li
+              v-for="permission in entity.permissions"
+              :key="`${permission.action}:${permission.resource}`"
+              class="font-data text-xs text-[var(--foreground)]"
+            >
+              {{ permission.action }}:{{ permission.resource }}
+            </li>
+          </ul>
+          <span v-else class="text-sm text-[var(--foreground-muted)]">
+            {{ t('users.degradation.noPermissions') }}
+          </span>
         </div>
       </div>
 

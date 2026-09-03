@@ -171,7 +171,18 @@ export default {
       profile: 'User Profile',
       performance: 'Performance Stats',
       account: 'Account Info',
+      permissions: 'Roles & Permissions',
     },
+  },
+
+  degradation: {
+    partial: 'Some user data is temporarily unavailable',
+    unavailable: 'User data providers are unavailable',
+    profile: 'Profile data is unavailable',
+    stats: 'Statistics are unavailable',
+    permissions: 'Permission data is unavailable',
+    noPermissions: 'No confirmed permissions for this user',
+    permissionWriteDisabled: 'Permission data is unverified; role and permission writes are disabled.',
   },
 
   clearSelection: 'Clear Selection',

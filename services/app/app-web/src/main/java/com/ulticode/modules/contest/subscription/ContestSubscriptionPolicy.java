@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.contest.subscription;
 
 import java.util.Optional;
 

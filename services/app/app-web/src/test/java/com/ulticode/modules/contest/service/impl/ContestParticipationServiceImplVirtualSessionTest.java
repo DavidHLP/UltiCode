@@ -54,7 +54,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     private ContestParticipantTransitions participantTransitions;
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
-    private com.ulticode.app.api.service.ContestAchievementPort achievementTriggerPort;
+    private com.ulticode.modules.achievement.port.ContestAchievementPort achievementTriggerPort;
     private com.ulticode.modules.contest.projection.ContestProjection contestProjection;
     private ContestParticipationServiceImpl service;
 
@@ -70,7 +70,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         clock = mock(Clock.class);
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
         achievementTriggerPort =
-                mock(com.ulticode.app.api.service.ContestAchievementPort.class);
+                mock(com.ulticode.modules.achievement.port.ContestAchievementPort.class);
         contestProjection =
                 mock(com.ulticode.modules.contest.projection.ContestProjection.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));

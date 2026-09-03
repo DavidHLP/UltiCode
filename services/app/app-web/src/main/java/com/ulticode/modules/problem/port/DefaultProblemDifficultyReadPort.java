@@ -1,7 +1,6 @@
 package com.ulticode.modules.problem.port;
 
 import com.ulticode.common.dto.DifficultyCountDTO;
-import com.ulticode.app.api.service.ProblemDifficultyReadPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

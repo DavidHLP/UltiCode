@@ -31,7 +31,16 @@
 
 ## CI/CD 入口
 
-GitHub Actions 由 `.github/workflows/ci.yml` 编排，`ci-ok` 是稳定汇总门禁；服务矩阵在 `.github/services-matrix.json`，owner migration、backup、artifact integrity、health 和 rollback 由可复用 actions/runbooks 承接。完整触发条件以 workflow 为准，避免在文档复制易漂移的 job 列表。
+GitHub Actions 由 `.github/workflows/ci.yml` 编排，`ci-ok` 是稳定汇总门禁；服务矩阵在 `.github/services-matrix.json`（每个 deployable 有 `role`/`release_group`/`health` 分类，七个 backend + 两个 frontend 构成默认协调发布 set），owner migration、backup、artifact integrity、health 和 rollback 由可复用 actions/runbooks 承接。完整触发条件以 workflow 为准，避免在文档复制易漂移的 job 列表。
+
+GitLab 直连部署入口（`.gitlab-ci.yml`）已于 2026-09-03 退役禁用：旧 job 对固定路径执行 `git reset --hard` 后直接 Compose build/up，绕过 owner migration、release descriptor、immutable image policy 与 health gate，且仓库内无该 runner 仍被授权的证据。任何未来 GitLab 适配器必须消费同一 canonical preflight/descriptor 接口（`scripts/runbooks/deployment-integrity.sh`），不得恢复 reset/build/up 捷径。只读查看当前 release set 使用：
+
+```bash
+./scripts/runbooks/deployment-integrity.sh describe            # 人类可读
+DEPLOYMENT_OUTPUT_FORMAT=json ./scripts/runbooks/deployment-integrity.sh describe
+```
+
+`describe` 输出 evidence=repository-static（非生产证据）；缺 commit/schema/version/digest 时 fail closed。`verify-registry` 校验 services matrix 与生产 Compose 的 backend 集合双向一致，未登记的新 deployable 会失败。
 
 - Contract 兼容：[`services/docs/CONTRACT_COMPAT_GATE.md`](../../services/docs/CONTRACT_COMPAT_GATE.md)
 - Owner migration：[`database-migrations.md`](database-migrations.md)

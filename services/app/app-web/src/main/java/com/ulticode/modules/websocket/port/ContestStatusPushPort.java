@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.websocket.port;
 
 /**
  * Status-push port for broadcasting a contest lifecycle transition to

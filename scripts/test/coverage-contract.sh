@@ -8,6 +8,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 python3 - "$ROOT_DIR" <<'PY'
 from pathlib import Path
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -219,6 +220,11 @@ if "<coverage.bundle.minimum>" in submission_pom or "${coverage.bundle.minimum}"
     fail("services/submission/pom.xml must not override the shared coverage threshold property")
 if "<contract.compat.oldVersion>__missing_contract_baseline__</contract.compat.oldVersion>" not in services_pom:
     fail("services/pom.xml must fail closed when no compatibility baseline is supplied")
+
+if os.environ.get("ULTI_STATIC_ONLY") == "1":
+    print("Maven coverage fixtures: SKIPPED_STATIC_ONLY")
+    print("coverage-contract: PASS (static source/config assertions)")
+    raise SystemExit(0)
 
 maven = ["./mvnw"]
 if shutil.which("mise"):

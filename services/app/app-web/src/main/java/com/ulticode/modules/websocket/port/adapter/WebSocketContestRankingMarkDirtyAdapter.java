@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.app.api.service.ContestRankingMarkDirtyPort;
+import com.ulticode.modules.websocket.port.ContestRankingMarkDirtyPort;
 import com.ulticode.modules.websocket.notification.WebSocketContestRankingFlusher;
 import org.springframework.stereotype.Component;
 

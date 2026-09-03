@@ -155,8 +155,14 @@ public class AdminUserEnricher {
                 profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
     }
 
-    /** Query one authoritative Auth account and merge its optional App profile. */
-    public AccountDetail findAccountWithProfile(String accountId) {
+    /**
+     * Resolve one Auth account without reading optional App facts.
+     *
+     * <p>This is the authoritative first round of the admin detail query:
+     * {@code null} means Auth proved the account is absent, while every
+     * transport/provider failure is raised as {@code OWNER_QUERY_UNAVAILABLE}.
+     */
+    public AuthAccountDTO findAccountAuthoritatively(String accountId) {
         if (accountQueryService == null) {
             throw ownerUnavailable("AccountQueryService is unavailable");
         }
@@ -164,9 +170,10 @@ public class AdminUserEnricher {
         RpcResult<AuthAccountDTO> rpc;
         try {
             rpc = accountQueryService.getAccountById(accountId);
-        } catch (Exception e) {
-            log.warn("AccountQueryService.getAccountById failed for {}: {}", accountId, e.getMessage());
-            throw ownerUnavailable("AccountQueryService.getAccountById failed", e);
+        } catch (Exception exception) {
+            log.warn("AccountQueryService.getAccountById failed for {}: {}",
+                    accountId, exception.getClass().getSimpleName());
+            throw ownerUnavailable("AccountQueryService.getAccountById failed", exception);
         }
         if (rpc == null) {
             throw ownerUnavailable("AccountQueryService.getAccountById returned null");
@@ -178,12 +185,38 @@ public class AdminUserEnricher {
             throw ownerUnavailable("AccountQueryService.getAccountById returned failure");
         }
         if (rpc.data() == null) {
+            throw ownerUnavailable("AccountQueryService.getAccountById returned empty payload");
+        }
+        return rpc.data();
+    }
+
+    /**
+     * Read one optional App profile through the same bounded profile batch
+     * primitive used by list enrichment.
+     */
+    public ProfileDetail findProfileWithStatus(String accountId) {
+        if (accountId == null || accountId.isBlank()) {
+            return new ProfileDetail(null, DegradationStatus.UNAVAILABLE);
+        }
+        ProfileBatch profiles = batchProfiles(Set.of(accountId));
+        return new ProfileDetail(
+                profiles.data().get(accountId),
+                profiles.available() ? DegradationStatus.OK : DegradationStatus.UNAVAILABLE);
+    }
+
+    public record ProfileDetail(UserProfileDTO profile, DegradationStatus status) {
+    }
+
+    /** Query one authoritative Auth account and merge its optional App profile. */
+    public AccountDetail findAccountWithProfile(String accountId) {
+        AuthAccountDTO account = findAccountAuthoritatively(accountId);
+        if (account == null) {
             return null;
         }
 
         ProfileBatch profiles = batchProfiles(Set.of(accountId));
         return new AccountDetail(
-                rpc.data(),
+                account,
                 profiles.data().get(accountId),
                 profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
     }

@@ -1,6 +1,14 @@
 # P3-ADMIN-001 Admin RPC / Latency / Freshness Budget Manifest
 
-> status: DEFINED
+> status: SUPERSEDED (frozen pre-cutover baseline)
+> amendment: 2026-09-03 — the E-USER detail budget in this manifest described the
+> pre-cutover per-item path (`AdminUserStatsReadPort`/`AdminUserStatsReadAdapter`,
+> serial per-item Submission calls). The user-detail use case now runs through the
+> single-use-case `AdminUserDetailQuery` deep module with the Auth
+> `AuthorizationSnapshotService`, App profile/solution facts, and the provider-owned
+> `SubmissionUserDetailStatsPort` snapshot (≤5 logical RPCs / ≤2 rounds), enforced by
+> `scripts/test/gate-admin-rpc-budget.sh`. This file stays as the frozen historical
+> budget baseline; do not treat its E-USER path as current source.
 > owner: ADMIN
 > baseline: [`P0-BASELINE-003-admin-rpc-graph.md`](P0-BASELINE-003-admin-rpc-graph.md)
 > policy_source: `services/platform/common/src/main/java/com/ulticode/common/rpc/RpcPolicy.java`

@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.achievement.port;
 
 /**
  * Contest-specific achievement trigger port consumed by backend-app contest

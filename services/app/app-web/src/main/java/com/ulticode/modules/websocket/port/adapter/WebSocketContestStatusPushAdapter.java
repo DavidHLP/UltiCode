@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.port.adapter;
 
-import com.ulticode.app.api.service.ContestStatusPushPort;
+import com.ulticode.modules.websocket.port.ContestStatusPushPort;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.slf4j.Logger;

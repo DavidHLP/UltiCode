@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.websocket.port;
 
 /**
  * Mark-dirty port for flagging a contest's ranking for the next flush tick.

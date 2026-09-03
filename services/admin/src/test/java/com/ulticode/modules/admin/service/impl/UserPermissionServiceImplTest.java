@@ -1,6 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.auth.api.command.ChangeAuthorizationCommand;
+import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
+import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
@@ -11,11 +13,9 @@ import com.ulticode.common.time.TimeSourceHolder;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
+import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserPermissionService;
-import com.ulticode.modules.admin.projection.AdminUserSummary;
-import com.ulticode.modules.admin.projection.AdminUserEnricher;
-import com.ulticode.auth.api.service.AccountAdministrationService;
 import com.ulticode.common.rpc.RpcResult;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -50,11 +50,9 @@ import static org.mockito.Mockito.when;
 class UserPermissionServiceImplTest {
 
     @Mock
-    private AdminUserEnricher userEnricher;
-    @Mock
     private AccountAdministrationService accountAdministrationService;
     @Mock
-    private AdminUserProjection adminUserProjection;
+    private AdminUserDetailQuery adminUserDetailQuery;
     @Mock
     private CurrentUserProvider currentUserProvider;
 
@@ -66,29 +64,51 @@ class UserPermissionServiceImplTest {
         MockitoAnnotations.openMocks(this);
         clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneId.systemDefault());
         userPermissionService = new UserPermissionServiceImpl(
-                userEnricher,
-                adminUserProjection, clock, currentUserProvider);
-        ReflectionTestUtils.setField(userPermissionService, "accountAdministrationService", accountAdministrationService);
+                adminUserDetailQuery, clock, currentUserProvider);
+        ReflectionTestUtils.setField(userPermissionService, "accountAdministrationService",
+                accountAdministrationService);
         lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("admin-001");
+        lenient().when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenReturn(detailResult(Set.of()));
     }
 
     @AfterEach
     void tearDown() {
         TimeSourceHolder.reset();
+        AuditContext.clear();
     }
 
-    private AdminUserSummary createValidUser() {
-        return new AdminUserSummary("user-123", "testuser", "USER", null, null, "test@example.com");
+
+    private AdminUserDetailResult detailResult(Set<String> permissions) {
+        AdminUserVO user = new AdminUserVO();
+        user.setId("user-123");
+        user.setRole("USER");
+        AdminUserDetailResult.PermissionSnapshot snapshot =
+                new AdminUserDetailResult.PermissionSnapshot(
+                        "auth.authorization-snapshot", "USER", permissions, 7L);
+        return AdminUserDetailResult.found(
+                user,
+                AdminUserDetailResult.Section.ok(),
+                AdminUserDetailResult.Section.ok(),
+                AdminUserDetailResult.Section.ok(),
+                snapshot);
+    }
+
+    private AdminUserDetailResult unavailablePermissions(String reason) {
+        AdminUserVO user = new AdminUserVO();
+        user.setId("user-123");
+        user.setRole("USER");
+        return AdminUserDetailResult.found(
+                user,
+                AdminUserDetailResult.Section.ok(),
+                AdminUserDetailResult.Section.ok(),
+                AdminUserDetailResult.Section.unavailable(reason),
+                null);
     }
 
     @Test
     @DisplayName("assignUserPermission succeeds for non-super-admin permission")
     void assignPermissionSuccess() {
-        AdminUserSummary u = createValidUser();
-        when(userEnricher.enrichOne("user-123")).thenReturn(u);
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId("user-123");
-        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
         when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class))).thenReturn(RpcResult.success(new com.ulticode.auth.api.dto.AuthorizationSnapshotDTO("user-123", "USER", java.util.Collections.emptySet(), 0L), "t-test"));
 
         AdminUserVO result = userPermissionService.assignUserPermission("user-123", "READ", "PROBLEM", null);
@@ -101,7 +121,6 @@ class UserPermissionServiceImplTest {
     @Test
     @DisplayName("permission RPC failure is propagated instead of reported as success")
     void permissionMutationFailureIsPropagated() {
-        when(userEnricher.enrichOne("user-123")).thenReturn(createValidUser());
         when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class)))
                 .thenReturn(RpcResult.failure(com.ulticode.auth.api.error.AuthErrorCode.AUTHORIZATION_VERSION_CONFLICT,
                         "t-test"));
@@ -115,7 +134,6 @@ class UserPermissionServiceImplTest {
     @Test
     @DisplayName("missing Auth permission provider fails closed")
     void missingPermissionProviderFailsClosed() {
-        when(userEnricher.enrichOne("user-123")).thenReturn(createValidUser());
         ReflectionTestUtils.setField(userPermissionService, "accountAdministrationService", null);
 
         assertThatThrownBy(() -> userPermissionService.assignUserPermission(
@@ -125,85 +143,70 @@ class UserPermissionServiceImplTest {
     }
 
     @Test
-    @DisplayName("revokeUserPermission succeeds")
+    @DisplayName("revokeUserPermission returns success for an already absent permission")
     void revokePermissionSuccess() {
-        AdminUserSummary u = createValidUser();
-        when(userEnricher.enrichOne("user-123")).thenReturn(u);
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId("user-123");
-        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
-        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class))).thenReturn(RpcResult.success(new com.ulticode.auth.api.dto.AuthorizationSnapshotDTO("user-123", "USER", java.util.Collections.emptySet(), 0L), "t-test"));
-
-        AdminUserVO result = userPermissionService.revokeUserPermission("user-123", "READ", "PROBLEM");
+        // P3-ADMIN-003: a proven absent revoke is an idempotent no-op.
+        AdminUserVO result = userPermissionService.revokeUserPermission(
+                "user-123", "READ", "PROBLEM");
 
         assertThat(result).isNotNull();
-        verify(accountAdministrationService).changeAuthorization(any(ChangeAuthorizationCommand.class));
+        verify(accountAdministrationService, never())
+                .changeAuthorization(any(ChangeAuthorizationCommand.class));
     }
 
     @Test
     @DisplayName("assignUserPermission preserves existing permissions in target full set")
     void assignPermissionPreservesExistingPermissions() {
         when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
-        AdminUserSummary u = createValidUser();
-        when(userEnricher.enrichOne("user-123")).thenReturn(u);
+        when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenReturn(detailResult(Set.of("READ:PROBLEM")));
+        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class)))
+                .thenReturn(RpcResult.success(
+                        new AuthorizationSnapshotDTO(
+                                "user-123", "USER",
+                                Set.of("READ:PROBLEM", "WRITE:PROBLEM"), 8L),
+                        "t-test"));
 
-        AdminUserVO.PermissionInfo existingPerm = new AdminUserVO.PermissionInfo();
-        existingPerm.setAction("READ");
-        existingPerm.setResource("PROBLEM");
+        userPermissionService.assignUserPermission(
+                "user-123", "WRITE", "PROBLEM", null);
 
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId("user-123");
-        vo.setPermissions(List.of(existingPerm));
-        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
-        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class))).thenReturn(RpcResult.success(new com.ulticode.auth.api.dto.AuthorizationSnapshotDTO("user-123", "USER", java.util.Collections.emptySet(), 0L), "t-test"));
-
-        userPermissionService.assignUserPermission("user-123", "WRITE", "PROBLEM", null);
-
-        ArgumentCaptor<ChangeAuthorizationCommand> captor = ArgumentCaptor.forClass(ChangeAuthorizationCommand.class);
+        ArgumentCaptor<ChangeAuthorizationCommand> captor =
+                ArgumentCaptor.forClass(ChangeAuthorizationCommand.class);
         verify(accountAdministrationService).changeAuthorization(captor.capture());
 
         ChangeAuthorizationCommand cmd = captor.getValue();
-        assertThat(cmd.permissions()).containsExactlyInAnyOrder("READ:PROBLEM", "WRITE:PROBLEM");
+        assertThat(cmd.permissions()).containsExactlyInAnyOrder(
+                "READ:PROBLEM", "WRITE:PROBLEM");
+        assertThat(cmd.expectedVersion()).isEqualTo(7L);
         assertThat(cmd.actor().actorType()).isEqualTo("SUPER_ADMIN");
     }
 
     @Test
     @DisplayName("revokeUserPermission removes specified permission while preserving remaining permissions")
     void revokePermissionPreservesRemainingPermissions() {
-        AdminUserSummary u = createValidUser();
-        when(userEnricher.enrichOne("user-123")).thenReturn(u);
+        when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenReturn(detailResult(Set.of("READ:PROBLEM", "WRITE:PROBLEM")));
+        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class)))
+                .thenReturn(RpcResult.success(
+                        new AuthorizationSnapshotDTO(
+                                "user-123", "USER", Set.of("WRITE:PROBLEM"), 8L),
+                        "t-test"));
 
-        AdminUserVO.PermissionInfo perm1 = new AdminUserVO.PermissionInfo();
-        perm1.setAction("READ");
-        perm1.setResource("PROBLEM");
+        userPermissionService.revokeUserPermission(
+                "user-123", "READ", "PROBLEM");
 
-        AdminUserVO.PermissionInfo perm2 = new AdminUserVO.PermissionInfo();
-        perm2.setAction("WRITE");
-        perm2.setResource("PROBLEM");
-
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId("user-123");
-        vo.setPermissions(List.of(perm1, perm2));
-        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
-        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class))).thenReturn(RpcResult.success(new com.ulticode.auth.api.dto.AuthorizationSnapshotDTO("user-123", "USER", java.util.Collections.emptySet(), 0L), "t-test"));
-
-        userPermissionService.revokeUserPermission("user-123", "READ", "PROBLEM");
-
-        ArgumentCaptor<ChangeAuthorizationCommand> captor = ArgumentCaptor.forClass(ChangeAuthorizationCommand.class);
+        ArgumentCaptor<ChangeAuthorizationCommand> captor =
+                ArgumentCaptor.forClass(ChangeAuthorizationCommand.class);
         verify(accountAdministrationService).changeAuthorization(captor.capture());
 
         ChangeAuthorizationCommand cmd = captor.getValue();
         assertThat(cmd.permissions()).containsExactly("WRITE:PROBLEM");
+        assertThat(cmd.expectedVersion()).isEqualTo(7L);
     }
 
     @Test
     @DisplayName("Request-scoped idempotency key is stable across retries in same trace context")
     void idempotencyKeyIsStableInSameTraceContext() {
-        AdminUserSummary u = createValidUser();
-        when(userEnricher.enrichOne("user-123")).thenReturn(u);
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId("user-123");
-        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
         when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class))).thenReturn(RpcResult.success(new com.ulticode.auth.api.dto.AuthorizationSnapshotDTO("user-123", "USER", java.util.Collections.emptySet(), 0L), "t-test"));
 
         TimeSourceHolder.install(new TimeSource() {
@@ -246,12 +249,7 @@ class UserPermissionServiceImplTest {
     @Test
     @DisplayName("MANAGE_PERMISSIONS:SYSTEM grant by SUPER_ADMIN is allowed")
     void managePermissionsSystemBySuperAdminAllowed() {
-        AdminUserSummary u = createValidUser();
-        when(userEnricher.enrichOne("user-123")).thenReturn(u);
         when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId("user-123");
-        when(adminUserProjection.getUserById("user-123")).thenReturn(vo);
         when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class))).thenReturn(RpcResult.success(new com.ulticode.auth.api.dto.AuthorizationSnapshotDTO("user-123", "USER", java.util.Collections.emptySet(), 0L), "t-test"));
 
         AdminUserVO result = userPermissionService.assignUserPermission(
@@ -273,5 +271,86 @@ class UserPermissionServiceImplTest {
                     BusinessException be = (BusinessException) ex;
                     assertThat(be.getErrorCode()).isEqualTo(AdminErrorCode.FORBIDDEN);
                 });
+    }
+    @Test
+    @DisplayName("proven empty authorization snapshot remains writable")
+    void provenEmptyPermissionsRemainWritable() {
+        when(accountAdministrationService.changeAuthorization(any(ChangeAuthorizationCommand.class)))
+                .thenReturn(RpcResult.success(
+                        new AuthorizationSnapshotDTO(
+                                "user-123", "USER", Set.of(), 7L),
+                        "t-write"));
+
+        AdminUserVO result = userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo("user-123");
+        verify(accountAdministrationService).changeAuthorization(any(ChangeAuthorizationCommand.class));
+    }
+
+    @Test
+    @DisplayName("null authorization provider never dispatches a replacement write")
+    void nullAuthorizationProviderDoesNotWrite() {
+        when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenReturn(unavailablePermissions(
+                        "Authorization snapshot provider unavailable"));
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Authorization snapshot");
+
+        verify(accountAdministrationService, never())
+                .changeAuthorization(any(ChangeAuthorizationCommand.class));
+    }
+
+    @Test
+    @DisplayName("authorization provider transport failure never dispatches a replacement write")
+    void authorizationProviderFailureDoesNotWrite() {
+        when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenThrow(new RuntimeException("transport unavailable"));
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Authorization snapshot");
+
+        verify(accountAdministrationService, never())
+                .changeAuthorization(any(ChangeAuthorizationCommand.class));
+    }
+
+    @Test
+    @DisplayName("unsuccessful authorization provider never dispatches a replacement write")
+    void unsuccessfulAuthorizationProviderDoesNotWrite() {
+        when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenReturn(unavailablePermissions(
+                        "Authorization snapshot returned failure"));
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Authorization snapshot");
+
+        verify(accountAdministrationService, never())
+                .changeAuthorization(any(ChangeAuthorizationCommand.class));
+    }
+    @Test
+    @DisplayName("permission snapshot rejection records a safe audit reason")
+    void permissionSnapshotRejectionRecordsAuditReason() {
+        when(adminUserDetailQuery.loadUserDetail("user-123"))
+                .thenReturn(unavailablePermissions(
+                        "Authorization snapshot provider unavailable"));
+
+        assertThatThrownBy(() -> userPermissionService.assignUserPermission(
+                "user-123", "READ", "PROBLEM", null))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(AuditContext.getOldValues())
+                .containsEntry("permissionSnapshotStatus", "UNAVAILABLE")
+                .containsEntry("permissionSnapshotReason",
+                        "UNAVAILABLE: Authorization snapshot provider unavailable");
+        verify(accountAdministrationService, never())
+                .changeAuthorization(any(ChangeAuthorizationCommand.class));
     }
 }

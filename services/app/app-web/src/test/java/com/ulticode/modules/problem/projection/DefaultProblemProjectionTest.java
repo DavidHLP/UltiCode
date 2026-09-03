@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.app.error.ProblemErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.app.api.service.ProblemInteractionQueryPort;
+import com.ulticode.modules.problem.port.ProblemInteractionQueryPort;
 import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;

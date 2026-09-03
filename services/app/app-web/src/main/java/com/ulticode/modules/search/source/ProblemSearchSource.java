@@ -1,7 +1,7 @@
 package com.ulticode.modules.search.source;
 
 import com.ulticode.app.api.dto.ProblemIndexDTO;
-import com.ulticode.app.api.service.ProblemSearchReadPort;
+import com.ulticode.modules.problem.port.ProblemSearchReadPort;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchResponseVO;
 import lombok.RequiredArgsConstructor;

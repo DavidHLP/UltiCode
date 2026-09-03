@@ -248,7 +248,7 @@ class BackendAppApplicationTest {
     @MockBean
     private com.ulticode.modules.problem.mapper.TestCaseMapper testCaseMapper;
     @MockBean
-    private com.ulticode.app.api.service.ProblemInteractionQueryPort problemInteractionQueryPort;
+    private com.ulticode.modules.problem.port.ProblemInteractionQueryPort problemInteractionQueryPort;
     @MockBean
     private com.ulticode.app.api.service.ProblemAnalyticsReadPort problemAnalyticsReadPort;
     @MockBean
@@ -267,10 +267,10 @@ class BackendAppApplicationTest {
     @MockBean private com.ulticode.modules.contest.mapper.GlobalRankingMapper globalRankingMapper;
     @MockBean private com.ulticode.modules.contest.mapper.ScoringRuleMapper scoringRuleMapper;
     @MockBean private com.ulticode.modules.contest.clock.ContestClock contestClock;
-    @MockBean private com.ulticode.app.api.service.ContestAchievementPort contestAchievementPort;
-    @MockBean private com.ulticode.app.api.service.ContestNotificationPort contestNotificationPort;
-    @MockBean private com.ulticode.app.api.service.ContestStatusPushPort contestStatusPushPortBean;
-    @MockBean private com.ulticode.app.api.service.ContestRankingMarkDirtyPort contestRankingMarkDirtyPortBean;
+    @MockBean private com.ulticode.modules.achievement.port.ContestAchievementPort contestAchievementPort;
+    @MockBean private com.ulticode.modules.notification.port.ContestNotificationPort contestNotificationPort;
+    @MockBean private com.ulticode.modules.websocket.port.ContestStatusPushPort contestStatusPushPortBean;
+    @MockBean private com.ulticode.modules.websocket.port.ContestRankingMarkDirtyPort contestRankingMarkDirtyPortBean;
     @MockBean private com.ulticode.app.api.service.ContestLiveRankingReadPort contestLiveRankingReadPortBean;
     @MockBean private com.ulticode.modules.contest.service.ContestParticipantTransitions contestParticipantTransitions;
     @MockBean private com.ulticode.modules.contest.service.RatingCalculationService ratingCalculationService;

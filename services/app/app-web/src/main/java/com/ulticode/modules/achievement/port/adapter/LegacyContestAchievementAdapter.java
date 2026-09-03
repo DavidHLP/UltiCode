@@ -1,6 +1,6 @@
 package com.ulticode.modules.achievement.port.adapter;
 
-import com.ulticode.app.api.service.ContestAchievementPort;
+import com.ulticode.modules.achievement.port.ContestAchievementPort;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import lombok.RequiredArgsConstructor;

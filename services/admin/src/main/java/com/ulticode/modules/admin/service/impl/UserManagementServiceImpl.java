@@ -27,7 +27,8 @@ import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
+import com.ulticode.modules.admin.query.AdminUserDetailResult;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.admin.port.UserProfilePort;
 import com.ulticode.app.api.command.UpdateProfileCommand;
@@ -64,7 +65,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     private final UserProfilePort userProfilePort;
     private final AuditRecorder auditRecorder;
-    private final AdminUserProjection adminUserProjection;
+    private final AdminUserDetailQuery adminUserDetailQuery;
     private final CurrentUserProvider currentUserProvider;
 
     @Override
@@ -117,7 +118,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         log.info("User created: {} by admin", newUserId);
-        return adminUserProjection.getUserById(newUserId);
+        return userFromDetail(newUserId);
     }
 
     @Override
@@ -206,7 +207,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         ));
 
         log.info("User updated: {}", id);
-        return adminUserProjection.getUserById(id);
+        return userFromDetail(id);
     }
 
     @Override
@@ -227,7 +228,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         );
         executeStateChange(command);
         log.info("User banned: {} - reason: {}", id, reason);
-        return adminUserProjection.getUserById(id);
+        return userFromDetail(id);
     }
 
     @Override
@@ -248,7 +249,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         );
         executeStateChange(command);
         log.info("User unbanned: {}", id);
-        return adminUserProjection.getUserById(id);
+        return userFromDetail(id);
     }
 
     @Override
@@ -424,5 +425,18 @@ public class UserManagementServiceImpl implements UserManagementService {
             reqId = "t-" + UUID.randomUUID();
         }
         return new TraceMetadata(reqId, null, null, null);
+    }
+    private AdminUserVO userFromDetail(String id) {
+        AdminUserDetailResult result = adminUserDetailQuery.loadUserDetail(id);
+        if (result == null || result.failure() == AdminUserDetailResult.Failure.NOT_FOUND) {
+            throw new BusinessException(AdminErrorCode.USER_NOT_FOUND);
+        }
+        if (result.failure() == AdminUserDetailResult.Failure.TRANSPORT_UNAVAILABLE
+                || result.user() == null) {
+            throw new BusinessException(
+                    AdminErrorCode.OWNER_QUERY_UNAVAILABLE,
+                    "Admin user detail query unavailable");
+        }
+        return result.user();
     }
 }

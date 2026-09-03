@@ -7,12 +7,8 @@ import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.app.api.service.ProblemAnalyticsReadPort;
 import com.ulticode.app.api.service.ProblemAdminReadPort;
 import com.ulticode.app.api.service.ProblemTitleLookupPort;
-import com.ulticode.app.api.service.ProblemDifficultyReadPort;
-import com.ulticode.app.api.service.ProblemInteractionQueryPort;
 import com.ulticode.app.api.service.ProblemJudgingCaseReadPort;
-import com.ulticode.app.api.service.ProblemListReadPort;
 import com.ulticode.app.api.service.ProblemOwnerPort;
-import com.ulticode.app.api.service.ProblemSearchReadPort;
 import com.ulticode.app.api.service.TestCaseOwnerPort;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -114,14 +110,6 @@ class ProblemApiContractShapeTest {
                 Long.class, Collection.class);
         assertMethod(ProblemTitleLookupPort.class, "searchProblemIdsByTitle", List.class,
                 String.class);
-        assertMethod(ProblemListReadPort.class, "findByIds", List.class, Collection.class);
-        assertMethod(ProblemSearchReadPort.class, "searchForIndex", List.class,
-                String.class, int.class);
-        assertMethod(ProblemDifficultyReadPort.class, "countByDifficulty", List.class);
-        assertMethod(ProblemJudgingCaseReadPort.class, "loadCases", List.class, long.class);
-        assertMethod(ProblemInteractionQueryPort.class, "countFavorites", int.class, Long.class);
-        assertMethod(ProblemInteractionQueryPort.class, "findViewerReaction", String.class,
-                String.class, Long.class);
         assertMethod(ProblemAnalyticsReadPort.class, "loadProblemCompletionReport",
                 ProblemCompletionReportDTO.class, Integer.class);
     }
@@ -131,11 +119,7 @@ class ProblemApiContractShapeTest {
         List<Class<?>> contracts = List.of(
                 ProblemOwnerPort.class,
                 TestCaseOwnerPort.class,
-                ProblemListReadPort.class,
-                ProblemSearchReadPort.class,
-                ProblemDifficultyReadPort.class,
                 ProblemJudgingCaseReadPort.class,
-                ProblemInteractionQueryPort.class,
                 ProblemAdminReadPort.class,
                 ProblemTitleLookupPort.class,
                 ProblemAnalyticsReadPort.class);

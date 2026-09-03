@@ -4,7 +4,7 @@ import com.ulticode.app.error.ContestErrorCode;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.app.api.service.ContestAchievementPort;
+import com.ulticode.modules.achievement.port.ContestAchievementPort;
 import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;

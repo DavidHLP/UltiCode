@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.problem.port;
 
 /**
  * Read-side port for edge interactions associated with a Problem.

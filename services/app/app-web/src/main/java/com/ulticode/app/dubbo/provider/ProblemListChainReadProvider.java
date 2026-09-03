@@ -4,7 +4,7 @@ import com.ulticode.app.api.dto.ProblemListDetailDTO;
 import com.ulticode.app.api.dto.ProblemListItemDTO;
 import com.ulticode.app.api.dto.ProblemListSummaryDTO;
 import com.ulticode.app.api.service.ProblemListChainReadPort;
-import com.ulticode.app.api.service.ProblemListReadPort;
+import com.ulticode.modules.problem.port.ProblemListReadPort;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;

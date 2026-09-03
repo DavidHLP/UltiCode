@@ -26,6 +26,24 @@ env:
   PNPM_VERSION: '11'
 
 jobs:
+  # App/package path filters already route here; this lightweight contract
+  # verifies the zero-infrastructure local entrypoint before frontend jobs.
+  static-validation-contract:
+    name: Zero-infrastructure static contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run zero-infrastructure validation contract
+        run: bash scripts/test/zero-infra-validation-contract.sh
+
   frontend-lint:
     name: Lint (${{ matrix.app }})
     runs-on: ubuntu-latest
@@ -66,10 +84,10 @@ jobs:
           GITHUB_ACTIONS: "false"
         run: pnpm install --frozen-lockfile
 
-      - name: Run lint
+      - name: Run read-only lint check
         if: steps.should-run.outputs.run == 'true'
         working-directory: apps/${{ matrix.app }}
-        run: pnpm lint
+        run: pnpm lint:check
 
   frontend-type-check:
     name: Type Check (${{ matrix.app }})

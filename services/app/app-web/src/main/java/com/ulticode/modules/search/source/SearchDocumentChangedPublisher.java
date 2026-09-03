@@ -1,7 +1,7 @@
 package com.ulticode.modules.search.source;
 
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
-import com.ulticode.app.api.service.ProblemSearchReadPort;
+import com.ulticode.modules.problem.port.ProblemSearchReadPort;
 import com.ulticode.modules.event.outbox.IntegrationEventPublisher;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.solution.entity.Solution;

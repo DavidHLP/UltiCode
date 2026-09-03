@@ -1,4 +1,4 @@
-package com.ulticode.app.api.service;
+package com.ulticode.modules.problem.port;
 
 import java.util.List;
 import java.util.Map;

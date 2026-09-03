@@ -4,19 +4,17 @@ import com.ulticode.app.api.dto.UserProfileDTO;
 import com.ulticode.app.api.service.UserProfileQueryService;
 import com.ulticode.auth.api.dto.AccountQueryDTO;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.dto.AuthorizationSnapshotDTO;
-import com.ulticode.auth.api.dto.PermissionEntry;
 import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.admin.error.AdminErrorCode;
 import com.ulticode.common.response.DegradationStatus;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.auth.api.service.AccountQueryService;
-import com.ulticode.auth.api.service.RoleTemplateService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
+import com.ulticode.modules.admin.port.AdminSubmissionUserDetailStatsReadPort;
+import com.ulticode.app.api.service.SolutionReadPort;
 import com.ulticode.auth.api.service.AuthorizationSnapshotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +32,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,10 +40,9 @@ class AdminUserProjectionTest {
 
     @Mock private AccountQueryService accountQueryService;
     @Mock private UserProfileQueryService userProfileQueryService;
-    @Mock private AdminUserStatsReadPort userStatsReadPort;
+    @Mock private AdminSubmissionUserDetailStatsReadPort submissionStatsReadPort;
+    @Mock private SolutionReadPort solutionReadPort;
     @Mock private AuthorizationSnapshotService authorizationSnapshotService;
-    @Mock private RoleTemplateService roleTemplateService;
-
     private DefaultAdminUserProjection projection;
 
     private AuthAccountDTO createValidAccount() {
@@ -65,7 +61,9 @@ class AdminUserProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminUserProjection(
-                accountQueryService, userProfileQueryService, userStatsReadPort, authorizationSnapshotService, roleTemplateService);
+                accountQueryService, userProfileQueryService,
+                submissionStatsReadPort, solutionReadPort,
+                authorizationSnapshotService);
     }
 
     @Test
@@ -131,8 +129,8 @@ class AdminUserProjectionTest {
         @DisplayName("unwired AccountQueryService (provider never registered) -> 503, not an empty page")
         void unwiredAuthThrowsUnavailable() {
             projection = new DefaultAdminUserProjection(
-                    null, userProfileQueryService, userStatsReadPort,
-                    authorizationSnapshotService, roleTemplateService);
+                    null, userProfileQueryService, submissionStatsReadPort,
+                    solutionReadPort, authorizationSnapshotService);
 
             assertThatThrownBy(() -> projection.getUsers(new AdminUserQueryDTO()))
                     .isInstanceOf(BusinessException.class)

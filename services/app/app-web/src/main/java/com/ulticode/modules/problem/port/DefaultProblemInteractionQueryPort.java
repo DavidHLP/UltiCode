@@ -1,6 +1,5 @@
 package com.ulticode.modules.problem.port;
 
-import com.ulticode.app.api.service.ProblemInteractionQueryPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

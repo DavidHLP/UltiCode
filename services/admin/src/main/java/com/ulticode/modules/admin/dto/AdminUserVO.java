@@ -66,6 +66,30 @@ public class AdminUserVO {
      */
     @Schema(description = "Degradation marker when cross-owner enrichment was partial")
     private DegradationStatus degradationStatus;
+    /**
+     * Stable top-level status for the detail read. List responses leave the
+     * existing nullable marker unchanged.
+     */
+    @Schema(description = "Top-level detail availability")
+    private DegradationStatus detailStatus;
+
+    @Schema(description = "Profile section availability")
+    private DegradationStatus profileStatus;
+
+    @Schema(description = "Profile section degradation reason")
+    private String profileReason;
+
+    @Schema(description = "Statistics section availability")
+    private DegradationStatus statsStatus;
+
+    @Schema(description = "Statistics section degradation reason")
+    private String statsReason;
+
+    @Schema(description = "Permissions section availability")
+    private DegradationStatus permissionsStatus;
+
+    @Schema(description = "Permissions section degradation reason")
+    private String permissionsReason;
 
     @Data
     @Schema(description = "Permission information")

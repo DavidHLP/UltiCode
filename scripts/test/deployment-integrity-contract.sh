@@ -10,6 +10,7 @@ HOST_HEALTH="$ROOT_DIR/.github/actions/host-health/action.yml"
 HOST_DEPLOY="$ROOT_DIR/.github/actions/host-deploy/action.yml"
 CD_DEPLOY="$ROOT_DIR/.github/workflows/cd-deploy.yml"
 CD_ROLLBACK="$ROOT_DIR/.github/workflows/cd-rollback.yml"
+GITLAB_CI="$ROOT_DIR/.gitlab-ci.yml"
 valid_digest=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 valid_refs=""
 for service in backend-auth backend-admin backend-app backend-submission backend-search backend-notification backend-judge console management; do
@@ -21,6 +22,14 @@ fail() {
   echo "deployment-integrity-contract: FAIL: $*" >&2
   exit 1
 }
+grep -Fq 'stages: []' "$GITLAB_CI" \
+  || fail "legacy GitLab direct-deploy pipeline is not disabled"
+! grep -Fq 'reset --hard' "$GITLAB_CI" \
+  || fail "GitLab config retains destructive checkout command"
+! grep -Fq 'docker compose' "$GITLAB_CI" \
+  || fail "GitLab config retains a direct Compose deployment path"
+grep -Fq "default: ''" "$HOST_DEPLOY" \
+  || fail "canonical host deploy does not default to the coordinated release set"
 
 [ -x "$RUNBOOK" ] || fail "deployment-integrity.sh is not executable"
 [ -x "$ROOT_DIR/scripts/runbooks/image-reference-policy.sh" ] || fail "image policy is not executable"
@@ -52,6 +61,67 @@ grep -Fq 'schema_manifest_checksum:' "$CD_ROLLBACK" \
 schema_checksum="$("$RUNBOOK" schema-checksum)"
 printf '%s' "$schema_checksum" | grep -Eq '^[0-9a-f]{64}$' \
   || fail "schema-checksum did not return a SHA-256"
+
+"$RUNBOOK" verify-registry >/dev/null
+printf 'release registry matrix/Compose parity: PASS\n'
+
+describe_output="$(
+  IMAGE_REF_LIST="$valid_refs" \
+  DEPLOYMENT_COMMIT="$(git -C "$ROOT_DIR" rev-parse HEAD)" \
+  EXPECTED_SCHEMA_MANIFEST_CHECKSUM="$schema_checksum" \
+  DEPLOYMENT_DESCRIPTOR_FILE="$ROOT_DIR/.local/deploy/nonexistent-descriptor.json" \
+  DEPLOYMENT_OUTPUT_FORMAT=json \
+  "$RUNBOOK" describe
+)"
+python3 - "$describe_output" <<'PY'
+import json
+import sys
+
+description = json.loads(sys.argv[1])
+assert description["evidence_level"] == "repository-static"
+assert description["production_evidence"] is False
+assert len(description["services"]) == 9
+for service in description["services"]:
+    assert service["role"] in {"owner", "worker", "frontend"}
+    assert service["release_group"] == "core"
+    assert service["image_ref"].count("@sha256:") == 1
+print("release describe metadata and evidence boundary: PASS")
+PY
+
+if IMAGE_REF_LIST="$valid_refs" \
+  DEPLOYMENT_COMMIT=not-a-commit \
+  EXPECTED_SCHEMA_MANIFEST_CHECKSUM="$schema_checksum" \
+  DEPLOYMENT_OUTPUT_FORMAT=json \
+  "$RUNBOOK" describe >/dev/null 2>&1; then
+  fail "describe accepted an invalid source commit"
+fi
+printf 'release describe fail-closed input validation: PASS\n'
+
+mkdir -p "$ROOT_DIR/.local"
+matrix_bad="$ROOT_DIR/.local/deploy-vocab-$$.json"
+python3 - "$ROOT_DIR/.github/services-matrix.json" "$matrix_bad" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    matrix = json.load(source)
+for entry in matrix:
+    if entry["name"] == "backend-auth":
+        entry["role"] = "prod"
+with open(sys.argv[2], "w", encoding="utf-8") as target:
+    json.dump(matrix, target)
+PY
+if IMAGE_REF_LIST="$valid_refs" \
+  DEPLOYMENT_COMMIT="$(git -C "$ROOT_DIR" rev-parse HEAD)" \
+  EXPECTED_SCHEMA_MANIFEST_CHECKSUM="$schema_checksum" \
+  RELEASE_MATRIX_FILE="$matrix_bad" \
+  DEPLOYMENT_OUTPUT_FORMAT=json \
+  "$RUNBOOK" describe >/dev/null 2>&1; then
+  rm -f "$matrix_bad"
+  fail "describe accepted an invalid role classification"
+fi
+rm -f "$matrix_bad"
+printf 'release describe classification vocabulary: PASS\n'
 
 mkdir -p "$ROOT_DIR/.local"
 test_dir="$(mktemp -d "$ROOT_DIR/.local/deploy-integrity-contract.XXXXXX")"

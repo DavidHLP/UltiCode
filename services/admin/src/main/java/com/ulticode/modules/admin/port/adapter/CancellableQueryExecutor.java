@@ -11,11 +11,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Bounded, interrupt-aware executor for one Admin owner-query slice. */
-final class CancellableQueryExecutor implements AutoCloseable {
+public final class CancellableQueryExecutor implements AutoCloseable {
 
     private final ThreadPoolExecutor executor;
 
-    CancellableQueryExecutor(String threadName, int maximumPoolSize) {
+    public CancellableQueryExecutor(String threadName, int maximumPoolSize) {
         this.executor = new ThreadPoolExecutor(
                 maximumPoolSize,
                 maximumPoolSize,
@@ -26,7 +26,7 @@ final class CancellableQueryExecutor implements AutoCloseable {
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
-    <T> Query<T> submit(Callable<T> task) {
+    public <T> Query<T> submit(Callable<T> task) {
         CompletableFuture<T> result = new CompletableFuture<>();
         Future<?> execution;
         try {
@@ -48,7 +48,7 @@ final class CancellableQueryExecutor implements AutoCloseable {
     }
 
     @SafeVarargs
-    static void cancel(Query<?>... queries) {
+    public static void cancel(Query<?>... queries) {
         for (Query<?> query : queries) {
             // Mark the public result cancelled before interrupting the task;
             // otherwise the task can race in with completeExceptionally and
@@ -65,7 +65,7 @@ final class CancellableQueryExecutor implements AutoCloseable {
         executor.shutdownNow();
     }
 
-    record Query<T>(CompletableFuture<T> result, Future<?> execution) {
+    public record Query<T>(CompletableFuture<T> result, Future<?> execution) {
     }
 
     private static final class NamedDaemonThreadFactory implements ThreadFactory {

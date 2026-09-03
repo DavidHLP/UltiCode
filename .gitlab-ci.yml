@@ -1,16 +1,11 @@
-stages:
-  - deploy
-
-deploy:
-  stage: deploy
-  tags:
-    - shell
-  script:
-    - cd /home/yw/UltiCode
-    - git fetch origin
-    - git reset --hard origin/$CI_COMMIT_BRANCH
-    - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml build
-    - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml up -d
-  only:
-    - main
-    - feat/gitlab-cicd
+# GitLab's former direct deploy job is retired and intentionally disabled.
+# It reset a fixed checkout and ran Compose directly, bypassing the canonical
+# release descriptor, owner migrations, immutable image policy, and host health
+# gates. Repository evidence does not establish an active GitLab deployment
+# authority. Deploy through .github/workflows/cd-deploy.yml and the shared
+# .github/actions/host-deploy action instead.
+#
+# Keep this file as an explicit, fail-closed record. Do not restore a direct
+# reset/build/up shortcut here; any future GitLab adapter must consume the
+# canonical descriptor and preflight interface.
+stages: []

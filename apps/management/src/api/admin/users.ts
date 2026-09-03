@@ -1,6 +1,8 @@
 import type { PageResult } from '@/shared/domain-types/src'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
+export type UserDegradationStatus = 'OK' | 'PARTIAL' | 'UNAVAILABLE'
+
 export interface User {
   id: string
   username: string
@@ -16,6 +18,20 @@ export interface User {
   lastLoginAt?: string
   permissions?: UserPermission[]
   stats?: UserStats
+  degradationStatus?: UserDegradationStatus | null
+  detailStatus?: UserDegradationStatus | null
+  profileStatus?: UserDegradationStatus | null
+  profileReason?: string | null
+  statsStatus?: UserDegradationStatus | null
+  statsReason?: string | null
+  permissionsStatus?: UserDegradationStatus | null
+  permissionsReason?: string | null
+}
+
+export function canWriteUserPermissions(
+  user: Pick<User, 'permissionsStatus'> | null | undefined,
+): boolean {
+  return user?.permissionsStatus === 'OK'
 }
 
 export interface UserStats {

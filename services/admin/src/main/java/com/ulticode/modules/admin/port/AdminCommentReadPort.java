@@ -17,15 +17,11 @@ import java.util.Set;
  * ({@link com.ulticode.modules.admin.port.adapter.AdminCommentReadAdapter})
  * hides the three mappers and owns the empty-input short-circuit.
  *
- * <p>Third phase of the AdminReadModel seam (after {@link AdminSubmissionReadPort}
- * and {@link AdminUserStatsReadPort}). Returns typed views rather than raw
- * entities: {@link AuthorSummary} and title strings free
- * {@code AdminCommentServiceImpl} from importing the {@code User} /
- * {@code ForumPost} / {@code Solution} entities and re-implementing null
- * guards — that is the leverage this deep module buys. The deletion test
- * passes: deleting the port would force {@code AdminCommentServiceImpl} back
- * into reaching across to three mappers, three batch-load helpers, and four
- * per-field null guards in the VO assembly.
+ * Third phase of the AdminReadModel seam, after the submission read seam.
+ * Returns typed views rather than raw entities: {@link AuthorSummary} and
+ * title strings free {@code AdminCommentServiceImpl} from importing the
+ * {@code User} / {@code ForumPost} / {@code Solution} entities and
+ * re-implementing null guards — that is the leverage this deep module buys.
  *
  * <p>Only the read-side enrichment is owned by this port. Write-side
  * moderation stays behind each owner's typed command/owner contract, so the

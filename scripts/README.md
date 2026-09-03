@@ -11,13 +11,16 @@ local startup/verification entry points live in `scripts/dev/`.
 | `stop.sh` | 停止 PM2 管理的本地进程组 |
 | `init-env.sh` | 生成本地 `.env`（基础设施凭据随机，开发管理员由 bootstrap 配置） |
 | `migrate.sh` | Flyway 入口（shared chain + per-owner `MIGRATION_SCHEMA=`） |
-| `test.sh` | 支持的验证 wrapper：`quick` / `full` / `integration`（见仓库根 AGENTS.md） |
+| `test.sh` | 支持的验证 wrapper：`static` / `unit` / `quick` / `full-local` / `full` / `integration`；`quick` 是 `static + unit` 的兼容别名（重型覆盖请用 `full-local`） |
 | `doctor.sh` | 只读的端口/PM2/Docker 健康诊断，附建议命令 |
 
 ### Gates and contracts
 
 - `architecture-contract-test.sh` — code-seam contracts (Java ports, compose
   aliases, PM2 topology) plus the DevStack manifest test.
+- `zero-infra-validation-contract.sh` — deny-shim proof that `test.sh static`
+  does not invoke Docker, databases, services, Maven verify, or dependency
+  installation.
 - `docs-contract-test.sh` — documentation-drift guardrails (README /
   `docs/` / CONTEXT wording). Invoked by the architecture gate.
 - `devstack-manifest-test.sh` — locks the manifest data consumed by

@@ -1,7 +1,6 @@
 package com.ulticode.modules.problem.port;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.app.api.service.ProblemTagStatsReadPort;
 import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.entity.ProblemTagRelation;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;

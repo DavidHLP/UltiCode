@@ -1,62 +1,23 @@
 package com.ulticode.modules.admin.projection;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 
 /**
- * Read-side projection for admin user management &mdash; a deep module that
- * owns every entity-to-VO projection rule, paginated list-query builder, and
- * cross-module enrichment (submission/solution stats via
- * {@link com.ulticode.modules.admin.port.AdminUserStatsReadPort}; role + direct
- * permissions via Dubbo RPC {@link com.ulticode.auth.api.service.RoleTemplateService}
- * and {@link com.ulticode.auth.api.service.AuthorizationSnapshotService}) for
- * the admin user surface.
+ * Compatibility projection for admin user reads.
  *
- * <p>This is the same shallow cluster lifted out of
- * {@link com.ulticode.modules.admin.service.UserManagementService} for the
- * Stage 2 rollout of ADR-0011: the paginated list read ({@link #getUsers},
- * ~50 LoC of query building + entity&rarr;VO shaping with <b>no</b>
- * stats/permission enrichment to keep the list path fast), and the
- * single-detail read ({@link #getUserById}, with full stats + permissions
- * snapshot). Sitting next to the write state machine (CRUD / ban / bulk
- * operations) in the same service made every projection tweak land in the
- * same file as the write paths.
+ * <p>The list operation owns the lean list-view entity-to-VO mapping. The
+ * detail operation delegates to the Admin-internal
+ * {@link com.ulticode.modules.admin.query.AdminUserDetailQuery} seam, which
+ * owns cross-owner aggregation and explicit section availability.
  *
- * <p>After the deepening:
- * <ul>
- *   <li>{@link com.ulticode.modules.admin.service.UserManagementService}
- *       keeps the write state machine only (create / update / delete / ban /
- *       unban / reset-password / bulk operations). Write paths return the
- *       post-write VO by delegating to {@link #getUserById(String)} and never
- *       call any projection helper directly.</li>
- *   <li>{@link com.ulticode.modules.admin.service.UserPermissionService}
- *       also delegates to {@link #getUserById(String)} to compose the
- *       post-grant / post-revoke VO. The cross-service collaboration point
- *       (documented on the legacy {@code UserManagementService.getUserById}
- *       javadoc) now sits behind this seam.</li>
- *   <li>The controller depends on this projection directly for reads and on
- *       the service for writes.</li>
- * </ul>
- *
- * <p>All methods are pure reads; none mutate user state. The single-item
- * read throws {@link com.ulticode.admin.error.AdminErrorCode#USER_NOT_FOUND}
- * to preserve the access contract observed by the controller and by
- * {@link com.ulticode.modules.admin.service.UserPermissionService}.
- *
- * <p>Mirrors the {@link AdminSubmissionProjection}
- * / {@code ModerationProjection} / {@code AchievementProjection} shape
- * exactly. Cross-module entity imports ({@code User}, {@code RolePermission},
- * {@code UserPermission}) and their mappers live behind this seam; the admin
- * user services no longer import them.
+ * <p>The legacy surface remains so existing controllers and write services
+ * keep their established {@link com.ulticode.common.response.Result} and
+ * {@link com.ulticode.common.exception.BusinessException} behavior while the
+ * detail implementation is deepened behind one use-case interface.
  *
  * @author ulticode
- * @see AdminSubmissionProjection
- * @see com.ulticode.modules.moderation.projection.ModerationProjection
- * @see com.ulticode.modules.achievement.projection.AchievementProjection
  */
 public interface AdminUserProjection {
 
@@ -74,23 +35,24 @@ public interface AdminUserProjection {
     PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query);
 
     /**
-     * Get a single user by ID with full detail enrichment: stats snapshot
-     * (submissions / accepted / solutions / streak via
-     * {@link com.ulticode.modules.admin.port.AdminUserStatsReadPort}) and
-     * permissions snapshot (role permissions + direct permissions, with
-     * expired direct permissions filtered out).
+     * Get a single user by ID through the detail query seam. Optional profile,
+     * stats, and permission sections remain visible on the returned VO when
+     * available; an unavailable section is marked by
+     * {@link AdminUserVO#getDegradationStatus()} instead of becoming a
+     * successful empty value.
      *
-     * <p>This method is the collaboration point used by
-     * {@link com.ulticode.modules.admin.service.UserPermissionService}
-     * after a grant / revoke to return the latest VO, and by
-     * {@link com.ulticode.modules.admin.service.UserManagementService}
-     * after a write (update / ban / unban) to compose the post-write VO.
+     * <p>Authoritative account not-found and owner transport failures retain
+     * their established {@link com.ulticode.common.exception.BusinessException}
+     * mappings for existing HTTP callers.
      *
      * @param id user ID
-     * @return admin user VO with full stats + permissions snapshot
+     * @return admin user VO with any available detail sections
      * @throws com.ulticode.common.exception.BusinessException with
      *         {@link com.ulticode.admin.error.AdminErrorCode#USER_NOT_FOUND}
      *         when the user does not exist
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@link com.ulticode.admin.error.AdminErrorCode#OWNER_QUERY_UNAVAILABLE}
+     *         when Auth cannot answer whether the user exists
      */
     AdminUserVO getUserById(String id);
 }

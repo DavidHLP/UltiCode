@@ -14,13 +14,27 @@
 ./scripts/dev/up.sh --mode dev-lite
 ```
 
-`dev-lite` 按 `auth → admin → app → notification → submission` 应用 Owner migrations，启动六个后端（含 Judge）并使用数据库 Search；不启动 Search worker，默认也不启动两个前端。`dev-lite` 与 `dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`；marker 未完成时 `up.sh` 会 fail closed。需要 indexed read 和完整浏览器栈时使用：
+`dev-lite` 是兼容默认：按 `auth → admin → app → notification → submission` 应用 Owner migrations，启动六个后端（含 Judge）并使用数据库 Search；不启动 Search worker，默认也不启动两个前端。`dev-lite` 与 `dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`；marker 未完成时 `up.sh` 会 fail closed。
+
+按开发场景选择最小服务集合（`up.sh`/`stop.sh`/`doctor.sh` 共用同一 resolver，见 `scripts/dev/devstack-manifest.sh`）：
 
 ```bash
+./scripts/dev/up.sh --scope app-journey      # 普通用户旅程：auth/app/notification/submission/judge + console
+./scripts/dev/up.sh --scope admin            # 管理：auth/admin/app/notification/submission + management
+./scripts/dev/up.sh --scope submission-judge # judge 路径：app/submission/judge，无 Search
+./scripts/dev/up.sh --scope search           # indexed Search：auth/app/search + console + meili
+./scripts/dev/up.sh --scope full-stack       # 显式全量进程集
+./scripts/dev/up.sh --scope full-stack --observability  # 显式选择 observability overlay
+```
+
+兼容命令（等价于对应 scope）保留可用：
+
+```bash
+./scripts/dev/up.sh --mode dev-lite
 ./scripts/dev/up.sh --mode dev-full
 ```
 
-`dev-full` 额外启动 Search worker 和两个前端。需要只启动前端时使用 `./scripts/dev/up.sh --frontend-only`；需要只启动 Search 时使用 `./scripts/dev/up.sh --mode dev-full --only search`。正常两种模式使用 Judge Streams；`up.sh` 对已退役的 `legacy-rollback` 和未知 mode fail closed。生产回滚使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](../operations/deployment.md)）。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
+Search/Meili、Judge、observability 与前端只在被选中 scope 需要时才启动；`dev-lite` 默认不创建 Meili 容器。生命周期操作消费同一集合：`./scripts/dev/up.sh status|logs|health --scope <name>`，`./scripts/dev/stop.sh --scope <name>`（`--all` 停止全部）。`up.sh` 对已退役的 `legacy-rollback` 和未知 mode/scope fail closed。生产回滚使用部署方保留并校验的上一份完整 release descriptor，不能通过当前二进制恢复旧实现（见[部署、发布与回滚](../operations/deployment.md)）。`up.sh` 消费 `scripts/dev/devstack-manifest.sh` 的 route、flag、worker、readiness 和 failure policy，不要直接用 Maven 或 PM2 启动 runtime。
 
 常用变体：
 
@@ -32,6 +46,8 @@
 pm2 status
 pm2 logs ulticode-auth --nostream --lines 200
 ```
+
+验证入口分 `static` / `unit` / `quick` / `full-local` / `full` / `integration` 六层，见[测试与质量](testing.md)；快速只读结构检查使用 `./scripts/dev/test.sh static`，完整本地门禁使用 `./scripts/dev/test.sh full-local`。
 
 ## 访问入口
 

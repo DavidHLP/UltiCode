@@ -15,11 +15,10 @@ import java.util.List;
  * <p>该接口仅承担「用户档案与状态」语义；
  * 不持有任何权限授予 / 撤销相关方法，避免与 {@link UserPermissionService} 产生交叉依赖。
  *
- * <p><b>ADR-0011 Stage 2 更新</b>：所有读路径（列表 / 单条详情 + stats + permissions
- * 快照）已迁移至 {@link com.ulticode.modules.admin.projection.AdminUserProjection}。
- * 本接口现在只暴露写操作；写方法的返回 VO 通过委托
- * {@link com.ulticode.modules.admin.projection.AdminUserProjection#getUserById(String)}
- * 组合而成，避免在两处复制 entity&rarr;VO 规则。
+ * <p><b>ADR-0011 Stage 2 update</b>: detail reads are owned by the
+ * {@link com.ulticode.modules.admin.query.AdminUserDetailQuery} use case.
+ * Write methods resolve their response through that same seam rather than
+ * duplicating cross-owner fanout.
  */
 public interface UserManagementService {
 

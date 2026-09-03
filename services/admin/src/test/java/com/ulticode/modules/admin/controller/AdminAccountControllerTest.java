@@ -8,7 +8,7 @@ import com.ulticode.auth.api.dto.ChangePasswordDTO;
 import com.ulticode.auth.api.service.AccountManagementService;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.admin.query.AdminUserDetailQuery;
 import com.ulticode.modules.admin.service.UserManagementService;
 import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +44,7 @@ class AdminAccountControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private AdminUserProjection adminUserProjection;
+    private AdminUserDetailQuery adminUserDetailQuery;
     @MockBean
     private UserManagementService userManagementService;
     @MockBean

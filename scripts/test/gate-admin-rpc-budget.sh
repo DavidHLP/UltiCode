@@ -529,6 +529,69 @@ if loop_violations:
 if hook_violations:
     fail("invalid Admin metric hook: " + "; ".join(sorted(hook_violations)))
 
+# The user-detail budget is a source-level contract. Keep this check tied to
+# the observable fan-out shape rather than implementation class names: one
+# authoritative account read, then four optional owner reads in parallel.
+detail_relative = "services/admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java"
+detail_text = read_required(detail_relative)
+detail_masked = mask_java(detail_text)
+if "AdminUserStatsReadPort" in detail_text:
+    fail(f"{detail_relative} still depends on the retired per-item stats port")
+if re.search(r"\b(?:countSubmissionsByUserId|countAcceptedProblemsByUserId|calculateSubmissionStreak)\s*\(", detail_masked):
+    fail(f"{detail_relative} still contains per-item Submission stats calls")
+if detail_text.count("loadUserDetailStats(") != 1:
+    fail(f"{detail_relative} must issue one Submission detail snapshot call")
+if detail_text.count("CompletableFuture.allOf(") != 1:
+    fail(f"{detail_relative} must use one bounded optional fan-out barrier")
+if detail_text.count("CancellableQueryExecutor.cancel(") < 2:
+    fail(f"{detail_relative} must cancel both account and optional work")
+if "new ArrayBlockingQueue" in detail_text or "Executors.new" in detail_text:
+    fail(f"{detail_relative} must reuse the owned bounded executor")
+pool_size = re.search(r"DETAIL_QUERY_POOL_SIZE\s*=\s*(\d+)", detail_masked)
+if pool_size is None or int(pool_size.group(1)) > 4:
+    fail(f"{detail_relative} has no bounded four-worker detail executor")
+call_map = re.search(r"DETAIL_CALLS\s*=\s*Map\.of\((.*?)\);", detail_masked, re.DOTALL)
+if call_map is None:
+    fail(f"{detail_relative} has no fixed detail logical-call map")
+owner_calls = {
+    owner: int(calls)
+    for owner, calls in re.findall(
+        r"Owner\.([A-Z]+)\s*,\s*(\d+)", call_map.group(1))
+}
+if owner_calls != {"AUTH": 2, "APP": 2, "SUBMISSION": 1}:
+    fail(f"{detail_relative} detail call map is {owner_calls}, expected AUTH=2 APP=2 SUBMISSION=1")
+if sum(owner_calls.values()) > 5:
+    fail(f"{detail_relative} exceeds five logical owner calls")
+if not re.search(
+        r'"I-USER-DETAIL"[\s\S]*?,\s*2\s*,\s*'
+        r'AdminUseCaseMetrics\.Freshness\.REQ', detail_text):
+    fail(f"{detail_relative} is missing the two-round Admin metric hook")
+for required in (
+    "findAccountAuthoritatively",
+    "findProfileWithStatus",
+    "AuthorizationSnapshotService",
+    "SolutionReadPort",
+    "AdminSubmissionUserDetailStatsReadPort",
+):
+    if required not in detail_text:
+        fail(f"{detail_relative} is missing required owner seam {required}")
+
+retired_paths = (
+    "services/admin/src/main/java/com/ulticode/modules/admin/port/AdminUserStatsReadPort.java",
+    "services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserStatsReadAdapter.java",
+    "services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/AdminUserStatsReadAdapterTest.java",
+)
+for relative in retired_paths:
+    if (root / relative).exists():
+        fail(f"retired detail stats path still exists: {relative}")
+for scope in (
+        root / "services/admin/src/main/java",
+        root / "services/admin/src/test/java"):
+    for path in scope.rglob("*.java"):
+        if "AdminUserStatsReadPort" in path.read_text(encoding="utf-8"):
+            fail(f"retired detail stats port is still referenced by {path.relative_to(root)}")
+print("detail budget: PASS (5 logical calls, 2 rounds, one Submission snapshot, bounded cancellation)")
+
 # Fixtures make the static boundary executable: local loops are allowed, while
 # a known owner reference in a loop and an unknown/missing metric contract fail.
 local_loop = """
@@ -592,6 +655,9 @@ focus_tests = (
     "services/admin/src/test/java/com/ulticode/modules/admin/metrics/AdminUseCaseMetricsTest.java",
     "services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminAnalyticsPortAdapterMetricsTest.java",
     "services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminDashboardReadAdapterMetricsTest.java",
+    "services/admin/src/test/java/com/ulticode/modules/admin/query/AdminUserDetailQueryTest.java",
+    "services/admin/src/test/java/com/ulticode/modules/admin/AdminUserVOContractTest.java",
+    "services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminUserProjectionTest.java",
 )
 for relative in focus_tests:
     read_required(relative)
@@ -636,9 +702,8 @@ fi
 if (
   cd "$ROOT_DIR/services"
   mise exec java@zulu-17.68.203.0 -- bash ./mvnw \
-    -pl admin -am \
-    -Dtest='AdminUseCaseMetricsTest,DefaultAdminAnalyticsPortAdapterMetricsTest,DefaultAdminDashboardReadAdapterMetricsTest' \
-    -Dsurefire.failIfNoSpecifiedTests=false \
+    -pl :backend-admin -am \
+    -Dtest='AdminUseCaseMetricsTest,DefaultAdminAnalyticsPortAdapterMetricsTest,DefaultAdminDashboardReadAdapterMetricsTest,AdminUserDetailQueryTest,AdminUserVOContractTest,AdminUserProjectionTest' \
     test -B
 ) >"$TEST_LOG" 2>&1; then
   printf 'admin-rpc-budget: focused Admin tests PASS\n'

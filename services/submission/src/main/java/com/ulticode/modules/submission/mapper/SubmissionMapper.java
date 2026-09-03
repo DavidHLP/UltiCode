@@ -16,6 +16,7 @@ import com.ulticode.submission.api.dto.WeeklyProgressDTO;
 import com.ulticode.submission.api.dto.WeeklyActiveUserCount;
 import com.ulticode.submission.api.dto.StatusCountDTO;
 import com.ulticode.submission.api.dto.UserBestStats;
+import com.ulticode.submission.api.dto.SubmissionUserDetailStatsSnapshotDTO;
 import com.ulticode.common.dto.DashboardBucketCount;
 import com.ulticode.modules.submission.entity.Submission;
 import org.apache.ibatis.annotations.Arg;
@@ -336,6 +337,72 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + ") "
             + "SELECT MIN(days_ago) FROM streak_calc WHERE days_ago <= 1")
     Integer calculateStreak(@Param("userId") String userId);
+    /**
+     * One-row Submission-owned aggregate for the Admin user-detail read.
+     *
+     * <p>The counts and current streak are returned by one SQL statement so a
+     * detail request does not fan out into one mapper call per metric.
+     */
+    @ConstructorArgs({
+            @Arg(column = "submission_count", javaType = Long.class),
+            @Arg(column = "accepted_problem_count", javaType = Long.class),
+            @Arg(column = "streak", javaType = Integer.class)
+    })
+    @Select("""
+            WITH RECURSIVE
+            submission_dates AS (
+                SELECT DISTINCT DATE(created_at) AS submitted_date
+                FROM submissions
+                WHERE user_id = #{userId}
+                  AND created_at >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+            ),
+            calendar_days AS (
+                SELECT CURDATE() AS calendar_date, 0 AS day_offset
+                UNION ALL
+                SELECT DATE_SUB(calendar_date, INTERVAL 1 DAY), day_offset + 1
+                FROM calendar_days
+                WHERE day_offset < 365
+            ),
+            streak_start_value AS (
+                SELECT CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM submission_dates
+                        WHERE submitted_date = CURDATE()
+                    ) THEN 0
+                    WHEN EXISTS (
+                        SELECT 1 FROM submission_dates
+                        WHERE submitted_date = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                    ) THEN 1
+                    ELSE NULL
+                END AS day_offset
+            ),
+            streak_length AS (
+                SELECT CASE
+                    WHEN start_value.day_offset IS NULL THEN 0
+                    ELSE COALESCE(
+                        (
+                            SELECT MIN(calendar_row.day_offset)
+                            FROM calendar_days calendar_row
+                            LEFT JOIN submission_dates submitted_row
+                                ON submitted_row.submitted_date = calendar_row.calendar_date
+                            WHERE calendar_row.day_offset >= start_value.day_offset
+                              AND submitted_row.submitted_date IS NULL
+                        ),
+                        366
+                    ) - start_value.day_offset
+                END AS streak
+                FROM streak_start_value start_value
+            )
+            SELECT COUNT(*) AS submission_count,
+                   COUNT(DISTINCT CASE
+                       WHEN status = 'Accepted' AND problem_id IS NOT NULL THEN problem_id
+                   END) AS accepted_problem_count,
+                   COALESCE((SELECT streak FROM streak_length), 0) AS streak
+            FROM submissions
+            WHERE user_id = #{userId}
+            """)
+    SubmissionUserDetailStatsSnapshotDTO findUserDetailStatsByUserId(
+            @Param("userId") String userId);
 
     /** Monthly submission stats for a user (user read). */
     @Select("SELECT DATE_FORMAT(created_at, '%Y-%m') as month, "

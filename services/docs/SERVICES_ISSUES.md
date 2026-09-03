@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-09-01
+更新时间：2026-09-03
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与可选外部运行触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -15,15 +15,25 @@
 
 ## 当前结论
 
-当前拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）与两个 Worker（Judge、Search）。仓库范围内的服务边界、Submission 单写者、Contract 收敛和发布控制面已闭环；剩余问题均列为需要真实指标、环境或授权的 `DEFERRED` 项。
+当前拓扑为五个 Data Owner（Auth、Admin、App、Submission、Notification）与两个 Worker（Judge、Search）。仓库范围内的服务边界、Submission 单写者、Contract 收敛、验证层级（`static/unit/quick/full-local/full/integration`）、DevStack 场景化（`--scope` + 统一 lifecycle resolver）、Admin 用户详情深 Module（`AdminUserDetailQuery`，权限写 fail closed、Submission 单次 snapshot）、协调发布控制面（matrix 分类、`describe`、GitLab 直连路径退役）与 App interface locality（10 个 App-only interface 移出 `app-api`）已闭环；剩余问题列于下方 OPEN/DEFERRED，触发条件明确。
 
 项目当前没有生产环境，是正在开发的开源项目。仓库内的生产 profile 只描述安全边界；凡是可复现的运行行为统一使用短时、隔离、可销毁的 disposable 模拟环境验证，不把模拟结果写成生产证据。不为形式上的“企业级”提前引入 Kubernetes、Service Mesh、新 MQ 或分布式事务框架。
 
 ## OPEN
 
-当前没有剩余的仓库可执行 OPEN 项。
+### SVC-020 后端零基础设施 unit allowlist（U-03）
+
+现状：`static` 已零基础设施化并有 deny-shim 自证；`unit`/`quick` 的前端部分在已有 `node_modules` 时可运行，但后端 unit 分级没有逐测试的外部资源分类证据，`scripts/dev/test.sh` 在缺少 Maven `-Punit` profile（`<id>unit</id>`）时按设计 fail closed（exit 2 + 精确原因），不伪称安全覆盖。
+
+收敛路径：为 `services/pom.xml` 增加 `unit` profile（排除 `*IT`、禁止 Testcontainers），在无 Docker socket/无依赖端口的 deny 环境按模块运行并分类；Spring slice 隐式自动配置外部 client 的测试须改造为 in-memory adapter 或移入 integration。关闭条件：`unit` 在 deny 环境下通过且 zero-infra contract 的负样本仍失败。
 
 ## CLOSED
+
+### SVC-019 Admin 用户详情权限丢失与空集回写风险（CLOSED）
+
+现状：Admin 用户详情路径原在权限读取失败（null/transport/exception）时把 permissions 当作空集返回，写路径可将空集构造成全量替换 `ChangeAuthorizationCommand`，造成授权数据丢失；详情聚合对 Submission 逐项三次 RPC 且 nullable 伪装为 0。现已收口为单 use-case `AdminUserDetailQuery` 深 Module：第一轮 Auth account 权威判定（不可用 → UNAVAILABLE），第二轮在有界 executor 与共同 wall budget 内并行获取 Auth `AuthorizationSnapshotService`（删除冗余 RoleTemplate RPC）、App profile/solution facts 与 Submission 单次 stats snapshot（`SubmissionUserDetailStatsPort`，一次返回 submission count/accepted count/streak）；顶层 `OK/PARTIAL/UNAVAILABLE` + 区块状态/原因；权限写前要求 permission section=OK 且 snapshot 版本完整，读取失败零写入，proven-empty grant 与 proven-absent revoke no-op 保持合法；旧 `AdminUserStatsReadPort`/`AdminUserStatsReadAdapter` 及其测试已删除（全仓库无 consumer）。REST wire shape 加性扩展，Management `User` 类型与详情 UI 消费区块状态，权限写控件在 permission section 不可证明时禁用。
+
+证据：[`AdminUserDetailQuery.java`](../admin/src/main/java/com/ulticode/modules/admin/query/AdminUserDetailQuery.java)、[`DefaultAdminUserDetailQuery.java`](../admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java)、[`UserPermissionServiceImpl.java`](../admin/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java)、[`AdminUserVO.java`](../admin/src/main/java/com/ulticode/modules/admin/dto/AdminUserVO.java)、[`SubmissionUserDetailStatsPort.java`](../api/submission-api/src/main/java/com/ulticode/submission/api/service/SubmissionUserDetailStatsPort.java)、[`gate-admin-rpc-budget.sh`](../../scripts/test/gate-admin-rpc-budget.sh)；回归见 `AdminUserDetailQueryTest`/`UserPermissionServiceImplTest`/`AdminUserProjectionTest`（权限 null/failure/exception 零写入断言）。事件化用户读模型仍是 No-Go（触发条件见 SVC-006）。残余验证缺口：optional 扇出在 executor 拒绝时取消兄弟任务的查询级回归测试无法从外部确定性构造（account 与 optional 共用同一 executor，worker 启动竞态使预占不可复现）；生产实现按 allOf 语义在任何子任务异常时即抛并进入取消分支，executor 级拒绝/取消语义由 `CancellableQueryExecutorCrTest` 覆盖。
 
 ### SVC-003 P1 Submission ownership contraction (CLOSED)
 
@@ -94,11 +104,29 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 现状：`docs/` 经 `P5-GATE-001` 前的 `182 .md` 扫描已分流（`docs 100` `services/docs 8` 等），`CONTEXT.md` 的 `Submission intake` 已由 `DefaultSubmissionWritePort` 更正为 `SubmissionIntakePort/RemoteSubmissionWritePort`，`docs/archive/contest/README.md` 的“现行”已更正为“历史归档”。以下历史快照仍保留旧表述，属有意冻结的证据，不视为现行运营真理：
 
 - `docs/architecture/decisions/0007-legacy-compatibility-lifecycle.md` 正文仍保留 `legacy-rollback`/`App Judge adapter` 的 `P4 前` 基线描述，顶部 `Amendment 2026-09-02` 已声明 `006..011 DONE` 且当前二进制 `fail closed`
-- `P0-BASELINE-001..005`、`P2-APP-001/002/004`、`P5-GATE-001` 为 `c344` 前冻结基线，已由 `P4-LEGACY-005/011` 与 `current-status.md` 的 `43/43 DONE` 覆盖
+- `P0-BASELINE-001..005`、`P2-APP-001/002/004`、`P5-GATE-001` 为 `c344` 前冻结基线，已由 `P4-LEGACY-005/011` 与 remediation closure history 覆盖（不再引用易漂移计数）
 - `P1-INFRA-001` 中 `legacy queue` 行、`P4-LEGACY-005` 的 `remains until P4-010` 文案、`P5-GATE-004` 的 `status` 与 `current-status` 的 `1 composite FAIL + 单跑 PASS` 差异均为历史快照时态
 - `docs/archive/RUNBOOK.md`、`PRIVACY.md`、`DOCS-SPEC.md`、`ADR` 中 `backend-spring/console` 旧路径为归档设计态，非现行 `services/app`/`apps/console` 运营路径
 
 触发条件：`P5-GATE-001` 最终基线刷新（`evidence` 重建）时统一替换上述冻结快照；触发前以 `Amendment` 与本条目为准，不重复报为缺陷。`CONTEXT.md` 与 `archive/contest/README` 的 `1 行` 现行性修正已随 `c0f79f2`/`68cbbdc` 落地，无需再触发。
+
+### SVC-021 GitLab runner 使用 authority（DEFERRED）
+
+现状：`.gitlab-ci.yml` 旧直连部署 job 已于 2026-09-03 退役禁用（`stages: []`），固定路径 `git reset --hard` + 直接 Compose build/up 不再存在；任何保留路径必须消费 canonical preflight/descriptor。仓库内无该 runner 仍被外部使用的证据。
+
+触发条件：部署 authority 提供 runner/pipeline 使用证据时重评；有 active 使用则只能通过 canonical 控制面接回，不得恢复 reset/build/up 捷径。
+
+### SVC-022 dev-lite 默认 journey 证据（DEFERRED）
+
+现状：`dev-lite` 兼容默认保留（六后端），新增 `app-journey`/`admin`/`submission-judge`/`search`/`full-stack` 显式 scope 与统一 lifecycle；默认翻转需要默认 journey 的依赖与 smoke 证据。
+
+触发条件：在 disposable 环境运行一次 app-journey 可验收 smoke（依赖 `DEV_LOCAL_*`/cutover marker 授权）后裁决默认 scope；未验证前不翻转默认。
+
+### SVC-023 Forum/Solution 内部 Module pilot（DEFERRED/NO-GO 至今）
+
+现状：App `app-api` 71 个 interface 已有 consumer catalog，10 个 App-only seam 已迁入私有 Module/内部包；Forum/Solution 的私有 Module pilot 需要真实业务变更触发与准入 scorecard（`AppModuleSplitAdmissionGateTest`）双过。当前无真实变更触发，按 NO-GO 保持现状（不搬文件、不拆进程/DB/RPC）。
+
+触发条件：下一次真实 Forum/Solution 业务或缺陷变更发生时重跑 scorecard；任一必备维度失败即继续 NO-GO。
 
 ## CLOSED (historical findings)
 
@@ -136,6 +164,11 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 | SVC-016 | Search and SubmissionJudged inbox bridges reject events with unsupported owner tags before durable handling |
 | SVC-017 | Search versioned index operations use a per-index/document Redis lease; stale/equal DELETE and lock-contention regressions are covered by worker tests; contention defers events without inflating delivery counts (no valid-event dead-lettering), and the ledger write is guarded by a lease-ownership re-check |
 | SVC-018 | Bootstrap provisioning uses a dedicated `BOOTSTRAP` actor, scoped assertion secret, explicit runner gate, provider operation allowlist, fail-closed Auth query preflights, and propagated restore RPC failures; the administrator count is role-filtered (`ADMIN`+`SUPER_ADMIN`), not an all-account count |
+| 验证入口层级与 `quick` 语义漂移 | `test.sh static/unit/quick/full-local/full/integration` 六模式 + `--describe`；`quick` 弃用别名映射 static+unit；零基础设施 deny-shim 自证 `scripts/test/zero-infra-validation-contract.sh`；后端 unit 分级未解前 fail closed（见 OPEN SVC-020） |
+| DevStack 服务集合漂移 | `devstack-manifest.sh` 场景 resolver（apps/infra/readiness/ports/features）；up/stop/status/logs/health/doctor 消费同一集合；显式 Compose targets，Search off 不启动 Meili；契约见 `devlite-minimal-contract.sh`/`devstack-control-contract.sh` |
+| 旧 GitLab 直连部署控制面 | `.gitlab-ci.yml` 退役禁用（无 reset/build/up 路径）；canonical 控制面唯一；只读 `deployment-integrity.sh describe` + matrix/Compose `verify-registry`；runner authority 见 DEFERRED SVC-021 |
+| app-api 收纳纯 App 内部 interface | 71-interface consumer catalog；10 个 App-only seam 迁入私有 Module/内部包（contest push/subscription、problem 内部 read ports）；`api-contract-boundary-contract.sh` 校验单一权威位置；内部 Module 准入由 `AppModuleSplitAdmissionGateTest` 固守 |
+| Auth `RoleTemplateService` provider 无消费者 | Admin 详情切至 `AuthorizationSnapshotService` 后无剩余 consumer；Auth provider 与其测试已删除，contract interface 保留（无 provider 引用） |
 
 ## ACCEPTED
 

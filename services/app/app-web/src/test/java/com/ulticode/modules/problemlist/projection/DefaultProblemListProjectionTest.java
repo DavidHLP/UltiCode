@@ -15,7 +15,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
-import com.ulticode.app.api.service.ProblemListReadPort;
+import com.ulticode.modules.problem.port.ProblemListReadPort;
 import com.ulticode.app.api.dto.NotificationUserInfo;
 import com.ulticode.app.api.service.UserReadPort;
 import org.junit.jupiter.api.DisplayName;

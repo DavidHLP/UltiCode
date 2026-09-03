@@ -17,7 +17,11 @@ class AppRedisRoleConfigTest {
 
     @Test
     void roleAliasesPreserveBootRedisConnectionFactory() {
+        // AppRedisRoleConfig is @Profile("!test"); the reactor test profile
+        // must not mask the alias wiring under verification. Pin a dedicated
+        // active profile so the assertion exercises the production config.
         runner.withPropertyValues(
+                        "spring.profiles.active=alias-check",
                         "spring.data.redis.host=localhost",
                         "spring.data.redis.port=6379")
                 .run(context -> {

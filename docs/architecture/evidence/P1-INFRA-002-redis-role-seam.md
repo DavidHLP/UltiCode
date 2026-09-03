@@ -44,7 +44,7 @@ The Redis ACL contract asserts these scoped selectors, deny-by-default, no unres
 
 - `rtk bash scripts/test/redis-acl-contract.sh` => PASS.
 - `rtk ./scripts/dev/test.sh quick` => PASS (all static contracts, Maven reactor, frontend checks; external-only drills remain BLOCKED_EXTERNAL as designed).
-- 历史时态：`quick` 已于 2026-09-03 收敛为 `static + unit` 的弃用别名，后端 unit allowlist 未解（U-03）前 fail closed；本记录的 Maven reactor/frontend 全量语义现由 `full-local` 承担（见 `docs/development/testing.md`、`scripts/dev/test.sh --describe` 与 `current-status.md`）。
+- 历史时态：上一条 `quick` PASS 记录于语义收敛前；`quick` 已于 2026-09-03 收敛为 `static + unit` 的弃用别名，同日 U-03/SVC-020 以根 POM `unit` profile + deny 环境实证关闭（5786 测试零失败、零 Testcontainers/IT），后端 `unit` 不再 fail closed。当时的 Maven reactor/frontend 全量语义现由 `full-local` 承担（见 `docs/development/testing.md`、`scripts/dev/test.sh --describe` 与 `current-status.md`）。
 - `AppRedisRoleConfigTest` covers delegate identity and complete seven-role vocabulary; full App module test remains the behavioral regression surface.
 - `git diff --check` required before commit.
 

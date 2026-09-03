@@ -4,7 +4,7 @@
 
 ## 总体状态
 
-仓库当前位于 `main`（与 `origin/main` 同步）。历史 remediation 与 follow-up
+仓库当前位于 `main`。历史 remediation 与 follow-up
 基线均已关闭（见[归档证据入口](../archive/README.md)与
 [`history/architecture-remediation-20260830.md`](history/architecture-remediation-20260830.md)，
 历史快照保持历史时态，不作为当前事实）。

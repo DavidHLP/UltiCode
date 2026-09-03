@@ -74,4 +74,4 @@ fail-closed 行为。
 - Architecture map：[`../architecture/overview.md`](../architecture/overview.md)
 - Operational procedures：[`../operations/`](../operations/deployment.md)
 - HA/reference topology 决策：[`../architecture/decisions/0001-deferred-platform-expansion.md`](../architecture/decisions/0001-deferred-platform-expansion.md)
-- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）与 [`../architecture/evidence/P5-GATE-004-final-integration-matrix.md`](../architecture/evidence/P5-GATE-004-final-integration-matrix.md)（已提交证据矩阵）；本轮深化计划的机器任务正本不在仓库内（规划 artifact 位于本地 `.codex/visualizations/`，只读，不提交）
+- Follow-up plan：[`../architecture/plans/ulticode-architecture-followup-plan.md`](../architecture/plans/ulticode-architecture-followup-plan.md)（历史规划快照，`COMPLETED`）与 [`../architecture/evidence/P5-GATE-004-final-integration-matrix.md`](../architecture/evidence/P5-GATE-004-final-integration-matrix.md)（已提交证据矩阵）；本轮深化计划的机器任务正本不在仓库内（规划 artifact 位于本机 harness 会话目录 `~/.codex/visualizations/2026/09/02/`，只读，不提交）
